@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Modular Service Manager
+// FerrumOS — Modular Service Manager
 // ============================================================================
 // Manages lifecycle of kernel and userspace services.
 // Designed as the integration point for future AI runtime services.

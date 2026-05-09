@@ -1,4 +1,4 @@
-# HelioxOS Build Helper Script
+# FerrumOS Build Helper Script
 # Usage: .\build.ps1 [build|run|clean|check]
 
 param(
@@ -15,21 +15,21 @@ $env:Path = "$NightlyBin;$CargoBin;" + [System.Environment]::GetEnvironmentVaria
 
 switch ($Action) {
     "build" {
-        Write-Host "Building HelioxOS..." -ForegroundColor Cyan
+        Write-Host "Building FerrumOS..." -ForegroundColor Cyan
         cargo build 2>&1 | ForEach-Object { $_.ToString() }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "`nKernel build failed." -ForegroundColor Red
             exit $LASTEXITCODE
         }
 
-        if (Test-Path "target\x86_64-unknown-none\debug\helioxos") {
+        if (Test-Path "target\x86_64-unknown-none\debug\FerrumOS") {
             Write-Host "`nBuild successful!" -ForegroundColor Green
             cargo bootimage 2>&1 | ForEach-Object { $_.ToString() }
             if ($LASTEXITCODE -ne 0) {
                 Write-Host "Boot image creation failed." -ForegroundColor Red
                 exit $LASTEXITCODE
             }
-            $img = "target\x86_64-unknown-none\debug\bootimage-helioxos.bin"
+            $img = "target\x86_64-unknown-none\debug\bootimage-ferrumos.bin"
             if (Test-Path $img) {
                 $size = (Get-Item $img).Length
                 Write-Host "Boot image: $img ($([math]::Round($size/1KB)) KB)" -ForegroundColor Green
@@ -37,13 +37,13 @@ switch ($Action) {
         }
     }
     "run" {
-        Write-Host "Building and running HelioxOS in QEMU..." -ForegroundColor Cyan
+        Write-Host "Building and running FerrumOS in QEMU..." -ForegroundColor Cyan
         cargo bootimage 2>&1 | ForEach-Object { $_.ToString() }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Boot image creation failed." -ForegroundColor Red
             exit $LASTEXITCODE
         }
-        $img = "target\x86_64-unknown-none\debug\bootimage-helioxos.bin"
+        $img = "target\x86_64-unknown-none\debug\bootimage-ferrumos.bin"
         if (Test-Path $img) {
             $qemu = (Get-Command qemu-system-x86_64 -ErrorAction SilentlyContinue).Source
             if (-not $qemu -and (Test-Path "C:\Program Files\GNS3\qemu-3.1.0\qemu-system-x86_64.exe")) {
@@ -65,7 +65,7 @@ switch ($Action) {
         Write-Host "Clean complete." -ForegroundColor Green
     }
     "check" {
-        Write-Host "Checking HelioxOS for errors..." -ForegroundColor Cyan
+        Write-Host "Checking FerrumOS for errors..." -ForegroundColor Cyan
         cargo check 2>&1 | ForEach-Object { $_.ToString() }
         if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE

@@ -1,5 +1,5 @@
 # ============================================================================
-# HelioxOS — A Rust-based AI-Native Autonomous Operating System
+# FerrumOS — A Rust-based AI-Native Autonomous Operating System
 # ============================================================================
 # Version: 0.1.0
 # Architecture: x86_64 bare-metal
@@ -7,10 +7,10 @@
 # ============================================================================
 
 [package]
-name = "helioxos"
+name = "ferrumos"
 version = "0.1.0"
 edition = "2021"
-authors = ["HelioxOS Contributors"]
+authors = ["FerrumOS Contributors"]
 description = "A minimal modular Rust-based operating system designed as the foundation for an AI-native autonomous computing environment"
 license = "MIT"
 

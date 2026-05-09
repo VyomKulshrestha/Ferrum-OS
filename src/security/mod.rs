@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Capability-Based Security Subsystem
+// FerrumOS — Capability-Based Security Subsystem
 // ============================================================================
 // Implements a deny-by-default capability-based permission model.
 // Every action requires an explicit capability token.

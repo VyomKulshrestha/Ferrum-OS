@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS - Inter-Process Communication Contracts
+// FerrumOS - Inter-Process Communication Contracts
 // ============================================================================
 // The v0.1 kernel does not run AI systems, semantic memory, or vector search.
 // This module defines deterministic IPC metadata that future runtime services

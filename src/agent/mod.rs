@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS - Agent Runtime Boundary
+// FerrumOS - Agent Runtime Boundary
 // ============================================================================
 // This is not the AI agent itself. It is the deterministic service boundary
 // that a future Heliox runtime can attach to from userspace. The Python/Tauri

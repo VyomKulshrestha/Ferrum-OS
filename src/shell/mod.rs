@@ -49,5 +49,5 @@ pub fn run() -> ! {
 }
 
 fn print_prompt() {
-    print!("helioxos:~$ ");
+    print!("FerrumOS:~$ ");
 }

@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — RAM Filesystem (RamFS)
+// FerrumOS — RAM Filesystem (RamFS)
 // ============================================================================
 // In-memory hierarchical filesystem for early kernel development.
 // All data is volatile — lost on reboot.
@@ -42,13 +42,13 @@ pub fn init() {
     
     // Create a welcome file
     children.insert("readme.txt".to_string(), FsNode::File {
-        content: String::from("Welcome to HelioxOS v0.1.0\nAI-Native Autonomous OS Foundation\n"),
+        content: String::from("Welcome to FerrumOS v0.1.0\nAI-Native Autonomous OS Foundation\n"),
     });
     
     // Create /etc/motd
     if let Some(FsNode::Directory { children: ref mut etc_children }) = children.get_mut("etc") {
         etc_children.insert("hostname".to_string(), FsNode::File {
-            content: String::from("helioxos"),
+            content: String::from("FerrumOS"),
         });
         etc_children.insert("version".to_string(), FsNode::File {
             content: String::from("0.1.0"),

@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Main Entry Point
+// FerrumOS — Main Entry Point
 // ============================================================================
 // This is the kernel entry point. The bootloader hands control here after
 // setting up basic hardware state (GDT, page tables, stack).
@@ -11,19 +11,19 @@
 #![no_std]                          // No standard library
 #![no_main]                         // No Rust runtime entry point
 #![feature(custom_test_frameworks)] // Custom test runner
-#![test_runner(helioxos::test_runner)]
+#![test_runner(ferrumos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
 
 use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
-use helioxos::println;
+use ferrumos::println;
 
 // Register our kernel entry point with the bootloader
 entry_point!(kernel_main);
 
-/// HelioxOS Kernel Entry Point
+/// FerrumOS Kernel Entry Point
 /// 
 /// Called by the bootloader after basic hardware initialization.
 /// This function initializes all kernel subsystems in the correct order
@@ -37,14 +37,14 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     print_boot_banner();
     
     // Initialize GDT, IDT, and interrupt controllers
-    helioxos::init();
+    ferrumos::init();
     println!("[  OK  ] Interrupts and GDT initialized");
 
     // ========================================================================
     // Phase 2: Memory Subsystem
     // ========================================================================
     
-    use helioxos::memory;
+    use ferrumos::memory;
     use x86_64::VirtAddr;
 
     // Initialize page table mapper
@@ -58,38 +58,38 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("[  OK  ] Page table mapper initialized");
     
     // Initialize kernel heap
-    helioxos::memory::heap::init_heap(&mut mapper, &mut frame_allocator)
+    ferrumos::memory::heap::init_heap(&mut mapper, &mut frame_allocator)
         .expect("Heap initialization failed");
     println!("[  OK  ] Kernel heap initialized ({}KB)", 
-        helioxos::memory::heap::HEAP_SIZE / 1024);
+        ferrumos::memory::heap::HEAP_SIZE / 1024);
 
     // ========================================================================
     // Phase 3: Kernel Subsystems
     // ========================================================================
     
     // Initialize logging subsystem
-    helioxos::logging::init();
+    ferrumos::logging::init();
     println!("[  OK  ] Logging subsystem initialized");
     
     // Initialize filesystem
-    helioxos::fs::init();
+    ferrumos::fs::init();
     println!("[  OK  ] RAM filesystem initialized");
     
     // Initialize security subsystem
-    helioxos::security::init();
+    ferrumos::security::init();
     println!("[  OK  ] Capability-based security initialized");
     
     // Initialize service manager
-    helioxos::services::init();
+    ferrumos::services::init();
     println!("[  OK  ] Service manager initialized");
 
     // Initialize the agent runtime boundary. This registers a sandboxed
     // runtime service without loading any probabilistic agent code in kernel.
-    helioxos::agent::init();
+    ferrumos::agent::init();
     println!("[  OK  ] Agent runtime boundary initialized");
     
     // Initialize scheduler
-    helioxos::scheduler::init();
+    ferrumos::scheduler::init();
     println!("[  OK  ] Task scheduler initialized");
     
     // ========================================================================
@@ -97,14 +97,14 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // ========================================================================
     
     // Log boot completion
-    helioxos::logging::audit::log_event(
-        helioxos::logging::audit::AuditEvent::SystemBoot,
-        "HelioxOS kernel boot sequence completed successfully",
+    ferrumos::logging::audit::log_event(
+        ferrumos::logging::audit::AuditEvent::SystemBoot,
+        "FerrumOS kernel boot sequence completed successfully",
     );
     
     println!();
     println!("\x1b[36m╔══════════════════════════════════════════════════════════╗\x1b[0m");
-    println!("\x1b[36m║\x1b[0m  HelioxOS v0.1.0 — AI-Native Autonomous OS Foundation   \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m  FerrumOS v0.1.0 — AI-Native Autonomous OS Foundation   \x1b[36m║\x1b[0m");
     println!("\x1b[36m║\x1b[0m  Type 'help' for available commands                     \x1b[36m║\x1b[0m");
     println!("\x1b[36m╚══════════════════════════════════════════════════════════╝\x1b[0m");
     println!();
@@ -112,7 +112,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // VGA text mode does not interpret ANSI escapes and only supports a
     // small character set. Clear the decorative boot art and leave the user
     // at a deterministic ASCII shell-ready screen.
-    helioxos::vga::WRITER.lock().clear_screen();
+    ferrumos::vga::WRITER.lock().clear_screen();
     print_ready_banner();
 
     // Run tests if in test mode
@@ -120,10 +120,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     test_main();
 
     // Enter the shell — this never returns
-    helioxos::shell::run();
+    ferrumos::shell::run();
 }
 
-/// Print the HelioxOS boot banner with ASCII art
+/// Print the FerrumOS boot banner with ASCII art
 fn print_boot_banner() {
     println!();
     println!("\x1b[33m ██╗  ██╗███████╗██╗     ██╗ ██████╗ ██╗  ██╗ ██████╗ ███████╗\x1b[0m");
@@ -133,14 +133,14 @@ fn print_boot_banner() {
     println!("\x1b[33m ██║  ██║███████╗███████╗██║╚██████╔╝██╔╝ ██╗╚██████╔╝███████║\x1b[0m");
     println!("\x1b[33m ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝\x1b[0m");
     println!();
-    println!("  Booting HelioxOS v0.1.0 — AI-Native Autonomous OS");
+    println!("  Booting FerrumOS v0.1.0 — AI-Native Autonomous OS");
     println!("  Architecture: x86_64 | Mode: Protected");
     println!();
 }
 
 /// Print the shell-ready status screen using only VGA-safe ASCII.
 fn print_ready_banner() {
-    println!("HelioxOS v0.1.0");
+    println!("FerrumOS v0.1.0");
     println!("AI-Native Autonomous OS Foundation");
     println!();
     println!("[ OK ] Interrupts and GDT initialized");
@@ -165,12 +165,12 @@ fn print_ready_banner() {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("\x1b[31m[KERNEL PANIC]\x1b[0m {}", info);
-    helioxos::hlt_loop();
+    ferrumos::hlt_loop();
 }
 
 /// Test-mode panic handler — exits QEMU with failure code
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    helioxos::test_panic_handler(info)
+    ferrumos::test_panic_handler(info)
 }

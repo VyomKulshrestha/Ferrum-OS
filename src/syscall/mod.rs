@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS - Syscall ABI Skeleton
+// FerrumOS - Syscall ABI Skeleton
 // ============================================================================
 // This module defines the stable kernel/userspace boundary before true
 // userspace execution exists. Handlers are intentionally minimal in v0.1:

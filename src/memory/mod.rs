@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Memory Management Subsystem
+// FerrumOS — Memory Management Subsystem
 // ============================================================================
 // Manages physical and virtual memory for the kernel.
 //

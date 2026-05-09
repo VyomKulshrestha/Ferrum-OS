@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Kernel Library Root
+// FerrumOS — Kernel Library Root
 // ============================================================================
 // This is the central library that exposes all kernel subsystems.
 // Each subsystem is a separate module with clear boundaries.

@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Serial Port Driver (UART 16550)
+// FerrumOS — Serial Port Driver (UART 16550)
 // ============================================================================
 // Provides serial output for QEMU debugging.
 // Serial output is invaluable during OS development because it doesn't

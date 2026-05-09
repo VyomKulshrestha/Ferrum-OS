@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Kernel Heap Allocator
+// FerrumOS — Kernel Heap Allocator
 // ============================================================================
 // Sets up a heap region in virtual memory for dynamic allocation.
 //

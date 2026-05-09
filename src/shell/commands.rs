@@ -1,4 +1,4 @@
-// HelioxOS — Shell Commands
+// FerrumOS — Shell Commands
 extern crate alloc;
 
 use alloc::string::String;
@@ -40,12 +40,12 @@ pub fn execute(input: &str) {
         "kill" => cmd_kill(args),
         "security" => cmd_security(),
         "about" => cmd_about(),
-        _ => println!("helioxos: command not found: {}", command),
+        _ => println!("FerrumOS: command not found: {}", command),
     }
 }
 
 fn cmd_help() {
-    println!("HelioxOS Shell Commands:");
+    println!("FerrumOS Shell Commands:");
     println!("  help       Show this help message");
     println!("  clear      Clear the screen");
     println!("  echo       Print arguments to screen");
@@ -69,7 +69,7 @@ fn cmd_help() {
     println!("  spawn <n>  Spawn a new task");
     println!("  kill <id>  Kill a task by ID");
     println!("  security   Show security status");
-    println!("  about      About HelioxOS");
+    println!("  about      About FerrumOS");
 }
 
 fn cmd_clear() {
@@ -287,7 +287,7 @@ fn cmd_uptime() {
 }
 
 fn cmd_uname() {
-    println!("HelioxOS v0.1.0 x86_64 (Rust nightly)");
+    println!("FerrumOS v0.1.0 x86_64 (Rust nightly)");
     println!("AI-Native Autonomous OS Foundation");
     println!("Kernel: microkernel-inspired, capability-based");
 }
@@ -335,7 +335,7 @@ fn cmd_security() {
 }
 
 fn cmd_about() {
-    println!("HelioxOS v0.1.0");
+    println!("FerrumOS v0.1.0");
     println!("A minimal modular Rust-based operating system designed as");
     println!("the foundation for an AI-native autonomous computing environment.");
     println!();

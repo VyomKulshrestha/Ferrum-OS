@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Interrupt Handling Subsystem
+// FerrumOS — Interrupt Handling Subsystem
 // ============================================================================
 // Manages the Interrupt Descriptor Table (IDT) and hardware interrupt routing.
 //

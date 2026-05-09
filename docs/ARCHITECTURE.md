@@ -1,4 +1,4 @@
-# HelioxOS Architecture
+# FerrumOS Architecture
 
 ## Core Boundary
 

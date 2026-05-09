@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — Audit Trail Logger
+// FerrumOS — Audit Trail Logger
 // ============================================================================
 // Records security-relevant events for post-incident analysis.
 // All security violations, capability changes, and system events are logged.

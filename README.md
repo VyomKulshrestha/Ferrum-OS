@@ -1,9 +1,9 @@
-# HelioxOS
+# FerrumOS
 
 A minimal modular Rust-based operating system designed as the long-term
 foundation for an AI-native autonomous computing environment.
 
-HelioxOS keeps the kernel deterministic, lightweight, and independent from
+FerrumOS keeps the kernel deterministic, lightweight, and independent from
 probabilistic AI systems. AI inference, semantic memory, vector databases, and
 agent orchestration belong in runtime services above the kernel, not in the
 kernel core.
@@ -70,7 +70,7 @@ cargo install bootimage
 The boot image is created at:
 
 ```text
-target\x86_64-unknown-none\debug\bootimage-helioxos.bin
+target\x86_64-unknown-none\debug\bootimage-ferrumos.bin
 ```
 
 To run after installing QEMU:
@@ -107,7 +107,7 @@ To run after installing QEMU:
 | `spawn <name>` | Spawn a task metadata record |
 | `kill <pid>` | Mark a task dead |
 | `security` | Show security status |
-| `about` | Show HelioxOS architecture notes |
+| `about` | Show FerrumOS architecture notes |
 
 ## Development Priorities
 
@@ -121,7 +121,7 @@ To run after installing QEMU:
 ## Agent Integration Path
 
 The current `agentd` service is a deterministic boundary, not the full AI
-agent. It lets HelioxOS start a sandboxed service and pass bounded IPC messages
+agent. It lets FerrumOS start a sandboxed service and pass bounded IPC messages
 through capability checks.
 
 Try it in QEMU:

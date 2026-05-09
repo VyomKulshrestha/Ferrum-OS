@@ -1,5 +1,5 @@
 // ============================================================================
-// HelioxOS — VGA Text Mode Driver
+// FerrumOS — VGA Text Mode Driver
 // ============================================================================
 // Provides direct access to the VGA text mode framebuffer at 0xB8000.
 // Supports colored text output with a global writer protected by a spinlock.
