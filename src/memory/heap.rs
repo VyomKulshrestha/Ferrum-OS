@@ -1,5 +1,5 @@
-// ============================================================================
-// FerrumOS — Kernel Heap Allocator
+﻿// ============================================================================
+// FerrumOS - Kernel Heap Allocator
 // ============================================================================
 // Sets up a heap region in virtual memory for dynamic allocation.
 //
@@ -41,8 +41,8 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 /// Must be called after page table and frame allocator initialization.
 /// 
 /// # Arguments
-/// * `mapper` — The page table mapper
-/// * `frame_allocator` — Physical frame allocator
+/// * `mapper` - The page table mapper
+/// * `frame_allocator` - Physical frame allocator
 /// 
 /// # Errors
 /// Returns `MapToError` if page mapping fails

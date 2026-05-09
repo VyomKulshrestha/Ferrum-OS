@@ -1,10 +1,10 @@
-// ============================================================================
-// FerrumOS — VGA Text Mode Driver
+﻿// ============================================================================
+// FerrumOS - VGA Text Mode Driver
 // ============================================================================
 // Provides direct access to the VGA text mode framebuffer at 0xB8000.
 // Supports colored text output with a global writer protected by a spinlock.
 //
-// The VGA buffer is 80 columns × 25 rows of character cells, each cell
+// The VGA buffer is 80 columns x 25 rows of character cells, each cell
 // containing an ASCII character and a color attribute byte.
 // ============================================================================
 
@@ -228,7 +228,7 @@ macro_rules! println {
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
 
-/// Internal print function — do not call directly
+/// Internal print function - do not call directly
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;

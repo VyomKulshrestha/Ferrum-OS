@@ -1,11 +1,11 @@
-// ============================================================================
-// FerrumOS — Main Entry Point
+﻿// ============================================================================
+// FerrumOS - Main Entry Point
 // ============================================================================
 // This is the kernel entry point. The bootloader hands control here after
 // setting up basic hardware state (GDT, page tables, stack).
 //
 // Architecture: x86_64 bare-metal
-// No standard library — we are the operating system.
+// No standard library - we are the operating system.
 // ============================================================================
 
 #![no_std]                          // No standard library
@@ -103,10 +103,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     );
     
     println!();
-    println!("\x1b[36m╔══════════════════════════════════════════════════════════╗\x1b[0m");
-    println!("\x1b[36m║\x1b[0m  FerrumOS v0.1.0 — AI-Native Autonomous OS Foundation   \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m  Type 'help' for available commands                     \x1b[36m║\x1b[0m");
-    println!("\x1b[36m╚══════════════════════════════════════════════════════════╝\x1b[0m");
+    println!("\x1b[36m•”•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••-\x1b[0m");
+    println!("\x1b[36m•‘\x1b[0m  FerrumOS v0.1.0 - AI-Native Autonomous OS Foundation   \x1b[36m•‘\x1b[0m");
+    println!("\x1b[36m•‘\x1b[0m  Type 'help' for available commands                     \x1b[36m•‘\x1b[0m");
+    println!("\x1b[36m•š•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••\x1b[0m");
     println!();
 
     // VGA text mode does not interpret ANSI escapes and only supports a
@@ -119,21 +119,21 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    // Enter the shell — this never returns
+    // Enter the shell - this never returns
     ferrumos::shell::run();
 }
 
 /// Print the FerrumOS boot banner with ASCII art
 fn print_boot_banner() {
     println!();
-    println!("\x1b[33m ██╗  ██╗███████╗██╗     ██╗ ██████╗ ██╗  ██╗ ██████╗ ███████╗\x1b[0m");
-    println!("\x1b[33m ██║  ██║██╔════╝██║     ██║██╔═══██╗╚██╗██╔╝██╔═══██╗██╔════╝\x1b[0m");
-    println!("\x1b[33m ███████║█████╗  ██║     ██║██║   ██║ ╚███╔╝ ██║   ██║███████╗\x1b[0m");
-    println!("\x1b[33m ██╔══██║██╔══╝  ██║     ██║██║   ██║ ██╔██╗ ██║   ██║╚════██║\x1b[0m");
-    println!("\x1b[33m ██║  ██║███████╗███████╗██║╚██████╔╝██╔╝ ██╗╚██████╔╝███████║\x1b[0m");
-    println!("\x1b[33m ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝\x1b[0m");
+    println!("\x1b[33m -ˆ-ˆ•-  -ˆ-ˆ•--ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•--ˆ-ˆ•-     -ˆ-ˆ•- -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•- -ˆ-ˆ•-  -ˆ-ˆ•- -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•- -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•-\x1b[0m");
+    println!("\x1b[33m -ˆ-ˆ•‘  -ˆ-ˆ•‘-ˆ-ˆ•”•••••-ˆ-ˆ•‘     -ˆ-ˆ•‘-ˆ-ˆ•”•••-ˆ-ˆ•-•š-ˆ-ˆ•--ˆ-ˆ•”•-ˆ-ˆ•”•••-ˆ-ˆ•--ˆ-ˆ•”•••••\x1b[0m");
+    println!("\x1b[33m -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•‘-ˆ-ˆ-ˆ-ˆ-ˆ•-  -ˆ-ˆ•‘     -ˆ-ˆ•‘-ˆ-ˆ•‘   -ˆ-ˆ•‘ •š-ˆ-ˆ-ˆ•”• -ˆ-ˆ•‘   -ˆ-ˆ•‘-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•-\x1b[0m");
+    println!("\x1b[33m -ˆ-ˆ•”••-ˆ-ˆ•‘-ˆ-ˆ•”•••  -ˆ-ˆ•‘     -ˆ-ˆ•‘-ˆ-ˆ•‘   -ˆ-ˆ•‘ -ˆ-ˆ•”-ˆ-ˆ•- -ˆ-ˆ•‘   -ˆ-ˆ•‘•š••••-ˆ-ˆ•‘\x1b[0m");
+    println!("\x1b[33m -ˆ-ˆ•‘  -ˆ-ˆ•‘-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•--ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•--ˆ-ˆ•‘•š-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•”•-ˆ-ˆ•”• -ˆ-ˆ•-•š-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•”•-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•‘\x1b[0m");
+    println!("\x1b[33m •š••  •š•••š••••••••š••••••••š•• •š•••••••š••  •š•• •š•••••• •š•••••••\x1b[0m");
     println!();
-    println!("  Booting FerrumOS v0.1.0 — AI-Native Autonomous OS");
+    println!("  Booting FerrumOS v0.1.0 - AI-Native Autonomous OS");
     println!("  Architecture: x86_64 | Mode: Protected");
     println!();
 }
@@ -157,7 +157,7 @@ fn print_ready_banner() {
     println!();
 }
 
-/// Panic handler — called on unrecoverable errors
+/// Panic handler - called on unrecoverable errors
 /// 
 /// In a bare-metal environment, there's nowhere to unwind to.
 /// We print the panic info and halt the CPU.
@@ -168,7 +168,7 @@ fn panic(info: &PanicInfo) -> ! {
     ferrumos::hlt_loop();
 }
 
-/// Test-mode panic handler — exits QEMU with failure code
+/// Test-mode panic handler - exits QEMU with failure code
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

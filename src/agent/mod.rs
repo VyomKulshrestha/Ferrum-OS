@@ -1,9 +1,9 @@
-// ============================================================================
+﻿// ============================================================================
 // FerrumOS - Agent Runtime Boundary
 // ============================================================================
 // This is not the AI agent itself. It is the deterministic service boundary
-// that a future Heliox runtime can attach to from userspace. The Python/Tauri
-// Heliox agent should be ported or hosted above this boundary, never inside the
+// that a future agent runtime can attach to from userspace. The Python/Tauri
+// agent runtime should be ported or hosted above this boundary, never inside the
 // kernel core.
 // ============================================================================
 
@@ -46,7 +46,7 @@ static AGENT: Mutex<AgentState> = Mutex::new(AgentState {
 pub fn init() {
     let service_id = crate::services::register_service(
         AGENT_SERVICE,
-        "Heliox agent runtime boundary",
+        "agent runtime boundary",
         true,
     );
 

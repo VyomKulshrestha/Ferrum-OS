@@ -1,5 +1,5 @@
-// ============================================================================
-// FerrumOS — Task Scheduler
+﻿// ============================================================================
+// FerrumOS - Task Scheduler
 // ============================================================================
 // Cooperative round-robin task scheduler.
 //
@@ -37,7 +37,7 @@ pub enum TaskState {
     Running,
     /// Blocked waiting for a resource
     Blocked,
-    /// Terminated — awaiting cleanup
+    /// Terminated - awaiting cleanup
     Dead,
 }
 
@@ -47,13 +47,13 @@ pub enum TaskState {
 /// System tasks always run before user tasks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
-    /// Lowest priority — background maintenance
+    /// Lowest priority - background maintenance
     Idle = 0,
     /// Normal user tasks
     Normal = 1,
     /// Elevated priority for interactive tasks
     High = 2,
-    /// Highest priority — kernel and system services
+    /// Highest priority - kernel and system services
     System = 3,
 }
 
@@ -163,7 +163,7 @@ pub fn init() {
     SCHEDULER_INIT.store(true, Ordering::SeqCst);
 }
 
-/// Timer tick handler — called from the timer interrupt
+/// Timer tick handler - called from the timer interrupt
 /// 
 /// Increments tick counters for all active tasks.
 /// In a preemptive scheduler, this would trigger context switches.

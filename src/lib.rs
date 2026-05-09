@@ -1,20 +1,20 @@
-// ============================================================================
-// FerrumOS — Kernel Library Root
+﻿// ============================================================================
+// FerrumOS - Kernel Library Root
 // ============================================================================
 // This is the central library that exposes all kernel subsystems.
 // Each subsystem is a separate module with clear boundaries.
 //
 // Module Organization:
-//   vga        — VGA text mode display driver
-//   serial     — Serial port (UART) output for debugging
-//   interrupts — IDT, exception handlers, hardware interrupts
-//   memory     — Physical/virtual memory management, heap
-//   scheduler  — Cooperative task scheduler
-//   shell      — Interactive kernel shell
-//   fs         — RAM-based filesystem
-//   security   — Capability-based security model
-//   services   — Modular runtime service manager
-//   logging    — Kernel logging and audit trail
+//   vga        - VGA text mode display driver
+//   serial     - Serial port (UART) output for debugging
+//   interrupts - IDT, exception handlers, hardware interrupts
+//   memory     - Physical/virtual memory management, heap
+//   scheduler  - Cooperative task scheduler
+//   shell      - Interactive kernel shell
+//   fs         - RAM-based filesystem
+//   security   - Capability-based security model
+//   services   - Modular runtime service manager
+//   logging    - Kernel logging and audit trail
 // ============================================================================
 
 #![no_std]
@@ -74,7 +74,7 @@ pub mod ipc;
 pub mod syscall;
 
 /// Agent runtime service boundary
-/// Minimal deterministic bridge for the future Heliox agent runtime
+/// Minimal deterministic bridge for the future agent runtime runtime
 pub mod agent;
 
 /// Logging and audit trail
@@ -85,7 +85,7 @@ pub mod logging;
 // Global Descriptor Table
 // ============================================================================
 
-/// GDT module — manages segment descriptors and TSS
+/// GDT module - manages segment descriptors and TSS
 pub mod gdt {
     use x86_64::structures::tss::TaskStateSegment;
     use x86_64::structures::gdt::{GlobalDescriptorTable, Descriptor, SegmentSelector};
@@ -100,7 +100,7 @@ pub mod gdt {
     const STACK_SIZE: usize = 4096 * 5;
 
     lazy_static! {
-        /// Task State Segment — configures interrupt stack table
+        /// Task State Segment - configures interrupt stack table
         /// 
         /// The IST provides dedicated stacks for critical exception handlers,
         /// ensuring that stack overflow in the kernel doesn't cause triple faults.
@@ -196,7 +196,7 @@ impl<T: Fn()> Testable for T {
     }
 }
 
-/// Test runner — executes all registered tests and exits QEMU
+/// Test runner - executes all registered tests and exits QEMU
 pub fn test_runner(tests: &[&dyn Testable]) {
     serial_println!("Running {} tests", tests.len());
     for test in tests {
@@ -205,7 +205,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     exit_qemu(QemuExitCode::Success);
 }
 
-/// Panic handler for test mode — prints error and exits QEMU
+/// Panic handler for test mode - prints error and exits QEMU
 pub fn test_panic_handler(info: &core::panic::PanicInfo) -> ! {
     serial_println!("[failed]");
     serial_println!("Error: {}", info);

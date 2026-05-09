@@ -1,4 +1,4 @@
-# FerrumOS Cargo Build Configuration
+﻿# FerrumOS Cargo Build Configuration
 # Configures cross-compilation for bare-metal x86_64 target
 
 [build]

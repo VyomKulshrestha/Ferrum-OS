@@ -1,4 +1,4 @@
-# FerrumOS Architecture
+﻿# FerrumOS Architecture
 
 ## Core Boundary
 
@@ -18,7 +18,7 @@ semantic memory, or autonomous planning logic.
 ## Runtime Boundary
 
 Runtime services are the correct integration point for the existing Python
-Heliox desktop agent and future Rust services. They should receive only the
+desktop agent and future Rust services. They should receive only the
 capabilities required for their task and should communicate through IPC
 contracts or future shared-memory handles.
 

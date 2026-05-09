@@ -1,4 +1,4 @@
-// FerrumOS — Shell Commands
+﻿// FerrumOS - Shell Commands
 extern crate alloc;
 
 use alloc::string::String;
@@ -189,7 +189,7 @@ fn cmd_caps() {
     let caps = crate::security::list_capabilities();
     println!("Registered Capabilities:");
     for cap in &caps {
-        println!("  [{}] {} — {}", cap.id, cap.name, cap.description);
+        println!("  [{}] {} - {}", cap.id, cap.name, cap.description);
     }
 }
 
@@ -205,7 +205,7 @@ fn cmd_services() {
                 crate::services::ServiceState::Running => "RUNNING",
                 crate::services::ServiceState::Failed => "FAILED ",
             };
-            println!("  [{}] {} — {} ({})", svc.id, state, svc.name, svc.description);
+            println!("  [{}] {} - {} ({})", svc.id, state, svc.name, svc.description);
         }
     }
 }
@@ -241,7 +241,10 @@ fn cmd_agent(args: &[&str]) {
         "status" => {
             let status = crate::agent::status();
             println!("Agent Runtime Boundary:");
-            println!("  Service ID: {:?}", status.service_id);
+            match status.service_id {
+                Some(id) => println!("  Service ID: {}", id),
+                None => println!("  Service ID: none"),
+            }
             println!("  Running:    {}", status.running);
             println!("  Commands:   {}", status.commands_received);
             if !status.last_command.is_empty() {

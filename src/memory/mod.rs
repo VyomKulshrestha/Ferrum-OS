@@ -1,5 +1,5 @@
-// ============================================================================
-// FerrumOS — Memory Management Subsystem
+﻿// ============================================================================
+// FerrumOS - Memory Management Subsystem
 // ============================================================================
 // Manages physical and virtual memory for the kernel.
 //
@@ -59,7 +59,7 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 /// Physical frame allocator that uses the bootloader's memory map
 /// 
 /// Iterates over the memory map to find usable physical frames.
-/// This is a simple bump allocator — frames are never freed.
+/// This is a simple bump allocator - frames are never freed.
 /// A more sophisticated allocator would be needed for a production kernel.
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,

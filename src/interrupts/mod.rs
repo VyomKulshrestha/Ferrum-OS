@@ -1,5 +1,5 @@
-// ============================================================================
-// FerrumOS — Interrupt Handling Subsystem
+﻿// ============================================================================
+// FerrumOS - Interrupt Handling Subsystem
 // ============================================================================
 // Manages the Interrupt Descriptor Table (IDT) and hardware interrupt routing.
 //
@@ -35,8 +35,8 @@ pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum InterruptIndex {
-    Timer = PIC_1_OFFSET,       // IRQ 0 — PIT timer
-    Keyboard = PIC_1_OFFSET + 1, // IRQ 1 — PS/2 keyboard
+    Timer = PIC_1_OFFSET,       // IRQ 0 - PIT timer
+    Keyboard = PIC_1_OFFSET + 1, // IRQ 1 - PS/2 keyboard
 }
 
 impl InterruptIndex {
@@ -96,7 +96,7 @@ extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
 /// 
 /// Triggered when the CPU fails to invoke an exception handler.
 /// This runs on a separate stack (IST) to handle stack overflow scenarios.
-/// A double fault is always fatal — the system cannot continue.
+/// A double fault is always fatal - the system cannot continue.
 extern "x86-interrupt" fn double_fault_handler(
     stack_frame: InterruptStackFrame,
     _error_code: u64,
@@ -124,7 +124,7 @@ extern "x86-interrupt" fn page_fault_handler(
     // Log the page fault for security auditing
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::SecurityViolation,
-        "Page fault occurred — potential memory violation",
+        "Page fault occurred - potential memory violation",
     );
     
     crate::hlt_loop();
@@ -143,7 +143,7 @@ extern "x86-interrupt" fn general_protection_fault_handler(
     
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::SecurityViolation,
-        "General protection fault — privilege violation",
+        "General protection fault - privilege violation",
     );
     
     crate::hlt_loop();

@@ -1,8 +1,8 @@
-// ============================================================================
-// FerrumOS — RAM Filesystem (RamFS)
+﻿// ============================================================================
+// FerrumOS - RAM Filesystem (RamFS)
 // ============================================================================
 // In-memory hierarchical filesystem for early kernel development.
-// All data is volatile — lost on reboot.
+// All data is volatile - lost on reboot.
 // ============================================================================
 
 extern crate alloc;
@@ -12,7 +12,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use spin::Mutex;
 
-/// A filesystem entry — either a file or directory
+/// A filesystem entry - either a file or directory
 #[derive(Debug, Clone)]
 enum FsNode {
     File { content: String },

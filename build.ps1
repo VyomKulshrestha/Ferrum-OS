@@ -1,4 +1,4 @@
-# FerrumOS Build Helper Script
+﻿# FerrumOS Build Helper Script
 # Usage: .\build.ps1 [build|run|clean|check]
 
 param(

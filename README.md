@@ -1,4 +1,4 @@
-# FerrumOS
+﻿# FerrumOS
 
 A minimal modular Rust-based operating system designed as the long-term
 foundation for an AI-native autonomous computing environment.
@@ -24,7 +24,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Modular service manager for runtime service registration
 - Deterministic IPC message contracts for future runtime services
 - Syscall ABI skeleton for future userspace processes
-- `agentd` runtime boundary stub for future Heliox agent integration
+- `agentd` runtime boundary stub for future agent runtime integration
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 +----------------------------------------------------------+
 ```
 
-The existing Python Heliox desktop agent can be treated as a future runtime or
+The existing Python desktop agent can be treated as a future runtime or
 agent-layer service. Its voice, gesture, local LLM, and autonomous task
 execution logic should remain outside the kernel and communicate through
 capability-checked runtime interfaces.
@@ -135,12 +135,12 @@ ipc
 syscalls
 ```
 
-Future work should attach the real Heliox agent above this boundary:
+Future work should attach the real agent runtime above this boundary:
 
 1. Add real userspace process loading.
 2. Implement syscall entry from ring 3.
 3. Move runtime services out of kernel modules.
-4. Port or host the Heliox planner, orchestrator, verifier, sandbox, memory,
+4. Port or host the agent planner, orchestrator, verifier, sandbox, memory,
    and plugins as userspace services.
 5. Add device drivers for audio, camera, display, input, storage, and network
    before enabling voice, gesture, screen vision, or desktop control.
