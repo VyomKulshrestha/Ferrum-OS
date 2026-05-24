@@ -102,6 +102,26 @@ pub fn has_capability(held_capabilities: &[String], resource: &str) -> bool {
     })
 }
 
+/// Check whether a caller directly holds a named capability token.
+///
+/// This is used for service lifecycle policy, where manifests name the exact
+/// capabilities required to control a service. Resource checks should continue
+/// to use `has_capability`.
+pub fn holds_capability_token(held_capabilities: &[String], capability_name: &str) -> bool {
+    if held_capabilities.iter().any(|held| held == "cap:system:all") {
+        return true;
+    }
+
+    let state = SECURITY.lock();
+    state
+        .capabilities
+        .iter()
+        .any(|registered| registered.name == capability_name)
+        && held_capabilities
+            .iter()
+            .any(|held| held == capability_name)
+}
+
 /// Check whether a capability token is delegatable to a child task or service.
 pub fn can_delegate(capability_name: &str) -> bool {
     SECURITY

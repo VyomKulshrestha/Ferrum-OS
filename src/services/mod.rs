@@ -11,12 +11,78 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use spin::Mutex;
 
+/// Service placement in the FerrumOS layered architecture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceLayer {
+    Kernel,
+    Runtime,
+    Cognitive,
+    Agent,
+}
+
 /// Service execution state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceState {
     Stopped,
     Running,
     Failed,
+}
+
+/// Sandboxing constraints attached to a runtime service.
+#[derive(Debug, Clone)]
+pub struct SandboxProfile {
+    pub ipc_only: bool,
+    pub isolated_address_space: bool,
+    pub max_memory_bytes: usize,
+    pub audit_syscalls: bool,
+}
+
+impl SandboxProfile {
+    pub const fn kernel_trusted() -> Self {
+        Self {
+            ipc_only: false,
+            isolated_address_space: false,
+            max_memory_bytes: 0,
+            audit_syscalls: true,
+        }
+    }
+
+    pub const fn runtime_default() -> Self {
+        Self {
+            ipc_only: true,
+            isolated_address_space: true,
+            max_memory_bytes: 64 * 1024,
+            audit_syscalls: true,
+        }
+    }
+}
+
+/// Immutable service registration metadata.
+#[derive(Debug, Clone)]
+pub struct ServiceManifest {
+    pub name: String,
+    pub description: String,
+    pub layer: ServiceLayer,
+    pub required_capabilities: Vec<String>,
+    pub sandbox: SandboxProfile,
+}
+
+impl ServiceManifest {
+    pub fn new(
+        name: &str,
+        description: &str,
+        layer: ServiceLayer,
+        required_capabilities: Vec<String>,
+        sandbox: SandboxProfile,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            description: description.to_string(),
+            layer,
+            required_capabilities,
+            sandbox,
+        }
+    }
 }
 
 /// A registered system service
@@ -30,6 +96,10 @@ pub struct Service {
     pub required_capabilities: Vec<String>,
     /// Whether this service runs in a sandbox
     pub sandboxed: bool,
+    /// Layer placement for keeping AI/cognitive systems out of the kernel.
+    pub layer: ServiceLayer,
+    /// Runtime isolation limits.
+    pub sandbox: SandboxProfile,
 }
 
 struct ServiceManager {
@@ -45,27 +115,34 @@ static MANAGER: Mutex<ServiceManager> = Mutex::new(ServiceManager {
 /// Initialize the service manager with core system services
 pub fn init() {
     let mut mgr = MANAGER.lock();
-    
+
     // Register core system services
     let core_services = [
-        ("kernel.memory", "Memory Management Service", false),
-        ("kernel.scheduler", "Task Scheduler Service", false),
-        ("kernel.security", "Security Enforcement Service", false),
-        ("kernel.logging", "Audit Logging Service", false),
-        ("kernel.fs", "Filesystem Service", false),
-        ("runtime.ipc", "Inter-Process Communication", true),
+        ("kernel.memory", "Memory Management Service", ServiceLayer::Kernel),
+        ("kernel.scheduler", "Task Scheduler Service", ServiceLayer::Kernel),
+        ("kernel.security", "Security Enforcement Service", ServiceLayer::Kernel),
+        ("kernel.logging", "Audit Logging Service", ServiceLayer::Kernel),
+        ("kernel.fs", "Filesystem Service", ServiceLayer::Kernel),
+        ("runtime.ipc", "Inter-Process Communication", ServiceLayer::Runtime),
     ];
-    
-    for (name, desc, sandboxed) in &core_services {
+
+    for (name, desc, layer) in &core_services {
         let id = mgr.next_id;
         mgr.next_id += 1;
+        let sandbox = if *layer == ServiceLayer::Kernel {
+            SandboxProfile::kernel_trusted()
+        } else {
+            SandboxProfile::runtime_default()
+        };
         mgr.services.push(Service {
             id,
             name: name.to_string(),
             description: desc.to_string(),
             state: ServiceState::Running,
             required_capabilities: Vec::new(),
-            sandboxed: *sandboxed,
+            sandboxed: *layer != ServiceLayer::Kernel,
+            layer: *layer,
+            sandbox,
         });
     }
 }
@@ -87,28 +164,80 @@ pub fn find_service(name: &str) -> Option<Service> {
 
 /// Register a new service
 pub fn register_service(name: &str, description: &str, sandboxed: bool) -> u64 {
+    let layer = if sandboxed {
+        ServiceLayer::Runtime
+    } else {
+        ServiceLayer::Kernel
+    };
+    let sandbox = if sandboxed {
+        SandboxProfile::runtime_default()
+    } else {
+        SandboxProfile::kernel_trusted()
+    };
+    register_manifest(ServiceManifest::new(
+        name,
+        description,
+        layer,
+        Vec::new(),
+        sandbox,
+    ))
+}
+
+/// Register a new service from an explicit manifest.
+pub fn register_manifest(manifest: ServiceManifest) -> u64 {
     let mut mgr = MANAGER.lock();
     let id = mgr.next_id;
     mgr.next_id += 1;
     mgr.services.push(Service {
         id,
-        name: name.to_string(),
-        description: description.to_string(),
+        name: manifest.name.clone(),
+        description: manifest.description.clone(),
         state: ServiceState::Stopped,
-        required_capabilities: Vec::new(),
-        sandboxed,
+        required_capabilities: manifest.required_capabilities.clone(),
+        sandboxed: manifest.layer != ServiceLayer::Kernel,
+        layer: manifest.layer,
+        sandbox: manifest.sandbox,
     });
-    
+
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::ServiceRegistered,
-        &alloc::format!("Service registered: {}", name),
+        &alloc::format!("Service registered: {}", manifest.name),
     );
-    
+
     id
 }
 
 /// Start a service by ID
 pub fn start_service(id: u64) -> Result<(), String> {
+    let held_capabilities = alloc::vec![String::from("cap:system:all")];
+    start_service_authorized(id, &held_capabilities)
+}
+
+/// Start a service after checking the caller's lifecycle capabilities.
+pub fn start_service_authorized(id: u64, held_capabilities: &[String]) -> Result<(), String> {
+    let missing_capability = {
+        let mgr = MANAGER.lock();
+        let service = mgr
+            .services
+            .iter()
+            .find(|svc| svc.id == id)
+            .ok_or_else(|| String::from("service not found"))?;
+
+        service
+            .required_capabilities
+            .iter()
+            .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
+            .cloned()
+    };
+
+    if let Some(required) = missing_capability {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("Service start denied; missing {}", required),
+        );
+        return Err(alloc::format!("missing capability {}", required));
+    }
+
     let started = {
         let mut mgr = MANAGER.lock();
         let mut started = false;
@@ -135,6 +264,35 @@ pub fn start_service(id: u64) -> Result<(), String> {
 
 /// Stop a service by ID
 pub fn stop_service(id: u64) -> Result<(), String> {
+    let held_capabilities = alloc::vec![String::from("cap:system:all")];
+    stop_service_authorized(id, &held_capabilities)
+}
+
+/// Stop a service after checking the caller's lifecycle capabilities.
+pub fn stop_service_authorized(id: u64, held_capabilities: &[String]) -> Result<(), String> {
+    let missing_capability = {
+        let mgr = MANAGER.lock();
+        let service = mgr
+            .services
+            .iter()
+            .find(|svc| svc.id == id)
+            .ok_or_else(|| String::from("service not found"))?;
+
+        service
+            .required_capabilities
+            .iter()
+            .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
+            .cloned()
+    };
+
+    if let Some(required) = missing_capability {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("Service stop denied; missing {}", required),
+        );
+        return Err(alloc::format!("missing capability {}", required));
+    }
+
     let stopped = {
         let mut mgr = MANAGER.lock();
         let mut stopped = false;

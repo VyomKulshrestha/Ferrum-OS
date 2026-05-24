@@ -22,6 +22,15 @@ desktop agent and future Rust services. They should receive only the
 capabilities required for their task and should communicate through IPC
 contracts or future shared-memory handles.
 
+Every service is described by a `ServiceManifest`:
+
+- `layer` records whether it belongs to kernel, runtime, cognitive, or agent
+  architecture.
+- `required_capabilities` names the exact lifecycle capabilities needed to
+  start or stop the service.
+- `sandbox` records early isolation intent: IPC-only execution, isolated address
+  space, memory budget, and syscall audit policy.
+
 Initial runtime service categories:
 
 - `runtime.ipc`
@@ -36,6 +45,8 @@ Initial runtime service categories:
 
 Capabilities are explicit permission tokens. A service action is allowed only
 when the caller holds a token that maps to the requested resource pattern.
+Service lifecycle operations use exact token checks, while IPC and resource
+access use resource-pattern checks.
 
 Important rules:
 
@@ -70,6 +81,11 @@ runtime services.
 messages after capability checks and records the last command. It deliberately
 does not run a model, planner, semantic memory, screen vision, or autonomous
 workflow engine inside the kernel.
+
+The current manifest requires `cap:agent:control` to start the boundary or send
+commands. The spawned task receives only delegatable capabilities, such as
+`cap:ipc:send`, so agent-control authority is not silently propagated into child
+tasks.
 
 The next implementation milestone is to replace the stub with a userspace
 service once process loading, syscall entry, and IPC handles exist.

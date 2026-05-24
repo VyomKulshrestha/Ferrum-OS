@@ -102,16 +102,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         "FerrumOS kernel boot sequence completed successfully",
     );
     
-    println!();
-    println!("\x1b[36m•”•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••-\x1b[0m");
-    println!("\x1b[36m•‘\x1b[0m  FerrumOS v0.1.0 - AI-Native Autonomous OS Foundation   \x1b[36m•‘\x1b[0m");
-    println!("\x1b[36m•‘\x1b[0m  Type 'help' for available commands                     \x1b[36m•‘\x1b[0m");
-    println!("\x1b[36m•š•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••\x1b[0m");
-    println!();
-
-    // VGA text mode does not interpret ANSI escapes and only supports a
-    // small character set. Clear the decorative boot art and leave the user
-    // at a deterministic ASCII shell-ready screen.
+    // VGA text mode supports a small character set, so leave the user at a
+    // deterministic ASCII shell-ready screen after serial boot logging.
     ferrumos::vga::WRITER.lock().clear_screen();
     print_ready_banner();
 
@@ -126,12 +118,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 /// Print the FerrumOS boot banner with ASCII art
 fn print_boot_banner() {
     println!();
-    println!("\x1b[33m -ˆ-ˆ•-  -ˆ-ˆ•--ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•--ˆ-ˆ•-     -ˆ-ˆ•- -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•- -ˆ-ˆ•-  -ˆ-ˆ•- -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•- -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•-\x1b[0m");
-    println!("\x1b[33m -ˆ-ˆ•‘  -ˆ-ˆ•‘-ˆ-ˆ•”•••••-ˆ-ˆ•‘     -ˆ-ˆ•‘-ˆ-ˆ•”•••-ˆ-ˆ•-•š-ˆ-ˆ•--ˆ-ˆ•”•-ˆ-ˆ•”•••-ˆ-ˆ•--ˆ-ˆ•”•••••\x1b[0m");
-    println!("\x1b[33m -ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•‘-ˆ-ˆ-ˆ-ˆ-ˆ•-  -ˆ-ˆ•‘     -ˆ-ˆ•‘-ˆ-ˆ•‘   -ˆ-ˆ•‘ •š-ˆ-ˆ-ˆ•”• -ˆ-ˆ•‘   -ˆ-ˆ•‘-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•-\x1b[0m");
-    println!("\x1b[33m -ˆ-ˆ•”••-ˆ-ˆ•‘-ˆ-ˆ•”•••  -ˆ-ˆ•‘     -ˆ-ˆ•‘-ˆ-ˆ•‘   -ˆ-ˆ•‘ -ˆ-ˆ•”-ˆ-ˆ•- -ˆ-ˆ•‘   -ˆ-ˆ•‘•š••••-ˆ-ˆ•‘\x1b[0m");
-    println!("\x1b[33m -ˆ-ˆ•‘  -ˆ-ˆ•‘-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•--ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•--ˆ-ˆ•‘•š-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•”•-ˆ-ˆ•”• -ˆ-ˆ•-•š-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•”•-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ-ˆ•‘\x1b[0m");
-    println!("\x1b[33m •š••  •š•••š••••••••š••••••••š•• •š•••••••š••  •š•• •š•••••• •š•••••••\x1b[0m");
+    println!("  _   _      _ _           ___  ____");
+    println!(" | | | | ___| (_) _____  / _ \\/ ___|");
+    println!(" | |_| |/ _ \\ | |/ / _ \\| | | \\___ \\");
+    println!(" |  _  |  __/ |   < (_) | |_| |___) |");
+    println!(" |_| |_|\\___|_|_|\\_\\___/ \\___/|____/");
     println!();
     println!("  Booting FerrumOS v0.1.0 - AI-Native Autonomous OS");
     println!("  Architecture: x86_64 | Mode: Protected");

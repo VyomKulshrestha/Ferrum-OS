@@ -21,10 +21,10 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Volatile in-memory RAM filesystem
 - Capability registry and caller-held capability authorization helpers
 - Audit logging hooks for security and lifecycle events
-- Modular service manager for runtime service registration
+- Modular service manager with typed service manifests and sandbox profiles
 - Deterministic IPC message contracts for future runtime services
 - Syscall ABI skeleton for future userspace processes
-- `agentd` runtime boundary stub for future agent runtime integration
+- Capability-gated `agentd` runtime boundary stub for future agent integration
 
 ## Architecture
 
@@ -96,6 +96,8 @@ To run after installing QEMU:
 | `rm <path>` | Remove file or directory |
 | `caps` | List security capabilities |
 | `services` | List registered services |
+| `services start <id>` | Start a service through capability checks |
+| `services stop <id>` | Stop a service through capability checks |
 | `ipc` | Show IPC broker statistics |
 | `syscalls` | Show reserved syscall ABI numbers |
 | `agent status` | Show agent runtime boundary state |
@@ -121,8 +123,10 @@ To run after installing QEMU:
 ## Agent Integration Path
 
 The current `agentd` service is a deterministic boundary, not the full AI
-agent. It lets FerrumOS start a sandboxed service and pass bounded IPC messages
-through capability checks.
+agent. It is registered through a runtime service manifest with a default
+sandbox profile and requires `cap:agent:control` for lifecycle and command
+operations. It lets FerrumOS start a sandboxed service and pass bounded IPC
+messages through capability checks.
 
 Try it in QEMU:
 

@@ -18,6 +18,7 @@
 // ============================================================================
 
 #![no_std]
+#![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
@@ -211,6 +212,13 @@ pub fn test_panic_handler(info: &core::panic::PanicInfo) -> ! {
     serial_println!("Error: {}", info);
     exit_qemu(QemuExitCode::Failed);
     hlt_loop();
+}
+
+/// Panic handler for library tests.
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    test_panic_handler(info)
 }
 
 /// QEMU exit codes for automated testing

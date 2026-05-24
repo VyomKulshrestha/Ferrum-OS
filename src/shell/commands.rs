@@ -28,7 +28,7 @@ pub fn execute(input: &str) {
         "write" => cmd_write(args),
         "rm" => cmd_rm(args),
         "caps" => cmd_caps(),
-        "services" => cmd_services(),
+        "services" => cmd_services(args),
         "ipc" => cmd_ipc(),
         "syscalls" => cmd_syscalls(),
         "agent" => cmd_agent(args),
@@ -58,7 +58,7 @@ fn cmd_help() {
     println!("  write <f> <text>  Write text to file");
     println!("  rm <path>  Remove file or directory");
     println!("  caps       Show capability tokens");
-    println!("  services   List registered services");
+    println!("  services   List/start/stop registered services");
     println!("  ipc        Show IPC broker statistics");
     println!("  syscalls   Show syscall ABI numbers");
     println!("  agent      Control the agent runtime boundary");
@@ -193,7 +193,46 @@ fn cmd_caps() {
     }
 }
 
-fn cmd_services() {
+fn cmd_services(args: &[&str]) {
+    if !args.is_empty() {
+        match args[0] {
+            "start" => {
+                if args.len() < 2 {
+                    println!("services start: missing service id");
+                    return;
+                }
+                match args[1].parse::<u64>() {
+                    Ok(id) => {
+                        let held = alloc::vec![String::from("cap:system:all")];
+                        match crate::services::start_service_authorized(id, &held) {
+                            Ok(()) => println!("service {} started", id),
+                            Err(err) => println!("services start: {}", err),
+                        }
+                    }
+                    Err(_) => println!("services start: invalid service id"),
+                }
+            }
+            "stop" => {
+                if args.len() < 2 {
+                    println!("services stop: missing service id");
+                    return;
+                }
+                match args[1].parse::<u64>() {
+                    Ok(id) => {
+                        let held = alloc::vec![String::from("cap:system:all")];
+                        match crate::services::stop_service_authorized(id, &held) {
+                            Ok(()) => println!("service {} stopped", id),
+                            Err(err) => println!("services stop: {}", err),
+                        }
+                    }
+                    Err(_) => println!("services stop: invalid service id"),
+                }
+            }
+            _ => println!("services: usage: services [start|stop] <id>"),
+        }
+        return;
+    }
+
     let services = crate::services::list_services();
     println!("Registered Services:");
     if services.is_empty() {
@@ -205,7 +244,25 @@ fn cmd_services() {
                 crate::services::ServiceState::Running => "RUNNING",
                 crate::services::ServiceState::Failed => "FAILED ",
             };
-            println!("  [{}] {} - {} ({})", svc.id, state, svc.name, svc.description);
+            let layer = match svc.layer {
+                crate::services::ServiceLayer::Kernel => "kernel",
+                crate::services::ServiceLayer::Runtime => "runtime",
+                crate::services::ServiceLayer::Cognitive => "cognitive",
+                crate::services::ServiceLayer::Agent => "agent",
+            };
+            let sandbox = if svc.sandboxed { "sandbox" } else { "trusted" };
+            println!(
+                "  [{}] {} {:>9} {:>7} - {} ({})",
+                svc.id,
+                state,
+                layer,
+                sandbox,
+                svc.name,
+                svc.description
+            );
+            if !svc.required_capabilities.is_empty() {
+                println!("       caps: {}", svc.required_capabilities.join(", "));
+            }
         }
     }
 }

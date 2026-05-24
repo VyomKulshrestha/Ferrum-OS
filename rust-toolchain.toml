@@ -1,4 +1,4 @@
-# HelioxOS Rust Toolchain Configuration
+# FerrumOS Rust Toolchain Configuration
 # Requires nightly for bare-metal OS development features:
 # - custom_test_frameworks
 # - abi_x86_interrupt  

@@ -16,6 +16,7 @@ use spin::Mutex;
 const AGENT_SERVICE: &str = "runtime.agentd";
 const AGENT_CHANNEL: &str = "control";
 const AGENT_RESOURCE: &str = "agent:command";
+const AGENT_CONTROL_CAP: &str = "cap:agent:control";
 
 #[derive(Debug, Clone)]
 pub struct AgentStatus {
@@ -44,11 +45,13 @@ static AGENT: Mutex<AgentState> = Mutex::new(AgentState {
 
 /// Register the sandboxed agent runtime service.
 pub fn init() {
-    let service_id = crate::services::register_service(
+    let service_id = crate::services::register_manifest(crate::services::ServiceManifest::new(
         AGENT_SERVICE,
         "agent runtime boundary",
-        true,
-    );
+        crate::services::ServiceLayer::Runtime,
+        vec![String::from(AGENT_CONTROL_CAP)],
+        crate::services::SandboxProfile::runtime_default(),
+    ));
 
     let mut agent = AGENT.lock();
     agent.service_id = Some(service_id);
@@ -57,13 +60,23 @@ pub fn init() {
 
 /// Start the agent runtime boundary.
 pub fn start() -> Result<(), String> {
+    let held_capabilities = vec![String::from(AGENT_CONTROL_CAP)];
+    start_with_capabilities(&held_capabilities)
+}
+
+/// Start the agent runtime boundary with an explicit caller authority set.
+pub fn start_with_capabilities(held_capabilities: &[String]) -> Result<(), String> {
     let service_id = AGENT
         .lock()
         .service_id
         .ok_or_else(|| String::from("agentd service not registered"))?;
 
-    crate::services::start_service(service_id)?;
-    let task_id = crate::scheduler::spawn(String::from("agentd"), crate::scheduler::Priority::High);
+    crate::services::start_service_authorized(service_id, held_capabilities)?;
+    let task_id = crate::scheduler::spawn_with_capabilities(
+        String::from("agentd"),
+        crate::scheduler::Priority::High,
+        &[String::from("cap:ipc:send")],
+    )?;
 
     let mut agent = AGENT.lock();
     agent.running = true;
@@ -73,8 +86,28 @@ pub fn start() -> Result<(), String> {
 
 /// Send a command to the agent runtime boundary.
 pub fn send_command(command: &str) -> Result<u64, String> {
+    let held_capabilities = vec![
+        String::from(AGENT_CONTROL_CAP),
+        String::from("cap:ipc:send"),
+    ];
+    send_command_with_capabilities(command, &held_capabilities)
+}
+
+/// Send a command after checking the caller's agent-control capability.
+pub fn send_command_with_capabilities(
+    command: &str,
+    held_capabilities: &[String],
+) -> Result<u64, String> {
     if !AGENT.lock().running {
         return Err(String::from("agentd is not running"));
+    }
+
+    if !crate::security::holds_capability_token(held_capabilities, AGENT_CONTROL_CAP) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            "agent command denied; caller lacks cap:agent:control",
+        );
+        return Err(String::from("missing capability cap:agent:control"));
     }
 
     let message = crate::ipc::Message::new(
@@ -86,7 +119,6 @@ pub fn send_command(command: &str) -> Result<u64, String> {
     )
     .map_err(|_| String::from("invalid agent command payload"))?;
 
-    let held_capabilities = vec![String::from("cap:system:all")];
     let id = crate::ipc::send(message, &held_capabilities)
         .map_err(|err| alloc::format!("agent IPC send failed: {:?}", err))?;
 

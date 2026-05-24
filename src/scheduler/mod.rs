@@ -188,9 +188,32 @@ pub fn tick() {
 /// Adds a task to the ready queue with the specified name and priority.
 /// Returns the task ID.
 pub fn spawn(name: String, priority: Priority) -> u64 {
+    spawn_internal(name, priority, Vec::new())
+}
+
+/// Spawn a new task with a checked capability set.
+///
+/// Non-delegatable capabilities may not be assigned through this path unless
+/// the caller uses `cap:system:all` through a future privileged broker.
+pub fn spawn_with_capabilities(
+    name: String,
+    priority: Priority,
+    capabilities: &[String],
+) -> Result<u64, String> {
+    for capability in capabilities {
+        if !crate::security::can_delegate(capability) {
+            return Err(alloc::format!("capability is not delegatable: {}", capability));
+        }
+    }
+
+    Ok(spawn_internal(name, priority, capabilities.to_vec()))
+}
+
+fn spawn_internal(name: String, priority: Priority, capabilities: Vec<String>) -> u64 {
     let id = {
         let mut sched = SCHEDULER.lock();
-        let task = Task::new(name, priority);
+        let mut task = Task::new(name, priority);
+        task.capabilities = capabilities;
         let id = task.id;
         sched.tasks.push_back(task);
         id
