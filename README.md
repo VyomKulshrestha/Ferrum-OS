@@ -20,6 +20,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Interactive shell with inspection and management commands
 - Volatile in-memory RAM filesystem
 - Capability registry and caller-held capability authorization helpers
+- Debug shell session profiles for root and restricted guest capability checks
 - Audit logging hooks for security and lifecycle events
 - Modular service manager with typed service manifests and sandbox profiles
 - Deterministic IPC message contracts for future runtime services
@@ -79,6 +80,18 @@ To run after installing QEMU:
 .\build.ps1 run
 ```
 
+To run the command sweep headlessly:
+
+```powershell
+node .\scripts\command_sweep.mjs
+```
+
+To watch QEMU while the sweep types commands:
+
+```powershell
+node .\scripts\command_sweep.mjs --visible
+```
+
 ## Shell Commands
 
 | Command | Description |
@@ -106,6 +119,8 @@ To run after installing QEMU:
 | `log` | Show audit log |
 | `uptime` | Show timer ticks |
 | `uname` | Show system information |
+| `whoami` | Show current shell capability profile |
+| `session [root|guest]` | Switch debug shell capability profile |
 | `spawn <name>` | Spawn a task metadata record |
 | `kill <pid>` | Mark a task dead |
 | `security` | Show security status |

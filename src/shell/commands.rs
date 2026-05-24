@@ -4,6 +4,54 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use crate::println;
+use spin::Mutex;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SessionProfile {
+    Root,
+    Guest,
+}
+
+static SESSION: Mutex<SessionProfile> = Mutex::new(SessionProfile::Root);
+
+fn current_session() -> SessionProfile {
+    *SESSION.lock()
+}
+
+fn current_capabilities() -> Vec<String> {
+    match current_session() {
+        SessionProfile::Root => alloc::vec![String::from("cap:system:all")],
+        SessionProfile::Guest => alloc::vec![String::from("cap:fs:read")],
+    }
+}
+
+fn require_resource(resource: &str) -> Result<Vec<String>, ()> {
+    let held = current_capabilities();
+    if crate::security::has_capability(&held, resource) {
+        Ok(held)
+    } else {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("shell denied resource {}", resource),
+        );
+        println!("permission denied: {}", resource);
+        Err(())
+    }
+}
+
+fn require_token(capability: &str) -> Result<Vec<String>, ()> {
+    let held = current_capabilities();
+    if crate::security::holds_capability_token(&held, capability) {
+        Ok(held)
+    } else {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("shell missing capability {}", capability),
+        );
+        println!("permission denied: {}", capability);
+        Err(())
+    }
+}
 
 /// Execute a shell command
 pub fn execute(input: &str) {
@@ -36,6 +84,7 @@ pub fn execute(input: &str) {
         "uptime" => cmd_uptime(),
         "uname" => cmd_uname(),
         "whoami" => cmd_whoami(),
+        "session" => cmd_session(args),
         "spawn" => cmd_spawn(args),
         "kill" => cmd_kill(args),
         "security" => cmd_security(),
@@ -66,6 +115,7 @@ fn cmd_help() {
     println!("  uptime     Show system uptime (ticks)");
     println!("  uname      Show system information");
     println!("  whoami     Show current identity");
+    println!("  session    Switch debug shell capability profile");
     println!("  spawn <n>  Spawn a new task");
     println!("  kill <id>  Kill a task by ID");
     println!("  security   Show security status");
@@ -113,6 +163,10 @@ fn cmd_mem() {
 }
 
 fn cmd_ls(args: &[&str]) {
+    if require_resource("fs:read:*").is_err() {
+        return;
+    }
+
     let path = if args.is_empty() { "/" } else { args[0] };
     match crate::fs::list_dir(path) {
         Ok(entries) => {
@@ -130,6 +184,10 @@ fn cmd_ls(args: &[&str]) {
 }
 
 fn cmd_cat(args: &[&str]) {
+    if require_resource("fs:read:*").is_err() {
+        return;
+    }
+
     if args.is_empty() {
         println!("cat: missing file argument");
         return;
@@ -141,6 +199,10 @@ fn cmd_cat(args: &[&str]) {
 }
 
 fn cmd_mkdir(args: &[&str]) {
+    if require_resource("fs:write:*").is_err() {
+        return;
+    }
+
     if args.is_empty() {
         println!("mkdir: missing directory name");
         return;
@@ -152,6 +214,10 @@ fn cmd_mkdir(args: &[&str]) {
 }
 
 fn cmd_touch(args: &[&str]) {
+    if require_resource("fs:write:*").is_err() {
+        return;
+    }
+
     if args.is_empty() {
         println!("touch: missing file name");
         return;
@@ -163,6 +229,10 @@ fn cmd_touch(args: &[&str]) {
 }
 
 fn cmd_write(args: &[&str]) {
+    if require_resource("fs:write:*").is_err() {
+        return;
+    }
+
     if args.len() < 2 {
         println!("write: usage: write <file> <text>");
         return;
@@ -175,6 +245,10 @@ fn cmd_write(args: &[&str]) {
 }
 
 fn cmd_rm(args: &[&str]) {
+    if require_resource("fs:write:*").is_err() {
+        return;
+    }
+
     if args.is_empty() {
         println!("rm: missing path");
         return;
@@ -203,7 +277,9 @@ fn cmd_services(args: &[&str]) {
                 }
                 match args[1].parse::<u64>() {
                     Ok(id) => {
-                        let held = alloc::vec![String::from("cap:system:all")];
+                        let Ok(held) = require_token("cap:service:register") else {
+                            return;
+                        };
                         match crate::services::start_service_authorized(id, &held) {
                             Ok(()) => println!("service {} started", id),
                             Err(err) => println!("services start: {}", err),
@@ -219,7 +295,9 @@ fn cmd_services(args: &[&str]) {
                 }
                 match args[1].parse::<u64>() {
                     Ok(id) => {
-                        let held = alloc::vec![String::from("cap:system:all")];
+                        let Ok(held) = require_token("cap:service:register") else {
+                            return;
+                        };
                         match crate::services::stop_service_authorized(id, &held) {
                             Ok(()) => println!("service {} stopped", id),
                             Err(err) => println!("services stop: {}", err),
@@ -311,17 +389,28 @@ fn cmd_agent(args: &[&str]) {
                 println!("  Last response: {}", status.last_response);
             }
         }
-        "start" => match crate::agent::start() {
-            Ok(()) => println!("agentd started"),
-            Err(err) => println!("agent start: {}", err),
-        },
+        "start" => {
+            let Ok(held) = require_token("cap:agent:control") else {
+                return;
+            };
+            match crate::agent::start_with_capabilities(&held) {
+                Ok(()) => println!("agentd started"),
+                Err(err) => println!("agent start: {}", err),
+            }
+        }
         "send" => {
+            let Ok(mut held) = require_token("cap:agent:control") else {
+                return;
+            };
+            if !held.iter().any(|cap| cap == "cap:system:all") {
+                held.push(String::from("cap:ipc:send"));
+            }
             if args.len() < 2 {
                 println!("agent send: missing command text");
                 return;
             }
             let command = args[1..].join(" ");
-            match crate::agent::send_command(&command) {
+            match crate::agent::send_command_with_capabilities(&command, &held) {
                 Ok(id) => println!("agent command queued as IPC message {}", id),
                 Err(err) => println!("agent send: {}", err),
             }
@@ -331,6 +420,10 @@ fn cmd_agent(args: &[&str]) {
 }
 
 fn cmd_log() {
+    if require_resource("audit:read").is_err() {
+        return;
+    }
+
     let entries = crate::logging::audit::recent_entries(10);
     println!("Recent Audit Log ({} entries):", entries.len());
     for entry in &entries {
@@ -353,11 +446,50 @@ fn cmd_uname() {
 }
 
 fn cmd_whoami() {
-    println!("kernel (uid=0, gid=0)");
-    println!("Capabilities: cap:system:all");
+    match current_session() {
+        SessionProfile::Root => println!("kernel (uid=0, gid=0)"),
+        SessionProfile::Guest => println!("guest (uid=1000, gid=1000)"),
+    }
+    println!("Capabilities: {}", current_capabilities().join(", "));
+}
+
+fn cmd_session(args: &[&str]) {
+    if args.is_empty() {
+        let name = match current_session() {
+            SessionProfile::Root => "root",
+            SessionProfile::Guest => "guest",
+        };
+        println!("Current session: {}", name);
+        println!("Profiles: root, guest");
+        return;
+    }
+
+    match args[0] {
+        "root" => {
+            *SESSION.lock() = SessionProfile::Root;
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::CapabilityGranted,
+                "debug shell switched to root profile",
+            );
+            println!("session switched to root");
+        }
+        "guest" => {
+            *SESSION.lock() = SessionProfile::Guest;
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::CapabilityRevoked,
+                "debug shell switched to guest profile",
+            );
+            println!("session switched to guest");
+        }
+        _ => println!("session: usage: session [root|guest]"),
+    }
 }
 
 fn cmd_spawn(args: &[&str]) {
+    if require_resource("process:spawn").is_err() {
+        return;
+    }
+
     let name = if args.is_empty() { "user_task" } else { args[0] };
     let id = crate::scheduler::spawn(
         String::from(name),
@@ -367,6 +499,10 @@ fn cmd_spawn(args: &[&str]) {
 }
 
 fn cmd_kill(args: &[&str]) {
+    if require_resource("process:kill:*").is_err() {
+        return;
+    }
+
     if args.is_empty() {
         println!("kill: missing PID");
         return;
@@ -392,6 +528,11 @@ fn cmd_security() {
     println!("  Capabilities: {} registered", caps.len());
     let entries = crate::logging::audit::recent_entries(100);
     println!("  Audit Events: {} recorded", entries.len());
+    let session = match current_session() {
+        SessionProfile::Root => "root",
+        SessionProfile::Guest => "guest",
+    };
+    println!("  Shell Session: {}", session);
 }
 
 fn cmd_about() {

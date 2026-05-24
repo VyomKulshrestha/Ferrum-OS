@@ -48,6 +48,18 @@ when the caller holds a token that maps to the requested resource pattern.
 Service lifecycle operations use exact token checks, while IPC and resource
 access use resource-pattern checks.
 
+The v0.1 shell includes debug session profiles so capability enforcement can be
+exercised before real userspace exists:
+
+- `root` holds `cap:system:all` and can exercise kernel management commands.
+- `guest` holds only `cap:fs:read`, so filesystem reads work while writes,
+  service control, agent commands, process management, and audit reads are
+  denied and logged.
+
+This is a development tool, not a final login model. Real identity,
+authentication, and per-process capability assignment belong in the future
+userspace/runtime layer.
+
 Important rules:
 
 - Default deny.
