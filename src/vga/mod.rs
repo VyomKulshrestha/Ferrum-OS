@@ -237,4 +237,6 @@ pub fn _print(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
     });
+
+    crate::serial::_print(args);
 }
