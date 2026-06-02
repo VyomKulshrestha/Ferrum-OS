@@ -74,6 +74,10 @@ pub mod ipc;
 /// Defines stable syscall numbers and result codes before usermode exists
 pub mod syscall;
 
+/// Userspace process registry
+/// Tracks program manifests and process capabilities before ring-3 execution
+pub mod userspace;
+
 /// Agent runtime service boundary
 /// Minimal deterministic bridge for the future agent runtime runtime
 pub mod agent;

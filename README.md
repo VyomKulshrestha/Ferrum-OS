@@ -24,7 +24,9 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Audit logging hooks for security and lifecycle events
 - Modular service manager with typed service manifests and sandbox profiles
 - Deterministic IPC message contracts for future runtime services
-- Syscall ABI skeleton for future userspace processes
+- Userspace program manifests and process capability table
+- Capability-authorized syscall dispatch for IPC, service lifecycle checks,
+  capability checks, and audit writes
 - Capability-gated `agentd` runtime boundary stub for future agent integration
 
 ## Architecture
@@ -113,6 +115,10 @@ node .\scripts\command_sweep.mjs --visible
 | `services stop <id>` | Stop a service through capability checks |
 | `ipc` | Show IPC broker statistics |
 | `syscalls` | Show reserved syscall ABI numbers |
+| `programs` | List userspace program manifests |
+| `users` | List launched userspace process records |
+| `run <program>` | Launch a manifest-backed userspace process |
+| `syscall <pid> <num> [arg0]` | Dispatch a syscall as a userspace process |
 | `agent status` | Show agent runtime boundary state |
 | `agent start` | Start the sandboxed `agentd` boundary service |
 | `agent send <text>` | Send a capability-checked IPC command to `agentd` |
@@ -140,8 +146,8 @@ node .\scripts\command_sweep.mjs --visible
 The current `agentd` service is a deterministic boundary, not the full AI
 agent. It is registered through a runtime service manifest with a default
 sandbox profile and requires `cap:agent:control` for lifecycle and command
-operations. It lets FerrumOS start a sandboxed service and pass bounded IPC
-messages through capability checks.
+operations. FerrumOS also includes a manifest-backed `agent-bridge` userspace
+process placeholder that can exercise IPC syscalls with delegated capabilities.
 
 Try it in QEMU:
 
@@ -149,6 +155,10 @@ Try it in QEMU:
 agent status
 agent start
 agent send ping
+programs
+run agent-bridge
+syscall 3 5 1
+syscall 3 1
 agent status
 ipc
 syscalls

@@ -79,6 +79,10 @@ pub fn execute(input: &str) {
         "services" => cmd_services(args),
         "ipc" => cmd_ipc(),
         "syscalls" => cmd_syscalls(),
+        "programs" => cmd_programs(),
+        "users" => cmd_users(),
+        "run" => cmd_run(args),
+        "syscall" => cmd_syscall(args),
         "agent" => cmd_agent(args),
         "log" => cmd_log(),
         "uptime" => cmd_uptime(),
@@ -110,6 +114,10 @@ fn cmd_help() {
     println!("  services   List/start/stop registered services");
     println!("  ipc        Show IPC broker statistics");
     println!("  syscalls   Show syscall ABI numbers");
+    println!("  programs   List userspace program manifests");
+    println!("  users      List userspace process table");
+    println!("  run <p>    Launch a userspace program");
+    println!("  syscall <pid> <num> [arg0]  Dispatch a userspace syscall");
     println!("  agent      Control the agent runtime boundary");
     println!("  log        Show recent audit log");
     println!("  uptime     Show system uptime (ticks)");
@@ -363,7 +371,91 @@ fn cmd_syscalls() {
     println!("  4  service_stop");
     println!("  5  capability_check");
     println!("  6  audit_write");
-    println!("Status: ABI reserved; full userspace dispatch pending");
+    println!("Capability resources:");
+    println!("  1  ipc:send:*");
+    println!("  2  service:register");
+    println!("  3  audit:read");
+    println!("  4  process:spawn");
+    println!("Status: process capability dispatch active");
+}
+
+fn cmd_programs() {
+    let programs = crate::userspace::list_programs();
+    println!("Userspace Programs:");
+    for program in &programs {
+        println!("  {} - {} ({})", program.name, program.description, program.entry);
+        if !program.requested_capabilities.is_empty() {
+            println!("       caps: {}", program.requested_capabilities.join(", "));
+        }
+    }
+}
+
+fn cmd_users() {
+    let processes = crate::userspace::list_processes();
+    println!("Userspace Processes:");
+    if processes.is_empty() {
+        println!("  (none)");
+        return;
+    }
+
+    println!("  PID  STATE    SYSCALLS  PROGRAM");
+    println!("  ---  -----    --------  -------");
+    for process in &processes {
+        let state = match process.state {
+            crate::userspace::ProcessState::Ready => "READY  ",
+            crate::userspace::ProcessState::Running => "RUNNING",
+            crate::userspace::ProcessState::Exited => "EXITED ",
+        };
+        println!(
+            "  {:>3}  {}  {:>8}  {}",
+            process.pid,
+            state,
+            process.syscall_count,
+            process.program
+        );
+        if !process.capabilities.is_empty() {
+            println!("       caps: {}", process.capabilities.join(", "));
+        }
+    }
+}
+
+fn cmd_run(args: &[&str]) {
+    if args.is_empty() {
+        println!("run: missing program name");
+        return;
+    }
+
+    let Ok(held) = require_resource("process:spawn") else {
+        return;
+    };
+
+    match crate::userspace::launch(args[0], &held) {
+        Ok(pid) => println!("launched {} as userspace pid {}", args[0], pid),
+        Err(err) => println!("run: {}", err),
+    }
+}
+
+fn cmd_syscall(args: &[&str]) {
+    if args.len() < 2 {
+        println!("syscall: usage: syscall <pid> <number> [arg0]");
+        return;
+    }
+
+    let Ok(pid) = args[0].parse::<u64>() else {
+        println!("syscall: invalid pid");
+        return;
+    };
+    let Ok(number) = args[1].parse::<u64>() else {
+        println!("syscall: invalid number");
+        return;
+    };
+    let arg0 = args
+        .get(2)
+        .and_then(|arg| arg.parse::<u64>().ok())
+        .unwrap_or(0);
+
+    let result = crate::syscall::dispatch_for_process(pid, number, [arg0, 0, 0, 0, 0, 0]);
+    println!("syscall result: {:?} value={}", result.status, result.value);
 }
 
 fn cmd_agent(args: &[&str]) {

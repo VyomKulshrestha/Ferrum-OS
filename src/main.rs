@@ -83,6 +83,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::services::init();
     println!("[  OK  ] Service manager initialized");
 
+    // Initialize userspace manifests before runtime agents are exposed.
+    ferrumos::userspace::init();
+    println!("[  OK  ] Userspace registry initialized");
+
     // Initialize the agent runtime boundary. This registers a sandboxed
     // runtime service without loading any probabilistic agent code in kernel.
     ferrumos::agent::init();
@@ -141,6 +145,7 @@ fn print_ready_banner() {
     println!("[ OK ] RAM filesystem initialized");
     println!("[ OK ] Capability security initialized");
     println!("[ OK ] Service manager initialized");
+    println!("[ OK ] Userspace registry initialized");
     println!("[ OK ] Task scheduler initialized");
     println!();
     println!("Kernel boundary: deterministic; AI runs in runtime services.");

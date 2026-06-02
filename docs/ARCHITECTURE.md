@@ -60,6 +60,22 @@ This is a development tool, not a final login model. Real identity,
 authentication, and per-process capability assignment belong in the future
 userspace/runtime layer.
 
+## Userspace Model
+
+FerrumOS now has an early userspace process registry. It does not yet execute
+ring-3 code, but it provides the kernel-visible contracts needed before real
+loading exists:
+
+- program manifests for `init`, `agent-bridge`, and `audit-exporter`
+- delegated capability sets checked at launch
+- process records with PID, entry path, state, and syscall count
+- syscall dispatch that authorizes against the process capability table
+
+This lets the kernel exercise realistic runtime-service policy before ELF
+loading, process address spaces, and CPU privilege transitions are complete.
+The `agent-bridge` manifest is the intended future adapter for HelioxOS-style
+agent runtime services.
+
 Important rules:
 
 - Default deny.
@@ -90,14 +106,15 @@ runtime services.
 ## Current Agent Boundary
 
 `runtime.agentd` is currently a sandboxed service stub. It accepts bounded IPC
-messages after capability checks and records the last command. It deliberately
-does not run a model, planner, semantic memory, screen vision, or autonomous
-workflow engine inside the kernel.
+messages after capability checks and records the last command. The userspace
+`agent-bridge` manifest can exercise IPC syscalls toward runtime services, but
+it deliberately does not run a model, planner, semantic memory, screen vision,
+or autonomous workflow engine inside the kernel.
 
 The current manifest requires `cap:agent:control` to start the boundary or send
 commands. The spawned task receives only delegatable capabilities, such as
 `cap:ipc:send`, so agent-control authority is not silently propagated into child
 tasks.
 
-The next implementation milestone is to replace the stub with a userspace
-service once process loading, syscall entry, and IPC handles exist.
+The next implementation milestone is true userspace execution: ELF loading,
+isolated address spaces, and syscall entry from ring 3.

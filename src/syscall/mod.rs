@@ -51,31 +51,127 @@ impl SyscallResult {
     }
 }
 
-/// Dispatch a syscall number.
-///
-/// Real userspace will enter this through a dedicated syscall instruction or
-/// software interrupt. For now, this is a typed ABI placeholder used by tests
-/// and runtime-service scaffolding.
-pub fn dispatch(number: u64, _args: [u64; 6]) -> SyscallResult {
+extern crate alloc;
+
+use alloc::string::String;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u64)]
+pub enum CapabilityResource {
+    IpcSend = 1,
+    ServiceRegister = 2,
+    AuditRead = 3,
+    ProcessSpawn = 4,
+}
+
+impl CapabilityResource {
+    fn resource(self) -> &'static str {
+        match self {
+            Self::IpcSend => "ipc:send:*",
+            Self::ServiceRegister => "service:register",
+            Self::AuditRead => "audit:read",
+            Self::ProcessSpawn => "process:spawn",
+        }
+    }
+
+    fn from_raw(raw: u64) -> Option<Self> {
+        match raw {
+            1 => Some(Self::IpcSend),
+            2 => Some(Self::ServiceRegister),
+            3 => Some(Self::AuditRead),
+            4 => Some(Self::ProcessSpawn),
+            _ => None,
+        }
+    }
+}
+
+pub fn dispatch(number: u64, args: [u64; 6]) -> SyscallResult {
+    let held_capabilities = alloc::vec![String::from("cap:system:all")];
+    dispatch_with_capabilities(number, args, &held_capabilities)
+}
+
+pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallResult {
+    let Some(held_capabilities) = crate::userspace::capabilities_for(pid) else {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    };
+
+    if crate::userspace::record_syscall(pid).is_err() {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+
+    dispatch_with_capabilities(number, args, &held_capabilities)
+}
+
+pub fn dispatch_with_capabilities(
+    number: u64,
+    args: [u64; 6],
+    held_capabilities: &[String],
+) -> SyscallResult {
     match number {
         x if x == SyscallNumber::Yield as u64 => SyscallResult::ok(0),
         x if x == SyscallNumber::IpcSend as u64 => {
-            SyscallResult::err(SyscallStatus::NotImplemented)
+            let message = match crate::ipc::Message::new(
+                0,
+                crate::ipc::Endpoint::new("runtime.ipc", "syscall"),
+                crate::ipc::MessageKind::Event,
+                "ipc:send:*",
+                b"userspace ipc_send",
+            ) {
+                Ok(message) => message,
+                Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
+            };
+            match crate::ipc::send(message, held_capabilities) {
+                Ok(id) => SyscallResult::ok(id),
+                Err(crate::ipc::IpcError::PermissionDenied) => {
+                    SyscallResult::err(SyscallStatus::PermissionDenied)
+                }
+                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+            }
         }
         x if x == SyscallNumber::IpcReceive as u64 => {
-            SyscallResult::err(SyscallStatus::NotImplemented)
+            match crate::ipc::receive_for_service("runtime.ipc") {
+                Ok(message) => SyscallResult::ok(message.id),
+                Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
+                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+            }
         }
         x if x == SyscallNumber::ServiceStart as u64 => {
-            SyscallResult::err(SyscallStatus::NotImplemented)
+            match crate::services::start_service_authorized(args[0], held_capabilities) {
+                Ok(()) => SyscallResult::ok(args[0]),
+                Err(err) if err.starts_with("missing capability") => {
+                    SyscallResult::err(SyscallStatus::PermissionDenied)
+                }
+                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+            }
         }
         x if x == SyscallNumber::ServiceStop as u64 => {
-            SyscallResult::err(SyscallStatus::NotImplemented)
+            match crate::services::stop_service_authorized(args[0], held_capabilities) {
+                Ok(()) => SyscallResult::ok(args[0]),
+                Err(err) if err.starts_with("missing capability") => {
+                    SyscallResult::err(SyscallStatus::PermissionDenied)
+                }
+                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+            }
         }
         x if x == SyscallNumber::CapabilityCheck as u64 => {
-            SyscallResult::err(SyscallStatus::NotImplemented)
+            let Some(resource) = CapabilityResource::from_raw(args[0]) else {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            };
+            if crate::security::has_capability(held_capabilities, resource.resource()) {
+                SyscallResult::ok(1)
+            } else {
+                SyscallResult::ok(0)
+            }
         }
         x if x == SyscallNumber::AuditWrite as u64 => {
-            SyscallResult::err(SyscallStatus::NotImplemented)
+            if !crate::security::has_capability(held_capabilities, "ipc:send:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::FileAccess,
+                "userspace audit_write syscall",
+            );
+            SyscallResult::ok(0)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }
