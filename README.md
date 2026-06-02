@@ -27,6 +27,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Modular service manager with typed service manifests and sandbox profiles
 - Deterministic IPC message contracts for future runtime services
 - Userspace program manifests and process capability table
+- Bootstrapped userspace `init` process metadata after scheduler startup
 - Capability-authorized syscall dispatch for IPC, service lifecycle checks,
   capability checks, and audit writes
 - Capability-gated `agentd` runtime boundary stub for future agent integration
@@ -153,6 +154,8 @@ agent. It is registered through a runtime service manifest with a default
 sandbox profile and requires `cap:agent:control` for lifecycle and command
 operations. FerrumOS also includes a manifest-backed `agent-bridge` userspace
 process placeholder that can exercise IPC syscalls with delegated capabilities.
+The kernel boot sequence now also launches the manifest-backed `init` process
+record after the scheduler starts.
 
 Try it in QEMU:
 
@@ -161,9 +164,10 @@ agent status
 agent start
 agent send ping
 programs
+users
 run agent-bridge
-syscall 3 5 1
-syscall 3 1
+syscall 4 5 1
+syscall 4 1
 agent status
 ipc
 syscalls

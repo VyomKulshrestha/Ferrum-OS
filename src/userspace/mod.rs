@@ -92,6 +92,20 @@ pub fn list_processes() -> Vec<UserProcess> {
     USERSPACE.lock().processes.clone()
 }
 
+pub fn bootstrap_init() -> Result<u64, String> {
+    if let Some(pid) = pid_for_program("init") {
+        return Ok(pid);
+    }
+
+    let held_capabilities = alloc::vec![String::from("cap:system:all")];
+    let pid = launch("init", &held_capabilities)?;
+    crate::logging::audit::log_event(
+        crate::logging::audit::AuditEvent::ProcessSpawned,
+        "userspace init bootstrapped",
+    );
+    Ok(pid)
+}
+
 pub fn launch(program_name: &str, caller_capabilities: &[String]) -> Result<u64, String> {
     if !crate::security::has_capability(caller_capabilities, "process:spawn") {
         crate::logging::audit::log_event(
@@ -136,6 +150,15 @@ pub fn launch(program_name: &str, caller_capabilities: &[String]) -> Result<u64,
     );
 
     Ok(pid)
+}
+
+pub fn pid_for_program(program_name: &str) -> Option<u64> {
+    USERSPACE
+        .lock()
+        .processes
+        .iter()
+        .find(|process| process.program == program_name && process.state != ProcessState::Exited)
+        .map(|process| process.pid)
 }
 
 pub fn capabilities_for(pid: u64) -> Option<Vec<String>> {

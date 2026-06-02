@@ -99,6 +99,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Initialize scheduler
     ferrumos::scheduler::init();
     println!("[  OK  ] Task scheduler initialized");
+
+    match ferrumos::userspace::bootstrap_init() {
+        Ok(pid) => println!("[  OK  ] Userspace init launched as PID {}", pid),
+        Err(err) => println!("[ WARN ] Userspace init launch failed: {}", err),
+    }
     
     // ========================================================================
     // Phase 4: Post-Boot
@@ -152,6 +157,7 @@ fn print_ready_banner() {
     println!("[ OK ] Service manager initialized");
     println!("[ OK ] Userspace registry initialized");
     println!("[ OK ] Task scheduler initialized");
+    println!("[ OK ] Userspace init launched");
     println!();
     println!("Kernel boundary: deterministic; AI runs in runtime services.");
     println!("Type 'help' for available commands.");

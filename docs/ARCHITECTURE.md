@@ -89,6 +89,7 @@ loading exists:
 - delegated capability sets checked at launch
 - process records with PID, entry path, state, and syscall count
 - syscall dispatch that authorizes against the process capability table
+- bootstrapping of the manifest-backed `init` process after scheduler startup
 
 This lets the kernel exercise realistic runtime-service policy before ELF
 loading, process address spaces, and CPU privilege transitions are complete.
