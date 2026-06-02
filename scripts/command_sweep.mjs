@@ -170,6 +170,7 @@ const tests = [
   ["write note.txt ferrumosok", "Written to note.txt"],
   ["cat note.txt", "ferrumosok"],
   ["rm note.txt", "Removed: note.txt"],
+  ["devices", "net.primary"],
   ["caps", "cap:agent:control"],
   ["services", "runtime.agentd"],
   ["services stop 7", "service 7 stopped"],

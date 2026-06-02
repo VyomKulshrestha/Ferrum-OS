@@ -74,6 +74,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Initialize filesystem
     ferrumos::fs::init();
     println!("[  OK  ] RAM filesystem initialized");
+
+    // Initialize the device registry after base console/storage surfaces exist.
+    ferrumos::devices::init();
+    println!("[  OK  ] Device registry initialized");
     
     // Initialize security subsystem
     ferrumos::security::init();
@@ -143,6 +147,7 @@ fn print_ready_banner() {
     println!("[ OK ] Kernel heap initialized");
     println!("[ OK ] Logging subsystem initialized");
     println!("[ OK ] RAM filesystem initialized");
+    println!("[ OK ] Device registry initialized");
     println!("[ OK ] Capability security initialized");
     println!("[ OK ] Service manager initialized");
     println!("[ OK ] Userspace registry initialized");

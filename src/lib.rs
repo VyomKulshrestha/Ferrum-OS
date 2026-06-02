@@ -58,6 +58,10 @@ pub mod shell;
 /// In-memory hierarchical file/directory storage
 pub mod fs;
 
+/// Kernel device registry and early HAL inventory
+/// Tracks online and planned device driver surfaces
+pub mod devices;
+
 /// Security subsystem
 /// Capability-based permissions and sandbox enforcement
 pub mod security;

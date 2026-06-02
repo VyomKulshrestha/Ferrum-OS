@@ -12,6 +12,18 @@ The kernel owns deterministic primitives only:
 - Audit hooks
 - Minimal filesystem and shell support for early development
 
+## Device Registry
+
+FerrumOS tracks device surfaces through a small registry before full driver
+probing exists. Online devices represent hardware or kernel facilities that are
+available now: VGA text output, COM1 serial, PIT timer, PS/2 keyboard, and the
+RAM filesystem. Planned devices represent contracts needed by future
+HelioxOS-style runtime services: primary network, audio, and camera surfaces.
+
+The registry deliberately labels unavailable devices as `Planned` instead of
+claiming driver support. This keeps integration honest while making the missing
+hardware work visible from the shell through `devices`.
+
 The kernel must not embed probabilistic systems, model inference, vector search,
 semantic memory, or autonomous planning logic.
 

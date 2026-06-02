@@ -75,6 +75,7 @@ pub fn execute(input: &str) {
         "touch" => cmd_touch(args),
         "write" => cmd_write(args),
         "rm" => cmd_rm(args),
+        "devices" => cmd_devices(),
         "caps" => cmd_caps(),
         "services" => cmd_services(args),
         "ipc" => cmd_ipc(),
@@ -110,6 +111,7 @@ fn cmd_help() {
     println!("  touch <f>  Create an empty file");
     println!("  write <f> <text>  Write text to file");
     println!("  rm <path>  Remove file or directory");
+    println!("  devices    List kernel-visible device surfaces");
     println!("  caps       Show capability tokens");
     println!("  services   List/start/stop registered services");
     println!("  ipc        Show IPC broker statistics");
@@ -264,6 +266,44 @@ fn cmd_rm(args: &[&str]) {
     match crate::fs::remove(args[0]) {
         Ok(()) => println!("Removed: {}", args[0]),
         Err(e) => println!("rm: {}", e),
+    }
+}
+
+fn cmd_devices() {
+    let devices = crate::devices::list_devices();
+    let online = crate::devices::device_count_by_state(crate::devices::DeviceState::Online);
+    let planned = crate::devices::device_count_by_state(crate::devices::DeviceState::Planned);
+
+    println!("Device Registry:");
+    println!("  Online:  {}", online);
+    println!("  Planned: {}", planned);
+    println!("  ID  STATE    CLASS    DRIVER        NAME");
+    println!("  --  -----    -----    ------        ----");
+    for device in &devices {
+        let state = match device.state {
+            crate::devices::DeviceState::Online => "ONLINE ",
+            crate::devices::DeviceState::Planned => "PLANNED",
+            crate::devices::DeviceState::Disabled => "DISABLE",
+        };
+        let class = match device.class {
+            crate::devices::DeviceClass::Display => "display",
+            crate::devices::DeviceClass::Serial => "serial ",
+            crate::devices::DeviceClass::Input => "input  ",
+            crate::devices::DeviceClass::Timer => "timer  ",
+            crate::devices::DeviceClass::Storage => "storage",
+            crate::devices::DeviceClass::Network => "network",
+            crate::devices::DeviceClass::Audio => "audio  ",
+            crate::devices::DeviceClass::Camera => "camera ",
+        };
+        println!(
+            "  {:>2}  {}  {}  {:<12}  {}",
+            device.id,
+            state,
+            class,
+            device.driver,
+            device.name
+        );
+        println!("      cap: {}", device.capability);
     }
 }
 
