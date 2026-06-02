@@ -87,6 +87,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::services::init();
     println!("[  OK  ] Service manager initialized");
 
+    // Initialize deterministic networking before userspace runtime services.
+    ferrumos::net::init();
+    println!("[  OK  ] Network subsystem initialized");
+
     // Initialize userspace manifests before runtime agents are exposed.
     ferrumos::userspace::init();
     println!("[  OK  ] Userspace registry initialized");
@@ -155,6 +159,7 @@ fn print_ready_banner() {
     println!("[ OK ] Device registry initialized");
     println!("[ OK ] Capability security initialized");
     println!("[ OK ] Service manager initialized");
+    println!("[ OK ] Network subsystem initialized");
     println!("[ OK ] Userspace registry initialized");
     println!("[ OK ] Task scheduler initialized");
     println!("[ OK ] Userspace init launched");

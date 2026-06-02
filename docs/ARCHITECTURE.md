@@ -31,6 +31,14 @@ The registry deliberately labels unavailable devices as `Planned` instead of
 claiming driver support. This keeps integration honest while making the missing
 hardware work visible from the shell through `devices`.
 
+## Network
+
+The network subsystem exposes loopback networking before physical NIC drivers
+exist. `lo` is online with `127.0.0.1/8`, `net0` is tracked as a planned NIC,
+and `net send` delivers bounded loopback payloads only when the caller holds
+network-connect authority. This gives Heliox-facing runtime services a safe
+network policy target while real drivers are still pending.
+
 The kernel must not embed probabilistic systems, model inference, vector search,
 semantic memory, or autonomous planning logic.
 

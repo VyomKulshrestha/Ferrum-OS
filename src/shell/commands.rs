@@ -78,6 +78,7 @@ pub fn execute(input: &str) {
         "write" => cmd_write(args),
         "rm" => cmd_rm(args),
         "devices" => cmd_devices(),
+        "net" => cmd_net(args),
         "caps" => cmd_caps(),
         "services" => cmd_services(args),
         "ipc" => cmd_ipc(),
@@ -116,6 +117,7 @@ fn cmd_help() {
     println!("  write <f> <text>  Write text to file");
     println!("  rm <path>  Remove file or directory");
     println!("  devices    List kernel-visible device surfaces");
+    println!("  net        Show network interfaces and loopback state");
     println!("  caps       Show capability tokens");
     println!("  services   List/start/stop/restart service registry");
     println!("  ipc        Show IPC broker statistics");
@@ -355,6 +357,56 @@ fn cmd_devices() {
             device.name
         );
         println!("      cap: {}", device.capability);
+    }
+}
+
+fn cmd_net(args: &[&str]) {
+    if args.first() == Some(&"send") {
+        let Ok(held) = require_resource("net:connect:*") else {
+            return;
+        };
+        let payload = if args.len() > 1 {
+            args[1..].join(" ")
+        } else {
+            String::from("ping")
+        };
+        match crate::net::send_loopback(&payload, &held) {
+            Ok(()) => println!("loopback packet delivered"),
+            Err(err) => println!("net send: {}", err),
+        }
+        return;
+    }
+
+    let stats = crate::net::stats();
+    println!("Network:");
+    println!("  Interfaces: {}", stats.interfaces);
+    println!("  Routes:     {}", stats.routes);
+    println!("  Sent:       {}", stats.packets_sent);
+    println!("  Received:   {}", stats.packets_received);
+    println!("  Denied:     {}", stats.denied);
+    println!("Interfaces:");
+    for interface in crate::net::interfaces() {
+        let state = match interface.state {
+            crate::net::InterfaceState::Up => "UP     ",
+            crate::net::InterfaceState::Down => "DOWN   ",
+            crate::net::InterfaceState::Planned => "PLANNED",
+        };
+        println!(
+            "  {} {} {} {}",
+            interface.name,
+            state,
+            interface.address,
+            interface.driver
+        );
+    }
+    println!("Routes:");
+    for route in crate::net::routes() {
+        println!(
+            "  {} via {} dev {}",
+            route.destination,
+            route.gateway,
+            route.interface
+        );
     }
 }
 

@@ -21,6 +21,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Volatile in-memory RAM filesystem
 - Filesystem mount table, stat metadata, and usage reporting
 - Device registry for online drivers and planned Heliox-facing hardware surfaces
+- Deterministic loopback network subsystem with interface and route reporting
 - Capability registry and caller-held capability authorization helpers
 - Debug shell session profiles for root and restricted guest capability checks
 - Audit logging hooks for security and lifecycle events
@@ -116,6 +117,8 @@ node .\scripts\command_sweep.mjs --visible
 | `write <file> <text>` | Write text to file |
 | `rm <path>` | Remove file or directory |
 | `devices` | List online and planned kernel-visible devices |
+| `net` | Show network interfaces, routes, and counters |
+| `net send <text>` | Deliver a capability-checked loopback packet |
 | `caps` | List security capabilities |
 | `services` | List registered services |
 | `services health` | Show service supervisor health counters |

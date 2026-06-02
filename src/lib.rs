@@ -74,6 +74,10 @@ pub mod services;
 /// Kernel-owned deterministic message metadata for future service transport
 pub mod ipc;
 
+/// Network subsystem
+/// Provides loopback networking and interface state before NIC drivers exist
+pub mod net;
+
 /// Syscall ABI definitions for future userspace processes
 /// Defines stable syscall numbers and result codes before usermode exists
 pub mod syscall;
