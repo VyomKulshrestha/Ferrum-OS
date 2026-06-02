@@ -27,6 +27,29 @@ pub struct DirEntry {
     pub size: usize,
 }
 
+#[derive(Debug, Clone)]
+pub struct FsStat {
+    pub path: String,
+    pub is_dir: bool,
+    pub size: usize,
+    pub children: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct FsUsage {
+    pub files: usize,
+    pub directories: usize,
+    pub bytes: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct Mount {
+    pub path: String,
+    pub fs_type: String,
+    pub device: String,
+    pub flags: String,
+}
+
 /// Global filesystem root
 static FS_ROOT: Mutex<Option<FsNode>> = Mutex::new(None);
 
@@ -191,6 +214,70 @@ pub fn remove(path: &str) -> Result<(), String> {
             Ok(())
         }
         _ => Err(String::from("parent is not a directory")),
+    }
+}
+
+pub fn mounts() -> Vec<Mount> {
+    alloc::vec![Mount {
+        path: String::from("/"),
+        fs_type: String::from("ramfs"),
+        device: String::from("ramfs.root"),
+        flags: String::from("rw,volatile"),
+    }]
+}
+
+pub fn stat(path: &str) -> Result<FsStat, String> {
+    let root_guard = FS_ROOT.lock();
+    let root = root_guard.as_ref().ok_or("filesystem not initialized")?;
+    let node = navigate(root, path)?;
+
+    let (is_dir, size, children) = match node {
+        FsNode::File { content } => (false, content.len(), 0),
+        FsNode::Directory { children } => (true, children.len(), children.len()),
+    };
+
+    Ok(FsStat {
+        path: normalize_path(path),
+        is_dir,
+        size,
+        children,
+    })
+}
+
+pub fn usage() -> Result<FsUsage, String> {
+    let root_guard = FS_ROOT.lock();
+    let root = root_guard.as_ref().ok_or("filesystem not initialized")?;
+    let mut usage = FsUsage {
+        files: 0,
+        directories: 0,
+        bytes: 0,
+    };
+    accumulate_usage(root, &mut usage);
+    Ok(usage)
+}
+
+fn accumulate_usage(node: &FsNode, usage: &mut FsUsage) {
+    match node {
+        FsNode::File { content } => {
+            usage.files += 1;
+            usage.bytes += content.len();
+        }
+        FsNode::Directory { children } => {
+            usage.directories += 1;
+            for child in children.values() {
+                accumulate_usage(child, usage);
+            }
+        }
+    }
+}
+
+fn normalize_path(path: &str) -> String {
+    if path.is_empty() {
+        String::from("/")
+    } else if path.starts_with('/') {
+        path.to_string()
+    } else {
+        alloc::format!("/{}", path)
     }
 }
 

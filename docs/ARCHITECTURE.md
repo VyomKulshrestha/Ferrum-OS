@@ -12,6 +12,13 @@ The kernel owns deterministic primitives only:
 - Audit hooks
 - Minimal filesystem and shell support for early development
 
+## Filesystem
+
+The current filesystem is a volatile RAM filesystem mounted at `/` as
+`ramfs.root`. It supports directory listing, file reads/writes, removal,
+metadata through `stat`, and usage reporting through `mounts`. This keeps the
+early shell useful while block storage drivers are still pending.
+
 ## Device Registry
 
 FerrumOS tracks device surfaces through a small registry before full driver

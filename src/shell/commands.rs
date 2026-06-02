@@ -71,6 +71,8 @@ pub fn execute(input: &str) {
         "mem" => cmd_mem(),
         "ls" => cmd_ls(args),
         "cat" => cmd_cat(args),
+        "stat" => cmd_stat(args),
+        "mounts" => cmd_mounts(),
         "mkdir" => cmd_mkdir(args),
         "touch" => cmd_touch(args),
         "write" => cmd_write(args),
@@ -107,6 +109,8 @@ fn cmd_help() {
     println!("  mem        Show memory usage");
     println!("  ls [path]  List directory contents");
     println!("  cat <file> Display file contents");
+    println!("  stat <p>   Show filesystem metadata");
+    println!("  mounts     Show mounted filesystems");
     println!("  mkdir <d>  Create a directory");
     println!("  touch <f>  Create an empty file");
     println!("  write <f> <text>  Write text to file");
@@ -205,6 +209,53 @@ fn cmd_cat(args: &[&str]) {
     match crate::fs::read_file(args[0]) {
         Ok(content) => println!("{}", content),
         Err(e) => println!("cat: {}", e),
+    }
+}
+
+fn cmd_stat(args: &[&str]) {
+    if require_resource("fs:read:*").is_err() {
+        return;
+    }
+
+    let path = if args.is_empty() { "/" } else { args[0] };
+    match crate::fs::stat(path) {
+        Ok(stat) => {
+            let kind = if stat.is_dir { "directory" } else { "file" };
+            println!("Filesystem Stat:");
+            println!("  Path:     {}", stat.path);
+            println!("  Type:     {}", kind);
+            println!("  Size:     {} bytes", stat.size);
+            println!("  Children: {}", stat.children);
+        }
+        Err(err) => println!("stat: {}", err),
+    }
+}
+
+fn cmd_mounts() {
+    if require_resource("fs:read:*").is_err() {
+        return;
+    }
+
+    match crate::fs::usage() {
+        Ok(usage) => {
+            println!("Mount Table:");
+            for mount in crate::fs::mounts() {
+                println!(
+                    "  {} on {} type {} ({})",
+                    mount.device,
+                    mount.path,
+                    mount.fs_type,
+                    mount.flags
+                );
+            }
+            println!(
+                "Usage: {} files, {} directories, {} bytes",
+                usage.files,
+                usage.directories,
+                usage.bytes
+            );
+        }
+        Err(err) => println!("mounts: {}", err),
     }
 }
 

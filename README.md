@@ -19,6 +19,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Cooperative task scheduler with task state and priority metadata
 - Interactive shell with inspection and management commands
 - Volatile in-memory RAM filesystem
+- Filesystem mount table, stat metadata, and usage reporting
 - Device registry for online drivers and planned Heliox-facing hardware surfaces
 - Capability registry and caller-held capability authorization helpers
 - Debug shell session profiles for root and restricted guest capability checks
@@ -106,6 +107,8 @@ node .\scripts\command_sweep.mjs --visible
 | `mem` | Show heap usage |
 | `ls [path]` | List directory contents |
 | `cat <file>` | Display file contents |
+| `stat <path>` | Show filesystem metadata |
+| `mounts` | Show mounted filesystems and RAM filesystem usage |
 | `mkdir <dir>` | Create directory |
 | `touch <file>` | Create empty file |
 | `write <file> <text>` | Write text to file |

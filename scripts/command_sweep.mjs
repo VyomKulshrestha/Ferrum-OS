@@ -164,6 +164,8 @@ const tests = [
   ["mem", "Kernel Heap Memory:"],
   ["ls", "readme.txt"],
   ["cat readme.txt", "Welcome to FerrumOS"],
+  ["stat readme.txt", "Type:     file"],
+  ["mounts", "ramfs.root on / type ramfs"],
   ["mkdir testdir", "Directory created: testdir"],
   ["ls", "testdir"],
   ["touch note.txt", "FerrumOS:~$"],
