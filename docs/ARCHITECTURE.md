@@ -50,6 +50,10 @@ Every service is described by a `ServiceManifest`:
 - `sandbox` records early isolation intent: IPC-only execution, isolated address
   space, memory budget, and syscall audit policy.
 
+The service manager also tracks health-check counts and restart counts. This is
+still an in-kernel supervisor model, but it gives runtime services a concrete
+operational surface before userspace service managers are available.
+
 Initial runtime service categories:
 
 - `runtime.ipc`

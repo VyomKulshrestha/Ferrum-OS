@@ -25,6 +25,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Debug shell session profiles for root and restricted guest capability checks
 - Audit logging hooks for security and lifecycle events
 - Modular service manager with typed service manifests and sandbox profiles
+- Service health reporting and restart counters for runtime supervision
 - Deterministic IPC message contracts for future runtime services
 - Userspace program manifests and process capability table
 - Bootstrapped userspace `init` process metadata after scheduler startup
@@ -117,8 +118,10 @@ node .\scripts\command_sweep.mjs --visible
 | `devices` | List online and planned kernel-visible devices |
 | `caps` | List security capabilities |
 | `services` | List registered services |
+| `services health` | Show service supervisor health counters |
 | `services start <id>` | Start a service through capability checks |
 | `services stop <id>` | Stop a service through capability checks |
+| `services restart <id>` | Restart a service through capability checks |
 | `ipc` | Show IPC broker statistics |
 | `syscalls` | Show reserved syscall ABI numbers |
 | `programs` | List userspace program manifests |

@@ -100,6 +100,20 @@ pub struct Service {
     pub layer: ServiceLayer,
     /// Runtime isolation limits.
     pub sandbox: SandboxProfile,
+    /// Number of health checks performed by the supervisor.
+    pub health_checks: u64,
+    /// Number of restart operations requested by policy or operator action.
+    pub restart_count: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ServiceHealth {
+    pub total: usize,
+    pub running: usize,
+    pub stopped: usize,
+    pub failed: usize,
+    pub sandboxed: usize,
+    pub restarts: u64,
 }
 
 struct ServiceManager {
@@ -143,6 +157,8 @@ pub fn init() {
             sandboxed: *layer != ServiceLayer::Kernel,
             layer: *layer,
             sandbox,
+            health_checks: 0,
+            restart_count: 0,
         });
     }
 }
@@ -160,6 +176,33 @@ pub fn find_service(name: &str) -> Option<Service> {
         .iter()
         .find(|service| service.name == name)
         .cloned()
+}
+
+pub fn health_report() -> ServiceHealth {
+    let mut mgr = MANAGER.lock();
+    let mut report = ServiceHealth {
+        total: mgr.services.len(),
+        running: 0,
+        stopped: 0,
+        failed: 0,
+        sandboxed: 0,
+        restarts: 0,
+    };
+
+    for service in mgr.services.iter_mut() {
+        service.health_checks += 1;
+        match service.state {
+            ServiceState::Running => report.running += 1,
+            ServiceState::Stopped => report.stopped += 1,
+            ServiceState::Failed => report.failed += 1,
+        }
+        if service.sandboxed {
+            report.sandboxed += 1;
+        }
+        report.restarts += service.restart_count;
+    }
+
+    report
 }
 
 /// Register a new service
@@ -197,6 +240,8 @@ pub fn register_manifest(manifest: ServiceManifest) -> u64 {
         sandboxed: manifest.layer != ServiceLayer::Kernel,
         layer: manifest.layer,
         sandbox: manifest.sandbox,
+        health_checks: 0,
+        restart_count: 0,
     });
 
     crate::logging::audit::log_event(
@@ -244,6 +289,7 @@ pub fn start_service_authorized(id: u64, held_capabilities: &[String]) -> Result
         for svc in mgr.services.iter_mut() {
             if svc.id == id {
                 svc.state = ServiceState::Running;
+                svc.health_checks += 1;
                 started = true;
                 break;
             }
@@ -299,6 +345,7 @@ pub fn stop_service_authorized(id: u64, held_capabilities: &[String]) -> Result<
         for svc in mgr.services.iter_mut() {
             if svc.id == id {
                 svc.state = ServiceState::Stopped;
+                svc.health_checks += 1;
                 stopped = true;
                 break;
             }
@@ -310,6 +357,61 @@ pub fn stop_service_authorized(id: u64, held_capabilities: &[String]) -> Result<
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::ServiceStopped,
             "Service stopped",
+        );
+        Ok(())
+    } else {
+        Err(String::from("service not found"))
+    }
+}
+
+pub fn restart_service(id: u64) -> Result<(), String> {
+    let held_capabilities = alloc::vec![String::from("cap:system:all")];
+    restart_service_authorized(id, &held_capabilities)
+}
+
+pub fn restart_service_authorized(id: u64, held_capabilities: &[String]) -> Result<(), String> {
+    let missing_capability = {
+        let mgr = MANAGER.lock();
+        let service = mgr
+            .services
+            .iter()
+            .find(|svc| svc.id == id)
+            .ok_or_else(|| String::from("service not found"))?;
+
+        service
+            .required_capabilities
+            .iter()
+            .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
+            .cloned()
+    };
+
+    if let Some(required) = missing_capability {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("Service restart denied; missing {}", required),
+        );
+        return Err(alloc::format!("missing capability {}", required));
+    }
+
+    let restarted = {
+        let mut mgr = MANAGER.lock();
+        let mut restarted = false;
+        for svc in mgr.services.iter_mut() {
+            if svc.id == id {
+                svc.state = ServiceState::Running;
+                svc.restart_count += 1;
+                svc.health_checks += 1;
+                restarted = true;
+                break;
+            }
+        }
+        restarted
+    };
+
+    if restarted {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::ServiceStarted,
+            "Service restarted",
         );
         Ok(())
     } else {

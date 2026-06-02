@@ -117,7 +117,7 @@ fn cmd_help() {
     println!("  rm <path>  Remove file or directory");
     println!("  devices    List kernel-visible device surfaces");
     println!("  caps       Show capability tokens");
-    println!("  services   List/start/stop registered services");
+    println!("  services   List/start/stop/restart service registry");
     println!("  ipc        Show IPC broker statistics");
     println!("  syscalls   Show syscall ABI numbers");
     println!("  programs   List userspace program manifests");
@@ -369,6 +369,16 @@ fn cmd_caps() {
 fn cmd_services(args: &[&str]) {
     if !args.is_empty() {
         match args[0] {
+            "health" => {
+                let report = crate::services::health_report();
+                println!("Service Health:");
+                println!("  Total:     {}", report.total);
+                println!("  Running:   {}", report.running);
+                println!("  Stopped:   {}", report.stopped);
+                println!("  Failed:    {}", report.failed);
+                println!("  Sandboxed: {}", report.sandboxed);
+                println!("  Restarts:  {}", report.restarts);
+            }
             "start" => {
                 if args.len() < 2 {
                     println!("services start: missing service id");
@@ -385,6 +395,24 @@ fn cmd_services(args: &[&str]) {
                         }
                     }
                     Err(_) => println!("services start: invalid service id"),
+                }
+            }
+            "restart" => {
+                if args.len() < 2 {
+                    println!("services restart: missing service id");
+                    return;
+                }
+                match args[1].parse::<u64>() {
+                    Ok(id) => {
+                        let Ok(held) = require_token("cap:service:register") else {
+                            return;
+                        };
+                        match crate::services::restart_service_authorized(id, &held) {
+                            Ok(()) => println!("service {} restarted", id),
+                            Err(err) => println!("services restart: {}", err),
+                        }
+                    }
+                    Err(_) => println!("services restart: invalid service id"),
                 }
             }
             "stop" => {
@@ -405,7 +433,7 @@ fn cmd_services(args: &[&str]) {
                     Err(_) => println!("services stop: invalid service id"),
                 }
             }
-            _ => println!("services: usage: services [start|stop] <id>"),
+            _ => println!("services: usage: services [health|start|stop|restart] <id>"),
         }
         return;
     }
@@ -440,6 +468,11 @@ fn cmd_services(args: &[&str]) {
             if !svc.required_capabilities.is_empty() {
                 println!("       caps: {}", svc.required_capabilities.join(", "));
             }
+            println!(
+                "       health checks: {} restarts: {}",
+                svc.health_checks,
+                svc.restart_count
+            );
         }
     }
 }

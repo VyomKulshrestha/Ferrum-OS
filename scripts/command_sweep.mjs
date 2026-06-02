@@ -177,6 +177,8 @@ const tests = [
   ["services", "runtime.agentd"],
   ["services stop 7", "service 7 stopped"],
   ["services start 7", "service 7 started"],
+  ["services health", "Service Health:"],
+  ["services restart 7", "service 7 restarted"],
   ["ipc", "IPC Broker:"],
   ["syscalls", "Syscall ABI:"],
   ["programs", "agent-bridge"],
