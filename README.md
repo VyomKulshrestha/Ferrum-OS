@@ -33,6 +33,10 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Capability-authorized syscall dispatch for IPC, service lifecycle checks,
   capability checks, and audit writes
 - Capability-gated `agentd` runtime boundary stub for future agent integration
+- Heliox-OS JSON-RPC 2.0 bridge: full method registry, 5-tier permission model,
+  120 action catalog, nine pre-registered `runtime.heliox.*` service slots,
+  capability tokens for voice/gesture/screen/persona, and shell surface for
+  inspecting and exercising the bridge (see `docs/HELIOX_INTEGRATION.md`)
 
 ## Architecture
 
@@ -134,6 +138,18 @@ node .\scripts\command_sweep.mjs --visible
 | `agent status` | Show agent runtime boundary state |
 | `agent start` | Start the sandboxed `agentd` boundary service |
 | `agent send <text>` | Send a capability-checked IPC command to `agentd` |
+| `heliox status` | Show Heliox-OS JSON-RPC bridge state |
+| `heliox methods` | List Heliox JSON-RPC methods with required capabilities |
+| `heliox tiers` | List the 5-tier Heliox permission model |
+| `heliox actions` | List the Heliox action catalog (120 actions) |
+| `heliox services` | List Heliox runtime service slots |
+| `heliox send <method> [input]` | Submit a Heliox JSON-RPC request envelope |
+| `heliox notif <method>` | Prepare a Heliox notification envelope |
+| `heliox voice start\|stop\|event` | Drive the Heliox voice listener state |
+| `heliox screen on\|off\|context` | Drive the Heliox screen vision state |
+| `heliox persona [add key=value]` | Inspect or append Heliox persona rules |
+| `heliox confirm <plan_id>` | Resolve a Heliox confirmation gate |
+| `heliox execute <input>` | Submit a Heliox ReAct pipeline input |
 | `log` | Show audit log |
 | `uptime` | Show timer ticks |
 | `uname` | Show system information |
@@ -162,6 +178,16 @@ operations. FerrumOS also includes a manifest-backed `agent-bridge` userspace
 process placeholder that can exercise IPC syscalls with delegated capabilities.
 The kernel boot sequence now also launches the manifest-backed `init` process
 record after the scheduler starts.
+
+## Heliox-OS Integration
+
+FerrumOS ships with a kernel-side bridge for [Heliox-OS](https://github.com/VyomKulshrestha/Heliox-OS).
+The bridge registers the full Heliox JSON-RPC 2.0 method registry, the
+five-tier permission model, the 120-action catalog, and nine pre-registered
+`runtime.heliox.*` runtime service slots. It does NOT execute AI, planners,
+or vector search in kernel space - those workloads run in the runtime
+services above the boundary. See `docs/HELIOX_INTEGRATION.md` for the wire
+contract, capability policy, and porting path.
 
 Try it in QEMU:
 

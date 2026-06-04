@@ -99,7 +99,13 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // runtime service without loading any probabilistic agent code in kernel.
     ferrumos::agent::init();
     println!("[  OK  ] Agent runtime boundary initialized");
-    
+
+    // Initialize the Heliox-OS integration boundary. This registers the
+    // Heliox JSON-RPC method catalog, permission tiers, and runtime service
+    // slots that the future Heliox-compatible agent runtime can attach to.
+    ferrumos::heliox::init();
+    println!("[  OK  ] Heliox-OS integration boundary initialized");
+
     // Initialize scheduler
     ferrumos::scheduler::init();
     println!("[  OK  ] Task scheduler initialized");
@@ -165,6 +171,7 @@ fn print_ready_banner() {
     println!("[ OK ] Userspace init launched");
     println!();
     println!("Kernel boundary: deterministic; AI runs in runtime services.");
+    println!("Heliox-OS JSON-RPC bridge registered (try 'heliox status').");
     println!("Type 'help' for available commands.");
     println!();
 }

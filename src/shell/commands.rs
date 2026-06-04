@@ -88,6 +88,7 @@ pub fn execute(input: &str) {
         "run" => cmd_run(args),
         "syscall" => cmd_syscall(args),
         "agent" => cmd_agent(args),
+        "heliox" => cmd_heliox(args),
         "log" => cmd_log(),
         "uptime" => cmd_uptime(),
         "uname" => cmd_uname(),
@@ -127,6 +128,7 @@ fn cmd_help() {
     println!("  run <p>    Launch a userspace program");
     println!("  syscall <pid> <num> [arg0]  Dispatch a userspace syscall");
     println!("  agent      Control the agent runtime boundary");
+    println!("  heliox     Heliox-OS JSON-RPC bridge surface");
     println!("  log        Show recent audit log");
     println!("  uptime     Show system uptime (ticks)");
     println!("  uname      Show system information");
@@ -684,6 +686,331 @@ fn cmd_agent(args: &[&str]) {
             }
         }
         _ => println!("agent: unknown subcommand '{}'", args[0]),
+    }
+}
+
+fn cmd_heliox(args: &[&str]) {
+    if args.is_empty() {
+        println!("heliox: usage: heliox <status|methods|tiers|actions|services|send|notif|persona|screen|voice|confirm|execute>");
+        return;
+    }
+
+    match args[0] {
+        "status" => cmd_heliox_status(),
+        "methods" => cmd_heliox_methods(),
+        "tiers" => cmd_heliox_tiers(),
+        "actions" => cmd_heliox_actions(),
+        "services" => cmd_heliox_services(),
+        "send" => cmd_heliox_send(&args[1..]),
+        "notif" => cmd_heliox_notif(&args[1..]),
+        "persona" => cmd_heliox_persona(&args[1..]),
+        "screen" => cmd_heliox_screen(&args[1..]),
+        "voice" => cmd_heliox_voice(&args[1..]),
+        "confirm" => cmd_heliox_confirm(&args[1..]),
+        "execute" => cmd_heliox_execute(&args[1..]),
+        _ => println!(
+            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, confirm, execute)",
+            args[0]
+        ),
+    }
+}
+
+fn cmd_heliox_status() {
+    use crate::heliox;
+    let status = heliox::status();
+    println!("Heliox-OS Integration Bridge:");
+    println!("  Transport:    {}", status.transport);
+    println!("  Protocol:     {}", status.protocol);
+    println!("  Version:      {}", status.version);
+    println!("  Services:     {}", status.services_registered);
+    println!("  Methods:      {} (JSON-RPC 2.0 over WebSocket)", status.methods);
+    println!("  Actions:      {} (5-tier permission model)", status.actions);
+    println!("  Envelopes:    {} (invoked {}, denied {})",
+        status.envelopes_seen, status.methods_invoked, status.methods_denied);
+    println!("  Voice listener: {} (events={}, commands={})",
+        status.voice_listener.name(), status.voice_events, status.voice_commands);
+    println!("  Gesture events: {}", status.gesture_events);
+    println!("  Multimodal intents: {}", status.multimodal_intents);
+    println!("  Screen vision: {:?}", status.screen_vision);
+    println!("  Screen frames: {}", status.screen_frames);
+    println!("  Persona rules: {}", status.persona_rules);
+    println!("  Pending confirmations: {}", status.pending_confirmations);
+    if let Some(phase) = status.last_pipeline_phase {
+        println!("  Last pipeline phase: {}", phase.name());
+    }
+}
+
+fn cmd_heliox_methods() {
+    use crate::heliox;
+    let methods = heliox::list_methods();
+    let request_count = heliox::method_count_by_class(crate::heliox::MethodClass::Request);
+    let notif_count = heliox::method_count_by_class(crate::heliox::MethodClass::Notification);
+    println!("Heliox JSON-RPC Methods ({}):", methods.len());
+    println!("  requests:     {}", request_count);
+    println!("  notifications:{}", notif_count);
+    println!("  NAME                              CLASS         CAPABILITY");
+    println!("  ----                              -----         ----------");
+    for method in &methods {
+        let class = match method.class {
+            crate::heliox::MethodClass::Request => "request",
+            crate::heliox::MethodClass::Notification => "notif",
+        };
+        println!("  {:<32}  {:<11}  {}", method.name, class, method.required_capability);
+    }
+}
+
+fn cmd_heliox_tiers() {
+    use crate::heliox;
+    let categories = heliox::list_action_categories();
+    println!("Heliox Permission Tiers:");
+    for category in &categories {
+        println!(
+            "  {} (auto-exec={}): {} actions",
+            category.tier.name(),
+            !category.tier.requires_confirmation(),
+            category.actions.len()
+        );
+    }
+    println!("  Total action types: {}", heliox::action_count());
+}
+
+fn cmd_heliox_actions() {
+    use crate::heliox;
+    let categories = heliox::list_action_categories();
+    println!("Heliox Action Catalog:");
+    for category in &categories {
+        println!("[{}] {} ({} actions)",
+            category.tier.index(),
+            category.tier.name(),
+            category.actions.len());
+        for action in category.actions {
+            println!("  {}", action);
+        }
+    }
+}
+
+fn cmd_heliox_services() {
+    use crate::heliox;
+    let slots = heliox::runtime_slots();
+    println!("Heliox Runtime Service Slots:");
+    for slot in &slots {
+        match crate::services::find_service(slot.name) {
+            Some(svc) => {
+                let state = match svc.state {
+                    crate::services::ServiceState::Running => "RUNNING",
+                    crate::services::ServiceState::Stopped => "STOPPED",
+                    crate::services::ServiceState::Failed => "FAILED ",
+                };
+                println!("  [{}] {} {} - {}", svc.id, state, slot.name, slot.description);
+            }
+            None => {
+                println!("  [?] (not registered) {} - {}", slot.name, slot.description);
+            }
+        }
+    }
+}
+
+fn cmd_heliox_send(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        println!("heliox send: usage: heliox send <method> [input]");
+        return;
+    }
+    let method = args[0];
+    let input = if args.len() > 1 { args[1..].join(" ") } else { String::new() };
+    let Ok(held) = require_token("cap:heliox:bridge") else {
+        return;
+    };
+    match heliox::submit_request(method, &input, &held) {
+        Ok(envelope) => println!(
+            "heliox envelope dispatched: {} kind={} id={}",
+            envelope.method,
+            envelope.kind_name(),
+            envelope.id
+        ),
+        Err(err) => println!("heliox send: {}", err),
+    }
+}
+
+fn cmd_heliox_notif(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        println!("heliox notif: usage: heliox notif <method>");
+        return;
+    }
+    let method = args[0];
+    if require_token("cap:heliox:bridge").is_err() {
+        return;
+    }
+    match heliox::submit_notification(method) {
+        Ok(envelope) => println!(
+            "heliox notification prepared: {} (id={})",
+            envelope.method, envelope.id
+        ),
+        Err(err) => println!("heliox notif: {}", err),
+    }
+}
+
+fn cmd_heliox_persona(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        let rules = heliox::persona_rules();
+        println!("Heliox Persona Rules ({}):", rules.len());
+        for rule in &rules {
+            println!(
+                "  [{:?}] {} = {} (confidence {}%)",
+                rule.category, rule.key, rule.value, rule.confidence
+            );
+        }
+        return;
+    }
+    match args[0] {
+        "add" => {
+            let payload = if args.len() > 1 { args[1..].join(" ") } else { String::new() };
+            if payload.is_empty() {
+                println!("heliox persona add: usage: heliox persona add <key>=<value>");
+                return;
+            }
+            let Ok(held) = require_token("cap:heliox:persona") else {
+                return;
+            };
+            match heliox::submit_request("persona_add_preference", &payload, &held) {
+                Ok(envelope) => println!("persona rule recorded (envelope id={})", envelope.id),
+                Err(err) => println!("heliox persona add: {}", err),
+            }
+        }
+        _ => println!("heliox persona: usage: heliox persona [add <key>=<value>]"),
+    }
+}
+
+fn cmd_heliox_screen(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        let status = heliox::status();
+        println!("Heliox Screen Vision: {:?}", status.screen_vision);
+        println!("  Frames captured: {}", status.screen_frames);
+        return;
+    }
+    match args[0] {
+        "on" => {
+            let Ok(held) = require_token("cap:heliox:screen") else {
+                return;
+            };
+            let result = heliox::submit_request("screen_vision_toggle", "on", &held);
+            match result {
+                Ok(_) => println!("heliox screen vision enabled"),
+                Err(err) => println!("heliox screen on: {}", err),
+            }
+        }
+        "off" => {
+            let Ok(held) = require_token("cap:heliox:screen") else {
+                return;
+            };
+            let result = heliox::submit_request("screen_vision_toggle", "off", &held);
+            match result {
+                Ok(_) => println!("heliox screen vision disabled"),
+                Err(err) => println!("heliox screen off: {}", err),
+            }
+        }
+        "context" => {
+            let Ok(held) = require_token("cap:heliox:screen") else {
+                return;
+            };
+            let result = heliox::submit_request("screen_context", "active window", &held);
+            match result {
+                Ok(envelope) => println!("screen_context envelope id={}", envelope.id),
+                Err(err) => println!("heliox screen context: {}", err),
+            }
+        }
+        _ => println!("heliox screen: usage: heliox screen [on|off|context]"),
+    }
+}
+
+fn cmd_heliox_voice(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        let status = heliox::status();
+        println!("Heliox Voice Listener: {}", status.voice_listener.name());
+        println!("  Events: {}", status.voice_events);
+        println!("  Commands: {}", status.voice_commands);
+        return;
+    }
+    match args[0] {
+        "start" => {
+            let Ok(held) = require_token("cap:heliox:voice") else {
+                return;
+            };
+            match heliox::submit_request("voice_listener_start", "hey heliox", &held) {
+                Ok(_) => println!("heliox voice listener started"),
+                Err(err) => println!("heliox voice start: {}", err),
+            }
+        }
+        "stop" => {
+            let Ok(held) = require_token("cap:heliox:voice") else {
+                return;
+            };
+            match heliox::submit_request("voice_listener_stop", "", &held) {
+                Ok(_) => println!("heliox voice listener stopped"),
+                Err(err) => println!("heliox voice stop: {}", err),
+            }
+        }
+        "event" => {
+            if args.len() < 2 {
+                println!("heliox voice event: usage: heliox voice event <transcript>");
+                return;
+            }
+            let Ok(held) = require_token("cap:heliox:voice") else {
+                return;
+            };
+            let transcript = args[1..].join(" ");
+            match heliox::submit_request("voice_event", &transcript, &held) {
+                Ok(envelope) => println!("voice_event envelope id={}", envelope.id),
+                Err(err) => println!("heliox voice event: {}", err),
+            }
+        }
+        _ => println!("heliox voice: usage: heliox voice [start|stop|event <text>]"),
+    }
+}
+
+fn cmd_heliox_confirm(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        let pending = heliox::pending_confirmations();
+        println!("Pending Heliox Confirmations ({}):", pending.len());
+        for gate in &pending {
+            println!("  plan_id={} actions={}", gate.plan_id, gate.actions.len());
+            for action in &gate.actions {
+                println!("    - {}", action);
+            }
+        }
+        return;
+    }
+    let plan_id = args[0];
+    let Ok(held) = require_token("cap:heliox:bridge") else {
+        return;
+    };
+    match heliox::submit_request("confirm", plan_id, &held) {
+        Ok(_) => println!("confirmation gate resolved: {}", plan_id),
+        Err(err) => println!("heliox confirm: {}", err),
+    }
+}
+
+fn cmd_heliox_execute(args: &[&str]) {
+    use crate::heliox;
+    if args.is_empty() {
+        println!("heliox execute: usage: heliox execute <input text>");
+        return;
+    }
+    let input = args.join(" ");
+    let Ok(held) = require_token("cap:heliox:execute") else {
+        return;
+    };
+    match heliox::submit_request("execute", &input, &held) {
+        Ok(envelope) => println!(
+            "heliox execute dispatched: id={} method={}",
+            envelope.id, envelope.method
+        ),
+        Err(err) => println!("heliox execute: {}", err),
     }
 }
 

@@ -150,3 +150,33 @@ tasks.
 
 The next implementation milestone is true userspace execution: ELF loading,
 isolated address spaces, and syscall entry from ring 3.
+
+## Heliox-OS Integration Layer
+
+FerrumOS hosts a deterministic Heliox-OS integration boundary in the kernel
+without taking on any probabilistic behaviour. The bridge lives in
+`src/heliox/mod.rs` and provides:
+
+- The full Heliox JSON-RPC 2.0 method registry (requests and notifications)
+  with the capability each method requires.
+- The five-tier permission model that the Heliox `ActionType` enum uses
+  (Read Only, User Write, System Modify, Destructive, Root Critical) and
+  the 120-action catalog.
+- Six capability tokens for Heliox-specific authority: `cap:heliox:bridge`,
+  `:execute`, `:voice`, `:gesture`, `:screen`, `:persona`.
+- Nine pre-registered sandboxed runtime service slots
+  (`runtime.heliox.{bridge,input,inference,memory,orchestrator,screen,persona,plugins,audit}`)
+  that match the Heliox runtime architecture.
+- Stubs for the multimodal fusion engine, screen vision, persona learning,
+  and confirmation gates that a userspace Heliox runtime can replace.
+- A `heliox-bridge` userspace program manifest at `/srv/heliox-bridge` that
+  carries `cap:ipc:send` for envelope dispatch through the kernel IPC broker.
+- A `heliox` shell command group that exposes the integration state for
+  operators: `heliox status`, `heliox methods`, `heliox tiers`,
+  `heliox actions`, `heliox services`, `heliox send <method> [input]`,
+  `heliox notif <method>`, `heliox voice {start,stop,event}`,
+  `heliox screen {on,off,context}`, `heliox persona [add key=value]`,
+  `heliox confirm <plan_id>`, `heliox execute <input>`.
+
+The full integration contract, porting plan, and audit hooks are described
+in `docs/HELIOX_INTEGRATION.md`.

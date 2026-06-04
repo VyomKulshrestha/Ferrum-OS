@@ -82,6 +82,12 @@ pub fn init() {
         "/srv/audit-exporter",
         vec![String::from("cap:ipc:send")],
     ));
+    state.programs.push(ProgramManifest::new(
+        "heliox-bridge",
+        "Heliox-OS JSON-RPC bridge userspace process",
+        "/srv/heliox-bridge",
+        vec![String::from("cap:ipc:send")],
+    ));
 }
 
 pub fn list_programs() -> Vec<ProgramManifest> {

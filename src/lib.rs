@@ -90,6 +90,12 @@ pub mod userspace;
 /// Minimal deterministic bridge for the future agent runtime runtime
 pub mod agent;
 
+/// Heliox-OS integration boundary
+/// JSON-RPC 2.0 contracts, method registry, permission tiers, and runtime
+/// service topology required to host a Heliox-compatible agent runtime above
+/// the FerrumOS kernel.
+pub mod heliox;
+
 /// Logging and audit trail
 /// Structured kernel logging with security audit events
 pub mod logging;
