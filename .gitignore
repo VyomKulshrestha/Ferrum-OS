@@ -1,5 +1,6 @@
 /target/
 /target*/
+/userland/**/target/
 *.bin
 *.iso
 *.img

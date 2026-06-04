@@ -6,6 +6,20 @@
 // that syscalls can authorize against.
 // ============================================================================
 
+/// Embedded `init` userspace ELF built by the workspace's `userland/init`
+/// crate. Phase 1.4 will parse this binary, allocate a ring-3 address space,
+/// and dispatch into its `_start` entry point. For now the bytes are kept
+/// here so the build pipeline is in place and the kernel can sanity-check
+/// the embedded blob.
+pub const INIT_ELF: &[u8] = include_bytes!("../../userland/init/target/x86_64-unknown-none/debug/init");
+
+/// Return the size of the embedded `init` ELF in bytes. Useful for
+/// boot-time sanity checks (`init_size > 0` after the userland build has
+/// run at least once).
+pub fn init_elf_size() -> usize {
+    INIT_ELF.len()
+}
+
 extern crate alloc;
 
 use alloc::string::{String, ToString};

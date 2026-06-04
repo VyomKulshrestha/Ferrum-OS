@@ -114,6 +114,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         Ok(pid) => println!("[  OK  ] Userspace init launched as PID {}", pid),
         Err(err) => println!("[ WARN ] Userspace init launch failed: {}", err),
     }
+
+    println!(
+        "[  OK  ] Embedded init ELF: {} bytes (ring-3 load pending Phase 1.4)",
+        ferrumos::userspace::init_elf_size()
+    );
     
     // ========================================================================
     // Phase 4: Post-Boot
