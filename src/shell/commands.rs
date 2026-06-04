@@ -74,6 +74,7 @@ pub fn execute(input: &str) {
         "cat" => cmd_cat(args),
         "stat" => cmd_stat(args),
         "mounts" => cmd_mounts(),
+        "sync" => cmd_sync(),
         "mkdir" => cmd_mkdir(args),
         "touch" => cmd_touch(args),
         "write" => cmd_write(args),
@@ -120,6 +121,7 @@ fn cmd_help() {
     println!("  cat <file> Display file contents");
     println!("  stat <p>   Show filesystem metadata");
     println!("  mounts     Show mounted filesystems");
+    println!("  sync       Synchronize dirty filesystem data to disk");
     println!("  mkdir <d>  Create a directory");
     println!("  touch <f>  Create an empty file");
     println!("  write <f> <text>  Write text to file");
@@ -273,6 +275,18 @@ fn cmd_mounts() {
             );
         }
         Err(err) => println!("mounts: {}", err),
+    }
+}
+
+fn cmd_sync() {
+    if require_resource("fs:write:*").is_err() {
+        return;
+    }
+
+    println!("Syncing filesystems...");
+    match crate::fs::sync() {
+        Ok(()) => println!("Filesystems synchronized successfully."),
+        Err(err) => println!("sync error: {}", err),
     }
 }
 

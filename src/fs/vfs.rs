@@ -186,6 +186,17 @@ pub fn mounts() -> Vec<MountInfo> {
     result
 }
 
+/// Synchronize dirty data across all mounted filesystems.
+pub fn sync_all() -> Result<(), String> {
+    let table_guard = MOUNT_TABLE.lock();
+    let table = table_guard.as_ref().ok_or("VFS not initialized")?;
+    for mp in table {
+        mp.fs.sync()?;
+    }
+    Ok(())
+}
+
+
 // ============================================================================
 // Helpers
 // ============================================================================

@@ -254,6 +254,10 @@ pub fn usage() -> Result<FsUsage, String> {
     fs.usage()
 }
 
+pub fn sync() -> Result<(), String> {
+    vfs::sync_all()
+}
+
 pub fn mounts() -> Vec<Mount> {
     vfs::mounts().into_iter().map(|mi| {
         let flags = if mi.fs_type == "ramfs" {
