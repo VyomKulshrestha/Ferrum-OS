@@ -74,6 +74,7 @@ pub fn execute(input: &str) {
         "cat" => cmd_cat(args),
         "stat" => cmd_stat(args),
         "mounts" => cmd_mounts(),
+        "mount" => cmd_mounts(),
         "sync" => cmd_sync(),
         "mkdir" => cmd_mkdir(args),
         "touch" => cmd_touch(args),

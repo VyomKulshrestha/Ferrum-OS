@@ -1228,14 +1228,20 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
 
         self.remove_dir_entry(parent_inode_num, &name)?;
 
-        let mut file_block = 0;
-        loop {
-            let phys = self.get_phys_block(&target_inode, file_block)?;
-            if phys == 0 {
-                break;
+        let block_size = self.block_size as u64;
+        let size = if (target_inode.mode & S_IFMT) == S_IFREG {
+            let size_high = target_inode.dir_acl as u64;
+            target_inode.size as u64 | (size_high << 32)
+        } else {
+            target_inode.size as u64
+        };
+        let chunks = (size + block_size - 1) / block_size;
+
+        for blk in 0..chunks as u32 {
+            let phys = self.get_phys_block(&target_inode, blk)?;
+            if phys != 0 {
+                self.free_block(phys)?;
             }
-            self.free_block(phys)?;
-            file_block += 1;
         }
 
         self.free_inode(target_inode_num)?;

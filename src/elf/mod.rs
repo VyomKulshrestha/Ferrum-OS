@@ -414,7 +414,7 @@ pub fn parse(bytes: &[u8]) -> Result<Elf<'_>, ElfError> {
 // Tests
 // ============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, not(target_os = "none")))]
 mod tests {
     use super::*;
 
