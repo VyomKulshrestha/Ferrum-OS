@@ -248,6 +248,11 @@ const tests = [
   ["security", "Security Status:"],
   ["about", "FerrumOS v0.1.0"],
   ["process", "Per-process Address Spaces (2):"],
+  ["scheduler", "Scheduler State:"],
+  ["test-syscall yield", "yield: ran=false"],
+  ["test-syscall sleep", "sleep(2): ran=false"],
+  ["test-syscall wait", "wait(-1): any_dead=true"],
+  ["test-syscall priority", "priority System -> index 3"],
   ["ring3", "ABC"],
 ];
 

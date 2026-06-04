@@ -586,6 +586,29 @@ pub fn enter_registered(pid: u64) {
             return;
         }
     };
+
+    // Register the user process with the scheduler so the
+    // context switch layer (Phase 2) can find it. The kernel
+    // main context is the implicit "current" task; the user
+    // process becomes the next runnable task.
+    crate::scheduler::register_user(
+        pid,
+        &alloc::format!("user-{}", pid),
+        crate::scheduler::Priority::Normal,
+        kernel_rsp,
+        l4_frame.start_address().as_u64(),
+    );
+    // Seed the incoming task's saved iretq frame so the
+    // scheduler's `context_switch_to` can iretq into it.
+    let ctx = crate::scheduler::TaskContext::ring3(
+        entry,
+        user_rsp.as_u64(),
+    );
+    crate::scheduler::write_context(pid, ctx);
+    // Mark the user process as currently executing so the
+    // tick handler decrements its time slice correctly.
+    crate::scheduler::CURRENT_PID.store(pid, core::sync::atomic::Ordering::SeqCst);
+
     enter_ring3_inner(kernel_rsp, user_rsp, entry, l4_frame);
 }
 

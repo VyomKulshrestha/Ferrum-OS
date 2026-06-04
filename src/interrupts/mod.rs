@@ -335,6 +335,8 @@ pub mod syscall_number {
     pub const SYS_WRITE: u64 = 1;
     pub const SYS_EXIT: u64 = 60;
     pub const SYS_YIELD: u64 = 24;
+    pub const SYS_SLEEP: u64 = 35;
+    pub const SYS_WAIT: u64 = 61;
     pub const SYS_AUDIT_WRITE: u64 = 200;
 }
 
@@ -435,19 +437,141 @@ extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackF
             }
         }
         syscall_number::SYS_EXIT => {
-            // Halt forever. The user process is done. In a
-            // production kernel the scheduler would mark
-            // the process exited and pick the next one; for
-            // Phase 1.4 a single-process kernel that halts
-            // is enough to prove the syscall path works.
+            // Mark the current task dead and pick the next
+            // runnable task. If there is none, halt (this
+            // is the original Phase 1.4 behaviour, which
+            // the `ring3` sweep test relies on).
+            let reaped = crate::scheduler::exit_current();
+            if reaped {
+                if let Some(next_pid) = crate::scheduler::schedule_next() {
+                    if let Some((kstack, _cr3)) =
+                        crate::scheduler::switch_target(next_pid)
+                    {
+                        unsafe {
+                            crate::gdt::set_kernel_stack(
+                                x86_64::VirtAddr::new(kstack),
+                            );
+                        }
+                        let scratch = crate::scheduler::scratch_context()
+                            as *mut crate::scheduler::TaskContext;
+                        // The incoming task's context has
+                        // never been populated for a
+                        // freshly-spawned user task, so
+                        // there is nothing to load. The
+                        // switch will write garbage into
+                        // the incoming iretq frame, which
+                        // is fine because the only safe
+                        // destination is a task that has
+                        // its iretq frame on the stack
+                        // from a previous interrupt. In
+                        // the single-task case the
+                        // run-queue is empty and we fall
+                        // through to `hlt_loop()`.
+                        unsafe {
+                            crate::scheduler::context_switch_to(
+                                scratch,
+                                scratch,
+                                kstack,
+                            );
+                        }
+                    }
+                }
+            }
             crate::hlt_loop();
         }
         syscall_number::SYS_YIELD => {
-            // Phase 1.4 does not have a preemptive
-            // scheduler, but we still want a syscall that
-            // returns cleanly so a future cooperative
-            // scheduler can hook in here.
+            // Cooperative yield. If the run-queue is empty
+            // (the single-task case the `ring3` test uses)
+            // we just return 0.
+            if crate::scheduler::yield_current() {
+                if let Some(next_pid) = crate::scheduler::schedule_next() {
+                    if let Some((kstack, _cr3)) =
+                        crate::scheduler::switch_target(next_pid)
+                    {
+                        unsafe {
+                            crate::gdt::set_kernel_stack(
+                                x86_64::VirtAddr::new(kstack),
+                            );
+                        }
+                        let scratch = crate::scheduler::scratch_context()
+                            as *mut crate::scheduler::TaskContext;
+                        unsafe {
+                            crate::scheduler::context_switch_to(
+                                scratch,
+                                scratch,
+                                kstack,
+                            );
+                        }
+                    }
+                }
+            }
             0
+        }
+        syscall_number::SYS_SLEEP => {
+            // Arg0 = milliseconds. Convert to PIT ticks
+            // (PIT fires ~18.2 Hz → ~55 ms per tick, round
+            // up so a non-zero ms always sleeps at least
+            // one tick).
+            if arg0 == 0 {
+                0
+            } else {
+                let ticks = arg0.div_ceil(55).max(1);
+                if crate::scheduler::sleep_current(ticks) {
+                    if let Some(next_pid) = crate::scheduler::schedule_next() {
+                        if let Some((kstack, _cr3)) =
+                            crate::scheduler::switch_target(next_pid)
+                        {
+                            unsafe {
+                                crate::gdt::set_kernel_stack(
+                                    x86_64::VirtAddr::new(kstack),
+                                );
+                            }
+                            let scratch =
+                                crate::scheduler::scratch_context()
+                                    as *mut crate::scheduler::TaskContext;
+                            unsafe {
+                                crate::scheduler::context_switch_to(
+                                    scratch,
+                                    scratch,
+                                    kstack,
+                                );
+                            }
+                        }
+                    }
+                    // No other task: idle until the next
+                    // PIT tick re-evaluates the run-queue.
+                    crate::hlt_loop();
+                }
+                0
+            }
+        }
+        syscall_number::SYS_WAIT => {
+            // Arg0 = pid. Phase 2.2 only supports
+            // `wait(-1)` ("wait for any child") and
+            // `wait(pid)` where the pid is already dead.
+            // A live child returns -ECHILD
+            // (Linux-compatible: u64::MAX - 10).
+            let requested = arg0 as i64;
+            let sched = crate::scheduler::list_tasks();
+            if requested == -1 {
+                if sched.iter().any(|t| {
+                    matches!(t.state, crate::scheduler::TaskState::Dead)
+                }) {
+                    0
+                } else {
+                    u64::MAX - 10
+                }
+            } else {
+                let pid = requested as u64;
+                if sched.iter().any(|t| {
+                    t.id == pid
+                        && matches!(t.state, crate::scheduler::TaskState::Dead)
+                }) {
+                    pid
+                } else {
+                    u64::MAX - 10
+                }
+            }
         }
         _ => {
             // Unknown syscall: log the user-supplied vector

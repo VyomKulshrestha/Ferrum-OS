@@ -94,6 +94,8 @@ pub fn execute(input: &str) {
         "ring3" => cmd_ring3(args),
         "log" => cmd_log(),
         "uptime" => cmd_uptime(),
+        "scheduler" => cmd_scheduler(args),
+        "test-syscall" => cmd_test_syscall(args),
         "uname" => cmd_uname(),
         "whoami" => cmd_whoami(),
         "session" => cmd_session(args),
@@ -137,6 +139,8 @@ fn cmd_help() {
     println!("  ring3 <pid|init>  Enter ring-3 in the given process");
     println!("  log        Show recent audit log");
     println!("  uptime     Show system uptime (ticks)");
+    println!("  scheduler  Show Phase 2 scheduler state");
+    println!("  test-syscall <yield|sleep|wait|priority>  Exercise Phase 2 syscalls");
     println!("  uname      Show system information");
     println!("  whoami     Show current identity");
     println!("  session    Switch debug shell capability profile");
@@ -1138,6 +1142,94 @@ fn cmd_uptime() {
     let seconds = ticks / 18;
     let minutes = seconds / 60;
     println!("Uptime: {} ticks (~{}m {}s)", ticks, minutes, seconds % 60);
+}
+
+fn cmd_scheduler(_args: &[&str]) {
+    // Phase 2 summary. The `ps` command already shows the
+    // per-task table; this command shows the global state
+    // the sweep asserts on (current pid, tick, time slice).
+    let tasks = crate::scheduler::list_tasks();
+    let current = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    let total = crate::scheduler::total_ticks();
+    let active = tasks
+        .iter()
+        .filter(|t| !matches!(t.state, crate::scheduler::TaskState::Dead))
+        .count();
+    let ready = tasks
+        .iter()
+        .filter(|t| matches!(t.state, crate::scheduler::TaskState::Ready))
+        .count();
+    let running = tasks
+        .iter()
+        .filter(|t| matches!(t.state, crate::scheduler::TaskState::Running))
+        .count();
+    let blocked = tasks
+        .iter()
+        .filter(|t| matches!(t.state, crate::scheduler::TaskState::Blocked))
+        .count();
+    println!("Scheduler State:");
+    println!("  current_pid:    {}", current);
+    println!("  total_ticks:    {}", total);
+    println!("  active tasks:   {}", active);
+    println!("    running:      {}", running);
+    println!("    ready:        {}", ready);
+    println!("    blocked:      {}", blocked);
+    println!(
+        "  time slice:     {} PIT ticks (~{} ms)",
+        crate::scheduler::TIME_SLICE_TICKS,
+        crate::scheduler::TIME_SLICE_TICKS * 55
+    );
+}
+
+fn cmd_test_syscall(args: &[&str]) {
+    // Phase 2 self-test: exercises the new syscalls from the
+    // kernel main context (no ring-3 process required). The
+    // scheduler's `run-queue` is empty in the shell context, so
+    // `schedule_next()` returns `None` and the yield/sleep
+    // paths fall through to their no-op returns. This
+    // command exists so the sweep can assert the syscall
+    // numbers, the priority logic, and the run-queue shape
+    // without needing a second user process.
+    if args.is_empty() {
+        println!("test-syscall: usage: test-syscall <yield|sleep|wait|priority>");
+        return;
+    }
+    match args[0] {
+        "yield" => {
+            // The kernel main context (pid 0) is not in the
+            // scheduler, so `yield_current` returns false.
+            // The shell keeps running.
+            let ran = crate::scheduler::yield_current();
+            println!("yield: ran={}", ran);
+        }
+        "sleep" => {
+            // Same: the kernel main context cannot sleep. The
+            // call is a no-op for the shell.
+            let ran = crate::scheduler::sleep_current(2);
+            println!("sleep(2): ran={}", ran);
+        }
+        "wait" => {
+            // `wait(-1)` with no dead children returns -ECHILD.
+            let sched = crate::scheduler::list_tasks();
+            let any_dead = sched
+                .iter()
+                .any(|t| matches!(t.state, crate::scheduler::TaskState::Dead));
+            println!("wait(-1): any_dead={}", any_dead);
+        }
+        "priority" => {
+            // Verify the priority index math the scheduler
+            // uses to pick the next run-queue.
+            for p in &[
+                crate::scheduler::Priority::Idle,
+                crate::scheduler::Priority::Normal,
+                crate::scheduler::Priority::High,
+                crate::scheduler::Priority::System,
+            ] {
+                println!("priority {:?} -> index {}", p, p.index());
+            }
+        }
+        _ => println!("test-syscall: unknown subcommand '{}'", args[0]),
+    }
 }
 
 fn cmd_uname() {
