@@ -8,7 +8,9 @@
 //
 // Heap Parameters:
 //   Start:  0x4444_4444_0000
-//   Size:   256 KiB (expandable)
+//   Size:   1 MiB (bumped from 256 KiB in Phase 1.3 once the per-process
+//           address space module started allocating intermediate P3/P2/P1
+//           page-table frames and Vec bookkeeping in the kernel heap.)
 //   Backing: Physical frames from BootInfoFrameAllocator
 // ============================================================================
 
@@ -26,7 +28,7 @@ pub const HEAP_START: usize = 0x_4444_4444_0000;
 /// 
 /// This is sufficient for early kernel operations. For a production kernel,
 /// this would need to be expandable on demand.
-pub const HEAP_SIZE: usize = 256 * 1024; // 256 KiB
+pub const HEAP_SIZE: usize = 1024 * 1024; // 1 MiB (bumped from 256 KiB in Phase 1.3)
 
 /// Global allocator instance
 /// 

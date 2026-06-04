@@ -91,6 +91,12 @@ pub mod userspace;
 /// loader (Phase 1.4). Pure, allocation-light, no_std-compatible.
 pub mod elf;
 
+/// Per-process address space
+/// Allocates a fresh P4 page table for each user process and seeds it
+/// with the kernel's upper-half mappings. Used by the future ring-3
+/// loader (Phase 1.4).
+pub mod process;
+
 /// Agent runtime service boundary
 /// Minimal deterministic bridge for the future agent runtime runtime
 pub mod agent;

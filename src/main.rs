@@ -56,12 +56,21 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         memory::BootInfoFrameAllocator::init(&boot_info.memory_map)
     };
     println!("[  OK  ] Page table mapper initialized");
-    
+
     // Initialize kernel heap
     ferrumos::memory::heap::init_heap(&mut mapper, &mut frame_allocator)
         .expect("Heap initialization failed");
-    println!("[  OK  ] Kernel heap initialized ({}KB)", 
-        ferrumos::memory::heap::HEAP_SIZE / 1024);
+    println!(
+        "[  OK  ] Kernel heap initialized ({}KB)",
+        ferrumos::memory::heap::HEAP_SIZE / 1024
+    );
+
+    // Hand the SAME frame allocator instance (now past the heap frames)
+    // to the global registry. If we re-initialized a fresh allocator
+    // here, its bump pointer would rewind to 0 and the next consumer
+    // would overwrite heap memory via `phys_to_virt`.
+    unsafe { memory::install_global_frame_allocator(frame_allocator) };
+    println!("[  OK  ] Global frame allocator installed (bump past heap)");
 
     // ========================================================================
     // Phase 3: Kernel Subsystems
@@ -129,6 +138,41 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
             "[ WARN ] Embedded init ELF failed ELF64 parse: {}",
             err
         ),
+    }
+
+    // Phase 1.3 smoke test: build a sample process, allocate a fresh
+    // address space, map a single user page with a known byte pattern,
+    // register it, and leave it in the process table so the shell can
+    // inspect it via `process`. The Phase 1.4 loader will do the same
+    // thing for the embedded init ELF, but with multiple PT_LOAD
+    // segments and a ring-3 entry.
+    let (heap_used, heap_free) = ferrumos::memory::heap::heap_stats();
+    println!("[ INFO ] Kernel heap: {} used / {} free", heap_used, heap_free);
+    match ferrumos::process::create("init-sample") {
+        Ok(mut process) => {
+            use x86_64::structures::paging::PageTableFlags;
+            let vaddr = x86_64::VirtAddr::new(0x1000_0000);
+            let flags = PageTableFlags::PRESENT
+                | PageTableFlags::USER_ACCESSIBLE
+                | PageTableFlags::WRITABLE;
+            let payload = b"ferrumos phase 1.3 address space round-trip\n";
+            match process.map_user(vaddr, payload, flags) {
+                Ok(mapped) => {
+                    let l4 = process
+                        .address_space()
+                        .map(|s| s.l4_frame().start_address().as_u64())
+                        .unwrap_or(0);
+                    let pid = process.pid();
+                    ferrumos::process::register(process);
+                    println!(
+                        "[  OK  ] Sample address space: pid={} L4={:#x} mapped={} bytes",
+                        pid, l4, mapped
+                    );
+                }
+                Err(err) => println!("[ WARN ] Sample address space map failed: {:?}", err),
+            }
+        }
+        Err(err) => println!("[ WARN ] Sample address space create failed: {}", err),
     }
     
     // ========================================================================

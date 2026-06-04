@@ -213,6 +213,8 @@ const tests = [
   ["heliox execute open terminal", "heliox execute dispatched"],
   ["elf", "PT_LOAD segments:"],
   ["elf", "entry:      0x201220"],
+  ["process", "Per-process Address Spaces"],
+  ["process", "init-sample"],
   ["session guest", "session switched to guest"],
   ["heliox send ping", "permission denied: cap:heliox:bridge"],
   ["session root", "session switched to root"],

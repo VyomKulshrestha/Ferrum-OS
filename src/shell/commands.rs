@@ -90,6 +90,7 @@ pub fn execute(input: &str) {
         "agent" => cmd_agent(args),
         "heliox" => cmd_heliox(args),
         "elf" => cmd_elf(args),
+        "process" => cmd_process(args),
         "log" => cmd_log(),
         "uptime" => cmd_uptime(),
         "uname" => cmd_uname(),
@@ -131,6 +132,7 @@ fn cmd_help() {
     println!("  agent      Control the agent runtime boundary");
     println!("  heliox     Heliox-OS JSON-RPC bridge surface");
     println!("  elf        Inspect the embedded userspace init ELF");
+    println!("  process    List per-process address spaces");
     println!("  log        Show recent audit log");
     println!("  uptime     Show system uptime (ticks)");
     println!("  uname      Show system information");
@@ -1056,6 +1058,20 @@ fn cmd_elf(_args: &[&str]) {
             }
         }
         Err(err) => println!("  parse:      FAILED ({})", err),
+    }
+}
+
+fn cmd_process(_args: &[&str]) {
+    let procs = crate::process::list();
+    println!("Per-process Address Spaces ({}):", procs.len());
+    if procs.is_empty() {
+        println!("  (none; Phase 1.4 will create one per loaded userspace process)");
+        return;
+    }
+    println!("  PID  USER_FRAMES  NAME");
+    println!("  ---  -----------  ----");
+    for (pid, name, frames) in &procs {
+        println!("  {:>3}  {:>11}  {}", pid, frames, name);
     }
 }
 
