@@ -7,6 +7,8 @@
 
 extern crate alloc;
 
+pub mod pci;
+
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use spin::Mutex;

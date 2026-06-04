@@ -1,0 +1,23 @@
+[package]
+name = "heliox-bridge"
+version = "0.1.0"
+edition = "2021"
+authors = ["FerrumOS Contributors"]
+description = "Heliox-OS daemon JSON-RPC to IPC bridge"
+
+[dependencies]
+# We would use standard crates if we had std, but we are in no_std
+# Actually, if we use no_std, we might need some basic JSON parsing logic.
+# For now, it's a stub
+
+[[bin]]
+name = "heliox-bridge"
+path = "src/main.rs"
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 2

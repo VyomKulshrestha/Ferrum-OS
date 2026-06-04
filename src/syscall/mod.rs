@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Syscall ABI Skeleton
 // ============================================================================
 // This module defines the stable kernel/userspace boundary before true
@@ -18,6 +18,12 @@ pub enum SyscallNumber {
     ServiceStop = 4,
     CapabilityCheck = 5,
     AuditWrite = 6,
+    Socket = 7,
+    Bind = 8,
+    Listen = 9,
+    Accept = 10,
+    Recv = 11,
+    Send = 12,
 }
 
 /// Syscall return status.
@@ -52,6 +58,8 @@ impl SyscallResult {
 }
 
 extern crate alloc;
+
+pub mod socket;
 
 use alloc::string::String;
 
@@ -172,6 +180,24 @@ pub fn dispatch_with_capabilities(
                 "userspace audit_write syscall",
             );
             SyscallResult::ok(0)
+        }
+        x if x == SyscallNumber::Socket as u64 => {
+            socket::sys_socket(args[0], args[1], args[2])
+        }
+        x if x == SyscallNumber::Bind as u64 => {
+            socket::sys_bind(args[0], args[1])
+        }
+        x if x == SyscallNumber::Listen as u64 => {
+            socket::sys_listen(args[0], args[1])
+        }
+        x if x == SyscallNumber::Accept as u64 => {
+            socket::sys_accept(args[0])
+        }
+        x if x == SyscallNumber::Recv as u64 => {
+            socket::sys_recv(args[0], args[1], args[2])
+        }
+        x if x == SyscallNumber::Send as u64 => {
+            socket::sys_send(args[0], args[1], args[2])
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }

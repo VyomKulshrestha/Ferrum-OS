@@ -32,6 +32,7 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
 /// ATA status register bits
 const STATUS_BSY: u8 = 0x80;   // Drive is busy
+#[allow(dead_code)]
 const STATUS_DRDY: u8 = 0x40;  // Drive is ready
 const STATUS_DRQ: u8 = 0x08;   // Data request — ready to transfer
 const STATUS_ERR: u8 = 0x01;   // Error occurred
@@ -88,7 +89,7 @@ pub struct AtaDrive {
 /// Per-channel I/O port set and drive state.
 struct AtaChannel {
     data: Port<u16>,
-    error: PortReadOnly<u8>,
+    _error: PortReadOnly<u8>,
     sector_count: Port<u8>,
     lba_lo: Port<u8>,
     lba_mid: Port<u8>,
@@ -122,7 +123,7 @@ impl AtaChannel {
     fn new(base: u16, control: u16, bus: AtaBus) -> Self {
         Self {
             data: Port::new(base),
-            error: PortReadOnly::new(base + 1),
+            _error: PortReadOnly::new(base + 1),
             sector_count: Port::new(base + 2),
             lba_lo: Port::new(base + 3),
             lba_mid: Port::new(base + 4),
