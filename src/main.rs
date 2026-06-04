@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Main Entry Point
 // ============================================================================
 // This is the kernel entry point. The bootloader hands control here after
@@ -87,6 +87,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Initialize the device registry after base console/storage surfaces exist.
     ferrumos::devices::init();
     println!("[  OK  ] Device registry initialized");
+
+    // Initialize ATA PIO disk driver — probe IDE channels for attached drives.
+    ferrumos::ata::init();
+    println!("[  OK  ] ATA PIO disk driver initialized");
     
     // Initialize security subsystem
     ferrumos::security::init();

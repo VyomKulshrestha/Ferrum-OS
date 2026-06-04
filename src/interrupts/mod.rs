@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Interrupt Handling Subsystem
 // ============================================================================
 // Manages the Interrupt Descriptor Table (IDT) and hardware interrupt routing.
@@ -35,8 +35,10 @@ pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum InterruptIndex {
-    Timer = PIC_1_OFFSET,       // IRQ 0 - PIT timer
-    Keyboard = PIC_1_OFFSET + 1, // IRQ 1 - PS/2 keyboard
+    Timer = PIC_1_OFFSET,          // IRQ 0 - PIT timer
+    Keyboard = PIC_1_OFFSET + 1,   // IRQ 1 - PS/2 keyboard
+    AtaPrimary = PIC_1_OFFSET + 14,  // IRQ 14 - Primary ATA channel
+    AtaSecondary = PIC_1_OFFSET + 15, // IRQ 15 - Secondary ATA channel
 }
 
 impl InterruptIndex {
@@ -71,6 +73,14 @@ lazy_static! {
             .set_handler_fn(timer_interrupt_handler);
         idt[InterruptIndex::Keyboard.as_u8()]
             .set_handler_fn(keyboard_interrupt_handler);
+
+        // ATA disk interrupt handlers (IRQ 14 + 15)
+        // These acknowledge the interrupt so the PIC does not lock up.
+        // The ATA PIO driver uses polling, not IRQ-driven I/O.
+        idt[InterruptIndex::AtaPrimary.as_u8()]
+            .set_handler_fn(ata_primary_interrupt_handler);
+        idt[InterruptIndex::AtaSecondary.as_u8()]
+            .set_handler_fn(ata_secondary_interrupt_handler);
 
         // System call entry point used by ring-3 code in Phase 1.4.
         // The handler reads the syscall number from rax and returns
@@ -185,6 +195,31 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
     // Send End-of-Interrupt to the PIC
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+    }
+}
+
+/// ATA primary channel interrupt handler (IRQ 14)
+///
+/// Reads the status register to clear the interrupt condition, then
+/// sends EOI. The PIO driver uses polling, so this handler only
+/// exists to prevent spurious-IRQ lockups.
+extern "x86-interrupt" fn ata_primary_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    // Read status to acknowledge the interrupt on the drive
+    unsafe {
+        x86_64::instructions::port::PortReadOnly::<u8>::new(0x1F7).read();
+    }
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::AtaPrimary.as_u8());
+    }
+}
+
+/// ATA secondary channel interrupt handler (IRQ 15)
+extern "x86-interrupt" fn ata_secondary_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    unsafe {
+        x86_64::instructions::port::PortReadOnly::<u8>::new(0x177).read();
+    }
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::AtaSecondary.as_u8());
     }
 }
 

@@ -92,6 +92,20 @@ pub fn list_devices() -> Vec<Device> {
     REGISTRY.lock().devices.clone()
 }
 
+/// Register a new device at runtime.
+///
+/// Used by subsystem drivers (e.g. ATA) to register hardware
+/// discovered after boot-time `init()`.
+pub fn register_device(
+    name: &str,
+    class: DeviceClass,
+    state: DeviceState,
+    driver: &str,
+    capability: &str,
+) {
+    REGISTRY.lock().register(name, class, state, driver, capability);
+}
+
 pub fn device_count_by_state(state: DeviceState) -> usize {
     REGISTRY
         .lock()

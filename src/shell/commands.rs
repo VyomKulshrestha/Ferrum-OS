@@ -1,9 +1,10 @@
-﻿// FerrumOS - Shell Commands
+// FerrumOS - Shell Commands
 extern crate alloc;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 use crate::println;
+use crate::print;
 use spin::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,6 +104,7 @@ pub fn execute(input: &str) {
         "kill" => cmd_kill(args),
         "security" => cmd_security(),
         "about" => cmd_about(),
+        "disk" => cmd_disk(args),
         _ => println!("FerrumOS: command not found: {}", command),
     }
 }
@@ -148,6 +150,7 @@ fn cmd_help() {
     println!("  kill <id>  Kill a task by ID");
     println!("  security   Show security status");
     println!("  about      About FerrumOS");
+    println!("  disk       List ATA drives or read sectors");
 }
 
 fn cmd_clear() {
@@ -1340,4 +1343,76 @@ fn cmd_about() {
     println!("  [Agent]     Autonomous Workflows, Planning (future)");
     println!();
     println!("Built with Rust for safety, performance, and fearless concurrency.");
+}
+
+fn cmd_disk(args: &[&str]) {
+    if args.first() == Some(&"read") {
+        // disk read <sector>
+        if args.len() < 2 {
+            println!("disk read: usage: disk read <sector_number>");
+            return;
+        }
+        let Ok(lba) = args[1].parse::<u64>() else {
+            println!("disk read: invalid sector number");
+            return;
+        };
+        let mut buf = [0u8; 512];
+        match crate::ata::read_sectors(
+            crate::ata::AtaBus::Primary,
+            0,
+            lba,
+            1,
+            &mut buf,
+        ) {
+            Ok(()) => {
+                println!("Sector {} (512 bytes):", lba);
+                // Print hexdump (first 256 bytes to avoid flooding VGA)
+                for row in 0..16 {
+                    let offset = row * 16;
+                    print!("  {:04x}: ", offset);
+                    for col in 0..16 {
+                        print!("{:02x} ", buf[offset + col]);
+                    }
+                    print!(" ");
+                    for col in 0..16 {
+                        let ch = buf[offset + col];
+                        if ch >= 0x20 && ch < 0x7F {
+                            print!("{}", ch as char);
+                        } else {
+                            print!(".");
+                        }
+                    }
+                    println!();
+                }
+            }
+            Err(e) => println!("disk read: {}", e),
+        }
+        return;
+    }
+
+    // Default: list all ATA drives
+    let drives = crate::ata::list_drives();
+    if drives.is_empty() {
+        println!("No ATA drives detected.");
+        println!("  (attach a disk image with QEMU -drive file=disk.img,format=raw,if=ide)");
+        return;
+    }
+    println!("ATA Drives:");
+    println!("  BUS        DRIVE   SECTORS       SIZE   MODEL");
+    println!("  ---        -----   -------       ----   -----");
+    for drive in &drives {
+        let pos = if drive.drive == 0 { "master" } else { "slave" };
+        println!(
+            "  {:<8}  {:<6}  {:>10}  {:>5} MiB  {}",
+            drive.bus.name(),
+            pos,
+            drive.sectors,
+            drive.size_mb,
+            drive.model,
+        );
+        println!(
+            "             serial: {}  LBA48: {}",
+            drive.serial, drive.lba48,
+        );
+    }
 }

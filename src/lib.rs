@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Kernel Library Root
 // ============================================================================
 // This is the central library that exposes all kernel subsystems.
@@ -110,6 +110,10 @@ pub mod heliox;
 /// Logging and audit trail
 /// Structured kernel logging with security audit events
 pub mod logging;
+
+/// ATA PIO disk driver
+/// IDE primary/secondary channel access for persistent storage
+pub mod ata;
 
 // ============================================================================
 // Global Descriptor Table
