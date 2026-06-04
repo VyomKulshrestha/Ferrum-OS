@@ -115,10 +115,21 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         Err(err) => println!("[ WARN ] Userspace init launch failed: {}", err),
     }
 
-    println!(
-        "[  OK  ] Embedded init ELF: {} bytes (ring-3 load pending Phase 1.4)",
-        ferrumos::userspace::init_elf_size()
-    );
+    match ferrumos::elf::parse(ferrumos::userspace::INIT_ELF) {
+        Ok(parsed) => {
+            let loads = parsed.load_segments().count();
+            println!(
+                "[  OK  ] Embedded init ELF: {} bytes, entry={:#x}, {} PT_LOAD segment(s)",
+                ferrumos::userspace::init_elf_size(),
+                parsed.entry(),
+                loads
+            );
+        }
+        Err(err) => println!(
+            "[ WARN ] Embedded init ELF failed ELF64 parse: {}",
+            err
+        ),
+    }
     
     // ========================================================================
     // Phase 4: Post-Boot

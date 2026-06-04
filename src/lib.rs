@@ -86,6 +86,11 @@ pub mod syscall;
 /// Tracks program manifests and process capabilities before ring-3 execution
 pub mod userspace;
 
+/// ELF64 binary parser
+/// Minimal header and program-header parser used by the future userspace
+/// loader (Phase 1.4). Pure, allocation-light, no_std-compatible.
+pub mod elf;
+
 /// Agent runtime service boundary
 /// Minimal deterministic bridge for the future agent runtime runtime
 pub mod agent;

@@ -211,6 +211,8 @@ const tests = [
   ["heliox persona add editor=helix", "persona rule recorded"],
   ["heliox confirm no-such-plan", "confirmation gate resolved: no-such-plan"],
   ["heliox execute open terminal", "heliox execute dispatched"],
+  ["elf", "PT_LOAD segments:"],
+  ["elf", "entry:      0x201220"],
   ["session guest", "session switched to guest"],
   ["heliox send ping", "permission denied: cap:heliox:bridge"],
   ["session root", "session switched to root"],

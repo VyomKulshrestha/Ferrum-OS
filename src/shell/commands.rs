@@ -89,6 +89,7 @@ pub fn execute(input: &str) {
         "syscall" => cmd_syscall(args),
         "agent" => cmd_agent(args),
         "heliox" => cmd_heliox(args),
+        "elf" => cmd_elf(args),
         "log" => cmd_log(),
         "uptime" => cmd_uptime(),
         "uname" => cmd_uname(),
@@ -129,6 +130,7 @@ fn cmd_help() {
     println!("  syscall <pid> <num> [arg0]  Dispatch a userspace syscall");
     println!("  agent      Control the agent runtime boundary");
     println!("  heliox     Heliox-OS JSON-RPC bridge surface");
+    println!("  elf        Inspect the embedded userspace init ELF");
     println!("  log        Show recent audit log");
     println!("  uptime     Show system uptime (ticks)");
     println!("  uname      Show system information");
@@ -1011,6 +1013,49 @@ fn cmd_heliox_execute(args: &[&str]) {
             envelope.id, envelope.method
         ),
         Err(err) => println!("heliox execute: {}", err),
+    }
+}
+
+fn cmd_elf(_args: &[&str]) {
+    let raw = crate::userspace::INIT_ELF;
+    println!("Embedded init ELF:");
+    println!("  size:  {} bytes", raw.len());
+
+    match crate::elf::parse(raw) {
+        Ok(parsed) => {
+            let header = parsed.header();
+            let type_name: &str = match header.e_type {
+                2 => "ET_EXEC",
+                3 => "ET_DYN",
+                _ => "ET_OTHER",
+            };
+            println!("  type:       {}", type_name);
+            println!("  machine:    EM_X86_64");
+            println!("  entry:      {:#x}", parsed.entry());
+            println!(
+                "  phoff:      {} ({} entries of {} bytes)",
+                header.e_phoff, header.e_phnum, header.e_phentsize
+            );
+
+            println!("  PT_LOAD segments:");
+            for ph in parsed.load_segments() {
+                let flags = alloc::format!(
+                    "{}{}{}",
+                    if ph.is_readable() { 'R' } else { '-' },
+                    if ph.is_writable() { 'W' } else { '-' },
+                    if ph.is_executable() { 'X' } else { '-' },
+                );
+                println!(
+                    "    vaddr={:#x} filesz={:#x} memsz={:#x} off={:#x} align={:#x} flags={}",
+                    ph.p_vaddr, ph.p_filesz, ph.p_memsz, ph.p_offset, ph.p_align, flags
+                );
+            }
+
+            if let (Some(min), Some(max)) = (parsed.load_vaddr_min(), parsed.load_vaddr_max()) {
+                println!("  range:      [{:#x}, {:#x})  ({} bytes)", min, max, max - min);
+            }
+        }
+        Err(err) => println!("  parse:      FAILED ({})", err),
     }
 }
 
