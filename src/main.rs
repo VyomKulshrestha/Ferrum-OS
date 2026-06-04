@@ -92,6 +92,20 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::ata::init();
     println!("[  OK  ] ATA PIO disk driver initialized");
     
+    // Mount ext2 filesystem if primary master is present
+    if let Some(block_dev) = ferrumos::fs::block::AtaBlockDevice::from_primary_master() {
+        match ferrumos::fs::ext2::Ext2Fs::mount(block_dev) {
+            Ok(ext2) => {
+                let fs = alloc::sync::Arc::new(ext2);
+                match ferrumos::fs::vfs::mount("/disk", fs, "ata.primary.master") {
+                    Ok(_) => println!("[  OK  ] Mounted ext2 filesystem at /disk"),
+                    Err(e) => println!("[ WARN ] Failed to mount ext2 at /disk: {}", e),
+                }
+            }
+            Err(e) => println!("[ INFO ] No ext2 filesystem found on primary master: {}", e),
+        }
+    }
+    
     // Initialize security subsystem
     ferrumos::security::init();
     println!("[  OK  ] Capability-based security initialized");

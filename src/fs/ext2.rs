@@ -14,6 +14,8 @@ use alloc::vec;
 use core::mem::size_of;
 
 use crate::fs::block::BlockDevice;
+use crate::fs::vfs::Filesystem;
+use crate::fs::{DirEntry, FsStat, FsUsage};
 
 // ============================================================================
 // Constants
@@ -129,7 +131,7 @@ pub struct Inode {
 
 #[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
-pub struct DirEntry {
+pub struct Ext2RawDirEntry {
     pub inode: u32,
     pub rec_len: u16,
     pub name_len: u8,
@@ -425,14 +427,14 @@ impl<B: BlockDevice> Ext2Fs<B> {
         let mut offset = 0;
         let data_len = data.len();
 
-        while offset + size_of::<DirEntry>() <= data_len {
-            let entry: DirEntry = unsafe { from_bytes(&data[offset..offset + size_of::<DirEntry>()]) };
+        while offset + size_of::<Ext2RawDirEntry>() <= data_len {
+            let entry: Ext2RawDirEntry = unsafe { from_bytes(&data[offset..offset + size_of::<Ext2RawDirEntry>()]) };
             if entry.rec_len == 0 {
                 break; // avoid infinite loop
             }
 
             if entry.inode != 0 && entry.name_len > 0 {
-                let name_start = offset + size_of::<DirEntry>();
+                let name_start = offset + size_of::<Ext2RawDirEntry>();
                 let name_end = name_start + entry.name_len as usize;
                 if name_end <= data_len {
                     let name_bytes = &data[name_start..name_end];
@@ -499,5 +501,111 @@ impl<B: BlockDevice> Ext2Fs<B> {
         }
 
         Ok(current_inode)
+    }
+}
+
+// ============================================================================
+// Filesystem Trait Implementation
+// ============================================================================
+
+impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
+    fn list_dir(&self, path: &str) -> Result<Vec<DirEntry>, String> {
+        let inode_num = self.resolve_path(path)?;
+        let inode = self.read_inode(inode_num)?;
+        let entries = self.read_dir_entries(&inode)?;
+        
+        let mut result = Vec::new();
+        for entry in entries {
+            let child_inode = self.read_inode(entry.inode)?;
+            let is_dir = (child_inode.mode & S_IFMT) == S_IFDIR;
+            let size = if is_dir {
+                0
+            } else {
+                child_inode.size as usize
+            };
+            result.push(DirEntry {
+                name: entry.name,
+                is_dir,
+                size,
+            });
+        }
+        Ok(result)
+    }
+
+    fn read_file(&self, path: &str) -> Result<String, String> {
+        let inode_num = self.resolve_path(path)?;
+        let inode = self.read_inode(inode_num)?;
+        if (inode.mode & S_IFMT) != S_IFREG {
+            return Err(String::from("not a regular file"));
+        }
+        let data = self.read_inode_data(&inode)?;
+        String::from_utf8(data)
+            .map_err(|_| String::from("file content is not valid UTF-8"))
+    }
+
+    fn create_file(&self, _path: &str, _content: &str) -> Result<(), String> {
+        Err(String::from("Read-only filesystem"))
+    }
+
+    fn create_dir(&self, _path: &str) -> Result<(), String> {
+        Err(String::from("Read-only filesystem"))
+    }
+
+    fn remove(&self, _path: &str) -> Result<(), String> {
+        Err(String::from("Read-only filesystem"))
+    }
+
+    fn stat(&self, path: &str) -> Result<FsStat, String> {
+        let inode_num = self.resolve_path(path)?;
+        let inode = self.read_inode(inode_num)?;
+        let is_dir = (inode.mode & S_IFMT) == S_IFDIR;
+        let size = inode.size as usize;
+        let children = if is_dir {
+            self.read_dir_entries(&inode)?.len()
+        } else {
+            0
+        };
+
+        Ok(FsStat {
+            path: normalize_path(path),
+            is_dir,
+            size,
+            children,
+        })
+    }
+
+    fn usage(&self) -> Result<FsUsage, String> {
+        let total_inodes = self.superblock.inodes_count;
+        let free_inodes = self.superblock.free_inodes_count;
+        let used_inodes = total_inodes - free_inodes;
+
+        let total_blocks = self.superblock.blocks_count;
+        let free_blocks = self.superblock.free_blocks_count;
+        let used_blocks = total_blocks - free_blocks;
+        let used_bytes = used_blocks as usize * self.block_size as usize;
+
+        Ok(FsUsage {
+            files: used_inodes as usize,
+            directories: 0,
+            bytes: used_bytes,
+        })
+    }
+
+    fn sync(&self) -> Result<(), String> {
+        self.device.flush()
+    }
+
+    fn fs_type(&self) -> &str {
+        "ext2"
+    }
+}
+
+fn normalize_path(path: &str) -> String {
+    if path.is_empty() {
+        String::from("/")
+    } else if path.starts_with('/') {
+        String::from(path)
+    } else {
+        alloc::format!("/{}", path)
     }
 }
