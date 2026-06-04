@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - RAM Filesystem (RamFS)
 // ============================================================================
 // In-memory hierarchical filesystem for early kernel development.
@@ -6,6 +6,9 @@
 // ============================================================================
 
 extern crate alloc;
+
+pub mod block;
+pub mod ext2;
 
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
