@@ -45,6 +45,9 @@ pub const USER_HALF_SIZE: u64 = 1u64 << 39; // 512 GiB
 // Per-process address space
 // ============================================================================
 
+/// Persistent PID 1 supervisor for runtime services
+pub mod supervisor;
+
 /// A self-contained per-process P4 page table.
 ///
 /// The struct holds the physical frame of the L4 table and bookkeeping

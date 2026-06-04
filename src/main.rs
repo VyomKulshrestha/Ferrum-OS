@@ -110,6 +110,15 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::security::init();
     println!("[  OK  ] Capability-based security initialized");
     
+    // Scan PCI devices (networking, etc.) - Handled inside device drivers
+    
+    // Initialize ACPI
+    ferrumos::acpi::init(phys_mem_offset);
+    
+    // Initialize SMP and boot Application Processors
+    ferrumos::smp::init(phys_mem_offset);
+    println!("[  OK  ] Service manager initialized");
+
     // Initialize service manager
     ferrumos::services::init();
     println!("[  OK  ] Service manager initialized");

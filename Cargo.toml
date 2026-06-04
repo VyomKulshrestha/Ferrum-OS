@@ -45,6 +45,11 @@ lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 # Networking stack
 smoltcp = { version = "0.11.0", default-features = false, features = ["alloc", "medium-ethernet", "proto-ipv4", "socket-tcp", "socket-udp"] }
 
+# ACPI and APIC (Phase 5)
+acpi = "4.1.1"
+aml = "0.16.4"
+x2apic = "0.4.3"
+
 # ==== Profile Configuration ====
 
 [profile.dev]

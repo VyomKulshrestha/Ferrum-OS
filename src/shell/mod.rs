@@ -1,4 +1,4 @@
-﻿extern crate alloc;
+extern crate alloc;
 
 mod commands;
 
@@ -19,8 +19,20 @@ pub fn run() -> ! {
                 b'\n' => {
                     println!();
                     let command = input_buffer.trim().to_string();
-                    if !command.is_empty() {
-                        commands::execute(&command);
+                    match command.as_str() {
+                        "shutdown" => {
+                            crate::println!("Shutting down the system...");
+                            crate::acpi::shutdown();
+                        }
+                        "reboot" => {
+                            crate::println!("Rebooting the system...");
+                            crate::acpi::reboot();
+                        }
+                        _ => {
+                            if !command.is_empty() {
+                                commands::execute(&command);
+                            }
+                        }
                     }
                     input_buffer.clear();
                     print_prompt();

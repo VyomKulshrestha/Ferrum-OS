@@ -78,6 +78,17 @@ pub mod ipc;
 /// Provides loopback networking and interface state before NIC drivers exist
 pub mod net;
 
+/// ACPI implementation
+/// ACPI table parsing and hardware configuration
+pub mod acpi;
+
+/// Synchronization primitives
+pub mod sync;
+
+/// Symmetric Multiprocessing (SMP)
+/// Booting APs and per-CPU state
+pub mod smp;
+
 /// Syscall ABI definitions for future userspace processes
 /// Defines stable syscall numbers and result codes before usermode exists
 pub mod syscall;
