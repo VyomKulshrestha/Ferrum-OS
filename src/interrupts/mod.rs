@@ -66,12 +66,22 @@ lazy_static! {
         idt.invalid_opcode.set_handler_fn(invalid_opcode_handler);
         idt.overflow.set_handler_fn(overflow_handler);
         
-        // Hardware Interrupt Handlers  
+        // Hardware Interrupt Handlers
         idt[InterruptIndex::Timer.as_u8()]
             .set_handler_fn(timer_interrupt_handler);
         idt[InterruptIndex::Keyboard.as_u8()]
             .set_handler_fn(keyboard_interrupt_handler);
-        
+
+        // System call entry point used by ring-3 code in Phase 1.4.
+        // The handler reads the syscall number from rax and returns
+        // a result in rax; only `SYS_WRITE` (1), `SYS_EXIT` (60),
+        // `SYS_YIELD` (24), and `SYS_AUDIT_WRITE` (200) are
+        // recognised today. Every other number is acknowledged
+        // and returns -ENOSYS so the user process can degrade
+        // gracefully.
+        idt[SYSCALL_VECTOR]
+            .set_handler_fn(syscall_interrupt_handler);
+
         idt
     };
 }
@@ -301,6 +311,174 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
             }
         }
     }
+}
+
+// ============================================================================
+// Software System Call (INT 0x80)
+// ============================================================================
+//
+// Phase 1.4 of the v0.2 completion roadmap wires the user process to the
+// kernel through a single software interrupt. The handler reads the
+// syscall number from rax and dispatches on it. Only a tiny subset is
+// implemented today; future phases will add IPC, networking, and
+// audit-log syscalls.
+
+/// Software interrupt vector reserved for system calls. Kept well
+/// above the PIC range (32..48) and below the CPU exception range.
+pub const SYSCALL_VECTOR: u8 = 0x80;
+
+/// Syscall numbers recognised by the kernel. The values match the
+/// Linux x86_64 numbers for the calls we have actually
+/// implemented, which keeps the door open for "compat" code
+/// later without renumbering.
+pub mod syscall_number {
+    pub const SYS_WRITE: u64 = 1;
+    pub const SYS_EXIT: u64 = 60;
+    pub const SYS_YIELD: u64 = 24;
+    pub const SYS_AUDIT_WRITE: u64 = 200;
+}
+
+/// Return code used when a syscall number is not recognised. The
+/// negative encoding is the same as Linux (top half of u64 is
+/// 0xFFFF_FFFF_FFFF...).
+const ENOSYS: u64 = u64::MAX - 38;
+const EPERM: u64 = u64::MAX - 0;
+
+/// Ring-3 system call entry. The kernel trampoline pushed the
+/// user-mode SS/RSP/RFLAGS/CS/RIP on the way in, so the
+/// `InterruptStackFrame` reflects the user stack at the time of
+/// the `int 0x80` instruction.
+extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackFrame) {
+    use crate::serial::SERIAL1;
+
+    let syscall_no: u64;
+    let arg0: u64;
+    let arg1: u64;
+    let arg2: u64;
+    // Safety: we are in a privileged interrupt handler, and the
+    // user process gave us rax/rdi/rsi/rdx via the standard
+    // SysV-style ABI. We do not trust the user pointer values
+    // for the write path beyond their length.
+    unsafe {
+        core::arch::asm!(
+            "mov {0}, rax",
+            "mov {1}, rdi",
+            "mov {2}, rsi",
+            "mov {3}, rdx",
+            out(reg) syscall_no,
+            out(reg) arg0,
+            out(reg) arg1,
+            out(reg) arg2,
+            options(nostack, preserves_flags),
+        );
+    }
+
+    let result = match syscall_no {
+        syscall_number::SYS_WRITE => {
+            // Arg0 = user pointer to bytes, arg1 = length,
+            // arg2 = file descriptor. We only support fd=1
+            // (stdout -> COM1). The user pointer is trusted
+            // because it points into the process's own user
+            // half (which the kernel can read via the
+            // phys_to_virt alias) but we still need to copy
+            // it out before writing so we do not hold a
+            // reference into the user mapping across the
+            // serial write.
+            if arg2 != 1 {
+                EPERM
+            } else {
+                let len = arg1.min(4096);
+                let mut buf = [0u8; 256];
+                let take = len.min(buf.len() as u64) as usize;
+                // Safety: user pointer is part of the
+                // process's own user half. We only read up to
+                // `take` bytes.
+                let src = arg0 as *const u8;
+                unsafe {
+                    core::ptr::copy_nonoverlapping(src, buf.as_mut_ptr(), take);
+                }
+                use core::fmt::Write;
+                let mut serial = SERIAL1.lock();
+                let _ = serial.write_str(
+                    core::str::from_utf8(&buf[..take]).unwrap_or(""),
+                );
+                take as u64
+            }
+        }
+        syscall_number::SYS_AUDIT_WRITE => {
+            // Arg0 = user pointer to a null-terminated UTF-8
+            // string the user process wants appended to the
+            // kernel audit log. We cap the read at 256 bytes.
+            if arg0 == 0 {
+                EPERM
+            } else {
+                let mut buf = [0u8; 256];
+                let mut i = 0;
+                unsafe {
+                    while i < buf.len() {
+                        let byte = core::ptr::read_volatile(
+                            (arg0 + i as u64) as *const u8,
+                        );
+                        if byte == 0 {
+                            break;
+                        }
+                        buf[i] = byte;
+                        i += 1;
+                    }
+                    let s = core::str::from_utf8_unchecked(&buf[..i]);
+                    crate::logging::audit::log_event(
+                        crate::logging::audit::AuditEvent::SecurityViolation,
+                        s,
+                    );
+                }
+                0
+            }
+        }
+        syscall_number::SYS_EXIT => {
+            // Halt forever. The user process is done. In a
+            // production kernel the scheduler would mark
+            // the process exited and pick the next one; for
+            // Phase 1.4 a single-process kernel that halts
+            // is enough to prove the syscall path works.
+            crate::hlt_loop();
+        }
+        syscall_number::SYS_YIELD => {
+            // Phase 1.4 does not have a preemptive
+            // scheduler, but we still want a syscall that
+            // returns cleanly so a future cooperative
+            // scheduler can hook in here.
+            0
+        }
+        _ => {
+            // Unknown syscall: log the user-supplied vector
+            // and return -ENOSYS so user code can branch on
+            // it.
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::SecurityViolation,
+                alloc::format!("unknown syscall rax={:#x}", syscall_no).as_str(),
+            );
+            ENOSYS
+        }
+    };
+
+    // Place the result in rax so it is visible to user code
+    // when `iretq` returns. We do not change the rest of the
+    // GPRs; the kernel ABI contract is "rcx and r11 are
+    // clobbered by syscall" but we are using `int` not
+    // `syscall` so this does not apply.
+    unsafe {
+        core::arch::asm!(
+            "mov rax, {0}",
+            in(reg) result,
+            options(nostack, preserves_flags),
+        );
+    }
+
+    // Suppress the unused warning for `stack_frame` so the
+    // debug build still builds. Phase 1.5+ will read
+    // `stack_frame.cs` to enforce that we are returning to
+    // ring 3.
+    let _ = stack_frame;
 }
 
 extern crate alloc;

@@ -143,9 +143,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Phase 1.3 smoke test: build a sample process, allocate a fresh
     // address space, map a single user page with a known byte pattern,
     // register it, and leave it in the process table so the shell can
-    // inspect it via `process`. The Phase 1.4 loader will do the same
-    // thing for the embedded init ELF, but with multiple PT_LOAD
-    // segments and a ring-3 entry.
+    // inspect it via `process`.
     let (heap_used, heap_free) = ferrumos::memory::heap::heap_stats();
     println!("[ INFO ] Kernel heap: {} used / {} free", heap_used, heap_free);
     match ferrumos::process::create("init-sample") {
@@ -174,7 +172,29 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         }
         Err(err) => println!("[ WARN ] Sample address space create failed: {}", err),
     }
-    
+
+    // Phase 1.4: build the ring-3 init process, load the embedded
+    // ELF, register it so the shell can introspect it via `process`
+    // and dispatch into it via `ring3`. We do NOT enter ring 3
+    // automatically — the operator types `ring3 init` (or just
+    // `ring3`) when they want to dispatch.
+    match ferrumos::process::create("init") {
+        Ok(mut process) => match process.load_elf(ferrumos::userspace::INIT_ELF) {
+            Ok(entry) => {
+                let pid = process.pid();
+                let user_rsp = process.user_stack_top().as_u64();
+                let kernel_rsp = process.kernel_stack_top().as_u64();
+                ferrumos::process::register(process);
+                println!(
+                    "[  OK  ] Ring-3 init loaded: pid={} entry={:#x} user_rsp={:#x} kernel_rsp0={:#x}",
+                    pid, entry, user_rsp, kernel_rsp
+                );
+            }
+            Err(err) => println!("[ WARN ] init load_elf failed: {}", err),
+        },
+        Err(err) => println!("[ WARN ] init process create failed: {}", err),
+    }
+
     // ========================================================================
     // Phase 4: Post-Boot
     // ========================================================================

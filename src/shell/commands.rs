@@ -91,6 +91,7 @@ pub fn execute(input: &str) {
         "heliox" => cmd_heliox(args),
         "elf" => cmd_elf(args),
         "process" => cmd_process(args),
+        "ring3" => cmd_ring3(args),
         "log" => cmd_log(),
         "uptime" => cmd_uptime(),
         "uname" => cmd_uname(),
@@ -133,6 +134,7 @@ fn cmd_help() {
     println!("  heliox     Heliox-OS JSON-RPC bridge surface");
     println!("  elf        Inspect the embedded userspace init ELF");
     println!("  process    List per-process address spaces");
+    println!("  ring3 <pid|init>  Enter ring-3 in the given process");
     println!("  log        Show recent audit log");
     println!("  uptime     Show system uptime (ticks)");
     println!("  uname      Show system information");
@@ -1073,6 +1075,49 @@ fn cmd_process(_args: &[&str]) {
     for (pid, name, frames) in &procs {
         println!("  {:>3}  {:>11}  {}", pid, frames, name);
     }
+}
+
+/// Enter ring-3 in a previously-registered process. The process
+/// must have been loaded with `load_elf` already (i.e. it appears
+/// in the `process` table with USER_FRAMES > 0). This is a
+/// one-way trip: the iretq never returns to the shell, so
+/// callers should treat the kernel as effectively single-shot
+/// after issuing this command.
+fn cmd_ring3(args: &[&str]) {
+    let target = args.first().copied().unwrap_or("init");
+
+    // Locate the process by name or pid.
+    let procs = crate::process::list();
+    let candidate = if let Ok(pid_num) = target.parse::<u64>() {
+        procs.iter().find(|(pid, _, _)| *pid == pid_num).cloned()
+    } else {
+        procs
+            .iter()
+            .find(|(_, name, _)| name == target)
+            .cloned()
+    };
+
+    let Some((pid, name, frames)) = candidate else {
+        println!(
+            "ring3: no such process '{}' (try `process` to list)",
+            target
+        );
+        return;
+    };
+
+    if frames == 0 {
+        println!(
+            "ring3: process {} ({}) has no mapped user frames; load an ELF first",
+            pid, name
+        );
+        return;
+    }
+
+    println!(
+        "[  OK  ] Dispatching ring-3 init: pid={} name={} user_frames={}",
+        pid, name, frames
+    );
+    crate::process::enter_registered(pid);
 }
 
 fn cmd_log() {

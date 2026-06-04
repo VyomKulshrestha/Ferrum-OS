@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use spin::Mutex;
@@ -60,11 +61,29 @@ pub struct AddressSpace {
     user_mappings: Vec<(VirtAddr, u64)>,
 }
 
-/// User-process handle. Owns its `AddressSpace` and a process id.
+/// User-process handle. Owns its `AddressSpace`, a dedicated kernel
+/// stack (used as the CPU's ring-0 RSP0 when this process is active),
+/// and the user-mode entry point + stack pointer that `enter_ring3`
+/// will hand to `iretq`.
 pub struct Process {
     pid: u64,
     name: String,
     space: Option<AddressSpace>,
+    /// Boxed kernel stack backing storage. The CPU uses
+    /// `kernel_stack_top` (set in TSS.RSP0) when this process is
+    /// interrupted or makes a syscall.
+    kernel_stack: Option<Box<[u8; KERNEL_STACK_SIZE]>>,
+    /// Top of the kernel stack (16-byte aligned virtual address).
+    kernel_stack_top: VirtAddr,
+    /// Top of the user stack (16-byte aligned virtual address),
+    /// used as the initial RSP for the iretq frame.
+    user_stack_top: VirtAddr,
+    /// ELF entry point (RIP) the CPU will jump to via iretq.
+    entry: u64,
+    /// Has `load_elf` mapped the user stack already?
+    user_stack_mapped: bool,
+    /// Has `load_elf` parsed the ELF and mapped all PT_LOAD segments?
+    loaded: bool,
 }
 
 impl Process {
@@ -98,6 +117,119 @@ impl Process {
     pub fn user_frame_count(&self) -> usize {
         self.space.as_ref().map(|s| s.user_frame_count()).unwrap_or(0)
     }
+
+    /// Return the top of this process's kernel stack (the value
+    /// that should be loaded into `TSS.RSP0` when entering it).
+    pub fn kernel_stack_top(&self) -> VirtAddr {
+        self.kernel_stack_top
+    }
+
+    /// Return the initial RSP value to push in the iretq frame.
+    pub fn user_stack_top(&self) -> VirtAddr {
+        self.user_stack_top
+    }
+
+    /// Return the ELF entry point (initial RIP for iretq).
+    pub fn entry(&self) -> u64 {
+        self.entry
+    }
+
+    /// True once `load_elf` has finished mapping every PT_LOAD
+    /// segment (and the user stack) into the process's address
+    /// space.
+    pub fn is_loaded(&self) -> bool {
+        self.loaded
+    }
+
+    /// Map a fresh user stack at `USER_STACK_BASE` (RW, NX) and
+    /// zero it. Idempotent: a second call is a no-op.
+    pub fn map_user_stack(&mut self) -> Result<u64, MapToError<Size4KiB>> {
+        if self.user_stack_mapped {
+            return Ok(0);
+        }
+        let flags = PageTableFlags::PRESENT
+            | PageTableFlags::USER_ACCESSIBLE
+            | PageTableFlags::WRITABLE;
+        let vaddr = VirtAddr::new(USER_STACK_BASE);
+        let zeroed = [0u8; USER_STACK_SIZE];
+        let mapped = self.map_user(vaddr, &zeroed, flags)?;
+        self.user_stack_mapped = true;
+        Ok(mapped)
+    }
+
+    /// Parse the given ELF and map every `PT_LOAD` segment into
+    /// this process's address space. Also maps a user stack and
+    /// records the entry point. After this call returns,
+    /// `is_loaded()` is true and `enter_ring3()` is ready to
+    /// dispatch into user mode.
+    pub fn load_elf(&mut self, elf_bytes: &[u8]) -> Result<u64, &'static str> {
+        let elf = crate::elf::parse(elf_bytes).map_err(|_| "elf parse failed")?;
+
+        for ph in elf.load_segments() {
+            let flags = pt_flags(ph);
+            let vaddr = VirtAddr::new(ph.p_vaddr);
+            if vaddr.as_u64() >= USER_HALF_SIZE {
+                return Err("PT_LOAD vaddr above user half");
+            }
+            let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
+            self.map_user(vaddr, file_bytes, flags)
+                .map_err(|_| "pt_load map failed")?;
+            if ph.p_memsz > ph.p_filesz {
+                let bss_vaddr = VirtAddr::new(ph.p_vaddr + ph.p_filesz);
+                let bss_len = (ph.p_memsz - ph.p_filesz) as usize;
+                let bss_len_aligned =
+                    align_up(bss_len as u64, Size4KiB::SIZE) as usize;
+                let zeros = alloc::vec![0u8; bss_len_aligned];
+                self.map_user(bss_vaddr, &zeros, flags)
+                    .map_err(|_| "bss map failed")?;
+            }
+        }
+
+        self.map_user_stack().map_err(|_| "user stack map failed")?;
+
+        self.entry = elf.entry();
+        self.loaded = true;
+        Ok(elf.entry())
+    }
+
+    /// Take the process out of the registry without running any
+    /// of its drop logic. Used by `enter_ring3`, which iretq's
+    /// into user mode and never returns to Rust.
+    pub fn into_parts(mut self) -> (u64, VirtAddr, VirtAddr, u64, PhysFrame) {
+        let pid = self.pid;
+        let kernel_rsp = self.kernel_stack_top;
+        let user_rsp = self.user_stack_top;
+        let entry = self.entry;
+        let l4 = self
+            .space
+            .as_ref()
+            .map(|s| s.l4_frame())
+            .unwrap_or_else(crate::memory::active_p4_frame);
+        // Leak the kernel stack so it isn't freed by the Box
+        // drop when we ManuallyDrop the Process. The iretq path
+        // owns it from this point on.
+        let _ = self.kernel_stack.take();
+        let _ = self.space.take();
+        core::mem::forget(self);
+        (pid, kernel_rsp, user_rsp, entry, l4)
+    }
+}
+
+/// Translate ELF segment permission bits to x86_64 page table
+/// flags. We always set PRESENT and USER_ACCESSIBLE for user-half
+/// mappings; the kernel half is never used by `load_elf`.
+fn pt_flags(ph: &crate::elf::ProgramHeader) -> PageTableFlags {
+    use crate::elf::{PF_R, PF_W, PF_X};
+    let mut f = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
+    if ph.p_flags & PF_W != 0 {
+        f |= PageTableFlags::WRITABLE;
+    }
+    // We do not set NO_EXECUTE explicitly when X is present; the
+    // CPU's default for code segments in long mode is exec allowed.
+    // The kernel itself does not rely on NX for safety in Phase 1.4.
+    let _ = PF_R;
+    let _ = PF_X;
+    f
 }
 
 impl AddressSpace {
@@ -272,8 +404,32 @@ unsafe impl FrameAllocator<Size4KiB> for GlobalFrameSource {
 // Helpers
 // ============================================================================
 
+/// Size of the per-process kernel stack. 32 KiB gives the syscall
+/// handler, page-fault handler, and any future preemptive
+/// scheduler ISR plenty of headroom before it would have to
+/// chain onto the IST.
+pub const KERNEL_STACK_SIZE: usize = 32 * 1024;
+
+/// Size of the per-process user stack. 64 KiB matches the
+/// smallest comfortable C stack for the placeholder `init`
+/// binary and the future userland programs.
+pub const USER_STACK_SIZE: usize = 64 * 1024;
+
+/// Virtual address where every process's user stack lives.
+/// 0x7000_0000 is well above any realistic init ELF (which lives
+/// at 0x200_000) and well below the user-half ceiling (0x8000_0000_0000).
+pub const USER_STACK_BASE: u64 = 0x7000_0000;
+
 fn l4_to_mut_ptr(frame: PhysFrame) -> *mut PageTable {
     crate::memory::phys_to_virt(frame.start_address()).as_mut_ptr()
+}
+
+/// 16-byte aligned top address of a boxed byte array. Used for
+/// the kernel stack so the SysV ABI's RSP alignment contract
+/// holds when a syscall handler is entered.
+fn aligned_top(buf: &[u8; KERNEL_STACK_SIZE]) -> VirtAddr {
+    let raw = buf.as_ptr() as u64 + KERNEL_STACK_SIZE as u64;
+    VirtAddr::new(raw & !0xFu64)
 }
 
 // ============================================================================
@@ -287,9 +443,14 @@ struct ProcessRecord {
 static PROCESSES: Mutex<Vec<ProcessRecord>> = Mutex::new(Vec::new());
 static NEXT_PID: Mutex<u64> = Mutex::new(1);
 
-/// Create a process record with a freshly-allocated address space.
+/// Create a process record with a freshly-allocated address space
+/// and a dedicated kernel stack. The user stack and PT_LOAD
+/// segments are not yet mapped; call `load_elf` (or
+/// `map_user_stack`) to do that.
 pub fn create(name: &str) -> Result<Process, &'static str> {
     let space = AddressSpace::new()?;
+    let kernel_stack: Box<[u8; KERNEL_STACK_SIZE]> = Box::new([0; KERNEL_STACK_SIZE]);
+    let kernel_stack_top = aligned_top(&kernel_stack);
     let mut next = NEXT_PID.lock();
     let pid = *next;
     *next += 1;
@@ -297,6 +458,12 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         pid,
         name: alloc::string::String::from(name),
         space: Some(space),
+        kernel_stack: Some(kernel_stack),
+        kernel_stack_top,
+        user_stack_top: VirtAddr::new(USER_STACK_BASE + USER_STACK_SIZE as u64),
+        entry: 0,
+        user_stack_mapped: false,
+        loaded: false,
     };
     Ok(process)
 }
@@ -330,4 +497,122 @@ pub fn list() -> Vec<(u64, String, usize)> {
             (record.process.pid, record.process.name.clone(), frames)
         })
         .collect()
+}
+
+/// Look up the user stack top of a registered process by pid.
+pub fn pid_user_stack(pid: u64) -> Option<VirtAddr> {
+    PROCESSES
+        .lock()
+        .iter()
+        .find(|r| r.process.pid == pid)
+        .map(|r| r.process.user_stack_top())
+}
+
+/// Look up the kernel stack top of a registered process by pid.
+pub fn pid_kernel_stack(pid: u64) -> Option<VirtAddr> {
+    PROCESSES
+        .lock()
+        .iter()
+        .find(|r| r.process.pid == pid)
+        .map(|r| r.process.kernel_stack_top())
+}
+
+/// Look up the entry point of a registered process by pid.
+pub fn pid_entry(pid: u64) -> Option<u64> {
+    PROCESSES
+        .lock()
+        .iter()
+        .find(|r| r.process.pid == pid)
+        .map(|r| r.process.entry())
+}
+
+/// Remove a registered process by pid and return the parts
+/// `enter_ring3` needs (kernel RSP, user RSP, entry, L4 frame).
+/// Returns `None` if the pid is not registered or the process
+/// was never `load_elf`'d.
+pub fn take_for_entry(pid: u64) -> Option<(VirtAddr, VirtAddr, u64, PhysFrame)> {
+    let mut procs = PROCESSES.lock();
+    let index = procs.iter().position(|r| r.process.pid == pid)?;
+    let record = procs.remove(index);
+    if !record.process.is_loaded() {
+        return None;
+    }
+    let process = record.process;
+    Some(process.into_entry_parts())
+}
+
+/// Transfer control to the registered process with the given pid
+/// at ring 3. The iretq never returns; if the process calls
+/// `SYS_EXIT` the kernel halts.
+pub fn enter_registered(pid: u64) {
+    let (kernel_rsp, user_rsp, entry, l4_frame) = match take_for_entry(pid) {
+        Some(parts) => parts,
+        None => {
+            crate::println!("ring3: pid {} is not loaded", pid);
+            return;
+        }
+    };
+    enter_ring3_inner(kernel_rsp, user_rsp, entry, l4_frame);
+}
+
+impl Process {
+    /// Like `into_parts` but specialised for the iretq entry
+    /// path: returns the (kernel RSP, user RSP, entry, L4
+    /// frame) tuple and forgets the process. Used by
+    /// `enter_registered`.
+    pub fn into_entry_parts(mut self) -> (VirtAddr, VirtAddr, u64, PhysFrame) {
+        let kernel_rsp = self.kernel_stack_top;
+        let user_rsp = self.user_stack_top;
+        let entry = self.entry;
+        let l4 = self
+            .space
+            .as_ref()
+            .map(|s| s.l4_frame())
+            .unwrap_or_else(crate::memory::active_p4_frame);
+        let _ = self.kernel_stack.take();
+        let _ = self.space.take();
+        core::mem::forget(self);
+        (kernel_rsp, user_rsp, entry, l4)
+    }
+}
+
+/// Ring-3 dispatch: set TSS.RSP0, switch CR3, switch RSP, push
+/// the iretq frame, iretq. Never returns.
+fn enter_ring3_inner(
+    kernel_rsp: VirtAddr,
+    user_rsp: VirtAddr,
+    entry: u64,
+    l4_frame: PhysFrame,
+) -> ! {
+    use crate::gdt::{USER_CODE_SELECTOR, USER_DATA_SELECTOR};
+
+    let new_cr3 = l4_frame.start_address().as_u64();
+    let user_rsp_val = user_rsp.as_u64();
+    let kernel_rsp_val = kernel_rsp.as_u64();
+
+    unsafe {
+        crate::gdt::set_kernel_stack(kernel_rsp);
+    }
+
+    unsafe {
+        core::arch::asm!(
+            "mov cr3, {new_cr3}",
+            "mov rsp, {kernel_rsp}",
+            "sub rsp, 40",
+            "mov [rsp +  0], {rip}",
+            "mov [rsp +  8], {cs}",
+            "mov [rsp + 16], {rflags}",
+            "mov [rsp + 24], {user_rsp}",
+            "mov [rsp + 32], {ss}",
+            "iretq",
+            new_cr3 = in(reg) new_cr3,
+            kernel_rsp = in(reg) kernel_rsp_val,
+            rip = in(reg) entry,
+            cs = in(reg) USER_CODE_SELECTOR,
+            rflags = in(reg) 0x3202u64,
+            user_rsp = in(reg) user_rsp_val,
+            ss = in(reg) USER_DATA_SELECTOR,
+            options(noreturn),
+        );
+    }
 }

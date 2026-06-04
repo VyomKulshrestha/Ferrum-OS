@@ -88,6 +88,15 @@ pub fn active_p4_phys() -> PhysAddr {
     Cr3::read().0.start_address()
 }
 
+/// Return the active P4 frame (read from CR3). Used by the
+/// per-process address space code when it needs a fallback "the
+/// kernel's own L4" value (e.g. for safety paths in
+/// `Process::enter_ring3`).
+pub fn active_p4_frame() -> PhysFrame {
+    use x86_64::registers::control::Cr3;
+    Cr3::read().0
+}
+
 /// Allocate a single 4 KiB physical frame from the global allocator.
 /// Returns `None` if the allocator is not installed or the memory map is
 /// exhausted.

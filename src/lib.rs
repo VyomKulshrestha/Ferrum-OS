@@ -116,69 +116,7 @@ pub mod logging;
 // ============================================================================
 
 /// GDT module - manages segment descriptors and TSS
-pub mod gdt {
-    use x86_64::structures::tss::TaskStateSegment;
-    use x86_64::structures::gdt::{GlobalDescriptorTable, Descriptor, SegmentSelector};
-    use x86_64::VirtAddr;
-    use lazy_static::lazy_static;
-
-    /// Index of the IST entry used for double fault handling
-    /// Using a separate stack prevents triple faults from stack overflow
-    pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
-
-    /// Size of the double fault handler stack (5 pages = 20KB)
-    const STACK_SIZE: usize = 4096 * 5;
-
-    lazy_static! {
-        /// Task State Segment - configures interrupt stack table
-        /// 
-        /// The IST provides dedicated stacks for critical exception handlers,
-        /// ensuring that stack overflow in the kernel doesn't cause triple faults.
-        static ref TSS: TaskStateSegment = {
-            let mut tss = TaskStateSegment::new();
-            tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
-                // Safety: Static mutable access is safe here because this only
-                // runs once during initialization
-                static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-                #[allow(static_mut_refs)]
-                let stack_start = VirtAddr::from_ptr(unsafe { &STACK });
-                let stack_end = stack_start + STACK_SIZE as u64;
-                stack_end // Stack grows downward
-            };
-            tss
-        };
-    }
-
-    lazy_static! {
-        /// Global Descriptor Table with kernel code/data segments and TSS
-        static ref GDT: (GlobalDescriptorTable, Selectors) = {
-            let mut gdt = GlobalDescriptorTable::new();
-            let code_selector = gdt.append(Descriptor::kernel_code_segment());
-            let tss_selector = gdt.append(Descriptor::tss_segment(&TSS));
-            (gdt, Selectors { code_selector, tss_selector })
-        };
-    }
-
-    /// Segment selectors for the kernel code segment and TSS
-    struct Selectors {
-        code_selector: SegmentSelector,
-        tss_selector: SegmentSelector,
-    }
-
-    /// Initialize the GDT and load segment registers
-    /// 
-    /// This must be called before interrupts are enabled.
-    pub fn init() {
-        use x86_64::instructions::tables::load_tss;
-        use x86_64::instructions::segmentation::{CS, Segment};
-
-        GDT.0.load();
-        unsafe {
-            CS::set_reg(GDT.1.code_selector);
-            load_tss(GDT.1.tss_selector);
-        }
-    }
-}
+pub mod gdt;
 
 // ============================================================================
 // Kernel Initialization

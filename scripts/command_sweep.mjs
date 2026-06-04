@@ -156,6 +156,17 @@ async function runCommand(command, expected) {
   await waitForSerial(expected, 8, start);
 }
 
+/// Send a command, wait for the expected banner, and do NOT
+/// expect a new shell prompt afterwards. Used for one-way
+/// commands like `ring3 init` that iretq into user mode and
+/// never return to the shell.
+async function runOneWayCommand(command, expected) {
+  const start = serialText().length;
+  await sendText(command);
+  await sendKey("ret");
+  await waitForSerial(expected, 8, start);
+}
+
 const tests = [
   ["help", "FerrumOS Shell Commands:"],
   ["clear", "FerrumOS:~$"],
@@ -212,7 +223,7 @@ const tests = [
   ["heliox confirm no-such-plan", "confirmation gate resolved: no-such-plan"],
   ["heliox execute open terminal", "heliox execute dispatched"],
   ["elf", "PT_LOAD segments:"],
-  ["elf", "entry:      0x201220"],
+  ["elf", "entry:      0x2011c0"],
   ["process", "Per-process Address Spaces"],
   ["process", "init-sample"],
   ["session guest", "session switched to guest"],
@@ -236,15 +247,24 @@ const tests = [
   ["kill 6", "Killed task 6"],
   ["security", "Security Status:"],
   ["about", "FerrumOS v0.1.0"],
+  ["process", "Per-process Address Spaces (2):"],
+  ["ring3", "FERRUMOS_INIT v1: ring-3 placeholder reached"],
 ];
 
 const results = [];
 
 try {
   await waitForSerial("FerrumOS:~$", 25);
-  for (const [command, expected] of tests) {
+  for (const [command, expected] of tests.slice(0, -1)) {
     await runCommand(command, expected);
     results.push(`PASS\t${command}`);
+  }
+  const [ring3Command, ring3Expected] = tests[tests.length - 1];
+  try {
+    await runOneWayCommand(ring3Command, ring3Expected);
+    results.push(`PASS\t${ring3Command} (one-way, kernel now in ring 3)`);
+  } catch (err) {
+    results.push(`FAIL\t${ring3Command}\t${err && err.message ? err.message : err}`);
   }
 } finally {
   monitor.destroy();
