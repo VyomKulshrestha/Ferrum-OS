@@ -162,6 +162,16 @@ node .\scripts\command_sweep.mjs --visible
 
 ## Development Priorities
 
+See `docs/ROADMAP.md` for the full completion plan. The current phase is
+**Phase 1 — Real userspace execution**, broken into four sub-steps:
+
+1. Workspace scaffolding and a tiny userspace `init` binary.
+2. ELF64 parser.
+3. Per-process address space.
+4. Ring-3 entry and `load_elf` that actually runs the embedded `init`.
+
+Earlier milestones (still listed for historical context):
+
 1. Bootloader and kernel initialization
 2. Memory management and interrupts
 3. Scheduler and shell
