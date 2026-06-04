@@ -233,23 +233,30 @@ fn pt_flags(ph: &crate::elf::ProgramHeader) -> PageTableFlags {
 }
 
 impl AddressSpace {
-    /// Allocate a fresh L4 frame and seed it with the kernel's upper-half
-    /// entries. The lower half is zeroed, so user-mode code can fault
-    /// without seeing the kernel.
+    /// Allocate a fresh L4 frame and seed it with the kernel's live
+    /// entries. Any P4 slot the kernel currently uses (text, stack,
+    /// heap, device pages, ... ) is mirrored so the kernel stays
+    /// reachable after `mov cr3, new_cr3`. Slots the kernel does
+    /// not use are left zero so user-mode code faults cleanly.
     pub fn new() -> Result<Self, &'static str> {
         let l4_frame = crate::memory::allocate_frame().ok_or("frame allocator empty")?;
         let table = unsafe { &mut *l4_to_mut_ptr(l4_frame) };
         table.zero();
 
-        // Copy the kernel half from the active P4 so the kernel remains
-        // reachable. If the kernel later wants per-process kernel-half
-        // variance (e.g. KPTI), this is the only place to change.
+        // Mirror the kernel's live P4 entries. We copy every present
+        // entry rather than just the upper half because this build's
+        // kernel lives in the lower half (identity-mapped below
+        // 0x8000_0000_0000 via the bootloader). When/if the kernel
+        // later moves to a higher-half mapping, the same loop will
+        // pick up the new layout automatically.
         let kernel_l4_phys = crate::memory::active_p4_phys();
         let kernel_l4_ptr = crate::memory::phys_to_virt(kernel_l4_phys).as_ptr::<PageTable>();
         // Safety: the kernel's L4 is mapped at phys_to_virt(active_p4_phys()).
         let kernel_l4 = unsafe { &*kernel_l4_ptr };
-        for index in KERNEL_P4_START..512 {
-            table[index] = kernel_l4[index].clone();
+        for index in 0..512 {
+            if kernel_l4[index].flags().contains(PageTableFlags::PRESENT) {
+                table[index] = kernel_l4[index].clone();
+            }
         }
 
         Ok(Self {
@@ -298,6 +305,12 @@ impl AddressSpace {
             Page::containing_address(vaddr + len_aligned - 1u64) + 1
         };
 
+        // The vaddr may not be page-aligned (a segment can start
+        // mid-page). The bytes from `bytes[0]` belong at vaddr, which
+        // is at page offset `vaddr_offset_in_page`. Subsequent
+        // pages receive the segment bytes starting at page offset 0.
+        let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
+
         // Borrow the L4 mutably through the kernel's phys->virt alias
         // for the duration of the mapping.
         let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
@@ -306,7 +319,7 @@ impl AddressSpace {
 
         let mut allocator = GlobalFrameSource::new();
 
-        for (offset, page) in Page::range_inclusive(start_page, end_page_exclusive - 1).enumerate() {
+        for (page_index, page) in Page::range_inclusive(start_page, end_page_exclusive - 1).enumerate() {
             let frame = allocator
                 .allocate_frame()
                 .ok_or(MapToError::FrameAllocationFailed)?;
@@ -320,12 +333,33 @@ impl AddressSpace {
             let page_virt = crate::memory::phys_to_virt(frame.start_address());
             unsafe {
                 core::ptr::write_bytes(page_virt.as_mut_ptr::<u8>(), 0u8, Size4KiB::SIZE as usize);
-                let page_offset = offset * Size4KiB::SIZE as usize;
-                let copy_len = core::cmp::min(Size4KiB::SIZE as usize, bytes.len().saturating_sub(page_offset));
+                // The first page receives the segment bytes at
+                // `vaddr_offset_in_page` (where vaddr falls in the
+                // page). Subsequent pages receive their bytes at
+                // page offset 0, since they continue the segment
+                // contiguously.
+                let dest_offset = if page_index == 0 {
+                    vaddr_offset_in_page
+                } else {
+                    0
+                };
+                // The source range into `bytes` is the segment
+                // bytes that belong on this page. For the first
+                // page we start at byte 0 of the segment; for later
+                // pages we skip past the bytes already placed on
+                // earlier pages.
+                let src_offset = if page_index == 0 {
+                    0
+                } else {
+                    page_index * Size4KiB::SIZE as usize - vaddr_offset_in_page
+                };
+                let bytes_remaining_after_src = bytes.len().saturating_sub(src_offset);
+                let page_capacity = Size4KiB::SIZE as usize - dest_offset;
+                let copy_len = core::cmp::min(page_capacity, bytes_remaining_after_src);
                 if copy_len > 0 {
                     core::ptr::copy_nonoverlapping(
-                        bytes.as_ptr().add(page_offset),
-                        page_virt.as_mut_ptr::<u8>(),
+                        bytes.as_ptr().add(src_offset),
+                        page_virt.as_mut_ptr::<u8>().add(dest_offset),
                         copy_len,
                     );
                 }
@@ -594,6 +628,13 @@ fn enter_ring3_inner(
         crate::gdt::set_kernel_stack(kernel_rsp);
     }
 
+    crate::println!(
+        "    [ring3] entry={:#x} new_cr3={:#x} user_rsp={:#x}",
+        entry,
+        new_cr3,
+        user_rsp_val
+    );
+
     unsafe {
         core::arch::asm!(
             "mov cr3, {new_cr3}",
@@ -612,7 +653,7 @@ fn enter_ring3_inner(
             rflags = in(reg) 0x3202u64,
             user_rsp = in(reg) user_rsp_val,
             ss = in(reg) USER_DATA_SELECTOR,
-            options(noreturn),
+            options(noreturn, preserves_flags),
         );
     }
 }

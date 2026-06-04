@@ -141,7 +141,7 @@ extern "x86-interrupt" fn page_fault_handler(
 }
 
 /// General protection fault handler
-/// 
+///
 /// Triggered by privilege violations, segment errors, etc.
 extern "x86-interrupt" fn general_protection_fault_handler(
     stack_frame: InterruptStackFrame,
@@ -150,12 +150,12 @@ extern "x86-interrupt" fn general_protection_fault_handler(
     println!("[EXCEPTION] General Protection Fault");
     println!("  Error Code: {}", error_code);
     println!("{:#?}", stack_frame);
-    
+
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::SecurityViolation,
         "General protection fault - privilege violation",
     );
-    
+
     crate::hlt_loop();
 }
 

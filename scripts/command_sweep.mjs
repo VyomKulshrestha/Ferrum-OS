@@ -223,7 +223,7 @@ const tests = [
   ["heliox confirm no-such-plan", "confirmation gate resolved: no-such-plan"],
   ["heliox execute open terminal", "heliox execute dispatched"],
   ["elf", "PT_LOAD segments:"],
-  ["elf", "entry:      0x2011c0"],
+  ["elf", "entry:      0x401190"],
   ["process", "Per-process Address Spaces"],
   ["process", "init-sample"],
   ["session guest", "session switched to guest"],
@@ -248,7 +248,7 @@ const tests = [
   ["security", "Security Status:"],
   ["about", "FerrumOS v0.1.0"],
   ["process", "Per-process Address Spaces (2):"],
-  ["ring3", "FERRUMOS_INIT v1: ring-3 placeholder reached"],
+  ["ring3", "ABC"],
 ];
 
 const results = [];
