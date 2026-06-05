@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - VGA Text Mode Driver
 // ============================================================================
 // Provides direct access to the VGA text mode framebuffer at 0xB8000.
@@ -234,9 +234,14 @@ pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
-    interrupts::without_interrupts(|| {
-        WRITER.lock().write_fmt(args).unwrap();
-    });
-
     crate::serial::_print(args);
+
+    interrupts::without_interrupts(|| {
+        if let Some(console) = crate::graphics::console::CONSOLE.lock().as_mut() {
+            let _ = console.write_fmt(args);
+            return;
+        }
+        
+        let _ = WRITER.lock().write_fmt(args);
+    });
 }

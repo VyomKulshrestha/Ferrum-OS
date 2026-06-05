@@ -129,9 +129,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
             "display:fb",
         );
         // Re-print the boot banner on the graphical console
-        ferrumos::graphics::console::_print(format_args!(
-            "[  OK  ] VGA framebuffer initialized (1024x768x32bpp)\n"
-        ));
+        println!("[  OK  ] VGA framebuffer initialized (1024x768x32bpp)");
     } else {
         println!("[ INFO ] Bochs VBE not detected, staying in text mode");
     }
@@ -236,6 +234,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
                         .map(|s| s.l4_frame().start_address().as_u64())
                         .unwrap_or(0);
                     let pid = process.pid();
+                    process.set_entry(vaddr.as_u64());
+                    let _ = process.map_user_stack();
+                    process.mark_loaded();
                     ferrumos::process::register(process);
                     println!(
                         "[  OK  ] Sample address space: pid={} L4={:#x} mapped={} bytes",

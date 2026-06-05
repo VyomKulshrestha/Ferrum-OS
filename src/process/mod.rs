@@ -144,6 +144,17 @@ impl Process {
         self.loaded
     }
 
+    /// Manually mark the process as loaded. Useful for synthetic or manually
+    /// mapped processes that did not go through `load_elf()`.
+    pub fn mark_loaded(&mut self) {
+        self.loaded = true;
+    }
+
+    /// Manually set the ELF entry point (RIP).
+    pub fn set_entry(&mut self, entry: u64) {
+        self.entry = entry;
+    }
+
     /// Map a fresh user stack at `USER_STACK_BASE` (RW, NX) and
     /// zero it. Idempotent: a second call is a no-op.
     pub fn map_user_stack(&mut self) -> Result<u64, MapToError<Size4KiB>> {
