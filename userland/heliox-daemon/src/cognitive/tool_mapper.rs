@@ -39,6 +39,8 @@ const SYS_READ_FILE: u64 = 15;
 const SYS_WRITE_FILE: u64 = 16;
 const SYS_READ_DIR: u64 = 17;
 const SYS_EXEC: u64 = 18;
+const SYS_CREATE_DIR: u64 = 21;
+const SYS_DELETE_FILE: u64 = 22;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -654,10 +656,8 @@ fn execute_create_directory(args: &[(String, JsonValue)]) -> ToolResult {
             output: String::from("Missing 'path' argument"),
         };
     }
-    // Create directory by writing an empty file with trailing /
-    let dir_path = if path.ends_with('/') { path.clone() } else { format!("{}/", path) };
     let result = unsafe {
-        syscall4(SYS_WRITE_FILE, dir_path.as_ptr() as u64, dir_path.len() as u64, 0, 0)
+        crate::syscall4(SYS_CREATE_DIR, path.as_ptr() as u64, path.len() as u64, 0, 0)
     };
     ToolResult {
         tool_name: String::from("create_directory"),
@@ -778,9 +778,8 @@ fn execute_delete_file(args: &[(String, JsonValue)]) -> ToolResult {
             output: String::from("Missing 'path' argument"),
         };
     }
-    // Delete by writing zero-length content (VFS convention)
     let result = unsafe {
-        syscall4(SYS_WRITE_FILE, path.as_ptr() as u64, path.len() as u64, 0, 0)
+        crate::syscall4(SYS_DELETE_FILE, path.as_ptr() as u64, path.len() as u64, 0, 0)
     };
     ToolResult {
         tool_name: String::from("delete_file"),
