@@ -240,6 +240,20 @@ pub fn read_keyboard() -> Option<u8> {
     queue.as_mut().and_then(|q| q.pop_front())
 }
 
+/// Push a synthetic character into the keyboard queue.
+///
+/// Used by the input injection subsystem (`crate::input`) to feed
+/// agent-generated keystrokes into the shell. This makes the shell
+/// see injected keys exactly as if they came from the PS/2 keyboard.
+pub fn push_keyboard(ascii: u8) {
+    let mut queue = KEYBOARD_QUEUE.lock();
+    if let Some(q) = queue.as_mut() {
+        if q.len() < 64 {
+            q.push_back(ascii);
+        }
+    }
+}
+
 /// Keyboard interrupt handler (IRQ 1)
 /// 
 /// Reads PS/2 scancodes and translates them to ASCII characters.

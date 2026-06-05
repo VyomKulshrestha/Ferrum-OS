@@ -134,6 +134,10 @@ pub mod graphics;
 /// Intel HDA driver, PCM playback/recording, and audio format handling
 pub mod audio;
 
+/// Input subsystem
+/// Unified keyboard/mouse event queue, input injection for agent automation
+pub mod input;
+
 // ============================================================================
 // Global Descriptor Table
 // ============================================================================

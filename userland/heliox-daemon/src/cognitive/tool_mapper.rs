@@ -100,7 +100,8 @@ fn tool_tier(name: &str) -> PermissionTier {
         | "load_memory" | "set_goal" | "record_audio" => PermissionTier::Network,
         // Tier 3: Modify
         "write_file" | "create_directory" | "save_memory"
-        | "service_start" | "service_stop" | "play_audio" => PermissionTier::Modify,
+        | "service_start" | "service_stop" | "play_audio"
+        | "keyboard_type" | "mouse_click" | "mouse_move" => PermissionTier::Modify,
         // Tier 4: Destructive
         "exec_process" | "delete_file" => PermissionTier::Destructive,
         _ => PermissionTier::Destructive, // unknown tools default to highest tier
@@ -210,6 +211,15 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 30. `set_volume` - Set the audio output volume.
     Arguments: {"level": <number 0-127>}
 
+31. `keyboard_type` - Type a string of text as keyboard input (REQUIRES CONFIRMATION).
+    Arguments: {"text": "<string>"}
+
+32. `mouse_click` - Click a mouse button (REQUIRES CONFIRMATION).
+    Arguments: {"button": <number 0=left, 1=right, 2=middle>}
+
+33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES CONFIRMATION).
+    Arguments: {"dx": <number>, "dy": <number>}
+
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}
 If no tool is needed, respond with plain text.
 Tools marked REQUIRES CONFIRMATION need operator approval before executing."#;
@@ -291,6 +301,9 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "record_audio" => execute_record_audio(&tool_call.arguments),
         "play_audio" => execute_play_audio(),
         "set_volume" => execute_set_volume(&tool_call.arguments),
+        "keyboard_type" => execute_keyboard_type(&tool_call.arguments),
+        "mouse_click" => execute_mouse_click(&tool_call.arguments),
+        "mouse_move" => execute_mouse_move(&tool_call.arguments),
         _ => ToolResult {
             tool_name: tool_call.name.clone(),
             success: false,
@@ -865,3 +878,75 @@ fn execute_set_volume(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
+// ---- Input Tools -----------------------------------------------------------
+
+const SYS_INJECT_KEY: u64 = 26;
+const SYS_INJECT_MOUSE: u64 = 27;
+
+fn execute_keyboard_type(args: &[(String, JsonValue)]) -> ToolResult {
+    let text = find_arg_string(args, "text").unwrap_or_default();
+    if text.is_empty() {
+        return ToolResult {
+            tool_name: String::from("keyboard_type"),
+            success: false,
+            output: String::from("No text provided"),
+        };
+    }
+
+    let mut typed = 0u32;
+    for ch in text.bytes() {
+        unsafe {
+            crate::syscall4(SYS_INJECT_KEY, ch as u64, 0, 0, 0);
+        }
+        typed += 1;
+    }
+
+    ToolResult {
+        tool_name: String::from("keyboard_type"),
+        success: true,
+        output: format!("Typed {} characters", typed),
+    }
+}
+
+fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
+    let button = find_arg_number(args, "button").unwrap_or(0.0) as u64;
+    if button > 2 {
+        return ToolResult {
+            tool_name: String::from("mouse_click"),
+            success: false,
+            output: String::from("Invalid button (use 0=left, 1=right, 2=middle)"),
+        };
+    }
+
+    // event_type=1 (click), button_id, 0
+    unsafe {
+        crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0);
+    }
+
+    let name = match button {
+        0 => "left",
+        1 => "right",
+        _ => "middle",
+    };
+    ToolResult {
+        tool_name: String::from("mouse_click"),
+        success: true,
+        output: format!("Clicked {} mouse button", name),
+    }
+}
+
+fn execute_mouse_move(args: &[(String, JsonValue)]) -> ToolResult {
+    let dx = find_arg_number(args, "dx").unwrap_or(0.0) as i64;
+    let dy = find_arg_number(args, "dy").unwrap_or(0.0) as i64;
+
+    // event_type=0 (move), dx, dy
+    unsafe {
+        crate::syscall4(SYS_INJECT_MOUSE, 0, dx as u64, dy as u64, 0);
+    }
+
+    ToolResult {
+        tool_name: String::from("mouse_move"),
+        success: true,
+        output: format!("Mouse moved by ({}, {})", dx, dy),
+    }
+}

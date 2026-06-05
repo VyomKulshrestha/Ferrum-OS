@@ -139,6 +139,25 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Initialize Intel HDA audio controller (QEMU: -device intel-hda -device hda-duplex)
     ferrumos::audio::init();
     
+    // Initialize XHCI USB controller (QEMU: -device qemu-xhci -device usb-kbd -device usb-mouse)
+    match ferrumos::devices::xhci::init() {
+        Ok(()) => {
+            let ports = ferrumos::devices::xhci::port_count();
+            let devs = ferrumos::devices::xhci::connected_devices();
+            println!("[  OK  ] XHCI USB controller initialized ({} ports, {} devices)", ports, devs);
+            ferrumos::devices::register_device(
+                "usb.xhci",
+                ferrumos::devices::DeviceClass::Input,
+                ferrumos::devices::DeviceState::Online,
+                "xhci",
+                "usb:host",
+            );
+        }
+        Err(e) => {
+            println!("[ INFO ] XHCI USB controller not found: {}", e);
+        }
+    }
+
     // Scan PCI devices (networking, etc.) - Handled inside device drivers
     
     // Initialize ACPI
