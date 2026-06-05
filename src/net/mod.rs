@@ -9,6 +9,7 @@ extern crate alloc;
 
 pub mod rtl8139;
 pub mod stack;
+pub mod iface;
 
 use alloc::string::String;
 use alloc::vec;
@@ -63,7 +64,11 @@ static NETWORK: Mutex<NetworkState> = Mutex::new(NetworkState {
 pub fn init() {
     // Attempt to initialize the RTL8139 NIC
     match rtl8139::init() {
-        Ok(_) => { crate::serial_println!("[  OK  ] RTL8139 initialized successfully"); }
+        Ok(_) => {
+            crate::serial_println!("[  OK  ] RTL8139 initialized successfully");
+            // Now that the NIC is ready, initialize the smoltcp interface
+            iface::init();
+        }
         Err(e) => { crate::serial_println!("[ WARN ] Failed to initialize RTL8139: {}", e); }
     }
 

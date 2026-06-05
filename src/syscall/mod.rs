@@ -25,6 +25,7 @@ pub enum SyscallNumber {
     Recv = 11,
     Send = 12,
     Wait = 13,
+    Connect = 14,
 }
 
 /// Syscall return status.
@@ -202,6 +203,9 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::Wait as u64 => {
             SyscallResult::ok(0)
+        }
+        x if x == SyscallNumber::Connect as u64 => {
+            socket::sys_connect(args[0], args[1], args[2])
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }
