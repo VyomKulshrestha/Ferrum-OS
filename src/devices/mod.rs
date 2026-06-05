@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+pub mod hda;
 pub mod pci;
 pub mod vga_fb;
 

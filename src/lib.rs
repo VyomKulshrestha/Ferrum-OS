@@ -130,6 +130,10 @@ pub mod ata;
 /// VGA framebuffer, bitmap font rendering, and graphical text console
 pub mod graphics;
 
+/// Audio subsystem
+/// Intel HDA driver, PCM playback/recording, and audio format handling
+pub mod audio;
+
 // ============================================================================
 // Global Descriptor Table
 // ============================================================================

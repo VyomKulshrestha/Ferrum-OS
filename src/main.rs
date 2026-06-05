@@ -135,6 +135,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     } else {
         println!("[ INFO ] Bochs VBE not detected, staying in text mode");
     }
+
+    // Initialize Intel HDA audio controller (QEMU: -device intel-hda -device hda-duplex)
+    ferrumos::audio::init();
     
     // Scan PCI devices (networking, etc.) - Handled inside device drivers
     

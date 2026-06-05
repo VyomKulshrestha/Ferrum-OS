@@ -34,6 +34,9 @@ pub enum SyscallNumber {
     ReadTextBuffer = 20,
     CreateDir = 21,
     DeleteFile = 22,
+    PlayAudio = 23,
+    RecordAudio = 24,
+    SetVolume = 25,
 }
 
 /// Syscall return status.
@@ -73,6 +76,7 @@ pub mod socket;
 pub mod fs;
 pub mod process;
 pub mod graphics;
+pub mod audio;
 
 use alloc::string::String;
 
@@ -241,6 +245,15 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::DeleteFile as u64 => {
             fs::sys_delete_file(args)
+        }
+        x if x == SyscallNumber::PlayAudio as u64 => {
+            audio::sys_play_audio(args)
+        }
+        x if x == SyscallNumber::RecordAudio as u64 => {
+            audio::sys_record_audio(args)
+        }
+        x if x == SyscallNumber::SetVolume as u64 => {
+            audio::sys_set_volume(args)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }

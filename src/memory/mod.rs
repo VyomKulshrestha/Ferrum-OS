@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Memory Management Subsystem
 // ============================================================================
 // Manages physical and virtual memory for the kernel.
@@ -102,6 +102,37 @@ pub fn active_p4_frame() -> PhysFrame {
 /// exhausted.
 pub fn allocate_frame() -> Option<PhysFrame> {
     FRAME_ALLOCATOR.lock().as_mut()?.allocate_frame()
+}
+
+/// Allocate `count` physically contiguous 4 KiB frames suitable for DMA
+/// buffers (CORB/RIRB rings, audio BDLs, etc.).
+///
+/// Returns the first frame of the contiguous block. The caller may use
+/// frames `first .. first + count` (each offset by 4 KiB). Returns
+/// `None` if the allocator is exhausted or the requested frames are
+/// not contiguous (extremely unlikely with the bump allocator since
+/// physical frames are handed out in order).
+pub fn allocate_contiguous_frames(count: usize) -> Option<PhysFrame> {
+    if count == 0 {
+        return None;
+    }
+    let mut alloc = FRAME_ALLOCATOR.lock();
+    let alloc = alloc.as_mut()?;
+
+    let first = alloc.allocate_frame()?;
+    let first_addr = first.start_address().as_u64();
+
+    for i in 1..count {
+        let frame = alloc.allocate_frame()?;
+        let expected = first_addr + (i as u64) * 4096;
+        if frame.start_address().as_u64() != expected {
+            // Non-contiguous; return what we have (frames are leaked since
+            // the bump allocator doesn't support deallocation anyway)
+            return None;
+        }
+    }
+
+    Some(first)
 }
 
 /// Return a previously-allocated frame to the global pool. The current

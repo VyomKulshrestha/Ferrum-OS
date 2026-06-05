@@ -94,13 +94,13 @@ fn tool_tier(name: &str) -> PermissionTier {
         // Tier 1: Safe
         "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
         | "capability_check" | "read_file" | "read_dir" | "sleep"
-        | "read_screen" => PermissionTier::Safe,
+        | "read_screen" | "set_volume" => PermissionTier::Safe,
         // Tier 2: Network
         "net_connect" | "net_send" | "net_recv" | "http_get"
-        | "load_memory" | "set_goal" => PermissionTier::Network,
+        | "load_memory" | "set_goal" | "record_audio" => PermissionTier::Network,
         // Tier 3: Modify
         "write_file" | "create_directory" | "save_memory"
-        | "service_start" | "service_stop" => PermissionTier::Modify,
+        | "service_start" | "service_stop" | "play_audio" => PermissionTier::Modify,
         // Tier 4: Destructive
         "exec_process" | "delete_file" => PermissionTier::Destructive,
         _ => PermissionTier::Destructive, // unknown tools default to highest tier
@@ -201,6 +201,15 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 27. `add_subtask` - Add a new subtask to the current plan.
     Arguments: {"description": "<string>", "depends_on": "<comma-separated task IDs>"}
 
+28. `record_audio` - Record audio from the microphone for a given duration.
+    Arguments: {"duration_ms": <number>}
+
+29. `play_audio` - Play a notification beep through the speaker (REQUIRES CONFIRMATION).
+    Arguments: {}
+
+30. `set_volume` - Set the audio output volume.
+    Arguments: {"level": <number 0-127>}
+
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}
 If no tool is needed, respond with plain text.
 Tools marked REQUIRES CONFIRMATION need operator approval before executing."#;
@@ -279,6 +288,9 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "delete_file" => execute_delete_file(&tool_call.arguments),
         "read_screen" => execute_read_screen(),
         "add_subtask" => execute_add_subtask(),
+        "record_audio" => execute_record_audio(&tool_call.arguments),
+        "play_audio" => execute_play_audio(),
+        "set_volume" => execute_set_volume(&tool_call.arguments),
         _ => ToolResult {
             tool_name: tool_call.name.clone(),
             success: false,
@@ -801,3 +813,55 @@ fn format_args_summary(args: &[(String, JsonValue)]) -> String {
     }
     s
 }
+
+// ---- Audio Tools -----------------------------------------------------------
+
+fn execute_record_audio(args: &[(String, JsonValue)]) -> ToolResult {
+    let duration_ms = find_arg_number(args, "duration_ms").unwrap_or(2000.0) as u32;
+    match crate::cognitive::voice::record_audio(duration_ms) {
+        Ok(buf) => {
+            let rms = buf.rms_amplitude();
+            let has_voice = crate::cognitive::voice::detect_voice_activity(&buf);
+            ToolResult {
+                tool_name: String::from("record_audio"),
+                success: true,
+                output: format!(
+                    "Recorded {}ms audio ({} bytes). RMS amplitude: {}. Voice detected: {}",
+                    duration_ms, buf.data.len(), rms, has_voice
+                ),
+            }
+        }
+        Err(e) => ToolResult {
+            tool_name: String::from("record_audio"),
+            success: false,
+            output: format!("Recording failed: {}", e),
+        },
+    }
+}
+
+fn execute_play_audio() -> ToolResult {
+    let beep = crate::cognitive::voice::generate_beep();
+    match crate::cognitive::voice::play_audio(&beep) {
+        Ok(()) => ToolResult {
+            tool_name: String::from("play_audio"),
+            success: true,
+            output: String::from("Played notification beep (440Hz, 200ms)"),
+        },
+        Err(e) => ToolResult {
+            tool_name: String::from("play_audio"),
+            success: false,
+            output: format!("Playback failed: {}", e),
+        },
+    }
+}
+
+fn execute_set_volume(args: &[(String, JsonValue)]) -> ToolResult {
+    let level = find_arg_number(args, "level").unwrap_or(64.0) as u8;
+    crate::cognitive::voice::set_volume(level);
+    ToolResult {
+        tool_name: String::from("set_volume"),
+        success: true,
+        output: format!("Volume set to {}/127", level),
+    }
+}
+

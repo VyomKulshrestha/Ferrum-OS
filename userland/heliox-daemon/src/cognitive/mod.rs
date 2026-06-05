@@ -6,3 +6,4 @@ pub mod verifier;
 pub mod reflector;
 pub mod confirmation;
 pub mod screen_vision;
+pub mod voice;
