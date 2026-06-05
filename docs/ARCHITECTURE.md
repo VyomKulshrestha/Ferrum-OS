@@ -1,4 +1,4 @@
-﻿# FerrumOS Architecture
+# FerrumOS Architecture
 
 ## Core Boundary
 
@@ -137,11 +137,7 @@ runtime services.
 
 ## Current Agent Boundary
 
-`runtime.agentd` is currently a sandboxed service stub. It accepts bounded IPC
-messages after capability checks and records the last command. The userspace
-`agent-bridge` manifest can exercise IPC syscalls toward runtime services, but
-it deliberately does not run a model, planner, semantic memory, screen vision,
-or autonomous workflow engine inside the kernel.
+`runtime.agentd` is currently a sandboxed service stub. The userspace `heliox-daemon` now acts as the true Agent Boundary. It runs a native Rust LLM orchestrator, planner, and semantic memory vector store inside the kernel userspace.
 
 The current manifest requires `cap:agent:control` to start the boundary or send
 commands. The spawned task receives only delegatable capabilities, such as
@@ -151,32 +147,13 @@ tasks.
 The next implementation milestone is true userspace execution: ELF loading,
 isolated address spaces, and syscall entry from ring 3.
 
-## Heliox-OS Integration Layer
+## Heliox-OS Native Integration Layer
 
-FerrumOS hosts a deterministic Heliox-OS integration boundary in the kernel
-without taking on any probabilistic behaviour. The bridge lives in
-`src/heliox/mod.rs` and provides:
+FerrumOS implements the Heliox-OS architecture natively. The legacy network JSON-RPC bridge has been completely removed in favor of a native freestanding `heliox-daemon` userspace process.
 
-- The full Heliox JSON-RPC 2.0 method registry (requests and notifications)
-  with the capability each method requires.
-- The five-tier permission model that the Heliox `ActionType` enum uses
-  (Read Only, User Write, System Modify, Destructive, Root Critical) and
-  the 120-action catalog.
-- Six capability tokens for Heliox-specific authority: `cap:heliox:bridge`,
-  `:execute`, `:voice`, `:gesture`, `:screen`, `:persona`.
-- Nine pre-registered sandboxed runtime service slots
-  (`runtime.heliox.{bridge,input,inference,memory,orchestrator,screen,persona,plugins,audit}`)
-  that match the Heliox runtime architecture.
-- Stubs for the multimodal fusion engine, screen vision, persona learning,
-  and confirmation gates that a userspace Heliox runtime can replace.
-- A `heliox-bridge` userspace program manifest at `/srv/heliox-bridge` that
-  carries `cap:ipc:send` for envelope dispatch through the kernel IPC broker.
-- A `heliox` shell command group that exposes the integration state for
-  operators: `heliox status`, `heliox methods`, `heliox tiers`,
-  `heliox actions`, `heliox services`, `heliox send <method> [input]`,
-  `heliox notif <method>`, `heliox voice {start,stop,event}`,
-  `heliox screen {on,off,context}`, `heliox persona [add key=value]`,
-  `heliox confirm <plan_id>`, `heliox execute <input>`.
+The `heliox-daemon` provides:
+- A pure Rust bare-metal Vector Store implementing cosine similarity.
+- A cognitive planner and LLM orchestrator capable of constructing prompts and resolving JSON tool calls.
+- Direct capability-authorized invocation of kernel syscalls (e.g. `sys_ipc_send`, `sys_read`, `sys_write`) to enact the agent's decisions.
 
-The full integration contract, porting plan, and audit hooks are described
-in `docs/HELIOX_INTEGRATION.md`.
+The full integration path going forward focuses on wiring up the `smoltcp` network stack to the daemon via Socket Syscalls, and implementing the ATA PIO block driver to persist the neural graphs to disk.

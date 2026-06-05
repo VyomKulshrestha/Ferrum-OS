@@ -1,4 +1,4 @@
-﻿# FerrumOS
+# FerrumOS
 
 A minimal modular Rust-based operating system designed as the long-term
 foundation for an AI-native autonomous computing environment.
@@ -33,10 +33,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Capability-authorized syscall dispatch for IPC, service lifecycle checks,
   capability checks, and audit writes
 - Capability-gated `agentd` runtime boundary stub for future agent integration
-- Heliox-OS JSON-RPC 2.0 bridge: full method registry, 5-tier permission model,
-  120 action catalog, nine pre-registered `runtime.heliox.*` service slots,
-  capability tokens for voice/gesture/screen/persona, and shell surface for
-  inspecting and exercising the bridge (see `docs/HELIOX_INTEGRATION.md`)
+- Native Heliox-OS Agent Daemon: The previous JSON-RPC bridge has been completely replaced by a true bare-metal agent orchestrator, planner, and vector store running as a native userspace process (`heliox-daemon`).
 
 ## Architecture
 
@@ -56,10 +53,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 +----------------------------------------------------------+
 ```
 
-The existing Python desktop agent can be treated as a future runtime or
-agent-layer service. Its voice, gesture, local LLM, and autonomous task
-execution logic should remain outside the kernel and communicate through
-capability-checked runtime interfaces.
+The legacy Python desktop agent has been replaced. The AI brain (orchestrator, planner, and semantic memory) now runs natively as a freestanding userspace process (`heliox-daemon`) directly on the FerrumOS bare-metal kernel.
 
 ## Build
 
@@ -189,15 +183,14 @@ process placeholder that can exercise IPC syscalls with delegated capabilities.
 The kernel boot sequence now also launches the manifest-backed `init` process
 record after the scheduler starts.
 
-## Heliox-OS Integration
+## Heliox-OS Native Integration
 
-FerrumOS ships with a kernel-side bridge for [Heliox-OS](https://github.com/VyomKulshrestha/Heliox-OS).
-The bridge registers the full Heliox JSON-RPC 2.0 method registry, the
-five-tier permission model, the 120-action catalog, and nine pre-registered
-`runtime.heliox.*` runtime service slots. It does NOT execute AI, planners,
-or vector search in kernel space - those workloads run in the runtime
-services above the boundary. See `docs/HELIOX_INTEGRATION.md` for the wire
-contract, capability policy, and porting path.
+FerrumOS has evolved into a true Agentic OS. Instead of relying on a host machine to run the [Heliox-OS](https://github.com/VyomKulshrestha/Heliox-OS) Python daemon via a network bridge, the intelligence has been ported natively to Rust!
+
+The OS now contains `userland/heliox-daemon`, a native userspace binary that serves as the OS's brain. It implements:
+- A bare-metal Vector Store utilizing pure cosine similarity math (replacing ChromaDB).
+- A native LLM orchestrator and planner that can construct prompts and communicate over the RTL8139 NIC.
+- Direct capability-authorized `sys_ipc_send` access to control the kernel.
 
 Try it in QEMU:
 
@@ -215,15 +208,11 @@ ipc
 syscalls
 ```
 
-Future work should attach the real agent runtime above this boundary:
+Future work for the native agent boundary:
 
-1. Add real userspace process loading.
-2. Implement syscall entry from ring 3.
-3. Move runtime services out of kernel modules.
-4. Port or host the agent planner, orchestrator, verifier, sandbox, memory,
-   and plugins as userspace services.
-5. Add device drivers for audio, camera, display, input, storage, and network
-   before enabling voice, gesture, screen vision, or desktop control.
+1. Wire up the socket syscalls (`sys_socket`, `sys_send`, `sys_connect`) so the native orchestrator can reach external LLM APIs.
+2. Build the ATA PIO block driver and an Ext2 filesystem so the vector store can persist its neural graphs across reboots.
+3. Build the `sys_exec` syscall and Virtual File System so the agent can spawn child processes and workers autonomously.
 
 ## Design Rules
 
