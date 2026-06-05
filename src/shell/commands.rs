@@ -117,6 +117,7 @@ fn cmd_help() {
     println!("FerrumOS Shell Commands:");
     println!("  help       Show this help message");
     println!("  clear      Clear the screen");
+    println!("  desktop    Launch GUI Desktop Environment");
     println!("  echo       Print arguments to screen");
     println!("  ps         List running tasks");
     println!("  mem        Show memory usage");
