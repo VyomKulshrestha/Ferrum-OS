@@ -21,7 +21,8 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Volatile in-memory RAM filesystem
 - Filesystem mount table, stat metadata, and usage reporting
 - Device registry for online drivers and planned Heliox-facing hardware surfaces
-- Deterministic loopback network subsystem with interface and route reporting
+- RTL8139 PCI NIC driver with real TCP/IP networking via smoltcp
+- Socket syscalls (`sys_socket`, `sys_connect`, `sys_send`, `sys_recv`) wired to smoltcp
 - Capability registry and caller-held capability authorization helpers
 - Debug shell session profiles for root and restricted guest capability checks
 - Audit logging hooks for security and lifecycle events
@@ -50,6 +51,9 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 +----------------------------------------------------------+
 | Kernel Layer                                            |
 | Boot, memory, interrupts, scheduling, isolation, HAL     |
++----------------------------------------------------------+
+| Hardware / NIC Layer                                    |
+| RTL8139 driver, smoltcp TCP/IP stack, socket syscalls    |
 +----------------------------------------------------------+
 ```
 
@@ -210,7 +214,7 @@ syscalls
 
 Future work for the native agent boundary:
 
-1. Wire up the socket syscalls (`sys_socket`, `sys_send`, `sys_connect`) so the native orchestrator can reach external LLM APIs.
+1. Build the cognitive networking layer so the daemon can issue HTTP requests to LLM APIs over TCP.
 2. Build the ATA PIO block driver and an Ext2 filesystem so the vector store can persist its neural graphs across reboots.
 3. Build the `sys_exec` syscall and Virtual File System so the agent can spawn child processes and workers autonomously.
 

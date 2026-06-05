@@ -33,11 +33,13 @@ hardware work visible from the shell through `devices`.
 
 ## Network
 
-The network subsystem exposes loopback networking before physical NIC drivers
-exist. `lo` is online with `127.0.0.1/8`, `net0` is tracked as a planned NIC,
-and `net send` delivers bounded loopback payloads only when the caller holds
-network-connect authority. This gives Heliox-facing runtime services a safe
-network policy target while real drivers are still pending.
+The network subsystem provides real TCP/IP networking via the RTL8139 PCI NIC
+driver and the smoltcp embedded TCP/IP stack. The kernel exposes socket syscalls
+(`sys_socket`, `sys_connect`, `sys_send`, `sys_recv`, `sys_bind`) that create
+real smoltcp TCP sockets backed by the hardware NIC. The smoltcp interface is
+configured with QEMU's default user-mode networking address (10.0.2.15/24,
+gateway 10.0.2.2). A loopback interface (`lo` at 127.0.0.1/8) is also available
+for local capability-checked packet delivery.
 
 The kernel must not embed probabilistic systems, model inference, vector search,
 semantic memory, or autonomous planning logic.
