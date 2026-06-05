@@ -1,170 +1,340 @@
 # FerrumOS Architecture
 
-## Core Boundary
+## Design Principles
 
-The kernel owns deterministic primitives only:
-
-- CPU and interrupt setup
-- Memory mapping and allocation
-- Scheduling metadata
-- Hardware abstraction
-- Capability policy checks
-- Audit hooks
-- Minimal filesystem and shell support for early development
-
-## Filesystem
-
-The current filesystem is a volatile RAM filesystem mounted at `/` as
-`ramfs.root`. It supports directory listing, file reads/writes, removal,
-metadata through `stat`, and usage reporting through `mounts`. This keeps the
-early shell useful while block storage drivers are still pending.
-
-## Device Registry
-
-FerrumOS tracks device surfaces through a small registry. Online devices
-represent hardware or kernel facilities that are available now: VGA text output,
-PCI network controller, and Intel HDA audio controller. Planned devices represent contracts needed by future
-runtime services: camera surfaces.
-
-The registry labels unavailable devices as `Planned` instead of claiming driver
-support. This keeps integration honest while making the missing hardware work
-visible from the shell through `devices`.
-
-## Network
-
-The network subsystem provides real TCP/IP networking via the RTL8139 PCI NIC
-driver and the smoltcp embedded TCP/IP stack. The kernel exposes socket syscalls
-(`sys_socket`, `sys_connect`, `sys_send`, `sys_recv`, `sys_bind`) that create
-real smoltcp TCP sockets backed by the hardware NIC. The smoltcp interface is
-configured with QEMU's default user-mode networking address (10.0.2.15/24,
-gateway 10.0.2.2). A loopback interface (`lo` at 127.0.0.1/8) is also available
-for local capability-checked packet delivery.
-
-The kernel must not embed probabilistic systems, model inference, vector search,
-semantic memory, or autonomous planning logic.
-
-## Runtime Boundary
-
-Runtime services are the correct integration point for the native `heliox-daemon`
-and future Rust services. They should receive only the capabilities required
-for their task and should communicate through IPC contracts or future
-shared-memory handles.
-
-Every service is described by a `ServiceManifest`:
-
-- `layer` records whether it belongs to kernel, runtime, cognitive, or agent
-  architecture.
-- `required_capabilities` names the exact lifecycle capabilities needed to
-  start or stop the service.
-- `sandbox` records early isolation intent: IPC-only execution, isolated address
-  space, memory budget, and syscall audit policy.
-
-The service manager also tracks health-check counts and restart counts. This is
-still an in-kernel supervisor model, but it gives runtime services a concrete
-operational surface before userspace service managers are available.
-
-Initial runtime service categories:
-
-- `runtime.ipc`
-- `runtime.agentd`
-- input service for keyboard, voice (VAD/recording), gesture, and multimodal events
-- local inference service
-- semantic memory service
-- task orchestration service
-- verification and audit export service
-
-## Capability Model
-
-Capabilities are explicit permission tokens. A service action is allowed only
-when the caller holds a token that maps to the requested resource pattern.
-Service lifecycle operations use exact token checks, while IPC and resource
-access use resource-pattern checks.
-
-The v0.1 shell includes debug session profiles so capability enforcement can be
-exercised before real userspace exists:
-
-- `root` holds `cap:system:all` and can exercise kernel management commands.
-- `guest` holds only `cap:fs:read`, so filesystem reads work while writes,
-  service control, agent commands, process management, and audit reads are
-  denied and logged.
-
-This is a development tool, not a final login model. Real identity,
-authentication, and per-process capability assignment belong in the future
-userspace/runtime layer.
-
-## Userspace Model
-
-FerrumOS has a functional userspace execution environment with Ring-3 entry,
-ELF loading, per-process address spaces, and preemptive scheduling:
-
-- Program manifests for `init`, `heliox-daemon`, and `audit-exporter`
-- Delegated capability sets checked at launch
-- Process records with PID, entry path, state, and syscall count
-- Syscall dispatch that authorizes against the process capability table
-- Bootstrapping of the manifest-backed `init` process after scheduler startup
-- The `heliox-daemon` binary is the native Heliox-OS agent process
-
-Important rules:
-
-- Default deny.
-- Delegation is explicit.
-- Runtime services do not receive unrestricted kernel authority.
-- Audit hooks record denied operations and lifecycle changes.
+1. **Kernel is deterministic** — no AI inference, no probabilistic models in
+   kernel space. The kernel owns scheduling, memory, interrupts, and drivers.
+2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
+   freestanding Ring-3 process with syscall-only access to hardware.
+3. **Every action is a syscall** — the agent cannot bypass the kernel. All 35
+   tools translate to real kernel syscalls (30 total, IDs 0–29).
+4. **Capability-gated** — default deny. Services receive only the capabilities
+   required for their task.
+5. **Hardware first** — an agentic OS needs real drivers, not stubs.
 
 ## System Layers
 
 ```text
-Agent Layer (heliox-daemon):
-  autonomous workflows, planning, verification
-
-Cognitive Layer (heliox-daemon):
-  semantic memory, vector search, context management
-
-Runtime Layer:
-  services, permissions, IPC, orchestration boundaries
-
-Kernel Layer:
-  scheduling, memory, isolation, hardware abstraction
-
-Storage / VFS Layer:
-  ATA PIO block driver, Ext2 filesystem, VFS mount table
-
-Network / Hardware Layer:
-  RTL8139 driver, smoltcp TCP/IP stack, socket syscalls
+┌──────────────────────────────────────────────────────────┐
+│ Agent Layer (heliox-daemon)                              │
+│ ReAct orchestrator, multi-agent domain router,           │
+│ web browsing, autonomous planning + reflection           │
+├──────────────────────────────────────────────────────────┤
+│ Cognitive Layer (heliox-daemon)                          │
+│ TF-IDF vector store, cosine similarity search,           │
+│ hierarchical planner, verifier, reflector                │
+├──────────────────────────────────────────────────────────┤
+│ Runtime Layer                                            │
+│ Service manager, IPC broker, capability checks,          │
+│ 35 tool ↔ syscall mapper, 5-tier permissions             │
+├──────────────────────────────────────────────────────────┤
+│ Kernel Layer                                             │
+│ Boot, GDT/IDT, page tables, heap, preemptive scheduler,  │
+│ ELF loader, Ring-3 entry, SMP, ACPI                      │
+├──────────────────────────────────────────────────────────┤
+│ Storage Layer                                            │
+│ ATA PIO driver, Ext2 filesystem, RamFS, VFS mount table  │
+├──────────────────────────────────────────────────────────┤
+│ Hardware Layer                                           │
+│ RTL8139 NIC, Intel HDA audio, XHCI USB 3.0, USB HID,    │
+│ VGA/Bochs framebuffer, PS/2 keyboard, PIT, UART          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-The cognitive and agent layers run natively in the `heliox-daemon` userspace
-process and can evolve quickly without destabilizing the kernel.
+The cognitive and agent layers run inside the `heliox-daemon` userspace binary
+and can evolve without destabilizing the kernel.
 
-## Current Agent Boundary
+## Kernel Core
 
-The `heliox-daemon` userspace process acts as the true Agent Boundary. It runs
-a native Rust LLM orchestrator, planner, and semantic memory vector store.
+### Boot Sequence
 
-The manifest requires `cap:agent:control` to start the boundary or send
-commands. The spawned task receives only delegatable capabilities, such as
-`cap:ipc:send` and `cap:net:connect`, so agent-control authority is not
-silently propagated into child tasks.
+1. BIOS/UEFI → `bootloader` crate hands control to `_start`
+2. GDT, IDT, PIC (8259) remapped, PIT configured
+3. Page tables from boot info, frame allocator initialized
+4. Kernel heap mapped (1 MiB at `0x4444_4444_0000`)
+5. Preemptive scheduler with idle task
+6. Device discovery (PCI bus scan, NIC, audio, USB)
+7. Filesystem mount (RamFS at `/`, Ext2 at `/disk`)
+8. Shell task spawned → interactive prompt
 
-## Heliox-OS Native Integration Layer
+### Memory
 
-FerrumOS implements the Heliox-OS architecture natively. The legacy network
-JSON-RPC bridge has been completely removed in favor of a native freestanding
-`heliox-daemon` userspace process.
+- Boot-info frame allocator for physical pages
+- 4-level page tables with mapper
+- Kernel heap: 1 MiB, bump allocator with linked-list fallback
+- DMA: `allocate_contiguous_frames(n)` for NIC TX/RX and HDA BDL buffers
 
-The `heliox-daemon` provides:
-- A pure Rust bare-metal Vector Store implementing TF-IDF embeddings and cosine similarity.
-- A cognitive planner and LLM orchestrator (ReAct loop) that constructs prompts with tool
-  definitions and queries external LLM APIs.
-- A bare-metal HTTP/1.1 TCP client and DNS resolver for communicating with
-  Ollama and OpenAI-compatible endpoints over the RTL8139 NIC.
-- A `no_std` JSON parser for decoding LLM API responses.
-- A tool-to-syscall mapper that translates 30 LLM tool calls (`ipc_send`,
-  `exec_process`, `write_file`, `net_connect`, `record_audio`, etc.) into kernel syscalls.
-- A 5-tier permission model with operator confirmation gates for destructive actions.
-- Direct capability-authorized invocation of kernel syscalls to enact the
-  agent's decisions and emit reasoning telemetry to the kernel audit log.
+### Scheduler
 
-The remaining integration work focuses on persistent memory (ATA PIO driver +
-Ext2 filesystem for vector store persistence) and the VFS / `sys_exec` syscall
-for agent-spawned worker processes.
+- Preemptive round-robin with 4 priority levels
+- Context switching via `switch_to()` assembly stub
+- Per-task kernel stacks, sleep/wake/yield syscalls
+- PID assignment, task state tracking (Ready/Running/Blocked/Dead)
+
+### Syscall Dispatch
+
+30 syscalls (IDs 0–29) dispatched via `int 0x80`:
+
+- Process: Yield(0), Exec(18), Wait(13)
+- IPC: Send(1), Receive(2)
+- Services: Start(3), Stop(4)
+- Security: CapCheck(5), AuditWrite(6)
+- Network: Socket(7), Bind(8), Listen(9), Accept(10), Recv(11), Send(12), Connect(14)
+- Filesystem: ReadFile(15), WriteFile(16), ReadDir(17), CreateDir(21), DeleteFile(22)
+- Graphics: ReadFbInfo(19), ReadTextBuffer(20)
+- Audio: PlayAudio(23), RecordAudio(24), SetVolume(25)
+- Input: InjectKey(26), InjectMouse(27), PollInput(28)
+- Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices
+
+## Filesystem
+
+### VFS
+
+Longest-prefix mount matching. Currently two mounts:
+
+| Mount | Type | Description |
+|-------|------|-------------|
+| `/` | RamFS | Volatile in-memory filesystem |
+| `/disk` | Ext2 | ATA PIO block storage, persistent |
+
+### Ext2
+
+- Superblock, block groups, inode table parsing
+- File read/write with direct and singly-indirect blocks
+- Directory traversal and entry creation
+- Block and inode allocation bitmaps
+- Sync writes back to ATA disk
+
+## Hardware Drivers
+
+### RTL8139 NIC
+
+- PCI device discovery, BAR0 MMIO mapping
+- TX descriptor ring with static frame pool (no leak)
+- RX ring buffer with wrap-around parsing
+- smoltcp TCP/IP stack integration with socket API
+- IP: 10.0.2.15/24, gateway: 10.0.2.2 (QEMU user mode)
+
+### Intel HDA Audio
+
+- PCI BAR0 MMIO register access
+- CORB/RIRB command/response ring buffers
+- Codec discovery via verb/parameter walking
+- Output stream: BDL + DMA buffer, 48 kHz 16-bit stereo
+- Input stream: same configuration for recording
+- Volume control via output amplifier gain verbs
+
+### XHCI USB 3.0
+
+- PCI BAR0 capability register parsing
+- Device context array and command ring allocation
+- TRB (Transfer Request Block) ring management
+- Port status change detection and device slot assignment
+- MMIO-based controller reset and initialization
+
+### USB HID
+
+- Boot protocol keyboard and mouse support
+- Endpoint interrupt polling for input reports
+- Scancode-to-ASCII translation
+- Mouse: relative X/Y and button state
+
+### Unified Input Subsystem
+
+- Event queue merging PS/2 keyboard, USB HID, and injected events
+- InputEvent struct: KeyPress/KeyRelease/MouseMove/MouseButton
+- Shell bridge for agent-injected keyboard/mouse events
+
+### VGA Framebuffer
+
+- Bochs VBE mode switching to 1024×768×32bpp
+- Pixel drawing primitives: fill_rect, draw_char, draw_string
+- Console with scrolling text renderer
+- Screen vision: capture framebuffer text for agent read_screen tool
+
+## Networking Stack
+
+### TCP/IP (smoltcp)
+
+- Full TCP state machine with connection tracking
+- Socket handle table (16 slots)
+- Periodic polling in timer IRQ handler
+
+### HTTP Client
+
+- `http_get(host, port, path)` — bare-metal HTTP/1.1 GET
+- `http_post(host, port, path, body)` — JSON POST for LLM APIs
+- 32 KB response buffer
+- Hardcoded DNS resolver for QEMU gateway addresses
+
+### WebSocket Client (RFC 6455)
+
+- HTTP Upgrade handshake
+- Frame parsing: FIN, opcodes (text/binary/close/ping/pong)
+- Client-side masking via RDTSC
+- Extended payload lengths (126/127 modes)
+- Auto ping/pong and close handshake
+- Used for streaming LLM responses
+
+## Agent Daemon (heliox-daemon)
+
+### Cognitive Architecture
+
+```text
+         ┌─────────┐
+         │  GOAL    │
+         └────┬─────┘
+              │
+     ┌────────▼────────┐
+     │    OBSERVE       │ ← domain classification, RAG, lessons
+     └────────┬─────────┘
+              │
+     ┌────────▼────────┐
+     │     THINK        │ → LLM query (Ollama/OpenAI)
+     └────────┬─────────┘
+              │
+     ┌────────▼────────┐
+     │      ACT         │ → parse tool call → syscall
+     └────────┬─────────┘
+              │
+     ┌────────▼────────┐
+     │    VERIFY        │ ← check output, keyword match
+     └────────┬─────────┘
+              │
+     ┌────────▼────────┐
+     │    REFLECT       │ → record failure, update lessons
+     └────────┬─────────┘
+              │
+              └──→ loop back to OBSERVE
+```
+
+### Components
+
+| Module | File | Role |
+|--------|------|------|
+| Orchestrator | `orchestrator.rs` | ReAct loop, telemetry, IPC polling |
+| Planner | `planner.rs` | Goal decomposition, dependency DAG, prompt generation |
+| Verifier | `verifier.rs` | Output checking, retry counting |
+| Reflector | `reflector.rs` | Failure recording, lesson extraction |
+| Confirmation | `confirmation.rs` | 5-tier permission gates for destructive tools |
+| Tool Mapper | `tool_mapper.rs` | 35 tools → syscall dispatch + INTERNAL routing |
+| Vector Store | `vector_store.rs` | TF-IDF embeddings, cosine search, disk persistence |
+| Web Agent | `web_agent.rs` | HTML stripping, entity decode, link/title extract |
+| Multi-Agent | `multi_agent.rs` | Domain classifier (Code/Web/System/Files/General) |
+| Screen Vision | `screen_vision.rs` | Framebuffer text capture |
+| Voice | `voice.rs` | Audio record/play/volume control |
+| JSON | `json.rs` | `no_std` recursive-descent JSON parser |
+| Config | `config.rs` | Runtime config from `/disk/heliox/config.json` |
+| Network | `network.rs` | TCP socket wrapper, HTTP/WS client |
+
+### Permission Tiers
+
+| Tier | Level | Auto-approve | Example Tools |
+|------|-------|-------------|---------------|
+| 0 | Observe | ✅ Always | `system_info`, `query_memory`, `poll_input` |
+| 1 | Safe | ✅ Default | `read_file`, `read_dir`, `read_screen` |
+| 2 | Network | ✅ Default | `http_get`, `browse_url`, `net_connect` |
+| 3 | Modify | ⚠️ Configurable | `write_file`, `play_audio`, `keyboard_type` |
+| 4 | Destructive | 🔒 Confirmation | `exec_process`, `delete_file` |
+
+### Multi-Agent Domain Routing
+
+The orchestrator classifies each goal into a domain and appends a specialized
+prompt suffix to focus the LLM:
+
+| Domain | Keywords | Prompt Focus |
+|--------|----------|-------------|
+| Code | code, function, debug, compile | `read_file`, `write_file`, `exec_process` |
+| Web | browse, url, http, website | `browse_url`, `http_get` |
+| System | process, memory, device, status | `system_info`, `list_processes` |
+| Files | file, directory, read, write | `read_file`, `write_file`, `read_dir` |
+| General | (fallback) | All tools |
+
+Per-domain success rates are tracked and reported.
+
+## Security Model
+
+### Capabilities
+
+Explicit permission tokens. Default deny. Each process receives a delegated
+capability set at launch.
+
+| Profile | Token | Access |
+|---------|-------|--------|
+| root | `cap:system:all` | Full system management |
+| guest | `cap:fs:read` | Read-only filesystem |
+
+### Audit Log
+
+All denied operations, lifecycle events, and agent reasoning telemetry are
+recorded in the kernel audit log. Accessible via the `log` shell command.
+
+### Agent Confirmation Gates
+
+Tools at Tier 3–4 queue confirmation requests. The operator must approve
+(`confirm <id>`) or deny (`deny <id>`) before execution proceeds.
+
+## Configuration
+
+The agent reads runtime config from `/disk/heliox/config.json`:
+
+```json
+{
+  "model_name": "llama3",
+  "api_host": "10.0.2.2",
+  "api_port": 11434,
+  "api_path": "/api/generate",
+  "max_retries": 3,
+  "tick_interval": 100,
+  "save_interval": 1000,
+  "confirmation_timeout": 600,
+  "log_level": "info",
+  "auto_approve_tier": 2
+}
+```
+
+All fields have sensible defaults. Missing or malformed config silently falls
+back.
+
+## Source Tree
+
+```text
+src/
+├── main.rs               # Kernel entry point
+├── memory/               # Heap, frame allocator, page tables
+├── scheduler/            # Preemptive scheduler, context switch
+├── interrupts/           # IDT, PIC, keyboard, timer
+├── fs/                   # VFS, RamFS, Ext2
+├── ata/                  # ATA PIO block driver
+├── net/                  # RTL8139 NIC, smoltcp interface
+├── devices/              # PCI, HDA audio, XHCI USB, VGA FB
+├── input/                # Unified input subsystem, USB HID
+├── audio/                # Audio mixer, PCM interface
+├── graphics/             # Drawing primitives, console
+├── security/             # Capabilities, audit log
+├── services/             # Service manager, manifests
+├── ipc/                  # IPC broker
+├── syscall/              # Dispatch, fs, process, query
+├── shell/                # Shell, commands, dashboard
+└── process/              # ELF loader, Ring-3, address spaces
+
+userland/heliox-daemon/
+├── src/
+│   ├── main.rs           # Daemon entry, main tick loop
+│   ├── config.rs         # Runtime configuration
+│   ├── network.rs        # TCP, HTTP, WebSocket client
+│   ├── memory/
+│   │   └── vector_store.rs   # TF-IDF vector store
+│   └── cognitive/
+│       ├── orchestrator.rs   # ReAct loop
+│       ├── planner.rs        # Task decomposition
+│       ├── tool_mapper.rs    # 35 tools → syscalls
+│       ├── verifier.rs       # Output verification
+│       ├── reflector.rs      # Failure reflection
+│       ├── confirmation.rs   # Permission gates
+│       ├── web_agent.rs      # HTML scraping
+│       ├── multi_agent.rs    # Domain routing
+│       ├── screen_vision.rs  # Screen capture
+│       ├── voice.rs          # Audio tools
+│       └── json.rs           # no_std JSON parser
+```
