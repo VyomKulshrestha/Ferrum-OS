@@ -21,12 +21,13 @@
 use super::planner::Planner;
 use super::verifier::{Verifier, Verdict};
 use super::reflector::Reflector;
+use super::confirmation::ConfirmationGate;
 use super::json;
 use super::tool_mapper;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
-use crate::memory::vector_store::VectorStore;
+use crate::memory::vector_store::{VectorStore, MemoryCategory};
 use crate::network;
 
 /// Maximum retries for a single tool call before giving up.
@@ -38,11 +39,18 @@ const TICK_INTERVAL: u64 = 100;
 /// How many ticks between memory persistence saves.
 const SAVE_INTERVAL: u64 = 1000;
 
+/// Default auto-approve tier (0-2 are auto-approved).
+const DEFAULT_AUTO_APPROVE_TIER: u8 = 2;
+
+/// Default confirmation timeout in ticks.
+const DEFAULT_CONFIRM_TIMEOUT: u64 = 600;
+
 /// The main orchestrator driving the ReAct agent loop.
 pub struct Orchestrator {
     planner: Planner,
     verifier: Verifier,
     reflector: Reflector,
+    confirmation_gate: ConfirmationGate,
     memory: VectorStore,
     tick_count: u64,
     last_observation: String,
@@ -52,6 +60,8 @@ pub struct Orchestrator {
     total_actions: u64,
     /// Running count of total failures.
     total_failures: u64,
+    /// Auto-approve tier threshold.
+    auto_approve_tier: u8,
 }
 
 impl Orchestrator {
@@ -63,6 +73,7 @@ impl Orchestrator {
             planner,
             verifier: Verifier::new(),
             reflector: Reflector::new(),
+            confirmation_gate: ConfirmationGate::new(DEFAULT_CONFIRM_TIMEOUT),
             memory: VectorStore::new(),
             tick_count: 0,
             last_observation: String::new(),
@@ -70,6 +81,7 @@ impl Orchestrator {
             last_response: None,
             total_actions: 0,
             total_failures: 0,
+            auto_approve_tier: DEFAULT_AUTO_APPROVE_TIER,
         }
     }
 
@@ -87,15 +99,16 @@ impl Orchestrator {
             let _ = self.memory.save("/disk/heliox/memory.json");
         }
 
+        // Clean up expired confirmations
+        self.confirmation_gate.cleanup_expired(self.tick_count);
+
         // Periodically consolidate reflections
         let new_lessons = self.reflector.consolidate(self.tick_count);
         for lesson in &new_lessons {
-            // Store lessons in vector memory for future RAG retrieval
-            let embedding = Self::simple_embedding(&lesson.content);
             self.memory.add(
                 lesson.id.clone(),
                 lesson.content.clone(),
-                embedding,
+                MemoryCategory::Lesson,
             );
         }
 
@@ -121,11 +134,10 @@ impl Orchestrator {
         // If no tool calls were made, store the text response as context
         if actions.is_empty() {
             self.last_observation = response.clone();
-            let embedding = Self::simple_embedding(&response);
             self.memory.add(
                 format!("response-{}", self.tick_count),
                 response,
-                embedding,
+                MemoryCategory::Interaction,
             );
         }
     }
@@ -134,13 +146,13 @@ impl Orchestrator {
     fn observe(&mut self) {
         // RAG: Search vector memory for relevant context
         if !self.last_observation.is_empty() {
-            let query_emb = Self::simple_embedding(&self.last_observation);
-            let results = self.memory.search(&query_emb, 3);
+            let results = self.memory.search(&self.last_observation, 3, None);
             if !results.is_empty() {
                 let mut ctx = String::new();
                 for doc in results {
-                    ctx.push_str("- ");
-                    // Truncate long content for prompt efficiency
+                    ctx.push_str("- [");
+                    ctx.push_str(doc.category.as_str());
+                    ctx.push_str("] ");
                     let content = if doc.content.len() > 200 {
                         &doc.content[..200]
                     } else {
@@ -168,6 +180,15 @@ impl Orchestrator {
         } else {
             self.planner.set_observation(&self.last_observation);
         }
+
+        // Inject pending confirmations
+        let pending = self.confirmation_gate.format_pending();
+        if pending.contains('[') {
+            let mut obs = self.last_observation.clone();
+            obs.push_str("\n\n");
+            obs.push_str(&pending);
+            self.planner.set_observation(&obs);
+        }
     }
 
     /// THINK phase: generate prompt and query the LLM.
@@ -183,7 +204,7 @@ impl Orchestrator {
                     None
                 }
             }
-            Err(_) => None, // Network not ready or LLM not available
+            Err(_) => None,
         }
     }
 
@@ -195,18 +216,15 @@ impl Orchestrator {
         let parsed = match json::parse(response) {
             Ok(p) => p,
             Err(_) => {
-                // Response wasn't valid JSON — treat as plain text observation
                 self.last_response = Some(String::from(response));
                 return results;
             }
         };
 
-        // Extract content text if present
         if let Some(content) = json::extract_content(&parsed) {
             self.last_response = Some(content);
         }
 
-        // Extract and execute tool calls
         let tool_calls = json::extract_tool_calls(&parsed);
 
         for tc in &tool_calls {
@@ -220,8 +238,81 @@ impl Orchestrator {
                 }
             }
 
-            // Execute the tool
-            let result = tool_mapper::execute(tc);
+            // Handle internal tools that the orchestrator manages directly
+            let result = match tc.name.as_str() {
+                "query_memory" => {
+                    let query = super::json::find_tool_arg_string(&tc.arguments, "query")
+                        .unwrap_or(self.last_observation.clone());
+                    let top_k = super::json::find_tool_arg_number(&tc.arguments, "top_k")
+                        .unwrap_or(3.0) as usize;
+                    let search_results = self.memory.search(&query, top_k, None);
+                    let mut output = String::from("Memory search results:\n");
+                    for doc in &search_results {
+                        output.push_str(&format!("- [{}] {}\n", doc.category.as_str(),
+                            if doc.content.len() > 200 { &doc.content[..200] } else { &doc.content }));
+                    }
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("query_memory"),
+                        success: true,
+                        output,
+                    }
+                }
+                "save_memory" => {
+                    let save_result = self.memory.save("/disk/heliox/memory.json");
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("save_memory"),
+                        success: save_result.is_ok(),
+                        output: match save_result {
+                            Ok(()) => String::from("Memory saved to /disk/heliox/memory.json"),
+                            Err(e) => format!("Save failed: {}", e),
+                        },
+                    }
+                }
+                "load_memory" => {
+                    let load_result = self.memory.load("/disk/heliox/memory.json");
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("load_memory"),
+                        success: load_result.is_ok(),
+                        output: match load_result {
+                            Ok(()) => format!("Memory loaded ({} documents)", self.memory.document_count()),
+                            Err(e) => format!("Load failed: {}", e),
+                        },
+                    }
+                }
+                "set_goal" => {
+                    let goal = super::json::find_tool_arg_string(&tc.arguments, "goal")
+                        .unwrap_or_default();
+                    if !goal.is_empty() {
+                        self.planner.set_goal(&goal);
+                        self.verifier.reset();
+                        self.reflector.reset();
+                    }
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("set_goal"),
+                        success: !goal.is_empty(),
+                        output: format!("Goal set to: {}", goal),
+                    }
+                }
+                "get_config" => {
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("get_config"),
+                        success: true,
+                        output: format!(
+                            "tick_interval={}, save_interval={}, max_retries={}, auto_approve_tier={}",
+                            TICK_INTERVAL, SAVE_INTERVAL, MAX_RETRIES, self.auto_approve_tier
+                        ),
+                    }
+                }
+                _ => {
+                    // Execute via the tool mapper (handles syscalls + confirmation gate)
+                    tool_mapper::execute(
+                        tc,
+                        &mut self.confirmation_gate,
+                        self.auto_approve_tier,
+                        self.tick_count,
+                    )
+                }
+            };
 
             self.last_action = Some(format!(
                 "{}:{} -> {}",
@@ -230,7 +321,6 @@ impl Orchestrator {
                 result.output
             ));
 
-            // Build observation for next iteration
             self.last_observation = format!(
                 "Executed tool '{}'. Success: {}. Output: {}",
                 result.tool_name, result.success, result.output
@@ -244,7 +334,6 @@ impl Orchestrator {
 
     /// VERIFY + REFLECT phase: validate results and learn from failures.
     fn verify_and_reflect(&mut self, tool_name: &str, success: bool, output: &str) {
-        // Get expected keywords from the current plan task
         let expected_keywords: Vec<String> = if let Some(plan) = self.planner.plan() {
             plan.tasks.iter()
                 .find(|t| {
@@ -262,9 +351,7 @@ impl Orchestrator {
 
         match verdict {
             Verdict::Pass => {
-                // Mark plan task as completed
                 if let Some(plan) = self.planner.plan_mut() {
-                    // Find the in-progress task for this tool and complete it
                     let task_id = plan.tasks.iter()
                         .find(|t| {
                             t.tool_name.as_deref() == Some(tool_name)
@@ -276,27 +363,22 @@ impl Orchestrator {
                     }
                 }
 
-                // Store successful result in memory
-                let embedding = Self::simple_embedding(output);
                 self.memory.add(
                     format!("action-{}-ok", self.tick_count),
                     format!("tool={} result={}", tool_name, output),
-                    embedding,
+                    MemoryCategory::ToolResult,
                 );
             }
             Verdict::Partial(ref reason) => {
-                // Store partial result with a note
-                let embedding = Self::simple_embedding(output);
                 self.memory.add(
                     format!("action-{}-partial", self.tick_count),
                     format!("tool={} partial={} result={}", tool_name, reason, output),
-                    embedding,
+                    MemoryCategory::ToolResult,
                 );
             }
             Verdict::Fail(ref reason) => {
                 self.total_failures += 1;
 
-                // Record failure in reflector
                 self.reflector.record_failure(
                     self.tick_count,
                     tool_name,
@@ -305,7 +387,6 @@ impl Orchestrator {
                 );
 
                 if self.verifier.should_abandon(MAX_RETRIES) {
-                    // Too many retries — fail the plan task and move on
                     if let Some(plan) = self.planner.plan_mut() {
                         let task_id = plan.tasks.iter()
                             .find(|t| {
@@ -318,48 +399,14 @@ impl Orchestrator {
                         }
                     }
 
-                    // Store the failure as a memory entry
-                    let embedding = Self::simple_embedding(reason);
                     self.memory.add(
                         format!("action-{}-abandoned", self.tick_count),
                         format!("ABANDONED: tool={} after {} retries. reason={}", tool_name, MAX_RETRIES, reason),
-                        embedding,
+                        MemoryCategory::ToolResult,
                     );
                 }
-                // If should_retry, the next tick will naturally retry with
-                // the failure context injected into the prompt.
             }
         }
-    }
-
-    /// Simple bag-of-words embedding (placeholder for TF-IDF, improved in Part 7).
-    /// Generates an 8-dimensional vector based on character-level features.
-    fn simple_embedding(text: &str) -> Vec<f32> {
-        let mut emb = alloc::vec![0.0f32; 8];
-        if text.is_empty() {
-            return emb;
-        }
-
-        let _len = text.len() as f32;
-        for (i, byte) in text.bytes().enumerate() {
-            let bucket = (byte as usize) % 8;
-            emb[bucket] += 1.0;
-            // Also add positional weight
-            if i < 8 {
-                emb[i] += (byte as f32) / 256.0;
-            }
-        }
-
-        // Normalize
-        let magnitude: f32 = emb.iter().map(|x| x * x).sum::<f32>();
-        if magnitude > 0.0 {
-            let mag = libm::sqrtf(magnitude);
-            for v in emb.iter_mut() {
-                *v /= mag;
-            }
-        }
-
-        emb
     }
 
     /// Returns the last LLM response, if any.

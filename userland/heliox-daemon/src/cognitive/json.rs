@@ -441,3 +441,23 @@ pub fn extract_content(response: &JsonValue) -> Option<String> {
     }
     None
 }
+
+/// Helper: extract a string argument from a list of tool arguments.
+pub fn find_tool_arg_string(args: &[(String, JsonValue)], key: &str) -> Option<String> {
+    for (k, v) in args {
+        if k == key {
+            return v.as_str().map(String::from);
+        }
+    }
+    None
+}
+
+/// Helper: extract a numeric argument from a list of tool arguments.
+pub fn find_tool_arg_number(args: &[(String, JsonValue)], key: &str) -> Option<f64> {
+    for (k, v) in args {
+        if k == key {
+            return v.as_f64();
+        }
+    }
+    None
+}
