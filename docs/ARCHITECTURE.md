@@ -151,16 +151,17 @@ JSON-RPC bridge has been completely removed in favor of a native freestanding
 `heliox-daemon` userspace process.
 
 The `heliox-daemon` provides:
-- A pure Rust bare-metal Vector Store implementing cosine similarity.
-- A cognitive planner and LLM orchestrator that constructs prompts with tool
+- A pure Rust bare-metal Vector Store implementing TF-IDF embeddings and cosine similarity.
+- A cognitive planner and LLM orchestrator (ReAct loop) that constructs prompts with tool
   definitions and queries external LLM APIs.
 - A bare-metal HTTP/1.1 TCP client and DNS resolver for communicating with
   Ollama and OpenAI-compatible endpoints over the RTL8139 NIC.
 - A `no_std` JSON parser for decoding LLM API responses.
-- A tool-to-syscall mapper that translates 8 LLM tool calls (`ipc_send`,
-  `service_start`, `audit_write`, `net_connect`, etc.) into kernel syscalls.
+- A tool-to-syscall mapper that translates 25 LLM tool calls (`ipc_send`,
+  `exec_process`, `write_file`, `net_connect`, etc.) into kernel syscalls.
+- A 5-tier permission model with operator confirmation gates for destructive actions.
 - Direct capability-authorized invocation of kernel syscalls to enact the
-  agent's decisions.
+  agent's decisions and emit reasoning telemetry to the kernel audit log.
 
 The remaining integration work focuses on persistent memory (ATA PIO driver +
 Ext2 filesystem for vector store persistence) and the VFS / `sys_exec` syscall

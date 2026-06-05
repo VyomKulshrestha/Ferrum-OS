@@ -35,10 +35,13 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
   capability checks, and audit writes
 - Capability-gated `agentd` runtime boundary stub for future agent integration
 - Native Heliox-OS Agent Daemon (`heliox-daemon`) with:
-  - Bare-metal orchestrator, planner, and vector store
+  - Bare-metal orchestrator (ReAct loop), planner, and vector store
   - TCP networking layer with HTTP/1.1 client for LLM API calls
   - `no_std` JSON parser and LLM response decoder
-  - Tool-to-Syscall mapper (8 tools mapped to kernel syscalls)
+  - Tool-to-Syscall mapper (25 tools mapped to kernel syscalls)
+  - 5-tier permission model with operator confirmation gates
+  - JSON-based runtime configuration from Ext2 disk
+  - Reasoning telemetry emitted to kernel audit log
 
 ## Architecture
 
@@ -170,19 +173,20 @@ All core kernel phases are complete:
 6. ✅ Cognitive networking (bare-metal HTTP client, DNS resolver, LLM API integration)
 7. ✅ Tool execution & JSON (no_std JSON parser, tool-to-syscall mapper)
 
-Current focus: **Phase 6 — Native Agentic OS** (persistent memory, VFS).
+Current focus: **Phase C — Hardware Drivers** (VGA Framebuffer, Intel HDA Audio).
 
 ## Heliox-OS Native Integration
 
 FerrumOS has evolved into a true Agentic OS. Instead of relying on a host machine to run the [Heliox-OS](https://github.com/VyomKulshrestha/Heliox-OS) Python daemon via a network bridge, the intelligence has been ported natively to Rust!
 
 The OS now contains `userland/heliox-daemon`, a native userspace binary that serves as the OS's brain. It implements:
-- A bare-metal Vector Store utilizing pure cosine similarity math (replacing ChromaDB).
-- A native LLM orchestrator and planner that constructs prompts and communicates over the RTL8139 NIC.
+- A bare-metal Vector Store utilizing TF-IDF bag-of-words embeddings and cosine similarity math.
+- A native LLM orchestrator (ReAct loop) and hierarchical planner that constructs prompts and communicates over the RTL8139 NIC.
 - A bare-metal HTTP/1.1 client and DNS resolver for querying Ollama/OpenAI-compatible LLM APIs.
 - A `no_std` JSON parser for decoding LLM responses.
-- A tool-to-syscall mapper that translates LLM tool calls (`ipc_send`, `audit_write`, `net_connect`, etc.) into kernel syscalls.
-- Direct capability-authorized `sys_ipc_send` access to control the kernel.
+- A tool-to-syscall mapper that translates 25 LLM tool calls (`ipc_send`, `read_file`, `exec_process`, `net_connect`, etc.) into kernel syscalls.
+- A 5-tier permission model that blocks destructive actions behind operator confirmation gates (`confirm <id>`).
+- Direct capability-authorized `sys_ipc_send` access to control the kernel and emit reasoning telemetry to the audit log.
 
 Try it in QEMU:
 

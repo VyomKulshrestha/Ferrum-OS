@@ -160,7 +160,7 @@ change again to host Heliox-OS; everything below is userspace work.
    address spaces, and a real `iret` syscall entry in the kernel.
 2. **Replace kernel-side stubs with userspace services.** The
    `runtime.heliox.*` service manifests already exist; the real implementations
-   live in userspace. Port `daemon/pilot/{server.py,actions.py,config.py}`
+   live in userspace (like the native `heliox-daemon` mapping 25 LLM tools).
    into Rust or wrap the Python daemon inside a `heliox-bridge` userspace
    process that talks to the kernel IPC broker.
 3. **Add a userspace WebSocket transport.** The `HELIOX_TRANSPORT` constant
