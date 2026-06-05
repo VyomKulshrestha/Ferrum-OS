@@ -138,6 +138,10 @@ pub mod audio;
 /// Unified keyboard/mouse event queue, input injection for agent automation
 pub mod input;
 
+/// Graphical Desktop Environment
+/// Window manager, compositor, and graphical shell interface
+pub mod gui;
+
 // ============================================================================
 // Global Descriptor Table
 // ============================================================================

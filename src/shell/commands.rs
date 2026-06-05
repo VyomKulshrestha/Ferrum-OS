@@ -92,6 +92,7 @@ pub fn execute(input: &str) {
         "syscall" => cmd_syscall(args),
         "agent" => cmd_agent(args),
         "heliox" => cmd_heliox(args),
+        "desktop" => crate::gui::run_desktop(),
         "elf" => cmd_elf(args),
         "process" => cmd_process(args),
         "ring3" => cmd_ring3(args),
