@@ -37,10 +37,29 @@ pub unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
     ret
 }
 
+#[inline(always)]
+pub unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u64 {
+    let mut ret: u64;
+    asm!(
+        "syscall",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
 const SYS_IPC_SEND: u64 = 1; // Assuming 1 is IpcSend in SyscallNumber
 const SYS_SOCKET: u64 = 7;
 const SYS_RECV: u64 = 11;
 const SYS_SEND: u64 = 12;
+pub const SYS_READ_FILE: u64 = 15;
+pub const SYS_WRITE_FILE: u64 = 16;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
