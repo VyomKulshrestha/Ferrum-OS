@@ -138,6 +138,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::audio::init();
     
     // Initialize XHCI USB controller (QEMU: -device qemu-xhci -device usb-kbd -device usb-mouse)
+    // Initialize PS/2 Mouse
+    ferrumos::devices::ps2_mouse::init();
+
     match ferrumos::devices::xhci::init() {
         Ok(()) => {
             let ports = ferrumos::devices::xhci::port_count();

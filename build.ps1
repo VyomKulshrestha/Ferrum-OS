@@ -53,7 +53,7 @@ switch ($Action) {
                 Write-Host "qemu-system-x86_64 not found. Install QEMU or add it to PATH." -ForegroundColor Red
                 exit 1
             }
-            & $qemu -drive format=raw,file=$img -serial stdio -vga std -netdev user,id=net0,hostfwd=tcp::8785-:8785 -device rtl8139,netdev=net0 -device qemu-xhci -device usb-mouse
+            & $qemu -drive format=raw,file=$img -serial stdio -vga std -netdev user,id=net0,hostfwd=tcp::8785-:8785 -device rtl8139,netdev=net0
         } else {
             Write-Host "Boot image not found. Build first." -ForegroundColor Red
             exit 1

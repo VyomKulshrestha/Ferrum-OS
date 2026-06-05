@@ -12,6 +12,7 @@ pub mod pci;
 pub mod usb_hid;
 pub mod vga_fb;
 pub mod xhci;
+pub mod ps2_mouse;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;

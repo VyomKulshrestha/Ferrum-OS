@@ -37,9 +37,6 @@ pub fn process_input() {
         }
     };
     
-    // Poll hardware for USB/XHCI events (this fills the EVENT_QUEUE)
-    crate::devices::xhci::poll_events();
-    
     // Process all pending input events
     while let Some(event) = EVENT_QUEUE.lock().pop() {
         match event.event_type {

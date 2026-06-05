@@ -37,6 +37,7 @@ pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,          // IRQ 0 - PIT timer
     Keyboard = PIC_1_OFFSET + 1,   // IRQ 1 - PS/2 keyboard
+    Mouse = PIC_1_OFFSET + 12,     // IRQ 12 - PS/2 mouse
     AtaPrimary = PIC_1_OFFSET + 14,  // IRQ 14 - Primary ATA channel
     AtaSecondary = PIC_1_OFFSET + 15, // IRQ 15 - Secondary ATA channel
 }
@@ -73,6 +74,8 @@ lazy_static! {
             .set_handler_fn(timer_interrupt_handler);
         idt[InterruptIndex::Keyboard.as_u8()]
             .set_handler_fn(keyboard_interrupt_handler);
+        idt[InterruptIndex::Mouse.as_u8()]
+            .set_handler_fn(mouse_interrupt_handler);
 
         // ATA disk interrupt handlers (IRQ 14 + 15)
         // These acknowledge the interrupt so the PIC does not lock up.
@@ -279,6 +282,18 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
+    }
+}
+
+/// Hardware mouse interrupt handler (IRQ 12)
+extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    // Process the mouse input
+    crate::devices::ps2_mouse::handle_interrupt();
+
+    // Acknowledge the interrupt to both PICs
+    unsafe {
+        PICS.lock()
+            .notify_end_of_interrupt(InterruptIndex::Mouse.as_u8());
     }
 }
 
