@@ -3,7 +3,6 @@
 // ============================================================================
 
 use spin::Mutex;
-use crate::graphics;
 use crate::devices::vga_fb::FRAMEBUFFER;
 use crate::input::EVENT_QUEUE;
 use crate::gui::compositor;
@@ -125,21 +124,38 @@ pub fn save_and_draw() {
     cursor.old_y = cy;
     cursor.has_saved = true;
     
-    // 2. Draw Cursor
-    let neon_cyan = 0x0000FFCC;
-    let dark_bg = 0x00111111;
+    // 2. Draw Cursor using a 12x16 bitmap arrow shape
+    //    We write directly to `fb` to avoid deadlocking on FRAMEBUFFER.
+    //    Legend: 0 = transparent, 1 = outline (dark), 2 = fill (neon cyan)
+    const CURSOR_BITMAP: [[u8; 12]; 16] = [
+        [1,0,0,0,0,0,0,0,0,0,0,0],
+        [1,1,0,0,0,0,0,0,0,0,0,0],
+        [1,2,1,0,0,0,0,0,0,0,0,0],
+        [1,2,2,1,0,0,0,0,0,0,0,0],
+        [1,2,2,2,1,0,0,0,0,0,0,0],
+        [1,2,2,2,2,1,0,0,0,0,0,0],
+        [1,2,2,2,2,2,1,0,0,0,0,0],
+        [1,2,2,2,2,2,2,1,0,0,0,0],
+        [1,2,2,2,2,2,2,2,1,0,0,0],
+        [1,2,2,2,2,2,2,2,2,1,0,0],
+        [1,2,2,2,2,2,1,1,1,1,1,0],
+        [1,2,2,1,2,2,1,0,0,0,0,0],
+        [1,2,1,0,1,2,2,1,0,0,0,0],
+        [1,1,0,0,1,2,2,1,0,0,0,0],
+        [1,0,0,0,0,1,2,2,1,0,0,0],
+        [0,0,0,0,0,1,1,1,0,0,0,0],
+    ];
     
-    // Draw a sharp "stealth" cursor
-    // Outline
-    graphics::draw_line(cx, cy, cx, cy + 16, dark_bg);
-    graphics::draw_line(cx, cy + 16, cx + 4, cy + 12, dark_bg);
-    graphics::draw_line(cx + 4, cy + 12, cx + 11, cy + 12, dark_bg);
-    graphics::draw_line(cx, cy, cx + 11, cy + 12, dark_bg);
+    let outline_color: u32 = 0x00111111;
+    let fill_color: u32 = 0x0000FFCC;
     
-    // Fill
-    graphics::draw_line(cx + 1, cy + 2, cx + 1, cy + 14, neon_cyan);
-    graphics::draw_line(cx + 2, cy + 3, cx + 2, cy + 13, neon_cyan);
-    graphics::draw_line(cx + 3, cy + 4, cx + 3, cy + 12, neon_cyan);
-    graphics::draw_line(cx + 4, cy + 5, cx + 4, cy + 11, neon_cyan);
-    graphics::draw_line(cx + 5, cy + 6, cx + 9, cy + 10, neon_cyan);
+    for row in 0..16u32 {
+        for col in 0..12u32 {
+            let val = CURSOR_BITMAP[row as usize][col as usize];
+            if val != 0 {
+                let color = if val == 1 { outline_color } else { fill_color };
+                fb.set_pixel(cx + col, cy + row, color);
+            }
+        }
+    }
 }
