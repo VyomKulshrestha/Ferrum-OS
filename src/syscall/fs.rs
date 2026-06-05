@@ -158,3 +158,39 @@ pub fn sys_read_dir(args: [u64; 6]) -> SyscallResult {
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }
+
+/// `sys_create_dir` — Create a directory via the VFS.
+///
+/// args[0] = path_ptr (user pointer to path string)
+/// args[1] = path_len
+///
+/// Returns: 0 on success, or error.
+pub fn sys_create_dir(args: [u64; 6]) -> SyscallResult {
+    let path = match unsafe { read_user_str(args[0], args[1]) } {
+        Some(p) => p,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+
+    match crate::fs::create_dir(&path) {
+        Ok(()) => SyscallResult::ok(0),
+        Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}
+
+/// `sys_delete_file` — Remove a file or directory via the VFS.
+///
+/// args[0] = path_ptr (user pointer to path string)
+/// args[1] = path_len
+///
+/// Returns: 0 on success, or error.
+pub fn sys_delete_file(args: [u64; 6]) -> SyscallResult {
+    let path = match unsafe { read_user_str(args[0], args[1]) } {
+        Some(p) => p,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+
+    match crate::fs::remove(&path) {
+        Ok(()) => SyscallResult::ok(0),
+        Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}

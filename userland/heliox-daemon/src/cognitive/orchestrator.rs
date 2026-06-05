@@ -28,8 +28,9 @@ use core::arch::asm;
 use crate::memory::vector_store::{VectorStore, MemoryCategory};
 use crate::network;
 
-// SYS_AUDIT_WRITE for telemetry
+// Syscall numbers for telemetry and IPC
 const SYS_AUDIT_WRITE: u64 = 6;
+const SYS_IPC_RECEIVE: u64 = 2;
 
 #[inline(always)]
 unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
@@ -40,6 +41,23 @@ unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
         in("rdi") arg1,
         in("rsi") arg2,
         in("rdx") arg3,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
+#[inline(always)]
+unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u64 {
+    let ret: u64;
+    asm!(
+        "int 0x80",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
         out("rcx") _,
         out("r11") _,
         options(nostack, preserves_flags)
@@ -167,6 +185,7 @@ impl Orchestrator {
 
     /// Main tick function called from the daemon's main loop.
     pub fn tick(&mut self) {
+        self.ipc_poll();
         self.tick_count += 1;
 
         if self.tick_count % self.config.tick_interval != 0 {
@@ -304,11 +323,34 @@ impl Orchestrator {
             }
         };
 
-        if let Some(content) = json::extract_content(&parsed) {
-            self.last_response = Some(content);
+        // Extract the content text (handles Ollama "response" field and OpenAI format)
+        let content_text = json::extract_content(&parsed);
+        if let Some(ref content) = content_text {
+            self.last_response = Some(content.clone());
         }
 
-        let tool_calls = json::extract_tool_calls(&parsed);
+        // Try extracting tool calls from the top-level JSON (OpenAI format)
+        let mut tool_calls = json::extract_tool_calls(&parsed);
+
+        // If no tool calls found at top level, try parsing the extracted content
+        // text for embedded tool call JSON (Ollama format: response text contains
+        // {"tool": "...", "args": {...}})
+        if tool_calls.is_empty() {
+            if let Some(ref content) = content_text {
+                if let Ok(content_parsed) = json::parse(content) {
+                    if let Some(tool_name) = content_parsed.get("tool").and_then(|t| t.as_str()) {
+                        let arguments = content_parsed.get("args")
+                            .and_then(|a| a.as_object())
+                            .cloned()
+                            .unwrap_or_default();
+                        tool_calls.push(json::ToolCall {
+                            name: String::from(tool_name),
+                            arguments,
+                        });
+                    }
+                }
+            }
+        }
 
         for tc in &tool_calls {
             self.total_actions += 1;
@@ -385,6 +427,37 @@ impl Orchestrator {
                             self.config.tick_interval, self.config.save_interval, 
                             self.config.max_retries, self.config.auto_approve_tier
                         ),
+                    }
+                }
+                "add_subtask" => {
+                    let description = super::json::find_tool_arg_string(&tc.arguments, "description")
+                        .unwrap_or_default();
+                    if description.is_empty() {
+                        tool_mapper::ToolResult {
+                            tool_name: String::from("add_subtask"),
+                            success: false,
+                            output: String::from("Missing 'description' argument"),
+                        }
+                    } else {
+                        let depends_on_str = super::json::find_tool_arg_string(&tc.arguments, "depends_on")
+                            .unwrap_or_default();
+                        let depends_on: Vec<u32> = if depends_on_str.is_empty() {
+                            Vec::new()
+                        } else {
+                            depends_on_str.split(',')
+                                .filter_map(|s| s.trim().parse::<u32>().ok())
+                                .collect()
+                        };
+                        let task_id = if let Some(plan) = self.planner.plan_mut() {
+                            plan.add_task(&description, None, "", depends_on, Vec::new())
+                        } else {
+                            0
+                        };
+                        tool_mapper::ToolResult {
+                            tool_name: String::from("add_subtask"),
+                            success: task_id > 0,
+                            output: format!("Subtask added with id={}: {}", task_id, description),
+                        }
                     }
                 }
                 _ => {
@@ -521,5 +594,47 @@ impl Orchestrator {
             self.reflector.lesson_count(),
             self.memory.document_count(),
         )
+    }
+
+    /// Poll for incoming IPC messages (confirmations/denials from the kernel shell).
+    fn ipc_poll(&mut self) {
+        let mut buf = [0u8; 256];
+        let buf_ptr = buf.as_mut_ptr() as u64;
+        let buf_len = buf.len() as u64;
+
+        let bytes_received = unsafe {
+            syscall4(SYS_IPC_RECEIVE, buf_ptr, buf_len, 0, 0)
+        };
+
+        if bytes_received == 0 || (bytes_received as i64) < 0 {
+            return;
+        }
+
+        let msg = match core::str::from_utf8(&buf[..bytes_received as usize]) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+
+        // Parse CONFIRM:<id> or DENY:<id> messages
+        for line in msg.lines() {
+            let trimmed = line.trim();
+            if let Some(id_str) = trimmed.strip_prefix("CONFIRM:") {
+                if let Ok(id) = id_str.trim().parse::<u32>() {
+                    self.confirmation_gate.approve(id);
+                    self.emit_telemetry(
+                        TelemetryEventKind::ConfirmationQueued,
+                        format!("Confirmation {} approved via IPC", id),
+                    );
+                }
+            } else if let Some(id_str) = trimmed.strip_prefix("DENY:") {
+                if let Ok(id) = id_str.trim().parse::<u32>() {
+                    self.confirmation_gate.deny(id);
+                    self.emit_telemetry(
+                        TelemetryEventKind::ConfirmationQueued,
+                        format!("Confirmation {} denied via IPC", id),
+                    );
+                }
+            }
+        }
     }
 }

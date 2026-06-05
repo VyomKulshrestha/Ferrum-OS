@@ -32,6 +32,8 @@ pub enum SyscallNumber {
     Exec = 18,
     ReadFramebufferInfo = 19,
     ReadTextBuffer = 20,
+    CreateDir = 21,
+    DeleteFile = 22,
 }
 
 /// Syscall return status.
@@ -233,6 +235,12 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::ReadTextBuffer as u64 => {
             graphics::sys_read_text_buffer(args)
+        }
+        x if x == SyscallNumber::CreateDir as u64 => {
+            fs::sys_create_dir(args)
+        }
+        x if x == SyscallNumber::DeleteFile as u64 => {
+            fs::sys_delete_file(args)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }

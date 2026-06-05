@@ -1,5 +1,5 @@
 // ============================================================================
-// Heliox-Daemon - Tool-to-Syscall Mapper (25 tools, 5-tier permissions)
+// Heliox-Daemon - Tool-to-Syscall Mapper (27 tools, 5-tier permissions)
 // ============================================================================
 // Maps LLM tool call names to FerrumOS kernel syscalls. Each tool has a
 // permission tier that determines whether it can execute immediately or
@@ -89,10 +89,12 @@ pub enum PermissionTier {
 fn tool_tier(name: &str) -> PermissionTier {
     match name {
         // Tier 0: Observe
-        "query_memory" | "get_config" | "system_info" | "list_processes" => PermissionTier::Observe,
+        "query_memory" | "get_config" | "system_info" | "list_processes"
+        | "add_subtask" => PermissionTier::Observe,
         // Tier 1: Safe
         "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
-        | "capability_check" | "read_file" | "read_dir" | "sleep" => PermissionTier::Safe,
+        | "capability_check" | "read_file" | "read_dir" | "sleep"
+        | "read_screen" => PermissionTier::Safe,
         // Tier 2: Network
         "net_connect" | "net_send" | "net_recv" | "http_get"
         | "load_memory" | "set_goal" => PermissionTier::Network,
@@ -193,6 +195,12 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 25. `delete_file` - Delete a file from disk (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"path": "<string>"}
 
+26. `read_screen` - Capture the current screen contents as text.
+    Arguments: {}
+
+27. `add_subtask` - Add a new subtask to the current plan.
+    Arguments: {"description": "<string>", "depends_on": "<comma-separated task IDs>"}
+
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}
 If no tool is needed, respond with plain text.
 Tools marked REQUIRES CONFIRMATION need operator approval before executing."#;
@@ -269,6 +277,8 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "service_stop" => execute_service_lifecycle(SYS_SERVICE_STOP, &tool_call.arguments),
         "exec_process" => execute_exec_process(&tool_call.arguments),
         "delete_file" => execute_delete_file(&tool_call.arguments),
+        "read_screen" => execute_read_screen(),
+        "add_subtask" => execute_add_subtask(),
         _ => ToolResult {
             tool_name: tool_call.name.clone(),
             success: false,
@@ -655,6 +665,30 @@ fn execute_set_goal(_args: &[(String, JsonValue)]) -> ToolResult {
         tool_name: String::from("set_goal"),
         success: true,
         output: String::from("INTERNAL:set_goal"),
+    }
+}
+
+fn execute_read_screen() -> ToolResult {
+    match crate::cognitive::screen_vision::capture_screen() {
+        Ok(capture) => ToolResult {
+            tool_name: String::from("read_screen"),
+            success: true,
+            output: capture.full_text(),
+        },
+        Err(e) => ToolResult {
+            tool_name: String::from("read_screen"),
+            success: false,
+            output: String::from(e),
+        },
+    }
+}
+
+fn execute_add_subtask() -> ToolResult {
+    // Handled internally by the orchestrator
+    ToolResult {
+        tool_name: String::from("add_subtask"),
+        success: true,
+        output: String::from("INTERNAL:add_subtask"),
     }
 }
 

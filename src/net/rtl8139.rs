@@ -137,6 +137,11 @@ pub fn init() -> Result<(), &'static str> {
     Ok(())
 }
 
+/// Static pool of 4 TX buffers matching the 4 hardware TX descriptor
+/// registers. Lazily allocated on first use to avoid leaking a fresh
+/// frame on every `send_packet()` call.
+static TX_BUFFERS: Mutex<[Option<PhysAddr>; 4]> = Mutex::new([None; 4]);
+
 impl Rtl8139 {
     pub fn mac_address(&self) -> [u8; 6] {
         self.mac_address
@@ -147,26 +152,33 @@ impl Rtl8139 {
             return Err("Packet too large");
         }
 
-        // We need a physically contiguous buffer for TX data.
-        // We can allocate one frame for TX buffers and reuse it.
-        // For simplicity, let's copy to a statically allocated physical buffer,
-        // or just allocate a frame if not already done.
-        // Wait, for this minimal driver, let's lazily allocate a TX buffer.
-        // Actually, we can use a static global for TX buffer if needed, but since we are locked, we can just allocate it once inside the struct.
-        // Let's assume we implement a tx_buffer per transmit slot later. For now, allocate one frame.
-        // Since we are in no_std and memory::allocate_frame gives us physical memory, let's keep it simple.
-        
-        let tx_frame = memory::allocate_frame().ok_or("Failed to allocate TX frame")?;
-        let tx_virt = memory::phys_to_virt(tx_frame.start_address());
+        let tx_desc = self.tx_curr as usize;
+
+        // Lazily allocate a TX buffer for this descriptor slot, or reuse
+        // the previously allocated one.
+        let mut buffers = TX_BUFFERS.lock();
+        let tx_phys = match buffers[tx_desc] {
+            Some(phys) => phys,
+            None => {
+                let frame = memory::allocate_frame()
+                    .ok_or("Failed to allocate TX frame")?;
+                let phys = frame.start_address();
+                buffers[tx_desc] = Some(phys);
+                phys
+            }
+        };
+        drop(buffers);
+
+        let tx_virt = memory::phys_to_virt(tx_phys);
 
         unsafe {
             let tx_slice = slice::from_raw_parts_mut(tx_virt.as_mut_ptr::<u8>(), data.len());
             tx_slice.copy_from_slice(data);
-            
+
             let tsad_port = self.io_base + TSAD0 + (self.tx_curr as u16 * 4);
             let tsd_port = self.io_base + TSD0 + (self.tx_curr as u16 * 4);
 
-            PortWriteOnly::<u32>::new(tsad_port).write(tx_frame.start_address().as_u64() as u32);
+            PortWriteOnly::<u32>::new(tsad_port).write(tx_phys.as_u64() as u32);
             PortWriteOnly::<u32>::new(tsd_port).write(data.len() as u32);
         }
 
