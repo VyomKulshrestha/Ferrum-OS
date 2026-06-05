@@ -39,10 +39,10 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 
 ```text
 +----------------------------------------------------------+
-| Agent Layer (future)                                    |
+| Agent Layer (heliox-daemon)                             |
 | Autonomous workflows, planning, verification             |
 +----------------------------------------------------------+
-| Cognitive Layer (future)                                |
+| Cognitive Layer (heliox-daemon)                         |
 | Semantic memory, vector search, context management       |
 +----------------------------------------------------------+
 | Runtime Layer                                           |
