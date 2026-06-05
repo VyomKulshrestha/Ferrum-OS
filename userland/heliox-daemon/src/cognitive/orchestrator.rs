@@ -297,8 +297,14 @@ impl Orchestrator {
         
         self.emit_telemetry(TelemetryEventKind::ThinkStart, format!("Prompt generated ({} bytes)", prompt.len()));
 
-        // We use network::query_ollama directly for now, but eventually we can use config.api_host
-        match network::query_ollama(&prompt) {
+        // Use config-driven LLM endpoint instead of hardcoded values
+        match network::query_ollama(
+            &prompt,
+            &self.config.api_host,
+            self.config.api_port,
+            &self.config.api_path,
+            &self.config.model_name,
+        ) {
             Ok(response) => {
                 if response.status_code == 200 {
                     self.last_response = Some(response.body.clone());

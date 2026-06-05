@@ -157,7 +157,7 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str) -> Result<H
     tcp_send(fd, request.as_bytes())?;
 
     // 6. Receive the response (up to 8 KiB)
-    let mut response_buf = alloc::vec![0u8; 8192];
+    let mut response_buf = alloc::vec![0u8; 32768];
     let mut total_received = 0;
 
     // Poll for response data (simple retry loop since sockets are non-blocking)
@@ -242,13 +242,26 @@ fn escape_json(s: &str) -> String {
 }
 
 /// Send a prompt to a local Ollama server running on the QEMU host.
-/// Default Ollama API: POST http://10.0.2.2:11434/api/generate
-pub fn query_ollama(prompt: &str) -> Result<HttpResponse, &'static str> {
+///
+/// Parameters are now configurable instead of hardcoded, allowing the
+/// agent config file (`/disk/heliox/config.json`) to control which
+/// LLM endpoint is used.
+pub fn query_ollama(
+    prompt: &str,
+    host: &str,
+    port: u16,
+    path: &str,
+    model: &str,
+) -> Result<HttpResponse, &'static str> {
     let json = format!(
-        r#"{{"model":"llama3","prompt":"{}","stream":false}}"#,
+        r#"{{"model":"{}","prompt":"{}","stream":false}}"#,
+        model,
         escape_json(prompt)
     );
-    http_post("host", 11434, "/api/generate", &json)
+    let h = if host.is_empty() { "host" } else { host };
+    let p = if port == 0 { 11434 } else { port };
+    let api = if path.is_empty() { "/api/generate" } else { path };
+    http_post(h, p, api, &json)
 }
 
 /// Send a prompt to an OpenAI-compatible API running on the QEMU host.

@@ -40,6 +40,7 @@ pub enum SyscallNumber {
     InjectKey = 26,
     InjectMouse = 27,
     PollInput = 28,
+    SystemQuery = 29,
 }
 
 /// Syscall return status.
@@ -81,6 +82,7 @@ pub mod process;
 pub mod graphics;
 pub mod audio;
 pub mod input;
+pub mod query;
 
 use alloc::string::String;
 
@@ -267,6 +269,9 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::PollInput as u64 => {
             input::sys_poll_input(args)
+        }
+        x if x == SyscallNumber::SystemQuery as u64 => {
+            query::sys_system_query(args)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }

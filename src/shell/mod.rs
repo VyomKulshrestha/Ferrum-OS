@@ -1,6 +1,7 @@
 extern crate alloc;
 
 mod commands;
+pub mod dashboard;
 
 use alloc::string::{String, ToString};
 use crate::{print, println};

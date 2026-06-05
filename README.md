@@ -10,7 +10,7 @@ kernel core.
 
 ## Current Status
 
-Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
+Version 0.1.2 provides a bootable x86_64 Rust kernel foundation with:
 
 - Bootloader integration through `bootloader`
 - VGA text output and UART serial logging
@@ -36,12 +36,18 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Capability-gated `agentd` runtime boundary stub for future agent integration
 - Native Heliox-OS Agent Daemon (`heliox-daemon`) with:
   - Bare-metal orchestrator (ReAct loop), planner, and vector store
-  - TCP networking layer with HTTP/1.1 client for LLM API calls
+  - TCP networking layer with HTTP/1.1 client for LLM API calls (32KB response buffer)
   - `no_std` JSON parser and LLM response decoder
-  - Tool-to-Syscall mapper (30 tools mapped to kernel syscalls including audio/voice)
+  - Tool-to-Syscall mapper (33 tools mapped to kernel syscalls)
   - 5-tier permission model with operator confirmation gates
-  - JSON-based runtime configuration from Ext2 disk
+  - Config-driven LLM endpoint (host/port/path/model from Ext2 disk)
   - Reasoning telemetry emitted to kernel audit log
+- Intel HDA audio driver with play/record/volume control
+- XHCI USB controller driver with device enumeration
+- USB HID keyboard/mouse boot protocol driver
+- Unified input subsystem with event queue and shell injection bridge
+- SystemQuery syscall for live kernel data (uptime, processes, memory, devices)
+- Full-screen TUI system dashboard (activated via `dashboard` shell command)
 
 ## Architecture
 
@@ -63,7 +69,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 | ATA PIO block driver, Ext2 filesystem, VFS mount table   |
 +----------------------------------------------------------+
 | Network / Hardware Layer                                |
-| RTL8139 driver, smoltcp TCP/IP stack, socket syscalls    |
+| RTL8139 NIC, Intel HDA, XHCI USB, USB HID, smoltcp     |
 +----------------------------------------------------------+
 ```
 

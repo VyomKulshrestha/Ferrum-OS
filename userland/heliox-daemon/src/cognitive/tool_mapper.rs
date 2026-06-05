@@ -41,6 +41,7 @@ const SYS_READ_DIR: u64 = 17;
 const SYS_EXEC: u64 = 18;
 const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
+const SYS_SYSTEM_QUERY: u64 = 29;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -459,27 +460,62 @@ fn execute_get_config(_args: &[(String, JsonValue)]) -> ToolResult {
 }
 
 fn execute_system_info() -> ToolResult {
-    // Report basic system info via IPC query
-    let msg = b"HELIOX_QUERY:sysinfo";
-    let _result = unsafe {
-        syscall3(SYS_IPC_SEND, 0, msg.as_ptr() as u64, msg.len() as u64)
+    // Query type 0 = system info
+    let mut buf = [0u8; 1024];
+    let bytes_written = unsafe {
+        crate::syscall4(
+            SYS_SYSTEM_QUERY,
+            0, // query_type = system_info
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+            0,
+        )
     };
-    ToolResult {
-        tool_name: String::from("system_info"),
-        success: true,
-        output: String::from("System info requested via IPC"),
+
+    if bytes_written > 0 && (bytes_written as usize) <= buf.len() {
+        let text = core::str::from_utf8(&buf[..bytes_written as usize])
+            .unwrap_or("(invalid UTF-8)");
+        ToolResult {
+            tool_name: String::from("system_info"),
+            success: true,
+            output: String::from(text),
+        }
+    } else {
+        ToolResult {
+            tool_name: String::from("system_info"),
+            success: false,
+            output: String::from("SystemQuery syscall failed"),
+        }
     }
 }
 
 fn execute_list_processes() -> ToolResult {
-    let msg = b"HELIOX_QUERY:processes";
-    let _result = unsafe {
-        syscall3(SYS_IPC_SEND, 0, msg.as_ptr() as u64, msg.len() as u64)
+    // Query type 1 = process list
+    let mut buf = [0u8; 4096];
+    let bytes_written = unsafe {
+        crate::syscall4(
+            SYS_SYSTEM_QUERY,
+            1, // query_type = process_list
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+            0,
+        )
     };
-    ToolResult {
-        tool_name: String::from("list_processes"),
-        success: true,
-        output: String::from("Process list requested via IPC"),
+
+    if bytes_written > 0 && (bytes_written as usize) <= buf.len() {
+        let text = core::str::from_utf8(&buf[..bytes_written as usize])
+            .unwrap_or("(invalid UTF-8)");
+        ToolResult {
+            tool_name: String::from("list_processes"),
+            success: true,
+            output: String::from(text),
+        }
+    } else {
+        ToolResult {
+            tool_name: String::from("list_processes"),
+            success: false,
+            output: String::from("SystemQuery syscall failed"),
+        }
     }
 }
 

@@ -107,6 +107,7 @@ pub fn execute(input: &str) {
         "security" => cmd_security(),
         "about" => cmd_about(),
         "disk" => cmd_disk(args),
+        "dashboard" => super::dashboard::run_dashboard(),
         _ => println!("FerrumOS: command not found: {}", command),
     }
 }
@@ -154,6 +155,7 @@ fn cmd_help() {
     println!("  security   Show security status");
     println!("  about      About FerrumOS");
     println!("  disk       List ATA drives or read sectors");
+    println!("  dashboard  Full-screen system status dashboard");
 }
 
 fn cmd_clear() {
