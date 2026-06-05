@@ -21,15 +21,15 @@ early shell useful while block storage drivers are still pending.
 
 ## Device Registry
 
-FerrumOS tracks device surfaces through a small registry before full driver
-probing exists. Online devices represent hardware or kernel facilities that are
-available now: VGA text output, COM1 serial, PIT timer, PS/2 keyboard, and the
-RAM filesystem. Planned devices represent contracts needed by future
-HelioxOS-style runtime services: primary network, audio, and camera surfaces.
+FerrumOS tracks device surfaces through a small registry. Online devices
+represent hardware or kernel facilities that are available now: VGA text output,
+COM1 serial, PIT timer, PS/2 keyboard, the RAM filesystem, and the RTL8139
+PCI network controller. Planned devices represent contracts needed by future
+runtime services: audio and camera surfaces.
 
-The registry deliberately labels unavailable devices as `Planned` instead of
-claiming driver support. This keeps integration honest while making the missing
-hardware work visible from the shell through `devices`.
+The registry labels unavailable devices as `Planned` instead of claiming driver
+support. This keeps integration honest while making the missing hardware work
+visible from the shell through `devices`.
 
 ## Network
 
@@ -46,10 +46,10 @@ semantic memory, or autonomous planning logic.
 
 ## Runtime Boundary
 
-Runtime services are the correct integration point for the existing Python
-desktop agent and future Rust services. They should receive only the
-capabilities required for their task and should communicate through IPC
-contracts or future shared-memory handles.
+Runtime services are the correct integration point for the native `heliox-daemon`
+and future Rust services. They should receive only the capabilities required
+for their task and should communicate through IPC contracts or future
+shared-memory handles.
 
 Every service is described by a `ServiceManifest`:
 
@@ -95,20 +95,15 @@ userspace/runtime layer.
 
 ## Userspace Model
 
-FerrumOS now has an early userspace process registry. It does not yet execute
-ring-3 code, but it provides the kernel-visible contracts needed before real
-loading exists:
+FerrumOS has a functional userspace execution environment with Ring-3 entry,
+ELF loading, per-process address spaces, and preemptive scheduling:
 
-- program manifests for `init`, `agent-bridge`, and `audit-exporter`
-- delegated capability sets checked at launch
-- process records with PID, entry path, state, and syscall count
-- syscall dispatch that authorizes against the process capability table
-- bootstrapping of the manifest-backed `init` process after scheduler startup
-
-This lets the kernel exercise realistic runtime-service policy before ELF
-loading, process address spaces, and CPU privilege transitions are complete.
-The `agent-bridge` manifest is the intended future adapter for HelioxOS-style
-agent runtime services.
+- Program manifests for `init`, `heliox-daemon`, and `audit-exporter`
+- Delegated capability sets checked at launch
+- Process records with PID, entry path, state, and syscall count
+- Syscall dispatch that authorizes against the process capability table
+- Bootstrapping of the manifest-backed `init` process after scheduler startup
+- The `heliox-daemon` binary is the native Heliox-OS agent process
 
 Important rules:
 
@@ -117,45 +112,49 @@ Important rules:
 - Runtime services do not receive unrestricted kernel authority.
 - Audit hooks record denied operations and lifecycle changes.
 
-## Future Layers
+## System Layers
 
 ```text
+Agent Layer (heliox-daemon):
+  autonomous workflows, planning, verification
+
+Cognitive Layer (heliox-daemon):
+  semantic memory, vector search, context management
+
+Runtime Layer:
+  services, permissions, IPC, orchestration boundaries
+
 Kernel Layer:
   scheduling, memory, isolation, hardware abstraction
 
-Runtime Layer:
-  services, permissions, IPC, local inference boundary
-
-Cognitive Layer:
-  semantic memory, vector search, graph memory, context management
-
-Agent Layer:
-  autonomous workflows, planning, verification
+Hardware / NIC Layer:
+  RTL8139 driver, smoltcp TCP/IP stack, socket syscalls
 ```
 
-The cognitive and agent layers can evolve quickly without destabilizing the
-kernel because their state, policy, and probabilistic behavior are isolated in
-runtime services.
+The cognitive and agent layers run natively in the `heliox-daemon` userspace
+process and can evolve quickly without destabilizing the kernel.
 
 ## Current Agent Boundary
 
-`runtime.agentd` is currently a sandboxed service stub. The userspace `heliox-daemon` now acts as the true Agent Boundary. It runs a native Rust LLM orchestrator, planner, and semantic memory vector store inside the kernel userspace.
+The `heliox-daemon` userspace process acts as the true Agent Boundary. It runs
+a native Rust LLM orchestrator, planner, and semantic memory vector store.
 
-The current manifest requires `cap:agent:control` to start the boundary or send
+The manifest requires `cap:agent:control` to start the boundary or send
 commands. The spawned task receives only delegatable capabilities, such as
-`cap:ipc:send`, so agent-control authority is not silently propagated into child
-tasks.
-
-The next implementation milestone is true userspace execution: ELF loading,
-isolated address spaces, and syscall entry from ring 3.
+`cap:ipc:send` and `cap:net:connect`, so agent-control authority is not
+silently propagated into child tasks.
 
 ## Heliox-OS Native Integration Layer
 
-FerrumOS implements the Heliox-OS architecture natively. The legacy network JSON-RPC bridge has been completely removed in favor of a native freestanding `heliox-daemon` userspace process.
+FerrumOS implements the Heliox-OS architecture natively. The legacy network
+JSON-RPC bridge has been completely removed in favor of a native freestanding
+`heliox-daemon` userspace process.
 
 The `heliox-daemon` provides:
 - A pure Rust bare-metal Vector Store implementing cosine similarity.
 - A cognitive planner and LLM orchestrator capable of constructing prompts and resolving JSON tool calls.
-- Direct capability-authorized invocation of kernel syscalls (e.g. `sys_ipc_send`, `sys_read`, `sys_write`) to enact the agent's decisions.
+- Direct capability-authorized invocation of kernel syscalls (e.g. `sys_ipc_send`, `sys_socket`, `sys_send`) to enact the agent's decisions.
 
-The full integration path going forward focuses on wiring up the `smoltcp` network stack to the daemon via Socket Syscalls, and implementing the ATA PIO block driver to persist the neural graphs to disk.
+The socket syscalls are now wired to the smoltcp TCP/IP stack. The next step is
+building the cognitive networking layer (HTTP client) and persistent memory
+(ATA PIO driver + Ext2 filesystem).

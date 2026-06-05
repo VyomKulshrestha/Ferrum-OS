@@ -16,7 +16,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - VGA text output and UART serial logging
 - GDT, IDT, CPU exception handlers, PIC timer and keyboard IRQs
 - Page-table setup, boot-info frame allocation, and a 256 KiB kernel heap
-- Cooperative task scheduler with task state and priority metadata
+- Preemptive task scheduler with per-task context switching and priority queues
 - Interactive shell with inspection and management commands
 - Volatile in-memory RAM filesystem
 - Filesystem mount table, stat metadata, and usage reporting
@@ -136,56 +136,34 @@ node .\scripts\command_sweep.mjs --visible
 | `agent status` | Show agent runtime boundary state |
 | `agent start` | Start the sandboxed `agentd` boundary service |
 | `agent send <text>` | Send a capability-checked IPC command to `agentd` |
-| `heliox status` | Show Heliox-OS JSON-RPC bridge state |
+| `heliox status` | Show Heliox-OS native daemon state |
 | `heliox methods` | List Heliox JSON-RPC methods with required capabilities |
 | `heliox tiers` | List the 5-tier Heliox permission model |
 | `heliox actions` | List the Heliox action catalog (120 actions) |
 | `heliox services` | List Heliox runtime service slots |
 | `heliox send <method> [input]` | Submit a Heliox JSON-RPC request envelope |
-| `heliox notif <method>` | Prepare a Heliox notification envelope |
-| `heliox voice start\|stop\|event` | Drive the Heliox voice listener state |
-| `heliox screen on\|off\|context` | Drive the Heliox screen vision state |
-| `heliox persona [add key=value]` | Inspect or append Heliox persona rules |
-| `heliox confirm <plan_id>` | Resolve a Heliox confirmation gate |
 | `heliox execute <input>` | Submit a Heliox ReAct pipeline input |
 | `log` | Show audit log |
 | `uptime` | Show timer ticks |
 | `uname` | Show system information |
 | `whoami` | Show current shell capability profile |
-| `session [root|guest]` | Switch debug shell capability profile |
+| `session [root\|guest]` | Switch debug shell capability profile |
 | `spawn <name>` | Spawn a task metadata record |
 | `kill <pid>` | Mark a task dead |
 | `security` | Show security status |
 | `about` | Show FerrumOS architecture notes |
 
-## Development Priorities
+## Development Status
 
-See `docs/ROADMAP.md` for the full completion plan. The current phase is
-**Phase 1 — Real userspace execution**, broken into four sub-steps:
+All core kernel phases are complete:
 
-1. Workspace scaffolding and a tiny userspace `init` binary.
-2. ELF64 parser.
-3. Per-process address space.
-4. Ring-3 entry and `load_elf` that actually runs the embedded `init`.
+1. ✅ Real userspace execution (ELF loading, Ring-3 entry, `iretq` trampoline)
+2. ✅ Preemptive scheduling (context switching, priority queues, `sleep`/`wait`)
+3. ✅ SMP, ACPI shutdown/reboot, persistent PID 1 supervisor
+4. ✅ RTL8139 NIC driver + smoltcp TCP/IP stack + socket syscalls
+5. ✅ Native Heliox-OS agent daemon (orchestrator, planner, vector store)
 
-Earlier milestones (still listed for historical context):
-
-1. Bootloader and kernel initialization
-2. Memory management and interrupts
-3. Scheduler and shell
-4. Filesystem and isolation
-5. Modular runtime services
-6. Security and sandboxing
-
-## Agent Integration Path
-
-The current `agentd` service is a deterministic boundary, not the full AI
-agent. It is registered through a runtime service manifest with a default
-sandbox profile and requires `cap:agent:control` for lifecycle and command
-operations. FerrumOS also includes a manifest-backed `agent-bridge` userspace
-process placeholder that can exercise IPC syscalls with delegated capabilities.
-The kernel boot sequence now also launches the manifest-backed `init` process
-record after the scheduler starts.
+Current focus: **Phase 6 — Native Agentic OS** (cognitive networking, persistent memory, VFS).
 
 ## Heliox-OS Native Integration
 
