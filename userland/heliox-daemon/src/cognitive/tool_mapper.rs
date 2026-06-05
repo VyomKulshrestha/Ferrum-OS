@@ -97,10 +97,11 @@ fn tool_tier(name: &str) -> PermissionTier {
         // Tier 1: Safe
         "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
         | "capability_check" | "read_file" | "read_dir" | "sleep"
-        | "read_screen" | "set_volume" => PermissionTier::Safe,
+        | "read_screen" | "set_volume" | "poll_input" => PermissionTier::Safe,
         // Tier 2: Network
         "net_connect" | "net_send" | "net_recv" | "http_get"
-        | "load_memory" | "set_goal" | "record_audio" => PermissionTier::Network,
+        | "load_memory" | "set_goal" | "record_audio"
+        | "browse_url" => PermissionTier::Network,
         // Tier 3: Modify
         "write_file" | "create_directory" | "save_memory"
         | "service_start" | "service_stop" | "play_audio"
@@ -223,6 +224,12 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES CONFIRMATION).
     Arguments: {"dx": <number>, "dy": <number>}
 
+34. `browse_url` - Fetch a URL and extract clean text content from the page.
+    Arguments: {"url": "<http://...>"}
+
+35. `poll_input` - Poll pending input events (keyboard/mouse) from the event queue.
+    Arguments: {}
+
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}
 If no tool is needed, respond with plain text.
 Tools marked REQUIRES CONFIRMATION need operator approval before executing."#;
@@ -307,6 +314,8 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "keyboard_type" => execute_keyboard_type(&tool_call.arguments),
         "mouse_click" => execute_mouse_click(&tool_call.arguments),
         "mouse_move" => execute_mouse_move(&tool_call.arguments),
+        "browse_url" => execute_browse_url(&tool_call.arguments),
+        "poll_input" => execute_poll_input(),
         _ => ToolResult {
             tool_name: tool_call.name.clone(),
             success: false,
@@ -983,5 +992,96 @@ fn execute_mouse_move(args: &[(String, JsonValue)]) -> ToolResult {
         tool_name: String::from("mouse_move"),
         success: true,
         output: format!("Mouse moved by ({}, {})", dx, dy),
+    }
+}
+
+// ---- Web & Input Tools -----------------------------------------------------
+
+const SYS_POLL_INPUT: u64 = 28;
+
+fn execute_browse_url(args: &[(String, JsonValue)]) -> ToolResult {
+    let url = find_arg_string(args, "url").unwrap_or_default();
+    if url.is_empty() {
+        return ToolResult {
+            tool_name: String::from("browse_url"),
+            success: false,
+            output: String::from("Missing 'url' argument"),
+        };
+    }
+
+    match crate::cognitive::web_agent::browse(&url) {
+        Ok(result) => {
+            let mut output = String::new();
+            if let Some(ref title) = result.title {
+                output.push_str(&format!("Title: {}\n\n", title));
+            }
+            // Truncate to 4KB to avoid overwhelming the LLM context
+            let text = if result.text.len() > 4096 {
+                &result.text[..4096]
+            } else {
+                &result.text
+            };
+            output.push_str(text);
+            if !result.links.is_empty() {
+                output.push_str("\n\nLinks found: ");
+                let link_count = core::cmp::min(result.links.len(), 10);
+                for i in 0..link_count {
+                    output.push_str(&format!("\n  - {}", result.links[i]));
+                }
+                if result.links.len() > 10 {
+                    output.push_str(&format!("\n  ... and {} more", result.links.len() - 10));
+                }
+            }
+            ToolResult {
+                tool_name: String::from("browse_url"),
+                success: true,
+                output,
+            }
+        }
+        Err(e) => ToolResult {
+            tool_name: String::from("browse_url"),
+            success: false,
+            output: format!("Failed to browse {}: {}", url, e),
+        },
+    }
+}
+
+fn execute_poll_input() -> ToolResult {
+    let mut buf = [0u8; 256]; // 16 events * 16 bytes each
+    let events_read = unsafe {
+        crate::syscall4(SYS_POLL_INPUT, buf.as_mut_ptr() as u64, buf.len() as u64, 0, 0)
+    };
+
+    if events_read == 0 {
+        return ToolResult {
+            tool_name: String::from("poll_input"),
+            success: true,
+            output: String::from("No pending input events"),
+        };
+    }
+
+    let mut output = format!("{} input events:\n", events_read);
+    for i in 0..events_read as usize {
+        let offset = i * 16;
+        if offset + 16 > buf.len() {
+            break;
+        }
+        let tag = u32::from_le_bytes([buf[offset], buf[offset + 1], buf[offset + 2], buf[offset + 3]]);
+        let p1 = u32::from_le_bytes([buf[offset + 4], buf[offset + 5], buf[offset + 6], buf[offset + 7]]);
+        let p2 = u32::from_le_bytes([buf[offset + 8], buf[offset + 9], buf[offset + 10], buf[offset + 11]]);
+
+        match tag {
+            0 => output.push_str(&format!("  KeyPress: '{}' ({})\n", p1 as u8 as char, p1)),
+            1 => output.push_str(&format!("  KeyRelease: '{}' ({})\n", p1 as u8 as char, p1)),
+            2 => output.push_str(&format!("  MouseMove: dx={} dy={}\n", p1 as i16, p2 as i16)),
+            3 => output.push_str(&format!("  MouseButton: btn={} pressed={}\n", p1, p2)),
+            _ => output.push_str(&format!("  Unknown event type {}\n", tag)),
+        }
+    }
+
+    ToolResult {
+        tool_name: String::from("poll_input"),
+        success: true,
+        output,
     }
 }

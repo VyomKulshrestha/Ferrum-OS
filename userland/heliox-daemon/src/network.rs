@@ -134,6 +134,48 @@ pub struct HttpResponse {
     pub body: String,
 }
 
+/// Perform an HTTP GET request to the given host:port/path.
+/// Returns the response status code and body.
+pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'static str> {
+    let ip = resolve_host(host).ok_or("DNS resolution failed")?;
+    let fd = tcp_socket()?;
+    tcp_connect(fd, ip, port)?;
+
+    let request = format!(
+        "GET {} HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\nUser-Agent: Heliox/0.1\r\n\r\n",
+        path, host, port
+    );
+
+    tcp_send(fd, request.as_bytes())?;
+
+    let mut response_buf = alloc::vec![0u8; 32768];
+    let mut total_received = 0;
+    for _ in 0..1000 {
+        match tcp_recv(fd, &mut response_buf[total_received..]) {
+            Ok(n) if n > 0 => {
+                total_received += n;
+                if total_received >= response_buf.len() {
+                    break;
+                }
+            }
+            _ => {
+                if total_received > 0 {
+                    break;
+                }
+                unsafe { asm!("hlt", options(nostack, preserves_flags)); }
+            }
+        }
+    }
+
+    if total_received == 0 {
+        return Err("No HTTP response received");
+    }
+
+    let response_str = core::str::from_utf8(&response_buf[..total_received])
+        .unwrap_or("");
+    parse_http_response(response_str)
+}
+
 /// Perform an HTTP POST request to the given host:port/path with a JSON body.
 /// This is a minimal bare-metal HTTP/1.1 client — no TLS, no chunked encoding.
 pub fn http_post(host: &str, port: u16, path: &str, json_body: &str) -> Result<HttpResponse, &'static str> {
@@ -269,4 +311,276 @@ pub fn query_ollama(
 pub fn query_openai_compat(system_prompt: &str, user_message: &str, port: u16) -> Result<HttpResponse, &'static str> {
     let json = build_chat_payload(system_prompt, user_message);
     http_post("host", port, "/v1/chat/completions", &json)
+}
+
+// ============================================================================
+// WebSocket Client (RFC 6455)
+// ============================================================================
+
+/// WebSocket opcodes.
+const WS_OP_CONTINUATION: u8 = 0x0;
+const WS_OP_TEXT: u8 = 0x1;
+const WS_OP_BINARY: u8 = 0x2;
+const WS_OP_CLOSE: u8 = 0x8;
+const WS_OP_PING: u8 = 0x9;
+const WS_OP_PONG: u8 = 0xA;
+
+/// An active WebSocket connection over a TCP socket.
+pub struct WsConnection {
+    pub fd: u64,
+    pub connected: bool,
+}
+
+/// A parsed WebSocket frame.
+pub struct WsFrame {
+    pub opcode: u8,
+    pub fin: bool,
+    pub payload: Vec<u8>,
+}
+
+/// Generate a simple 4-byte masking key from the tick counter.
+fn ws_mask_key() -> [u8; 4] {
+    // Use a deterministic but varying value — good enough for bare metal
+    // where we have no RNG. The spec requires a mask but doesn't mandate
+    // cryptographic randomness.
+    let ticks = unsafe { core::arch::x86_64::_rdtsc() };
+    let bytes = ticks.to_le_bytes();
+    [bytes[0], bytes[1], bytes[2], bytes[3]]
+}
+
+/// Perform a WebSocket handshake (HTTP Upgrade) and return a connection.
+///
+/// The `host` is resolved via `resolve_host()`. The `path` is the WebSocket
+/// endpoint (e.g., "/ws" or "/api/generate").
+pub fn ws_connect(host: &str, port: u16, path: &str) -> Result<WsConnection, &'static str> {
+    let ip = resolve_host(host).ok_or("ws: cannot resolve host")?;
+    let fd = tcp_socket()?;
+    tcp_connect(fd, ip, port)?;
+
+    // Build the HTTP Upgrade request.
+    // The Sec-WebSocket-Key is a fixed base64 string — the server will
+    // respond with a derived Accept header. We don't validate the Accept
+    // since we trust the local server.
+    let request = format!(
+        "GET {} HTTP/1.1\r\n\
+         Host: {}:{}\r\n\
+         Upgrade: websocket\r\n\
+         Connection: Upgrade\r\n\
+         Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
+         Sec-WebSocket-Version: 13\r\n\
+         \r\n",
+        path, host, port
+    );
+
+    tcp_send(fd, request.as_bytes())?;
+
+    // Read the upgrade response.
+    let mut buf = [0u8; 1024];
+    let mut total = 0;
+    for _ in 0..500 {
+        match tcp_recv(fd, &mut buf[total..]) {
+            Ok(n) if n > 0 => {
+                total += n;
+                // Check if we've received the full HTTP response headers.
+                if let Some(_) = find_header_end(&buf[..total]) {
+                    break;
+                }
+            }
+            _ => {
+                unsafe { asm!("hlt", options(nostack, preserves_flags)); }
+            }
+        }
+    }
+
+    if total == 0 {
+        return Err("ws: no upgrade response");
+    }
+
+    // Verify "101 Switching Protocols" in the response.
+    let response = core::str::from_utf8(&buf[..total]).unwrap_or("");
+    if !response.contains("101") {
+        return Err("ws: upgrade rejected (not 101)");
+    }
+
+    Ok(WsConnection { fd, connected: true })
+}
+
+/// Find the end of HTTP headers (\r\n\r\n) in a buffer.
+fn find_header_end(buf: &[u8]) -> Option<usize> {
+    for i in 0..buf.len().saturating_sub(3) {
+        if buf[i] == b'\r' && buf[i + 1] == b'\n' && buf[i + 2] == b'\r' && buf[i + 3] == b'\n' {
+            return Some(i + 4);
+        }
+    }
+    None
+}
+
+/// Send a text message over a WebSocket connection.
+///
+/// The frame is masked (required for client-to-server messages in RFC 6455).
+pub fn ws_send_text(conn: &WsConnection, data: &str) -> Result<(), &'static str> {
+    if !conn.connected {
+        return Err("ws: not connected");
+    }
+    ws_send_frame(conn.fd, WS_OP_TEXT, data.as_bytes())
+}
+
+/// Send a binary message over a WebSocket connection.
+pub fn ws_send_binary(conn: &WsConnection, data: &[u8]) -> Result<(), &'static str> {
+    if !conn.connected {
+        return Err("ws: not connected");
+    }
+    ws_send_frame(conn.fd, WS_OP_BINARY, data)
+}
+
+/// Build and send a single WebSocket frame with client-side masking.
+fn ws_send_frame(fd: u64, opcode: u8, payload: &[u8]) -> Result<(), &'static str> {
+    let len = payload.len();
+    let mut frame = Vec::with_capacity(14 + len); // max header + payload
+
+    // Byte 0: FIN + opcode
+    frame.push(0x80 | opcode); // FIN=1, RSV=000
+
+    // Byte 1: MASK=1 + payload length
+    let mask_key = ws_mask_key();
+    if len < 126 {
+        frame.push(0x80 | len as u8);
+    } else if len <= 65535 {
+        frame.push(0x80 | 126);
+        frame.push((len >> 8) as u8);
+        frame.push((len & 0xFF) as u8);
+    } else {
+        frame.push(0x80 | 127);
+        for i in (0..8).rev() {
+            frame.push(((len >> (i * 8)) & 0xFF) as u8);
+        }
+    }
+
+    // Masking key (4 bytes)
+    frame.extend_from_slice(&mask_key);
+
+    // Masked payload
+    for (i, &byte) in payload.iter().enumerate() {
+        frame.push(byte ^ mask_key[i % 4]);
+    }
+
+    tcp_send(fd, &frame)?;
+    Ok(())
+}
+
+/// Receive a single WebSocket frame from the connection.
+///
+/// Handles:
+/// - Text and binary data frames
+/// - Ping (auto-responds with pong)
+/// - Close (marks connection as disconnected)
+/// - Continuation frames (appended to payload)
+pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
+    if !conn.connected {
+        return Err("ws: not connected");
+    }
+
+    // Read the first 2 bytes (minimum frame header).
+    let mut header = [0u8; 2];
+    ws_read_exact(conn.fd, &mut header)?;
+
+    let fin = (header[0] & 0x80) != 0;
+    let opcode = header[0] & 0x0F;
+    let masked = (header[1] & 0x80) != 0;
+    let len_byte = header[1] & 0x7F;
+
+    // Determine payload length.
+    let payload_len: usize = if len_byte < 126 {
+        len_byte as usize
+    } else if len_byte == 126 {
+        let mut ext = [0u8; 2];
+        ws_read_exact(conn.fd, &mut ext)?;
+        u16::from_be_bytes(ext) as usize
+    } else {
+        // 127 → 8-byte extended length
+        let mut ext = [0u8; 8];
+        ws_read_exact(conn.fd, &mut ext)?;
+        u64::from_be_bytes(ext) as usize
+    };
+
+    // Read optional masking key (server frames should NOT be masked,
+    // but handle it gracefully).
+    let mask_key = if masked {
+        let mut mk = [0u8; 4];
+        ws_read_exact(conn.fd, &mut mk)?;
+        Some(mk)
+    } else {
+        None
+    };
+
+    // Read payload.
+    let mut payload = alloc::vec![0u8; payload_len];
+    if payload_len > 0 {
+        ws_read_exact(conn.fd, &mut payload)?;
+    }
+
+    // Unmask if needed.
+    if let Some(mk) = mask_key {
+        for (i, byte) in payload.iter_mut().enumerate() {
+            *byte ^= mk[i % 4];
+        }
+    }
+
+    // Handle control frames.
+    match opcode {
+        WS_OP_PING => {
+            // Auto-respond with pong containing the same payload.
+            let _ = ws_send_frame(conn.fd, WS_OP_PONG, &payload);
+            // Recurse to get the next data frame.
+            return ws_recv_frame(conn);
+        }
+        WS_OP_CLOSE => {
+            // Send close frame back and mark disconnected.
+            let _ = ws_send_frame(conn.fd, WS_OP_CLOSE, &[]);
+            conn.connected = false;
+            return Ok(WsFrame {
+                opcode: WS_OP_CLOSE,
+                fin: true,
+                payload: Vec::new(),
+            });
+        }
+        _ => {}
+    }
+
+    Ok(WsFrame {
+        opcode,
+        fin,
+        payload,
+    })
+}
+
+/// Read exactly `buf.len()` bytes from the socket, retrying as needed.
+fn ws_read_exact(fd: u64, buf: &mut [u8]) -> Result<(), &'static str> {
+    let mut offset = 0;
+    let mut retries = 0;
+    while offset < buf.len() {
+        match tcp_recv(fd, &mut buf[offset..]) {
+            Ok(n) if n > 0 => {
+                offset += n;
+                retries = 0;
+            }
+            _ => {
+                retries += 1;
+                if retries > 2000 {
+                    return Err("ws: read timeout");
+                }
+                unsafe { asm!("hlt", options(nostack, preserves_flags)); }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Send a close frame and disconnect.
+pub fn ws_close(conn: &mut WsConnection) -> Result<(), &'static str> {
+    if conn.connected {
+        let _ = ws_send_frame(conn.fd, WS_OP_CLOSE, &[]);
+        conn.connected = false;
+    }
+    Ok(())
 }

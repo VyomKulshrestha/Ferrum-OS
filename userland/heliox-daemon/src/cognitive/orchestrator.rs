@@ -20,6 +20,7 @@ use super::reflector::Reflector;
 use super::confirmation::ConfirmationGate;
 use super::json;
 use super::tool_mapper;
+use super::multi_agent::AgentRouter;
 use crate::config::Config;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -130,6 +131,9 @@ pub struct Orchestrator {
     // Stats
     total_actions: u64,
     total_failures: u64,
+    
+    // Multi-agent domain routing
+    router: AgentRouter,
 }
 
 impl Orchestrator {
@@ -153,6 +157,7 @@ impl Orchestrator {
             telemetry_buffer: Vec::with_capacity(32),
             total_actions: 0,
             total_failures: 0,
+            router: AgentRouter::new(),
             config,
         }
     }
@@ -290,6 +295,18 @@ impl Orchestrator {
             obs.push_str(&pending);
             self.planner.set_observation(&obs);
         }
+
+        // Multi-agent domain routing: classify the current goal and
+        // append a domain-specific prompt suffix to focus the LLM.
+        let goal = self.planner.current_goal();
+        let classification = self.router.classify(&goal);
+        let domain_hint = self.router.domain_prompt(classification.domain);
+        self.planner.set_domain_hint(domain_hint);
+
+        self.emit_telemetry(
+            TelemetryEventKind::ObserveComplete,
+            format!("Domain: {:?} (conf={:.0}%)", classification.domain, classification.confidence * 100.0),
+        );
     }
 
     fn think(&mut self) -> Option<String> {

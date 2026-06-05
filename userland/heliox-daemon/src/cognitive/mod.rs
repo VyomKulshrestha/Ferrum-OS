@@ -7,3 +7,5 @@ pub mod reflector;
 pub mod confirmation;
 pub mod screen_vision;
 pub mod voice;
+pub mod web_agent;
+pub mod multi_agent;

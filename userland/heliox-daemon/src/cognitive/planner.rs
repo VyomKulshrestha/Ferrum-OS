@@ -231,6 +231,8 @@ pub struct Planner {
     memory_context: String,
     /// Lessons learned from the reflector.
     lessons_context: String,
+    /// Domain-specific prompt suffix from multi-agent router.
+    domain_hint: String,
 }
 
 impl Planner {
@@ -247,6 +249,7 @@ impl Planner {
             observation: String::new(),
             memory_context: String::new(),
             lessons_context: String::new(),
+            domain_hint: String::new(),
         }
     }
 
@@ -287,6 +290,19 @@ impl Planner {
     /// Set lessons learned context from the reflector.
     pub fn set_lessons_context(&mut self, ctx: &str) {
         self.lessons_context = String::from(ctx);
+    }
+
+    /// Set domain-specific prompt hint from multi-agent router.
+    pub fn set_domain_hint(&mut self, hint: &str) {
+        self.domain_hint = String::from(hint);
+    }
+
+    /// Get the current goal text.
+    pub fn current_goal(&self) -> String {
+        match &self.current_plan {
+            Some(plan) => plan.goal.clone(),
+            None => String::from("Explore the system"),
+        }
     }
 
     /// Generate a prompt for the LLM that includes:
@@ -347,6 +363,13 @@ impl Planner {
         // Lessons learned
         if !self.lessons_context.is_empty() {
             prompt.push_str(&self.lessons_context);
+        }
+
+        // Domain-specific focus from multi-agent routing
+        if !self.domain_hint.is_empty() {
+            prompt.push_str("\nFocus: ");
+            prompt.push_str(&self.domain_hint);
+            prompt.push_str("\n");
         }
 
         prompt.push_str("\nRespond with a JSON tool call or plain text.");
