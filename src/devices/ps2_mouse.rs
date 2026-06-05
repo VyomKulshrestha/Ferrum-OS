@@ -1,6 +1,5 @@
 use x86_64::instructions::port::Port;
 use spin::Mutex;
-use crate::input::inject_mouse_event;
 
 // Ports for PS/2 Controller
 const PS2_DATA: u16 = 0x60;
@@ -104,12 +103,15 @@ pub fn handle_interrupt() {
     let data = unsafe { data_port.read() };
 
     let mut state = MOUSE_STATE.lock();
+    crate::serial_println!("[MOUSE] Received byte: {:#04X} at cycle: {}", data, state.cycle);
     match state.cycle {
         0 => {
             // First byte must have bit 3 set
             if (data & 0x08) != 0 {
                 state.packet[0] = data;
                 state.cycle = 1;
+            } else {
+                crate::serial_println!("[MOUSE] Rejected cycle 0 byte (bit 3 not set): {:#04X}", data);
             }
         }
         1 => {
@@ -121,24 +123,11 @@ pub fn handle_interrupt() {
             state.cycle = 0;
             
             let flags = state.packet[0];
-            
-            // PS/2 dx and dy are 9-bit two's complement. The sign bits are in `flags`.
-            // The lower 8 bits are in packet[1] and packet[2].
-            // We use `as i8` which works perfectly if we just treat them as 8-bit two's complement,
-            // but if there's an overflow (the mouse moved > 255 units in one tick), 
-            // the hardware sets the overflow bits (flags & 0xC0). 
-            // We ignore the overflow bits and just use the 8-bit clamped values 
-            // to keep the mouse responsive during fast movements instead of dropping the packet!
-            
             let dx = state.packet[1] as i8;
             let dy = state.packet[2] as i8;
-            
             let buttons = flags & 0x07;
             
-            // Inject into unified input system!
-            // NOTE: dy needs to be inverted (PS/2 is +up, our screen is +down)
-            // Screen coordinate (0,0) is top-left, so moving up is negative Y.
-            // We pass dx, -dy to input subsystem.
+            crate::serial_println!("[MOUSE] Packet complete. dx={}, dy={}, buttons={}", dx, dy, buttons);
             crate::input::inject_mouse_event(dx, dy.saturating_neg(), buttons);
         }
         _ => state.cycle = 0,

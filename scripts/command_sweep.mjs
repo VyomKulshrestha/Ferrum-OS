@@ -37,6 +37,10 @@ try {
 const qemuArgs = [
   "-drive",
   `format=raw,file=${image}`,
+  "-device",
+  "intel-hda",
+  "-device",
+  "hda-duplex",
   "-monitor",
   `tcp:127.0.0.1:${port},server,nowait`,
   "-serial",

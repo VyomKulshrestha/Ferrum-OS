@@ -91,8 +91,15 @@ pub fn run_desktop() {
     
     // Setup a few demo windows
     compositor::spawn_demo_windows();
+
+    // Paint the first full desktop frame immediately so `desktop` visibly
+    // changes the screen even before the first input/timer-driven redraw.
+    compositor::render();
+    cursor::save_and_draw();
+    cursor::CURSOR.lock().dirty = false;
     
     crate::serial_println!("[gui] Entered Desktop loop");
+    crate::serial_println!("[gui] Initial desktop frame rendered");
     
     let mut last_update_ticks = 0;
     

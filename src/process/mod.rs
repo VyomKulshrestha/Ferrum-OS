@@ -186,17 +186,11 @@ impl Process {
                 return Err("PT_LOAD vaddr above user half");
             }
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
-            self.map_user(vaddr, file_bytes, flags)
+            let mut segment = alloc::vec![0u8; ph.p_memsz as usize];
+            let copy_len = core::cmp::min(file_bytes.len(), segment.len());
+            segment[..copy_len].copy_from_slice(&file_bytes[..copy_len]);
+            self.map_user(vaddr, &segment, flags)
                 .map_err(|_| "pt_load map failed")?;
-            if ph.p_memsz > ph.p_filesz {
-                let bss_vaddr = VirtAddr::new(ph.p_vaddr + ph.p_filesz);
-                let bss_len = (ph.p_memsz - ph.p_filesz) as usize;
-                let bss_len_aligned =
-                    align_up(bss_len as u64, Size4KiB::SIZE) as usize;
-                let zeros = alloc::vec![0u8; bss_len_aligned];
-                self.map_user(bss_vaddr, &zeros, flags)
-                    .map_err(|_| "bss map failed")?;
-            }
         }
 
         self.map_user_stack().map_err(|_| "user stack map failed")?;
@@ -257,17 +251,14 @@ impl AddressSpace {
         let table = unsafe { &mut *l4_to_mut_ptr(l4_frame) };
         table.zero();
 
-        // Mirror the kernel's live P4 entries. We copy every present
-        // entry rather than just the upper half because this build's
-        // kernel lives in the lower half (identity-mapped below
-        // 0x8000_0000_0000 via the bootloader). When/if the kernel
-        // later moves to a higher-half mapping, the same loop will
-        // pick up the new layout automatically.
+        // Mirror only the kernel half. The user half must start empty so
+        // PT_LOAD mappings can be installed without colliding with the
+        // bootloader's temporary lower-half identity mappings.
         let kernel_l4_phys = crate::memory::active_p4_phys();
         let kernel_l4_ptr = crate::memory::phys_to_virt(kernel_l4_phys).as_ptr::<PageTable>();
         // Safety: the kernel's L4 is mapped at phys_to_virt(active_p4_phys()).
         let kernel_l4 = unsafe { &*kernel_l4_ptr };
-        for index in 0..512 {
+        for index in KERNEL_P4_START..512 {
             if kernel_l4[index].flags().contains(PageTableFlags::PRESENT) {
                 table[index] = kernel_l4[index].clone();
             }
@@ -308,8 +299,12 @@ impl AddressSpace {
             return Err(MapToError::ParentEntryHugePage);
         }
 
-        let len_aligned = align_up(bytes.len() as u64, Size4KiB::SIZE);
         let start_page = Page::containing_address(vaddr);
+        let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
+        let len_aligned = align_up(
+            vaddr_offset_in_page as u64 + bytes.len() as u64,
+            Size4KiB::SIZE,
+        );
         // `len_aligned == 0` would mean zero bytes, but the chunk loop
         // also handles that. We use an exclusive end so we don't
         // accidentally map one extra page past the payload.
@@ -323,8 +318,6 @@ impl AddressSpace {
         // mid-page). The bytes from `bytes[0]` belong at vaddr, which
         // is at page offset `vaddr_offset_in_page`. Subsequent
         // pages receive the segment bytes starting at page offset 0.
-        let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
-
         // Borrow the L4 mutably through the kernel's phys->virt alias
         // for the duration of the mapping.
         let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());

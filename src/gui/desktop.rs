@@ -5,8 +5,8 @@
 use crate::graphics;
 use crate::devices::vga_fb::FRAMEBUFFER;
 
-pub const COLOR_BACKGROUND: u32 = 0x000A0A0C; // Deep space gray
-pub const COLOR_GRID: u32 = 0x00141418; // Subtle grid
+pub const COLOR_BACKGROUND: u32 = 0x00101824; // Deep blue-gray, visibly non-black
+pub const COLOR_GRID: u32 = 0x001B2A3A; // Subtle grid
 
 pub fn init() {
     // Nothing to initialize for MVP
@@ -108,6 +108,9 @@ pub fn render_taskbar() {
     }
     
     drop(fb_guard);
+
+    graphics::draw_string(24, 24, "FerrumOS Desktop", 0x0000FFCC, COLOR_BACKGROUND);
+    graphics::draw_string(24, 44, "Terminal and System Monitor are active", 0x00B8C7D9, COLOR_BACKGROUND);
     
     // Draw button texts
     graphics::draw_string(btn1_x + 10, btn1_y + 5, "TERMINAL", 0x0000FFCC, 0x00222222);
