@@ -34,7 +34,11 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 - Capability-authorized syscall dispatch for IPC, service lifecycle checks,
   capability checks, and audit writes
 - Capability-gated `agentd` runtime boundary stub for future agent integration
-- Native Heliox-OS Agent Daemon: The previous JSON-RPC bridge has been completely replaced by a true bare-metal agent orchestrator, planner, and vector store running as a native userspace process (`heliox-daemon`).
+- Native Heliox-OS Agent Daemon (`heliox-daemon`) with:
+  - Bare-metal orchestrator, planner, and vector store
+  - TCP networking layer with HTTP/1.1 client for LLM API calls
+  - `no_std` JSON parser and LLM response decoder
+  - Tool-to-Syscall mapper (8 tools mapped to kernel syscalls)
 
 ## Architecture
 
@@ -163,7 +167,10 @@ All core kernel phases are complete:
 4. ✅ RTL8139 NIC driver + smoltcp TCP/IP stack + socket syscalls
 5. ✅ Native Heliox-OS agent daemon (orchestrator, planner, vector store)
 
-Current focus: **Phase 6 — Native Agentic OS** (cognitive networking, persistent memory, VFS).
+6. ✅ Cognitive networking (bare-metal HTTP client, DNS resolver, LLM API integration)
+7. ✅ Tool execution & JSON (no_std JSON parser, tool-to-syscall mapper)
+
+Current focus: **Phase 6 — Native Agentic OS** (persistent memory, VFS).
 
 ## Heliox-OS Native Integration
 
@@ -171,7 +178,10 @@ FerrumOS has evolved into a true Agentic OS. Instead of relying on a host machin
 
 The OS now contains `userland/heliox-daemon`, a native userspace binary that serves as the OS's brain. It implements:
 - A bare-metal Vector Store utilizing pure cosine similarity math (replacing ChromaDB).
-- A native LLM orchestrator and planner that can construct prompts and communicate over the RTL8139 NIC.
+- A native LLM orchestrator and planner that constructs prompts and communicates over the RTL8139 NIC.
+- A bare-metal HTTP/1.1 client and DNS resolver for querying Ollama/OpenAI-compatible LLM APIs.
+- A `no_std` JSON parser for decoding LLM responses.
+- A tool-to-syscall mapper that translates LLM tool calls (`ipc_send`, `audit_write`, `net_connect`, etc.) into kernel syscalls.
 - Direct capability-authorized `sys_ipc_send` access to control the kernel.
 
 Try it in QEMU:
@@ -192,9 +202,8 @@ syscalls
 
 Future work for the native agent boundary:
 
-1. Build the cognitive networking layer so the daemon can issue HTTP requests to LLM APIs over TCP.
-2. Build the ATA PIO block driver and an Ext2 filesystem so the vector store can persist its neural graphs across reboots.
-3. Build the `sys_exec` syscall and Virtual File System so the agent can spawn child processes and workers autonomously.
+1. Build the ATA PIO block driver and an Ext2 filesystem so the vector store can persist its neural graphs across reboots.
+2. Build the `sys_exec` syscall and Virtual File System so the agent can spawn child processes and workers autonomously.
 
 ## Design Rules
 
