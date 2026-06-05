@@ -170,6 +170,7 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
 /// for each of the three standard buttons.
 pub fn inject_mouse_event(dx: i8, dy: i8, buttons: u8) {
     let ts = now_ticks();
+    static PREV_BUTTONS: spin::Mutex<u8> = spin::Mutex::new(0);
 
     // Displacement event
     if dx != 0 || dy != 0 {
@@ -180,15 +181,22 @@ pub fn inject_mouse_event(dx: i8, dy: i8, buttons: u8) {
         EVENT_QUEUE.lock().push(event);
     }
 
-    // Button events — emit for each of the three standard buttons
+    let mut prev = PREV_BUTTONS.lock();
+    // Button events — only emit if button state changed
     for bit in 0u8..3 {
-        let pressed = buttons & (1 << bit) != 0;
-        let event = InputEvent {
-            event_type: InputEventType::MouseButton(bit, pressed),
-            timestamp: ts,
-        };
-        EVENT_QUEUE.lock().push(event);
+        let mask = 1 << bit;
+        let pressed = buttons & mask != 0;
+        let prev_pressed = *prev & mask != 0;
+        
+        if pressed != prev_pressed {
+            let event = InputEvent {
+                event_type: InputEventType::MouseButton(bit, pressed),
+                timestamp: ts,
+            };
+            EVENT_QUEUE.lock().push(event);
+        }
     }
+    *prev = buttons;
 }
 
 // ============================================================================
