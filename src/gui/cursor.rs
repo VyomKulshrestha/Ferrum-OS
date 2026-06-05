@@ -11,14 +11,22 @@ use crate::gui::compositor;
 pub struct CursorState {
     pub x: u32,
     pub y: u32,
+    pub old_x: u32,
+    pub old_y: u32,
     pub left_down: bool,
+    pub saved_pixels: [u32; 16 * 16],
+    pub has_saved: bool,
 }
 
 lazy_static::lazy_static! {
     pub static ref CURSOR: Mutex<CursorState> = Mutex::new(CursorState {
         x: 512,
         y: 384,
+        old_x: 512,
+        old_y: 384,
         left_down: false,
+        saved_pixels: [0; 256],
+        has_saved: false,
     });
 }
 
@@ -64,13 +72,52 @@ pub fn process_input() {
     }
 }
 
-pub fn render() {
-    let cursor = CURSOR.lock();
+pub fn restore_background() {
+    let mut cursor = CURSOR.lock();
+    if !cursor.has_saved {
+        return;
+    }
     
-    // Draw a simple software cursor (a small arrow pointing up-left)
-    // We draw lines to form the arrow
+    let fb_guard = FRAMEBUFFER.lock();
+    let fb = match fb_guard.as_ref() {
+        Some(fb) => fb,
+        None => return,
+    };
+    
+    for row in 0..16 {
+        for col in 0..16 {
+            let px = cursor.old_x + col;
+            let py = cursor.old_y + row;
+            let color = cursor.saved_pixels[(row * 16 + col) as usize];
+            fb.set_pixel(px, py, color);
+        }
+    }
+}
+
+pub fn save_and_draw() {
+    let mut cursor = CURSOR.lock();
     let cx = cursor.x;
     let cy = cursor.y;
+    
+    let fb_guard = FRAMEBUFFER.lock();
+    let fb = match fb_guard.as_ref() {
+        Some(fb) => fb,
+        None => return,
+    };
+    
+    // 1. Save background pixels
+    for row in 0..16 {
+        for col in 0..16 {
+            let px = cx + col;
+            let py = cy + row;
+            cursor.saved_pixels[(row * 16 + col) as usize] = fb.get_pixel(px, py);
+        }
+    }
+    cursor.old_x = cx;
+    cursor.old_y = cy;
+    cursor.has_saved = true;
+    
+    // 2. Draw Cursor
     let color = graphics::COLOR_WHITE;
     let outline = graphics::COLOR_BLACK;
     

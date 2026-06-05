@@ -131,10 +131,7 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
             state.needs_redraw = true;
         }
     } else {
-        // Always redraw when mouse moves so cursor updates over the compositor!
-        // Actually, cursor rendering is separate, but we need compositor to restore
-        // the background behind the old cursor.
-        state.needs_redraw = true; 
+        // Do not trigger a full redraw! Cursor rendering handles its own save/restore.
     }
 }
 

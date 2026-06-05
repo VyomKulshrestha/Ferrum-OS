@@ -187,18 +187,12 @@ pub fn init(width: u32, height: u32) -> Result<Framebuffer, &'static str> {
 // ============================================================================
 
 impl Framebuffer {
-    /// Write a single pixel at `(x, y)` with the given 0x00RRGGBB color.
-    ///
-    /// Out-of-bounds coordinates are silently ignored.
-    #[inline]
+    /// Set a single pixel. Silently drops out-of-bounds coordinates.
     pub fn set_pixel(&self, x: u32, y: u32, color: u32) {
         if x >= self.width || y >= self.height {
             return;
         }
         let offset = (y * self.pitch + x) as isize;
-        // Safety: bounds-checked above; the framebuffer region is large
-        // enough for `width * height` pixels. Volatile write ensures the
-        // store is not elided or reordered by the compiler.
         unsafe {
             core::ptr::write_volatile(self.base.offset(offset), color);
         }

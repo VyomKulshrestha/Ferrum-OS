@@ -63,15 +63,20 @@ pub fn run_desktop() {
             break;
         }
         
+        let needs_redraw = compositor::COMPOSITOR.lock().needs_redraw;
+        
+        if !needs_redraw {
+            cursor::restore_background();
+        }
+        
         // 1. Process Input Events (Mouse, Keyboard)
         cursor::process_input();
         
         // 2. Render Desktop Background (or dirty rects)
-        // For MVP, we'll redraw full screen or partial to avoid flickering.
         compositor::render();
         
         // 3. Render Cursor Overlay
-        cursor::render();
+        cursor::save_and_draw();
         
         // Sleep or yield to scheduler
         crate::scheduler::yield_current();
