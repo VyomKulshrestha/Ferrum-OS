@@ -110,11 +110,12 @@ impl Process {
     pub fn map_user(
         &mut self,
         vaddr: VirtAddr,
+        memsz: usize,
         bytes: &[u8],
         flags: PageTableFlags,
     ) -> Result<u64, MapToError<Size4KiB>> {
         let space = self.space.as_mut().ok_or(MapToError::ParentEntryHugePage)?;
-        space.map_user_range(vaddr, bytes, flags)
+        space.map_user_range(vaddr, memsz, bytes, flags)
     }
 
     pub fn user_frame_count(&self) -> usize {
@@ -155,8 +156,6 @@ impl Process {
         self.entry = entry;
     }
 
-    /// Map a fresh user stack at `USER_STACK_BASE` (RW, NX) and
-    /// zero it. Idempotent: a second call is a no-op.
     pub fn map_user_stack(&mut self) -> Result<u64, MapToError<Size4KiB>> {
         if self.user_stack_mapped {
             return Ok(0);
@@ -165,8 +164,7 @@ impl Process {
             | PageTableFlags::USER_ACCESSIBLE
             | PageTableFlags::WRITABLE;
         let vaddr = VirtAddr::new(USER_STACK_BASE);
-        let zeroed = [0u8; USER_STACK_SIZE];
-        let mapped = self.map_user(vaddr, &zeroed, flags)?;
+        let mapped = self.map_user(vaddr, USER_STACK_SIZE, &[], flags)?;
         self.user_stack_mapped = true;
         Ok(mapped)
     }
@@ -186,10 +184,7 @@ impl Process {
                 return Err("PT_LOAD vaddr above user half");
             }
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
-            let mut segment = alloc::vec![0u8; ph.p_memsz as usize];
-            let copy_len = core::cmp::min(file_bytes.len(), segment.len());
-            segment[..copy_len].copy_from_slice(&file_bytes[..copy_len]);
-            self.map_user(vaddr, &segment, flags)
+            self.map_user(vaddr, ph.p_memsz as usize, file_bytes, flags)
                 .map_err(|_| "pt_load map failed")?;
         }
 
@@ -292,6 +287,7 @@ impl AddressSpace {
     pub fn map_user_range(
         &mut self,
         vaddr: VirtAddr,
+        memsz: usize,
         bytes: &[u8],
         flags: PageTableFlags,
     ) -> Result<u64, MapToError<Size4KiB>> {
@@ -302,7 +298,7 @@ impl AddressSpace {
         let start_page = Page::containing_address(vaddr);
         let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
         let len_aligned = align_up(
-            vaddr_offset_in_page as u64 + bytes.len() as u64,
+            vaddr_offset_in_page as u64 + memsz as u64,
             Size4KiB::SIZE,
         );
         // `len_aligned == 0` would mean zero bytes, but the chunk loop
@@ -327,43 +323,37 @@ impl AddressSpace {
         let mut allocator = GlobalFrameSource::new();
 
         for (page_index, page) in Page::range_inclusive(start_page, end_page_exclusive - 1).enumerate() {
-            let frame = allocator
-                .allocate_frame()
-                .ok_or(MapToError::FrameAllocationFailed)?;
-            unsafe {
-                mapper
-                    .map_to(page, frame, flags, &mut allocator)?
-                    .flush();
+            let (frame, is_newly_allocated) = match mapper.translate_page(page) {
+                Ok(existing_frame) => (existing_frame, false),
+                Err(_) => {
+                    let new_frame = allocator
+                        .allocate_frame()
+                        .ok_or(MapToError::FrameAllocationFailed)?;
+                    unsafe {
+                        mapper
+                            .map_to(page, new_frame, flags, &mut allocator)?
+                            .flush();
+                    }
+                    (new_frame, true)
+                }
+            };
+
+            let page_virt = crate::memory::phys_to_virt(frame.start_address());
+            if is_newly_allocated {
+                unsafe {
+                    core::ptr::write_bytes(page_virt.as_mut_ptr::<u8>(), 0u8, Size4KiB::SIZE as usize);
+                }
+                self.user_frames.push(frame);
             }
 
-            // Zero the page, then copy as many bytes as fit.
-            let page_virt = crate::memory::phys_to_virt(frame.start_address());
-            unsafe {
-                core::ptr::write_bytes(page_virt.as_mut_ptr::<u8>(), 0u8, Size4KiB::SIZE as usize);
-                // The first page receives the segment bytes at
-                // `vaddr_offset_in_page` (where vaddr falls in the
-                // page). Subsequent pages receive their bytes at
-                // page offset 0, since they continue the segment
-                // contiguously.
-                let dest_offset = if page_index == 0 {
-                    vaddr_offset_in_page
-                } else {
-                    0
-                };
-                // The source range into `bytes` is the segment
-                // bytes that belong on this page. For the first
-                // page we start at byte 0 of the segment; for later
-                // pages we skip past the bytes already placed on
-                // earlier pages.
-                let src_offset = if page_index == 0 {
-                    0
-                } else {
-                    page_index * Size4KiB::SIZE as usize - vaddr_offset_in_page
-                };
-                let bytes_remaining_after_src = bytes.len().saturating_sub(src_offset);
-                let page_capacity = Size4KiB::SIZE as usize - dest_offset;
-                let copy_len = core::cmp::min(page_capacity, bytes_remaining_after_src);
-                if copy_len > 0 {
+            // Copy segment bytes into the page.
+            let dest_offset = if page_index == 0 { vaddr_offset_in_page } else { 0 };
+            let src_offset = if page_index == 0 { 0 } else { page_index * Size4KiB::SIZE as usize - vaddr_offset_in_page };
+            let bytes_remaining_after_src = bytes.len().saturating_sub(src_offset);
+            let page_capacity = Size4KiB::SIZE as usize - dest_offset;
+            let copy_len = core::cmp::min(page_capacity, bytes_remaining_after_src);
+            if copy_len > 0 {
+                unsafe {
                     core::ptr::copy_nonoverlapping(
                         bytes.as_ptr().add(src_offset),
                         page_virt.as_mut_ptr::<u8>().add(dest_offset),
@@ -371,8 +361,6 @@ impl AddressSpace {
                     );
                 }
             }
-
-            self.user_frames.push(frame);
         }
 
         self.user_mappings.push((vaddr, len_aligned));

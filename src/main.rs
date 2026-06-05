@@ -230,7 +230,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
                 | PageTableFlags::USER_ACCESSIBLE
                 | PageTableFlags::WRITABLE;
             let payload = b"ferrumos phase 1.3 address space round-trip\n";
-            match process.map_user(vaddr, payload, flags) {
+            match process.map_user(vaddr, payload.len(), payload, flags) {
                 Ok(mapped) => {
                     let l4 = process
                         .address_space()
