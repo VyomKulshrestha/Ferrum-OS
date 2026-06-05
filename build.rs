@@ -31,18 +31,40 @@ fn main() {
 
     let cargo = env::var("CARGO").unwrap_or_else(|_| String::from("cargo"));
 
-    let status = Command::new(&cargo)
+    let init_status = Command::new(&cargo)
         .arg("build")
         .arg("--manifest-path")
         .arg(&manifest_path)
         .status()
-        .expect("failed to spawn cargo for userland build");
+        .expect("failed to spawn cargo for userland init build");
 
-    if !status.success() {
+    if !init_status.success() {
         panic!(
-            "ferrumos userland build failed (manifest={}); see output above",
+            "ferrumos userland init build failed (manifest={}); see output above",
             manifest_path.display()
         );
+    }
+
+    // Build heliox-daemon
+    let daemon_manifest = PathBuf::from(&manifest_dir).join("userland/heliox-daemon/Cargo.toml");
+    println!("cargo:rerun-if-changed=userland/heliox-daemon/Cargo.toml");
+    println!("cargo:rerun-if-changed=userland/heliox-daemon/.cargo/config.toml");
+    println!("cargo:rerun-if-changed=userland/heliox-daemon/src");
+    
+    if daemon_manifest.exists() {
+        let daemon_status = Command::new(env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()))
+            .arg("build")
+            .arg("--manifest-path")
+            .arg(&daemon_manifest)
+            .status()
+            .expect("failed to spawn cargo for heliox-daemon build");
+            
+        if !daemon_status.success() {
+            panic!(
+                "ferrumos heliox-daemon build failed (manifest={}); see output above",
+                daemon_manifest.display()
+            );
+        }
     }
 
     // The Rust target `x86_64-unknown-none` places .text at 0x201000,
@@ -57,6 +79,18 @@ fn main() {
             println!(
                 "cargo:warning=[ferrumos build.rs] ELF rewrite failed for {}: {}",
                 init_bin.display(),
+                e
+            );
+        }
+    }
+    
+    let daemon_bin = PathBuf::from(&manifest_dir)
+        .join("userland/heliox-daemon/target/x86_64-unknown-none/debug/heliox-daemon");
+    if daemon_bin.exists() {
+        if let Err(e) = rewrite_load_address(&daemon_bin, 0x200000, 0x400000) {
+            println!(
+                "cargo:warning=[ferrumos build.rs] ELF rewrite failed for {}: {}",
+                daemon_bin.display(),
                 e
             );
         }

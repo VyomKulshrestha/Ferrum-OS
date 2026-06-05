@@ -20,6 +20,8 @@ pub fn init_elf_size() -> usize {
     INIT_ELF.len()
 }
 
+pub const HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemon/target/x86_64-unknown-none/debug/heliox-daemon");
+
 extern crate alloc;
 
 use alloc::string::{String, ToString};
@@ -97,10 +99,10 @@ pub fn init() {
         vec![String::from("cap:ipc:send")],
     ));
     state.programs.push(ProgramManifest::new(
-        "heliox-bridge",
-        "Heliox-OS JSON-RPC bridge userspace process",
-        "/srv/heliox-bridge",
-        vec![String::from("cap:ipc:send")],
+        "heliox-daemon",
+        "Heliox-OS native cognitive daemon",
+        "/bin/heliox-daemon",
+        vec![String::from("cap:ipc:send"), String::from("cap:net:connect")],
     ));
 }
 

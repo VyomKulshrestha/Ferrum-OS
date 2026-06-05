@@ -1,0 +1,20 @@
+[package]
+name = "heliox-daemon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libm = "0.2.8" # For cosine similarity math in vector store
+linked_list_allocator = "0.10.5"
+
+[[bin]]
+name = "heliox-daemon"
+path = "src/main.rs"
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 2
