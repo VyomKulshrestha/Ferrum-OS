@@ -1,5 +1,12 @@
+// ============================================================================
+// Heliox-Daemon - Planner
+// ============================================================================
+// Generates prompts for the LLM with the system prompt, tool definitions,
+// and the current goal.
+// ============================================================================
+
 use alloc::string::String;
-use alloc::vec::Vec;
+use super::tool_mapper;
 
 pub struct Planner {
     system_prompt: String,
@@ -9,7 +16,10 @@ pub struct Planner {
 impl Planner {
     pub fn new() -> Self {
         Self {
-            system_prompt: String::from("You are Heliox-OS, an autonomous agentic operating system."),
+            system_prompt: String::from(
+                "You are Heliox-OS, an autonomous agentic operating system running on FerrumOS. \
+                 You can observe the system, make decisions, and execute actions through tool calls."
+            ),
             goal: String::from("Explore the system and ensure everything is functioning."),
         }
     }
@@ -21,9 +31,11 @@ impl Planner {
     pub fn generate_prompt(&self) -> String {
         let mut prompt = String::new();
         prompt.push_str(&self.system_prompt);
+        prompt.push_str("\n\n");
+        prompt.push_str(tool_mapper::TOOL_DEFINITIONS);
         prompt.push_str("\n\nCurrent Goal: ");
         prompt.push_str(&self.goal);
-        prompt.push_str("\n\nPlease respond with a JSON-RPC method call to execute your next step.");
+        prompt.push_str("\n\nRespond with a JSON tool call or plain text.");
         prompt
     }
 }
