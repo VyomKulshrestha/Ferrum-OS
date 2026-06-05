@@ -109,6 +109,32 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Initialize security subsystem
     ferrumos::security::init();
     println!("[  OK  ] Capability-based security initialized");
+
+    // ========================================================================
+    // Phase 3b: VGA Framebuffer & Graphical Console
+    // ========================================================================
+
+    // Switch from VGA text mode to graphical framebuffer (1024x768x32bpp)
+    // using Bochs VBE extensions. After this point, the text-mode VGA buffer
+    // at 0xB8000 is no longer displayed; all screen output goes through the
+    // graphical console. Serial output continues to work for debugging.
+    if ferrumos::devices::vga_fb::detect() {
+        ferrumos::graphics::init(1024, 768);
+        ferrumos::graphics::console::init(1024, 768);
+        ferrumos::devices::register_device(
+            "vga.framebuffer",
+            ferrumos::devices::DeviceClass::Display,
+            ferrumos::devices::DeviceState::Online,
+            "bochs-vbe",
+            "display:fb",
+        );
+        // Re-print the boot banner on the graphical console
+        ferrumos::graphics::console::_print(format_args!(
+            "[  OK  ] VGA framebuffer initialized (1024x768x32bpp)\n"
+        ));
+    } else {
+        println!("[ INFO ] Bochs VBE not detected, staying in text mode");
+    }
     
     // Scan PCI devices (networking, etc.) - Handled inside device drivers
     

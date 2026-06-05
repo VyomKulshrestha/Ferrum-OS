@@ -8,6 +8,7 @@
 extern crate alloc;
 
 pub mod pci;
+pub mod vga_fb;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;

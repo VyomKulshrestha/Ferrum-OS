@@ -126,6 +126,10 @@ pub mod logging;
 /// IDE primary/secondary channel access for persistent storage
 pub mod ata;
 
+/// Graphics subsystem
+/// VGA framebuffer, bitmap font rendering, and graphical text console
+pub mod graphics;
+
 // ============================================================================
 // Global Descriptor Table
 // ============================================================================

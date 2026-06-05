@@ -30,6 +30,8 @@ pub enum SyscallNumber {
     WriteFile = 16,
     ReadDir = 17,
     Exec = 18,
+    ReadFramebufferInfo = 19,
+    ReadTextBuffer = 20,
 }
 
 /// Syscall return status.
@@ -68,6 +70,7 @@ extern crate alloc;
 pub mod socket;
 pub mod fs;
 pub mod process;
+pub mod graphics;
 
 use alloc::string::String;
 
@@ -224,6 +227,12 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::Exec as u64 => {
             process::sys_exec(args)
+        }
+        x if x == SyscallNumber::ReadFramebufferInfo as u64 => {
+            graphics::sys_read_framebuffer_info(args)
+        }
+        x if x == SyscallNumber::ReadTextBuffer as u64 => {
+            graphics::sys_read_text_buffer(args)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }

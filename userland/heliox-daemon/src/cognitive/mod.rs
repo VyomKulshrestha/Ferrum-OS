@@ -5,3 +5,4 @@ pub mod tool_mapper;
 pub mod verifier;
 pub mod reflector;
 pub mod confirmation;
+pub mod screen_vision;
