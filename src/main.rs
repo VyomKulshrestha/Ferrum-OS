@@ -222,6 +222,23 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         Err(err) => println!("[ WARN ] init process create failed: {}", err),
     }
 
+    match ferrumos::process::create("heliox-daemon") {
+        Ok(mut process) => match process.load_elf(ferrumos::userspace::HELIOX_DAEMON_ELF) {
+            Ok(entry) => {
+                let pid = process.pid();
+                let user_rsp = process.user_stack_top().as_u64();
+                let kernel_rsp = process.kernel_stack_top().as_u64();
+                ferrumos::process::register(process);
+                println!(
+                    "[  OK  ] Ring-3 heliox-daemon loaded: pid={} entry={:#x} user_rsp={:#x} kernel_rsp0={:#x}",
+                    pid, entry, user_rsp, kernel_rsp
+                );
+            }
+            Err(err) => println!("[ WARN ] heliox-daemon load_elf failed: {}", err),
+        },
+        Err(err) => println!("[ WARN ] heliox-daemon process create failed: {}", err),
+    }
+
     // ========================================================================
     // Phase 4: Post-Boot
     // ========================================================================
