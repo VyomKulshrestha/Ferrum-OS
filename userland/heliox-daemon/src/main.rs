@@ -60,6 +60,8 @@ const SYS_RECV: u64 = 11;
 const SYS_SEND: u64 = 12;
 pub const SYS_READ_FILE: u64 = 15;
 pub const SYS_WRITE_FILE: u64 = 16;
+pub const SYS_READ_DIR: u64 = 17;
+pub const SYS_EXEC: u64 = 18;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {

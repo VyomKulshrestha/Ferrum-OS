@@ -117,3 +117,44 @@ pub fn sys_write_file(args: [u64; 6]) -> SyscallResult {
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }
+
+/// `sys_read_dir` — List directory contents via the VFS.
+///
+/// args[0] = path_ptr (user pointer to directory path)
+/// args[1] = path_len
+/// args[2] = buf_ptr  (user pointer to destination buffer)
+/// args[3] = buf_len
+///
+/// Returns: number of bytes written to buf (newline-separated entry names),
+/// or error.
+pub fn sys_read_dir(args: [u64; 6]) -> SyscallResult {
+    let path = match unsafe { read_user_str(args[0], args[1]) } {
+        Some(p) => p,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+
+    let buf_ptr = args[2];
+    let buf_len = args[3] as usize;
+    if buf_ptr == 0 || buf_len == 0 || buf_len > MAX_DATA_LEN {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+
+    match crate::fs::list_dir(&path) {
+        Ok(entries) => {
+            // Serialize directory entries as newline-separated names
+            // with a type prefix: "d <name>" for directories, "f <name>" for files
+            let mut output = String::new();
+            for entry in &entries {
+                let prefix = if entry.is_dir { "d" } else { "f" };
+                output.push_str(prefix);
+                output.push(' ');
+                output.push_str(&entry.name);
+                output.push('\n');
+            }
+            let bytes = output.as_bytes();
+            let copied = unsafe { copy_to_user(buf_ptr, bytes, buf_len) };
+            SyscallResult::ok(copied as u64)
+        }
+        Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}
