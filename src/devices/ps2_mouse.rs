@@ -65,36 +65,38 @@ fn write_mouse(data: u8) {
 }
 
 pub fn init() {
-    let mut cmd_port = Port::<u8>::new(PS2_CMD);
-    let mut data_port = Port::<u8>::new(PS2_DATA);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut cmd_port = Port::<u8>::new(PS2_CMD);
+        let mut data_port = Port::<u8>::new(PS2_DATA);
 
-    // 1. Enable Auxiliary Device
-    wait_write();
-    unsafe { cmd_port.write(CMD_ENABLE_AUX) };
+        // 1. Enable Auxiliary Device
+        wait_write();
+        unsafe { cmd_port.write(CMD_ENABLE_AUX) };
 
-    // 2. Read Configuration Byte
-    wait_write();
-    unsafe { cmd_port.write(CMD_READ_CONFIG) };
-    wait_read();
-    let mut config = unsafe { data_port.read() };
+        // 2. Read Configuration Byte
+        wait_write();
+        unsafe { cmd_port.write(CMD_READ_CONFIG) };
+        wait_read();
+        let mut config = unsafe { data_port.read() };
 
-    // 3. Enable IRQ12, clear clock disable
-    config |= 1 << 1;
-    config &= !(1 << 5);
+        // 3. Enable IRQ12, clear clock disable
+        config |= 1 << 1;
+        config &= !(1 << 5);
 
-    // 4. Write Configuration Byte
-    wait_write();
-    unsafe { cmd_port.write(CMD_WRITE_CONFIG) };
-    wait_write();
-    unsafe { data_port.write(config) };
+        // 4. Write Configuration Byte
+        wait_write();
+        unsafe { cmd_port.write(CMD_WRITE_CONFIG) };
+        wait_write();
+        unsafe { data_port.write(config) };
 
-    // 5. Send Set Defaults
-    write_mouse(MOUSE_SET_DEFAULTS);
+        // 5. Send Set Defaults
+        write_mouse(MOUSE_SET_DEFAULTS);
 
-    // 6. Enable Data Reporting
-    write_mouse(MOUSE_ENABLE_PACKETS);
-    
-    crate::serial_println!("PS/2 Mouse initialized");
+        // 6. Enable Data Reporting
+        write_mouse(MOUSE_ENABLE_PACKETS);
+        
+        crate::serial_println!("PS/2 Mouse initialized");
+    });
 }
 
 pub fn handle_interrupt() {
@@ -120,21 +122,24 @@ pub fn handle_interrupt() {
             
             let flags = state.packet[0];
             
-            // Validate packet: overflow bits should be 0
-            if (flags & 0xC0) == 0 {
-                let dx = state.packet[1] as i8;
-                let dy = state.packet[2] as i8;
-                
-                // Y axis is inverted in PS/2 relative to our screen
-                let buttons = flags & 0x07;
-                
-                // Inject into unified input system!
-                // NOTE: dy needs to be inverted (PS/2 is +up, our screen is +down)
-                // Actually if PS/2 is +up, moving mouse up means dy is positive.
-                // Screen coordinate (0,0) is top-left, so moving up is negative Y.
-                // We pass dx, -dy to input subsystem.
-                inject_mouse_event(dx, -dy, buttons);
-            }
+            // PS/2 dx and dy are 9-bit two's complement. The sign bits are in `flags`.
+            // The lower 8 bits are in packet[1] and packet[2].
+            // We use `as i8` which works perfectly if we just treat them as 8-bit two's complement,
+            // but if there's an overflow (the mouse moved > 255 units in one tick), 
+            // the hardware sets the overflow bits (flags & 0xC0). 
+            // We ignore the overflow bits and just use the 8-bit clamped values 
+            // to keep the mouse responsive during fast movements instead of dropping the packet!
+            
+            let dx = state.packet[1] as i8;
+            let dy = state.packet[2] as i8;
+            
+            let buttons = flags & 0x07;
+            
+            // Inject into unified input system!
+            // NOTE: dy needs to be inverted (PS/2 is +up, our screen is +down)
+            // Screen coordinate (0,0) is top-left, so moving up is negative Y.
+            // We pass dx, -dy to input subsystem.
+            crate::input::inject_mouse_event(dx, dy.saturating_neg(), buttons);
         }
         _ => state.cycle = 0,
     }
