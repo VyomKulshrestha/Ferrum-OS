@@ -23,9 +23,8 @@ early shell useful while block storage drivers are still pending.
 
 FerrumOS tracks device surfaces through a small registry. Online devices
 represent hardware or kernel facilities that are available now: VGA text output,
-COM1 serial, PIT timer, PS/2 keyboard, the RAM filesystem, and the RTL8139
-PCI network controller. Planned devices represent contracts needed by future
-runtime services: audio and camera surfaces.
+PCI network controller, and Intel HDA audio controller. Planned devices represent contracts needed by future
+runtime services: camera surfaces.
 
 The registry labels unavailable devices as `Planned` instead of claiming driver
 support. This keeps integration honest while making the missing hardware work
@@ -68,7 +67,7 @@ Initial runtime service categories:
 
 - `runtime.ipc`
 - `runtime.agentd`
-- input service for keyboard, voice, gesture, and multimodal events
+- input service for keyboard, voice (VAD/recording), gesture, and multimodal events
 - local inference service
 - semantic memory service
 - task orchestration service
@@ -160,8 +159,8 @@ The `heliox-daemon` provides:
 - A bare-metal HTTP/1.1 TCP client and DNS resolver for communicating with
   Ollama and OpenAI-compatible endpoints over the RTL8139 NIC.
 - A `no_std` JSON parser for decoding LLM API responses.
-- A tool-to-syscall mapper that translates 25 LLM tool calls (`ipc_send`,
-  `exec_process`, `write_file`, `net_connect`, etc.) into kernel syscalls.
+- A tool-to-syscall mapper that translates 30 LLM tool calls (`ipc_send`,
+  `exec_process`, `write_file`, `net_connect`, `record_audio`, etc.) into kernel syscalls.
 - A 5-tier permission model with operator confirmation gates for destructive actions.
 - Direct capability-authorized invocation of kernel syscalls to enact the
   agent's decisions and emit reasoning telemetry to the kernel audit log.

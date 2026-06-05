@@ -38,7 +38,7 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
   - Bare-metal orchestrator (ReAct loop), planner, and vector store
   - TCP networking layer with HTTP/1.1 client for LLM API calls
   - `no_std` JSON parser and LLM response decoder
-  - Tool-to-Syscall mapper (25 tools mapped to kernel syscalls)
+  - Tool-to-Syscall mapper (30 tools mapped to kernel syscalls including audio/voice)
   - 5-tier permission model with operator confirmation gates
   - JSON-based runtime configuration from Ext2 disk
   - Reasoning telemetry emitted to kernel audit log
@@ -138,7 +138,7 @@ node .\scripts\command_sweep.mjs --visible
 | `services stop <id>` | Stop a service through capability checks |
 | `services restart <id>` | Restart a service through capability checks |
 | `ipc` | Show IPC broker statistics |
-| `syscalls` | Show reserved syscall ABI numbers |
+| `syscalls` | Show reserved syscall ABI numbers (0-25 implemented) |
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace process records |
 | `run <program>` | Launch a manifest-backed userspace process |
@@ -176,7 +176,7 @@ All core kernel phases are complete:
 6. ✅ Cognitive networking (bare-metal HTTP client, DNS resolver, LLM API integration)
 7. ✅ Tool execution & JSON (no_std JSON parser, tool-to-syscall mapper)
 
-Current focus: **Phase C — Hardware Drivers** (VGA Framebuffer, Intel HDA Audio).
+Current focus: **Phase C — Hardware Drivers** (XHCI USB & Input). Note: VGA Framebuffer and Intel HDA Audio are fully implemented.
 
 ## Heliox-OS Native Integration
 
@@ -187,7 +187,7 @@ The OS now contains `userland/heliox-daemon`, a native userspace binary that ser
 - A native LLM orchestrator (ReAct loop) and hierarchical planner that constructs prompts and communicates over the RTL8139 NIC.
 - A bare-metal HTTP/1.1 client and DNS resolver for querying Ollama/OpenAI-compatible LLM APIs.
 - A `no_std` JSON parser for decoding LLM responses.
-- A tool-to-syscall mapper that translates 25 LLM tool calls (`ipc_send`, `read_file`, `exec_process`, `net_connect`, etc.) into kernel syscalls.
+- A tool-to-syscall mapper that translates 30 LLM tool calls (`ipc_send`, `read_file`, `exec_process`, `net_connect`, `record_audio`, etc.) into kernel syscalls.
 - A 5-tier permission model that blocks destructive actions behind operator confirmation gates (`confirm <id>`).
 - Direct capability-authorized `sys_ipc_send` access to control the kernel and emit reasoning telemetry to the audit log.
 
