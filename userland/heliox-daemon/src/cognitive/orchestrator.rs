@@ -1,5 +1,5 @@
 // ============================================================================
-// Heliox-Daemon - Orchestrator
+// Heliox-Daemon - Orchestrator (with Telemetry & Config)
 // ============================================================================
 // The main agent loop implementing the ReAct (Reasoning + Acting) pattern:
 //
@@ -11,11 +11,7 @@
 //   5. REFLECT — Record failures, consolidate lessons, update memory.
 //   6. REPEAT  — Loop back to OBSERVE with the new observation.
 //
-// Retry Logic:
-//   - If a tool call fails, the orchestrator retries up to MAX_RETRIES
-//     times with the failure context included in the next prompt.
-//   - If MAX_RETRIES is exceeded, the reflector logs a lesson and the
-//     planner skips the failed task.
+// Telemetry: Emits structured events for each phase to the kernel audit log.
 // ============================================================================
 
 use super::planner::Planner;
@@ -24,29 +20,82 @@ use super::reflector::Reflector;
 use super::confirmation::ConfirmationGate;
 use super::json;
 use super::tool_mapper;
+use crate::config::Config;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
+use core::arch::asm;
 use crate::memory::vector_store::{VectorStore, MemoryCategory};
 use crate::network;
 
-/// Maximum retries for a single tool call before giving up.
-const MAX_RETRIES: u32 = 3;
+// SYS_AUDIT_WRITE for telemetry
+const SYS_AUDIT_WRITE: u64 = 6;
 
-/// How many ticks between each LLM call (avoid flooding).
-const TICK_INTERVAL: u64 = 100;
+#[inline(always)]
+unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
+    let ret: u64;
+    asm!(
+        "int 0x80",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
 
-/// How many ticks between memory persistence saves.
-const SAVE_INTERVAL: u64 = 1000;
+// ---- Telemetry Definitions -------------------------------------------------
 
-/// Default auto-approve tier (0-2 are auto-approved).
-const DEFAULT_AUTO_APPROVE_TIER: u8 = 2;
+#[derive(Debug, Clone, PartialEq)]
+pub enum TelemetryEventKind {
+    TickStart,
+    ObserveComplete,
+    ThinkStart,
+    ThinkComplete,
+    ActStart,
+    ActComplete,
+    VerifyResult,
+    ReflectLesson,
+    PlanProgress,
+    ConfirmationQueued,
+    SaveComplete,
+    Error,
+}
 
-/// Default confirmation timeout in ticks.
-const DEFAULT_CONFIRM_TIMEOUT: u64 = 600;
+impl TelemetryEventKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::TickStart => "TICK_START",
+            Self::ObserveComplete => "OBSERVE_COMPLETE",
+            Self::ThinkStart => "THINK_START",
+            Self::ThinkComplete => "THINK_COMPLETE",
+            Self::ActStart => "ACT_START",
+            Self::ActComplete => "ACT_COMPLETE",
+            Self::VerifyResult => "VERIFY_RESULT",
+            Self::ReflectLesson => "REFLECT_LESSON",
+            Self::PlanProgress => "PLAN_PROGRESS",
+            Self::ConfirmationQueued => "CONFIRMATION_QUEUED",
+            Self::SaveComplete => "SAVE_COMPLETE",
+            Self::Error => "ERROR",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TelemetryEvent {
+    pub tick: u64,
+    pub kind: TelemetryEventKind,
+    pub message: String,
+}
+
+// ---- Orchestrator ----------------------------------------------------------
 
 /// The main orchestrator driving the ReAct agent loop.
 pub struct Orchestrator {
+    pub config: Config,
     planner: Planner,
     verifier: Verifier,
     reflector: Reflector,
@@ -56,16 +105,20 @@ pub struct Orchestrator {
     last_observation: String,
     last_action: Option<String>,
     last_response: Option<String>,
-    /// Running count of total actions executed.
+    
+    // Telemetry ring buffer
+    telemetry_buffer: Vec<TelemetryEvent>,
+    
+    // Stats
     total_actions: u64,
-    /// Running count of total failures.
     total_failures: u64,
-    /// Auto-approve tier threshold.
-    auto_approve_tier: u8,
 }
 
 impl Orchestrator {
     pub fn new() -> Self {
+        // Load config from disk, fallback to defaults
+        let config = Config::load("/disk/heliox/config.json");
+
         let mut planner = Planner::new();
         planner.set_goal("Explore the system and ensure everything is functioning.");
 
@@ -73,15 +126,42 @@ impl Orchestrator {
             planner,
             verifier: Verifier::new(),
             reflector: Reflector::new(),
-            confirmation_gate: ConfirmationGate::new(DEFAULT_CONFIRM_TIMEOUT),
+            confirmation_gate: ConfirmationGate::new(config.confirmation_timeout),
             memory: VectorStore::new(),
             tick_count: 0,
             last_observation: String::new(),
             last_action: None,
             last_response: None,
+            telemetry_buffer: Vec::with_capacity(32),
             total_actions: 0,
             total_failures: 0,
-            auto_approve_tier: DEFAULT_AUTO_APPROVE_TIER,
+            config,
+        }
+    }
+
+    /// Emit a telemetry event to the ring buffer and the kernel audit log.
+    fn emit_telemetry(&mut self, kind: TelemetryEventKind, message: String) {
+        let event = TelemetryEvent {
+            tick: self.tick_count,
+            kind: kind.clone(),
+            message: message.clone(),
+        };
+
+        // Ring buffer logic (keep last 32 events)
+        if self.telemetry_buffer.len() >= 32 {
+            self.telemetry_buffer.remove(0);
+        }
+        self.telemetry_buffer.push(event);
+
+        // Send to kernel audit log via syscall
+        let audit_msg = format!("[HELIOX] {} - {}", kind.as_str(), message);
+        unsafe {
+            syscall3(
+                SYS_AUDIT_WRITE,
+                audit_msg.as_ptr() as u64,
+                audit_msg.len() as u64,
+                0,
+            );
         }
     }
 
@@ -89,20 +169,20 @@ impl Orchestrator {
     pub fn tick(&mut self) {
         self.tick_count += 1;
 
-        // Only attempt LLM calls at the configured interval
-        if self.tick_count % TICK_INTERVAL != 0 {
+        if self.tick_count % self.config.tick_interval != 0 {
             return;
         }
 
-        // Periodically save vector memory to disk
-        if self.tick_count % SAVE_INTERVAL == 0 && self.memory.document_count() > 0 {
-            let _ = self.memory.save("/disk/heliox/memory.json");
+        self.emit_telemetry(TelemetryEventKind::TickStart, format!("Tick {}", self.tick_count));
+
+        if self.tick_count % self.config.save_interval == 0 && self.memory.document_count() > 0 {
+            if let Ok(_) = self.memory.save("/disk/heliox/memory.json") {
+                self.emit_telemetry(TelemetryEventKind::SaveComplete, String::from("Memory persisted to disk"));
+            }
         }
 
-        // Clean up expired confirmations
         self.confirmation_gate.cleanup_expired(self.tick_count);
 
-        // Periodically consolidate reflections
         let new_lessons = self.reflector.consolidate(self.tick_count);
         for lesson in &new_lessons {
             self.memory.add(
@@ -110,28 +190,31 @@ impl Orchestrator {
                 lesson.content.clone(),
                 MemoryCategory::Lesson,
             );
+            self.emit_telemetry(TelemetryEventKind::ReflectLesson, format!("New lesson learned: {}", lesson.id));
         }
 
         // ==================== ReAct Loop ====================
 
-        // 1. OBSERVE — Build context
+        // 1. OBSERVE
         self.observe();
 
-        // 2. THINK — Generate prompt and query LLM
+        // 2. THINK
         let response = match self.think() {
             Some(r) => r,
-            None => return, // LLM not available, try next tick
+            None => {
+                self.emit_telemetry(TelemetryEventKind::Error, String::from("LLM query failed or network not ready"));
+                return;
+            }
         };
 
-        // 3. ACT — Parse and execute tool calls
+        // 3. ACT
         let actions = self.act(&response);
 
-        // 4. VERIFY + REFLECT — Check results and learn
+        // 4. VERIFY + REFLECT
         for (tool_name, success, output) in &actions {
             self.verify_and_reflect(tool_name, *success, output);
         }
 
-        // If no tool calls were made, store the text response as context
         if actions.is_empty() {
             self.last_observation = response.clone();
             self.memory.add(
@@ -142,14 +225,13 @@ impl Orchestrator {
         }
     }
 
-    /// OBSERVE phase: gather all context for the next prompt.
     fn observe(&mut self) {
-        // RAG: Search vector memory for relevant context
         if !self.last_observation.is_empty() {
             let results = self.memory.search(&self.last_observation, 3, None);
-            if !results.is_empty() {
+            let results_len = results.len();
+            if results_len > 0 {
                 let mut ctx = String::new();
-                for doc in results {
+                for doc in &results {
                     ctx.push_str("- [");
                     ctx.push_str(doc.category.as_str());
                     ctx.push_str("] ");
@@ -161,17 +243,18 @@ impl Orchestrator {
                     ctx.push_str(content);
                     ctx.push('\n');
                 }
+                // Drop results so we can borrow self mutably again
+                drop(results);
                 self.planner.set_memory_context(&ctx);
+                self.emit_telemetry(TelemetryEventKind::ObserveComplete, format!("RAG search found {} memories", results_len));
             }
         }
 
-        // Inject lessons learned from the reflector
         let lessons = self.reflector.lessons_context();
         if !lessons.is_empty() {
             self.planner.set_lessons_context(&lessons);
         }
 
-        // Inject recent failures if any
         if self.reflector.failure_count() > 0 {
             let failures_ctx = self.reflector.recent_failures_context(3);
             let mut obs = self.last_observation.clone();
@@ -181,7 +264,6 @@ impl Orchestrator {
             self.planner.set_observation(&self.last_observation);
         }
 
-        // Inject pending confirmations
         let pending = self.confirmation_gate.format_pending();
         if pending.contains('[') {
             let mut obs = self.last_observation.clone();
@@ -191,14 +273,17 @@ impl Orchestrator {
         }
     }
 
-    /// THINK phase: generate prompt and query the LLM.
     fn think(&mut self) -> Option<String> {
         let prompt = self.planner.generate_prompt();
+        
+        self.emit_telemetry(TelemetryEventKind::ThinkStart, format!("Prompt generated ({} bytes)", prompt.len()));
 
+        // We use network::query_ollama directly for now, but eventually we can use config.api_host
         match network::query_ollama(&prompt) {
             Ok(response) => {
                 if response.status_code == 200 {
                     self.last_response = Some(response.body.clone());
+                    self.emit_telemetry(TelemetryEventKind::ThinkComplete, format!("Response received ({} bytes)", response.body.len()));
                     Some(response.body)
                 } else {
                     None
@@ -208,8 +293,6 @@ impl Orchestrator {
         }
     }
 
-    /// ACT phase: parse the LLM response and execute any tool calls.
-    /// Returns a list of (tool_name, success, output) tuples.
     fn act(&mut self, response: &str) -> Vec<(String, bool, String)> {
         let mut results = Vec::new();
 
@@ -229,8 +312,9 @@ impl Orchestrator {
 
         for tc in &tool_calls {
             self.total_actions += 1;
+            
+            self.emit_telemetry(TelemetryEventKind::ActStart, format!("Executing tool: {}", tc.name));
 
-            // Mark the corresponding plan task as in-progress
             if let Some(plan) = self.planner.plan_mut() {
                 if let Some(task) = plan.next_runnable() {
                     let task_id = task.id;
@@ -238,7 +322,6 @@ impl Orchestrator {
                 }
             }
 
-            // Handle internal tools that the orchestrator manages directly
             let result = match tc.name.as_str() {
                 "query_memory" => {
                     let query = super::json::find_tool_arg_string(&tc.arguments, "query")
@@ -299,20 +382,27 @@ impl Orchestrator {
                         success: true,
                         output: format!(
                             "tick_interval={}, save_interval={}, max_retries={}, auto_approve_tier={}",
-                            TICK_INTERVAL, SAVE_INTERVAL, MAX_RETRIES, self.auto_approve_tier
+                            self.config.tick_interval, self.config.save_interval, 
+                            self.config.max_retries, self.config.auto_approve_tier
                         ),
                     }
                 }
                 _ => {
-                    // Execute via the tool mapper (handles syscalls + confirmation gate)
                     tool_mapper::execute(
                         tc,
                         &mut self.confirmation_gate,
-                        self.auto_approve_tier,
+                        self.config.auto_approve_tier,
                         self.tick_count,
                     )
                 }
             };
+
+            if result.output.contains("Awaiting confirmation") {
+                self.emit_telemetry(TelemetryEventKind::ConfirmationQueued, format!("Tool {} requires confirmation", tc.name));
+            } else {
+                let snippet = if result.output.len() > 64 { format!("{}...", &result.output[..64]) } else { result.output.clone() };
+                self.emit_telemetry(TelemetryEventKind::ActComplete, format!("Tool {}: {} ({})", tc.name, if result.success { "success" } else { "failed" }, snippet));
+            }
 
             self.last_action = Some(format!(
                 "{}:{} -> {}",
@@ -332,7 +422,6 @@ impl Orchestrator {
         results
     }
 
-    /// VERIFY + REFLECT phase: validate results and learn from failures.
     fn verify_and_reflect(&mut self, tool_name: &str, success: bool, output: &str) {
         let expected_keywords: Vec<String> = if let Some(plan) = self.planner.plan() {
             plan.tasks.iter()
@@ -351,6 +440,8 @@ impl Orchestrator {
 
         match verdict {
             Verdict::Pass => {
+                self.emit_telemetry(TelemetryEventKind::VerifyResult, format!("Tool {} VERIFIED OK", tool_name));
+                
                 if let Some(plan) = self.planner.plan_mut() {
                     let task_id = plan.tasks.iter()
                         .find(|t| {
@@ -360,6 +451,7 @@ impl Orchestrator {
                         .map(|t| t.id);
                     if let Some(id) = task_id {
                         plan.complete_task(id);
+                        self.emit_telemetry(TelemetryEventKind::PlanProgress, format!("Task {} completed", id));
                     }
                 }
 
@@ -370,6 +462,8 @@ impl Orchestrator {
                 );
             }
             Verdict::Partial(ref reason) => {
+                self.emit_telemetry(TelemetryEventKind::VerifyResult, format!("Tool {} VERIFIED PARTIAL: {}", tool_name, reason));
+                
                 self.memory.add(
                     format!("action-{}-partial", self.tick_count),
                     format!("tool={} partial={} result={}", tool_name, reason, output),
@@ -378,6 +472,7 @@ impl Orchestrator {
             }
             Verdict::Fail(ref reason) => {
                 self.total_failures += 1;
+                self.emit_telemetry(TelemetryEventKind::VerifyResult, format!("Tool {} VERIFIED FAIL: {}", tool_name, reason));
 
                 self.reflector.record_failure(
                     self.tick_count,
@@ -386,7 +481,7 @@ impl Orchestrator {
                     &self.last_observation,
                 );
 
-                if self.verifier.should_abandon(MAX_RETRIES) {
+                if self.verifier.should_abandon(self.config.max_retries) {
                     if let Some(plan) = self.planner.plan_mut() {
                         let task_id = plan.tasks.iter()
                             .find(|t| {
@@ -396,12 +491,13 @@ impl Orchestrator {
                             .map(|t| t.id);
                         if let Some(id) = task_id {
                             plan.fail_task(id, reason);
+                            self.emit_telemetry(TelemetryEventKind::PlanProgress, format!("Task {} failed, moving on", id));
                         }
                     }
 
                     self.memory.add(
                         format!("action-{}-abandoned", self.tick_count),
-                        format!("ABANDONED: tool={} after {} retries. reason={}", tool_name, MAX_RETRIES, reason),
+                        format!("ABANDONED: tool={} after {} retries. reason={}", tool_name, self.config.max_retries, reason),
                         MemoryCategory::ToolResult,
                     );
                 }
@@ -409,17 +505,14 @@ impl Orchestrator {
         }
     }
 
-    /// Returns the last LLM response, if any.
     pub fn last_response(&self) -> Option<&str> {
         self.last_response.as_deref()
     }
 
-    /// Returns the last tool action executed, if any.
     pub fn last_action(&self) -> Option<&str> {
         self.last_action.as_deref()
     }
 
-    /// Returns agent statistics.
     pub fn stats(&self) -> (u64, u64, u64, usize, usize) {
         (
             self.tick_count,

@@ -11,6 +11,7 @@ use alloc::vec::Vec;
 pub mod memory;
 pub mod cognitive;
 pub mod network;
+pub mod config;
 
 // Basic bump allocator for userspace
 use linked_list_allocator::LockedHeap;
