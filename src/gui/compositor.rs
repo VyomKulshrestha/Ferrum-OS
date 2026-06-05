@@ -39,12 +39,10 @@ pub fn spawn_demo_windows() {
     let mut state = COMPOSITOR.lock();
     state.windows.clear();
     
-    let mut w1 = Window::new(1, "System Monitor", 100, 100, 300, 200, 0x00EEEEEE);
+    let mut w1 = Window::new(1, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
     w1.content.extend_from_slice(b"CPU Usage: 14%\nMemory: 256MB / 4096MB\nTasks: 5 Active\n\n[Graph Placeholder]");
     
-    let mut w2 = Window::new(2, "Terminal", 450, 150, 400, 300, 0x00222222);
-    // Dark terminal, light text
-    w2.bg_color = 0x001E1E1E; 
+    let mut w2 = Window::new(2, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
     w2.content.extend_from_slice(b"FerrumOS:~$ echo hello\nhello\nFerrumOS:~$ _");
     
     state.windows.push(w1);
@@ -63,8 +61,9 @@ pub fn render() {
     desktop::render_background();
     
     // 2. Draw Windows from back to front
-    for window in &state.windows {
-        window.render();
+    for (i, window) in state.windows.iter().enumerate() {
+        let focused = state.focused_idx == Some(i);
+        window.render(focused);
     }
     
     // 3. Draw Taskbar

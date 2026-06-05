@@ -63,20 +63,23 @@ pub fn run_desktop() {
             break;
         }
         
-        let needs_redraw = compositor::COMPOSITOR.lock().needs_redraw;
-        
-        if !needs_redraw {
-            cursor::restore_background();
-        }
-        
         // 1. Process Input Events (Mouse, Keyboard)
         cursor::process_input();
         
-        // 2. Render Desktop Background (or dirty rects)
-        compositor::render();
+        let needs_redraw = compositor::COMPOSITOR.lock().needs_redraw;
+        let cursor_dirty = cursor::CURSOR.lock().dirty;
         
-        // 3. Render Cursor Overlay
-        cursor::save_and_draw();
+        if needs_redraw {
+            // Compositor is redrawing everything, no need to restore background.
+            compositor::render();
+            cursor::save_and_draw();
+            cursor::CURSOR.lock().dirty = false;
+        } else if cursor_dirty {
+            // Screen wasn't wiped, but cursor moved. Restore and redraw.
+            cursor::restore_background();
+            cursor::save_and_draw();
+            cursor::CURSOR.lock().dirty = false;
+        }
         
         // Sleep or yield to scheduler
         crate::scheduler::yield_current();

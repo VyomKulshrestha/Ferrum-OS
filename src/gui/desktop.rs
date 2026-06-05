@@ -5,7 +5,8 @@
 use crate::graphics;
 use crate::devices::vga_fb::FRAMEBUFFER;
 
-pub const COLOR_BACKGROUND: u32 = 0x00008080; // Classic Teal
+pub const COLOR_BACKGROUND: u32 = 0x000A0A0C; // Deep space gray
+pub const COLOR_GRID: u32 = 0x00141418; // Subtle grid
 
 pub fn init() {
     // Nothing to initialize for MVP
@@ -16,6 +17,18 @@ pub fn render_background() {
     if let Some(fb) = fb_guard.as_ref() {
         // Draw solid background color
         fb.clear(COLOR_BACKGROUND);
+        
+        // Draw subtle grid
+        for x in (0..fb.width).step_by(32) {
+            for y in 0..fb.height {
+                fb.set_pixel(x, y, COLOR_GRID);
+            }
+        }
+        for y in (0..fb.height).step_by(32) {
+            for x in 0..fb.width {
+                fb.set_pixel(x, y, COLOR_GRID);
+            }
+        }
     }
 }
 
@@ -28,39 +41,33 @@ pub fn render_taskbar() {
     
     let w = fb.width;
     let h = fb.height;
-    let taskbar_h = 30;
-    let y = h - taskbar_h;
     
-    // Draw Taskbar Background
-    fb.draw_rect(0, y, w, taskbar_h, 0x00C0C0C0); // Classic Light Gray
+    let dock_w = 400;
+    let dock_h = 40;
+    let dock_x = (w - dock_w) / 2;
+    let dock_y = h - dock_h - 10;
     
-    // Draw Top Highlight Line
-    for x in 0..w {
-        fb.set_pixel(x, y, 0x00FFFFFF);
+    // Draw Dock Background
+    fb.draw_rect(dock_x, dock_y, dock_w, dock_h, 0x00111111); // Dark background
+    
+    // Draw Neon Cyan Border
+    let neon_cyan = 0x0000FFCC;
+    for x in dock_x..dock_x + dock_w {
+        fb.set_pixel(x, dock_y, neon_cyan);
+        fb.set_pixel(x, dock_y + dock_h - 1, neon_cyan);
+    }
+    for y in dock_y..dock_y + dock_h {
+        fb.set_pixel(dock_x, y, neon_cyan);
+        fb.set_pixel(dock_x + dock_w - 1, y, neon_cyan);
     }
     
-    // Draw Start Button (or Ferrum Button)
-    fb.draw_rect(2, y + 2, 70, taskbar_h - 4, 0x00A0A0A0);
-    // Draw String
-    // We can't easily lock FB while using graphics::draw_string, 
-    // because draw_string locks FB.
-}
-
-pub fn render_taskbar_overlays() {
-    let fb_guard = FRAMEBUFFER.lock();
-    let (w, h) = match fb_guard.as_ref() {
-        Some(fb) => (fb.width, fb.height),
-        None => return,
-    };
-    drop(fb_guard); // Must drop so draw_string can lock it
-    
-    let taskbar_h = 30;
-    let y = h - taskbar_h;
+    // We must drop fb before calling draw_string
+    drop(fb_guard);
     
     // Draw Start Text
-    graphics::draw_string(10, y + 8, "Ferrum", graphics::COLOR_BLACK, 0x00A0A0A0);
+    graphics::draw_string(dock_x + 20, dock_y + 12, "FERRUM OS", neon_cyan, 0x00111111);
     
-    // Draw Time on right
-    let time_str = "12:00 PM";
-    graphics::draw_string(w - 80, y + 8, time_str, graphics::COLOR_BLACK, 0x00C0C0C0);
+    // Draw Status on right
+    let status_str = "SYS.ONLINE";
+    graphics::draw_string(dock_x + dock_w - 100, dock_y + 12, status_str, 0x00AAAAAA, 0x00111111);
 }

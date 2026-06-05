@@ -16,6 +16,7 @@ pub struct CursorState {
     pub left_down: bool,
     pub saved_pixels: [u32; 16 * 16],
     pub has_saved: bool,
+    pub dirty: bool,
 }
 
 lazy_static::lazy_static! {
@@ -27,6 +28,7 @@ lazy_static::lazy_static! {
         left_down: false,
         saved_pixels: [0; 256],
         has_saved: false,
+        dirty: true, // Draw on first frame
     });
 }
 
@@ -53,8 +55,11 @@ pub fn process_input() {
                 let new_x = (cursor.x as i32 + dx as i32).clamp(0, max_w as i32 - 1) as u32;
                 let new_y = (cursor.y as i32 + dy as i32).clamp(0, max_h as i32 - 1) as u32;
                 
-                cursor.x = new_x;
-                cursor.y = new_y;
+                if new_x != cursor.x || new_y != cursor.y {
+                    cursor.x = new_x;
+                    cursor.y = new_y;
+                    cursor.dirty = true;
+                }
                 
                 compositor::handle_mouse_move(new_x, new_y);
             }
@@ -118,19 +123,20 @@ pub fn save_and_draw() {
     cursor.has_saved = true;
     
     // 2. Draw Cursor
-    let color = graphics::COLOR_WHITE;
-    let outline = graphics::COLOR_BLACK;
+    let neon_cyan = 0x0000FFCC;
+    let dark_bg = 0x00111111;
     
+    // Draw a sharp "stealth" cursor
     // Outline
-    graphics::draw_line(cx, cy, cx, cy + 15, outline);
-    graphics::draw_line(cx, cy, cx + 11, cy + 11, outline);
-    graphics::draw_line(cx, cy + 15, cx + 4, cy + 11, outline);
-    graphics::draw_line(cx + 11, cy + 11, cx + 4, cy + 11, outline);
+    graphics::draw_line(cx, cy, cx, cy + 16, dark_bg);
+    graphics::draw_line(cx, cy + 16, cx + 4, cy + 12, dark_bg);
+    graphics::draw_line(cx + 4, cy + 12, cx + 11, cy + 12, dark_bg);
+    graphics::draw_line(cx, cy, cx + 11, cy + 12, dark_bg);
     
     // Fill
-    graphics::draw_line(cx + 1, cy + 2, cx + 1, cy + 13, color);
-    graphics::draw_line(cx + 2, cy + 3, cx + 2, cy + 12, color);
-    graphics::draw_line(cx + 3, cy + 4, cx + 3, cy + 11, color);
-    graphics::draw_line(cx + 4, cy + 5, cx + 4, cy + 10, color);
-    graphics::draw_line(cx + 5, cy + 6, cx + 8, cy + 9, color);
+    graphics::draw_line(cx + 1, cy + 2, cx + 1, cy + 14, neon_cyan);
+    graphics::draw_line(cx + 2, cy + 3, cx + 2, cy + 13, neon_cyan);
+    graphics::draw_line(cx + 3, cy + 4, cx + 3, cy + 12, neon_cyan);
+    graphics::draw_line(cx + 4, cy + 5, cx + 4, cy + 11, neon_cyan);
+    graphics::draw_line(cx + 5, cy + 6, cx + 9, cy + 10, neon_cyan);
 }
