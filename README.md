@@ -59,7 +59,10 @@ Version 0.1.0 provides a bootable x86_64 Rust kernel foundation with:
 | Kernel Layer                                            |
 | Boot, memory, interrupts, scheduling, isolation, HAL     |
 +----------------------------------------------------------+
-| Hardware / NIC Layer                                    |
+| Storage / VFS Layer                                     |
+| ATA PIO block driver, Ext2 filesystem, VFS mount table   |
++----------------------------------------------------------+
+| Network / Hardware Layer                                |
 | RTL8139 driver, smoltcp TCP/IP stack, socket syscalls    |
 +----------------------------------------------------------+
 ```

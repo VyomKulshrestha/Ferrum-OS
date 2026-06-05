@@ -127,7 +127,10 @@ Runtime Layer:
 Kernel Layer:
   scheduling, memory, isolation, hardware abstraction
 
-Hardware / NIC Layer:
+Storage / VFS Layer:
+  ATA PIO block driver, Ext2 filesystem, VFS mount table
+
+Network / Hardware Layer:
   RTL8139 driver, smoltcp TCP/IP stack, socket syscalls
 ```
 
