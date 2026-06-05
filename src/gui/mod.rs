@@ -94,6 +94,8 @@ pub fn run_desktop() {
     
     crate::serial_println!("[gui] Entered Desktop loop");
     
+    let mut last_update_ticks = 0;
+    
     // Main GUI Event Loop
     loop {
         if !GUI.lock().active {
@@ -102,6 +104,13 @@ pub fn run_desktop() {
         
         // 1. Process Input Events (Mouse, Keyboard)
         cursor::process_input();
+        
+        // 2. Update System Monitor periodically (every 20 ticks = ~400ms)
+        let current_ticks = crate::scheduler::total_ticks();
+        if current_ticks - last_update_ticks >= 20 {
+            compositor::update_system_monitor();
+            last_update_ticks = current_ticks;
+        }
         
         let needs_redraw = compositor::COMPOSITOR.lock().needs_redraw;
         let cursor_dirty = cursor::CURSOR.lock().dirty;

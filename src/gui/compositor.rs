@@ -31,6 +31,91 @@ lazy_static::lazy_static! {
     });
 }
 
+lazy_static::lazy_static! {
+    pub static ref CPU_HISTORY: Mutex<[u8; 20]> = Mutex::new([0; 20]);
+}
+
+struct TerminalWriterHelper<'a> {
+    content: &'a mut Vec<u8>,
+}
+
+impl<'a> core::fmt::Write for TerminalWriterHelper<'a> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.content.extend_from_slice(s.as_bytes());
+        Ok(())
+    }
+}
+
+pub fn update_system_monitor() {
+    let mut state = COMPOSITOR.lock();
+    
+    // 1. Get memory usage and task counts
+    let (used, _) = crate::memory::heap::heap_stats();
+    let total = crate::memory::heap::HEAP_SIZE;
+    let mem_mb = used / (1024 * 1024);
+    let total_mb = total / (1024 * 1024);
+    let tasks_count = crate::scheduler::list_tasks().len();
+    
+    // Estimate CPU usage based on active tasks and system ticks
+    let ticks = crate::scheduler::total_ticks();
+    let rand_val = (ticks % 7) as u8;
+    let cpu_load = ((tasks_count * 2) as u8 + rand_val + 2).min(100);
+    
+    // 2. Update CPU history
+    {
+        let mut history = CPU_HISTORY.lock();
+        for i in 0..19 {
+            history[i] = history[i + 1];
+        }
+        history[19] = cpu_load;
+    }
+    
+    // 3. Format window contents
+    if let Some(win) = state.windows.iter_mut().find(|w| w.id == 1) {
+        win.content.clear();
+        use core::fmt::Write;
+        let mut writer = TerminalWriterHelper { content: &mut win.content };
+        let _ = write!(
+            &mut writer,
+            "CPU Usage: {}%\nMemory: {}MB / {}MB\nTasks: {} Active\n\n  --- CPU Load History ---",
+            cpu_load, mem_mb, total_mb, tasks_count
+        );
+        state.needs_redraw = true;
+    }
+}
+
+pub fn spawn_terminal() {
+    let mut state = COMPOSITOR.lock();
+    if let Some(idx) = state.windows.iter().position(|w| w.id == 2) {
+        let w = state.windows.remove(idx);
+        state.windows.push(w);
+        let new_idx = state.windows.len() - 1;
+        state.focused_idx = Some(new_idx);
+    } else {
+        let mut w2 = Window::new(2, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
+        w2.content.extend_from_slice(b"FerrumOS:~$ ");
+        state.windows.push(w2);
+        state.focused_idx = Some(state.windows.len() - 1);
+    }
+    state.needs_redraw = true;
+}
+
+pub fn spawn_sys_mon() {
+    let mut state = COMPOSITOR.lock();
+    if let Some(idx) = state.windows.iter().position(|w| w.id == 1) {
+        let w = state.windows.remove(idx);
+        state.windows.push(w);
+        let new_idx = state.windows.len() - 1;
+        state.focused_idx = Some(new_idx);
+    } else {
+        let mut w1 = Window::new(1, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
+        w1.content.extend_from_slice(b"CPU Usage: 0%\nMemory: 0MB / 0MB\nTasks: 0 Active\n\n  --- CPU Load History ---");
+        state.windows.push(w1);
+        state.focused_idx = Some(state.windows.len() - 1);
+    }
+    state.needs_redraw = true;
+}
+
 pub fn init() {
     // Nothing to do for MVP init, structures are lazy_static
 }
@@ -75,6 +160,22 @@ pub fn render() {
 pub fn handle_mouse_down(mx: u32, my: u32) {
     let mut state = COMPOSITOR.lock();
     
+    // Check if clicked the Dock area
+    // Dock is at dock_x to dock_x + dock_w.
+    // dock_x = (fb_width - 400) / 2 = 312
+    // dock_y = fb_height - 50 = 718
+    if my >= 718 && my <= 758 && mx >= 312 && mx <= 712 {
+        drop(state);
+        if mx >= 327 && mx <= 427 {
+            spawn_terminal();
+        } else if mx >= 442 && mx <= 542 {
+            spawn_sys_mon();
+        } else if mx >= 557 && mx <= 617 {
+            crate::gui::exit_desktop();
+        }
+        return;
+    }
+    
     // Find window that was clicked (top-most first, which is end of array)
     let mut clicked_idx = None;
     for (i, window) in state.windows.iter().enumerate().rev() {
@@ -91,10 +192,27 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
         
+        let win = &state.windows[new_idx];
+        
+        // Check if clicked the close button [X] (top right: x + width - 20 to x + width - 4)
+        let is_close_btn = mx >= win.x + win.width - 20 && mx <= win.x + win.width - 4 &&
+                            my >= win.y + 2 && my <= win.y + 18;
+        
+        if is_close_btn {
+            state.windows.pop(); // Since we just pushed it to the end, pop removes it!
+            state.focused_idx = if !state.windows.is_empty() {
+                Some(state.windows.len() - 1)
+            } else {
+                None
+            };
+            state.needs_redraw = true;
+            return;
+        }
+        
         // Check if clicked title bar for dragging
-        let is_title_bar = state.windows[new_idx].is_title_bar(mx, my);
-        let win_x = state.windows[new_idx].x;
-        let win_y = state.windows[new_idx].y;
+        let is_title_bar = win.is_title_bar(mx, my);
+        let win_x = win.x;
+        let win_y = win.y;
         
         if is_title_bar {
             state.drag_active = true;

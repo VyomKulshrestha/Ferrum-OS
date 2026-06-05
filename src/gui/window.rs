@@ -74,6 +74,15 @@ impl Window {
             title_bg
         );
         
+        // Draw Close Button [X] at top-right
+        graphics::draw_string(
+            self.x + self.width - 16,
+            self.y + 2,
+            "X",
+            0x00FF3333,
+            title_bg
+        );
+        
         // 4. Draw Window Border
         let border_color = if focused { 0x0000FFCC } else { 0x00333333 }; // Neon Cyan if focused
         // Top
@@ -85,27 +94,79 @@ impl Window {
         // Right
         graphics::draw_line(self.x + self.width - 1, self.y, self.x + self.width - 1, self.y + self.height - 1, border_color);
         
-        // 5. Draw Content (Text)
+        // 5. Draw Content (Text & custom visual elements)
         let lines = self.get_wrapped_lines();
         let line_height = font::FONT_HEIGHT as u32 + 4;
         let max_visible_lines = ((self.height - 20 - 16) / line_height) as usize;
         
-        let start_line = if lines.len() > max_visible_lines {
-            lines.len() - max_visible_lines
-        } else {
-            0
-        };
-        
-        let mut cy = self.y + 20 + 8;
-        for line in &lines[start_line..] {
-            let mut cx = self.x + 8;
-            for ch in line.chars() {
-                if cx + font::FONT_WIDTH as u32 <= self.x + self.width - 8 {
-                    graphics::draw_char(cx, cy, ch as u8, 0x00CCCCCC, self.bg_color);
-                    cx += font::FONT_WIDTH as u32;
+        if self.id == 1 {
+            // System Monitor: Draw text lines normally, leaving room for graph
+            let mut cy = self.y + 20 + 8;
+            for line in &lines {
+                let mut cx = self.x + 8;
+                for ch in line.chars() {
+                    if cx + font::FONT_WIDTH as u32 <= self.x + self.width - 8 {
+                        graphics::draw_char(cx, cy, ch as u8, 0x00CCCCCC, self.bg_color);
+                        cx += font::FONT_WIDTH as u32;
+                    }
+                }
+                cy += line_height;
+            }
+            
+            // Draw Graph bounding box
+            let graph_x = self.x + 10;
+            let graph_y = self.y + 110;
+            let graph_w = self.width - 20; // 280
+            let graph_h = 70;
+            
+            // Draw box border (dark gray)
+            let box_border_color = 0x00333333;
+            graphics::fill_rect(graph_x, graph_y, graph_w, 1, box_border_color); // top
+            graphics::fill_rect(graph_x, graph_y + graph_h - 1, graph_w, 1, box_border_color); // bottom
+            graphics::fill_rect(graph_x, graph_y, 1, graph_h, box_border_color); // left
+            graphics::fill_rect(graph_x + graph_w - 1, graph_y, 1, graph_h, box_border_color); // right
+            
+            // Plot history lines
+            let history = crate::gui::compositor::CPU_HISTORY.lock();
+            let num_points = history.len();
+            
+            if num_points > 1 {
+                let step_x = graph_w / (num_points as u32 - 1);
+                
+                let get_coord = |index: usize| -> (u32, u32) {
+                    let px = graph_x + (index as u32 * step_x);
+                    let val = history[index] as u32;
+                    // scale val (0..100) to height (0..60) with 5px padding top/bottom
+                    let py = (graph_y + graph_h - 5) - (val * (graph_h - 10) / 100);
+                    (px, py)
+                };
+                
+                let line_color = 0x0000FFCC; // Neon Cyan
+                for i in 0..num_points - 1 {
+                    let (x1, y1) = get_coord(i);
+                    let (x2, y2) = get_coord(i + 1);
+                    graphics::draw_line(x1, y1, x2, y2, line_color);
                 }
             }
-            cy += line_height;
+        } else {
+            // Regular windows: Draw text with scroll-scrolling if it exceeds visible limits
+            let start_line = if lines.len() > max_visible_lines {
+                lines.len() - max_visible_lines
+            } else {
+                0
+            };
+            
+            let mut cy = self.y + 20 + 8;
+            for line in &lines[start_line..] {
+                let mut cx = self.x + 8;
+                for ch in line.chars() {
+                    if cx + font::FONT_WIDTH as u32 <= self.x + self.width - 8 {
+                        graphics::draw_char(cx, cy, ch as u8, 0x00CCCCCC, self.bg_color);
+                        cx += font::FONT_WIDTH as u32;
+                    }
+                }
+                cy += line_height;
+            }
         }
     }
     

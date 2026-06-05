@@ -61,13 +61,60 @@ pub fn render_taskbar() {
         fb.set_pixel(dock_x + dock_w - 1, y, neon_cyan);
     }
     
-    // We must drop fb before calling draw_string
+    // Draw Button Backgrounds and borders
+    // Button 1: Terminal
+    let btn1_x = dock_x + 15;
+    let btn1_y = dock_y + 8;
+    let btn1_w = 100;
+    let btn1_h = 24;
+    fb.draw_rect(btn1_x, btn1_y, btn1_w, btn1_h, 0x00222222);
+    for x in btn1_x..btn1_x + btn1_w {
+        fb.set_pixel(x, btn1_y, 0x00444444);
+        fb.set_pixel(x, btn1_y + btn1_h - 1, 0x00444444);
+    }
+    for y in btn1_y..btn1_y + btn1_h {
+        fb.set_pixel(btn1_x, y, 0x00444444);
+        fb.set_pixel(btn1_x + btn1_w - 1, y, 0x00444444);
+    }
+
+    // Button 2: Sys Mon
+    let btn2_x = dock_x + 130;
+    let btn2_y = dock_y + 8;
+    let btn2_w = 100;
+    let btn2_h = 24;
+    fb.draw_rect(btn2_x, btn2_y, btn2_w, btn2_h, 0x00222222);
+    for x in btn2_x..btn2_x + btn2_w {
+        fb.set_pixel(x, btn2_y, 0x00444444);
+        fb.set_pixel(x, btn2_y + btn2_h - 1, 0x00444444);
+    }
+    for y in btn2_y..btn2_y + btn2_h {
+        fb.set_pixel(btn2_x, y, 0x00444444);
+        fb.set_pixel(btn2_x + btn2_w - 1, y, 0x00444444);
+    }
+
+    // Button 3: Exit
+    let btn3_x = dock_x + 245;
+    let btn3_y = dock_y + 8;
+    let btn3_w = 60;
+    let btn3_h = 24;
+    fb.draw_rect(btn3_x, btn3_y, btn3_w, btn3_h, 0x00222222);
+    for x in btn3_x..btn3_x + btn3_w {
+        fb.set_pixel(x, btn3_y, 0x00444444);
+        fb.set_pixel(x, btn3_y + btn3_h - 1, 0x00444444);
+    }
+    for y in btn3_y..btn3_y + btn3_h {
+        fb.set_pixel(btn3_x, y, 0x00444444);
+        fb.set_pixel(btn3_x + btn3_w - 1, y, 0x00444444);
+    }
+    
     drop(fb_guard);
     
-    // Draw Start Text
-    graphics::draw_string(dock_x + 20, dock_y + 12, "FERRUM OS", neon_cyan, 0x00111111);
+    // Draw button texts
+    graphics::draw_string(btn1_x + 10, btn1_y + 5, "TERMINAL", 0x0000FFCC, 0x00222222);
+    graphics::draw_string(btn2_x + 10, btn2_y + 5, "SYS MON", 0x0000FFCC, 0x00222222);
+    graphics::draw_string(btn3_x + 15, btn3_y + 5, "EXIT", 0x00FF3333, 0x00222222);
     
     // Draw Status on right
-    let status_str = "SYS.ONLINE";
-    graphics::draw_string(dock_x + dock_w - 100, dock_y + 12, status_str, 0x00AAAAAA, 0x00111111);
+    let status_str = "ONLINE";
+    graphics::draw_string(dock_x + dock_w - 75, dock_y + 12, status_str, 0x00888888, 0x00111111);
 }
