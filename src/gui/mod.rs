@@ -77,9 +77,7 @@ pub fn run_desktop() {
         crate::scheduler::yield_current();
     }
     
-    // Clear screen and return to console
-    if let Some(fb) = FRAMEBUFFER.lock().as_ref() {
-        fb.clear(graphics::COLOR_BLACK);
-    }
+    // Restore previous console text
+    crate::graphics::redraw_console();
     crate::serial_println!("[gui] Exited Desktop loop");
 }

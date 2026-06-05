@@ -184,6 +184,31 @@ impl GraphicsConsole {
         self.row = 0;
     }
 
+    /// Redraw the entire console from the shadow text buffer.
+    /// Useful for restoring the console after a graphical application exits.
+    pub fn redraw(&self) {
+        let fb_guard = FRAMEBUFFER.lock();
+        if let Some(fb) = fb_guard.as_ref() {
+            fb.clear(self.bg_color);
+        }
+        drop(fb_guard); // Must drop before draw_glyph locks it again
+        
+        for r in 0..(self.max_rows as usize) {
+            for c in 0..(self.max_cols as usize) {
+                let byte = self.text_buffer[r][c];
+                if byte != b' ' && byte != 0 {
+                    let x = (c as u32) * FONT_WIDTH;
+                    let y = (r as u32) * FONT_HEIGHT;
+                    // Note: draw_glyph needs self, but it only reads colors.
+                    // Wait, draw_glyph mutates? No, it just draws.
+                    // We can't easily call self.draw_glyph if it takes &mut self, 
+                    // but we can just use graphics::draw_char
+                    graphics::draw_char(x, y, byte, self.fg_color, self.bg_color);
+                }
+            }
+        }
+    }
+
     // ========================================================================
     // Editing
     // ========================================================================

@@ -520,9 +520,7 @@ pub fn run_dashboard() {
         core::hint::spin_loop();
     }
 
-    // ── Exit: clear screen and show message ────────────────────────
-    fill_rect(0, 0, SCREEN_W, SCREEN_H, COLOR_BLACK);
-    draw_string(20, 20, "Returning to shell...", COLOR_LABEL, COLOR_BLACK);
-
+    // ── Exit: Restore previous console state ───────────────────────
     crate::serial_println!("[dashboard] exiting dashboard");
+    crate::graphics::redraw_console();
 }

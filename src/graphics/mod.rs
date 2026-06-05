@@ -53,6 +53,13 @@ pub fn is_initialized() -> bool {
     FRAMEBUFFER.lock().is_some()
 }
 
+/// Redraws the console text buffer to the screen.
+pub fn redraw_console() {
+    if let Some(console) = console::CONSOLE.lock().as_ref() {
+        console.redraw();
+    }
+}
+
 // ============================================================================
 // Character & String Rendering
 // ============================================================================
