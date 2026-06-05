@@ -63,11 +63,11 @@ pub fn process_input() {
                 
                 compositor::handle_mouse_move(new_x, new_y);
             }
-            crate::input::InputEventType::MouseButton(1, true) => {
+            crate::input::InputEventType::MouseButton(0, true) | crate::input::InputEventType::MouseButton(1, true) => {
                 cursor.left_down = true;
                 compositor::handle_mouse_down(cursor.x, cursor.y);
             }
-            crate::input::InputEventType::MouseButton(1, false) => {
+            crate::input::InputEventType::MouseButton(0, false) | crate::input::InputEventType::MouseButton(1, false) => {
                 cursor.left_down = false;
                 compositor::handle_mouse_up();
             }
