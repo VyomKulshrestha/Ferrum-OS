@@ -11,9 +11,7 @@ pub mod compositor;
 pub mod desktop;
 pub mod cursor;
 
-use alloc::vec::Vec;
 use spin::Mutex;
-use crate::graphics;
 use crate::devices::vga_fb::FRAMEBUFFER;
 
 /// Global GUI State
@@ -25,6 +23,45 @@ lazy_static::lazy_static! {
     pub static ref GUI: Mutex<GuiState> = Mutex::new(GuiState {
         active: false,
     });
+}
+
+/// Global redirect flag for command output redirection to terminal window.
+pub static TERMINAL_REDIRECT: Mutex<bool> = Mutex::new(false);
+
+pub fn is_terminal_redirect_active() -> bool {
+    *TERMINAL_REDIRECT.lock()
+}
+
+struct TerminalWriter;
+
+impl core::fmt::Write for TerminalWriter {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        let mut state = compositor::COMPOSITOR.lock();
+        if let Some(win) = state.windows.iter_mut().find(|w| w.id == 2) {
+            win.content.extend_from_slice(s.as_bytes());
+            if win.content.len() > 8192 {
+                let start_idx = win.content.len() - 8192;
+                win.content = win.content[start_idx..].to_vec();
+            }
+            state.needs_redraw = true;
+        }
+        Ok(())
+    }
+}
+
+pub fn write_to_terminal_window(args: core::fmt::Arguments) {
+    use core::fmt::Write;
+    let mut writer = TerminalWriter;
+    let _ = writer.write_fmt(args);
+}
+
+pub fn is_active() -> bool {
+    GUI.lock().active
+}
+
+pub fn exit_desktop() {
+    let mut state = GUI.lock();
+    state.active = false;
 }
 
 /// Initialize the GUI subsystem.

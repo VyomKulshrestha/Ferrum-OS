@@ -1,6 +1,6 @@
 extern crate alloc;
 
-mod commands;
+pub mod commands;
 pub mod dashboard;
 
 use alloc::string::{String, ToString};

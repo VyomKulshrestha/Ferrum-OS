@@ -269,15 +269,8 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     let scancode: u8 = unsafe { port.read() };
     
     // Simple scancode-to-ASCII translation (US QWERTY, Set 1)
-    // Only key-down events (high bit clear)
-    if scancode & 0x80 == 0 {
-        let ascii = scancode_to_ascii(scancode);
-        if let Some(ch) = ascii {
-            let mut queue = KEYBOARD_QUEUE.lock();
-            if let Some(ref mut q) = *queue {
-                q.push_back(ch);
-            }
-        }
+    if let Some(ch) = scancode_to_ascii(scancode) {
+        crate::input::inject_key_event(ch, true);
     }
     
     unsafe {
@@ -300,7 +293,6 @@ extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFr
 /// Convert PS/2 Set 1 scancode to ASCII character
 /// 
 /// This is a simplified mapping for US QWERTY layout.
-/// A full implementation would handle shift, caps lock, etc.
 fn scancode_to_ascii(scancode: u8) -> Option<u8> {
     // Shift state tracking
     static SHIFT_PRESSED: spin::Mutex<bool> = spin::Mutex::new(false);
@@ -311,65 +303,65 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
             *SHIFT_PRESSED.lock() = true;
             None
         }
-        // Shift released (key-up codes handled separately)
+        // Shift released
         0xAA | 0xB6 => {
             *SHIFT_PRESSED.lock() = false;
             None
         }
         _ => {
-            let _shift = *SHIFT_PRESSED.lock();
+            let is_shift = *SHIFT_PRESSED.lock();
             match scancode {
                 0x01 => Some(0x1B), // Escape
-                0x02 => Some(b'1'),
-                0x03 => Some(b'2'),
-                0x04 => Some(b'3'),
-                0x05 => Some(b'4'),
-                0x06 => Some(b'5'),
-                0x07 => Some(b'6'),
-                0x08 => Some(b'7'),
-                0x09 => Some(b'8'),
-                0x0A => Some(b'9'),
-                0x0B => Some(b'0'),
-                0x0C => Some(b'-'),
-                0x0D => Some(b'='),
+                0x02 => Some(if is_shift { b'!' } else { b'1' }),
+                0x03 => Some(if is_shift { b'@' } else { b'2' }),
+                0x04 => Some(if is_shift { b'#' } else { b'3' }),
+                0x05 => Some(if is_shift { b'$' } else { b'4' }),
+                0x06 => Some(if is_shift { b'%' } else { b'5' }),
+                0x07 => Some(if is_shift { b'^' } else { b'6' }),
+                0x08 => Some(if is_shift { b'&' } else { b'7' }),
+                0x09 => Some(if is_shift { b'*' } else { b'8' }),
+                0x0A => Some(if is_shift { b'(' } else { b'9' }),
+                0x0B => Some(if is_shift { b')' } else { b'0' }),
+                0x0C => Some(if is_shift { b'_' } else { b'-' }),
+                0x0D => Some(if is_shift { b'+' } else { b'=' }),
                 0x0E => Some(0x08), // Backspace
                 0x0F => Some(b'\t'),
-                0x10 => Some(b'q'),
-                0x11 => Some(b'w'),
-                0x12 => Some(b'e'),
-                0x13 => Some(b'r'),
-                0x14 => Some(b't'),
-                0x15 => Some(b'y'),
-                0x16 => Some(b'u'),
-                0x17 => Some(b'i'),
-                0x18 => Some(b'o'),
-                0x19 => Some(b'p'),
-                0x1A => Some(b'['),
-                0x1B => Some(b']'),
+                0x10 => Some(if is_shift { b'Q' } else { b'q' }),
+                0x11 => Some(if is_shift { b'W' } else { b'w' }),
+                0x12 => Some(if is_shift { b'E' } else { b'e' }),
+                0x13 => Some(if is_shift { b'R' } else { b'r' }),
+                0x14 => Some(if is_shift { b'T' } else { b't' }),
+                0x15 => Some(if is_shift { b'Y' } else { b'y' }),
+                0x16 => Some(if is_shift { b'U' } else { b'u' }),
+                0x17 => Some(if is_shift { b'I' } else { b'i' }),
+                0x18 => Some(if is_shift { b'O' } else { b'o' }),
+                0x19 => Some(if is_shift { b'P' } else { b'p' }),
+                0x1A => Some(if is_shift { b'{' } else { b'[' }),
+                0x1B => Some(if is_shift { b'}' } else { b']' }),
                 0x1C => Some(b'\n'), // Enter
-                0x1E => Some(b'a'),
-                0x1F => Some(b's'),
-                0x20 => Some(b'd'),
-                0x21 => Some(b'f'),
-                0x22 => Some(b'g'),
-                0x23 => Some(b'h'),
-                0x24 => Some(b'j'),
-                0x25 => Some(b'k'),
-                0x26 => Some(b'l'),
-                0x27 => Some(b';'),
-                0x28 => Some(b'\''),
-                0x29 => Some(b'`'),
-                0x2B => Some(b'\\'),
-                0x2C => Some(b'z'),
-                0x2D => Some(b'x'),
-                0x2E => Some(b'c'),
-                0x2F => Some(b'v'),
-                0x30 => Some(b'b'),
-                0x31 => Some(b'n'),
-                0x32 => Some(b'm'),
-                0x33 => Some(b','),
-                0x34 => Some(b'.'),
-                0x35 => Some(b'/'),
+                0x1E => Some(if is_shift { b'A' } else { b'a' }),
+                0x1F => Some(if is_shift { b'S' } else { b's' }),
+                0x20 => Some(if is_shift { b'D' } else { b'd' }),
+                0x21 => Some(if is_shift { b'F' } else { b'f' }),
+                0x22 => Some(if is_shift { b'G' } else { b'g' }),
+                0x23 => Some(if is_shift { b'H' } else { b'h' }),
+                0x24 => Some(if is_shift { b'J' } else { b'j' }),
+                0x25 => Some(if is_shift { b'K' } else { b'k' }),
+                0x26 => Some(if is_shift { b'L' } else { b'l' }),
+                0x27 => Some(if is_shift { b':' } else { b';' }),
+                0x28 => Some(if is_shift { b'"' } else { b'\'' }),
+                0x29 => Some(if is_shift { b'~' } else { b'`' }),
+                0x2B => Some(if is_shift { b'|' } else { b'\\' }),
+                0x2C => Some(if is_shift { b'Z' } else { b'z' }),
+                0x2D => Some(if is_shift { b'X' } else { b'x' }),
+                0x2E => Some(if is_shift { b'C' } else { b'c' }),
+                0x2F => Some(if is_shift { b'V' } else { b'v' }),
+                0x30 => Some(if is_shift { b'B' } else { b'b' }),
+                0x31 => Some(if is_shift { b'N' } else { b'n' }),
+                0x32 => Some(if is_shift { b'M' } else { b'm' }),
+                0x33 => Some(if is_shift { b'<' } else { b',' }),
+                0x34 => Some(if is_shift { b'>' } else { b'.' }),
+                0x35 => Some(if is_shift { b'?' } else { b'/' }),
                 0x39 => Some(b' '), // Space
                 _ => None,
             }

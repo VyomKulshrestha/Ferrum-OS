@@ -43,11 +43,11 @@ pub fn spawn_demo_windows() {
     w1.content.extend_from_slice(b"CPU Usage: 14%\nMemory: 256MB / 4096MB\nTasks: 5 Active\n\n[Graph Placeholder]");
     
     let mut w2 = Window::new(2, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
-    w2.content.extend_from_slice(b"FerrumOS:~$ echo hello\nhello\nFerrumOS:~$ _");
+    w2.content.extend_from_slice(b"FerrumOS:~$ ");
     
     state.windows.push(w1);
     state.windows.push(w2);
-    state.focused_idx = Some(1);
+    state.focused_idx = Some(1); // Focus the terminal window by default
     state.needs_redraw = true;
 }
 
@@ -137,4 +137,106 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
 pub fn handle_mouse_up() {
     let mut state = COMPOSITOR.lock();
     state.drag_active = false;
+}
+
+pub fn handle_key_press(ascii: u8) {
+    let mut state = COMPOSITOR.lock();
+    let focused_idx = state.focused_idx;
+    
+    if let Some(idx) = focused_idx {
+        if idx < state.windows.len() && state.windows[idx].id == 2 {
+            let win = &mut state.windows[idx];
+            match ascii {
+                b'\n' => {
+                    // 1. Extract command after the last prompt into an owned String
+                    let command_trimmed = {
+                        let content_str = match core::str::from_utf8(&win.content) {
+                            Ok(s) => s,
+                            Err(_) => "",
+                        };
+                        
+                        let command = if let Some(last_prompt_idx) = content_str.rfind("FerrumOS:~$ ") {
+                            &content_str[last_prompt_idx + 12..]
+                        } else {
+                            content_str
+                        };
+                        alloc::string::String::from(command.trim())
+                    };
+                    
+                    win.content.push(b'\n');
+                    
+                    if command_trimmed == "exit" {
+                        drop(state);
+                        crate::gui::exit_desktop();
+                        return;
+                    }
+                    
+                    if command_trimmed == "clear" {
+                        win.content.clear();
+                        win.content.extend_from_slice(b"FerrumOS:~$ ");
+                        state.needs_redraw = true;
+                        return;
+                    }
+                    
+                    if !command_trimmed.is_empty() {
+                        // Drop lock to prevent deadlocking when commands write to stdout
+                        drop(state);
+                        
+                        // Set redirect active
+                        *crate::gui::TERMINAL_REDIRECT.lock() = true;
+                        
+                        // Execute command
+                        crate::shell::commands::execute(&command_trimmed);
+                        
+                        // Clear redirect
+                        *crate::gui::TERMINAL_REDIRECT.lock() = false;
+                        
+                        // Re-acquire lock
+                        state = COMPOSITOR.lock();
+                    }
+                    
+                    // Re-fetch window pointer to be safe
+                    if let Some(w) = state.windows.iter_mut().find(|w| w.id == 2) {
+                        if w.content.last() == Some(&b'\n') {
+                            w.content.extend_from_slice(b"FerrumOS:~$ ");
+                        } else {
+                            w.content.extend_from_slice(b"\nFerrumOS:~$ ");
+                        }
+                    }
+                    state.needs_redraw = true;
+                }
+                0x08 => {
+                    // Backspace - check if we are deleting prompt
+                    if win.content.len() >= 12 {
+                        let len = win.content.len();
+                        let suffix = &win.content[len - 12..];
+                        if suffix == b"FerrumOS:~$ " {
+                            return;
+                        }
+                    }
+                    if !win.content.is_empty() {
+                        win.content.pop();
+                        state.needs_redraw = true;
+                    }
+                }
+                0x1B => {
+                    // Escape - clear input line
+                    let content_str = match core::str::from_utf8(&win.content) {
+                        Ok(s) => s,
+                        Err(_) => "",
+                    };
+                    if let Some(last_prompt_idx) = content_str.rfind("FerrumOS:~$ ") {
+                        win.content.truncate(last_prompt_idx + 12);
+                        state.needs_redraw = true;
+                    }
+                }
+                _ => {
+                    if ascii.is_ascii_graphic() || ascii == b' ' {
+                        win.content.push(ascii);
+                        state.needs_redraw = true;
+                    }
+                }
+            }
+        }
+    }
 }

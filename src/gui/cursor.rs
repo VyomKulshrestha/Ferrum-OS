@@ -71,6 +71,9 @@ pub fn process_input() {
                 cursor.left_down = false;
                 compositor::handle_mouse_up();
             }
+            crate::input::InputEventType::KeyPress(ascii) => {
+                compositor::handle_key_press(ascii);
+            }
             // Ignore other inputs for MVP
             _ => {}
         }
@@ -78,7 +81,7 @@ pub fn process_input() {
 }
 
 pub fn restore_background() {
-    let mut cursor = CURSOR.lock();
+    let cursor = CURSOR.lock();
     if !cursor.has_saved {
         return;
     }

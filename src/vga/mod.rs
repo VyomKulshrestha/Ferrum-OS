@@ -234,6 +234,11 @@ pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
+    if crate::gui::is_terminal_redirect_active() {
+        crate::gui::write_to_terminal_window(args);
+        return;
+    }
+
     crate::serial::_print(args);
 
     interrupts::without_interrupts(|| {
