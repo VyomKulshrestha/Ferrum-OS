@@ -25,7 +25,7 @@ static mut HEAP: [u8; 2 * 1024 * 1024] = [0; 2 * 1024 * 1024];
 pub unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
     let mut ret: u64;
     asm!(
-        "syscall",
+        "int 0x80",
         inout("rax") number => ret,
         in("rdi") arg1,
         in("rsi") arg2,
@@ -41,7 +41,7 @@ pub unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
 pub unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u64 {
     let mut ret: u64;
     asm!(
-        "syscall",
+        "int 0x80",
         inout("rax") number => ret,
         in("rdi") arg1,
         in("rsi") arg2,

@@ -102,7 +102,7 @@ pub fn init() {
         "heliox-daemon",
         "Heliox-OS native cognitive daemon",
         "/bin/heliox-daemon",
-        vec![String::from("cap:ipc:send"), String::from("cap:net:connect")],
+        vec![String::from("cap:ipc:send"), String::from("cap:net:connect"), String::from("cap:fs:read"), String::from("cap:fs:write")],
     ));
 }
 

@@ -392,24 +392,56 @@ extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackF
     let arg0: u64;
     let arg1: u64;
     let arg2: u64;
+    let arg3: u64;
     // Safety: we are in a privileged interrupt handler, and the
-    // user process gave us rax/rdi/rsi/rdx via the standard
-    // SysV-style ABI. We do not trust the user pointer values
-    // for the write path beyond their length.
+    // user process gave us rax/rdi/rsi/rdx/r10 via the standard
+    // SysV-style ABI. We also read r10 for 4-arg syscalls.
     unsafe {
         core::arch::asm!(
             "mov {0}, rax",
             "mov {1}, rdi",
             "mov {2}, rsi",
             "mov {3}, rdx",
+            "mov {4}, r10",
             out(reg) syscall_no,
             out(reg) arg0,
             out(reg) arg1,
             out(reg) arg2,
+            out(reg) arg3,
             options(nostack, preserves_flags),
         );
     }
 
+    // Check if this syscall comes from a userspace process.
+    // If CURRENT_PID > 0, we are in a userspace context and use the
+    // syscall/mod.rs dispatch (SyscallNumber enum: IpcSend=1, Socket=7, etc.).
+    // If CURRENT_PID == 0, we are in kernel/shell context and use the
+    // legacy Linux-style numbers (SYS_WRITE=1, SYS_EXIT=60, etc.).
+    let current_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+
+    if current_pid > 0 {
+        // Userspace process: forward to the unified syscall dispatcher.
+        let args = [arg0, arg1, arg2, arg3, 0, 0];
+        let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);
+        let result = if res.status == crate::syscall::SyscallStatus::Ok {
+            res.value
+        } else {
+            // Encode negative error codes the same way the legacy path does
+            res.status as i64 as u64
+        };
+
+        unsafe {
+            core::arch::asm!(
+                "mov rax, {0}",
+                in(reg) result,
+                options(nostack, preserves_flags),
+            );
+        }
+        let _ = stack_frame;
+        return;
+    }
+
+    // Legacy kernel/shell context: use Linux-style syscall numbers.
     let result = match syscall_no {
         syscall_number::SYS_WRITE => {
             // Arg0 = user pointer to bytes, arg1 = length,
@@ -489,19 +521,6 @@ extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackF
                         }
                         let scratch = crate::scheduler::scratch_context()
                             as *mut crate::scheduler::TaskContext;
-                        // The incoming task's context has
-                        // never been populated for a
-                        // freshly-spawned user task, so
-                        // there is nothing to load. The
-                        // switch will write garbage into
-                        // the incoming iretq frame, which
-                        // is fine because the only safe
-                        // destination is a task that has
-                        // its iretq frame on the stack
-                        // from a previous interrupt. In
-                        // the single-task case the
-                        // run-queue is empty and we fall
-                        // through to `hlt_loop()`.
                         unsafe {
                             crate::scheduler::context_switch_to(
                                 scratch,

@@ -32,7 +32,7 @@ const SYS_CONNECT: u64 = 14;
 unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
     let ret: u64;
     asm!(
-        "syscall",
+        "int 0x80",
         inout("rax") number => ret,
         in("rdi") arg1,
         in("rsi") arg2,
