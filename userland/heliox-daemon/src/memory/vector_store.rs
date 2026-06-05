@@ -32,6 +32,11 @@ impl VectorStore {
         });
     }
 
+    /// Returns the number of documents in the store.
+    pub fn document_count(&self) -> usize {
+        self.documents.len()
+    }
+
     /// Saves the vector store to disk
     pub fn save(&self, path: &str) -> Result<(), String> {
         let mut json = String::from("[\n");
