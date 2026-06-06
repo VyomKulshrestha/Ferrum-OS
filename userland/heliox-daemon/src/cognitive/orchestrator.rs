@@ -335,12 +335,14 @@ impl Orchestrator {
         self.emit_telemetry(TelemetryEventKind::ThinkStart, format!("Prompt generated ({} bytes)", prompt.len()));
 
         // Use config-driven LLM endpoint instead of hardcoded values
-        match network::query_ollama(
+        match network::query_llm(
+            &self.config.provider,
             &prompt,
             &self.config.api_host,
             self.config.api_port,
             &self.config.api_path,
             &self.config.model_name,
+            &self.config.api_key,
         ) {
             Ok(response) => {
                 if response.status_code == 200 {

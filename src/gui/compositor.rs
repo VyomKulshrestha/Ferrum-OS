@@ -155,7 +155,7 @@ pub fn spawn_agent_hud(is_setup: bool) {
         // ID 3 = Agent HUD
         let mut w3 = Window::new(3, crate::gui::window::WindowType::AgentHud, "Agent HUD", 200, 200, 400, 300, 0x000F111A);
         if is_setup {
-            w3.content.extend_from_slice(b"NEEDS_CONFIG");
+            w3.content.extend_from_slice(b"NEEDS_CONFIG_0\n");
         } else {
             w3.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
         }
@@ -492,23 +492,78 @@ pub fn handle_key_press(ascii: u8) {
                 let win = &mut state.windows[idx];
                 
                 // If it's the Setup Screen
-                let is_setup = core::str::from_utf8(&win.content).unwrap_or("").contains("NEEDS_CONFIG");
-                if is_setup && ascii == b'\n' {
-                    // Save Config and start
-                    crate::fs::create_file("/disk/heliox/config.json", r#"{ "api_host": "10.0.2.2", "model_name": "llama3" }"#).ok();
-                    win.content.clear();
-                    win.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
-                    
-                    // Send IPC wake up to daemon
-                    let _ = crate::ipc::send(crate::ipc::Message::new(
-                        0,
-                        crate::ipc::Endpoint::new("heliox", "default"),
-                        crate::ipc::MessageKind::Event,
-                        "ipc:send:*",
-                        b"CONFIG_UPDATED:",
-                    ).unwrap(), &alloc::vec![alloc::string::String::from("cap:system:all")]);
-                    
-                    state.needs_redraw = true;
+                let content_str = core::str::from_utf8(&win.content).unwrap_or("");
+                let is_setup = content_str.starts_with("NEEDS_CONFIG_");
+                if is_setup {
+                    match ascii {
+                        b'\n' => {
+                            let text = win.input_buffer.clone();
+                            win.input_buffer.clear();
+                            
+                            let content_str_again = core::str::from_utf8(&win.content).unwrap_or("");
+                            let step = content_str_again.chars().nth(13).unwrap_or('0');
+                            
+                            match step {
+                                '0' => {
+                                    win.content[13] = b'1';
+                                    let add = alloc::format!("PROV={}\n", text);
+                                    win.content.extend_from_slice(add.as_bytes());
+                                }
+                                '1' => {
+                                    win.content[13] = b'2';
+                                    let add = alloc::format!("HOST={}\n", text);
+                                    win.content.extend_from_slice(add.as_bytes());
+                                }
+                                '2' => {
+                                    let add = alloc::format!("KEY={}\n", text);
+                                    win.content.extend_from_slice(add.as_bytes());
+                                    
+                                    // Parse collected config
+                                    let final_str = core::str::from_utf8(&win.content).unwrap_or("");
+                                    let prov = final_str.lines().find(|l| l.starts_with("PROV=")).map(|l| &l[5..]).unwrap_or("ollama");
+                                    let host = final_str.lines().find(|l| l.starts_with("HOST=")).map(|l| &l[5..]).unwrap_or("10.0.2.2:11434");
+                                    let key = final_str.lines().find(|l| l.starts_with("KEY=")).map(|l| &l[4..]).unwrap_or("");
+                                    
+                                    let host_parts: alloc::vec::Vec<&str> = host.split(':').collect();
+                                    let h = host_parts.get(0).unwrap_or(&"10.0.2.2");
+                                    let p = host_parts.get(1).unwrap_or(&"11434");
+                                    
+                                    let config_json = alloc::format!(
+                                        r#"{{ "provider": "{}", "api_host": "{}", "api_port": {}, "api_key": "{}", "model_name": "{}" }}"#,
+                                        prov, h, p, key, if prov == "ollama" { "llama3" } else { "default" }
+                                    );
+                                    
+                                    crate::fs::create_file("/disk/heliox/config.json", &config_json).ok();
+                                    win.content.clear();
+                                    win.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
+                                    
+                                    // Send IPC wake up
+                                    let _ = crate::ipc::send(crate::ipc::Message::new(
+                                        0,
+                                        crate::ipc::Endpoint::new("heliox", "default"),
+                                        crate::ipc::MessageKind::Event,
+                                        "ipc:send:*",
+                                        b"CONFIG_UPDATED:",
+                                    ).unwrap(), &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                                }
+                                _ => {}
+                            }
+                            state.needs_redraw = true;
+                            return;
+                        }
+                        0x08 => {
+                            if !win.input_buffer.is_empty() {
+                                win.input_buffer.pop();
+                                state.needs_redraw = true;
+                            }
+                        }
+                        _ => {
+                            if ascii.is_ascii_graphic() || ascii == b' ' {
+                                win.input_buffer.push(ascii as char);
+                                state.needs_redraw = true;
+                            }
+                        }
+                    }
                     return;
                 }
                 

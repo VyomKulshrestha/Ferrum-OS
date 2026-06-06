@@ -180,15 +180,34 @@ impl Window {
             // Agent HUD: Draw translucent background over the content area
             // (We assume bg_color has an alpha/blend capability or is solid for now)
             
-            // Check if we are in NeedsConfig state by seeing if content contains "NeedsConfig"
-            let is_setup = core::str::from_utf8(&self.content).unwrap_or("").contains("NEEDS_CONFIG");
-
-            if is_setup {
-                // Draw Setup Screen
+            // Check if we are in NeedsConfig state
+            let content_str = core::str::from_utf8(&self.content).unwrap_or("");
+            if content_str.starts_with("NEEDS_CONFIG_") {
+                let step = content_str.chars().nth(13).unwrap_or('0');
+                
                 graphics::draw_string(self.x + 8, self.y + 40, "Heliox Initial Setup", 0x00FFFFFF, self.bg_color);
-                graphics::draw_string(self.x + 8, self.y + 60, "Provider: Local Ollama", 0x0000FFCC, self.bg_color);
-                graphics::draw_string(self.x + 8, self.y + 80, "Host: 10.0.2.2:11434", 0x0000FFCC, self.bg_color);
-                graphics::draw_string(self.x + 8, self.y + 110, "Press ENTER to save and start.", 0x00AAAAAA, self.bg_color);
+                
+                match step {
+                    '0' => {
+                        graphics::draw_string(self.x + 8, self.y + 60, "Step 1: Select Provider", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 80, "(ollama, openai, gemini, claude)", 0x00AAAAAA, self.bg_color);
+                    }
+                    '1' => {
+                        graphics::draw_string(self.x + 8, self.y + 60, "Step 2: API Host / Port", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 80, "(e.g. 10.0.2.2:4000 or 10.0.2.2:11434)", 0x00AAAAAA, self.bg_color);
+                    }
+                    '2' => {
+                        graphics::draw_string(self.x + 8, self.y + 60, "Step 3: API Key (if required)", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 80, "(Leave blank for local Ollama)", 0x00AAAAAA, self.bg_color);
+                    }
+                    _ => {}
+                }
+                
+                // Draw Input Buffer Field for Setup
+                let input_y = self.y + 110;
+                graphics::fill_rect(self.x + 8, input_y, self.width - 16, 20, 0x001A1A1A);
+                graphics::draw_string(self.x + 12, input_y + 4, ">", 0x00FFFFFF, 0x001A1A1A);
+                graphics::draw_string(self.x + 28, input_y + 4, &self.input_buffer, 0x00FFFFFF, 0x001A1A1A);
             } else {
                 // Draw Live Telemetry (Scrollable)
                 let start_line = if lines.len() > max_visible_lines - 2 {

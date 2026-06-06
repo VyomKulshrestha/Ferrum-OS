@@ -178,7 +178,7 @@ pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'sta
 
 /// Perform an HTTP POST request to the given host:port/path with a JSON body.
 /// This is a minimal bare-metal HTTP/1.1 client — no TLS, no chunked encoding.
-pub fn http_post(host: &str, port: u16, path: &str, json_body: &str) -> Result<HttpResponse, &'static str> {
+pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &str) -> Result<HttpResponse, &'static str> {
     // 1. Resolve the host
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
@@ -190,9 +190,16 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str) -> Result<H
 
     // 4. Build the HTTP request
     let content_length = json_body.len();
+    
+    let auth_header = if !api_key.is_empty() {
+        format!("Authorization: Bearer {}\r\n", api_key)
+    } else {
+        String::new()
+    };
+    
     let request = format!(
-        "POST {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-        path, host, port, content_length, json_body
+        "POST {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\nConnection: close\r\n\r\n{}",
+        path, host, port, auth_header, content_length, json_body
     );
 
     // 5. Send the request
@@ -283,34 +290,39 @@ fn escape_json(s: &str) -> String {
     out
 }
 
-/// Send a prompt to a local Ollama server running on the QEMU host.
-///
-/// Parameters are now configurable instead of hardcoded, allowing the
-/// agent config file (`/disk/heliox/config.json`) to control which
-/// LLM endpoint is used.
-pub fn query_ollama(
+/// Send a prompt to an LLM provider.
+pub fn query_llm(
+    provider: &str,
     prompt: &str,
     host: &str,
     port: u16,
     path: &str,
     model: &str,
+    api_key: &str,
 ) -> Result<HttpResponse, &'static str> {
-    let json = format!(
-        r#"{{"model":"{}","prompt":"{}","stream":false}}"#,
-        model,
-        escape_json(prompt)
-    );
-    let h = if host.is_empty() { "host" } else { host };
-    let p = if port == 0 { 11434 } else { port };
-    let api = if path.is_empty() { "/api/generate" } else { path };
-    http_post(h, p, api, &json)
+    let json = if provider == "ollama" {
+        format!(
+            r#"{{"model":"{}","prompt":"{}","stream":false}}"#,
+            model,
+            escape_json(prompt)
+        )
+    } else {
+        // OpenAI-compatible format (used for OpenAI, Gemini, Claude via LiteLLM)
+        format!(
+            r#"{{"model":"{}","messages":[{{"role":"user","content":"{}"}}]}}"#,
+            model,
+            escape_json(prompt)
+        )
+    };
+
+    http_post(host, port, path, &json, api_key)
 }
 
 /// Send a prompt to an OpenAI-compatible API running on the QEMU host.
 /// Default: POST http://10.0.2.2:8080/v1/chat/completions
 pub fn query_openai_compat(system_prompt: &str, user_message: &str, port: u16) -> Result<HttpResponse, &'static str> {
     let json = build_chat_payload(system_prompt, user_message);
-    http_post("host", port, "/v1/chat/completions", &json)
+    http_post("host", port, "/v1/chat/completions", &json, "")
 }
 
 // ============================================================================

@@ -34,6 +34,7 @@ impl LogLevel {
 /// Runtime configuration for the Heliox daemon.
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub provider: String,
     pub model_name: String,
     pub api_host: String,
     pub api_port: u16,
@@ -51,6 +52,7 @@ impl Config {
     /// Returns the default configuration.
     pub fn default() -> Self {
         Self {
+            provider: String::from("ollama"),
             model_name: String::from("llama3"),
             api_host: String::from("unconfigured"),
             api_port: 11434,
@@ -92,6 +94,7 @@ impl Config {
             if let Some(obj) = parsed.as_object() {
                 for (k, v) in obj {
                     match k.as_str() {
+                        "provider" => if let Some(s) = v.as_str() { config.provider = String::from(s); },
                         "model_name" => if let Some(s) = v.as_str() { config.model_name = String::from(s); },
                         "api_host" => if let Some(s) = v.as_str() { config.api_host = String::from(s); },
                         "api_port" => if let Some(n) = v.as_f64() { config.api_port = n as u16; },
