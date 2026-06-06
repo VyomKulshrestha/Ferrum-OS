@@ -8,30 +8,32 @@ FerrumOS keeps the kernel deterministic and independent from probabilistic AI
 systems. The AI brain runs natively as a freestanding userspace process
 (`heliox-daemon`) with direct syscall access to all hardware drivers.
 
-## Current Status
+## Features
 
-Version 0.2.0 — **All 13 implementation phases complete.** Boot image: 5829 KB.
-
-### Kernel
-
+### Kernel & Core
 - Bootloader integration through `bootloader`
-- VGA text output and UART serial logging
-- GDT, IDT, CPU exception handlers, PIC timer and keyboard IRQs
+- GDT, IDT, CPU exception handlers, PIC timer and hardware IRQs
 - Page-table setup, boot-info frame allocation, and a 1 MiB kernel heap
 - Preemptive task scheduler with per-task context switching and priority queues
 - Interactive shell with 35+ commands including `dashboard`
 - SMP initialization, ACPI shutdown/reboot
 - Real userspace execution: ELF loader, Ring-3 entry, per-process address spaces
 
-### Filesystem
+### Graphical Desktop Environment (GUI)
+- Custom Compositor and Window Manager
+- Interactive Desktop Taskbar and Dock
+- Movable, focusable GUI windows with close buttons and interactive titles
+- PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
+- CPU-efficient main loop with interrupt-driven `hlt` architecture
+- Hardware cursor rendering with dynamic drop-shadows
 
+### Filesystem
 - Volatile in-memory RAM filesystem with VFS mount table
 - ATA PIO block storage driver
 - Read-write Ext2 filesystem with block/inode allocation
 - VFS layer with longest-prefix mount matching and sync
 
 ### Security & Services
-
 - Capability registry and caller-held capability authorization
 - 5-tier permission model with operator confirmation gates
 - Audit logging hooks for security and lifecycle events
@@ -39,23 +41,20 @@ Version 0.2.0 — **All 13 implementation phases complete.** Boot image: 5829 KB
 - IPC broker with capability-checked message delivery
 
 ### Networking
-
 - RTL8139 PCI NIC driver with real TCP/IP via smoltcp
 - Socket syscalls: `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv`
 - HTTP/1.1 client (GET + POST) with 32KB response buffer
 - WebSocket client (RFC 6455) for streaming LLM responses
 
 ### Hardware Drivers
-
 - VGA framebuffer (Bochs VBE) with 1024×768 graphical console
 - Intel HDA audio controller with play/record/volume DMA
 - XHCI USB 3.0 host controller with device enumeration
 - USB HID keyboard and mouse (boot protocol)
-- PS/2 keyboard via 8042 controller
+- PS/2 keyboard and mouse via 8042 controller (IRQ1 & IRQ12)
 - PIT 8254 timer, UART 16550 serial
 
 ### Agent Daemon (`heliox-daemon`)
-
 - Bare-metal ReAct orchestrator (observe → think → act → verify → reflect)
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
@@ -78,6 +77,9 @@ Version 0.2.0 — **All 13 implementation phases complete.** Boot image: 5829 KB
 +----------------------------------------------------------+
 | Runtime Layer                                            |
 | Services, permissions, IPC, config, 35 tool ↔ syscall map |
++----------------------------------------------------------+
+| GUI & Compositor Layer                                   |
+| Window manager, taskbar, event routing, screen drawing    |
 +----------------------------------------------------------+
 | Kernel Layer                                             |
 | Boot, memory, interrupts, scheduling, ELF loader, Ring-3  |
@@ -162,6 +164,7 @@ Or use the build script:
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
 | `dashboard` | Full-screen system status TUI |
+| `desktop` | Launch Graphical Desktop Environment (GUI) |
 | `agent status` | Show agent runtime boundary state |
 | `agent start` | Start the sandboxed agent boundary |
 | `heliox status` | Show Heliox daemon state |
@@ -217,17 +220,6 @@ Or use the build script:
 | **2 — Network** | `net_connect`, `net_send`, `net_recv`, `http_get`, `load_memory`, `set_goal`, `record_audio`, `browse_url` |
 | **3 — Modify** | `write_file`, `create_directory`, `save_memory`, `service_start`, `service_stop`, `play_audio`, `keyboard_type`, `mouse_click`, `mouse_move` |
 | **4 — Destructive** | `exec_process`, `delete_file` |
-
-## Development Status
-
-All 13 implementation parts are complete:
-
-| Phase | Parts | Status |
-|-------|-------|--------|
-| **A — Kernel Foundation** | 1–5 (Boot, Scheduler, FS, Security, Services) | ✅ Complete |
-| **B — Networking & Agent** | 6–9.5 (NIC, Process, Daemon, VGA, Bugfixes) | ✅ Complete |
-| **C — Hardware Drivers** | 10–11 (HDA Audio, XHCI USB + Input) | ✅ Complete |
-| **D — Application Layer** | 12–13 (SystemQuery, Dashboard, WebSocket, Web Agent, Multi-Agent) | ✅ Complete |
 
 ## Design Rules
 

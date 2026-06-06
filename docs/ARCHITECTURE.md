@@ -28,6 +28,9 @@
 │ Service manager, IPC broker, capability checks,          │
 │ 35 tool ↔ syscall mapper, 5-tier permissions             │
 ├──────────────────────────────────────────────────────────┤
+│ GUI & Compositor Layer                                   │
+│ Window manager, desktop dock, event routing, compositor  │
+├──────────────────────────────────────────────────────────┤
 │ Kernel Layer                                             │
 │ Boot, GDT/IDT, page tables, heap, preemptive scheduler,  │
 │ ELF loader, Ring-3 entry, SMP, ACPI                      │
@@ -37,7 +40,7 @@
 ├──────────────────────────────────────────────────────────┤
 │ Hardware Layer                                           │
 │ RTL8139 NIC, Intel HDA audio, XHCI USB 3.0, USB HID,    │
-│ VGA/Bochs framebuffer, PS/2 keyboard, PIT, UART          │
+│ VGA/Bochs framebuffer, PS/2 keyboard/mouse, PIT, UART    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -86,6 +89,22 @@ and can evolve without destabilizing the kernel.
 - Input: InjectKey(26), InjectMouse(27), PollInput(28)
 - Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices
 
+## Graphical Desktop Environment (GUI)
+
+The OS features a fully integrated windowing system and compositor:
+
+### Compositor & Window Manager
+- Double-buffered rendering via VGA framebuffer (1024x768x32bpp)
+- Z-indexed overlapping windows with focus management
+- Interactive title bars (drag-to-move) and functioning close buttons
+- Desktop taskbar dock for launching system applications
+
+### Event Routing
+- Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
+- Main GUI loop utilizes `hlt` for 0% idle CPU usage, waking only on hardware IRQs
+- Mouse events support 9-bit signed deltas with overflow protection
+- Real-time hover state feedback for dock buttons and window controls
+
 ## Filesystem
 
 ### VFS
@@ -132,18 +151,12 @@ Longest-prefix mount matching. Currently two mounts:
 - Port status change detection and device slot assignment
 - MMIO-based controller reset and initialization
 
-### USB HID
+### PS/2 & USB Input Subsystem
 
-- Boot protocol keyboard and mouse support
-- Endpoint interrupt polling for input reports
+- 8042 PS/2 Controller: IRQ1 (Keyboard) and IRQ12 (Mouse) edge-triggered handlers
+- Mouse packet synchronization with auto-recovery timeouts
+- USB HID: Boot protocol keyboard and mouse support via endpoint polling
 - Scancode-to-ASCII translation
-- Mouse: relative X/Y and button state
-
-### Unified Input Subsystem
-
-- Event queue merging PS/2 keyboard, USB HID, and injected events
-- InputEvent struct: KeyPress/KeyRelease/MouseMove/MouseButton
-- Shell bridge for agent-injected keyboard/mouse events
 
 ### VGA Framebuffer
 
@@ -308,9 +321,10 @@ src/
 ├── ata/                  # ATA PIO block driver
 ├── net/                  # RTL8139 NIC, smoltcp interface
 ├── devices/              # PCI, HDA audio, XHCI USB, VGA FB
-├── input/                # Unified input subsystem, USB HID
+├── input/                # Unified input queue, USB HID, PS/2
 ├── audio/                # Audio mixer, PCM interface
 ├── graphics/             # Drawing primitives, console
+├── gui/                  # Compositor, window manager, desktop
 ├── security/             # Capabilities, audit log
 ├── services/             # Service manager, manifests
 ├── ipc/                  # IPC broker
