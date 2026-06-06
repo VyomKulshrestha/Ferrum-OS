@@ -103,7 +103,7 @@ pub fn handle_interrupt() {
     let data = unsafe { data_port.read() };
 
     let mut state = MOUSE_STATE.lock();
-    crate::serial_println!("[MOUSE] Received byte: {:#04X} at cycle: {}", data, state.cycle);
+    // Removed serial print to avoid interrupt latency
     match state.cycle {
         0 => {
             // First byte must have bit 3 set
@@ -111,7 +111,7 @@ pub fn handle_interrupt() {
                 state.packet[0] = data;
                 state.cycle = 1;
             } else {
-                crate::serial_println!("[MOUSE] Rejected cycle 0 byte (bit 3 not set): {:#04X}", data);
+                // Rejected byte - out of sync
             }
         }
         1 => {
@@ -127,7 +127,7 @@ pub fn handle_interrupt() {
             let dy = state.packet[2] as i8;
             let buttons = flags & 0x07;
             
-            crate::serial_println!("[MOUSE] Packet complete. dx={}, dy={}, buttons={}", dx, dy, buttons);
+            // Removed serial print to avoid interrupt latency
             crate::input::inject_mouse_event(dx, dy.saturating_neg(), buttons);
         }
         _ => state.cycle = 0,
