@@ -202,6 +202,10 @@ pub fn dispatch_with_capabilities(
                     
                     let to_copy = message.payload().len().min(buf_len);
                     if to_copy > 0 {
+                        let end = buf_ptr.saturating_add(to_copy as u64);
+                        if end >= 0x0000_7FFF_FFFF_FFFF {
+                            return SyscallResult::err(SyscallStatus::InvalidArgument);
+                        }
                         unsafe {
                             core::ptr::copy_nonoverlapping(
                                 message.payload().as_ptr(),

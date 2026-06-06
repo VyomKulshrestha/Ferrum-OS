@@ -66,8 +66,11 @@ pub fn sys_read_text_buffer(args: [u64; 6]) -> SyscallResult {
     let to_copy = bytes.len().min(buf_len).min(MAX_TEXT_BUF);
 
     if to_copy > 0 {
-        unsafe {
-            core::ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr as *mut u8, to_copy);
+        let end = buf_ptr.saturating_add(to_copy as u64);
+        if end < 0x0000_7FFF_FFFF_FFFF {
+            unsafe {
+                core::ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr as *mut u8, to_copy);
+            }
         }
     }
 
@@ -111,8 +114,11 @@ pub fn sys_read_framebuffer_info(args: [u64; 6]) -> SyscallResult {
     let to_copy = bytes.len().min(buf_len);
 
     if to_copy > 0 {
-        unsafe {
-            core::ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr as *mut u8, to_copy);
+        let end = buf_ptr.saturating_add(to_copy as u64);
+        if end < 0x0000_7FFF_FFFF_FFFF {
+            unsafe {
+                core::ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr as *mut u8, to_copy);
+            }
         }
     }
 

@@ -46,8 +46,14 @@ pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
     // Safety: buf_ptr is in the calling process's address space.
     // The syscall dispatcher validates this before calling us.
     let dest = buf_ptr as *mut u8;
-    unsafe {
-        core::ptr::copy_nonoverlapping(bytes.as_ptr(), dest, copy_len);
+    if copy_len > 0 {
+        let end = buf_ptr.saturating_add(copy_len);
+        if end >= 0x0000_7FFF_FFFF_FFFF {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
+        }
+        unsafe {
+            core::ptr::copy_nonoverlapping(bytes.as_ptr(), dest, copy_len);
+        }
     }
 
     SyscallResult::ok(copy_len as u64)

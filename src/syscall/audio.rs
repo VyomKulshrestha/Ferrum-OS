@@ -28,6 +28,10 @@ const MAX_AUDIO_BUF: usize = 4 * 1024 * 1024;
 unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
     if to_copy > 0 && dst != 0 {
+        let end = dst.saturating_add(to_copy as u64);
+        if end >= 0x0000_7FFF_FFFF_FFFF {
+            return 0;
+        }
         // SAFETY: caller guarantees the destination is valid and writable.
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
     }
@@ -53,6 +57,10 @@ pub fn sys_play_audio(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     if data_len > MAX_AUDIO_BUF {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    let end = data_ptr.saturating_add(data_len as u64);
+    if end >= 0x0000_7FFF_FFFF_FFFF {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 

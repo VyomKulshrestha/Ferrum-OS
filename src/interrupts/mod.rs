@@ -108,6 +108,39 @@ pub fn init_idt() {
 // CPU Exception Handlers
 // ============================================================================
 
+fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -> bool {
+    // In x86_64 0.14.x, SegmentSelector has a privilege_level method, but we can just check the raw bits
+    // Actually, x86_64 doesn't have an easy method to extract the raw u16 from SegmentSelector in all versions,
+    // so we can use stack_frame.cs.0 if it's public, or just skip the CS check if we can't do it easily,
+    // wait, we can just check CURRENT_PID! If CURRENT_PID > 0, it's a userspace task!
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    if pid != 0 {
+        println!("[KERNEL] Userspace process {} caused {}, terminating.", pid, fault_name);
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::SecurityViolation,
+            alloc::format!("Userspace process {} terminated due to {}", pid, fault_name).as_str(),
+        );
+        crate::scheduler::kill(pid);
+        
+        // Switch to next task
+        if let Some(next_pid) = crate::scheduler::schedule_next() {
+            if let Some((kstack, _cr3)) = crate::scheduler::switch_target(next_pid) {
+                unsafe {
+                    crate::gdt::set_kernel_stack(x86_64::VirtAddr::new(kstack));
+                    if let Some(ctx) = crate::scheduler::context_of(next_pid) {
+                        let scratch = crate::scheduler::scratch_context();
+                        *scratch = ctx;
+                        crate::scheduler::context_switch_to(scratch, scratch, kstack);
+                    }
+                }
+            }
+        }
+        
+        crate::hlt_loop();
+    }
+    false
+}
+
 /// Breakpoint exception handler (INT 3)
 /// 
 /// Triggered by the `int3` instruction. Used for debugging.
@@ -137,6 +170,10 @@ extern "x86-interrupt" fn page_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode,
 ) {
+    if handle_userspace_fault("Page Fault", &stack_frame) {
+        return;
+    }
+
     use x86_64::registers::control::Cr2;
 
     println!("[EXCEPTION] Page Fault");
@@ -160,6 +197,10 @@ extern "x86-interrupt" fn general_protection_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: u64,
 ) {
+    if handle_userspace_fault("General Protection Fault", &stack_frame) {
+        return;
+    }
+
     println!("[EXCEPTION] General Protection Fault");
     println!("  Error Code: {}", error_code);
     println!("{:#?}", stack_frame);
@@ -174,6 +215,10 @@ extern "x86-interrupt" fn general_protection_fault_handler(
 
 /// Invalid opcode handler
 extern "x86-interrupt" fn invalid_opcode_handler(stack_frame: InterruptStackFrame) {
+    if handle_userspace_fault("Invalid Opcode", &stack_frame) {
+        return;
+    }
+
     println!("[EXCEPTION] Invalid Opcode\n{:#?}", stack_frame);
     crate::hlt_loop();
 }

@@ -29,6 +29,10 @@ pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
     if len == 0 || len > MAX_PATH_LEN || ptr == 0 {
         return None;
     }
+    let end = ptr.saturating_add(len as u64);
+    if end >= 0x0000_7FFF_FFFF_FFFF {
+        return None; // Prevent accessing kernel space
+    }
     let slice = core::slice::from_raw_parts(ptr as *const u8, len);
     core::str::from_utf8(slice).ok().map(String::from)
 }
@@ -41,6 +45,10 @@ pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
 unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
     if to_copy > 0 && dst != 0 {
+        let end = dst.saturating_add(to_copy as u64);
+        if end >= 0x0000_7FFF_FFFF_FFFF {
+            return 0; // Prevent writing to kernel space
+        }
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
     }
     to_copy
