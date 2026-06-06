@@ -99,37 +99,46 @@ pub fn init() {
 }
 
 pub fn handle_interrupt() {
+    let mut cmd_port = Port::<u8>::new(PS2_CMD);
     let mut data_port = Port::<u8>::new(PS2_DATA);
-    let data = unsafe { data_port.read() };
 
-    let mut state = MOUSE_STATE.lock();
-    // Removed serial print to avoid interrupt latency
-    match state.cycle {
-        0 => {
-            // First byte must have bit 3 set
-            if (data & 0x08) != 0 {
-                state.packet[0] = data;
-                state.cycle = 1;
-            } else {
-                // Rejected byte - out of sync
+    loop {
+        let status = unsafe { cmd_port.read() };
+        // Bit 0 = Output Buffer Full
+        if (status & 0x01) == 0 {
+            break;
+        }
+        // Bit 5 = Mouse Output Buffer Full
+        if (status & 0x20) == 0 {
+            break; // Keyboard byte, leave it for IRQ1
+        }
+
+        let data = unsafe { data_port.read() };
+        let mut state = MOUSE_STATE.lock();
+        
+        match state.cycle {
+            0 => {
+                if (data & 0x08) != 0 {
+                    state.packet[0] = data;
+                    state.cycle = 1;
+                }
             }
+            1 => {
+                state.packet[1] = data;
+                state.cycle = 2;
+            }
+            2 => {
+                state.packet[2] = data;
+                state.cycle = 0;
+                
+                let flags = state.packet[0];
+                let dx = state.packet[1] as i8;
+                let dy = state.packet[2] as i8;
+                let buttons = flags & 0x07;
+                
+                crate::input::inject_mouse_event(dx, dy.saturating_neg(), buttons);
+            }
+            _ => state.cycle = 0,
         }
-        1 => {
-            state.packet[1] = data;
-            state.cycle = 2;
-        }
-        2 => {
-            state.packet[2] = data;
-            state.cycle = 0;
-            
-            let flags = state.packet[0];
-            let dx = state.packet[1] as i8;
-            let dy = state.packet[2] as i8;
-            let buttons = flags & 0x07;
-            
-            // Removed serial print to avoid interrupt latency
-            crate::input::inject_mouse_event(dx, dy.saturating_neg(), buttons);
-        }
-        _ => state.cycle = 0,
     }
 }
