@@ -310,6 +310,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
+
+
     // Enter the shell - this never returns
     ferrumos::shell::run();
 }

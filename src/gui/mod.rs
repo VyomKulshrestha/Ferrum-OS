@@ -121,10 +121,13 @@ pub fn run_desktop() {
             last_update_ticks = current_ticks;
         }
 
+        // 3. Render and Cursor Update
         let needs_redraw = compositor::COMPOSITOR.lock().needs_redraw;
-        let cursor_dirty = cursor::CURSOR.lock().dirty;
-        let cursor_moved = cursor::CURSOR.lock().x != cursor::CURSOR.lock().old_x
-            || cursor::CURSOR.lock().y != cursor::CURSOR.lock().old_y;
+        let (cursor_dirty, cursor_moved) = {
+            let cursor = cursor::CURSOR.lock();
+            let moved = cursor.x != cursor.old_x || cursor.y != cursor.old_y;
+            (cursor.dirty, moved)
+        };
 
         if needs_redraw {
             // Full compositor redraw: clears the cursor, so we must

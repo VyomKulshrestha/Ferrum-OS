@@ -62,7 +62,7 @@ fn write_mouse(data: u8) {
     unsafe { data_port.write(data) };
     
     wait_read();
-    unsafe { data_port.read() }; // ACK
+    let _ack = unsafe { data_port.read() }; // ACK
 }
 
 pub fn init() {
