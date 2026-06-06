@@ -116,7 +116,7 @@ pub fn spawn_terminal() {
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
     } else {
-        let mut w2 = Window::new(2, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
+        let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
         w2.content.extend_from_slice(b"FerrumOS:~$ ");
         state.windows.push(w2);
         state.focused_idx = Some(state.windows.len() - 1);
@@ -132,7 +132,7 @@ pub fn spawn_sys_mon() {
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
     } else {
-        let mut w1 = Window::new(1, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
+        let mut w1 = Window::new(1, crate::gui::window::WindowType::SystemMonitor, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
         w1.content.extend_from_slice(b"CPU Usage: 0%\nMemory: 0MB / 0MB\nTasks: 0 Active\n\n  --- CPU Load History ---");
         state.windows.push(w1);
         state.focused_idx = Some(state.windows.len() - 1);
@@ -406,7 +406,6 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
     state.drag_active = false;
 }
 
-pub fn handle_key_press(ascii: u8) {
 pub fn handle_key_press(ascii: u8) {
     let mut state = COMPOSITOR.lock();
     let focused_idx = state.focused_idx;

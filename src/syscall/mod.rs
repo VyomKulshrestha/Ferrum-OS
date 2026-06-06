@@ -197,14 +197,14 @@ pub fn dispatch_with_capabilities(
                     
                     if buf_ptr == 0 || buf_len == 0 {
                         // User just wants to consume/drop the message or check if there is one
-                        return SyscallResult::ok(message.payload.len() as u64);
+                        return SyscallResult::ok(message.payload().len() as u64);
                     }
                     
-                    let to_copy = message.payload.len().min(buf_len);
+                    let to_copy = message.payload().len().min(buf_len);
                     if to_copy > 0 {
                         unsafe {
                             core::ptr::copy_nonoverlapping(
-                                message.payload.as_ptr(),
+                                message.payload().as_ptr(),
                                 buf_ptr as *mut u8,
                                 to_copy,
                             );

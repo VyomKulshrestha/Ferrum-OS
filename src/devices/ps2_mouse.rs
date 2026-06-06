@@ -160,7 +160,7 @@ pub fn handle_interrupt() {
                 let buttons = flags & 0x07;
                 
                 // dy is positive for UP in PS/2, so we negate it for screen coordinates
-                crate::input::inject_mouse_event(dx as i8, dy.saturating_neg() as i8, buttons);
+                crate::input::inject_mouse_event(dx as i16, dy.saturating_neg() as i16, buttons);
             }
             _ => state.cycle = 0,
         }

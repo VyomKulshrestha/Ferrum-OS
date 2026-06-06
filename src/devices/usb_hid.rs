@@ -356,5 +356,5 @@ pub fn process_mouse_report(data: &[u8]) {
         }
     };
 
-    crate::input::inject_mouse_event(report.x, report.y, report.buttons);
+    crate::input::inject_mouse_event(report.x as i16, report.y as i16, report.buttons);
 }
