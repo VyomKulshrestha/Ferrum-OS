@@ -56,8 +56,8 @@ mod hda {
     pub fn init() {
         match crate::devices::hda::init() {
             Ok(()) => {}
-            Err(_e) => {
-                // Driver init failed — is_available() will return false.
+            Err(e) => {
+                crate::serial_println!("[audio] HDA init failed: {}", e);
             }
         }
     }

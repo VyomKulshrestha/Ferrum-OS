@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Intel High Definition Audio (HDA) Controller Driver
 // ============================================================================
 // Hardware driver for the Intel HDA controller as emulated by QEMU
@@ -437,7 +437,8 @@ pub fn init() -> Result<(), &'static str> {
     for _ in 0..POLL_TIMEOUT {
         let sts = regs.read16(REG_STATESTS);
         if sts != 0 {
-            crate::serial_println!("HDA: STATESTS={:#06X} â€” codec(s) detected", sts);
+            crate::serial_println!("HDA: STATESTS={:#06X} — codec(s) detected", sts);
+            regs.write16(REG_STATESTS, sts); // write-1-to-clear
             codec_detected = true;
             break;
         }
@@ -671,7 +672,7 @@ impl HdaController {
         // Poll RIRBWP until the controller has written a response.
         let mut timeout = POLL_TIMEOUT;
         loop {
-            let hw_wp = self.regs.read16(REG_RIRBWP);
+            let hw_wp = self.regs.read16(REG_RIRBWP) & 0xFF;
             if hw_wp != self.rirb_rp {
                 break;
             }
@@ -689,6 +690,10 @@ impl HdaController {
         let rirb_slot = self.rirb_virt.as_u64() + (self.rirb_rp as u64) * 8;
         // Safety: rirb_slot is within the RIRB page.
         let response = unsafe { core::ptr::read_volatile(rirb_slot as *const u32) };
+
+        // Clear RIRB Interrupt Status (bit 0 = Response Interrupt, bit 2 = RIRB Overrun).
+        // This is a write-1-to-clear register.
+        self.regs.write8(REG_RIRBSTS, 0x05);
 
         Ok(response)
     }
