@@ -154,7 +154,7 @@ const AUDIO_BUF_CHUNK: usize = 4096;
 const AUDIO_BUF_TOTAL: usize = BDL_ENTRY_COUNT * AUDIO_BUF_CHUNK;
 
 // Timeout for polling loops (iterations)
-const POLL_TIMEOUT: u32 = 100_000;
+const POLL_TIMEOUT: u32 = 10_000_000;
 
 // ============================================================================
 // BDL Entry (Buffer Descriptor List)
