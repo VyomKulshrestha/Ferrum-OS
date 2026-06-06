@@ -181,11 +181,14 @@ pub fn render() {
     // 2. Draw Windows from back to front. The hover state
     //    tells the window renderer whether the close button
     //    is being hovered so it can change colour.
-    for (i, window) in COMPOSITOR.lock().windows.iter().enumerate() {
-        let focused = COMPOSITOR.lock().focused_idx == Some(i);
+    let mut state = COMPOSITOR.lock();
+    let focused_idx = state.focused_idx;
+    for (i, window) in state.windows.iter().enumerate() {
+        let focused = focused_idx == Some(i);
         let close_hovered = matches!(hover, HoverTarget::WindowClose(id) if id == window.id);
         window.render(focused, close_hovered);
     }
+    drop(state);
 
     // 3. Draw Taskbar (with hover/press state for the
     //    buttons).
