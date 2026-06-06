@@ -56,30 +56,32 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Agent Daemon (`heliox-daemon`)
 - Bare-metal ReAct orchestrator (observe → think → act → verify → reflect)
+- Multi-Provider Support: Natively connects to local Ollama or cloud models (OpenAI, Gemini, Claude) via host proxy
+- Ambient Background Logic: Actively records voice from mic and performs anomaly screen vision checks
+- Interactive Agent HUD: Desktop GUI widget for Live Telemetry streaming and direct goal input
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
-- `no_std` JSON parser and LLM response decoder
+- `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
 - 35 tools mapped to 30 kernel syscalls
-- Config-driven LLM endpoint from `/disk/heliox/config.json`
-- Multi-agent domain router (Code/Web/System/Files specialization)
-- Web agent with HTML-to-text extraction and link discovery
-- Reasoning telemetry emitted to kernel audit log
+- Config-driven setup via `/disk/heliox/config.json`
+- Reasoning telemetry emitted over IPC to the GUI service
 
 ## Architecture
 
 ```text
 +----------------------------------------------------------+
 | Agent Layer (heliox-daemon)                              |
-| ReAct orchestrator, multi-agent routing, web browsing     |
+| ReAct orchestrator, multi-provider network client (LLM),  |
+| ambient mic/vision recording, multi-agent domain routing  |
 +----------------------------------------------------------+
 | Cognitive Layer (heliox-daemon)                          |
-| Vector store, TF-IDF, planner, reflector, domain routing  |
+| Vector store, TF-IDF, planner, reflector, JSON decoder    |
 +----------------------------------------------------------+
 | Runtime Layer                                            |
 | Services, permissions, IPC, config, 35 tool ↔ syscall map |
 +----------------------------------------------------------+
 | GUI & Compositor Layer                                   |
-| Window manager, taskbar, event routing, screen drawing    |
+| Window manager, JARVIS Agent HUD, taskbar, telemetry IPC  |
 +----------------------------------------------------------+
 | Kernel Layer                                             |
 | Boot, memory, interrupts, scheduling, ELF loader, Ring-3  |
@@ -88,7 +90,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 | ATA PIO block driver, Ext2 filesystem, VFS mount table    |
 +----------------------------------------------------------+
 | Network / Hardware Layer                                 |
-| RTL8139 NIC, Intel HDA, XHCI USB, USB HID, smoltcp      |
+| RTL8139 NIC, Intel HDA (audio), XHCI USB, smoltcp (TCP)   |
 +----------------------------------------------------------+
 ```
 

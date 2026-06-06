@@ -17,19 +17,18 @@
 ```text
 ┌──────────────────────────────────────────────────────────┐
 │ Agent Layer (heliox-daemon)                              │
-│ ReAct orchestrator, multi-agent domain router,           │
-│ web browsing, autonomous planning + reflection           │
+│ ReAct orchestrator, multi-provider network client (LLM), │
+│ ambient mic/vision recording, multi-agent domain routing │
 ├──────────────────────────────────────────────────────────┤
 │ Cognitive Layer (heliox-daemon)                          │
-│ TF-IDF vector store, cosine similarity search,           │
-│ hierarchical planner, verifier, reflector                │
+│ Vector store, TF-IDF, planner, reflector, JSON decoder   │
 ├──────────────────────────────────────────────────────────┤
 │ Runtime Layer                                            │
 │ Service manager, IPC broker, capability checks,          │
 │ 35 tool ↔ syscall mapper, 5-tier permissions             │
 ├──────────────────────────────────────────────────────────┤
 │ GUI & Compositor Layer                                   │
-│ Window manager, desktop dock, event routing, compositor  │
+│ Window manager, JARVIS Agent HUD, taskbar, telemetry IPC │
 ├──────────────────────────────────────────────────────────┤
 │ Kernel Layer                                             │
 │ Boot, GDT/IDT, page tables, heap, preemptive scheduler,  │
@@ -39,7 +38,7 @@
 │ ATA PIO driver, Ext2 filesystem, RamFS, VFS mount table  │
 ├──────────────────────────────────────────────────────────┤
 │ Hardware Layer                                           │
-│ RTL8139 NIC, Intel HDA audio, XHCI USB 3.0, USB HID,    │
+│ RTL8139 NIC, Intel HDA audio, XHCI USB 3.0, USB HID,     │
 │ VGA/Bochs framebuffer, PS/2 keyboard/mouse, PIT, UART    │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -97,7 +96,8 @@ The OS features a fully integrated windowing system and compositor:
 - Double-buffered rendering via VGA framebuffer (1024x768x32bpp)
 - Z-indexed overlapping windows with focus management
 - Interactive title bars (drag-to-move) and functioning close buttons
-- Desktop taskbar dock for launching system applications
+- Desktop taskbar dock with interactive JARVIS Agent HUD launcher
+- Interactive Agent HUD with multi-step setup wizard and Live Telemetry mode
 
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
@@ -220,6 +220,14 @@ Longest-prefix mount matching. Currently two mounts:
               │
               └──→ loop back to OBSERVE
 ```
+
+### Ambient Intelligence & Multi-Provider Support
+
+The agent daemon continuously buffers 1-second chunks of audio from the Intel HDA hardware. When voice activity is detected, it transcribes the audio and generates a new `GOAL:`, bridging the physical world with the ReAct loop. It also periodically screenshots the desktop to proactively solve GUI errors.
+
+The `network.rs` client is dynamically driven by the Agent HUD configuration, supporting two payload schemas:
+1. **Ollama Format:** Flat `{"model", "prompt"}` JSON.
+2. **OpenAI Chat Format:** `{"messages": [{"role", "content"}]}` with `Authorization: Bearer` headers (supporting OpenAI, Gemini, and Claude via host proxy wrappers).
 
 ### Components
 
