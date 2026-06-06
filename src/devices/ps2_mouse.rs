@@ -21,6 +21,7 @@ static MOUSE_STATE: Mutex<MouseState> = Mutex::new(MouseState::new());
 struct MouseState {
     cycle: u8,
     packet: [u8; 3],
+    last_tick: u64,
 }
 
 impl MouseState {
@@ -28,6 +29,7 @@ impl MouseState {
         MouseState {
             cycle: 0,
             packet: [0; 3],
+            last_tick: 0,
         }
     }
 }
@@ -67,6 +69,11 @@ pub fn init() {
     x86_64::instructions::interrupts::without_interrupts(|| {
         let mut cmd_port = Port::<u8>::new(PS2_CMD);
         let mut data_port = Port::<u8>::new(PS2_DATA);
+
+        // Flush any pending data in the PS/2 controller before init
+        while (unsafe { cmd_port.read() } & 1) == 1 {
+            unsafe { data_port.read() };
+        }
 
         // 1. Enable Auxiliary Device
         wait_write();
@@ -115,6 +122,13 @@ pub fn handle_interrupt() {
 
         let data = unsafe { data_port.read() };
         let mut state = MOUSE_STATE.lock();
+        
+        let now = crate::scheduler::total_ticks();
+        if state.cycle > 0 && now.saturating_sub(state.last_tick) > 10 {
+            // Desynchronized (timeout of ~200ms). Reset.
+            state.cycle = 0;
+        }
+        state.last_tick = now;
         
         match state.cycle {
             0 => {
