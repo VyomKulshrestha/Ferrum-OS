@@ -100,6 +100,13 @@ pub fn init() {
 
         // 6. Enable Data Reporting
         write_mouse(MOUSE_ENABLE_PACKETS);
+
+        // 7. Unmask IRQ12 (Mouse) in the PIC
+        unsafe {
+            let mut pics = crate::interrupts::PICS.lock();
+            let masks = pics.read_masks();
+            pics.write_masks(masks[0] & !(1 << 2), masks[1] & !(1 << 4));
+        }
         
         crate::serial_println!("PS/2 Mouse initialized");
     });
