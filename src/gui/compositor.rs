@@ -16,6 +16,7 @@ pub enum HoverTarget {
     None,
     TerminalButton,
     SysMonButton,
+    JarvisButton,
     ExitButton,
     /// Close button of the window with this id.
     WindowClose(u64),
@@ -143,20 +144,48 @@ pub fn init() {
     // Nothing to do for MVP init, structures are lazy_static
 }
 
+pub fn spawn_agent_hud(is_setup: bool) {
+    let mut state = COMPOSITOR.lock();
+    if let Some(idx) = state.windows.iter().position(|w| w.id == 3) {
+        let w = state.windows.remove(idx);
+        state.windows.push(w);
+        let new_idx = state.windows.len() - 1;
+        state.focused_idx = Some(new_idx);
+    } else {
+        // ID 3 = Agent HUD
+        let mut w3 = Window::new(3, crate::gui::window::WindowType::AgentHud, "Agent HUD", 200, 200, 400, 300, 0x000F111A);
+        if is_setup {
+            w3.content.extend_from_slice(b"NEEDS_CONFIG");
+        } else {
+            w3.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
+        }
+        state.windows.push(w3);
+        state.focused_idx = Some(state.windows.len() - 1);
+    }
+    state.needs_redraw = true;
+}
+
 pub fn spawn_demo_windows() {
     let mut state = COMPOSITOR.lock();
     state.windows.clear();
 
-    let mut w1 = Window::new(1, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
+    let mut w1 = Window::new(1, crate::gui::window::WindowType::SystemMonitor, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
     w1.content.extend_from_slice(b"CPU Usage: 14%\nMemory: 256MB / 4096MB\nTasks: 5 Active\n\n[Graph Placeholder]");
 
-    let mut w2 = Window::new(2, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
+    let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
     w2.content.extend_from_slice(b"FerrumOS:~$ ");
 
     state.windows.push(w1);
     state.windows.push(w2);
     state.focused_idx = Some(1); // Focus the terminal window by default
     state.needs_redraw = true;
+    
+    drop(state);
+
+    // Check if agent needs config
+    if let Err(_) = crate::fs::read_file("/disk/heliox/config.json") {
+        spawn_agent_hud(true); // missing config -> setup state
+    }
 }
 
 pub fn render() {
@@ -324,15 +353,12 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
 fn hit_test_taskbar(mx: u32, my: u32) -> HoverTarget {
     // Dock layout (must match `desktop::render_taskbar`):
     //   dock_x = 312, dock_y = 718, dock_w = 400, dock_h = 40
-    //   btn1 TERMINAL: (327..427, 726..750)
-    //   btn2 SYS MON:  (442..542, 726..750)
-    //   btn3 EXIT:     (557..617, 726..750)
     if mx >= 327 && mx <= 427 && my >= 726 && my <= 750 {
         HoverTarget::TerminalButton
-    } else if mx >= 442 && mx <= 542 && my >= 726 && my <= 750 {
+    } else if mx >= 437 && mx <= 537 && my >= 726 && my <= 750 {
         HoverTarget::SysMonButton
-    } else if mx >= 557 && mx <= 617 && my >= 726 && my <= 750 {
-        HoverTarget::ExitButton
+    } else if mx >= 547 && mx <= 647 && my >= 726 && my <= 750 {
+        HoverTarget::JarvisButton
     } else {
         HoverTarget::None
     }
@@ -361,6 +387,11 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                     spawn_sys_mon();
                     return;
                 }
+                HoverTarget::JarvisButton => {
+                    drop(state);
+                    spawn_agent_hud(false); // Assume false for now, window content holds true state
+                    return;
+                }
                 HoverTarget::ExitButton => {
                     drop(state);
                     crate::gui::exit_desktop();
@@ -376,100 +407,139 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
 }
 
 pub fn handle_key_press(ascii: u8) {
+pub fn handle_key_press(ascii: u8) {
     let mut state = COMPOSITOR.lock();
     let focused_idx = state.focused_idx;
 
     if let Some(idx) = focused_idx {
-        if idx < state.windows.len() && state.windows[idx].id == 2 {
-            let win = &mut state.windows[idx];
-            match ascii {
-                b'\n' => {
-                    // 1. Extract command after the last prompt into an owned String
-                    let command_trimmed = {
-                        let content_str = match core::str::from_utf8(&win.content) {
-                            Ok(s) => s,
-                            Err(_) => "",
+        if idx < state.windows.len() {
+            let win_type = state.windows[idx].win_type;
+            
+            if win_type == crate::gui::window::WindowType::Terminal {
+                let win = &mut state.windows[idx];
+                match ascii {
+                    b'\n' => {
+                        let command_trimmed = {
+                            let content_str = core::str::from_utf8(&win.content).unwrap_or("");
+                            let command = if let Some(last_prompt_idx) = content_str.rfind("FerrumOS:~$ ") {
+                                &content_str[last_prompt_idx + 12..]
+                            } else {
+                                content_str
+                            };
+                            alloc::string::String::from(command.trim())
                         };
 
-                        let command = if let Some(last_prompt_idx) = content_str.rfind("FerrumOS:~$ ") {
-                            &content_str[last_prompt_idx + 12..]
-                        } else {
-                            content_str
-                        };
-                        alloc::string::String::from(command.trim())
-                    };
+                        win.content.push(b'\n');
 
-                    win.content.push(b'\n');
-
-                    if command_trimmed == "exit" {
-                        drop(state);
-                        crate::gui::exit_desktop();
-                        return;
-                    }
-
-                    if command_trimmed == "clear" {
-                        win.content.clear();
-                        win.content.extend_from_slice(b"FerrumOS:~$ ");
-                        state.needs_redraw = true;
-                        return;
-                    }
-
-                    if !command_trimmed.is_empty() {
-                        // Drop lock to prevent deadlocking when commands write to stdout
-                        drop(state);
-
-                        // Set redirect active
-                        *crate::gui::TERMINAL_REDIRECT.lock() = true;
-
-                        // Execute command
-                        crate::shell::commands::execute(&command_trimmed);
-
-                        // Clear redirect
-                        *crate::gui::TERMINAL_REDIRECT.lock() = false;
-
-                        // Re-acquire lock
-                        state = COMPOSITOR.lock();
-                    }
-
-                    // Re-fetch window pointer to be safe
-                    if let Some(w) = state.windows.iter_mut().find(|w| w.id == 2) {
-                        if w.content.last() == Some(&b'\n') {
-                            w.content.extend_from_slice(b"FerrumOS:~$ ");
-                        } else {
-                            w.content.extend_from_slice(b"\nFerrumOS:~$ ");
-                        }
-                    }
-                    state.needs_redraw = true;
-                }
-                0x08 => {
-                    // Backspace - check if we are deleting prompt
-                    if win.content.len() >= 12 {
-                        let len = win.content.len();
-                        let suffix = &win.content[len - 12..];
-                        if suffix == b"FerrumOS:~$ " {
+                        if command_trimmed == "exit" {
+                            drop(state);
+                            crate::gui::exit_desktop();
                             return;
                         }
-                    }
-                    if !win.content.is_empty() {
-                        win.content.pop();
+
+                        if command_trimmed == "clear" {
+                            win.content.clear();
+                            win.content.extend_from_slice(b"FerrumOS:~$ ");
+                            state.needs_redraw = true;
+                            return;
+                        }
+
+                        if !command_trimmed.is_empty() {
+                            drop(state);
+                            *crate::gui::TERMINAL_REDIRECT.lock() = true;
+                            crate::shell::commands::execute(&command_trimmed);
+                            *crate::gui::TERMINAL_REDIRECT.lock() = false;
+                            state = COMPOSITOR.lock();
+                        }
+
+                        if let Some(w) = state.windows.iter_mut().find(|w| w.win_type == crate::gui::window::WindowType::Terminal) {
+                            if w.content.last() == Some(&b'\n') {
+                                w.content.extend_from_slice(b"FerrumOS:~$ ");
+                            } else {
+                                w.content.extend_from_slice(b"\nFerrumOS:~$ ");
+                            }
+                        }
                         state.needs_redraw = true;
+                    }
+                    0x08 => {
+                        if win.content.len() >= 12 {
+                            let len = win.content.len();
+                            let suffix = &win.content[len - 12..];
+                            if suffix == b"FerrumOS:~$ " {
+                                return;
+                            }
+                        }
+                        if !win.content.is_empty() {
+                            win.content.pop();
+                            state.needs_redraw = true;
+                        }
+                    }
+                    0x1B => {
+                        let content_str = core::str::from_utf8(&win.content).unwrap_or("");
+                        if let Some(last_prompt_idx) = content_str.rfind("FerrumOS:~$ ") {
+                            win.content.truncate(last_prompt_idx + 12);
+                            state.needs_redraw = true;
+                        }
+                    }
+                    _ => {
+                        if ascii.is_ascii_graphic() || ascii == b' ' {
+                            win.content.push(ascii);
+                            state.needs_redraw = true;
+                        }
                     }
                 }
-                0x1B => {
-                    // Escape - clear input line
-                    let content_str = match core::str::from_utf8(&win.content) {
-                        Ok(s) => s,
-                        Err(_) => "",
-                    };
-                    if let Some(last_prompt_idx) = content_str.rfind("FerrumOS:~$ ") {
-                        win.content.truncate(last_prompt_idx + 12);
+            } else if win_type == crate::gui::window::WindowType::AgentHud {
+                let win = &mut state.windows[idx];
+                
+                // If it's the Setup Screen
+                let is_setup = core::str::from_utf8(&win.content).unwrap_or("").contains("NEEDS_CONFIG");
+                if is_setup && ascii == b'\n' {
+                    // Save Config and start
+                    crate::fs::create_file("/disk/heliox/config.json", r#"{ "api_host": "10.0.2.2", "model_name": "llama3" }"#).ok();
+                    win.content.clear();
+                    win.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
+                    
+                    // Send IPC wake up to daemon
+                    let _ = crate::ipc::send(crate::ipc::Message::new(
+                        0,
+                        crate::ipc::Endpoint::new("heliox", "default"),
+                        crate::ipc::MessageKind::Event,
+                        "ipc:send:*",
+                        b"CONFIG_UPDATED:",
+                    ).unwrap(), &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                    
+                    state.needs_redraw = true;
+                    return;
+                }
+                
+                // Normal HUD Input
+                match ascii {
+                    b'\n' => {
+                        let text = win.input_buffer.clone();
+                        win.input_buffer.clear();
+                        
+                        let msg_str = alloc::format!("GOAL:{}", text);
+                        let _ = crate::ipc::send(crate::ipc::Message::new(
+                            0,
+                            crate::ipc::Endpoint::new("heliox", "default"),
+                            crate::ipc::MessageKind::Event,
+                            "ipc:send:*",
+                            msg_str.as_bytes(),
+                        ).unwrap(), &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                        
                         state.needs_redraw = true;
                     }
-                }
-                _ => {
-                    if ascii.is_ascii_graphic() || ascii == b' ' {
-                        win.content.push(ascii);
-                        state.needs_redraw = true;
+                    0x08 => {
+                        if !win.input_buffer.is_empty() {
+                            win.input_buffer.pop();
+                            state.needs_redraw = true;
+                        }
+                    }
+                    _ => {
+                        if ascii.is_ascii_graphic() || ascii == b' ' {
+                            win.input_buffer.push(ascii as char);
+                            state.needs_redraw = true;
+                        }
                     }
                 }
             }

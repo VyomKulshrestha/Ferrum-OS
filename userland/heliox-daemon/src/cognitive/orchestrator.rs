@@ -30,7 +30,7 @@ use crate::memory::vector_store::{VectorStore, MemoryCategory};
 use crate::network;
 
 // Syscall numbers for telemetry and IPC
-const SYS_AUDIT_WRITE: u64 = 6;
+const SYS_IPC_SEND: u64 = 1;
 const SYS_IPC_RECEIVE: u64 = 2;
 
 #[inline(always)]
@@ -142,7 +142,8 @@ impl Orchestrator {
         let config = Config::load("/disk/heliox/config.json");
 
         let mut planner = Planner::new();
-        planner.set_goal("Explore the system and ensure everything is functioning.");
+        // The goal will be set dynamically via IPC or ambient vision
+        // planner.set_goal("Explore the system and ensure everything is functioning.");
 
         Self {
             planner,
@@ -171,19 +172,22 @@ impl Orchestrator {
         };
 
         // Ring buffer logic (keep last 32 events)
-        if self.telemetry_buffer.len() >= 32 {
+        // Keep recent telemetry in the buffer
+        if self.telemetry_buffer.len() > 100 {
             self.telemetry_buffer.remove(0);
         }
         self.telemetry_buffer.push(event);
 
-        // Send to kernel audit log via syscall
-        let audit_msg = format!("[HELIOX] {} - {}", kind.as_str(), message);
+        // Send to GUI via IPC
+        let msg = format!("TELEMETRY:{}:{}", kind.as_str(), message);
+        let target_svc = "gui";
         unsafe {
-            syscall3(
-                SYS_AUDIT_WRITE,
-                audit_msg.as_ptr() as u64,
-                audit_msg.len() as u64,
-                0,
+            syscall4(
+                SYS_IPC_SEND,
+                target_svc.as_ptr() as u64,
+                target_svc.len() as u64,
+                msg.as_ptr() as u64,
+                msg.len() as u64,
             );
         }
     }
@@ -192,6 +196,11 @@ impl Orchestrator {
     pub fn tick(&mut self) {
         self.ipc_poll();
         self.tick_count += 1;
+
+        if self.config.api_host == "unconfigured" {
+            // Idle Setup State: Don't do any background processing until configured.
+            return;
+        }
 
         if self.tick_count % self.config.tick_interval != 0 {
             return;
@@ -246,6 +255,17 @@ impl Orchestrator {
                 response,
                 MemoryCategory::Interaction,
             );
+            
+            // Ambient Vision Mode: When idle and goal is empty/done, occasionally look at the screen
+            if self.planner.current_goal().is_empty() && self.tick_count % (self.config.tick_interval * 10) == 0 {
+                if let Ok(capture) = super::screen_vision::capture_screen() {
+                    let text = capture.full_text();
+                    if text.contains("Error") || text.contains("Failed") || text.contains("Panic") {
+                        self.planner.set_goal("An error is visible on screen. Analyze and fix it.");
+                        self.emit_telemetry(TelemetryEventKind::ObserveComplete, String::from("Ambient vision detected an error. New goal created."));
+                    }
+                }
+            }
         }
     }
 
@@ -619,14 +639,15 @@ impl Orchestrator {
         )
     }
 
-    /// Poll for incoming IPC messages (confirmations/denials from the kernel shell).
+    /// Check for incoming IPC messages (e.g., CONFIRM, DENY, GOAL)
     fn ipc_poll(&mut self) {
-        let mut buf = [0u8; 256];
+        let mut buf = [0u8; 1024];
         let buf_ptr = buf.as_mut_ptr() as u64;
         let buf_len = buf.len() as u64;
+        let svc = "heliox";
 
         let bytes_received = unsafe {
-            syscall4(SYS_IPC_RECEIVE, buf_ptr, buf_len, 0, 0)
+            syscall4(SYS_IPC_RECEIVE, buf_ptr, buf_len, svc.as_ptr() as u64, svc.len() as u64)
         };
 
         if bytes_received == 0 || (bytes_received as i64) < 0 {
@@ -638,7 +659,7 @@ impl Orchestrator {
             Err(_) => return,
         };
 
-        // Parse CONFIRM:<id> or DENY:<id> messages
+        // Parse CONFIRM:<id>, DENY:<id>, GOAL:<text>, CONFIG_UPDATED messages
         for line in msg.lines() {
             let trimmed = line.trim();
             if let Some(id_str) = trimmed.strip_prefix("CONFIRM:") {
@@ -657,6 +678,20 @@ impl Orchestrator {
                         format!("Confirmation {} denied via IPC", id),
                     );
                 }
+            } else if let Some(goal_str) = trimmed.strip_prefix("GOAL:") {
+                self.planner.set_goal(goal_str.trim());
+                self.verifier.reset();
+                self.reflector.reset();
+                self.emit_telemetry(
+                    TelemetryEventKind::TickStart,
+                    format!("New goal set via IPC: {}", goal_str.trim()),
+                );
+            } else if trimmed == "CONFIG_UPDATED" || trimmed == "CONFIG_UPDATED:" {
+                self.config = Config::load("/disk/heliox/config.json");
+                self.emit_telemetry(
+                    TelemetryEventKind::TickStart,
+                    String::from("Configuration reloaded via IPC"),
+                );
             }
         }
     }

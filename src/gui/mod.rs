@@ -145,7 +145,26 @@ pub fn run_desktop() {
             cursor::save_and_draw();
         }
 
-        // 3. Idle: enable interrupts and halt the CPU until the next
+        // 4. Poll IPC for TELEMETRY from the agent
+        if let Ok(msg) = crate::ipc::receive_for_service("gui") {
+            if let Ok(text) = core::str::from_utf8(msg.payload()) {
+                if let Some(telemetry_str) = text.strip_prefix("TELEMETRY:") {
+                    let mut state = compositor::COMPOSITOR.lock();
+                    if let Some(win) = state.windows.iter_mut().find(|w| w.win_type == window::WindowType::AgentHud) {
+                        let formatted = alloc::format!("{}\n", telemetry_str);
+                        win.content.extend_from_slice(formatted.as_bytes());
+                        // Limit buffer size
+                        if win.content.len() > 8192 {
+                            let start_idx = win.content.len() - 8192;
+                            win.content = win.content[start_idx..].to_vec();
+                        }
+                        state.needs_redraw = true;
+                    }
+                }
+            }
+        }
+
+        // 5. Idle: enable interrupts and halt the CPU until the next
         //    interrupt fires. This keeps the GUI loop at interrupt
         //    speed (~18.2 Hz for the PIT, faster for mouse/keyboard)
         //    instead of spinning at full CPU. Without this the loop

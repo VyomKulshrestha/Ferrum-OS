@@ -75,15 +75,29 @@ pub extern "C" fn _start() -> ! {
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
     
     // Send a message via IPC to the kernel to announce readiness
+    let svc = "gui";
     let msg = b"HELIOX_READY";
     unsafe {
-        syscall3(SYS_IPC_SEND, 1 /* target pid */, msg.as_ptr() as u64, msg.len() as u64);
+        syscall4(SYS_IPC_SEND, svc.as_ptr() as u64, svc.len() as u64, msg.as_ptr() as u64, msg.len() as u64);
     }
     
     // Main Agent Loop
     loop {
         orchestrator.tick();
         
+        if orchestrator.config.api_host != "unconfigured" {
+            // Ambient Voice Command Listener (1-second buffer)
+            if let Ok(buf) = cognitive::voice::record_audio(1000) {
+                if cognitive::voice::detect_voice_activity(&buf) {
+                    if let Ok(text) = cognitive::voice::transcribe(&buf) {
+                        // Voice command detected!
+                        // In a real implementation we would route this to orchestrator
+                        let _ = cognitive::voice::play_audio(&cognitive::voice::generate_beep());
+                    }
+                }
+            }
+        }
+
         // Wait/yield loop in a real implementation
         unsafe {
             asm!("hlt", options(nomem, nostack, preserves_flags));

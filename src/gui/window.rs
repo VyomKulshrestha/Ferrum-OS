@@ -7,8 +7,17 @@ use alloc::vec::Vec;
 use crate::graphics;
 use crate::graphics::font;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowType {
+    Normal,
+    SystemMonitor,
+    Terminal,
+    AgentHud,
+}
+
 pub struct Window {
     pub id: u64,
+    pub win_type: WindowType,
     pub title: String,
     pub x: u32,
     pub y: u32,
@@ -16,12 +25,16 @@ pub struct Window {
     pub height: u32,
     pub bg_color: u32,
     pub content: Vec<u8>, // simple text content for MVP
+    
+    // For AgentHud input buffer
+    pub input_buffer: String,
 }
 
 impl Window {
-    pub fn new(id: u64, title: &str, x: u32, y: u32, width: u32, height: u32, bg_color: u32) -> Self {
+    pub fn new(id: u64, win_type: WindowType, title: &str, x: u32, y: u32, width: u32, height: u32, bg_color: u32) -> Self {
         Window {
             id,
+            win_type,
             title: String::from(title),
             x,
             y,
@@ -29,6 +42,7 @@ impl Window {
             height,
             bg_color,
             content: Vec::new(),
+            input_buffer: String::new(),
         }
     }
 
@@ -113,7 +127,7 @@ impl Window {
         let line_height = font::FONT_HEIGHT as u32 + 4;
         let max_visible_lines = ((self.height - 20 - 16) / line_height) as usize;
 
-        if self.id == 1 {
+        if self.win_type == WindowType::SystemMonitor {
             // System Monitor: Draw text lines normally, leaving room for graph
             let mut cy = self.y + 20 + 8;
             for line in &lines {
@@ -161,6 +175,45 @@ impl Window {
                     let (x2, y2) = get_coord(i + 1);
                     graphics::draw_line(x1, y1, x2, y2, line_color);
                 }
+            }
+        } else if self.win_type == WindowType::AgentHud {
+            // Agent HUD: Draw translucent background over the content area
+            // (We assume bg_color has an alpha/blend capability or is solid for now)
+            
+            // Check if we are in NeedsConfig state by seeing if content contains "NeedsConfig"
+            let is_setup = core::str::from_utf8(&self.content).unwrap_or("").contains("NEEDS_CONFIG");
+
+            if is_setup {
+                // Draw Setup Screen
+                graphics::draw_string(self.x + 8, self.y + 40, "Heliox Initial Setup", 0x00FFFFFF, self.bg_color);
+                graphics::draw_string(self.x + 8, self.y + 60, "Provider: Local Ollama", 0x0000FFCC, self.bg_color);
+                graphics::draw_string(self.x + 8, self.y + 80, "Host: 10.0.2.2:11434", 0x0000FFCC, self.bg_color);
+                graphics::draw_string(self.x + 8, self.y + 110, "Press ENTER to save and start.", 0x00AAAAAA, self.bg_color);
+            } else {
+                // Draw Live Telemetry (Scrollable)
+                let start_line = if lines.len() > max_visible_lines - 2 {
+                    lines.len() - (max_visible_lines - 2)
+                } else {
+                    0
+                };
+
+                let mut cy = self.y + 20 + 8;
+                for line in &lines[start_line..] {
+                    let mut cx = self.x + 8;
+                    for ch in line.chars() {
+                        if cx + font::FONT_WIDTH as u32 <= self.x + self.width - 8 {
+                            graphics::draw_char(cx, cy, ch as u8, 0x0000FFCC, self.bg_color); // Neon Cyan for JARVIS feel
+                            cx += font::FONT_WIDTH as u32;
+                        }
+                    }
+                    cy += line_height;
+                }
+                
+                // Draw Input Buffer Field
+                let input_y = self.y + self.height - 20;
+                graphics::fill_rect(self.x, input_y, self.width, 20, 0x001A1A1A);
+                graphics::draw_string(self.x + 4, input_y + 4, ">", 0x00FFFFFF, 0x001A1A1A);
+                graphics::draw_string(self.x + 20, input_y + 4, &self.input_buffer, 0x00FFFFFF, 0x001A1A1A);
             }
         } else {
             // Regular windows: Draw text with scroll-scrolling if it exceeds visible limits

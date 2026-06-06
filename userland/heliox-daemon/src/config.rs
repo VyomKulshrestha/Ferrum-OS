@@ -38,6 +38,7 @@ pub struct Config {
     pub api_host: String,
     pub api_port: u16,
     pub api_path: String,
+    pub api_key: String,
     pub max_retries: u32,
     pub tick_interval: u64,
     pub save_interval: u64,
@@ -51,9 +52,10 @@ impl Config {
     pub fn default() -> Self {
         Self {
             model_name: String::from("llama3"),
-            api_host: String::from("10.0.2.2"),
+            api_host: String::from("unconfigured"),
             api_port: 11434,
             api_path: String::from("/api/generate"),
+            api_key: String::new(),
             max_retries: 3,
             tick_interval: 100,
             save_interval: 1000,
@@ -94,6 +96,7 @@ impl Config {
                         "api_host" => if let Some(s) = v.as_str() { config.api_host = String::from(s); },
                         "api_port" => if let Some(n) = v.as_f64() { config.api_port = n as u16; },
                         "api_path" => if let Some(s) = v.as_str() { config.api_path = String::from(s); },
+                        "api_key" => if let Some(s) = v.as_str() { config.api_key = String::from(s); },
                         "max_retries" => if let Some(n) = v.as_f64() { config.max_retries = n as u32; },
                         "tick_interval" => if let Some(n) = v.as_f64() { config.tick_interval = n as u64; },
                         "save_interval" => if let Some(n) = v.as_f64() { config.save_interval = n as u64; },

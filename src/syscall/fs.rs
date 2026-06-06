@@ -24,7 +24,7 @@ const MAX_DATA_LEN: usize = 1024 * 1024;
 /// # Safety
 /// The caller must ensure we are in a kernel context where the user
 /// address space is accessible (identity-mapped or via phys_to_virt).
-unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
+pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
     let len = len as usize;
     if len == 0 || len > MAX_PATH_LEN || ptr == 0 {
         return None;

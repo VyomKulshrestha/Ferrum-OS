@@ -141,12 +141,33 @@ pub fn dispatch_with_capabilities(
     match number {
         x if x == SyscallNumber::Yield as u64 => SyscallResult::ok(0),
         x if x == SyscallNumber::IpcSend as u64 => {
+            // args[0] = target service string ptr
+            // args[1] = target service string len
+            // args[2] = payload ptr
+            // args[3] = payload len
+            let target_service = match unsafe { crate::syscall::fs::read_user_str(args[0], args[1]) } {
+                Some(s) => s,
+                None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+            };
+            
+            let payload_len = args[3] as usize;
+            if payload_len > crate::ipc::MAX_PAYLOAD_BYTES || (payload_len > 0 && args[2] == 0) {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+            
+            let payload = if payload_len == 0 {
+                alloc::vec::Vec::new()
+            } else {
+                let slice = unsafe { core::slice::from_raw_parts(args[2] as *const u8, payload_len) };
+                slice.to_vec()
+            };
+
             let message = match crate::ipc::Message::new(
-                0,
-                crate::ipc::Endpoint::new("runtime.ipc", "syscall"),
+                0, // 0 for userspace/unknown pid for now since pid isn't passed down easily
+                crate::ipc::Endpoint::new(&target_service, "default"),
                 crate::ipc::MessageKind::Event,
                 "ipc:send:*",
-                b"userspace ipc_send",
+                &payload,
             ) {
                 Ok(message) => message,
                 Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
@@ -160,8 +181,38 @@ pub fn dispatch_with_capabilities(
             }
         }
         x if x == SyscallNumber::IpcReceive as u64 => {
-            match crate::ipc::receive_for_service("runtime.ipc") {
-                Ok(message) => SyscallResult::ok(message.id),
+            let service_name = if args[2] == 0 || args[3] == 0 {
+                String::from("runtime.ipc")
+            } else {
+                match unsafe { crate::syscall::fs::read_user_str(args[2], args[3]) } {
+                    Some(s) => s,
+                    None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+                }
+            };
+            
+            match crate::ipc::receive_for_service(&service_name) {
+                Ok(message) => {
+                    let buf_ptr = args[0];
+                    let buf_len = args[1] as usize;
+                    
+                    if buf_ptr == 0 || buf_len == 0 {
+                        // User just wants to consume/drop the message or check if there is one
+                        return SyscallResult::ok(message.payload.len() as u64);
+                    }
+                    
+                    let to_copy = message.payload.len().min(buf_len);
+                    if to_copy > 0 {
+                        unsafe {
+                            core::ptr::copy_nonoverlapping(
+                                message.payload.as_ptr(),
+                                buf_ptr as *mut u8,
+                                to_copy,
+                            );
+                        }
+                    }
+                    
+                    SyscallResult::ok(to_copy as u64)
+                }
                 Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
                 Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
             }

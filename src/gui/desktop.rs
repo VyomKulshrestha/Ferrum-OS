@@ -132,45 +132,63 @@ pub fn render_taskbar(
 
     // Button layout (must match `hit_test_taskbar` in
     // `compositor.rs`).
-    let btn1_x = dock_x + 15;
-    let btn1_y = dock_y + 8;
-    let btn1_w = 100;
-    let btn1_h = 24;
-    let btn2_x = dock_x + 130;
-    let btn2_y = dock_y + 8;
-    let btn2_w = 100;
-    let btn2_h = 24;
-    let btn3_x = dock_x + 245;
-    let btn3_y = dock_y + 8;
-    let btn3_w = 60;
-    let btn3_h = 24;
 
-    // Compute each button's state.
-    let s1 = if pressed == HoverTarget::TerminalButton {
-        ButtonState::Pressed
-    } else if hover == HoverTarget::TerminalButton {
-        ButtonState::Hover
-    } else {
-        ButtonState::Idle
-    };
-    let s2 = if pressed == HoverTarget::SysMonButton {
-        ButtonState::Pressed
-    } else if hover == HoverTarget::SysMonButton {
-        ButtonState::Hover
-    } else {
-        ButtonState::Idle
-    };
-    let s3 = if pressed == HoverTarget::ExitButton {
-        ButtonState::Pressed
-    } else if hover == HoverTarget::ExitButton {
-        ButtonState::Hover
-    } else {
-        ButtonState::Idle
-    };
+    // Terminal Button (100px)
+    let term_hover = hover == HoverTarget::TerminalButton;
+    let term_pressed = pressed == HoverTarget::TerminalButton;
+    draw_button(
+        dock_x + 15,
+        dock_y + 8,
+        100,
+        24,
+        "Terminal",
+        if term_hover { 0x00FFFFFF } else { 0x00AAAAAA },
+        if term_pressed {
+            ButtonState::Pressed
+        } else if term_hover {
+            ButtonState::Hover
+        } else {
+            ButtonState::Idle
+        },
+    );
 
-    draw_button(btn1_x, btn1_y, btn1_w, btn1_h, "TERMINAL", 0x0000FFCC, s1);
-    draw_button(btn2_x, btn2_y, btn2_w, btn2_h, "SYS MON", 0x0000FFCC, s2);
-    draw_button(btn3_x, btn3_y, btn3_w, btn3_h, "EXIT", 0x00FF3333, s3);
+    // Sys Mon Button (100px)
+    let sys_hover = hover == HoverTarget::SysMonButton;
+    let sys_pressed = pressed == HoverTarget::SysMonButton;
+    draw_button(
+        dock_x + 125,
+        dock_y + 8,
+        100,
+        24,
+        "Sys Mon",
+        if sys_hover { 0x00FFFFFF } else { 0x00AAAAAA },
+        if sys_pressed {
+            ButtonState::Pressed
+        } else if sys_hover {
+            ButtonState::Hover
+        } else {
+            ButtonState::Idle
+        },
+    );
+    
+    // JARVIS Button (100px)
+    let jarvis_hover = hover == HoverTarget::JarvisButton;
+    let jarvis_pressed = pressed == HoverTarget::JarvisButton;
+    draw_button(
+        dock_x + 235,
+        dock_y + 8,
+        100,
+        24,
+        "JARVIS",
+        if jarvis_hover { 0x00FFFFFF } else { 0x0000FFCC }, // Cyan text by default
+        if jarvis_pressed {
+            ButtonState::Pressed
+        } else if jarvis_hover {
+            ButtonState::Hover
+        } else {
+            ButtonState::Idle
+        },
+    );
 
     graphics::draw_string(24, 12, "FerrumOS Desktop", 0x0000FFCC, COLOR_BACKGROUND);
     graphics::draw_string(24, 32, "Click a dock button or drag a window title bar", 0x00B8C7D9, COLOR_BACKGROUND);
