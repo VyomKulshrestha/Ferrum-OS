@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Inter-Process Communication Contracts
 // ============================================================================
 // The v0.1 kernel does not run AI systems, semantic memory, or vector search.
@@ -134,51 +134,58 @@ pub struct IpcStats {
 
 /// Send a message through the kernel IPC broker.
 pub fn send(message: Message, held_capabilities: &[String]) -> Result<u64, IpcError> {
-    if let Err(err) = authorize_message(&message, held_capabilities) {
-        if let Some(mut broker) = BROKER.try_lock() {
-            broker.denied += 1;
-        }
-        return Err(err);
+    // Audit capability
+    if !crate::security::has_capability(held_capabilities, &message.required_capability) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::SecurityViolation,
+            "IPC send denied - missing capability",
+        );
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            BROKER.lock().denied += 1;
+        });
+        return Err(IpcError::PermissionDenied);
     }
 
     let id = message.id;
-    let mut broker = BROKER.lock();
-    if broker.queue.len() >= MAX_QUEUED_MESSAGES {
-        return Err(IpcError::QueueFull);
-    }
 
-    broker.queue.push_back(message);
-    broker.sent += 1;
-    crate::logging::audit::log_event(
-        crate::logging::audit::AuditEvent::FileAccess,
-        "IPC message queued",
-    );
-    Ok(id)
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut broker = BROKER.lock();
+        if broker.queue.len() >= MAX_QUEUED_MESSAGES {
+            return Err(IpcError::QueueFull);
+        }
+        broker.queue.push_back(message);
+        broker.sent += 1;
+        Ok(id)
+    })
 }
 
 /// Receive the next message for a target service.
 pub fn receive_for_service(service: &str) -> Result<Message, IpcError> {
-    let mut broker = BROKER.lock();
-    let Some(index) = broker
-        .queue
-        .iter()
-        .position(|message| message.target.service == service)
-    else {
-        return Err(IpcError::NoMessage);
-    };
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut broker = BROKER.lock();
+        let Some(index) = broker
+            .queue
+            .iter()
+            .position(|message| message.target.service == service)
+        else {
+            return Err(IpcError::NoMessage);
+        };
 
-    let message = broker.queue.remove(index).ok_or(IpcError::NoMessage)?;
-    broker.received += 1;
-    Ok(message)
+        let message = broker.queue.remove(index).ok_or(IpcError::NoMessage)?;
+        broker.received += 1;
+        Ok(message)
+    })
 }
 
 /// Return IPC queue counters.
 pub fn stats() -> IpcStats {
-    let broker = BROKER.lock();
-    IpcStats {
-        queued: broker.queue.len(),
-        sent: broker.sent,
-        received: broker.received,
-        denied: broker.denied,
-    }
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let broker = BROKER.lock();
+        IpcStats {
+            queued: broker.queue.len(),
+            sent: broker.sent,
+            received: broker.received,
+            denied: broker.denied,
+        }
+    })
 }

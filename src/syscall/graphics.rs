@@ -38,8 +38,12 @@ pub fn sys_read_text_buffer(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    // Attempt to lock the graphical console.
-    let console = crate::graphics::console::CONSOLE.lock();
+    // Attempt to lock the graphical console without deadlocking if GUI holds it
+    let console_guard = crate::graphics::console::CONSOLE.try_lock();
+    let console = match console_guard {
+        Some(c) => c,
+        None => return SyscallResult::ok(0),
+    };
     let text_buf = match console.as_ref() {
         Some(c) => c.read_text_buffer(),
         None => return SyscallResult::err(SyscallStatus::NotImplemented),
@@ -90,7 +94,11 @@ pub fn sys_read_framebuffer_info(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    let fb = crate::devices::vga_fb::FRAMEBUFFER.lock();
+    let fb_guard = crate::devices::vga_fb::FRAMEBUFFER.try_lock();
+    let fb = match fb_guard {
+        Some(f) => f,
+        None => return SyscallResult::ok(0),
+    };
     let info = match fb.as_ref() {
         Some(f) => f,
         None => return SyscallResult::err(SyscallStatus::NotImplemented),
