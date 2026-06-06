@@ -47,7 +47,16 @@ pub fn process_input() {
     };
     
     // Process all pending input events
-    while let Some(event) = EVENT_QUEUE.lock().pop() {
+    loop {
+        let event_opt = x86_64::instructions::interrupts::without_interrupts(|| {
+            EVENT_QUEUE.lock().pop()
+        });
+
+        let event = match event_opt {
+            Some(e) => e,
+            None => break,
+        };
+
         match event.event_type {
             crate::input::InputEventType::MouseMove(dx, dy) => {
                 // Adjust cursor position
