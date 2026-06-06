@@ -55,50 +55,64 @@ impl Window {
         lines
     }
 
-    pub fn render(&self, focused: bool) {
+    pub fn render(&self, focused: bool, close_hovered: bool) {
         // 1. Draw Window Background
         graphics::fill_rect(self.x, self.y, self.width, self.height, self.bg_color);
-        
-        // 2. Draw Title Bar Background (top 20 pixels)
+
+        // 2. Draw Title Bar Background (top 20 pixels). A focused
+        //    window gets a brighter title bar so the user can
+        //    see which window is active at a glance.
         let title_bar_height = 20;
-        let title_bg = 0x001A1A1A; // Dark Title Bar
+        let title_bg = if focused { 0x00253040 } else { 0x001A1A1A };
         graphics::fill_rect(self.x, self.y, self.width, title_bar_height, title_bg);
-        
+
         // 3. Draw Title Text
         let title_text_color = if focused { 0x00FFFFFF } else { 0x00AAAAAA };
         graphics::draw_string(
-            self.x + 8, 
-            self.y + 2, 
-            &self.title, 
-            title_text_color, 
+            self.x + 8,
+            self.y + 2,
+            &self.title,
+            title_text_color,
             title_bg
         );
-        
-        // Draw Close Button [X] at top-right
+
+        // Draw Close Button [X] at top-right. When hovered the
+        // background turns red so the user knows it's
+        // clickable.
+        if close_hovered {
+            graphics::fill_rect(
+                self.x + self.width - 20,
+                self.y + 2,
+                16,
+                16,
+                0x00FF3333,
+            );
+        }
         graphics::draw_string(
             self.x + self.width - 16,
             self.y + 2,
             "X",
-            0x00FF3333,
-            title_bg
+            if close_hovered { 0x00FFFFFF } else { 0x00FF3333 },
+            if close_hovered { 0x00FF3333 } else { title_bg }
         );
-        
-        // 4. Draw Window Border
-        let border_color = if focused { 0x0000FFCC } else { 0x00333333 }; // Neon Cyan if focused
-        // Top
-        graphics::draw_line(self.x, self.y, self.x + self.width - 1, self.y, border_color);
-        // Bottom
-        graphics::draw_line(self.x, self.y + self.height - 1, self.x + self.width - 1, self.y + self.height - 1, border_color);
-        // Left
-        graphics::draw_line(self.x, self.y, self.x, self.y + self.height - 1, border_color);
-        // Right
-        graphics::draw_line(self.x + self.width - 1, self.y, self.x + self.width - 1, self.y + self.height - 1, border_color);
-        
+
+        // 4. Draw Window Border. Focused windows get a 2px
+        //    neon-cyan border; unfocused windows get a 1px
+        //    dark-gray border.
+        let border_color = if focused { 0x0000FFCC } else { 0x00333333 };
+        let border_w = if focused { 2 } else { 1 };
+        for i in 0..border_w {
+            graphics::draw_line(self.x + i, self.y + i, self.x + self.width - 1 - i, self.y + i, border_color);
+            graphics::draw_line(self.x + i, self.y + self.height - 1 - i, self.x + self.width - 1 - i, self.y + self.height - 1 - i, border_color);
+            graphics::draw_line(self.x + i, self.y + i, self.x + i, self.y + self.height - 1 - i, border_color);
+            graphics::draw_line(self.x + self.width - 1 - i, self.y + i, self.x + self.width - 1 - i, self.y + self.height - 1 - i, border_color);
+        }
+
         // 5. Draw Content (Text & custom visual elements)
         let lines = self.get_wrapped_lines();
         let line_height = font::FONT_HEIGHT as u32 + 4;
         let max_visible_lines = ((self.height - 20 - 16) / line_height) as usize;
-        
+
         if self.id == 1 {
             // System Monitor: Draw text lines normally, leaving room for graph
             let mut cy = self.y + 20 + 8;
@@ -112,27 +126,27 @@ impl Window {
                 }
                 cy += line_height;
             }
-            
+
             // Draw Graph bounding box
             let graph_x = self.x + 10;
             let graph_y = self.y + 110;
             let graph_w = self.width - 20; // 280
             let graph_h = 70;
-            
+
             // Draw box border (dark gray)
             let box_border_color = 0x00333333;
             graphics::fill_rect(graph_x, graph_y, graph_w, 1, box_border_color); // top
             graphics::fill_rect(graph_x, graph_y + graph_h - 1, graph_w, 1, box_border_color); // bottom
             graphics::fill_rect(graph_x, graph_y, 1, graph_h, box_border_color); // left
             graphics::fill_rect(graph_x + graph_w - 1, graph_y, 1, graph_h, box_border_color); // right
-            
+
             // Plot history lines
             let history = crate::gui::compositor::CPU_HISTORY.lock();
             let num_points = history.len();
-            
+
             if num_points > 1 {
                 let step_x = graph_w / (num_points as u32 - 1);
-                
+
                 let get_coord = |index: usize| -> (u32, u32) {
                     let px = graph_x + (index as u32 * step_x);
                     let val = history[index] as u32;
@@ -140,7 +154,7 @@ impl Window {
                     let py = (graph_y + graph_h - 5) - (val * (graph_h - 10) / 100);
                     (px, py)
                 };
-                
+
                 let line_color = 0x0000FFCC; // Neon Cyan
                 for i in 0..num_points - 1 {
                     let (x1, y1) = get_coord(i);
@@ -155,7 +169,7 @@ impl Window {
             } else {
                 0
             };
-            
+
             let mut cy = self.y + 20 + 8;
             for line in &lines[start_line..] {
                 let mut cx = self.x + 8;
