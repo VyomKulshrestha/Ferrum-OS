@@ -114,6 +114,7 @@ impl EventQueue {
 
 /// Global event queue protected by a spinlock.
 pub static EVENT_QUEUE: Mutex<EventQueue> = Mutex::new(EventQueue::new());
+pub static DAEMON_EVENT_QUEUE: Mutex<EventQueue> = Mutex::new(EventQueue::new());
 
 // ============================================================================
 // Timestamp helper
@@ -154,6 +155,7 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
     };
 
     EVENT_QUEUE.lock().push(event);
+    DAEMON_EVENT_QUEUE.lock().push(event);
 
     // Bridge into the shell's keyboard buffer for pressed,
     // printable keys so that the existing shell input path works
@@ -179,6 +181,7 @@ pub fn inject_mouse_event(dx: i8, dy: i8, buttons: u8) {
             timestamp: ts,
         };
         EVENT_QUEUE.lock().push(event);
+        DAEMON_EVENT_QUEUE.lock().push(event);
     }
 
     let mut prev = PREV_BUTTONS.lock();
@@ -194,6 +197,7 @@ pub fn inject_mouse_event(dx: i8, dy: i8, buttons: u8) {
                 timestamp: ts,
             };
             EVENT_QUEUE.lock().push(event);
+            DAEMON_EVENT_QUEUE.lock().push(event);
         }
     }
     *prev = buttons;

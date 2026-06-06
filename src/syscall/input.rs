@@ -92,7 +92,7 @@ pub fn sys_poll_input(args: [u64; 6]) -> SyscallResult {
     let mut count: usize = 0;
 
     // Drain events from the input queue
-    let mut queue = crate::input::EVENT_QUEUE.lock();
+    let mut queue = crate::input::DAEMON_EVENT_QUEUE.lock();
     while count < max_events {
         if let Some(event) = queue.pop() {
             let offset = buf_ptr + count * 16;
