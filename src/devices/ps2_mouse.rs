@@ -146,11 +146,21 @@ pub fn handle_interrupt() {
                 state.cycle = 0;
                 
                 let flags = state.packet[0];
-                let dx = state.packet[1] as i8;
-                let dy = state.packet[2] as i8;
+                let mut dx = state.packet[1] as i16;
+                let mut dy = state.packet[2] as i16;
+
+                // Sign extend using the flags register (bit 4 = X sign, bit 5 = Y sign)
+                if (flags & 0x10) != 0 {
+                    dx -= 256;
+                }
+                if (flags & 0x20) != 0 {
+                    dy -= 256;
+                }
+
                 let buttons = flags & 0x07;
                 
-                crate::input::inject_mouse_event(dx, dy.saturating_neg(), buttons);
+                // dy is positive for UP in PS/2, so we negate it for screen coordinates
+                crate::input::inject_mouse_event(dx as i8, dy.saturating_neg() as i8, buttons);
             }
             _ => state.cycle = 0,
         }

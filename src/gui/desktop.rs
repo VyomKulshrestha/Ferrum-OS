@@ -53,7 +53,6 @@ pub fn render_background() {
 /// based on the button's hover/press state so the user gets
 /// immediate visual feedback.
 fn draw_button(
-    fb: &crate::devices::vga_fb::Framebuffer,
     x: u32,
     y: u32,
     w: u32,
@@ -67,15 +66,12 @@ fn draw_button(
         ButtonState::Hover => (0x00304050u32, 0x0000FFCCu32),
         ButtonState::Pressed => (0x00445878u32, 0x00FFFFFFu32),
     };
-    fb.draw_rect(x, y, w, h, bg);
-    for px in x..x + w {
-        fb.set_pixel(px, y, border);
-        fb.set_pixel(px, y + h - 1, border);
-    }
-    for py in y..y + h {
-        fb.set_pixel(x, py, border);
-        fb.set_pixel(x + w - 1, py, border);
-    }
+    graphics::fill_rect(x, y, w, h, bg);
+    graphics::draw_line(x, y, x + w - 1, y, border); // top
+    graphics::draw_line(x, y + h - 1, x + w - 1, y + h - 1, border); // bottom
+    graphics::draw_line(x, y, x, y + h - 1, border); // left
+    graphics::draw_line(x + w - 1, y, x + w - 1, y + h - 1, border); // right
+    
     graphics::draw_string(x + 10, y + 5, label, label_color, bg);
 }
 
@@ -93,39 +89,46 @@ pub fn render_taskbar(
     _my: u32,
     _left_down: bool,
 ) {
-    let fb_guard = FRAMEBUFFER.lock();
-    let fb = match fb_guard.as_ref() {
-        Some(fb) => fb,
-        None => return,
-    };
-
-    let w = fb.width;
-    let h = fb.height;
-
+    let w;
+    let h;
+    let dock_x;
+    let dock_y;
     let dock_w = 400;
     let dock_h = 40;
-    let dock_x = (w - dock_w) / 2;
-    let dock_y = h - dock_h - 10;
 
-    // Draw Dock Background with a soft top highlight so the
-    // dock looks elevated above the desktop.
-    fb.draw_rect(dock_x, dock_y, dock_w, dock_h, 0x00141828);
-    for y in dock_y..dock_y + 2 {
-        for x in dock_x..dock_x + dock_w {
-            fb.set_pixel(x, y, 0x00202838);
+    {
+        let fb_guard = FRAMEBUFFER.lock();
+        let fb = match fb_guard.as_ref() {
+            Some(fb) => fb,
+            None => return,
+        };
+
+        w = fb.width;
+        h = fb.height;
+
+        dock_x = (w - dock_w) / 2;
+        dock_y = h - dock_h - 10;
+
+        // Draw Dock Background with a soft top highlight so the
+        // dock looks elevated above the desktop.
+        fb.draw_rect(dock_x, dock_y, dock_w, dock_h, 0x00141828);
+        for y in dock_y..dock_y + 2 {
+            for x in dock_x..dock_x + dock_w {
+                fb.set_pixel(x, y, 0x00202838);
+            }
         }
-    }
 
-    // Draw Neon Cyan Border
-    let neon_cyan = 0x0000FFCC;
-    for x in dock_x..dock_x + dock_w {
-        fb.set_pixel(x, dock_y, neon_cyan);
-        fb.set_pixel(x, dock_y + dock_h - 1, neon_cyan);
-    }
-    for y in dock_y..dock_y + dock_h {
-        fb.set_pixel(dock_x, y, neon_cyan);
-        fb.set_pixel(dock_x + dock_w - 1, y, neon_cyan);
-    }
+        // Draw Neon Cyan Border
+        let neon_cyan = 0x0000FFCC;
+        for x in dock_x..dock_x + dock_w {
+            fb.set_pixel(x, dock_y, neon_cyan);
+            fb.set_pixel(x, dock_y + dock_h - 1, neon_cyan);
+        }
+        for y in dock_y..dock_y + dock_h {
+            fb.set_pixel(dock_x, y, neon_cyan);
+            fb.set_pixel(dock_x + dock_w - 1, y, neon_cyan);
+        }
+    } // fb_guard is dropped here
 
     // Button layout (must match `hit_test_taskbar` in
     // `compositor.rs`).
@@ -165,11 +168,9 @@ pub fn render_taskbar(
         ButtonState::Idle
     };
 
-    draw_button(fb, btn1_x, btn1_y, btn1_w, btn1_h, "TERMINAL", 0x0000FFCC, s1);
-    draw_button(fb, btn2_x, btn2_y, btn2_w, btn2_h, "SYS MON", 0x0000FFCC, s2);
-    draw_button(fb, btn3_x, btn3_y, btn3_w, btn3_h, "EXIT", 0x00FF3333, s3);
-
-    drop(fb_guard);
+    draw_button(btn1_x, btn1_y, btn1_w, btn1_h, "TERMINAL", 0x0000FFCC, s1);
+    draw_button(btn2_x, btn2_y, btn2_w, btn2_h, "SYS MON", 0x0000FFCC, s2);
+    draw_button(btn3_x, btn3_y, btn3_w, btn3_h, "EXIT", 0x00FF3333, s3);
 
     graphics::draw_string(24, 12, "FerrumOS Desktop", 0x0000FFCC, COLOR_BACKGROUND);
     graphics::draw_string(24, 32, "Click a dock button or drag a window title bar", 0x00B8C7D9, COLOR_BACKGROUND);

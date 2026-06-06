@@ -170,14 +170,14 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
 /// Called by the USB HID mouse driver. Generates a `MouseMove` event
 /// if displacement is non-zero and individual `MouseButton` events
 /// for each of the three standard buttons.
-pub fn inject_mouse_event(dx: i8, dy: i8, buttons: u8) {
+pub fn inject_mouse_event(dx: i16, dy: i16, buttons: u8) {
     let ts = now_ticks();
     static PREV_BUTTONS: spin::Mutex<u8> = spin::Mutex::new(0);
 
     // Displacement event
     if dx != 0 || dy != 0 {
         let event = InputEvent {
-            event_type: InputEventType::MouseMove(dx as i16, dy as i16),
+            event_type: InputEventType::MouseMove(dx, dy),
             timestamp: ts,
         };
         EVENT_QUEUE.lock().push(event);
