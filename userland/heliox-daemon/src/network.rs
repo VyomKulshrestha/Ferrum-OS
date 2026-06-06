@@ -162,7 +162,7 @@ pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'sta
                 if total_received > 0 {
                     break;
                 }
-                unsafe { asm!("hlt", options(nostack, preserves_flags)); }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
             }
         }
     }
@@ -225,7 +225,7 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &s
             break;
         }
         // Yield to scheduler briefly
-        unsafe { asm!("hlt", options(nomem, nostack, preserves_flags)); }
+        unsafe { crate::syscall3(0, 0, 0, 0); }
     }
 
     if total_received == 0 {
@@ -399,7 +399,7 @@ pub fn ws_connect(host: &str, port: u16, path: &str) -> Result<WsConnection, &'s
                 }
             }
             _ => {
-                unsafe { asm!("hlt", options(nostack, preserves_flags)); }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
             }
         }
     }
@@ -581,7 +581,7 @@ fn ws_read_exact(fd: u64, buf: &mut [u8]) -> Result<(), &'static str> {
                 if retries > 2000 {
                     return Err("ws: read timeout");
                 }
-                unsafe { asm!("hlt", options(nostack, preserves_flags)); }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
             }
         }
     }

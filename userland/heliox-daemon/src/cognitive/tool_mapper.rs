@@ -767,7 +767,7 @@ fn execute_sleep(args: &[(String, JsonValue)]) -> ToolResult {
     // Use hlt loop for approximate sleep
     let iterations = ms / 10;
     for _ in 0..iterations {
-        unsafe { asm!("hlt", options(nomem, nostack, preserves_flags)); }
+        unsafe { crate::syscall3(0, 0, 0, 0); } // SYS_YIELD
     }
     ToolResult {
         tool_name: String::from("sleep"),

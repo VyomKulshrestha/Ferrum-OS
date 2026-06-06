@@ -100,16 +100,16 @@ pub extern "C" fn _start() -> ! {
 
         // Wait/yield loop in a real implementation
         unsafe {
-            asm!("hlt", options(nomem, nostack, preserves_flags));
+            syscall3(0, 0, 0, 0); // SYS_YIELD
         }
     }
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {
         unsafe {
-            asm!("hlt", options(nomem, nostack, preserves_flags));
+            syscall3(0, 0, 0, 0); // SYS_YIELD
         }
     }
 }
