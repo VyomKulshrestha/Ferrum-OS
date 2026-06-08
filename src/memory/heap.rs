@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Kernel Heap Allocator
 // ============================================================================
 // Sets up a heap region in virtual memory for dynamic allocation.
@@ -28,7 +28,7 @@ pub const HEAP_START: usize = 0x_4444_4444_0000;
 /// 
 /// This is sufficient for early kernel operations. For a production kernel,
 /// this would need to be expandable on demand.
-pub const HEAP_SIZE: usize = 1024 * 1024; // 1 MiB (bumped from 256 KiB in Phase 1.3)
+pub const HEAP_SIZE: usize = 12 * 1024 * 1024; // 12 MiB (increased to support VBE double-buffering)
 
 /// Global allocator instance
 /// 

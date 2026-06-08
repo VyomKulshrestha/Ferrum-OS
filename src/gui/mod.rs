@@ -84,8 +84,9 @@ pub fn run_desktop() {
         state.active = true;
     }
 
-    // Clear the screen for the desktop
-    if let Some(fb) = FRAMEBUFFER.lock().as_ref() {
+    // Initialize double buffering
+    if let Some(fb) = FRAMEBUFFER.lock().as_mut() {
+        fb.init_back_buffer();
         fb.clear(desktop::COLOR_BACKGROUND);
     }
 
@@ -98,6 +99,10 @@ pub fn run_desktop() {
     compositor::render();
     cursor::save_and_draw();
     cursor::CURSOR.lock().dirty = false;
+
+    if let Some(fb) = FRAMEBUFFER.lock().as_ref() {
+        fb.swap_buffers();
+    }
 
     crate::serial_println!("[gui] Entered Desktop loop");
     crate::serial_println!("[gui] Initial desktop frame rendered");
@@ -135,6 +140,9 @@ pub fn run_desktop() {
             compositor::render();
             cursor::save_and_draw();
             cursor::CURSOR.lock().dirty = false;
+            if let Some(fb) = FRAMEBUFFER.lock().as_ref() {
+                fb.swap_buffers();
+            }
         } else if cursor_dirty {
             // Screen wasn't wiped, but the cursor moved. Restore the
             // old position's pixels and draw the cursor at the new
@@ -142,10 +150,16 @@ pub fn run_desktop() {
             cursor::restore_background();
             cursor::save_and_draw();
             cursor::CURSOR.lock().dirty = false;
+            if let Some(fb) = FRAMEBUFFER.lock().as_ref() {
+                fb.swap_buffers();
+            }
         } else if cursor_moved {
             // Edge case: dirty flag wasn't set but position changed
             // (shouldn't happen, but be safe).
             cursor::save_and_draw();
+            if let Some(fb) = FRAMEBUFFER.lock().as_ref() {
+                fb.swap_buffers();
+            }
         }
 
         // 4. Poll IPC for TELEMETRY from the agent
@@ -174,6 +188,11 @@ pub fn run_desktop() {
         //    runs millions of times per second and the cursor
         //    save/restore thrashes.
         interrupts::enable_and_hlt();
+    }
+
+    // Free the back buffer
+    if let Some(fb) = FRAMEBUFFER.lock().as_mut() {
+        fb.free_back_buffer();
     }
 
     // Restore previous console text

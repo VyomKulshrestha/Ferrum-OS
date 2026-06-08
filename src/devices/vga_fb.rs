@@ -72,6 +72,8 @@ pub struct Framebuffer {
     pub height: u32,
     /// Pitch in pixels (pixels per scanline, equal to width for 32bpp)
     pub pitch: u32,
+    /// Optional pointer to back buffer in system RAM for double-buffering
+    pub back_buffer: Option<*mut u32>,
 }
 
 // Safety: The framebuffer is MMIO memory accessed through volatile ops
@@ -177,6 +179,7 @@ pub fn init(width: u32, height: u32) -> Result<Framebuffer, &'static str> {
         width,
         height,
         pitch: width, // For 32bpp the pitch in pixels equals the width
+        back_buffer: None,
     };
 
     Ok(fb)
@@ -187,6 +190,38 @@ pub fn init(width: u32, height: u32) -> Result<Framebuffer, &'static str> {
 // ============================================================================
 
 impl Framebuffer {
+    /// Initialize back buffer for double-buffering
+    pub fn init_back_buffer(&mut self) {
+        if self.back_buffer.is_some() {
+            return;
+        }
+        let size = (self.width * self.height) as usize;
+        let mut buffer = alloc::vec![0u32; size];
+        let ptr = buffer.as_mut_ptr();
+        core::mem::forget(buffer);
+        self.back_buffer = Some(ptr);
+    }
+
+    /// Free back buffer
+    pub fn free_back_buffer(&mut self) {
+        if let Some(ptr) = self.back_buffer.take() {
+            let size = (self.width * self.height) as usize;
+            unsafe {
+                let _ = alloc::vec::Vec::from_raw_parts(ptr, size, size);
+            }
+        }
+    }
+
+    /// Swap back buffer to front buffer (copy all pixels)
+    pub fn swap_buffers(&self) {
+        if let Some(back) = self.back_buffer {
+            let size = (self.width * self.height) as usize;
+            unsafe {
+                core::ptr::copy_nonoverlapping(back, self.base, size);
+            }
+        }
+    }
+
     /// Set a single pixel. Silently drops out-of-bounds coordinates.
     pub fn set_pixel(&self, x: u32, y: u32, color: u32) {
         if x >= self.width || y >= self.height {
@@ -194,7 +229,11 @@ impl Framebuffer {
         }
         let offset = (y * self.pitch + x) as isize;
         unsafe {
-            core::ptr::write_volatile(self.base.offset(offset), color);
+            if let Some(back) = self.back_buffer {
+                core::ptr::write_volatile(back.offset(offset), color);
+            } else {
+                core::ptr::write_volatile(self.base.offset(offset), color);
+            }
         }
     }
 
@@ -207,9 +246,13 @@ impl Framebuffer {
             return 0;
         }
         let offset = (y * self.pitch + x) as isize;
-        // Safety: bounds-checked above. Volatile read ensures we get
-        // the actual framebuffer value, not a stale cached copy.
-        unsafe { core::ptr::read_volatile(self.base.offset(offset)) }
+        unsafe {
+            if let Some(back) = self.back_buffer {
+                core::ptr::read_volatile(back.offset(offset))
+            } else {
+                core::ptr::read_volatile(self.base.offset(offset))
+            }
+        }
     }
 
     /// Fill the entire screen with a uniform color.
@@ -217,9 +260,12 @@ impl Framebuffer {
         for y in 0..self.height {
             for x in 0..self.width {
                 let offset = (y * self.pitch + x) as isize;
-                // Safety: stays within `width * height` bounds.
                 unsafe {
-                    core::ptr::write_volatile(self.base.offset(offset), color);
+                    if let Some(back) = self.back_buffer {
+                        core::ptr::write_volatile(back.offset(offset), color);
+                    } else {
+                        core::ptr::write_volatile(self.base.offset(offset), color);
+                    }
                 }
             }
         }
@@ -232,9 +278,12 @@ impl Framebuffer {
         for row in y..y_end {
             for col in x..x_end {
                 let offset = (row * self.pitch + col) as isize;
-                // Safety: clamped to framebuffer bounds above.
                 unsafe {
-                    core::ptr::write_volatile(self.base.offset(offset), color);
+                    if let Some(back) = self.back_buffer {
+                        core::ptr::write_volatile(back.offset(offset), color);
+                    } else {
+                        core::ptr::write_volatile(self.base.offset(offset), color);
+                    }
                 }
             }
         }
@@ -252,16 +301,16 @@ impl Framebuffer {
             return;
         }
 
+        let ptr = if let Some(back) = self.back_buffer { back } else { self.base };
+
         // Copy rows upward
         for y in 0..(self.height - rows_px) {
             for x in 0..self.width {
                 let src = ((y + rows_px) * self.pitch + x) as isize;
                 let dst = (y * self.pitch + x) as isize;
-                // Safety: both source and destination are within the
-                // framebuffer region since we iterate in-bounds.
                 unsafe {
-                    let pixel = core::ptr::read_volatile(self.base.offset(src));
-                    core::ptr::write_volatile(self.base.offset(dst), pixel);
+                    let pixel = core::ptr::read_volatile(ptr.offset(src));
+                    core::ptr::write_volatile(ptr.offset(dst), pixel);
                 }
             }
         }
@@ -270,9 +319,8 @@ impl Framebuffer {
         for y in (self.height - rows_px)..self.height {
             for x in 0..self.width {
                 let offset = (y * self.pitch + x) as isize;
-                // Safety: within bounds.
                 unsafe {
-                    core::ptr::write_volatile(self.base.offset(offset), bg_color);
+                    core::ptr::write_volatile(ptr.offset(offset), bg_color);
                 }
             }
         }
