@@ -223,6 +223,34 @@ Or use the build script:
 | **3 — Modify** | `write_file`, `create_directory`, `save_memory`, `service_start`, `service_stop`, `play_audio`, `keyboard_type`, `mouse_click`, `mouse_move` |
 | **4 — Destructive** | `exec_process`, `delete_file` |
 
+## Heliox Daemon Setup
+
+The Heliox agent daemon requires configuration to connect to your preferred LLM provider. There are two ways to set this up:
+
+### Option A: Interactive Setup (Agent HUD)
+1. Boot the OS and launch the graphical desktop:
+   ```
+   FerrumOS:~$ desktop
+   ```
+2. Click inside the **Agent HUD** window to focus it (it will show a neon-cyan border).
+3. Follow the 3-step setup wizard by typing your values and pressing **Enter**:
+   * **Step 1: Select Provider**: Choose `ollama`, `openai`, `gemini`, or `claude`.
+   * **Step 2: API Host / Port**: Enter the address (e.g., `10.0.2.2:11434` for local Ollama, or `generativelanguage.googleapis.com:443` for Gemini).
+   * **Step 3: API Key**: Type your API key (or leave it blank for local Ollama).
+4. Once completed, the daemon will automatically write the config file and initialize.
+
+### Option B: Manual Configuration
+Create or edit the configuration file at `/disk/heliox/config.json` via the shell:
+```json
+{
+  "provider": "gemini",
+  "api_host": "generativelanguage.googleapis.com",
+  "api_port": 443,
+  "api_key": "YOUR_GEMINI_API_KEY",
+  "model_name": "default"
+}
+```
+
 ## Design Rules
 
 - Keep the kernel deterministic — no AI inference in kernel space.

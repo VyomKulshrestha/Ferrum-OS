@@ -297,7 +297,18 @@ Tools at Tier 3–4 queue confirmation requests. The operator must approve
 
 ## Configuration
 
-The agent reads runtime config from `/disk/heliox/config.json`:
+The agent requires configuration to connect to your preferred LLM provider. This can be configured in two ways:
+
+### 1. Interactive Desktop HUD Wizard
+If no configuration exists at boot, the **Agent HUD** window opens in setup mode on the desktop:
+- **Step 1: Select Provider**: `ollama`, `openai`, `gemini`, or `claude`.
+- **Step 2: API Host / Port**: e.g., `10.0.2.2:11434` (Ollama) or `generativelanguage.googleapis.com:443` (Gemini).
+- **Step 3: API Key**: Your API key (or blank for Ollama).
+
+Once completed, the GUI writes the `/disk/heliox/config.json` file dynamically and wakes the agent.
+
+### 2. Manual Configuration File
+Alternatively, the agent reads runtime config directly from `/disk/heliox/config.json`:
 
 ```json
 {
