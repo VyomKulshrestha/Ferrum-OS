@@ -13,7 +13,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 ### Kernel & Core
 - Bootloader integration through `bootloader`
 - GDT, IDT, CPU exception handlers, PIC timer and hardware IRQs
-- Page-table setup, boot-info frame allocation, and a 1 MiB kernel heap
+- Page-table setup, boot-info frame allocation, and a 12 MiB kernel heap (increased to support VBE double-buffering)
 - Preemptive task scheduler with per-task context switching and priority queues
 - Interactive shell with 35+ commands including `dashboard`
 - SMP initialization, ACPI shutdown/reboot
@@ -24,7 +24,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Interactive Desktop Taskbar and Dock
 - Movable, focusable GUI windows with close buttons and interactive titles
 - PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
-- CPU-efficient main loop with interrupt-driven `hlt` architecture
+- CPU-efficient main loop with interrupt-driven `hlt` architecture and off-screen double-buffering
 - Hardware cursor rendering with dynamic drop-shadows
 
 ### Filesystem

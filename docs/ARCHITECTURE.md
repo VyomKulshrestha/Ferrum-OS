@@ -53,7 +53,7 @@ and can evolve without destabilizing the kernel.
 1. BIOS/UEFI → `bootloader` crate hands control to `_start`
 2. GDT, IDT, PIC (8259) remapped, PIT configured
 3. Page tables from boot info, frame allocator initialized
-4. Kernel heap mapped (1 MiB at `0x4444_4444_0000`)
+4. Kernel heap mapped (12 MiB at `0x4444_4444_0000` to support double-buffering)
 5. Preemptive scheduler with idle task
 6. Device discovery (PCI bus scan, NIC, audio, USB)
 7. Filesystem mount (RamFS at `/`, Ext2 at `/disk`)
@@ -63,7 +63,7 @@ and can evolve without destabilizing the kernel.
 
 - Boot-info frame allocator for physical pages
 - 4-level page tables with mapper
-- Kernel heap: 1 MiB, bump allocator with linked-list fallback
+- Kernel heap: 12 MiB, bump allocator with linked-list fallback
 - DMA: `allocate_contiguous_frames(n)` for NIC TX/RX and HDA BDL buffers
 
 ### Scheduler
