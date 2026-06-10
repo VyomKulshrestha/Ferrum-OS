@@ -85,15 +85,19 @@ lazy_static! {
         idt[InterruptIndex::AtaSecondary.as_u8()]
             .set_handler_fn(ata_secondary_interrupt_handler);
 
-        // System call entry point used by ring-3 code in Phase 1.4.
-        // The handler reads the syscall number from rax and returns
-        // a result in rax; only `SYS_WRITE` (1), `SYS_EXIT` (60),
-        // `SYS_YIELD` (24), and `SYS_AUDIT_WRITE` (200) are
-        // recognised today. Every other number is acknowledged
-        // and returns -ENOSYS so the user process can degrade
-        // gracefully.
-        idt[SYSCALL_VECTOR]
-            .set_handler_fn(syscall_interrupt_handler);
+        // System call entry point. A naked stub saves the full
+        // register file and forwards to the Rust dispatcher; results
+        // travel back through the saved rax slot. The gate MUST be
+        // DPL 3 — with the default DPL 0, a ring-3 `int 0x80` raises
+        // #GP instead of entering the kernel, which made userspace
+        // syscalls impossible.
+        unsafe {
+            idt[SYSCALL_VECTOR]
+                .set_handler_addr(x86_64::VirtAddr::new(
+                    syscall_entry_stub as *const () as u64,
+                ))
+                .set_privilege_level(x86_64::PrivilegeLevel::Ring3);
+        }
 
         idt
     };
@@ -120,23 +124,13 @@ fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -
             crate::logging::audit::AuditEvent::SecurityViolation,
             alloc::format!("Userspace process {} terminated due to {}", pid, fault_name).as_str(),
         );
+        // `kill` marks the task Dead, drains it from the run-queues,
+        // records exit code 139 (SIGSEGV-style) and clears CURRENT_PID.
         crate::scheduler::kill(pid);
-        
-        // Switch to next task
-        if let Some(next_pid) = crate::scheduler::schedule_next() {
-            if let Some((kstack, _cr3)) = crate::scheduler::switch_target(next_pid) {
-                unsafe {
-                    crate::gdt::set_kernel_stack(x86_64::VirtAddr::new(kstack));
-                    if let Some(ctx) = crate::scheduler::context_of(next_pid) {
-                        let scratch = crate::scheduler::scratch_context();
-                        *scratch = ctx;
-                        crate::scheduler::context_switch_to(scratch, scratch, kstack);
-                    }
-                }
-            }
-        }
-        
-        crate::hlt_loop();
+
+        // Hand the CPU to the next runnable task, idle if sleepers
+        // remain, else fall back to the shell. Never returns.
+        unsafe { resume_after_death() }
     }
     false
 }
@@ -447,63 +441,204 @@ pub mod syscall_number {
 const ENOSYS: u64 = u64::MAX - 38;
 const EPERM: u64 = u64::MAX - 0;
 
-/// Ring-3 system call entry. The kernel trampoline pushed the
-/// user-mode SS/RSP/RFLAGS/CS/RIP on the way in, so the
-/// `InterruptStackFrame` reflects the user stack at the time of
-/// the `int 0x80` instruction.
-extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackFrame) {
+/// Saved register file pushed by `syscall_entry_stub` on the way into
+/// the kernel, plus the CPU-pushed iretq frame. Field order matches
+/// the push sequence in the stub (last push = lowest address = first
+/// field) — do not reorder.
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct SyscallFrame {
+    pub r15: u64,
+    pub r14: u64,
+    pub r13: u64,
+    pub r12: u64,
+    pub r11: u64,
+    pub r10: u64,
+    pub r9: u64,
+    pub r8: u64,
+    pub rbp: u64,
+    pub rdi: u64,
+    pub rsi: u64,
+    pub rdx: u64,
+    pub rcx: u64,
+    pub rbx: u64,
+    pub rax: u64,
+    // CPU-pushed interrupt frame (int 0x80 pushes all five in long mode).
+    pub rip: u64,
+    pub cs: u64,
+    pub rflags: u64,
+    pub rsp: u64,
+    pub ss: u64,
+}
+
+/// Naked `int 0x80` entry. Saves the full GPR file so the dispatcher
+/// reads syscall arguments from memory instead of racing the compiler
+/// for live registers, then restores everything and iretqs back to
+/// the caller. The dispatcher writes the syscall result into the
+/// saved `rax` slot, which the pop sequence materialises.
+#[unsafe(naked)]
+unsafe extern "C" fn syscall_entry_stub() {
+    core::arch::naked_asm!(
+        "push rax",
+        "push rbx",
+        "push rcx",
+        "push rdx",
+        "push rsi",
+        "push rdi",
+        "push rbp",
+        "push r8",
+        "push r9",
+        "push r10",
+        "push r11",
+        "push r12",
+        "push r13",
+        "push r14",
+        "push r15",
+        "mov rdi, rsp",
+        "call {inner}",
+        "pop r15",
+        "pop r14",
+        "pop r13",
+        "pop r12",
+        "pop r11",
+        "pop r10",
+        "pop r9",
+        "pop r8",
+        "pop rbp",
+        "pop rdi",
+        "pop rsi",
+        "pop rdx",
+        "pop rcx",
+        "pop rbx",
+        "pop rax",
+        "iretq",
+        inner = sym syscall_entry_inner,
+    );
+}
+
+/// Capture the interrupted user state from the saved syscall frame
+/// into the task's saved `TaskContext` so `scheduler::resume_task`
+/// can continue it later. Caller-saved registers other than rax are
+/// not part of the context (ABI: syscalls clobber them); rax, the
+/// callee-saved registers, and the iretq frame are preserved.
+fn save_user_context(pid: u64, frame: &SyscallFrame) {
+    let ctx = crate::scheduler::TaskContext {
+        r15: frame.r15,
+        r14: frame.r14,
+        r13: frame.r13,
+        r12: frame.r12,
+        rbp: frame.rbp,
+        rbx: frame.rbx,
+        rip: frame.rip,
+        cs: frame.cs,
+        rflags: frame.rflags,
+        rsp: frame.rsp,
+        ss: frame.ss,
+        rax: frame.rax,
+    };
+    crate::scheduler::write_context(pid, ctx);
+}
+
+/// After the current task died (exit, kill, fault): hand the CPU to
+/// the next runnable task, else idle if sleepers remain, else return
+/// to the shell. Never returns.
+///
+/// # Safety
+/// The caller's stack frame is abandoned; it must never be resumed.
+pub(crate) unsafe fn resume_after_death() -> ! {
+    if let Some(next) = crate::scheduler::schedule_next() {
+        crate::scheduler::resume_task(next);
+    }
+    if crate::scheduler::has_blocked_tasks() {
+        crate::scheduler::enter_idle();
+    }
+    crate::scheduler::enter_kernel_return();
+}
+
+/// Yield the CPU from inside the syscall handler. Saves the caller's
+/// context and switches to the next runnable task. If the scheduler
+/// hands the CPU straight back (nothing else is ready), returns so
+/// the stub can iretq back to the caller.
+unsafe fn yield_from_syscall(pid: u64, frame: &SyscallFrame) {
+    if !crate::scheduler::yield_current() {
+        return;
+    }
+    save_user_context(pid, frame);
+    match crate::scheduler::schedule_next() {
+        Some(next) if next != pid => crate::scheduler::resume_task(next),
+        // The scheduler picked us again: schedule_next already marked
+        // us Running, so just keep going.
+        Some(_) => {}
+        None => {
+            // Re-queued but nothing Ready (should not happen) —
+            // defensively park in the idle loop.
+            crate::scheduler::enter_idle();
+        }
+    }
+}
+
+/// Rust half of the `int 0x80` entry. `frame` aliases the register
+/// file the stub pushed; mutating it changes what the stub pops
+/// before `iretq` (this is how results travel back in rax).
+extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
     use crate::serial::SERIAL1;
 
-    let syscall_no: u64;
-    let arg0: u64;
-    let arg1: u64;
-    let arg2: u64;
-    let arg3: u64;
-    // Safety: we are in a privileged interrupt handler, and the
-    // user process gave us rax/rdi/rsi/rdx/r10 via the standard
-    // SysV-style ABI. We also read r10 for 4-arg syscalls.
-    unsafe {
-        core::arch::asm!(
-            "mov {0}, rax",
-            "mov {1}, rdi",
-            "mov {2}, rsi",
-            "mov {3}, rdx",
-            "mov {4}, r10",
-            out(reg) syscall_no,
-            out(reg) arg0,
-            out(reg) arg1,
-            out(reg) arg2,
-            out(reg) arg3,
-            options(nostack, preserves_flags),
-        );
-    }
+    let syscall_no = frame.rax;
+    let arg0 = frame.rdi;
+    let arg1 = frame.rsi;
+    let arg2 = frame.rdx;
+    let arg3 = frame.r10;
 
-    // Check if this syscall comes from a userspace process.
-    // If CURRENT_PID > 0, we are in a userspace context and use the
-    // syscall/mod.rs dispatch (SyscallNumber enum: IpcSend=1, Socket=7, etc.).
-    // If CURRENT_PID == 0, we are in kernel/shell context and use the
-    // legacy Linux-style numbers (SYS_WRITE=1, SYS_EXIT=60, etc.).
-    let current_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    // CURRENT_PID > 0 means a scheduled user process is executing;
+    // dispatch on the stable SyscallNumber ABI. CURRENT_PID == 0 is
+    // the kernel/shell context, which keeps the legacy Linux-style
+    // numbers (SYS_WRITE=1, SYS_EXIT=60, ...).
+    let current_pid =
+        crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
 
     if current_pid > 0 {
-        // Userspace process: forward to the unified syscall dispatcher.
-        let args = [arg0, arg1, arg2, arg3, 0, 0];
+        use crate::syscall::SyscallNumber;
+        let args = [arg0, arg1, arg2, arg3, frame.r8, frame.r9];
+
+        // Lifecycle syscalls context-switch away and are handled
+        // here; everything else goes through the dispatcher.
+        if syscall_no == SyscallNumber::Exit as u64 {
+            crate::scheduler::record_exit(current_pid, arg0 as u32);
+            crate::scheduler::exit_current();
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::ProcessKilled,
+                "user process exited via sys_exit",
+            );
+            unsafe { resume_after_death() }
+        } else if syscall_no == SyscallNumber::Yield as u64 {
+            unsafe { yield_from_syscall(current_pid, frame) };
+            frame.rax = 0;
+            return;
+        } else if syscall_no == SyscallNumber::Sleep as u64 {
+            // arg0 = milliseconds; PIT runs ~18.2 Hz (~55 ms/tick).
+            let ticks = arg0.div_ceil(55).max(1);
+            if crate::scheduler::sleep_current(ticks) {
+                save_user_context(current_pid, frame);
+                unsafe { resume_after_death() }
+            }
+            frame.rax = 0;
+            return;
+        }
+
         let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);
-        let result = if res.status == crate::syscall::SyscallStatus::Ok {
+        frame.rax = if res.status == crate::syscall::SyscallStatus::Ok {
             res.value
         } else {
-            // Encode negative error codes the same way the legacy path does
             res.status as i64 as u64
         };
 
-        unsafe {
-            core::arch::asm!(
-                "mov rax, {0}",
-                in(reg) result,
-                options(nostack, preserves_flags),
-            );
+        // Preemption point: if the time slice expired while we were
+        // in the kernel, rotate to the next runnable task before
+        // returning to user space. The saved context includes rax,
+        // so the result above survives the round trip.
+        if crate::scheduler::should_preempt(current_pid) {
+            unsafe { yield_from_syscall(current_pid, frame) };
         }
-        let _ = stack_frame;
         return;
     }
 
@@ -512,13 +647,9 @@ extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackF
         syscall_number::SYS_WRITE => {
             // Arg0 = user pointer to bytes, arg1 = length,
             // arg2 = file descriptor. We only support fd=1
-            // (stdout -> COM1). The user pointer is trusted
-            // because it points into the process's own user
-            // half (which the kernel can read via the
-            // phys_to_virt alias) but we still need to copy
-            // it out before writing so we do not hold a
-            // reference into the user mapping across the
-            // serial write.
+            // (stdout -> COM1). We copy the bytes out before
+            // writing so we do not hold a reference into the
+            // user mapping across the serial write.
             if arg2 != 1 {
                 EPERM
             } else {
@@ -569,108 +700,17 @@ extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackF
                 0
             }
         }
-        syscall_number::SYS_EXIT => {
-            // Mark the current task dead and pick the next
-            // runnable task. If there is none, halt (this
-            // is the original Phase 1.4 behaviour, which
-            // the `ring3` sweep test relies on).
-            let reaped = crate::scheduler::exit_current();
-            if reaped {
-                if let Some(next_pid) = crate::scheduler::schedule_next() {
-                    if let Some((kstack, _cr3)) =
-                        crate::scheduler::switch_target(next_pid)
-                    {
-                        unsafe {
-                            crate::gdt::set_kernel_stack(
-                                x86_64::VirtAddr::new(kstack),
-                            );
-                        }
-                        let scratch = crate::scheduler::scratch_context()
-                            as *mut crate::scheduler::TaskContext;
-                        unsafe {
-                            crate::scheduler::context_switch_to(
-                                scratch,
-                                scratch,
-                                kstack,
-                            );
-                        }
-                    }
-                }
-            }
-            crate::hlt_loop();
-        }
-        syscall_number::SYS_YIELD => {
-            // Cooperative yield. If the run-queue is empty
-            // (the single-task case the `ring3` test uses)
-            // we just return 0.
-            if crate::scheduler::yield_current() {
-                if let Some(next_pid) = crate::scheduler::schedule_next() {
-                    if let Some((kstack, _cr3)) =
-                        crate::scheduler::switch_target(next_pid)
-                    {
-                        unsafe {
-                            crate::gdt::set_kernel_stack(
-                                x86_64::VirtAddr::new(kstack),
-                            );
-                        }
-                        let scratch = crate::scheduler::scratch_context()
-                            as *mut crate::scheduler::TaskContext;
-                        unsafe {
-                            crate::scheduler::context_switch_to(
-                                scratch,
-                                scratch,
-                                kstack,
-                            );
-                        }
-                    }
-                }
-            }
+        syscall_number::SYS_EXIT | syscall_number::SYS_YIELD | syscall_number::SYS_SLEEP => {
+            // The kernel main context (pid 0) is not a schedulable
+            // task; exit/yield/sleep have no meaning here. User
+            // tasks enter through the scheduler with CURRENT_PID set
+            // and use the SyscallNumber ABI above.
             0
         }
-        syscall_number::SYS_SLEEP => {
-            // Arg0 = milliseconds. Convert to PIT ticks
-            // (PIT fires ~18.2 Hz → ~55 ms per tick, round
-            // up so a non-zero ms always sleeps at least
-            // one tick).
-            if arg0 == 0 {
-                0
-            } else {
-                let ticks = arg0.div_ceil(55).max(1);
-                if crate::scheduler::sleep_current(ticks) {
-                    if let Some(next_pid) = crate::scheduler::schedule_next() {
-                        if let Some((kstack, _cr3)) =
-                            crate::scheduler::switch_target(next_pid)
-                        {
-                            unsafe {
-                                crate::gdt::set_kernel_stack(
-                                    x86_64::VirtAddr::new(kstack),
-                                );
-                            }
-                            let scratch =
-                                crate::scheduler::scratch_context()
-                                    as *mut crate::scheduler::TaskContext;
-                            unsafe {
-                                crate::scheduler::context_switch_to(
-                                    scratch,
-                                    scratch,
-                                    kstack,
-                                );
-                            }
-                        }
-                    }
-                    // No other task: idle until the next
-                    // PIT tick re-evaluates the run-queue.
-                    crate::hlt_loop();
-                }
-                0
-            }
-        }
         syscall_number::SYS_WAIT => {
-            // Arg0 = pid. Phase 2.2 only supports
-            // `wait(-1)` ("wait for any child") and
-            // `wait(pid)` where the pid is already dead.
-            // A live child returns -ECHILD
-            // (Linux-compatible: u64::MAX - 10).
+            // Arg0 = pid. Supports `wait(-1)` ("any dead task") and
+            // `wait(pid)` where the pid is already dead. A live
+            // child returns -ECHILD (Linux-compatible).
             let requested = arg0 as i64;
             let sched = crate::scheduler::list_tasks();
             if requested == -1 {
@@ -705,24 +745,7 @@ extern "x86-interrupt" fn syscall_interrupt_handler(stack_frame: InterruptStackF
         }
     };
 
-    // Place the result in rax so it is visible to user code
-    // when `iretq` returns. We do not change the rest of the
-    // GPRs; the kernel ABI contract is "rcx and r11 are
-    // clobbered by syscall" but we are using `int` not
-    // `syscall` so this does not apply.
-    unsafe {
-        core::arch::asm!(
-            "mov rax, {0}",
-            in(reg) result,
-            options(nostack, preserves_flags),
-        );
-    }
-
-    // Suppress the unused warning for `stack_frame` so the
-    // debug build still builds. Phase 1.5+ will read
-    // `stack_frame.cs` to enforce that we are returning to
-    // ring 3.
-    let _ = stack_frame;
+    frame.rax = result;
 }
 
 extern crate alloc;
