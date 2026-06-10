@@ -33,13 +33,37 @@ use x86_64::{
 };
 
 /// First P4 index that belongs to the kernel half. Indices below this
-/// are user space. The bootloader maps the kernel at 0xffff_8000_0000_0000
-/// (entry 511) and the physical memory alias at 0xffff_8888_0000_0000, so
-/// the kernel half always starts well above the user half.
+/// This bootloader (bootloader 0.9 + map_physical_memory) keeps the kernel
+/// in the *lower* canonical half: at boot the kernel L4 has present entries
+/// at P4 indices [0 (kernel code/data/bss/IDT/GDT/TSS), 2, 3 (physical
+/// memory alias @ 0x180_0000_0000), 31, 136 (kernel heap @ 0x4444_4444_0000)].
+/// Because the kernel itself occupies P4[0], a process address space cannot
+/// give P4[0] to user mappings without losing the kernel. Instead each
+/// process mirrors *every* present kernel L4 entry (sharing the kernel's
+/// sub-tables) and confines its own user mappings to one dedicated, kernel-
+/// unused P4 slot — see `USER_P4_INDEX` / `USER_REGION_*` below.
 pub const KERNEL_P4_START: usize = 256;
 
-/// Size of a user-half mapping in bytes (lower-half P4 coverage).
-pub const USER_HALF_SIZE: u64 = 1u64 << 39; // 512 GiB
+/// P4 slot reserved exclusively for user-space mappings. Index 1 is not used
+/// by the kernel (see the present-index list above), so a process can own its
+/// entire L4[1] sub-tree without colliding with — or corrupting — any shared
+/// kernel page table.
+pub const USER_P4_INDEX: usize = 1;
+
+/// Inclusive low / exclusive high virtual bounds of the user region: all of
+/// P4[1], i.e. [512 GiB, 1 TiB). Every user PT_LOAD segment and the user
+/// stack must fall inside this window; the loader rejects anything outside it.
+pub const USER_REGION_BASE: u64 = (USER_P4_INDEX as u64) << 39; // 0x80_0000_0000
+pub const USER_REGION_END: u64 = ((USER_P4_INDEX as u64) + 1) << 39; // 0x100_0000_0000
+
+/// Legacy alias kept for callers that only need the user-region ceiling.
+pub const USER_HALF_SIZE: u64 = USER_REGION_END;
+
+/// True if `[vaddr, vaddr+len)` lies entirely within the user region.
+#[inline]
+fn in_user_region(vaddr: u64, len: u64) -> bool {
+    vaddr >= USER_REGION_BASE && vaddr.saturating_add(len) <= USER_REGION_END
+}
 
 // ============================================================================
 // Per-process address space
@@ -180,8 +204,8 @@ impl Process {
         for ph in elf.load_segments() {
             let flags = pt_flags(ph);
             let vaddr = VirtAddr::new(ph.p_vaddr);
-            if vaddr.as_u64() >= USER_HALF_SIZE {
-                return Err("PT_LOAD vaddr above user half");
+            if !in_user_region(vaddr.as_u64(), ph.p_memsz) {
+                return Err("PT_LOAD vaddr outside user region");
             }
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
             self.map_user(vaddr, ph.p_memsz as usize, file_bytes, flags)
@@ -246,14 +270,22 @@ impl AddressSpace {
         let table = unsafe { &mut *l4_to_mut_ptr(l4_frame) };
         table.zero();
 
-        // Mirror only the kernel half. The user half must start empty so
-        // PT_LOAD mappings can be installed without colliding with the
-        // bootloader's temporary lower-half identity mappings.
+        // Mirror every present kernel L4 entry *except* the slot reserved
+        // for user space, so the process shares the kernel's code, heap,
+        // physical-memory alias, IDT/GDT/TSS, and per-process kernel stacks
+        // (all of which this bootloader places in the lower canonical half).
+        // The shared sub-tables are kernel-owned and carry no USER bit, so
+        // ring-3 code still cannot read or write them. USER_P4_INDEX is left
+        // empty here so `map_user_range` can build a process-private sub-tree
+        // there without ever touching a shared kernel table.
         let kernel_l4_phys = crate::memory::active_p4_phys();
         let kernel_l4_ptr = crate::memory::phys_to_virt(kernel_l4_phys).as_ptr::<PageTable>();
         // Safety: the kernel's L4 is mapped at phys_to_virt(active_p4_phys()).
         let kernel_l4 = unsafe { &*kernel_l4_ptr };
-        for index in KERNEL_P4_START..512 {
+        for index in 0..512 {
+            if index == USER_P4_INDEX {
+                continue;
+            }
             if kernel_l4[index].flags().contains(PageTableFlags::PRESENT) {
                 table[index] = kernel_l4[index].clone();
             }
@@ -291,7 +323,9 @@ impl AddressSpace {
         bytes: &[u8],
         flags: PageTableFlags,
     ) -> Result<u64, MapToError<Size4KiB>> {
-        if vaddr.as_u64() >= USER_HALF_SIZE {
+        // Confine user mappings to the dedicated P4 slot. Mapping outside it
+        // could descend into a shared kernel sub-table and corrupt it.
+        if !in_user_region(vaddr.as_u64(), memsz as u64) {
             return Err(MapToError::ParentEntryHugePage);
         }
 
@@ -444,10 +478,11 @@ pub const KERNEL_STACK_SIZE: usize = 32 * 1024;
 /// binary and the future userland programs.
 pub const USER_STACK_SIZE: usize = 64 * 1024;
 
-/// Virtual address where every process's user stack lives.
-/// 0x7000_0000 is well above any realistic init ELF (which lives
-/// at 0x200_000) and well below the user-half ceiling (0x8000_0000_0000).
-pub const USER_STACK_BASE: u64 = 0x7000_0000;
+/// Virtual address where every process's user stack lives. It sits inside
+/// the dedicated user P4 slot (P4[1]) at a 1.75 GiB offset — well above any
+/// realistic userland ELF (linked at the slot base, 0x80_0000_0000) and well
+/// below the slot ceiling (0x100_0000_0000).
+pub const USER_STACK_BASE: u64 = USER_REGION_BASE + 0x7000_0000; // 0x80_7000_0000
 
 fn l4_to_mut_ptr(frame: PhysFrame) -> *mut PageTable {
     crate::memory::phys_to_virt(frame.start_address()).as_mut_ptr()
@@ -513,6 +548,23 @@ pub fn drop_by_pid(pid: u64) -> bool {
     };
     procs.remove(index);
     true
+}
+
+/// Free the address space, kernel stack, and user frames of every
+/// task the scheduler has marked Dead, then let the scheduler drop
+/// its own bookkeeping entries.
+///
+/// MUST be called from a kernel context that is not executing on any
+/// dead task's kernel stack or address space — e.g. the
+/// return-to-shell trampoline, which runs on the boot CR3 and a
+/// dedicated stack. Dropping a `Process` runs `AddressSpace::drop`,
+/// which returns its frames to the global allocator.
+pub fn reap_dead() {
+    let dead = crate::scheduler::dead_pids();
+    for pid in dead {
+        drop_by_pid(pid);
+    }
+    crate::scheduler::cleanup_dead_tasks();
 }
 
 /// List all registered process records. Each entry is a tuple of (pid,
@@ -593,16 +645,20 @@ pub fn enter_registered(pid: u64) {
         kernel_rsp,
         l4_frame.start_address().as_u64(),
     );
-    // Seed the incoming task's saved iretq frame so the
-    // scheduler's `context_switch_to` can iretq into it.
+    // Seed the incoming task's saved iretq frame so that if it is
+    // ever preempted and resumed by the scheduler, the saved context
+    // is valid from the first instruction.
     let ctx = crate::scheduler::TaskContext::ring3(
         entry,
         user_rsp.as_u64(),
     );
     crate::scheduler::write_context(pid, ctx);
-    // Mark the user process as currently executing so the
-    // tick handler decrements its time slice correctly.
-    crate::scheduler::CURRENT_PID.store(pid, core::sync::atomic::Ordering::SeqCst);
+    // Claim the CPU for this pid: mark it Running and drain it from
+    // the ready queue so a later `schedule_next` cannot try to
+    // re-enter it through the seeded context while it is already
+    // executing. Also sets CURRENT_PID so the tick handler decrements
+    // its time slice.
+    crate::scheduler::claim_for_run(pid);
 
     enter_ring3_inner(kernel_rsp, user_rsp, entry, l4_frame);
 }
