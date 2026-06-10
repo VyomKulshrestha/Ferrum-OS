@@ -126,13 +126,17 @@ pub struct TaskContext {
     pub rsp: u64,
     /// iretq frame - SS (0x10 ring 0, 0x23 ring 3).
     pub ss: u64,
+    /// Syscall return value, restored last by the context switch so a
+    /// task resumed after yield/preemption still sees its result.
+    /// Offset 0x58 — keep in sync with `context_switch_to`.
+    pub rax: u64,
 }
 
 impl TaskContext {
     pub const fn new() -> Self {
         TaskContext {
             r15: 0, r14: 0, r13: 0, r12: 0, rbp: 0, rbx: 0,
-            rip: 0, cs: 0, rflags: 0x3202, rsp: 0, ss: 0,
+            rip: 0, cs: 0, rflags: 0x3202, rsp: 0, ss: 0, rax: 0,
         }
     }
 
@@ -145,6 +149,7 @@ impl TaskContext {
             rflags: 0x3202,
             rsp,
             ss: crate::gdt::USER_DATA_SELECTOR,
+            rax: 0,
         }
     }
 }
@@ -188,7 +193,14 @@ pub struct Task {
 
 impl Task {
     pub fn new(name: String, priority: Priority) -> Self {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+        // Bookkeeping/kernel-thread tasks start at id 100 so they never
+        // collide with user-process pids, which come from the process
+        // registry and start at 1. `register_user` builds its Task with
+        // `id: pid` directly (bypassing this counter), so a user task always
+        // carries its real pid; without the offset, the "kernel"/"shell"
+        // stubs created at scheduler init would also claim ids 1 and 2 and
+        // shadow the first user processes in every `find(|t| t.id == pid)`.
+        static NEXT_ID: AtomicU64 = AtomicU64::new(100);
         Task {
             id: NEXT_ID.fetch_add(1, Ordering::SeqCst),
             name,
@@ -272,6 +284,12 @@ pub static CURRENT_PID: AtomicU64 = AtomicU64::new(0);
 /// on pid 0); they exist so the sweep's `ps` command and
 /// `list_tasks` keep the same surface as Phase 1.
 pub fn init() {
+    // Capture the boot L4 frame so the idle loop and the kernel return
+    // trampoline can restore the kernel address space after the last
+    // user process dies (at that point CR3 holds the dead process's L4).
+    let (boot_l4, _) = x86_64::registers::control::Cr3::read();
+    BOOT_CR3.store(boot_l4.start_address().as_u64(), Ordering::SeqCst);
+
     let mut sched = SCHEDULER.lock();
     sched.initialized = true;
 
@@ -443,8 +461,20 @@ pub fn exit_current() -> bool {
 /// empty.
 pub fn schedule_next() -> Option<u64> {
     let mut sched = SCHEDULER.lock();
-    for q in sched.run_queues.iter_mut().rev() {
-        if let Some(pid) = q.pop_front() {
+    for qi in (0..Priority::COUNT).rev() {
+        while let Some(pid) = sched.run_queues[qi].pop_front() {
+            // A queue entry can go stale: the task may have been
+            // killed or blocked after it was enqueued. Skip (and
+            // thereby drop) anything that is not Ready.
+            let ready = sched
+                .tasks
+                .iter()
+                .find(|t| t.id == pid)
+                .map(|t| t.state == TaskState::Ready)
+                .unwrap_or(false);
+            if !ready {
+                continue;
+            }
             // Reset time slice and mark running.
             if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
                 task.state = TaskState::Running;
@@ -557,14 +587,26 @@ pub fn kill(id: u64) -> bool {
         for task in sched.tasks.iter_mut() {
             if task.id == id {
                 task.state = TaskState::Dead;
+                task.time_remaining = 0;
                 killed = true;
                 break;
+            }
+        }
+        if killed {
+            // Drain the pid from every run-queue so schedule_next
+            // can never hand the CPU to a dead task.
+            for q in sched.run_queues.iter_mut() {
+                q.retain(|p| *p != id);
             }
         }
         killed
     };
 
     if killed {
+        record_exit(id, 137); // 128 + SIGKILL, by convention
+        if CURRENT_PID.load(Ordering::SeqCst) == id {
+            CURRENT_PID.store(0, Ordering::SeqCst);
+        }
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::ProcessKilled,
             "Task marked dead",
@@ -579,6 +621,16 @@ pub fn list_tasks() -> Vec<Task> {
     sched.tasks.iter().cloned().collect()
 }
 
+/// Capability strings held by the task `pid`, if it exists.
+pub fn capabilities_of(pid: u64) -> Option<Vec<String>> {
+    let sched = SCHEDULER.lock();
+    sched
+        .tasks
+        .iter()
+        .find(|t| t.id == pid)
+        .map(|t| t.capabilities.clone())
+}
+
 pub fn total_ticks() -> u64 {
     let sched = SCHEDULER.lock();
     sched.total_ticks
@@ -587,6 +639,18 @@ pub fn total_ticks() -> u64 {
 pub fn active_task_count() -> usize {
     let sched = SCHEDULER.lock();
     sched.tasks.iter().filter(|t| t.state != TaskState::Dead).count()
+}
+
+/// Pids of every task currently in the `Dead` state. Used by the
+/// process reaper to know which address spaces to free.
+pub fn dead_pids() -> Vec<u64> {
+    let sched = SCHEDULER.lock();
+    sched
+        .tasks
+        .iter()
+        .filter(|t| t.state == TaskState::Dead)
+        .map(|t| t.id)
+        .collect()
 }
 
 pub fn cleanup_dead_tasks() {
@@ -670,6 +734,9 @@ pub unsafe extern "C" fn context_switch_to(
         "mov r12, [rsi + 0x18]",
         "mov rbp, [rsi + 0x20]",
         "mov rbx, [rsi + 0x28]",
+        // Restore the saved syscall return value last (rax was used
+        // as scratch while building the iretq frame above).
+        "mov rax, [rsi + 0x58]",
         // iretq into the incoming task.
         "iretq",
     );
@@ -692,4 +759,226 @@ pub fn scratch_context() -> &'static mut TaskContext {
     } else {
         unsafe { &mut *(addr as *mut TaskContext) }
     }
+}
+
+// ============================================================================
+// Exit status tracking
+// ============================================================================
+
+/// Physical address of the boot L4 frame, captured by `init()`.
+/// The idle loop and the kernel return trampoline switch back to
+/// this CR3 because the CR3 they are entered on may belong to a
+/// process that is about to be reaped.
+pub static BOOT_CR3: AtomicU64 = AtomicU64::new(0);
+
+/// Exit codes of finished tasks, kept until `sys_waitpid` or the
+/// reaper consumes them. Entries are (pid, code).
+static EXIT_CODES: Mutex<Vec<(u64, u32)>> = Mutex::new(Vec::new());
+
+/// Packed (pid << 32 | code) of the most recent exit, displayed by
+/// the kernel return trampoline. `u64::MAX` means "none pending".
+static LAST_EXIT: AtomicU64 = AtomicU64::new(u64::MAX);
+
+/// Record that `pid` finished with `code`. Idempotent per pid.
+pub fn record_exit(pid: u64, code: u32) {
+    let mut codes = EXIT_CODES.lock();
+    if !codes.iter().any(|(p, _)| *p == pid) {
+        codes.push((pid, code));
+    }
+    LAST_EXIT.store((pid << 32) | code as u64, Ordering::SeqCst);
+}
+
+/// Exit code of `pid` if it has finished.
+pub fn exit_status(pid: u64) -> Option<u32> {
+    EXIT_CODES
+        .lock()
+        .iter()
+        .find(|(p, _)| *p == pid)
+        .map(|(_, c)| *c)
+}
+
+/// Exit status of any finished task, consuming the record.
+pub fn take_any_exit_status() -> Option<(u64, u32)> {
+    EXIT_CODES.lock().pop()
+}
+
+/// Take the most recent exit (pid, code) for display, clearing it.
+pub fn take_last_exit() -> Option<(u64, u32)> {
+    let packed = LAST_EXIT.swap(u64::MAX, Ordering::SeqCst);
+    if packed == u64::MAX {
+        return None;
+    }
+    Some((packed >> 32, (packed & 0xFFFF_FFFF) as u32))
+}
+
+/// True if any task is Blocked (sleeping). Used by the exit path to
+/// decide between idling (a sleeper will wake) and returning to the
+/// shell (nothing left to run).
+pub fn has_blocked_tasks() -> bool {
+    let sched = SCHEDULER.lock();
+    sched.tasks.iter().any(|t| t.state == TaskState::Blocked)
+}
+
+/// True if the running task `pid` has exhausted its time slice and
+/// should be preempted at the next syscall boundary.
+pub fn should_preempt(pid: u64) -> bool {
+    let sched = SCHEDULER.lock();
+    sched
+        .tasks
+        .iter()
+        .find(|t| t.id == pid)
+        .map(|t| t.state == TaskState::Running && t.time_remaining == 0)
+        .unwrap_or(false)
+}
+
+/// Claim the CPU for `pid` outside the normal `schedule_next` path
+/// (used by the one-way `ring3` dispatch). Drains the pid from the
+/// run-queues so a later `schedule_next` cannot re-enter the task
+/// through its stale seeded context while it is already running.
+pub fn claim_for_run(pid: u64) {
+    let mut sched = SCHEDULER.lock();
+    for q in sched.run_queues.iter_mut() {
+        q.retain(|p| *p != pid);
+    }
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+        task.state = TaskState::Running;
+        task.time_remaining = TIME_SLICE_TICKS;
+    }
+    drop(sched);
+    CURRENT_PID.store(pid, Ordering::SeqCst);
+}
+
+// ============================================================================
+// Kernel-side execution targets: resume, idle, return-to-shell
+// ============================================================================
+
+const KERNEL_TASK_STACK_SIZE: usize = 32 * 1024;
+
+#[repr(C, align(16))]
+struct KernelTaskStack([u8; KERNEL_TASK_STACK_SIZE]);
+
+/// Stack for the idle loop that runs while every task is sleeping.
+static mut IDLE_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK_SIZE]);
+
+/// Stack for the return-to-shell trampoline that runs after the last
+/// user task exits.
+static mut RETURN_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK_SIZE]);
+
+/// Stable slot for the *incoming* context of `context_switch_to`.
+/// Must not alias the scratch (outgoing) slot: the switch asm writes
+/// the outgoing registers before it reads the incoming ones, so using
+/// one slot for both would corrupt the incoming image.
+static mut RESUME_SLOT: TaskContext = TaskContext::new();
+
+fn kernel_stack_top(stack: *mut KernelTaskStack) -> u64 {
+    ((stack as u64) + KERNEL_TASK_STACK_SIZE as u64) & !0xF
+}
+
+unsafe fn load_cr3(phys: u64) {
+    use x86_64::registers::control::Cr3;
+    use x86_64::structures::paging::PhysFrame;
+    use x86_64::PhysAddr;
+    let (_, flags) = Cr3::read();
+    let frame = PhysFrame::containing_address(PhysAddr::new(phys));
+    Cr3::write(frame, flags);
+}
+
+/// Switch the CPU to the saved context of `pid` (which must already
+/// be marked Running by `schedule_next`). Sets TSS.RSP0 and CR3 for
+/// the target, then performs the iretq switch. Never returns.
+///
+/// # Safety
+/// Must be called with interrupts disabled, from a context that will
+/// never be resumed (the caller's stack frame is abandoned).
+pub unsafe fn resume_task(pid: u64) -> ! {
+    let (kstack, cr3) = switch_target(pid).expect("resume_task: pid not registered");
+    let ctx = context_of(pid).expect("resume_task: pid has no saved context");
+    crate::gdt::set_kernel_stack(VirtAddr::new(kstack));
+    if cr3 != 0 {
+        load_cr3(cr3);
+    }
+    let slot = &raw mut RESUME_SLOT;
+    *slot = ctx;
+    context_switch_to(scratch_context() as *mut TaskContext, slot, kstack);
+}
+
+/// Switch to a fresh ring-0 execution context running `entry` on the
+/// given stack, on the boot CR3. Never returns.
+unsafe fn switch_to_kernel_entry(entry: extern "C" fn() -> !, stack: *mut KernelTaskStack) -> ! {
+    let top = kernel_stack_top(stack);
+    let boot_cr3 = BOOT_CR3.load(Ordering::SeqCst);
+    if boot_cr3 != 0 {
+        load_cr3(boot_cr3);
+    }
+    crate::gdt::set_kernel_stack(VirtAddr::new(top));
+    let slot = &raw mut RESUME_SLOT;
+    *slot = TaskContext {
+        r15: 0,
+        r14: 0,
+        r13: 0,
+        r12: 0,
+        rbp: 0,
+        rbx: 0,
+        rip: entry as u64,
+        cs: crate::gdt::KERNEL_CODE_SELECTOR,
+        rflags: 0x202, // IF=1
+        // Mimic post-`call` alignment (rsp % 16 == 8 at fn entry).
+        rsp: top - 8,
+        ss: crate::gdt::KERNEL_DATA_SELECTOR,
+        rax: 0,
+    };
+    context_switch_to(scratch_context() as *mut TaskContext, slot, top);
+}
+
+/// Park the CPU until a sleeping task wakes. Never returns to the
+/// caller; control continues in `idle_entry`.
+///
+/// # Safety
+/// The caller's stack frame is abandoned.
+pub unsafe fn enter_idle() -> ! {
+    switch_to_kernel_entry(idle_entry, &raw mut IDLE_STACK);
+}
+
+/// Hand the CPU back to the shell after the last user task exits.
+/// Never returns to the caller; control continues in
+/// `kernel_return_entry`.
+///
+/// # Safety
+/// The caller's stack frame is abandoned.
+pub unsafe fn enter_kernel_return() -> ! {
+    switch_to_kernel_entry(kernel_return_entry, &raw mut RETURN_STACK);
+}
+
+/// Idle loop: halt until an interrupt fires, then try to schedule.
+/// The PIT tick moves sleeping tasks back to Ready, at which point
+/// `schedule_next` finds them and we switch in. If every task dies
+/// while we idle (e.g. killed from a fault handler), fall through to
+/// the shell trampoline.
+extern "C" fn idle_entry() -> ! {
+    CURRENT_PID.store(0, Ordering::SeqCst);
+    loop {
+        x86_64::instructions::interrupts::enable_and_hlt();
+        x86_64::instructions::interrupts::disable();
+        if let Some(next) = schedule_next() {
+            unsafe { resume_task(next) }
+        }
+        if !has_blocked_tasks() {
+            kernel_return_entry();
+        }
+    }
+}
+
+/// Return-to-shell trampoline: reap whatever died, report the exit,
+/// and drop into a fresh shell prompt. The original boot-time shell
+/// stack frame (abandoned when `ring3` dispatched one-way into user
+/// space) is never resumed; this is a fresh re-entry.
+extern "C" fn kernel_return_entry() -> ! {
+    CURRENT_PID.store(0, Ordering::SeqCst);
+    crate::process::reap_dead();
+    if let Some((pid, code)) = take_last_exit() {
+        crate::println!();
+        crate::println!("[kernel] user process {} exited (code {})", pid, code);
+    }
+    x86_64::instructions::interrupts::enable();
+    crate::shell::run()
 }
