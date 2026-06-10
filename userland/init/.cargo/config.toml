@@ -1,3 +1,25 @@
+# Build the init userland for bare-metal x86_64.
+#
+# It is linked directly at the dedicated user P4 slot (P4[1], base
+# 0x80_0000_0000) via `--image-base`, NOT at the rustc default 0x200000.
+# This matters because the image is non-PIE with absolute addressing: string
+# and data references are baked into the code as absolute addresses, so the
+# link address must equal the runtime load address or those references would
+# dangle. The kernel loader maps PT_LOAD segments exactly where the ELF says,
+# so linking here makes every absolute reference correct with no post-link
+# patching.
 [build]
 target = "x86_64-unknown-none"
 target-dir = "target"
+
+[target.x86_64-unknown-none]
+# code-model=large is required: at a 512 GiB link base the default small code
+# model's 32-bit (R_X86_64_32S) relocations overflow the +-2 GiB window. The
+# large model emits 64-bit absolute relocations so data/string references
+# resolve correctly at the P4[1] load address.
+rustflags = [
+    "-C", "relocation-model=static",
+    "-C", "code-model=large",
+    "-C", "link-arg=-no-pie",
+    "-C", "link-arg=--image-base=0x8000000000",
+]
