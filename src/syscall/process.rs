@@ -11,7 +11,6 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 use super::{SyscallResult, SyscallStatus};
 
 /// `sys_exec` — Spawn a new process from an ELF binary on the VFS.
@@ -26,21 +25,12 @@ use super::{SyscallResult, SyscallStatus};
 ///
 /// Returns: PID of the new process on success, or error.
 pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
-    let path_ptr = args[0];
-    let path_len = args[1];
-
-    // Read the path string from userspace
-    if path_ptr == 0 || path_len == 0 || path_len > 4096 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-    let path = {
-        let slice = unsafe {
-            core::slice::from_raw_parts(path_ptr as *const u8, path_len as usize)
-        };
-        match core::str::from_utf8(slice) {
-            Ok(s) => String::from(s),
-            Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
-        }
+    // Read and validate the path string from userspace. `read_user_str`
+    // bounds-checks the pointer against the user half (rejecting null,
+    // over-long, and kernel-half pointers) and verifies UTF-8.
+    let path = match unsafe { super::fs::read_user_str(args[0], args[1]) } {
+        Some(p) => p,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
     // Read the ELF binary from the VFS

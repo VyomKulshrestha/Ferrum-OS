@@ -37,6 +37,25 @@ pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
     core::str::from_utf8(slice).ok().map(String::from)
 }
 
+/// Read raw bytes from a userspace pointer. Returns None if the
+/// pointer looks invalid or reaches into the kernel half.
+///
+/// # Safety
+/// The caller must ensure we are in a kernel context where the user
+/// address space is accessible (identity-mapped or via phys_to_virt).
+pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::vec::Vec<u8>> {
+    let len = len as usize;
+    if len == 0 || len > cap || ptr == 0 {
+        return None;
+    }
+    let end = ptr.saturating_add(len as u64);
+    if end >= 0x0000_7FFF_FFFF_FFFF {
+        return None; // Prevent accessing kernel space
+    }
+    let slice = core::slice::from_raw_parts(ptr as *const u8, len);
+    Some(alloc::vec::Vec::from(slice))
+}
+
 /// Copy bytes from a kernel buffer into a userspace buffer.
 ///
 /// # Safety

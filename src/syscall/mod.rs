@@ -41,6 +41,21 @@ pub enum SyscallNumber {
     InjectMouse = 27,
     PollInput = 28,
     SystemQuery = 29,
+    /// Terminate the calling process. args[0] = exit code.
+    /// Handled directly in the interrupt layer (it must context-switch
+    /// away); never reaches `dispatch_with_capabilities`.
+    Exit = 30,
+    /// Return the calling process's pid.
+    GetPid = 31,
+    /// Sleep for args[0] milliseconds. Handled in the interrupt layer
+    /// like `Exit` (it blocks the caller and switches away).
+    Sleep = 32,
+    /// Poll a child's exit status. args[0] = pid, or u64::MAX for
+    /// "any". Returns the exit code, or u64::MAX if still running.
+    WaitPid = 33,
+    /// Write bytes to the console. args[0] = fd (1 = console+serial,
+    /// 2 = serial only), args[1] = ptr, args[2] = len.
+    Write = 34,
 }
 
 /// Syscall return status.
@@ -122,13 +137,20 @@ pub fn dispatch(number: u64, args: [u64; 6]) -> SyscallResult {
 }
 
 pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallResult {
-    let Some(held_capabilities) = crate::userspace::capabilities_for(pid) else {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    // Real ELF processes (loaded via `ring3` or `sys_exec`) live in the
+    // scheduler, not in the simulated userspace model registry, so fall
+    // back to the scheduler task's capability set for them.
+    let held_capabilities = match crate::userspace::capabilities_for(pid) {
+        Some(caps) => caps,
+        None => match crate::scheduler::capabilities_of(pid) {
+            Some(caps) => caps,
+            None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+        },
     };
 
-    if crate::userspace::record_syscall(pid).is_err() {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
+    // Best-effort bookkeeping; real processes are not in the model
+    // registry and that must not block their syscalls.
+    let _ = crate::userspace::record_syscall(pid);
 
     dispatch_with_capabilities(number, args, &held_capabilities)
 }
@@ -328,6 +350,75 @@ pub fn dispatch_with_capabilities(
         x if x == SyscallNumber::SystemQuery as u64 => {
             query::sys_system_query(args)
         }
+        x if x == SyscallNumber::GetPid as u64 => {
+            let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+            SyscallResult::ok(pid)
+        }
+        x if x == SyscallNumber::WaitPid as u64 => sys_waitpid(args),
+        x if x == SyscallNumber::Write as u64 => sys_write_console(args),
+        // Exit and Sleep must context-switch away from the caller, so
+        // they are handled directly in the interrupt layer. Reaching
+        // this dispatcher means a kernel-context caller invoked them,
+        // which has no meaning.
+        x if x == SyscallNumber::Exit as u64 || x == SyscallNumber::Sleep as u64 => {
+            SyscallResult::err(SyscallStatus::NotImplemented)
+        }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
     }
+}
+
+/// `sys_waitpid` — Poll the exit status of a task.
+///
+/// args[0] = pid to wait for, or u64::MAX for "any finished task".
+///
+/// Returns the exit code if the task has finished, u64::MAX if it is
+/// still alive, or InvalidArgument if no such task ever existed.
+/// Non-blocking: callers poll with `Sleep` between attempts.
+fn sys_waitpid(args: [u64; 6]) -> SyscallResult {
+    let target = args[0];
+    if target == u64::MAX {
+        return match crate::scheduler::take_any_exit_status() {
+            Some((_pid, code)) => SyscallResult::ok(code as u64),
+            None => SyscallResult::ok(u64::MAX),
+        };
+    }
+    if let Some(code) = crate::scheduler::exit_status(target) {
+        return SyscallResult::ok(code as u64);
+    }
+    let alive = crate::scheduler::list_tasks()
+        .iter()
+        .any(|t| t.id == target && t.state != crate::scheduler::TaskState::Dead);
+    if alive {
+        SyscallResult::ok(u64::MAX)
+    } else {
+        SyscallResult::err(SyscallStatus::InvalidArgument)
+    }
+}
+
+/// `sys_write_console` — Write bytes from userspace to the console.
+///
+/// args[0] = fd: 1 = console + serial, 2 = serial only.
+/// args[1] = ptr (user pointer to bytes)
+/// args[2] = len (capped at 4096)
+///
+/// Returns the number of bytes written.
+fn sys_write_console(args: [u64; 6]) -> SyscallResult {
+    let fd = args[0];
+    if fd != 1 && fd != 2 {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    let bytes = match unsafe { fs::read_user_bytes(args[1], args[2], 4096) } {
+        Some(b) => b,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+    let text = alloc::string::String::from_utf8_lossy(&bytes);
+    // `print!` already tees to the serial port (see vga::_print), so
+    // fd=1 must not also call serial_print! or every byte doubles on
+    // the serial console. fd=2 is the serial-only path.
+    if fd == 1 {
+        crate::print!("{}", text);
+    } else {
+        crate::serial_print!("{}", text);
+    }
+    SyscallResult::ok(bytes.len() as u64)
 }
