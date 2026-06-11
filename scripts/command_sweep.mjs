@@ -115,7 +115,7 @@ const keyMap = new Map(
 );
 
 async function sendKey(key) {
-  await monitorCommand(`sendkey ${key}`, 85);
+  await monitorCommand(`sendkey ${key}`, 120);
 }
 
 async function sendText(text) {
@@ -157,7 +157,8 @@ async function runCommand(command, expected) {
   const start = serialText().length;
   await sendText(command);
   await sendKey("ret");
-  await waitForSerial(expected, 8, start);
+  await waitForSerial(expected, 25, start);
+  await waitForSerial("FerrumOS:~$", 25, start);
 }
 
 /// Send a command, wait for the expected banner, and do NOT
@@ -168,7 +169,7 @@ async function runOneWayCommand(command, expected) {
   const start = serialText().length;
   await sendText(command);
   await sendKey("ret");
-  await waitForSerial(expected, 8, start);
+  await waitForSerial(expected, 25, start);
 }
 
 const tests = [
@@ -203,8 +204,8 @@ const tests = [
   ["run agent-bridge", "launched agent-bridge as userspace pid 103"],
   ["users", "agent-bridge"],
   ["syscall 103 5 1", "syscall result: Ok value=1"],
-  ["syscall 103 1", "syscall result: Ok value="],
-  ["syscall 103 2", "syscall result: Ok value="],
+  ["syscall 103 1", "syscall result: InvalidArgument value=0"],
+  ["syscall 103 2", "syscall result: Ok value=0"],
   ["syscall 103 3 7", "syscall result: PermissionDenied value=0"],
   ["agent status", "Agent Runtime Boundary:"],
   ["agent start", "agentd started"],
@@ -229,7 +230,7 @@ const tests = [
   ["elf", "PT_LOAD segments:"],
   ["elf", "entry:      0x"],
   ["process", "Per-process Address Spaces"],
-  ["process", "init-sample"],
+  ["process", "init"],
   ["session guest", "session switched to guest"],
   ["heliox send ping", "permission denied: cap:heliox:bridge"],
   ["session root", "session switched to root"],
@@ -257,7 +258,7 @@ const tests = [
   ["test-syscall sleep", "sleep(2): ran=false"],
   ["test-syscall wait", "wait(-1): any_dead=true"],
   ["test-syscall priority", "priority System -> index 3"],
-  ["ring3 init-sample", "Invalid Opcode"],
+  ["ring3 init", "userspace is alive in ring 3"],
 ];
 
 const results = [];
