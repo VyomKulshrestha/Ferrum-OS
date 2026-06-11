@@ -482,34 +482,69 @@ pub fn exit_current() -> bool {
     false
 }
 
+/// Get the current local APIC ID using the `cpuid` leaf 1 instruction.
+pub fn initial_apic_id() -> u32 {
+    let ebx: u32;
+    unsafe {
+        core::arch::asm!(
+            "push rbx",
+            "cpuid",
+            "mov {ebx_val:e}, ebx",
+            "pop rbx",
+            ebx_val = out(reg) ebx,
+            inout("eax") 1 => _,
+            out("ecx") _,
+            out("edx") _,
+            options(nomem, preserves_flags)
+        );
+    }
+    (ebx >> 24) & 0xFF
+}
+
 /// Pick the next runnable pid from the highest-priority
 /// non-empty run-queue. Returns `None` if every run-queue is
 /// empty.
 pub fn schedule_next() -> Option<u64> {
     let mut sched = SCHEDULER.lock();
+    let current_apic_id = initial_apic_id();
     for qi in (0..Priority::COUNT).rev() {
-        while let Some(pid) = sched.run_queues[qi].pop_front() {
-            // A queue entry can go stale: the task may have been
-            // killed or blocked after it was enqueued. Skip (and
-            // thereby drop) anything that is not Ready.
-            let ready = sched
-                .tasks
-                .iter()
-                .find(|t| t.id == pid)
-                .map(|t| t.state == TaskState::Ready)
-                .unwrap_or(false);
-            if !ready {
-                continue;
+        let mut idx = 0;
+        while idx < sched.run_queues[qi].len() {
+            let pid = sched.run_queues[qi][idx];
+            if let Some(task) = sched.tasks.iter().find(|t| t.id == pid) {
+                if task.state != TaskState::Ready {
+                    // Discard dead/blocked task from the queue
+                    sched.run_queues[qi].remove(idx);
+                    continue;
+                }
+                
+                // It is Ready. Check CPU affinity
+                let affinity_ok = match task.cpu_affinity {
+                    None => true,
+                    Some(aff) => aff == current_apic_id,
+                };
+                
+                if affinity_ok {
+                    // Remove from queue and run it
+                    sched.run_queues[qi].remove(idx);
+                    
+                    // Reset time slice and mark running.
+                    if let Some(task_mut) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+                        task_mut.state = TaskState::Running;
+                        task_mut.time_remaining = TIME_SLICE_TICKS;
+                    }
+                    
+                    drop(sched);
+                    CURRENT_PID.store(pid, Ordering::SeqCst);
+                    return Some(pid);
+                } else {
+                    // Task is for another CPU core, leave it in queue
+                    idx += 1;
+                }
+            } else {
+                // Task does not exist in the list, discard it
+                sched.run_queues[qi].remove(idx);
             }
-            // Reset time slice and mark running.
-            if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
-                task.state = TaskState::Running;
-                task.time_remaining = TIME_SLICE_TICKS;
-            }
-            // Drop the lock before touching CURRENT_PID.
-            drop(sched);
-            CURRENT_PID.store(pid, Ordering::SeqCst);
-            return Some(pid);
         }
     }
     None
