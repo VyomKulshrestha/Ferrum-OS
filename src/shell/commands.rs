@@ -1149,7 +1149,8 @@ fn cmd_ring3(args: &[&str]) {
         "[  OK  ] Dispatching ring-3 init: pid={} name={} user_frames={}",
         pid, name, frames
     );
-    crate::process::enter_registered(pid);
+    let held = current_capabilities();
+    crate::process::enter_registered(pid, &held);
 }
 
 fn cmd_log() {

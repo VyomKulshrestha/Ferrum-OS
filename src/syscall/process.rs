@@ -66,16 +66,25 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         .map(|s| s.l4_frame().start_address().as_u64())
         .unwrap_or(0);
 
+    let caller_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    let caller_capabilities = match crate::scheduler::capabilities_of(caller_pid) {
+        Some(caps) => caps,
+        None => alloc::vec![],
+    };
+    let requested_caps = crate::userspace::capabilities_for_program(name);
+    let granted_caps = crate::security::filter_delegatable(&requested_caps, &caller_capabilities);
+
     // Register the process in the global process table
     crate::process::register(process);
 
     // Register with the scheduler so it gets scheduled
     crate::scheduler::register_user(
         pid,
-        &alloc::format!("user-{}", name),
+        name,
         crate::scheduler::Priority::Normal,
         kernel_rsp,
         cr3,
+        &granted_caps,
     );
 
     // Seed the scheduler context with the ELF entry point and user stack
@@ -92,3 +101,4 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
 
     SyscallResult::ok(pid)
 }
+

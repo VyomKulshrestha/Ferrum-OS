@@ -625,7 +625,13 @@ pub fn take_for_entry(pid: u64) -> Option<(VirtAddr, VirtAddr, u64, PhysFrame)> 
 /// Transfer control to the registered process with the given pid
 /// at ring 3. The iretq never returns; if the process calls
 /// `SYS_EXIT` the kernel halts.
-pub fn enter_registered(pid: u64) {
+pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
+    let name = {
+        let procs = PROCESSES.lock();
+        procs.iter().find(|r| r.process.pid == pid).map(|r| r.process.name().to_string())
+    };
+    let name = name.unwrap_or_else(|| alloc::format!("user-{}", pid));
+
     let (kernel_rsp, user_rsp, entry, l4_frame) = match take_for_entry(pid) {
         Some(parts) => parts,
         None => {
@@ -634,16 +640,20 @@ pub fn enter_registered(pid: u64) {
         }
     };
 
+    let requested_caps = crate::userspace::capabilities_for_program(&name);
+    let granted_caps = crate::security::filter_delegatable(&requested_caps, caller_capabilities);
+
     // Register the user process with the scheduler so the
     // context switch layer (Phase 2) can find it. The kernel
     // main context is the implicit "current" task; the user
     // process becomes the next runnable task.
     crate::scheduler::register_user(
         pid,
-        &alloc::format!("user-{}", pid),
+        &name,
         crate::scheduler::Priority::Normal,
         kernel_rsp,
         l4_frame.start_address().as_u64(),
+        &granted_caps,
     );
     // Seed the incoming task's saved iretq frame so that if it is
     // ever preempted and resumed by the scheduler, the saved context
@@ -662,6 +672,7 @@ pub fn enter_registered(pid: u64) {
 
     enter_ring3_inner(kernel_rsp, user_rsp, entry, l4_frame);
 }
+
 
 impl Process {
     /// Like `into_parts` but specialised for the iretq entry
