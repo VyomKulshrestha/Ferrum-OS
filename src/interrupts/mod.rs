@@ -692,6 +692,20 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
             }
             frame.rax = 0;
             return;
+        } else if syscall_no == SyscallNumber::WaitPid as u64 {
+            match crate::scheduler::waitpid_current(arg0) {
+                Ok(Some(code)) => {
+                    frame.rax = code as u64;
+                }
+                Ok(None) => {
+                    save_user_context(current_pid, frame);
+                    unsafe { resume_after_death() }
+                }
+                Err(err) => {
+                    frame.rax = err as i64 as u64;
+                }
+            }
+            return;
         }
 
         let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);

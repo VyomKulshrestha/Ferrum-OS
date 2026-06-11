@@ -199,6 +199,9 @@ pub struct Task {
     /// iretq. The kernel main context keeps the bootloader's
     /// active L4.
     pub cr3: u64,
+    pub parent_id: Option<u64>,
+    pub waiting_on_pid: Option<u64>,
+    pub cpu_affinity: Option<u32>,
 }
 
 impl Task {
@@ -222,6 +225,9 @@ impl Task {
             wake_at: u64::MAX,
             kernel_stack_top: 0,
             cr3: 0,
+            parent_id: None,
+            waiting_on_pid: None,
+            cpu_affinity: None,
         }
     }
 }
@@ -340,6 +346,9 @@ pub fn register_user(
     if !SCHEDULER_INIT.load(Ordering::SeqCst) {
         return;
     }
+    let caller_pid = CURRENT_PID.load(Ordering::SeqCst);
+    let parent_id = if caller_pid == 0 { None } else { Some(caller_pid) };
+    
     let mut sched = SCHEDULER.lock();
     let mut task = Task {
         id: pid,
@@ -352,6 +361,9 @@ pub fn register_user(
         wake_at: u64::MAX,
         kernel_stack_top: kernel_stack_top.as_u64(),
         cr3,
+        parent_id,
+        waiting_on_pid: None,
+        cpu_affinity: None,
     };
     if !task.capabilities.contains(&String::from("cap:process:user")) {
         task.capabilities.push(String::from("cap:process:user"));
@@ -805,8 +817,8 @@ pub fn scratch_context() -> &'static mut TaskContext {
 pub static BOOT_CR3: AtomicU64 = AtomicU64::new(0);
 
 /// Exit codes of finished tasks, kept until `sys_waitpid` or the
-/// reaper consumes them. Entries are (pid, code).
-static EXIT_CODES: Mutex<Vec<(u64, u32)>> = Mutex::new(Vec::new());
+/// reaper consumes them. Entries are (pid, parent_pid, code).
+static EXIT_CODES: Mutex<Vec<(u64, u64, u32)>> = Mutex::new(Vec::new());
 
 /// Packed (pid << 32 | code) of the most recent exit, displayed by
 /// the kernel return trampoline. `u64::MAX` means "none pending".
@@ -814,11 +826,47 @@ static LAST_EXIT: AtomicU64 = AtomicU64::new(u64::MAX);
 
 /// Record that `pid` finished with `code`. Idempotent per pid.
 pub fn record_exit(pid: u64, code: u32) {
+    let parent_id = {
+        let sched = SCHEDULER.lock();
+        sched.tasks.iter().find(|t| t.id == pid).and_then(|t| t.parent_id).unwrap_or(0)
+    };
+    
     let mut codes = EXIT_CODES.lock();
-    if !codes.iter().any(|(p, _)| *p == pid) {
-        codes.push((pid, code));
+    if !codes.iter().any(|(p, _, _)| *p == pid) {
+        codes.push((pid, parent_id, code));
     }
     LAST_EXIT.store((pid << 32) | code as u64, Ordering::SeqCst);
+
+    // Wake waiting parent if active
+    wake_waiting_parent(pid, parent_id, code);
+}
+
+fn wake_waiting_parent(child_pid: u64, parent_pid: u64, code: u32) {
+    if parent_pid == 0 {
+        return;
+    }
+    let mut sched = SCHEDULER.lock();
+    let mut parent_idx = None;
+    for (idx, task) in sched.tasks.iter().enumerate() {
+        if task.id == parent_pid && task.state == TaskState::Blocked {
+            if task.waiting_on_pid == Some(child_pid) || task.waiting_on_pid == Some(u64::MAX) {
+                parent_idx = Some(idx);
+                break;
+            }
+        }
+    }
+    
+    if let Some(idx) = parent_idx {
+        sched.tasks[idx].state = TaskState::Ready;
+        sched.tasks[idx].waiting_on_pid = None;
+        sched.contexts[idx].rax = code as u64;
+
+        let pri = sched.tasks[idx].priority.index();
+        let pid = sched.tasks[idx].id;
+        if !sched.run_queues[pri].contains(&pid) {
+            sched.run_queues[pri].push_back(pid);
+        }
+    }
 }
 
 /// Exit code of `pid` if it has finished.
@@ -826,13 +874,64 @@ pub fn exit_status(pid: u64) -> Option<u32> {
     EXIT_CODES
         .lock()
         .iter()
-        .find(|(p, _)| *p == pid)
-        .map(|(_, c)| *c)
+        .find(|(p, _, _)| *p == pid)
+        .map(|(_, _, c)| *c)
 }
 
 /// Exit status of any finished task, consuming the record.
 pub fn take_any_exit_status() -> Option<(u64, u32)> {
-    EXIT_CODES.lock().pop()
+    EXIT_CODES.lock().pop().map(|(pid, _, code)| (pid, code))
+}
+
+pub fn waitpid_current(target: u64) -> Result<Option<u32>, crate::syscall::SyscallStatus> {
+    let current_pid = CURRENT_PID.load(Ordering::SeqCst);
+    if current_pid == 0 {
+        return Err(crate::syscall::SyscallStatus::InvalidArgument);
+    }
+    
+    // Check if child has already exited
+    let mut codes = EXIT_CODES.lock();
+    if target == u64::MAX {
+        let found_idx = codes.iter().position(|(_, parent, _)| *parent == current_pid);
+        if let Some(idx) = found_idx {
+            let (pid, _, code) = codes.remove(idx);
+            return Ok(Some(code));
+        }
+    } else {
+        let found_idx = codes.iter().position(|(pid, parent, _)| *pid == target && *parent == current_pid);
+        if let Some(idx) = found_idx {
+            let (_, _, code) = codes.remove(idx);
+            return Ok(Some(code));
+        }
+    }
+    drop(codes);
+    
+    // Not exited yet. Check if target is alive as a child of current_pid
+    let mut sched = SCHEDULER.lock();
+    let has_children = if target == u64::MAX {
+        sched.tasks.iter().any(|t| t.parent_id == Some(current_pid) && t.state != TaskState::Dead)
+    } else {
+        sched.tasks.iter().any(|t| t.id == target && t.parent_id == Some(current_pid) && t.state != TaskState::Dead)
+    };
+    
+    if !has_children {
+        return Err(crate::syscall::SyscallStatus::InvalidArgument);
+    }
+    
+    // Still running, block caller
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == current_pid) {
+        task.state = TaskState::Blocked;
+        task.waiting_on_pid = Some(target);
+        task.time_remaining = 0;
+    }
+    
+    // Remove from run queues
+    for q in sched.run_queues.iter_mut() {
+        q.retain(|p| *p != current_pid);
+    }
+    
+    CURRENT_PID.store(0, Ordering::SeqCst);
+    Ok(None)
 }
 
 /// Take the most recent exit (pid, code) for display, clearing it.

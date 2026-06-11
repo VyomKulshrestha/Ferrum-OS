@@ -354,9 +354,11 @@ pub fn dispatch_with_capabilities(
             let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
             SyscallResult::ok(pid)
         }
-        x if x == SyscallNumber::WaitPid as u64 => sys_waitpid(args),
+        x if x == SyscallNumber::WaitPid as u64 => {
+            SyscallResult::err(SyscallStatus::NotImplemented)
+        }
         x if x == SyscallNumber::Write as u64 => sys_write_console(args),
-        // Exit and Sleep must context-switch away from the caller, so
+        // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching
         // this dispatcher means a kernel-context caller invoked them,
         // which has no meaning.
@@ -364,34 +366,6 @@ pub fn dispatch_with_capabilities(
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
-    }
-}
-
-/// `sys_waitpid` — Poll the exit status of a task.
-///
-/// args[0] = pid to wait for, or u64::MAX for "any finished task".
-///
-/// Returns the exit code if the task has finished, u64::MAX if it is
-/// still alive, or InvalidArgument if no such task ever existed.
-/// Non-blocking: callers poll with `Sleep` between attempts.
-fn sys_waitpid(args: [u64; 6]) -> SyscallResult {
-    let target = args[0];
-    if target == u64::MAX {
-        return match crate::scheduler::take_any_exit_status() {
-            Some((_pid, code)) => SyscallResult::ok(code as u64),
-            None => SyscallResult::ok(u64::MAX),
-        };
-    }
-    if let Some(code) = crate::scheduler::exit_status(target) {
-        return SyscallResult::ok(code as u64);
-    }
-    let alive = crate::scheduler::list_tasks()
-        .iter()
-        .any(|t| t.id == target && t.state != crate::scheduler::TaskState::Dead);
-    if alive {
-        SyscallResult::ok(u64::MAX)
-    } else {
-        SyscallResult::err(SyscallStatus::InvalidArgument)
     }
 }
 
