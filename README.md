@@ -1,6 +1,6 @@
 # FerrumOS
 
-A truly agentic operating system built in Rust — where the AI agent has full
+An operating system built in Rust — where the AI agent has full
 hardware control: it can see the screen, hear audio, type commands, browse the
 web, manage files, remember context, and autonomously operate.
 
