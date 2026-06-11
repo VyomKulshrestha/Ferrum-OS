@@ -187,3 +187,33 @@ audit log:
 
 The `audit-exporter` userspace manifest forwards the same log to runtime
 services for export to the Heliox append-only audit trail.
+
+## Secure Cloud Routing & TLS/HTTPS Bridge Proxy
+
+Direct bare-metal TLS/HTTPS in the `no_std` kernel or daemon environment is highly restrictive due to code size constraints, entropy requirements, trusted root certificate bundle overhead, and system time/clock synchronization dependencies.
+
+To solve this, FerrumOS formalizes secure LLM cloud routing by routing all outbound daemon requests through a host-terminated bridge proxy located at the host Gateway IP (`10.0.2.2`).
+
+```mermaid
+sequenceDiagram
+    participant D as heliox-daemon (Ring-3)
+    participant K as FerrumOS Kernel (smoltcp)
+    participant P as Host Bridge Proxy (10.0.2.2:8080)
+    participant C as Cloud LLM Provider (HTTPS)
+
+    D->>K: TCP connect/send (HTTP/1.1 payload) to 10.0.2.2:8080
+    K->>P: Forward packet via SLIRP
+    Note over P: Terminates HTTP connection,<br/>Applies TLS/HTTPS wrap
+    P->>C: Secure HTTPS Request (TLS handshake, certificates)
+    C->>P: HTTPS Response
+    Note over P: Unwraps TLS/HTTPS payload
+    P->>K: Forward raw HTTP response payload
+    K->>D: Deliver HTTP/1.1 response
+```
+
+### Protocol Specifications
+1. **Target Gateway**: The daemon targets the host IP `10.0.2.2` (the standard QEMU user-mode network gateway) on a configured proxy port (e.g., `8080`).
+2. **Payload format**: Outgoing payloads from the `heliox-daemon` are sent as standard HTTP/1.1 or WebSocket requests without local encryption.
+3. **Proxy Wrapper**: The host proxy (e.g. `heliox-bridge`) intercepts these packets, performs the necessary TLS handshake with the public cloud LLM API, sets authorization headers using host-injected keys, and routes the response back as plaintext HTTP/1.1 or raw WebSocket payloads.
+4. **Security Enforcement**: This architecture restricts internet-facing endpoints inside the guest OS, eliminates the dependency on local certificate stores and real-time clock verification, and preserves the lightweight `no_std` footprint of the guest system.
+
