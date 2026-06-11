@@ -607,30 +607,40 @@ fn cmd_programs() {
 }
 
 fn cmd_users() {
-    let processes = crate::userspace::list_processes();
-    println!("Userspace Processes:");
-    if processes.is_empty() {
+    let tasks = crate::scheduler::list_tasks();
+    println!("Active Scheduler Tasks:");
+    if tasks.is_empty() {
         println!("  (none)");
         return;
     }
 
-    println!("  PID  STATE    SYSCALLS  PROGRAM");
-    println!("  ---  -----    --------  -------");
-    for process in &processes {
-        let state = match process.state {
-            crate::userspace::ProcessState::Ready => "READY  ",
-            crate::userspace::ProcessState::Running => "RUNNING",
-            crate::userspace::ProcessState::Exited => "EXITED ",
+    println!("  PID  STATE    AFFINITY  PARENT  NAME");
+    println!("  ---  -----    --------  ------  ----");
+    for task in &tasks {
+        let state = match task.state {
+            crate::scheduler::TaskState::Ready => "READY  ",
+            crate::scheduler::TaskState::Running => "RUNNING",
+            crate::scheduler::TaskState::Blocked => "BLOCKED",
+            crate::scheduler::TaskState::Dead => "DEAD   ",
+        };
+        let affinity = match task.cpu_affinity {
+            Some(aff) => alloc::format!("{}", aff),
+            None => alloc::string::String::from("any"),
+        };
+        let parent = match task.parent_id {
+            Some(p) => alloc::format!("{}", p),
+            None => alloc::string::String::from("none"),
         };
         println!(
-            "  {:>3}  {}  {:>8}  {}",
-            process.pid,
+            "  {:>3}  {}  {:>8}  {:>6}  {}",
+            task.id,
             state,
-            process.syscall_count,
-            process.program
+            affinity,
+            parent,
+            task.name
         );
-        if !process.capabilities.is_empty() {
-            println!("       caps: {}", process.capabilities.join(", "));
+        if !task.capabilities.is_empty() {
+            println!("       caps: {}", task.capabilities.join(", "));
         }
     }
 }

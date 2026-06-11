@@ -17,7 +17,8 @@
 //   - Event ring polling (Command Completion, Transfer Event, Port Status)
 // ============================================================================
 
-#[allow(dead_code)]
+#![allow(dead_code)]
+
 extern crate alloc;
 
 use spin::Mutex;

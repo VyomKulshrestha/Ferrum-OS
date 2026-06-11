@@ -14,7 +14,8 @@
 //     set_volume, is_available
 // ============================================================================
 
-#[allow(dead_code)]
+#![allow(dead_code)]
+
 extern crate alloc;
 
 use spin::Mutex;
