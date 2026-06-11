@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Capability-Based Security Subsystem
 // ============================================================================
 // Implements a deny-by-default capability-based permission model.
@@ -158,3 +158,13 @@ pub fn register_capability(name: &str, description: &str, resource: &str, delega
 pub fn is_sandbox_enabled() -> bool {
     SECURITY.lock().sandbox_enabled
 }
+
+/// Filter requested capabilities against delegatable ones and caller's held capabilities.
+pub fn filter_delegatable(requested: &[String], caller: &[String]) -> Vec<String> {
+    requested
+        .iter()
+        .filter(|cap| can_delegate(cap) && holds_capability_token(caller, cap))
+        .cloned()
+        .collect()
+}
+

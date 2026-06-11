@@ -84,7 +84,7 @@ pub fn init() {
         "init",
         "first userspace service supervisor",
         "/bin/init",
-        vec![String::from("cap:ipc:send")],
+        vec![String::from("cap:system:all")],
     ));
     state.programs.push(ProgramManifest::new(
         "agent-bridge",
@@ -109,6 +109,16 @@ pub fn init() {
 pub fn list_programs() -> Vec<ProgramManifest> {
     USERSPACE.lock().programs.clone()
 }
+
+pub fn capabilities_for_program(name: &str) -> Vec<String> {
+    let state = USERSPACE.lock();
+    state.programs
+        .iter()
+        .find(|program| program.name == name)
+        .map(|program| program.requested_capabilities.clone())
+        .unwrap_or_else(Vec::new)
+}
+
 
 pub fn list_processes() -> Vec<UserProcess> {
     USERSPACE.lock().processes.clone()
