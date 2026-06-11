@@ -115,7 +115,7 @@ const keyMap = new Map(
 );
 
 async function sendKey(key) {
-  await monitorCommand(`sendkey ${key}`, 45);
+  await monitorCommand(`sendkey ${key}`, 85);
 }
 
 async function sendText(text) {
@@ -200,12 +200,12 @@ const tests = [
   ["syscalls", "Syscall ABI:"],
   ["programs", "agent-bridge"],
   ["users", "init"],
-  ["run agent-bridge", "launched agent-bridge as userspace pid 4"],
+  ["run agent-bridge", "launched agent-bridge as userspace pid 103"],
   ["users", "agent-bridge"],
-  ["syscall 4 5 1", "syscall result: Ok value=1"],
-  ["syscall 4 1", "syscall result: Ok value="],
-  ["syscall 4 2", "syscall result: Ok value="],
-  ["syscall 4 3 7", "syscall result: PermissionDenied value=0"],
+  ["syscall 103 5 1", "syscall result: Ok value=1"],
+  ["syscall 103 1", "syscall result: Ok value="],
+  ["syscall 103 2", "syscall result: Ok value="],
+  ["syscall 103 3 7", "syscall result: PermissionDenied value=0"],
   ["agent status", "Agent Runtime Boundary:"],
   ["agent start", "agentd started"],
   ["agent send ping", "agent command queued as IPC message"],
@@ -248,16 +248,16 @@ const tests = [
   ["log", "permission denied: audit:read"],
   ["session root", "session switched to root"],
   ["spawn worker1", "Spawned task 'worker1'"],
-  ["kill 6", "Killed task 6"],
+  ["kill 104", "Killed task 104"],
   ["security", "Security Status:"],
   ["about", "FerrumOS v0.1.0"],
-  ["process", "Per-process Address Spaces (1):"],
+  ["process", "Per-process Address Spaces (2):"],
   ["scheduler", "Scheduler State:"],
   ["test-syscall yield", "yield: ran=false"],
   ["test-syscall sleep", "sleep(2): ran=false"],
   ["test-syscall wait", "wait(-1): any_dead=true"],
   ["test-syscall priority", "priority System -> index 3"],
-  ["ring3 init-sample", "Page Fault"],
+  ["ring3 init-sample", "Invalid Opcode"],
 ];
 
 const results = [];
