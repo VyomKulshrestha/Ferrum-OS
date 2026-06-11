@@ -70,8 +70,12 @@ lazy_static! {
         idt.overflow.set_handler_fn(overflow_handler);
         
         // Hardware Interrupt Handlers
-        idt[InterruptIndex::Timer.as_u8()]
-            .set_handler_fn(timer_interrupt_handler);
+        unsafe {
+            idt[InterruptIndex::Timer.as_u8()]
+                .set_handler_addr(x86_64::VirtAddr::new(
+                    timer_interrupt_entry_stub as *const () as u64,
+                ));
+        }
         idt[InterruptIndex::Keyboard.as_u8()]
             .set_handler_fn(keyboard_interrupt_handler);
         idt[InterruptIndex::Mouse.as_u8()]
@@ -226,11 +230,47 @@ extern "x86-interrupt" fn overflow_handler(stack_frame: InterruptStackFrame) {
 // Hardware Interrupt Handlers
 // ============================================================================
 
-/// Timer interrupt handler (IRQ 0)
-/// 
-/// The PIT fires approximately 18.2 times per second by default.
-/// This is used to drive the task scheduler.
-extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+#[unsafe(naked)]
+unsafe extern "C" fn timer_interrupt_entry_stub() {
+    core::arch::naked_asm!(
+        "push rax",
+        "push rbx",
+        "push rcx",
+        "push rdx",
+        "push rsi",
+        "push rdi",
+        "push rbp",
+        "push r8",
+        "push r9",
+        "push r10",
+        "push r11",
+        "push r12",
+        "push r13",
+        "push r14",
+        "push r15",
+        "mov rdi, rsp",
+        "call {inner}",
+        "pop r15",
+        "pop r14",
+        "pop r13",
+        "pop r12",
+        "pop r11",
+        "pop r10",
+        "pop r9",
+        "pop r8",
+        "pop rbp",
+        "pop rdi",
+        "pop rsi",
+        "pop rdx",
+        "pop rcx",
+        "pop rbx",
+        "pop rax",
+        "iretq",
+        inner = sym timer_interrupt_entry_inner,
+    );
+}
+
+extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
     // Tick the scheduler (if initialized)
     crate::scheduler::tick();
     
@@ -238,7 +278,27 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
+
+    // Preempt the current task if it was running in Ring 3 and its time slice has expired.
+    if (frame.cs & 3) == 3 {
+        let current_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+        if current_pid != 0 {
+            if crate::scheduler::should_preempt(current_pid) {
+                unsafe {
+                    if crate::scheduler::yield_current() {
+                        save_user_context(current_pid, frame);
+                        if let Some(next) = crate::scheduler::schedule_next() {
+                            if next != current_pid {
+                                crate::scheduler::resume_task(next);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
 
 /// ATA primary channel interrupt handler (IRQ 14)
 ///
@@ -517,27 +577,36 @@ unsafe extern "C" fn syscall_entry_stub() {
 }
 
 /// Capture the interrupted user state from the saved syscall frame
+/// Capture the interrupted user state from the saved syscall frame
 /// into the task's saved `TaskContext` so `scheduler::resume_task`
-/// can continue it later. Caller-saved registers other than rax are
-/// not part of the context (ABI: syscalls clobber them); rax, the
-/// callee-saved registers, and the iretq frame are preserved.
+/// can continue it later. Both entry paths (syscall stub frame and
+/// timer stub frame) use this helper, so all 15 GPRs are saved.
 fn save_user_context(pid: u64, frame: &SyscallFrame) {
     let ctx = crate::scheduler::TaskContext {
         r15: frame.r15,
         r14: frame.r14,
         r13: frame.r13,
         r12: frame.r12,
+        r11: frame.r11,
+        r10: frame.r10,
+        r9: frame.r9,
+        r8: frame.r8,
         rbp: frame.rbp,
+        rdi: frame.rdi,
+        rsi: frame.rsi,
+        rdx: frame.rdx,
+        rcx: frame.rcx,
         rbx: frame.rbx,
+        rax: frame.rax,
         rip: frame.rip,
         cs: frame.cs,
         rflags: frame.rflags,
         rsp: frame.rsp,
         ss: frame.ss,
-        rax: frame.rax,
     };
     crate::scheduler::write_context(pid, ctx);
 }
+
 
 /// After the current task died (exit, kill, fault): hand the CPU to
 /// the next runnable task, else idle if sleepers remain, else return
