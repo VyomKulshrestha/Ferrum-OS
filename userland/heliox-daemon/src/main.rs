@@ -65,9 +65,17 @@ pub const SYS_READ_DIR: u64 = 17;
 pub const SYS_EXEC: u64 = 18;
 const SYS_EXIT: u64 = 30;
 const SYS_SLEEP: u64 = 32;
+const SYS_WRITE: u64 = 34;
+const FD_CONSOLE: u64 = 1;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    // Write startup log
+    let startup_msg = "[heliox-daemon] userspace agent daemon is alive in ring 3\n";
+    unsafe {
+        syscall3(SYS_WRITE, FD_CONSOLE, startup_msg.as_ptr() as u64, startup_msg.len() as u64);
+    }
+
     // Initialize heap
     unsafe {
         ALLOCATOR.lock().init(HEAP.as_mut_ptr(), HEAP.len());
@@ -82,8 +90,13 @@ pub extern "C" fn _start() -> ! {
     unsafe {
         syscall4(SYS_IPC_SEND, svc.as_ptr() as u64, svc.len() as u64, msg.as_ptr() as u64, msg.len() as u64);
     }
+    let ready_msg = "[heliox-daemon] sent HELIOX_READY IPC announce\n";
+    unsafe {
+        syscall3(SYS_WRITE, FD_CONSOLE, ready_msg.as_ptr() as u64, ready_msg.len() as u64);
+    }
     
     // Main Agent Loop
+    let mut loop_count = 0;
     loop {
         orchestrator.tick();
         
@@ -97,6 +110,14 @@ pub extern "C" fn _start() -> ! {
                         let _ = cognitive::voice::play_audio(&cognitive::voice::generate_beep());
                     }
                 }
+            }
+        }
+
+        loop_count += 1;
+        if loop_count <= 5 {
+            let tick_msg = "[heliox-daemon] loop tick complete, sleeping...\n";
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, tick_msg.as_ptr() as u64, tick_msg.len() as u64);
             }
         }
 
