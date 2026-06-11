@@ -12,3 +12,5 @@
 !.cargo/
 !.cargo/config.toml
 docs/ROADMAP.md
+REPORT.md
+
