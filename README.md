@@ -212,6 +212,11 @@ Or use the build script:
 | 27 | InjectMouse | Inject a mouse event |
 | 28 | PollInput | Poll the input event queue |
 | 29 | SystemQuery | Query live system data as JSON |
+| 30 | Exit | Terminate the calling process |
+| 31 | GetPid | Get process ID of the caller |
+| 32 | Sleep | Cooperatively sleep/suspend process |
+| 33 | WaitPid | Poll child process exit status |
+| 34 | Write | Write bytes to console or serial |
 
 ## Agent Tools (35 total)
 
@@ -227,6 +232,9 @@ Or use the build script:
 
 The Heliox agent daemon requires configuration to connect to your preferred LLM provider. There are two ways to set this up:
 
+> [!NOTE]
+> **RAM Filesystem Fallback**: The kernel pre-creates `/disk/heliox/` as a directory within the RAM filesystem (`RamFS`) at boot. If a physical Ext2 formatted ATA disk is not mounted at `/disk`, all configuration writing and loading will transparently fall back to the RAM filesystem, allowing you to use the setup wizard or shell without any partition setup.
+
 ### Option A: Interactive Setup (Agent HUD)
 1. Boot the OS and launch the graphical desktop:
    ```
@@ -237,7 +245,7 @@ The Heliox agent daemon requires configuration to connect to your preferred LLM 
    * **Step 1: Select Provider**: Choose `ollama`, `openai`, `gemini`, or `claude`.
    * **Step 2: API Host / Port**: Enter the address (e.g., `10.0.2.2:11434` for local Ollama, or `generativelanguage.googleapis.com:443` for Gemini).
    * **Step 3: API Key**: Type your API key (or leave it blank for local Ollama).
-4. Once completed, the daemon will automatically write the config file and initialize.
+4. Once completed, the GUI compositor writes `/disk/heliox/config.json` and signals the daemon via IPC (`CONFIG_UPDATED`) to reload configuration and wake from the unconfigured state.
 
 ### Option B: Manual Configuration
 Create or edit the configuration file at `/disk/heliox/config.json` via the shell:
@@ -250,6 +258,7 @@ Create or edit the configuration file at `/disk/heliox/config.json` via the shel
   "model_name": "default"
 }
 ```
+If you edit the file manually via the shell, reboot or run `services start heliox-daemon` (or signal the daemon via IPC) to reload the config.
 
 ## Design Rules
 

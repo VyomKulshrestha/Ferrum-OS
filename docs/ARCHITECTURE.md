@@ -75,9 +75,9 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-30 syscalls (IDs 0–29) dispatched via `int 0x80`:
+35 syscalls (IDs 0–34) dispatched via `int 0x80`:
 
-- Process: Yield(0), Exec(18), Wait(13)
+- Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
 - Services: Start(3), Stop(4)
 - Security: CapCheck(5), AuditWrite(6)
@@ -86,7 +86,7 @@ and can evolve without destabilizing the kernel.
 - Graphics: ReadFbInfo(19), ReadTextBuffer(20)
 - Audio: PlayAudio(23), RecordAudio(24), SetVolume(25)
 - Input: InjectKey(26), InjectMouse(27), PollInput(28)
-- Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices
+- Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices; Write(34) (write to console/serial)
 
 ## Graphical Desktop Environment (GUI)
 
@@ -299,13 +299,16 @@ Tools at Tier 3–4 queue confirmation requests. The operator must approve
 
 The agent requires configuration to connect to your preferred LLM provider. This can be configured in two ways:
 
+> [!NOTE]
+> **RAM Filesystem Fallback**: The directory `/disk/heliox/` is pre-created within the RAM filesystem (`RamFS`) during boot. If a physical Ext2 disk is not mounted at `/disk`, configuration writing (via the HUD wizard) and reading (via the daemon) will fall back to memory transparently, avoiding any errors.
+
 ### 1. Interactive Desktop HUD Wizard
 If no configuration exists at boot, the **Agent HUD** window opens in setup mode on the desktop:
 - **Step 1: Select Provider**: `ollama`, `openai`, `gemini`, or `claude`.
 - **Step 2: API Host / Port**: e.g., `10.0.2.2:11434` (Ollama) or `generativelanguage.googleapis.com:443` (Gemini).
 - **Step 3: API Key**: Your API key (or blank for Ollama).
 
-Once completed, the GUI writes the `/disk/heliox/config.json` file dynamically and wakes the agent.
+Once completed, the GUI compositor writes the `/disk/heliox/config.json` file dynamically and sends an IPC event `CONFIG_UPDATED` to wake/reload the agent daemon.
 
 ### 2. Manual Configuration File
 Alternatively, the agent reads runtime config directly from `/disk/heliox/config.json`:
@@ -326,7 +329,7 @@ Alternatively, the agent reads runtime config directly from `/disk/heliox/config
 ```
 
 All fields have sensible defaults. Missing or malformed config silently falls
-back.
+back. If manually editing this file, restart the daemon (`services stop heliox-daemon` then `services start heliox-daemon`) or reboot the system to apply changes.
 
 ## Source Tree
 
