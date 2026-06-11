@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Task Scheduler
 // ============================================================================
 // Phase 2 of the v0.2 completion roadmap.
@@ -93,20 +93,23 @@ impl Priority {
 ///   0x08    r14
 ///   0x10    r13
 ///   0x18    r12
-///   0x20    rbp
-///   0x28    rbx
-///   0x30    rip
-///   0x38    cs
-///   0x40    rflags
-///   0x48    rsp
-///   0x50    ss
+///   0x20    r11
+///   0x28    r10
+///   0x30    r9
+///   0x38    r8
+///   0x40    rbp
+///   0x48    rdi
+///   0x50    rsi
+///   0x58    rdx
+///   0x60    rcx
+///   0x68    rbx
+///   0x70    rax
+///   0x78    rip
+///   0x80    cs
+///   0x88    rflags
+///   0x90    rsp
+///   0x98    ss
 /// ```
-///
-/// The caller-saved registers (rax, rcx, rdx, rsi, rdi, r8-r11)
-/// are saved into the *old* context by the syscall handler before
-/// the switch and are not loaded by the switch itself (the switch
-/// target re-reads them on its next return-to-user). Keeping them
-/// out of the struct keeps the hot path small and the asm simple.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TaskContext {
@@ -114,8 +117,17 @@ pub struct TaskContext {
     pub r14: u64,
     pub r13: u64,
     pub r12: u64,
+    pub r11: u64,
+    pub r10: u64,
+    pub r9: u64,
+    pub r8: u64,
     pub rbp: u64,
+    pub rdi: u64,
+    pub rsi: u64,
+    pub rdx: u64,
+    pub rcx: u64,
     pub rbx: u64,
+    pub rax: u64,
     /// iretq frame - RIP the CPU will resume at.
     pub rip: u64,
     /// iretq frame - CS (0x08 ring 0, 0x1B ring 3).
@@ -126,33 +138,31 @@ pub struct TaskContext {
     pub rsp: u64,
     /// iretq frame - SS (0x10 ring 0, 0x23 ring 3).
     pub ss: u64,
-    /// Syscall return value, restored last by the context switch so a
-    /// task resumed after yield/preemption still sees its result.
-    /// Offset 0x58 — keep in sync with `context_switch_to`.
-    pub rax: u64,
 }
 
 impl TaskContext {
     pub const fn new() -> Self {
         TaskContext {
-            r15: 0, r14: 0, r13: 0, r12: 0, rbp: 0, rbx: 0,
-            rip: 0, cs: 0, rflags: 0x3202, rsp: 0, ss: 0, rax: 0,
+            r15: 0, r14: 0, r13: 0, r12: 0, r11: 0, r10: 0, r9: 0, r8: 0,
+            rbp: 0, rdi: 0, rsi: 0, rdx: 0, rcx: 0, rbx: 0, rax: 0,
+            rip: 0, cs: 0, rflags: 0x3202, rsp: 0, ss: 0,
         }
     }
 
     /// Fill a fresh ring-3 iretq frame (CS=0x1B, SS=0x23, RFLAGS=0x3202).
     pub fn ring3(rip: u64, rsp: u64) -> Self {
         TaskContext {
-            r15: 0, r14: 0, r13: 0, r12: 0, rbp: 0, rbx: 0,
+            r15: 0, r14: 0, r13: 0, r12: 0, r11: 0, r10: 0, r9: 0, r8: 0,
+            rbp: 0, rdi: 0, rsi: 0, rdx: 0, rcx: 0, rbx: 0, rax: 0,
             rip,
             cs: crate::gdt::USER_CODE_SELECTOR,
             rflags: 0x3202,
             rsp,
             ss: crate::gdt::USER_DATA_SELECTOR,
-            rax: 0,
         }
     }
 }
+
 
 // ============================================================================
 // Task
@@ -217,11 +227,11 @@ impl Task {
 }
 
 /// Default time slice in PIT ticks (~18.2 Hz). 18 ticks is just
-/// under one second; long enough that the straight-line
-/// `ring3 init` user code prints "ABC" long before the slice
-/// can expire, short enough that a misbehaving loop is still
-/// preempted within a second.
-pub const TIME_SLICE_TICKS: u64 = 18;
+/// Default time slice in PIT ticks (~18.2 Hz). 5 ticks is just
+/// over 250ms; long enough for basic work, short enough for
+/// interactive preemption.
+pub const TIME_SLICE_TICKS: u64 = 5;
+
 
 // ============================================================================
 // Scheduler state
@@ -325,6 +335,7 @@ pub fn register_user(
     priority: Priority,
     kernel_stack_top: VirtAddr,
     cr3: u64,
+    capabilities: &[String],
 ) {
     if !SCHEDULER_INIT.load(Ordering::SeqCst) {
         return;
@@ -336,13 +347,15 @@ pub fn register_user(
         state: TaskState::Ready,
         priority,
         ticks: 0,
-        capabilities: Vec::new(),
+        capabilities: capabilities.to_vec(),
         time_remaining: TIME_SLICE_TICKS,
         wake_at: u64::MAX,
         kernel_stack_top: kernel_stack_top.as_u64(),
         cr3,
     };
-    task.capabilities.push(String::from("cap:process:user"));
+    if !task.capabilities.contains(&String::from("cap:process:user")) {
+        task.capabilities.push(String::from("cap:process:user"));
+    }
     let ctx = TaskContext::new();
     sched.contexts.push(ctx);
     sched.tasks.push(task);
@@ -352,6 +365,7 @@ pub fn register_user(
     // we can do O(1) lookups without scanning.
     debug_assert_eq!(sched.tasks[idx].id, pid);
 }
+
 
 /// Timer tick. Increments tick counters, wakes any sleepers
 /// whose deadline has passed, and decrements the current
@@ -704,43 +718,62 @@ pub unsafe extern "C" fn context_switch_to(
     //   rsi = _in_ctx
     //   rdx = _in_kernel_stack_top
     core::arch::naked_asm!(
-        // Save the outgoing task's callee-saved GPRs.
+        // Save the outgoing task's GPRs.
         "mov [rdi + 0x00], r15",
         "mov [rdi + 0x08], r14",
         "mov [rdi + 0x10], r13",
         "mov [rdi + 0x18], r12",
-        "mov [rdi + 0x20], rbp",
-        "mov [rdi + 0x28], rbx",
+        "mov [rdi + 0x20], r11",
+        "mov [rdi + 0x28], r10",
+        "mov [rdi + 0x30], r9",
+        "mov [rdi + 0x38], r8",
+        "mov [rdi + 0x40], rbp",
+        "mov [rdi + 0x48], rdi",
+        "mov [rdi + 0x50], rsi",
+        "mov [rdi + 0x58], rdx",
+        "mov [rdi + 0x60], rcx",
+        "mov [rdi + 0x68], rbx",
+        "mov [rdi + 0x70], rax",
+        
         // Switch to the incoming task's kernel stack.
         "mov rsp, rdx",
-        // Push the incoming task's iretq frame on the new
-        // stack in the order iretq expects (low→high):
+        
+        // Push the incoming task's iretq frame on the new stack:
         //   RIP, CS, RFLAGS, RSP, SS
         "sub rsp, 0x28",
-        "mov rax, [rsi + 0x30]",   // RIP
+        "mov rax, [rsi + 0x78]",   // RIP
         "mov [rsp + 0x00], rax",
-        "mov rax, [rsi + 0x38]",   // CS
+        "mov rax, [rsi + 0x80]",   // CS
         "mov [rsp + 0x08], rax",
-        "mov rax, [rsi + 0x40]",   // RFLAGS
+        "mov rax, [rsi + 0x88]",   // RFLAGS
         "mov [rsp + 0x10], rax",
-        "mov rax, [rsi + 0x48]",   // RSP
+        "mov rax, [rsi + 0x90]",   // RSP
         "mov [rsp + 0x18], rax",
-        "mov rax, [rsi + 0x50]",   // SS
+        "mov rax, [rsi + 0x98]",   // SS
         "mov [rsp + 0x20], rax",
-        // Load the incoming task's callee-saved GPRs.
+        
+        // Load the incoming task's GPRs.
+        // We load rsi last to preserve the base pointer.
         "mov r15, [rsi + 0x00]",
         "mov r14, [rsi + 0x08]",
         "mov r13, [rsi + 0x10]",
         "mov r12, [rsi + 0x18]",
-        "mov rbp, [rsi + 0x20]",
-        "mov rbx, [rsi + 0x28]",
-        // Restore the saved syscall return value last (rax was used
-        // as scratch while building the iretq frame above).
-        "mov rax, [rsi + 0x58]",
-        // iretq into the incoming task.
+        "mov r11, [rsi + 0x20]",
+        "mov r10, [rsi + 0x28]",
+        "mov r9,  [rsi + 0x30]",
+        "mov r8,  [rsi + 0x38]",
+        "mov rbp, [rsi + 0x40]",
+        "mov rbx, [rsi + 0x68]",
+        "mov rcx, [rsi + 0x60]",
+        "mov rdx, [rsi + 0x58]",
+        "mov rdi, [rsi + 0x48]",
+        "mov rax, [rsi + 0x70]",
+        "mov rsi, [rsi + 0x50]",
+        
         "iretq",
     );
 }
+
 
 /// A process-wide scratch `TaskContext` used by the syscall
 /// layer as the "outgoing" slot for `context_switch_to` when
