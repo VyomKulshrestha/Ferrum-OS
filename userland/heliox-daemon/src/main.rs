@@ -63,6 +63,8 @@ pub const SYS_READ_FILE: u64 = 15;
 pub const SYS_WRITE_FILE: u64 = 16;
 pub const SYS_READ_DIR: u64 = 17;
 pub const SYS_EXEC: u64 = 18;
+const SYS_EXIT: u64 = 30;
+const SYS_SLEEP: u64 = 32;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -98,9 +100,9 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        // Wait/yield loop in a real implementation
+        // Sleep to cooperatively yield CPU time
         unsafe {
-            syscall3(0, 0, 0, 0); // SYS_YIELD
+            syscall3(SYS_SLEEP, 100, 0, 0);
         }
     }
 }
@@ -109,7 +111,8 @@ pub extern "C" fn _start() -> ! {
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {
         unsafe {
-            syscall3(0, 0, 0, 0); // SYS_YIELD
+            syscall3(SYS_EXIT, 101, 0, 0);
         }
     }
 }
+
