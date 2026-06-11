@@ -75,6 +75,11 @@ impl RamFs {
         children.insert("tmp".to_string(), FsNode::Directory { children: BTreeMap::new() });
         children.insert("var".to_string(), FsNode::Directory { children: BTreeMap::new() });
         children.insert("srv".to_string(), FsNode::Directory { children: BTreeMap::new() });
+
+        // Pre-create /disk/heliox to allow configuration without a mounted Ext2 disk
+        let mut disk_children = BTreeMap::new();
+        disk_children.insert("heliox".to_string(), FsNode::Directory { children: BTreeMap::new() });
+        children.insert("disk".to_string(), FsNode::Directory { children: disk_children });
         
         // Create a welcome file
         children.insert("readme.txt".to_string(), FsNode::File {
