@@ -929,7 +929,7 @@ pub fn waitpid_current(target: u64) -> Result<Option<u32>, crate::syscall::Sysca
     if target == u64::MAX {
         let found_idx = codes.iter().position(|(_, parent, _)| *parent == current_pid);
         if let Some(idx) = found_idx {
-            let (pid, _, code) = codes.remove(idx);
+            let (_, _, code) = codes.remove(idx);
             return Ok(Some(code));
         }
     } else {
