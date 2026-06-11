@@ -628,7 +628,7 @@ pub fn take_for_entry(pid: u64) -> Option<(VirtAddr, VirtAddr, u64, PhysFrame)> 
 pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
     let name = {
         let procs = PROCESSES.lock();
-        procs.iter().find(|r| r.process.pid == pid).map(|r| r.process.name().to_string())
+        procs.iter().find(|r| r.process.pid == pid).map(|r| String::from(r.process.name()))
     };
     let name = name.unwrap_or_else(|| alloc::format!("user-{}", pid));
 

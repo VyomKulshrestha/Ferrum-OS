@@ -950,15 +950,23 @@ unsafe fn switch_to_kernel_entry(entry: extern "C" fn() -> !, stack: *mut Kernel
         r14: 0,
         r13: 0,
         r12: 0,
+        r11: 0,
+        r10: 0,
+        r9: 0,
+        r8: 0,
         rbp: 0,
+        rdi: 0,
+        rsi: 0,
+        rdx: 0,
+        rcx: 0,
         rbx: 0,
+        rax: 0,
         rip: entry as u64,
         cs: crate::gdt::KERNEL_CODE_SELECTOR,
         rflags: 0x202, // IF=1
         // Mimic post-`call` alignment (rsp % 16 == 8 at fn entry).
         rsp: top - 8,
         ss: crate::gdt::KERNEL_DATA_SELECTOR,
-        rax: 0,
     };
     context_switch_to(scratch_context() as *mut TaskContext, slot, top);
 }
