@@ -868,6 +868,9 @@ pub fn record_exit(pid: u64, code: u32) {
     
     let mut codes = EXIT_CODES.lock();
     if !codes.iter().any(|(p, _, _)| *p == pid) {
+        if codes.len() >= 128 {
+            codes.remove(0);
+        }
         codes.push((pid, parent_id, code));
     }
     LAST_EXIT.store((pid << 32) | code as u64, Ordering::SeqCst);
