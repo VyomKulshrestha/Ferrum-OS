@@ -33,13 +33,20 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
-    // Read the ELF binary from the VFS
-    let elf_content = match crate::fs::read_file(&path) {
-        Ok(content) => content,
-        Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    // Intercept embedded binaries to avoid VFS read and heap allocation.
+    let _elf_content_holder: alloc::string::String;
+    let elf_bytes: &[u8] = if path == "/bin/heliox-daemon" || path == "heliox-daemon" {
+        crate::userspace::HELIOX_DAEMON_ELF
+    } else if path == "/bin/init" || path == "init" {
+        crate::userspace::INIT_ELF
+    } else {
+        _elf_content_holder = match crate::fs::read_file(&path) {
+            Ok(content) => content,
+            Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
+        };
+        _elf_content_holder.as_bytes()
     };
 
-    let elf_bytes = elf_content.as_bytes();
     if elf_bytes.len() < 4 {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
