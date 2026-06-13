@@ -63,10 +63,36 @@ pub const SYS_READ_FILE: u64 = 15;
 pub const SYS_WRITE_FILE: u64 = 16;
 pub const SYS_READ_DIR: u64 = 17;
 pub const SYS_EXEC: u64 = 18;
+const SYS_DELETE_FILE: u64 = 22;
 const SYS_EXIT: u64 = 30;
 const SYS_SLEEP: u64 = 32;
 const SYS_WRITE: u64 = 34;
 const FD_CONSOLE: u64 = 1;
+
+fn check_and_trigger_supervision_test() {
+    let test_file = "/tmp/daemon_exit_once";
+    let mut buf = [0u8; 1];
+    let res = unsafe {
+        syscall4(
+            SYS_READ_FILE,
+            test_file.as_ptr() as u64,
+            test_file.len() as u64,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    if (res as i64) > 0 {
+        // Delete the file so it doesn't loop forever
+        unsafe {
+            syscall3(SYS_DELETE_FILE, test_file.as_ptr() as u64, test_file.len() as u64, 0);
+        }
+        let exit_msg = "[heliox-daemon] exiting for supervision test\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, exit_msg.as_ptr() as u64, exit_msg.len() as u64);
+            syscall3(SYS_EXIT, 42, 0, 0);
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -75,6 +101,9 @@ pub extern "C" fn _start() -> ! {
     unsafe {
         syscall3(SYS_WRITE, FD_CONSOLE, startup_msg.as_ptr() as u64, startup_msg.len() as u64);
     }
+
+    // Check for test exit trigger
+    check_and_trigger_supervision_test();
 
     // Initialize heap
     unsafe {
