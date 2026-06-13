@@ -270,14 +270,6 @@ impl AddressSpace {
         let table = unsafe { &mut *l4_to_mut_ptr(l4_frame) };
         table.zero();
 
-        // Mirror every present kernel L4 entry *except* the slot reserved
-        // for user space, so the process shares the kernel's code, heap,
-        // physical-memory alias, IDT/GDT/TSS, and per-process kernel stacks
-        // (all of which this bootloader places in the lower canonical half).
-        // The shared sub-tables are kernel-owned and carry no USER bit, so
-        // ring-3 code still cannot read or write them. USER_P4_INDEX is left
-        // empty here so `map_user_range` can build a process-private sub-tree
-        // there without ever touching a shared kernel table.
         let kernel_l4_phys = crate::memory::active_p4_phys();
         let kernel_l4_ptr = crate::memory::phys_to_virt(kernel_l4_phys).as_ptr::<PageTable>();
         // Safety: the kernel's L4 is mapped at phys_to_virt(active_p4_phys()).
@@ -290,7 +282,6 @@ impl AddressSpace {
                 table[index] = kernel_l4[index].clone();
             }
         }
-
         Ok(Self {
             l4_frame,
             user_frames: Vec::new(),
@@ -513,7 +504,14 @@ static NEXT_PID: Mutex<u64> = Mutex::new(1);
 /// `map_user_stack`) to do that.
 pub fn create(name: &str) -> Result<Process, &'static str> {
     let space = AddressSpace::new()?;
-    let kernel_stack: Box<[u8; KERNEL_STACK_SIZE]> = Box::new([0; KERNEL_STACK_SIZE]);
+    let kernel_stack: Box<[u8; KERNEL_STACK_SIZE]> = unsafe {
+        let layout = core::alloc::Layout::new::<[u8; KERNEL_STACK_SIZE]>();
+        let ptr = alloc::alloc::alloc_zeroed(layout);
+        if ptr.is_null() {
+            return Err("failed to allocate kernel stack");
+        }
+        Box::from_raw(ptr as *mut [u8; KERNEL_STACK_SIZE])
+    };
     let kernel_stack_top = aligned_top(&kernel_stack);
     let mut next = NEXT_PID.lock();
     let pid = *next;

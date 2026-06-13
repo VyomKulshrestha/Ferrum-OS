@@ -123,10 +123,11 @@ fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -
     // wait, we can just check CURRENT_PID! If CURRENT_PID > 0, it's a userspace task!
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     if pid != 0 {
-        println!("[KERNEL] Userspace process {} caused {}, terminating.", pid, fault_name);
+        use x86_64::registers::control::Cr2;
+        println!("[KERNEL] Userspace process {} caused {}, accessed address={:?}, terminating.", pid, fault_name, Cr2::read());
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::SecurityViolation,
-            alloc::format!("Userspace process {} terminated due to {}", pid, fault_name).as_str(),
+            alloc::format!("Userspace process {} terminated due to {} at {:?}", pid, fault_name, Cr2::read()).as_str(),
         );
         // `kill` marks the task Dead, drains it from the run-queues,
         // records exit code 139 (SIGSEGV-style) and clears CURRENT_PID.

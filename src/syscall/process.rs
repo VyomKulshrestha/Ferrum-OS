@@ -34,7 +34,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     };
 
     // Intercept embedded binaries to avoid VFS read and heap allocation.
-    let _elf_content_holder: alloc::string::String;
+    let mut _elf_content_holder = alloc::string::String::new();
     let elf_bytes: &[u8] = if path == "/bin/heliox-daemon" || path == "heliox-daemon" {
         crate::userspace::HELIOX_DAEMON_ELF
     } else if path == "/bin/init" || path == "init" {

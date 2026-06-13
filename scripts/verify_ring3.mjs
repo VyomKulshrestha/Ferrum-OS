@@ -65,7 +65,7 @@ async function mon(cmd, waitMs = 60) {
   await sleep(waitMs);
 }
 
-const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash" }));
+const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus" }));
 async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
 async function sendText(t) {
   for (const ch of t) {
@@ -97,6 +97,9 @@ try {
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
+  await sendText("write /tmp/init_test 1");
+  await sendKey("ret");
+  await sleep(400);
   await sendText("ring3 init");
   await sendKey("ret");
 

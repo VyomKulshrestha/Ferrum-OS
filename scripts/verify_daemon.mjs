@@ -60,7 +60,7 @@ async function mon(cmd, waitMs = 60) {
   await sleep(waitMs);
 }
 
-const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash" }));
+const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus" }));
 async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
 async function sendText(t) {
   for (const ch of t) {
@@ -92,21 +92,29 @@ try {
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
-  // Start heliox-daemon (which is loaded as PID 3 at startup)
-  await sendText("ring3 heliox-daemon");
+  // Create daemon trigger and start init supervisor
+  await sendText("write /tmp/daemon_exit_once 1");
+  await sendKey("ret");
+  await sleep(400);
+  await sendText("ring3 init");
   await sendKey("ret");
 
-  // Step 1: daemon starts and prints console message in Ring-3
+  // Step 1: init spawns and daemon starts and prints console message in Ring-3
+  await waitForSerial("[init] Spawning heliox-daemon...", 12, start);
   await waitForSerial("[heliox-daemon] userspace agent daemon is alive in ring 3", 12, start);
-  check("daemon starts in Ring-3 (SYS_WRITE works)", true);
+  check("daemon starts under init supervisor", true);
 
-  // Step 2: daemon sends readiness announcement via IPC
-  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 12, start);
-  check("daemon sends IPC announcement successfully (capability checks pass)", true);
+  // Step 2: daemon triggers supervision test and exits, and init restarts it
+  await waitForSerial("[heliox-daemon] exiting for supervision test", 12, start);
+  await waitForSerial("[init] heliox-daemon exited or crashed! Restarting...", 12, start);
+  check("init detects exit and triggers daemon restart", true);
 
-  // Step 3: daemon loop ticks and sleeps
-  await waitForSerial("[heliox-daemon] loop tick complete, sleeping...", 12, start);
-  check("daemon enters main tick loop and cooperatively sleeps (SYS_SLEEP works)", true);
+  // Step 3: restarted daemon announces readiness and starts its tick loop
+  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 15, start);
+  check("restarted daemon sends IPC announcement (capability checks pass)", true);
+
+  await waitForSerial("[heliox-daemon] loop tick complete, sleeping...", 15, start);
+  check("restarted daemon enters main tick loop and sleeps", true);
 
   // Step 4: negative control check for any userspace faults
   const full = serialText().slice(start);
