@@ -52,6 +52,7 @@ fn main() {
     let init_dir = PathBuf::from(&manifest_dir).join("userland/init");
     let init_status = Command::new(&cargo)
         .arg("build")
+        .arg("--release")
         .arg("--target")
         .arg("x86_64-unknown-none")
         .current_dir(&init_dir)
@@ -77,6 +78,7 @@ fn main() {
     if daemon_manifest.exists() {
         let daemon_status = Command::new(&cargo)
             .arg("build")
+            .arg("--release")
             .arg("--target")
             .arg("x86_64-unknown-none")
             .current_dir(&daemon_dir)

@@ -11,7 +11,7 @@
 /// and dispatch into its `_start` entry point. For now the bytes are kept
 /// here so the build pipeline is in place and the kernel can sanity-check
 /// the embedded blob.
-pub const INIT_ELF: &[u8] = include_bytes!("../../userland/init/target/x86_64-unknown-none/debug/init");
+pub const INIT_ELF: &[u8] = include_bytes!("../../userland/init/target/x86_64-unknown-none/release/init");
 
 /// Return the size of the embedded `init` ELF in bytes. Useful for
 /// boot-time sanity checks (`init_size > 0` after the userland build has
@@ -20,7 +20,7 @@ pub fn init_elf_size() -> usize {
     INIT_ELF.len()
 }
 
-pub const HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemon/target/x86_64-unknown-none/debug/heliox-daemon");
+pub const HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemon/target/x86_64-unknown-none/release/heliox-daemon");
 
 extern crate alloc;
 
