@@ -480,7 +480,7 @@ fn convex_hull_indices(pts: &[(i16, i16)]) -> Vec<usize> {
             let a = pts[order[j]];
             let b = pts[order[j - 1]];
             let c = cross(pv, b, a);
-            if c > 0 || (c == 0 && dist_sq(pv, a) < dist_sq(pv, b)) {
+            if c < 0 || (c == 0 && dist_sq(pv, a) < dist_sq(pv, b)) {
                 order.swap(j, j - 1);
                 j -= 1;
             } else {

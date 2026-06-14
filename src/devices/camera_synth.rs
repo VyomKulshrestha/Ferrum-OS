@@ -314,14 +314,16 @@ struct FingerSpec {
 
 /// Compute finger positions for `count` fingers across a palm of width
 /// `palm_w` starting at `palm_x`.  Returns up to 5 FingerSpec entries.
-fn finger_positions(palm_x: i16, palm_w: u16, count: u8) -> [Option<FingerSpec>; 5] {
+/// Compute finger positions for `heights` count of fingers across a palm of width
+/// `palm_w` starting at `palm_x`.  Returns up to 5 FingerSpec entries.
+fn finger_positions(palm_x: i16, palm_w: u16, heights: &[u16]) -> [Option<FingerSpec>; 5] {
     let mut specs: [Option<FingerSpec>; 5] = [Option::None, Option::None, Option::None, Option::None, Option::None];
+    let count = heights.len();
     if count == 0 || count > 5 {
         return specs;
     }
 
     let finger_w: u16 = 14;
-    let finger_h: u16 = 50;
 
     // Distribute `count` fingers evenly across the palm width.
     let spacing = if count > 1 {
@@ -337,12 +339,12 @@ fn finger_positions(palm_x: i16, palm_w: u16, count: u8) -> [Option<FingerSpec>;
         palm_x
     };
 
-    for i in 0..count as usize {
+    for i in 0..count {
         let x_off = start_x + (i as i16) * spacing;
         specs[i] = Some(FingerSpec {
             x_offset: x_off,
             width: finger_w,
-            height: finger_h,
+            height: heights[i],
         });
     }
     specs
@@ -372,11 +374,13 @@ fn generate_frame(buf: &mut [u8], gesture: SyntheticGesture) {
             let palm_top = palm_cy - palm_ry;
             let palm_left = palm_cx - palm_rx;
             let palm_w = (palm_rx * 2) as u16;
-            let fingers = finger_positions(palm_left, palm_w, 5);
+            let heights = [25, 48, 65, 48, 25];
+            let fingers = finger_positions(palm_left, palm_w, &heights);
             for spec in &fingers {
                 if let Some(f) = spec {
                     let fy = (palm_top - f.height as i16).max(0) as u16;
-                    draw_rect(buf, f.x_offset as u16, fy, f.width, f.height);
+                    let draw_h = (palm_cy - fy as i16 + 10) as u16;
+                    draw_rect(buf, f.x_offset as u16, fy, f.width, draw_h);
                 }
             }
         }
@@ -393,7 +397,8 @@ fn generate_frame(buf: &mut [u8], gesture: SyntheticGesture) {
             let finger_x = (palm_cx - 7) as u16;
             let finger_h: u16 = 70;
             let fy = (palm_top - finger_h as i16).max(0) as u16;
-            draw_rect(buf, finger_x, fy, 14, finger_h);
+            let draw_h = (palm_cy - fy as i16 + 10) as u16;
+            draw_rect(buf, finger_x, fy, 14, draw_h);
         }
         SyntheticGesture::Peace => {
             // Palm + 2 fingers (V-sign).
@@ -406,11 +411,13 @@ fn generate_frame(buf: &mut [u8], gesture: SyntheticGesture) {
             let palm_top = palm_cy - palm_ry;
             let palm_left = palm_cx - palm_rx;
             let palm_w = (palm_rx * 2) as u16;
-            let fingers = finger_positions(palm_left, palm_w, 2);
+            let heights = [50, 50];
+            let fingers = finger_positions(palm_left, palm_w, &heights);
             for spec in &fingers {
                 if let Some(f) = spec {
                     let fy = (palm_top - f.height as i16).max(0) as u16;
-                    draw_rect(buf, f.x_offset as u16, fy, f.width, f.height);
+                    let draw_h = (palm_cy - fy as i16 + 10) as u16;
+                    draw_rect(buf, f.x_offset as u16, fy, f.width, draw_h);
                 }
             }
         }
@@ -424,11 +431,13 @@ fn generate_frame(buf: &mut [u8], gesture: SyntheticGesture) {
             let palm_top = palm_cy - palm_ry;
             let palm_left = palm_cx - palm_rx;
             let palm_w = (palm_rx * 2) as u16;
-            let fingers = finger_positions(palm_left, palm_w, 3);
+            let heights = [35, 55, 35];
+            let fingers = finger_positions(palm_left, palm_w, &heights);
             for spec in &fingers {
                 if let Some(f) = spec {
                     let fy = (palm_top - f.height as i16).max(0) as u16;
-                    draw_rect(buf, f.x_offset as u16, fy, f.width, f.height);
+                    let draw_h = (palm_cy - fy as i16 + 10) as u16;
+                    draw_rect(buf, f.x_offset as u16, fy, f.width, draw_h);
                 }
             }
         }
@@ -442,11 +451,13 @@ fn generate_frame(buf: &mut [u8], gesture: SyntheticGesture) {
             let palm_top = palm_cy - palm_ry;
             let palm_left = palm_cx - palm_rx;
             let palm_w = (palm_rx * 2) as u16;
-            let fingers = finger_positions(palm_left, palm_w, 4);
+            let heights = [30, 50, 50, 30];
+            let fingers = finger_positions(palm_left, palm_w, &heights);
             for spec in &fingers {
                 if let Some(f) = spec {
                     let fy = (palm_top - f.height as i16).max(0) as u16;
-                    draw_rect(buf, f.x_offset as u16, fy, f.width, f.height);
+                    let draw_h = (palm_cy - fy as i16 + 10) as u16;
+                    draw_rect(buf, f.x_offset as u16, fy, f.width, draw_h);
                 }
             }
         }
