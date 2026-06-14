@@ -94,6 +94,57 @@ fn check_and_trigger_supervision_test() {
     }
 }
 
+fn check_and_trigger_net_test() {
+    let test_file = "/tmp/net_test";
+    let mut buf = [0u8; 64];
+    let res = unsafe {
+        syscall4(
+            SYS_READ_FILE,
+            test_file.as_ptr() as u64,
+            test_file.len() as u64,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    if (res as i64) > 0 {
+        // Delete the file so it doesn't loop forever
+        unsafe {
+            syscall3(SYS_DELETE_FILE, test_file.as_ptr() as u64, test_file.len() as u64, 0);
+        }
+        // Format: host:port/path (e.g. 10.0.2.2:8080/test)
+        let content = core::str::from_utf8(&buf[..res as usize]).unwrap_or("").trim();
+        if !content.is_empty() {
+            if let Some((addr, path)) = content.split_once('/') {
+                if let Some((host, port_str)) = addr.split_once(':') {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        let print_msg = alloc::format!("[heliox-daemon] running network test GET to {}:{}/{}\n", host, port, path);
+                        unsafe {
+                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                        }
+                        
+                        match network::http_get(host, port, &alloc::format!("/{}", path)) {
+                            Ok(resp) => {
+                                let success_msg = alloc::format!("[heliox-daemon] net_test response status: {}, body: {}\n", resp.status_code, resp.body);
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, success_msg.as_ptr() as u64, success_msg.len() as u64);
+                                    syscall3(SYS_EXIT, 0, 0, 0);
+                                }
+                            }
+                            Err(e) => {
+                                let err_msg = alloc::format!("[heliox-daemon] net_test failed: {}\n", e);
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                    syscall3(SYS_EXIT, 1, 0, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     // Write startup log
@@ -109,6 +160,9 @@ pub extern "C" fn _start() -> ! {
     unsafe {
         ALLOCATOR.lock().init(HEAP.as_mut_ptr(), HEAP.len());
     }
+
+    // Check for network test trigger
+    check_and_trigger_net_test();
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();

@@ -38,7 +38,7 @@ unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
 /// Create a TCP socket. Returns a file descriptor on success.
 pub fn tcp_socket() -> Result<u64, &'static str> {
     let fd = unsafe { syscall3(SYS_SOCKET, 2 /* AF_INET */, 1 /* SOCK_STREAM */, 0) };
-    if fd >= 100 {
+    if (fd as i64) >= 100 {
         Ok(fd)
     } else {
         Err("sys_socket failed")
@@ -60,8 +60,9 @@ pub fn tcp_connect(fd: u64, ip: [u8; 4], port: u16) -> Result<(), &'static str> 
 /// Send data through a TCP socket. Returns bytes sent.
 pub fn tcp_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
     let sent = unsafe { syscall3(SYS_SEND, fd, data.as_ptr() as u64, data.len() as u64) };
-    if sent > 0 {
-        Ok(sent as usize)
+    let sent_i = sent as i64;
+    if sent_i >= 0 {
+        Ok(sent_i as usize)
     } else {
         Err("sys_send failed")
     }
@@ -70,7 +71,12 @@ pub fn tcp_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
 /// Receive data from a TCP socket into the provided buffer. Returns bytes read.
 pub fn tcp_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
     let received = unsafe { syscall3(SYS_RECV, fd, buf.as_mut_ptr() as u64, buf.len() as u64) };
-    Ok(received as usize)
+    let received_i = received as i64;
+    if received_i >= 0 {
+        Ok(received_i as usize)
+    } else {
+        Err("sys_recv failed")
+    }
 }
 
 // ---- DNS Resolution (Hardcoded for bare-metal) -----------------------------
@@ -146,7 +152,28 @@ pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'sta
         path, host, port
     );
 
-    tcp_send(fd, request.as_bytes())?;
+    // Send the request, retrying if the connection is not yet fully established
+    let request_bytes = request.as_bytes();
+    let mut sent = 0;
+    let mut retries = 0;
+    loop {
+        match tcp_send(fd, &request_bytes[sent..]) {
+            Ok(n) => {
+                sent += n;
+                if sent >= request_bytes.len() {
+                    break;
+                }
+            }
+            Err(_) => {
+                retries += 1;
+                if retries > 100 {
+                    return Err("Failed to send HTTP request (handshake timeout)");
+                }
+                // Yield to scheduler to let kernel handle the connection handshake
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+        }
+    }
 
     let mut response_buf = alloc::vec![0u8; 32768];
     let mut total_received = 0;
@@ -203,7 +230,28 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &s
     );
 
     // 5. Send the request
-    tcp_send(fd, request.as_bytes())?;
+    // Send the request, retrying if the connection is not yet fully established
+    let request_bytes = request.as_bytes();
+    let mut sent = 0;
+    let mut retries = 0;
+    loop {
+        match tcp_send(fd, &request_bytes[sent..]) {
+            Ok(n) => {
+                sent += n;
+                if sent >= request_bytes.len() {
+                    break;
+                }
+            }
+            Err(_) => {
+                retries += 1;
+                if retries > 100 {
+                    return Err("Failed to send HTTP request (handshake timeout)");
+                }
+                // Yield to scheduler to let kernel handle the connection handshake
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+        }
+    }
 
     // 6. Receive the response (up to 8 KiB)
     let mut response_buf = alloc::vec![0u8; 32768];
