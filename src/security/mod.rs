@@ -58,6 +58,7 @@ pub fn init() {
         ("cap:audio:play", "Audio Playback", "audio:play", true),
         ("cap:audio:record", "Audio Recording", "audio:record", true),
         ("cap:input:inject", "Input Injection", "input:inject:*", true),
+        ("cap:camera:read", "Camera Frame Access", "camera:read:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {

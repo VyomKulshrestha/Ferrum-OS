@@ -57,6 +57,8 @@ pub enum SyscallNumber {
     /// 2 = serial only), args[1] = ptr, args[2] = len.
     Write = 34,
     Close = 35,
+    ReadCameraFrame = 36,
+    CameraInfo = 37,
 }
 
 /// Syscall return status.
@@ -99,6 +101,7 @@ pub mod graphics;
 pub mod audio;
 pub mod input;
 pub mod query;
+pub mod camera;
 
 use alloc::string::String;
 
@@ -387,6 +390,18 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::Write as u64 => sys_write_console(args),
         x if x == SyscallNumber::Close as u64 => socket::sys_close(args[0]),
+        x if x == SyscallNumber::ReadCameraFrame as u64 => {
+            if !crate::security::has_capability(held_capabilities, "camera:read:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            camera::sys_read_camera_frame(args)
+        }
+        x if x == SyscallNumber::CameraInfo as u64 => {
+            if !crate::security::has_capability(held_capabilities, "camera:read:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            camera::sys_camera_info(args)
+        }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching
         // this dispatcher means a kernel-context caller invoked them,

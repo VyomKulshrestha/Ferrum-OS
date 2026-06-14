@@ -18,6 +18,8 @@ const SYS_RECV: u64 = 11;
 const SYS_SEND: u64 = 12;
 const SYS_CONNECT: u64 = 14;
 const SYS_CLOSE: u64 = 35;
+const SYS_READ_CAMERA_FRAME: u64 = 36;
+const SYS_CAMERA_INFO: u64 = 37;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -108,6 +110,28 @@ pub fn tcp_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
         Ok(received_i as usize)
     } else {
         Err("sys_recv failed")
+    }
+}
+
+/// Read the latest camera frame into the provided buffer. Returns frame size.
+pub fn read_camera_frame(buf: &mut [u8]) -> Result<usize, &'static str> {
+    let size = unsafe { syscall3(SYS_READ_CAMERA_FRAME, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
+    let size_i = size as i64;
+    if size_i >= 0 {
+        Ok(size_i as usize)
+    } else {
+        Err("read_camera_frame failed")
+    }
+}
+
+/// Retrieve camera metadata as a JSON string in the provided buffer. Returns bytes written.
+pub fn camera_info(buf: &mut [u8]) -> Result<usize, &'static str> {
+    let size = unsafe { syscall3(SYS_CAMERA_INFO, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
+    let size_i = size as i64;
+    if size_i >= 0 {
+        Ok(size_i as usize)
+    } else {
+        Err("camera_info failed")
     }
 }
 
