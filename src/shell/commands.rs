@@ -417,6 +417,109 @@ fn cmd_net(args: &[&str]) {
         return;
     }
 
+    if args.first() == Some(&"serve") {
+        if args.len() < 2 {
+            println!("net serve: missing port");
+            return;
+        }
+        let port = match args[1].parse::<u16>() {
+            Ok(p) => p,
+            Err(_) => {
+                println!("net serve: invalid port");
+                return;
+            }
+        };
+
+        let Ok(_held) = require_resource("net:connect:*") else {
+            return;
+        };
+
+        println!("net serve: starting TCP server on port {}...", port);
+
+        let fd = match crate::net::iface::socket_create_tcp() {
+            Ok(fd) => fd,
+            Err(e) => {
+                println!("net serve: failed to create TCP socket: {}", e);
+                return;
+            }
+        };
+
+        if let Err(e) = crate::net::iface::socket_bind(fd, port as u64) {
+            println!("net serve: failed to bind: {}", e);
+            let _ = crate::net::iface::socket_close(fd);
+            return;
+        }
+
+        println!("net serve: socket bound to port {}. Waiting for connection...", port);
+
+        let mut active = false;
+        // Wait up to ~10 seconds
+        for _ in 0..1000 {
+            crate::net::iface::poll();
+            if let Ok(true) = crate::net::iface::socket_is_active(fd) {
+                active = true;
+                break;
+            }
+            // Simple spin delay
+            for _ in 0..1_000_000 {
+                core::hint::spin_loop();
+            }
+        }
+
+        if !active {
+            println!("net serve: timeout waiting for connection");
+            let _ = crate::net::iface::socket_close(fd);
+            return;
+        }
+
+        println!("net serve: connection established! Waiting for data...");
+
+        let mut buf = [0u8; 1024];
+        let mut echoed = false;
+        // Wait up to ~10 seconds for data
+        for _ in 0..1000 {
+            crate::net::iface::poll();
+            match crate::net::iface::socket_recv(fd, &mut buf) {
+                Ok(n) if n > 0 => {
+                    let text = core::str::from_utf8(&buf[..n]).unwrap_or("<invalid utf-8>");
+                    println!("net serve: received {} bytes: {}", n, text);
+                    
+                    // Echo the data back
+                    match crate::net::iface::socket_send(fd, &buf[..n]) {
+                        Ok(sent) => {
+                            println!("net serve: echoed {} bytes back to client", sent);
+                            echoed = true;
+                            // Flush the packets out by polling multiple times
+                            for _ in 0..20 {
+                                crate::net::iface::poll();
+                                for _ in 0..1_000_000 {
+                                    core::hint::spin_loop();
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("net serve: failed to send: {}", e);
+                        }
+                    }
+                    break;
+                }
+                _ => {}
+            }
+            // Simple spin delay
+            for _ in 0..1_000_000 {
+                core::hint::spin_loop();
+            }
+        }
+
+        let _ = crate::net::iface::socket_close(fd);
+        if echoed {
+            println!("net serve: server finished successfully");
+        } else {
+            println!("net serve: server finished with no data received");
+        }
+        return;
+    }
+
     let stats = crate::net::stats();
     println!("Network:");
     println!("  Interfaces: {}", stats.interfaces);
