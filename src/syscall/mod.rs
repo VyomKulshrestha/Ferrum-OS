@@ -360,9 +360,15 @@ pub fn dispatch_with_capabilities(
             audio::sys_set_volume(args)
         }
         x if x == SyscallNumber::InjectKey as u64 => {
+            if !crate::security::has_capability(held_capabilities, "input:inject:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             input::sys_inject_key(args)
         }
         x if x == SyscallNumber::InjectMouse as u64 => {
+            if !crate::security::has_capability(held_capabilities, "input:inject:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             input::sys_inject_mouse(args)
         }
         x if x == SyscallNumber::PollInput as u64 => {

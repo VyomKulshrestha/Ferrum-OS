@@ -57,6 +57,7 @@ pub fn init() {
         ("cap:agent:control", "Agent Runtime Control", "agent:*", false),
         ("cap:audio:play", "Audio Playback", "audio:play", true),
         ("cap:audio:record", "Audio Recording", "audio:record", true),
+        ("cap:input:inject", "Input Injection", "input:inject:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {
