@@ -93,7 +93,7 @@ fn tool_tier(name: &str) -> PermissionTier {
     match name {
         // Tier 0: Observe
         "query_memory" | "get_config" | "system_info" | "list_processes"
-        | "add_subtask" => PermissionTier::Observe,
+        | "add_subtask" | "camera_capture" | "gesture_status" => PermissionTier::Observe,
         // Tier 1: Safe
         "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
         | "capability_check" | "read_file" | "read_dir" | "sleep"
@@ -230,6 +230,12 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 35. `poll_input` - Poll pending input events (keyboard/mouse) from the event queue.
     Arguments: {}
 
+36. `camera_capture` - Capture a camera frame and detect hand gestures.
+    Arguments: {}
+
+37. `gesture_status` - Get the current hand gesture status.
+    Arguments: {}
+
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}
 If no tool is needed, respond with plain text.
 Tools marked REQUIRES CONFIRMATION need operator approval before executing."#;
@@ -284,6 +290,8 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "ipc_send" => execute_ipc_send(&tool_call.arguments),
         "audit_write" => execute_audit_write(&tool_call.arguments),
         "yield_cpu" => execute_yield(),
+        "camera_capture" => execute_camera_capture(),
+        "gesture_status" => execute_gesture_status(),
         "report_status" => execute_report_status(&tool_call.arguments),
         "capability_check" => execute_capability_check(&tool_call.arguments),
         "read_file" => execute_read_file(&tool_call.arguments),
@@ -666,6 +674,56 @@ fn execute_http_get(args: &[(String, JsonValue)]) -> ToolResult {
             success: true,
             output: format!("HTTP response ({} bytes): {}", result, preview),
         }
+    }
+}
+
+fn execute_camera_capture() -> ToolResult {
+    let mut frame_buf = alloc::vec![0u8; 153_600];
+    let mut label_buf = alloc::vec![0u16; 76_800];
+    let mut mask_buf = alloc::vec![0u8; 9_600];
+
+    match crate::network::read_camera_frame(&mut frame_buf) {
+        Ok(len) => {
+            if len == 153_600 {
+                let detected = crate::cognitive::gesture::process_frame(
+                    &frame_buf,
+                    320,
+                    240,
+                    &mut label_buf,
+                    &mut mask_buf,
+                );
+                let g_name = crate::cognitive::gesture::gesture_name(detected);
+                ToolResult {
+                    tool_name: String::from("camera_capture"),
+                    success: true,
+                    output: alloc::format!("Successfully captured camera frame. Detected gesture: {}", g_name),
+                }
+            } else {
+                ToolResult {
+                    tool_name: String::from("camera_capture"),
+                    success: false,
+                    output: alloc::format!("Failed to read camera frame: invalid length {}", len),
+                }
+            }
+        }
+        Err(e) => {
+            ToolResult {
+                tool_name: String::from("camera_capture"),
+                success: false,
+                output: alloc::format!("Failed to read camera frame: {}", e),
+            }
+        }
+    }
+}
+
+fn execute_gesture_status() -> ToolResult {
+    let g_id = crate::LATEST_GESTURE.load(core::sync::atomic::Ordering::SeqCst);
+    let gesture = crate::cognitive::gesture::from_id(g_id);
+    let name = crate::cognitive::gesture::gesture_name(gesture);
+    ToolResult {
+        tool_name: String::from("gesture_status"),
+        success: true,
+        output: alloc::format!("Current gesture status: {} (id={})", name, g_id),
     }
 }
 

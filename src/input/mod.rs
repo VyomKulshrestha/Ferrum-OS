@@ -31,6 +31,8 @@ pub enum InputEventType {
     MouseMove(i16, i16),
     /// Mouse button state change (button_id, pressed).
     MouseButton(u8, bool),
+    /// Gesture event. Payload is the gesture type ID (0-7).
+    GestureEvent(u8),
 }
 
 /// A single input event with a coarse timestamp.
@@ -250,6 +252,16 @@ pub fn inject_mouse_click(button: u8) {
     let mut queue = EVENT_QUEUE.lock();
     queue.push(press);
     queue.push(release);
+}
+
+/// Inject a gesture event.
+pub fn inject_gesture_event(gesture_id: u8) {
+    let event = InputEvent {
+        event_type: InputEventType::GestureEvent(gesture_id),
+        timestamp: now_ticks(),
+    };
+    EVENT_QUEUE.lock().push(event);
+    DAEMON_EVENT_QUEUE.lock().push(event);
 }
 
 // ============================================================================

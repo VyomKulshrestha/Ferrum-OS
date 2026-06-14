@@ -677,6 +677,20 @@ impl GestureTracker {
 // 9. Top-level API
 // ---------------------------------------------------------------------------
 
+#[inline(always)]
+fn yield_cpu() {
+    unsafe {
+        core::arch::asm!(
+            "int 0x80",
+            in("rax") 0u64,
+            in("rdi") 0u64,
+            in("rsi") 0u64,
+            in("rdx") 0u64,
+            options(nostack, preserves_flags)
+        );
+    }
+}
+
 /// Process a single YUYV camera frame and return the detected gesture.
 ///
 /// * `yuyv`   — raw YUYV frame data (w*h*2 bytes)
@@ -692,18 +706,21 @@ pub fn process_frame(
 ) -> GestureType {
     // Stage 1: Skin segmentation
     skin_segment(yuyv, w, h, mask);
+    yield_cpu();
 
     // Stage 2: Connected component labeling → find hand
     let hand = match find_hand(mask, w, h, labels) {
         Some(hr) => hr,
         None => return GestureType::None,
     };
+    yield_cpu();
 
     // Stage 3: Contour tracing
     let contour = trace_contour(labels, w, h, &hand);
     if contour.len() < 5 {
         return GestureType::None;
     }
+    yield_cpu();
 
     // Stage 4+5: Classify gesture from contour + hull defects
     classify_gesture(&contour, &hand)

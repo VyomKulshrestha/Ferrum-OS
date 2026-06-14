@@ -112,6 +112,9 @@ pub fn sys_poll_input(args: [u64; 6]) -> SyscallResult {
                 crate::input::InputEventType::MouseButton(btn, pressed) => {
                     (3u32, btn as u32, pressed as u32)
                 }
+                crate::input::InputEventType::GestureEvent(gesture_id) => {
+                    (4u32, gesture_id as u32, 0u32)
+                }
             };
 
             // Safety: buf_ptr is in the process's address space, validated

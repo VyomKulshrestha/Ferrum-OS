@@ -134,9 +134,19 @@ pub struct Orchestrator {
     
     // Multi-agent domain routing
     router: AgentRouter,
+    pub pending_gesture: Option<u8>,
+    pub paused: bool,
 }
 
 impl Orchestrator {
+    pub fn push_gesture(&mut self, gesture_id: u8) {
+        self.pending_gesture = Some(gesture_id);
+    }
+
+    pub fn set_paused(&mut self, p: bool) {
+        self.paused = p;
+    }
+
     pub fn set_goal(&mut self, goal: &str) {
         self.planner.set_goal(goal);
         self.verifier.reset();
@@ -170,6 +180,8 @@ impl Orchestrator {
             total_failures: 0,
             router: AgentRouter::new(),
             config,
+            pending_gesture: None,
+            paused: false,
         }
     }
 
@@ -204,6 +216,9 @@ impl Orchestrator {
 
     /// Main tick function called from the daemon's main loop.
     pub fn tick(&mut self) {
+        if self.paused {
+            return;
+        }
         self.ipc_poll();
         self.tick_count += 1;
 
@@ -280,6 +295,27 @@ impl Orchestrator {
     }
 
     fn observe(&mut self) {
+        if let Some(g_id) = self.pending_gesture {
+            let name = match g_id {
+                1 => "Fist",
+                2 => "OpenPalm",
+                3 => "Pointing",
+                4 => "Peace",
+                5 => "ThreeFingers",
+                6 => "FourFingers",
+                7 => "ThumbsUp",
+                _ => "None",
+            };
+            let mut obs = self.last_observation.clone();
+            if !obs.is_empty() {
+                obs.push_str("\n\n");
+            }
+            obs.push_str("[GESTURE] User is showing: ");
+            obs.push_str(name);
+            self.last_observation = obs;
+            self.pending_gesture = None;
+        }
+
         if !self.last_observation.is_empty() {
             let results = self.memory.search(&self.last_observation, 3, None);
             let results_len = results.len();

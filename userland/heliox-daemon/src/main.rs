@@ -19,8 +19,10 @@ use linked_list_allocator::LockedHeap;
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-// Static heap size: 2 MB
-static mut HEAP: [u8; 2 * 1024 * 1024] = [0; 2 * 1024 * 1024];
+// Static heap size: 4 MB
+static mut HEAP: [u8; 4 * 1024 * 1024] = [0; 4 * 1024 * 1024];
+
+pub static LATEST_GESTURE: core::sync::atomic::AtomicU8 = core::sync::atomic::AtomicU8::new(0);
 
 #[inline(always)]
 pub unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
@@ -68,6 +70,8 @@ const SYS_EXIT: u64 = 30;
 const SYS_SLEEP: u64 = 32;
 const SYS_WRITE: u64 = 34;
 const FD_CONSOLE: u64 = 1;
+const SYS_INJECT_KEY: u64 = 26;
+const SYS_INJECT_MOUSE: u64 = 27;
 
 fn check_and_trigger_supervision_test() {
     let test_file = "/tmp/daemon_exit_once";
@@ -209,6 +213,34 @@ pub extern "C" fn _start() -> ! {
         syscall3(SYS_WRITE, FD_CONSOLE, ready_msg.as_ptr() as u64, ready_msg.len() as u64);
     }
     
+    // Allocate camera frame/label/mask buffers once
+    let mut frame_buf = alloc::vec![0u8; 153_600];
+    let mut label_buf = alloc::vec![0u16; 76_800];
+    let mut mask_buf = alloc::vec![0u8; 9_600];
+
+    // Check camera availability
+    let mut camera_info_buf = [0u8; 128];
+    let has_camera = match network::camera_info(&mut camera_info_buf) {
+        Ok(len) => {
+            let s = core::str::from_utf8(&camera_info_buf[..len]).unwrap_or("");
+            s.contains("\"available\":true")
+        }
+        Err(_) => false,
+    };
+    if has_camera {
+        let msg = "[heliox-daemon] camera device detected, enabling gesture pipeline\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64);
+        }
+    } else {
+        let msg = "[heliox-daemon] no camera device detected\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64);
+        }
+    }
+
+    let mut tracker = cognitive::gesture::GestureTracker::new();
+
     // Initialize server socket
     let mut server_fd = match init_server_socket() {
         Ok(fd) => Some(fd),
@@ -226,6 +258,83 @@ pub extern "C" fn _start() -> ! {
     // Main Agent Loop
     let mut loop_count = 0;
     loop {
+        // Camera capture & gesture pipeline
+        if has_camera && (loop_count % 2 == 0) {
+            if let Ok(bytes_read) = network::read_camera_frame(&mut frame_buf) {
+                if bytes_read == 153_600 {
+                    let detected = cognitive::gesture::process_frame(
+                        &frame_buf,
+                        320,
+                        240,
+                        &mut label_buf,
+                        &mut mask_buf,
+                    );
+                    LATEST_GESTURE.store(detected as u8, core::sync::atomic::Ordering::SeqCst);
+                    tracker.push(detected);
+                    if let Some(stable) = tracker.stable_gesture() {
+                        let g_name = cognitive::gesture::gesture_name(stable);
+                        let log_msg = alloc::format!("[heliox-daemon] gesture: {}\n", g_name);
+                        unsafe {
+                            syscall3(SYS_WRITE, FD_CONSOLE, log_msg.as_ptr() as u64, log_msg.len() as u64);
+                        }
+
+                        // Push stable gesture to orchestrator
+                        orchestrator.push_gesture(stable as u8);
+
+                        // Direct-map control gestures
+                        match stable {
+                            cognitive::gesture::GestureType::Fist => {
+                                let direct_msg = "[heliox-daemon] gesture Fist -> direct: pause agent\n";
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
+                                }
+                                orchestrator.set_paused(true);
+                            }
+                            cognitive::gesture::GestureType::OpenPalm => {
+                                let direct_msg = "[heliox-daemon] gesture OpenPalm -> direct: resume agent\n";
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
+                                }
+                                orchestrator.set_paused(false);
+                            }
+                            cognitive::gesture::GestureType::Pointing => {
+                                let direct_msg = "[heliox-daemon] gesture Pointing -> direct: mouse click\n";
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
+                                }
+                                unsafe {
+                                    syscall3(27, 1, 0, 0); // InjectMouse: click, button=0
+                                }
+                            }
+                            cognitive::gesture::GestureType::Peace => {
+                                let direct_msg = "[heliox-daemon] gesture Peace -> direct: help command\n";
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
+                                }
+                                for &b in b"help\n" {
+                                    unsafe {
+                                        syscall3(26, b as u64, 0, 0);
+                                    }
+                                }
+                            }
+                            cognitive::gesture::GestureType::ThumbsUp => {
+                                let direct_msg = "[heliox-daemon] gesture ThumbsUp -> direct: confirm/approve\n";
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
+                                }
+                                for &b in b"y\n" {
+                                    unsafe {
+                                        syscall3(26, b as u64, 0, 0);
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+
         orchestrator.tick();
         
         if !bridge_connected {
