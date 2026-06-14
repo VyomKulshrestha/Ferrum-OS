@@ -88,6 +88,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::devices::init();
     println!("[  OK  ] Device registry initialized");
 
+    // Initialize synthetic camera (frame generator for gesture CV pipeline).
+    ferrumos::devices::init_camera();
+
     // Initialize ATA PIO disk driver — probe IDE channels for attached drives.
     ferrumos::ata::init();
     println!("[  OK  ] ATA PIO disk driver initialized");

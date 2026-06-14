@@ -13,6 +13,7 @@ pub mod usb_hid;
 pub mod vga_fb;
 pub mod xhci;
 pub mod ps2_mouse;
+pub mod camera_synth;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -70,7 +71,9 @@ pub fn init() {
 
     registry.register("net.primary", DeviceClass::Network, DeviceState::Planned, "pending", "net:*");
     registry.register("audio.primary", DeviceClass::Audio, DeviceState::Planned, "pending", "audio:*");
-    registry.register("camera.primary", DeviceClass::Camera, DeviceState::Planned, "pending", "camera:*");
+    // Camera starts as Planned; init_camera() below flips it to Online
+    // if the synthetic generator initialises successfully.
+    registry.register("camera.primary", DeviceClass::Camera, DeviceState::Planned, "camera_synth", "camera:*");
 }
 
 impl DeviceRegistry {
@@ -121,3 +124,31 @@ pub fn device_count_by_state(state: DeviceState) -> usize {
         .filter(|device| device.state == state)
         .count()
 }
+
+/// Update the state of a device by name.
+pub fn update_device_state(name: &str, new_state: DeviceState) {
+    let mut reg = REGISTRY.lock();
+    for dev in reg.devices.iter_mut() {
+        if dev.name == name {
+            dev.state = new_state;
+            return;
+        }
+    }
+}
+
+/// Initialise the synthetic camera and flip `camera.primary` to Online
+/// on success.  Called from `lib.rs` after devices::init().
+pub fn init_camera() {
+    match camera_synth::init() {
+        Ok(()) => {
+            update_device_state("camera.primary", DeviceState::Online);
+            // Generate an initial frame so latest_frame() has data immediately.
+            camera_synth::tick();
+            crate::serial_println!("[camera] device online (synthetic)");
+        }
+        Err(e) => {
+            crate::serial_println!("[camera] init failed: {}", e);
+        }
+    }
+}
+
