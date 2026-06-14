@@ -573,13 +573,15 @@ pub fn handle_key_press(ascii: u8) {
                         win.input_buffer.clear();
                         
                         let msg_str = alloc::format!("GOAL:{}", text);
-                        let _ = crate::ipc::send(crate::ipc::Message::new(
+                        if let Ok(msg) = crate::ipc::Message::new(
                             0,
                             crate::ipc::Endpoint::new("heliox", "default"),
                             crate::ipc::MessageKind::Event,
                             "ipc:send:*",
                             msg_str.as_bytes(),
-                        ).unwrap(), &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                        ) {
+                            let _ = crate::ipc::send(msg, &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                        }
                         
                         state.needs_redraw = true;
                     }

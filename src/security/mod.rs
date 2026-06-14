@@ -55,6 +55,8 @@ pub fn init() {
         ("cap:memory:alloc", "Memory Allocation", "memory:alloc:*", true),
         ("cap:ipc:send", "IPC Send", "ipc:send:*", true),
         ("cap:agent:control", "Agent Runtime Control", "agent:*", false),
+        ("cap:audio:play", "Audio Playback", "audio:play", true),
+        ("cap:audio:record", "Audio Recording", "audio:record", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {

@@ -282,6 +282,9 @@ pub fn dispatch_with_capabilities(
             SyscallResult::ok(0)
         }
         x if x == SyscallNumber::Socket as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             socket::sys_socket(args[0], args[1], args[2])
         }
         x if x == SyscallNumber::Bind as u64 => {
@@ -294,15 +297,24 @@ pub fn dispatch_with_capabilities(
             socket::sys_accept(args[0])
         }
         x if x == SyscallNumber::Recv as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             socket::sys_recv(args[0], args[1], args[2])
         }
         x if x == SyscallNumber::Send as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             socket::sys_send(args[0], args[1], args[2])
         }
         x if x == SyscallNumber::Wait as u64 => {
             SyscallResult::ok(0)
         }
         x if x == SyscallNumber::Connect as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             socket::sys_connect(args[0], args[1], args[2])
         }
         x if x == SyscallNumber::ReadFile as u64 => {
@@ -330,12 +342,21 @@ pub fn dispatch_with_capabilities(
             fs::sys_delete_file(args)
         }
         x if x == SyscallNumber::PlayAudio as u64 => {
+            if !crate::security::has_capability(held_capabilities, "audio:play") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             audio::sys_play_audio(args)
         }
         x if x == SyscallNumber::RecordAudio as u64 => {
+            if !crate::security::has_capability(held_capabilities, "audio:record") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             audio::sys_record_audio(args)
         }
         x if x == SyscallNumber::SetVolume as u64 => {
+            if !crate::security::has_capability(held_capabilities, "audio:play") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             audio::sys_set_volume(args)
         }
         x if x == SyscallNumber::InjectKey as u64 => {

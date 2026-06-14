@@ -1011,9 +1011,19 @@ fn cmd_heliox_voice(args: &[&str]) {
                 return;
             };
             let transcript = args[1..].join(" ");
-            match heliox::submit_request("voice_event", &transcript, &held) {
-                Ok(envelope) => println!("voice_event envelope id={}", envelope.id),
-                Err(err) => println!("heliox voice event: {}", err),
+            let _ = heliox::submit_request("voice_event", &transcript, &held);
+
+            let msg_str = alloc::format!("GOAL:{}", transcript);
+            if let Ok(msg) = crate::ipc::Message::new(
+                0,
+                crate::ipc::Endpoint::new("heliox", "default"),
+                crate::ipc::MessageKind::Event,
+                "ipc:send:*",
+                msg_str.as_bytes(),
+            ) {
+                let _ = crate::ipc::send(msg, &alloc::vec![alloc::string::String::from("cap:system:all")]);
+            } else {
+                println!("heliox voice event: failed to construct IPC message (too long)");
             }
         }
         _ => println!("heliox voice: usage: heliox voice [start|stop|event <text>]"),
