@@ -46,6 +46,9 @@ pub struct Config {
     pub confirmation_timeout: u64,
     pub log_level: LogLevel,
     pub auto_approve_tier: u8,
+    pub stt_host: String,
+    pub stt_port: u16,
+    pub vad_threshold: u32,
 }
 
 impl Config {
@@ -64,6 +67,9 @@ impl Config {
             confirmation_timeout: 600,
             log_level: LogLevel::Info,
             auto_approve_tier: 2, // Auto-approve tiers 0, 1, 2
+            stt_host: String::from("unconfigured"),
+            stt_port: 8786,
+            vad_threshold: 500,
         }
     }
 
@@ -106,6 +112,9 @@ impl Config {
                         "confirmation_timeout" => if let Some(n) = v.as_f64() { config.confirmation_timeout = n as u64; },
                         "log_level" => if let Some(s) = v.as_str() { config.log_level = LogLevel::from_str(s); },
                         "auto_approve_tier" => if let Some(n) = v.as_f64() { config.auto_approve_tier = n as u8; },
+                        "stt_host" => if let Some(s) = v.as_str() { config.stt_host = String::from(s); },
+                        "stt_port" => if let Some(n) = v.as_f64() { config.stt_port = n as u16; },
+                        "vad_threshold" => if let Some(n) = v.as_f64() { config.vad_threshold = n as u32; },
                         _ => {}
                     }
                 }

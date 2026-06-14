@@ -287,6 +287,108 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &s
     parse_http_response(raw)
 }
 
+/// Perform an HTTP POST request to the given host:port/path with a binary body.
+pub fn http_post_binary(
+    host: &str,
+    port: u16,
+    path: &str,
+    body: &[u8],
+    content_type: &str,
+    api_key: &str,
+) -> Result<HttpResponse, &'static str> {
+    // 1. Resolve the host
+    let ip = resolve_host(host).ok_or("DNS resolution failed")?;
+
+    // 2. Create a TCP socket
+    let fd = tcp_socket()?;
+
+    // 3. Connect to the remote server
+    tcp_connect(fd, ip, port)?;
+
+    // 4. Build the HTTP request headers
+    let auth_header = if !api_key.is_empty() {
+        format!("Authorization: Bearer {}\r\n", api_key)
+    } else {
+        String::new()
+    };
+    
+    let headers = format!(
+        "POST {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: {}\r\n{}Content-Length: {}\r\nConnection: close\r\n\r\n",
+        path, host, port, content_type, auth_header, body.len()
+    );
+
+    // 5. Send the headers
+    let headers_bytes = headers.as_bytes();
+    let mut sent = 0;
+    let mut retries = 0;
+    loop {
+        match tcp_send(fd, &headers_bytes[sent..]) {
+            Ok(n) => {
+                sent += n;
+                if sent >= headers_bytes.len() {
+                    break;
+                }
+            }
+            Err(_) => {
+                retries += 1;
+                if retries > 100 {
+                    return Err("Failed to send HTTP request headers (handshake timeout)");
+                }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+        }
+    }
+
+    // 6. Send the binary body
+    let mut sent = 0;
+    let mut retries = 0;
+    while sent < body.len() {
+        match tcp_send(fd, &body[sent..]) {
+            Ok(n) => {
+                sent += n;
+                retries = 0;
+            }
+            Err(_) => {
+                retries += 1;
+                if retries > 100 {
+                    return Err("Failed to send HTTP request body");
+                }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+        }
+    }
+
+    // 7. Receive the response
+    let mut response_buf = alloc::vec![0u8; 32768];
+    let mut total_received = 0;
+    for _ in 0..1000 {
+        match tcp_recv(fd, &mut response_buf[total_received..]) {
+            Ok(n) if n > 0 => {
+                total_received += n;
+                if total_received >= response_buf.len() {
+                    break;
+                }
+            }
+            _ => {
+                if total_received > 0 {
+                    break;
+                }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+        }
+    }
+
+    if total_received == 0 {
+        return Err("No HTTP response received");
+    }
+
+    // 8. Parse the HTTP response
+    let raw = core::str::from_utf8(&response_buf[..total_received])
+        .map_err(|_| "invalid UTF-8 in response")?;
+
+    parse_http_response(raw)
+}
+
 /// Parse a raw HTTP response string into status code and body.
 fn parse_http_response(raw: &str) -> Result<HttpResponse, &'static str> {
     // Find the status line: "HTTP/1.1 200 OK\r\n"
