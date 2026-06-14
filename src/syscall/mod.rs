@@ -56,6 +56,7 @@ pub enum SyscallNumber {
     /// Write bytes to the console. args[0] = fd (1 = console+serial,
     /// 2 = serial only), args[1] = ptr, args[2] = len.
     Write = 34,
+    Close = 35,
 }
 
 /// Syscall return status.
@@ -385,6 +386,7 @@ pub fn dispatch_with_capabilities(
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
         x if x == SyscallNumber::Write as u64 => sys_write_console(args),
+        x if x == SyscallNumber::Close as u64 => socket::sys_close(args[0]),
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching
         // this dispatcher means a kernel-context caller invoked them,

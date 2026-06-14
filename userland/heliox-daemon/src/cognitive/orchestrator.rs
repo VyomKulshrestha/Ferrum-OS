@@ -118,7 +118,7 @@ pub struct Orchestrator {
     planner: Planner,
     verifier: Verifier,
     reflector: Reflector,
-    confirmation_gate: ConfirmationGate,
+    pub confirmation_gate: ConfirmationGate,
     memory: VectorStore,
     tick_count: u64,
     last_observation: String,

@@ -145,6 +145,37 @@ fn check_and_trigger_net_test() {
     }
 }
 
+const SYS_ACCEPT: u64 = 10;
+
+fn init_server_socket() -> Result<u64, &'static str> {
+    let fd = network::tcp_socket()?;
+    if let Err(e) = network::tcp_bind(fd, 8785) {
+        let _ = network::tcp_close(fd);
+        return Err(e);
+    }
+    if let Err(e) = network::tcp_listen(fd, 5) {
+        let _ = network::tcp_close(fd);
+        return Err(e);
+    }
+    Ok(fd)
+}
+
+fn escape_json_string(s: &str) -> String {
+    let mut res = String::from("\"");
+    for c in s.chars() {
+        match c {
+            '"' => res.push_str("\\\""),
+            '\\' => res.push_str("\\\\"),
+            '\n' => res.push_str("\\n"),
+            '\r' => res.push_str("\\r"),
+            '\t' => res.push_str("\\t"),
+            _ => res.push(c),
+        }
+    }
+    res.push('"');
+    res
+}
+
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     // Write startup log
@@ -178,12 +209,62 @@ pub extern "C" fn _start() -> ! {
         syscall3(SYS_WRITE, FD_CONSOLE, ready_msg.as_ptr() as u64, ready_msg.len() as u64);
     }
     
+    // Initialize server socket
+    let mut server_fd = match init_server_socket() {
+        Ok(fd) => fd,
+        Err(e) => {
+            let err_msg = alloc::format!("[heliox-daemon] failed to init server socket: {}\n", e);
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                syscall3(SYS_EXIT, 1, 0, 0);
+            }
+            loop {}
+        }
+    };
+    let mut bridge_connected = false;
+    let mut ws_conn: Option<network::WsConnection> = None;
+
     // Main Agent Loop
     let mut loop_count = 0;
     loop {
         orchestrator.tick();
         
-        if orchestrator.config.stt_host != "unconfigured" {
+        if !bridge_connected {
+            // Check for connection
+            let res = unsafe { syscall3(SYS_ACCEPT, server_fd, 0, 0) };
+            if (res as i64) >= 0 {
+                match network::ws_accept(server_fd) {
+                    Ok(conn) => {
+                        let print_msg = "[heliox-daemon] bridge client connected, handshake successful!\n";
+                        unsafe {
+                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                        }
+                        ws_conn = Some(conn);
+                        bridge_connected = true;
+                    }
+                    Err(e) => {
+                        let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
+                        unsafe {
+                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                        }
+                        let _ = network::tcp_close(server_fd);
+                        server_fd = match init_server_socket() {
+                            Ok(fd) => fd,
+                            Err(err) => {
+                                let err_msg = alloc::format!("[heliox-daemon] failed to re-init server socket: {}\n", err);
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                    syscall3(SYS_EXIT, 1, 0, 0);
+                                }
+                                loop {}
+                            }
+                        };
+                    }
+                }
+            }
+        }
+
+        if !bridge_connected && orchestrator.config.stt_host != "unconfigured" {
             // Ambient Voice Command Listener (1-second buffer)
             if let Ok(buf) = cognitive::voice::record_audio(1000) {
                 if cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold) {
@@ -229,6 +310,130 @@ pub extern "C" fn _start() -> ! {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        if bridge_connected {
+            if let Some(ref mut conn) = ws_conn {
+                match network::ws_recv_frame(conn) {
+                    Ok(frame) => {
+                        if frame.opcode == 0x01 { // WS_OP_TEXT
+                            if let Ok(payload_str) = core::str::from_utf8(&frame.payload) {
+                                match cognitive::json::parse(payload_str) {
+                                    Ok(parsed) => {
+                                        let method = parsed.get("method").and_then(|m| m.as_str()).unwrap_or("");
+                                        let id_str = match parsed.get("id") {
+                                            Some(cognitive::json::JsonValue::Number(n)) => alloc::format!("{}", n),
+                                            Some(cognitive::json::JsonValue::Str(s)) => alloc::format!("\"{}\"", s),
+                                            _ => String::from("null"),
+                                        };
+                                        
+                                        if method == "ping" {
+                                            let pong_json = alloc::format!("{{\"jsonrpc\":\"2.0\",\"result\":\"pong\",\"id\":{}}}", id_str);
+                                            let _ = network::ws_send_text_server(conn.fd, &pong_json);
+                                        } else if method == "execute_tool" {
+                                            if let Some(params) = parsed.get("params") {
+                                                if let Some(tool_name) = params.get("tool").and_then(|t| t.as_str()) {
+                                                    let args_obj = params.get("args");
+                                                    let arguments = match args_obj {
+                                                        Some(cognitive::json::JsonValue::Object(pairs)) => pairs.clone(),
+                                                        _ => Vec::new(),
+                                                    };
+                                                    
+                                                    let tool_call = cognitive::json::ToolCall {
+                                                        name: String::from(tool_name),
+                                                        arguments,
+                                                    };
+                                                    
+                                                    // Execute tool mapping
+                                                    let tool_result = cognitive::tool_mapper::execute(
+                                                        &tool_call,
+                                                        &mut orchestrator.confirmation_gate,
+                                                        4, // auto_approve_tier = 4 to bypass confirmation
+                                                        loop_count
+                                                    );
+                                                    
+                                                    let res_json = alloc::format!(
+                                                        "{{\"jsonrpc\":\"2.0\",\"result\":{{\"success\":{},\"output\":{}}},\"id\":{}}}",
+                                                        tool_result.success,
+                                                        escape_json_string(&tool_result.output),
+                                                        id_str
+                                                    );
+                                                    let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                }
+                                            }
+                                        } else if method == "gesture_event" {
+                                            if let Some(params) = parsed.get("params") {
+                                                if let Some(gesture) = params.get("gesture").and_then(|g| g.as_str()) {
+                                                    if gesture == "circle_clockwise" {
+                                                        let print_msg = "[heliox-daemon] gesture circle_clockwise mapped: injecting 'g'\n";
+                                                        unsafe {
+                                                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                                                        }
+                                                        const SYS_INJECT_KEY: u64 = 26;
+                                                        unsafe {
+                                                            syscall3(SYS_INJECT_KEY, b'g' as u64, 0, 0);
+                                                        }
+                                                        let res_json = alloc::format!("{{\"jsonrpc\":\"2.0\",\"result\":\"ok\",\"id\":{}}}", id_str);
+                                                        let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Err(_) => {
+                                        let print_msg = "[heliox-daemon] failed to parse JSON-RPC payload\n";
+                                        unsafe {
+                                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                                        }
+                                    }
+                                }
+                            }
+                        } else if frame.opcode == 0x08 { // WS_OP_CLOSE
+                            let print_msg = "[heliox-daemon] client closed connection\n";
+                            unsafe {
+                                syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                            }
+                            bridge_connected = false;
+                            ws_conn = None;
+                            let _ = network::tcp_close(server_fd);
+                            server_fd = match init_server_socket() {
+                                Ok(fd) => fd,
+                                Err(err) => {
+                                    let err_msg = alloc::format!("[heliox-daemon] failed to re-init server socket: {}\n", err);
+                                    unsafe {
+                                        syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                        syscall3(SYS_EXIT, 1, 0, 0);
+                                    }
+                                    loop {}
+                                }
+                            };
+                        }
+                    }
+                    Err(e) if e == "ws: no data" => {
+                        // Just no data, do nothing
+                    }
+                    Err(e) => {
+                        let print_msg = alloc::format!("[heliox-daemon] connection lost: {}\n", e);
+                        unsafe {
+                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                        }
+                        bridge_connected = false;
+                        ws_conn = None;
+                        let _ = network::tcp_close(server_fd);
+                        server_fd = match init_server_socket() {
+                            Ok(fd) => fd,
+                            Err(err) => {
+                                let err_msg = alloc::format!("[heliox-daemon] failed to re-init server socket: {}\n", err);
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                    syscall3(SYS_EXIT, 1, 0, 0);
+                                }
+                                loop {}
+                            }
+                        };
                     }
                 }
             }

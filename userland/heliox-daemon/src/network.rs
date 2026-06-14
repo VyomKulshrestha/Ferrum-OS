@@ -17,6 +17,7 @@ const SYS_LISTEN: u64 = 9;
 const SYS_RECV: u64 = 11;
 const SYS_SEND: u64 = 12;
 const SYS_CONNECT: u64 = 14;
+const SYS_CLOSE: u64 = 35;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -75,6 +76,16 @@ pub fn tcp_listen(fd: u64, backlog: u64) -> Result<(), &'static str> {
         Ok(())
     } else {
         Err("sys_listen failed")
+    }
+}
+
+/// Close a TCP socket.
+pub fn tcp_close(fd: u64) -> Result<(), &'static str> {
+    let result = unsafe { syscall3(SYS_CLOSE, fd, 0, 0) };
+    if result == 0 {
+        Ok(())
+    } else {
+        Err("sys_close failed")
     }
 }
 

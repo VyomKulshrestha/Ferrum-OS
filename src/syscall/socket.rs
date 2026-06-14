@@ -113,3 +113,12 @@ pub fn sys_send(fd: u64, buf_ptr: u64, len: u64) -> SyscallResult {
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }
+
+/// Close a socket.
+/// args: fd
+pub fn sys_close(fd: u64) -> SyscallResult {
+    match iface::socket_close(fd) {
+        Ok(()) => SyscallResult::ok(0),
+        Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}
