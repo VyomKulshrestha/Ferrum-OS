@@ -186,8 +186,8 @@ pub extern "C" fn _start() -> ! {
         if orchestrator.config.api_host != "unconfigured" {
             // Ambient Voice Command Listener (1-second buffer)
             if let Ok(buf) = cognitive::voice::record_audio(1000) {
-                if cognitive::voice::detect_voice_activity(&buf) {
-                    if let Ok(text) = cognitive::voice::transcribe(&buf) {
+                if cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold) {
+                    if let Ok(text) = cognitive::voice::transcribe(&buf, &orchestrator.config.stt_host, orchestrator.config.stt_port) {
                         // Voice command detected!
                         // In a real implementation we would route this to orchestrator
                         let _ = cognitive::voice::play_audio(&cognitive::voice::generate_beep());

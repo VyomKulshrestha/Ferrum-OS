@@ -79,6 +79,35 @@ impl AudioBuffer {
         let mean_sq = sum_sq / count;
         isqrt(mean_sq) as u32
     }
+
+    /// Calculate the zero-crossing rate (ZCR) of the audio.
+    /// Returns the total number of zero-crossings in the buffer.
+    pub fn zero_crossing_rate(&self) -> u32 {
+        if self.data.len() < 4 || self.bits != 16 {
+            return 0;
+        }
+
+        let mut crossings: u32 = 0;
+        let mut last_sample: i16 = 0;
+        let mut initialized = false;
+
+        // Iterate over 16-bit signed LE samples
+        let mut i = 0;
+        while i + 1 < self.data.len() {
+            let sample = i16::from_le_bytes([self.data[i], self.data[i + 1]]);
+            if initialized {
+                if (sample >= 0 && last_sample < 0) || (sample < 0 && last_sample >= 0) {
+                    crossings += 1;
+                }
+            } else {
+                initialized = true;
+            }
+            last_sample = sample;
+            i += 2;
+        }
+
+        crossings
+    }
 }
 
 /// Integer square root using Newton's method.
@@ -183,15 +212,20 @@ const VAD_MIN_DURATION_MS: u32 = 200;
 /// Detect whether the given audio buffer contains voice activity.
 ///
 /// Uses simple energy-based detection: if the RMS amplitude exceeds
-/// `VAD_RMS_THRESHOLD` for at least `VAD_MIN_DURATION_MS`, returns true.
-pub fn detect_voice_activity(buf: &AudioBuffer) -> bool {
+/// `threshold` for at least `VAD_MIN_DURATION_MS`, returns true.
+/// A threshold of 0 forces voice activity detection to succeed instantly (for tests).
+pub fn detect_voice_activity(buf: &AudioBuffer, threshold: u32) -> bool {
+    if threshold == 0 {
+        return true;
+    }
     if buf.data.len() < 4 || buf.bits != 16 {
         return false;
     }
 
     let rms = buf.rms_amplitude();
+    let _zcr = buf.zero_crossing_rate();
     // Simple: if overall RMS exceeds threshold and duration is sufficient
-    rms > VAD_RMS_THRESHOLD && buf.duration_ms >= VAD_MIN_DURATION_MS
+    rms > threshold && buf.duration_ms >= VAD_MIN_DURATION_MS
 }
 
 // ============================================================================
@@ -224,13 +258,33 @@ pub fn save_recording(buf: &AudioBuffer, path: &str) -> Result<(), &'static str>
 
 /// Transcribe audio to text using a speech-to-text service.
 ///
-/// Currently returns an error since no STT service is available.
-/// When a Whisper-compatible API is running on the host at port 8786,
-/// this will send the raw PCM via HTTP POST and return the transcript.
-pub fn transcribe(_buf: &AudioBuffer) -> Result<String, &'static str> {
-    // Future: POST raw PCM to http://10.0.2.2:8786/v1/audio/transcriptions
-    // For now, STT is not available on bare metal without an external service
-    Err("STT service not available — run Whisper on host port 8786")
+/// Sends the raw PCM via HTTP POST and returns the transcript text.
+pub fn transcribe(buf: &AudioBuffer, host: &str, port: u16) -> Result<String, &'static str> {
+    if host == "unconfigured" {
+        return Err("STT host is unconfigured");
+    }
+
+    let response = crate::network::http_post_binary(
+        host,
+        port,
+        "/v1/audio/transcriptions",
+        &buf.data,
+        "audio/l16; rate=48000; channels=2",
+        "",
+    )?;
+
+    if response.status_code != 200 {
+        return Err("STT server returned non-200 status");
+    }
+
+    // Parse the JSON response to extract the text
+    let parsed = crate::cognitive::json::parse(&response.body)
+        .map_err(|_| "Failed to parse STT response JSON")?;
+    
+    let text_val = parsed.get("text").ok_or("STT response does not contain 'text' field")?;
+    let text_str = text_val.as_str().ok_or("STT response 'text' field is not a string")?;
+    
+    Ok(String::from(text_str))
 }
 
 /// Generate a short notification beep (440Hz sine wave, 200ms).

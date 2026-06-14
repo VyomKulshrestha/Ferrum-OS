@@ -878,7 +878,8 @@ fn execute_record_audio(args: &[(String, JsonValue)]) -> ToolResult {
     match crate::cognitive::voice::record_audio(duration_ms) {
         Ok(buf) => {
             let rms = buf.rms_amplitude();
-            let has_voice = crate::cognitive::voice::detect_voice_activity(&buf);
+            let config = crate::config::Config::load("/disk/heliox/config.json");
+            let has_voice = crate::cognitive::voice::detect_voice_activity(&buf, config.vad_threshold);
             ToolResult {
                 tool_name: String::from("record_audio"),
                 success: true,

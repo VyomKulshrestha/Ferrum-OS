@@ -137,6 +137,16 @@ pub struct Orchestrator {
 }
 
 impl Orchestrator {
+    pub fn set_goal(&mut self, goal: &str) {
+        self.planner.set_goal(goal);
+        self.verifier.reset();
+        self.reflector.reset();
+        self.emit_telemetry(
+            TelemetryEventKind::TickStart,
+            format!("New goal set: {}", goal),
+        );
+    }
+
     pub fn new() -> Self {
         // Load config from disk, fallback to defaults
         let config = Config::load("/disk/heliox/config.json");
