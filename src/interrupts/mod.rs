@@ -124,10 +124,29 @@ fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     if pid != 0 {
         use x86_64::registers::control::Cr2;
-        println!("[KERNEL] Userspace process {} caused {}, accessed address={:?}, terminating.", pid, fault_name, Cr2::read());
+        let rsp = stack_frame.stack_pointer.as_u64();
+        println!("[KERNEL] Userspace process {} caused {}, accessed address={:?}, RIP={:#x}, RSP={:#x}, CS={:?}, terminating.", 
+                 pid, fault_name, Cr2::read(), stack_frame.instruction_pointer.as_u64(), rsp, stack_frame.code_segment);
+        
+        // Print stack contents around RSP (up to 16 words / 128 bytes)
+        println!("  Stack dump around RSP:");
+        for i in 0..16 {
+            let addr = rsp + (i * 8);
+            // Check if address is in the kernel stack range to avoid faulting again
+            let stack_top = 0x44444444c910u64;
+            let stack_bottom = stack_top - 32 * 1024;
+            if addr >= stack_bottom && addr < stack_top {
+                let val = unsafe { *(addr as *const u64) };
+                println!("    {:#x}: {:#x}", addr, val);
+            } else {
+                println!("    {:#x}: <out of stack bounds>", addr);
+            }
+        }
+
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::SecurityViolation,
-            alloc::format!("Userspace process {} terminated due to {} at {:?}", pid, fault_name, Cr2::read()).as_str(),
+            alloc::format!("Userspace process {} terminated due to {} at {:?} (RIP={:#x})", 
+                          pid, fault_name, Cr2::read(), stack_frame.instruction_pointer.as_u64()).as_str(),
         );
         // `kill` marks the task Dead, drains it from the run-queues,
         // records exit code 139 (SIGSEGV-style) and clears CURRENT_PID.

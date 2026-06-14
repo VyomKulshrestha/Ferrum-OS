@@ -698,6 +698,12 @@ impl Orchestrator {
                     TelemetryEventKind::TickStart,
                     format!("New goal set via IPC: {}", goal_str.trim()),
                 );
+                let console_msg = format!("[heliox-daemon] New goal set via IPC: {}\n", goal_str.trim());
+                const SYS_WRITE: u64 = 34;
+                const FD_CONSOLE: u64 = 1;
+                unsafe {
+                    syscall3(SYS_WRITE, FD_CONSOLE, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                }
             } else if trimmed == "CONFIG_UPDATED" || trimmed == "CONFIG_UPDATED:" {
                 self.config = Config::load("/disk/heliox/config.json");
                 self.emit_telemetry(

@@ -1,9 +1,13 @@
 // ============================================================================
-// FerrumOS - heliox-daemon Ring-3 network verification
+// FerrumOS - heliox-daemon End-to-End Voice & STT Loop verification
 // ============================================================================
-// Boots the kernel in QEMU with network cards, runs a mock HTTP server on host
-// port 8080, writes a network test trigger `/tmp/net_test`, and asserts that
-// the daemon successfully makes the HTTP GET request and receives the response.
+// Boots the kernel in QEMU with audio devices, runs a mock Whisper STT server
+// on host port 8786, writes a custom config to /disk/heliox/config.json with
+// vad_threshold=0 to force silent capture, and asserts that:
+//   1. the daemon starts up and detects voice activity,
+//   2. records 3 seconds and POSTs to mock Whisper STT,
+//   3. receives transcript and sets goal,
+//   4. receiving "heliox voice event" updates the goal via IPC.
 // ============================================================================
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -17,24 +21,34 @@ const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
 const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45460);
-const serialLog = path.join(repo, "target", "net-verify-serial.log");
+const serialLog = path.join(repo, "target", "voice-verify-serial.log");
 const visible = process.argv.includes("--visible");
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
 if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 
-// 1. Start Host-Side Mock HTTP Server
+// 1. Start Host-Side Mock STT HTTP Server
 let requestReceived = false;
+let receivedBodyLength = 0;
 const mockServer = http.createServer((req, res) => {
   console.log(`[mock server] received request: ${req.method} ${req.url}`);
-  if (req.url === "/test" && req.method === "GET") {
+  if (req.url === "/v1/audio/transcriptions" && req.method === "POST") {
     requestReceived = true;
-    res.writeHead(200, {
-      "Content-Type": "text/plain",
-      "Content-Length": "6"
+    let chunks = [];
+    req.on("data", chunk => chunks.push(chunk));
+    req.on("end", () => {
+      const body = Buffer.concat(chunks);
+      receivedBodyLength = body.length;
+      console.log(`[mock server] received binary body of length ${body.length}`);
+      
+      const jsonResponse = JSON.stringify({ text: "hey heliox list the files" });
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(jsonResponse).toString()
+      });
+      res.end(jsonResponse);
     });
-    res.end("net_ok");
   } else {
     res.writeHead(404);
     res.end();
@@ -42,8 +56,8 @@ const mockServer = http.createServer((req, res) => {
 });
 
 await new Promise((resolve) => {
-  mockServer.listen(8080, "127.0.0.1", () => {
-    console.log("[mock server] listening on port 8080");
+  mockServer.listen(8786, "127.0.0.1", () => {
+    console.log("[mock server] STT listening on port 8786");
     resolve();
   });
 });
@@ -87,7 +101,20 @@ async function mon(cmd, waitMs = 60) {
   await sleep(waitMs);
 }
 
-const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon" }));
+// Map characters needed for writing config JSON
+const keyMap = new Map(Object.entries({
+  " ": "spc",
+  ".": "dot",
+  "-": "minus",
+  "/": "slash",
+  "_": "shift-minus",
+  ":": "shift-semicolon",
+  "{": "shift-bracket_left",
+  "}": "shift-bracket_right",
+  "\"": "shift-apostrophe",
+  ",": "comma"
+}));
+
 async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
 async function sendText(t) {
   for (const ch of t) {
@@ -119,27 +146,42 @@ try {
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
-  // Write the network trigger file
-  await sendText("write /tmp/net_test 10.0.2.2:8080/test");
-  await sendKey("ret");
-  await sleep(400);
 
-  // Start init which spawns the daemon
+  // 2. Write custom config.json to enable STT loop and set vad_threshold to 0
+  await sendText("write /disk/heliox/config.json {\"api_host\":\"host\",\"stt_host\":\"10.0.2.2\",\"stt_port\":8786,\"vad_threshold\":0}");
+  await sendKey("ret");
+  await sleep(600);
+
+  // 3. Queue a voice event before entering ring-3 (as the shell is replaced on entry)
+  await sendText("heliox voice event hello world");
+  await sendKey("ret");
+  await sleep(600);
+
+  // 4. Start init supervisor
   await sendText("ring3 init");
   await sendKey("ret");
 
-  // Step 1: daemon starts and detects network test trigger
-  await waitForSerial("[heliox-daemon] running network test GET to 10.0.2.2:8080/test", 20, start);
-  check("daemon starts and registers network test trigger", true);
+  // Step 1: Daemon spawns and registers voice activity due to vad_threshold=0
+  await waitForSerial("[heliox-daemon] voice activity detected, recording command...", 30, start);
+  check("daemon starts and detects voice activity (VAD=0)", true);
 
-  // Step 2: daemon performs GET request and logs success
-  await waitForSerial("[heliox-daemon] net_test response status: 200, body: net_ok", 20, start);
-  check("daemon successfully performs HTTP GET and gets 'net_ok' response", true);
-  check("mock server received the request", requestReceived);
+  // Step 2: Daemon records 3 seconds of audio and POSTs to Whisper mock endpoint
+  await waitForSerial("[heliox-daemon] voice transcript: hey heliox list the files", 30, start);
+  check("daemon receives mock STT transcript", true);
+  check("mock server received the binary audio payload", requestReceived);
+  check("mock server received expected size (>=500KB)", receivedBodyLength >= 500000); // 3 seconds * 192KB/s = 576KB
 
-  // Step 3: verify no page fault/panic occurred
+  // Step 3: Daemon sets goal from ambient VAD transcription
+  await waitForSerial("[heliox-daemon] new goal set: list the files", 30, start);
+  check("daemon extracts and sets new goal from transcript", true);
+
+  // Step 4: Verify the queued voice event updated the goal via IPC
+  await waitForSerial("New goal set via IPC: hello world", 30, start);
+  check("queued shell command voice event updates goal on the daemon via IPC", true);
+
+  // Step 5: Verify no userspace page fault or panic
   const full = serialText().slice(start);
-  check("no userspace fault/panic during network test",
+  check("no userspace fault/panic during voice activity test",
     !/terminating|General Protection|Page Fault/.test(full));
 
 } catch (err) {

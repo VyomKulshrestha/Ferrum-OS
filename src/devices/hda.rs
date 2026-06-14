@@ -155,7 +155,7 @@ const AUDIO_BUF_CHUNK: usize = 4096;
 const AUDIO_BUF_TOTAL: usize = BDL_ENTRY_COUNT * AUDIO_BUF_CHUNK;
 
 // Timeout for polling loops (iterations)
-const POLL_TIMEOUT: u32 = 50_000;
+const POLL_TIMEOUT: u32 = 5_000_000;
 
 // ============================================================================
 // BDL Entry (Buffer Descriptor List)
@@ -533,12 +533,20 @@ pub fn init() -> Result<(), &'static str> {
     // Set RIRB size to 256 entries (bits [1:0] = 0b10).
     regs.write8(REG_RIRBSIZE, 0x02);
 
-    // Reset RIRB write pointer (set bit 15).
+    // Reset RIRB write pointer (set bit 15, wait, clear it).
     regs.write16(REG_RIRBWP, 0x8000);
     spin_wait(500);
+    for _ in 0..POLL_TIMEOUT {
+        if (regs.read16(REG_RIRBWP) & 0x8000) != 0 {
+            break;
+        }
+        core::hint::spin_loop();
+    }
+    regs.write16(REG_RIRBWP, 0x0000);
+    spin_wait(500);
 
-    // Set response interrupt count.
-    regs.write16(REG_RINTCNT, 1);
+    // Set response interrupt count to a large value (0xFF) to prevent the QEMU DMA engine from stalling.
+    regs.write16(REG_RINTCNT, 0xFF);
 
     // Start RIRB (DMA run bit 1 + interrupt bit 0).
     regs.write8(REG_RIRBCTL, 0x02);
@@ -679,6 +687,14 @@ impl HdaController {
             }
             timeout -= 1;
             if timeout == 0 {
+                let corb_wp = self.regs.read16(REG_CORBWP);
+                let corb_rp = self.regs.read16(REG_CORBRP);
+                let rirb_wp = self.regs.read16(REG_RIRBWP);
+                let rirb_sts = self.regs.read8(REG_RIRBSTS);
+                let corb_ctl = self.regs.read8(REG_CORBCTL);
+                let rirb_ctl = self.regs.read8(REG_RIRBCTL);
+                crate::serial_println!("HDA: timeout info - corb_wp={} corb_rp={} rirb_wp={} rirb_rp={} rirb_sts={:#X} corb_ctl={:#X} rirb_ctl={:#X}",
+                    corb_wp, corb_rp, rirb_wp, self.rirb_rp, rirb_sts, corb_ctl, rirb_ctl);
                 return Err("HDA: RIRB timeout waiting for response");
             }
             core::hint::spin_loop();
@@ -1169,34 +1185,95 @@ impl HdaController {
         // Start recording.
         self.start_stream(self.in_stream_base);
 
-        // Wait for the stream to run through the buffer once.
-        // Poll LPIB until it reaches the end or we time out.
-        let target = self.in_buf_size;
-        for _ in 0..POLL_TIMEOUT {
-            let lpib = self.regs.read32(self.in_stream_base + SD_LPIB);
-            if lpib >= target {
-                break;
-            }
-            // Also check if the buffer completed status is set (bit 2).
+        // Wait for the stream to capture the requested buffer size by copying chunks from the ring buffer.
+        let mut copied_bytes = 0;
+        let mut last_lpib = 0;
+        let mut timeout_ticks = 0;
+        let max_timeout_ticks = POLL_TIMEOUT;
+
+        while copied_bytes < buf.len() && timeout_ticks < max_timeout_ticks {
+            let lpib = (self.regs.read32(self.in_stream_base + SD_LPIB) as usize) % self.in_buf_size as usize;
+            
+            // Clear buffer completion status if set, so QEMU knows we processed it and doesn't halt DMA.
             let sts = self.regs.read8(self.in_stream_base + SD_STS);
             if (sts & 0x04) != 0 {
-                break;
+                self.regs.write8(self.in_stream_base + SD_STS, 0x04);
             }
-            core::hint::spin_loop();
+
+            if lpib != last_lpib {
+                timeout_ticks = 0; // Reset timeout since progress was made
+                
+                if lpib > last_lpib {
+                    let mut chunk_len = lpib - last_lpib;
+                    if copied_bytes + chunk_len > buf.len() {
+                        chunk_len = buf.len() - copied_bytes;
+                    }
+                    
+                    let src_ptr = (self.in_buf_virt.as_u64() + last_lpib as u64) as *const u8;
+                    let dst_ptr = unsafe { buf.as_mut_ptr().add(copied_bytes) };
+                    unsafe {
+                        core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, chunk_len);
+                    }
+                    copied_bytes += chunk_len;
+                    last_lpib = lpib;
+                } else {
+                    // Wrap-around case
+                    let mut chunk1_len = self.in_buf_size as usize - last_lpib;
+                    let mut chunk2_len = lpib;
+                    
+                    if copied_bytes + chunk1_len > buf.len() {
+                        chunk1_len = buf.len() - copied_bytes;
+                        chunk2_len = 0;
+                    } else if copied_bytes + chunk1_len + chunk2_len > buf.len() {
+                        chunk2_len = buf.len() - copied_bytes - chunk1_len;
+                    }
+                    
+                    if chunk1_len > 0 {
+                        let src_ptr = (self.in_buf_virt.as_u64() + last_lpib as u64) as *const u8;
+                        let dst_ptr = unsafe { buf.as_mut_ptr().add(copied_bytes) };
+                        unsafe {
+                            core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, chunk1_len);
+                        }
+                        copied_bytes += chunk1_len;
+                    }
+                    
+                    if chunk2_len > 0 {
+                        let src_ptr = self.in_buf_virt.as_u64() as *const u8;
+                        let dst_ptr = unsafe { buf.as_mut_ptr().add(copied_bytes) };
+                        unsafe {
+                            core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, chunk2_len);
+                        }
+                        copied_bytes += chunk2_len;
+                    }
+                    
+                    last_lpib = lpib;
+                }
+            } else {
+                timeout_ticks += 1;
+                core::hint::spin_loop();
+            }
         }
+
+        // Capture stream state before stopping if incomplete
+        let debug_info = if copied_bytes < buf.len() {
+            let lpib = self.regs.read32(self.in_stream_base + SD_LPIB);
+            let sts = self.regs.read8(self.in_stream_base + SD_STS);
+            let ctl = self.regs.read8(self.in_stream_base + SD_CTL);
+            Some((lpib, sts, ctl))
+        } else {
+            None
+        };
 
         // Stop the stream.
         self.stop_stream(self.in_stream_base);
 
-        // Copy captured data to the caller's buffer.
-        let copy_len = core::cmp::min(buf.len(), self.in_buf_size as usize);
-        // Safety: in_ptr + copy_len is within DMA buffer bounds.
-        unsafe {
-            core::ptr::copy_nonoverlapping(in_ptr, buf.as_mut_ptr(), copy_len);
+        if let Some((lpib, sts, ctl)) = debug_info {
+            crate::serial_println!("HDA: record incomplete - copied_bytes={} buf_len={} lpib={} sts={:#X} ctl={:#X}", 
+                copied_bytes, buf.len(), lpib, sts, ctl);
         }
 
-        crate::serial_println!("HDA: recorded {} bytes", copy_len);
-        Ok(copy_len)
+        crate::serial_println!("HDA: recorded {} bytes", copied_bytes);
+        Ok(copied_bytes)
     }
 
     // ========================================================================

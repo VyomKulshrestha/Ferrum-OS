@@ -183,14 +183,52 @@ pub extern "C" fn _start() -> ! {
     loop {
         orchestrator.tick();
         
-        if orchestrator.config.api_host != "unconfigured" {
+        if orchestrator.config.stt_host != "unconfigured" {
             // Ambient Voice Command Listener (1-second buffer)
             if let Ok(buf) = cognitive::voice::record_audio(1000) {
                 if cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold) {
-                    if let Ok(text) = cognitive::voice::transcribe(&buf, &orchestrator.config.stt_host, orchestrator.config.stt_port) {
-                        // Voice command detected!
-                        // In a real implementation we would route this to orchestrator
-                        let _ = cognitive::voice::play_audio(&cognitive::voice::generate_beep());
+                    let print_msg = "[heliox-daemon] voice activity detected, recording command...\n";
+                    unsafe {
+                        syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                    }
+
+                    // Play notification beep
+                    let beep = cognitive::voice::generate_beep();
+                    let _ = cognitive::voice::play_audio(&beep);
+
+                    // Record 3-second command buffer
+                    if let Ok(cmd_buf) = cognitive::voice::record_audio(3000) {
+                        match cognitive::voice::transcribe(&cmd_buf, &orchestrator.config.stt_host, orchestrator.config.stt_port) {
+                            Ok(text) => {
+                                let transcript_msg = alloc::format!("[heliox-daemon] voice transcript: {}\n", text);
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, transcript_msg.as_ptr() as u64, transcript_msg.len() as u64);
+                                }
+
+                                let text_lower = text.to_lowercase();
+                                if let Some(idx) = text_lower.find("hey heliox") {
+                                    let cmd = &text[idx + "hey heliox".len()..];
+                                    let cmd_trimmed = cmd.trim();
+
+                                    let goal_msg = alloc::format!("[heliox-daemon] new goal set: {}\n", cmd_trimmed);
+                                    unsafe {
+                                        syscall3(SYS_WRITE, FD_CONSOLE, goal_msg.as_ptr() as u64, goal_msg.len() as u64);
+                                    }
+
+                                    // Set goal
+                                    orchestrator.set_goal(cmd_trimmed);
+
+                                    // Play confirmation beep
+                                    let _ = cognitive::voice::play_audio(&beep);
+                                }
+                            }
+                            Err(e) => {
+                                let err_msg = alloc::format!("[heliox-daemon] transcription failed: {}\n", e);
+                                unsafe {
+                                    syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                }
+                            }
+                        }
                     }
                 }
             }

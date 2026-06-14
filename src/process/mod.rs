@@ -235,8 +235,10 @@ impl Process {
         // Leak the kernel stack so it isn't freed by the Box
         // drop when we ManuallyDrop the Process. The iretq path
         // owns it from this point on.
-        let _ = self.kernel_stack.take();
-        let _ = self.space.take();
+        let kernel_stack = self.kernel_stack.take();
+        let space = self.space.take();
+        core::mem::forget(kernel_stack);
+        core::mem::forget(space);
         core::mem::forget(self);
         (pid, kernel_rsp, user_rsp, entry, l4)
     }
@@ -686,8 +688,10 @@ impl Process {
             .as_ref()
             .map(|s| s.l4_frame())
             .unwrap_or_else(crate::memory::active_p4_frame);
-        let _ = self.kernel_stack.take();
-        let _ = self.space.take();
+        let kernel_stack = self.kernel_stack.take();
+        let space = self.space.take();
+        core::mem::forget(kernel_stack);
+        core::mem::forget(space);
         core::mem::forget(self);
         (kernel_rsp, user_rsp, entry, l4)
     }

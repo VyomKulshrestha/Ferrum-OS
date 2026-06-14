@@ -1011,7 +1011,11 @@ fn cmd_heliox_voice(args: &[&str]) {
                 return;
             };
             let transcript = args[1..].join(" ");
-            let _ = heliox::submit_request("voice_event", &transcript, &held);
+            let result = heliox::submit_request("voice_event", &transcript, &held);
+            match result {
+                Ok(envelope) => println!("voice_event envelope id={}", envelope.id),
+                Err(err) => println!("heliox voice event: {}", err),
+            }
 
             let msg_str = alloc::format!("GOAL:{}", transcript);
             if let Ok(msg) = crate::ipc::Message::new(

@@ -29,6 +29,8 @@ const qemuArgs = [
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
+  "-device", "intel-hda",
+  "-device", "hda-duplex",
   "-no-reboot",
 ];
 if (!visible) qemuArgs.push("-display", "none");
