@@ -13,6 +13,7 @@ use core::arch::asm;
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
 const SYS_SOCKET: u64 = 7;
 const SYS_BIND: u64 = 8;
+const SYS_LISTEN: u64 = 9;
 const SYS_RECV: u64 = 11;
 const SYS_SEND: u64 = 12;
 const SYS_CONNECT: u64 = 14;
@@ -54,6 +55,26 @@ pub fn tcp_connect(fd: u64, ip: [u8; 4], port: u16) -> Result<(), &'static str> 
         Ok(())
     } else {
         Err("sys_connect failed")
+    }
+}
+
+/// Bind a TCP socket to a local port.
+pub fn tcp_bind(fd: u64, port: u16) -> Result<(), &'static str> {
+    let result = unsafe { syscall3(SYS_BIND, fd, port as u64, 0) };
+    if result == 0 {
+        Ok(())
+    } else {
+        Err("sys_bind failed")
+    }
+}
+
+/// Listen on a bound TCP socket.
+pub fn tcp_listen(fd: u64, backlog: u64) -> Result<(), &'static str> {
+    let result = unsafe { syscall3(SYS_LISTEN, fd, backlog, 0) };
+    if result == 0 {
+        Ok(())
+    } else {
+        Err("sys_listen failed")
     }
 }
 
@@ -630,6 +651,40 @@ fn ws_send_frame(fd: u64, opcode: u8, payload: &[u8]) -> Result<(), &'static str
     Ok(())
 }
 
+/// Build and send a single WebSocket frame from the server (NO masking).
+pub fn ws_send_frame_server(fd: u64, opcode: u8, payload: &[u8]) -> Result<(), &'static str> {
+    let len = payload.len();
+    let mut frame = Vec::with_capacity(10 + len); // max header + payload
+
+    // Byte 0: FIN + opcode
+    frame.push(0x80 | opcode); // FIN=1, RSV=000
+
+    // Byte 1: MASK=0 + payload length
+    if len < 126 {
+        frame.push(len as u8);
+    } else if len <= 65535 {
+        frame.push(126);
+        frame.push((len >> 8) as u8);
+        frame.push((len & 0xFF) as u8);
+    } else {
+        frame.push(127);
+        for i in (0..8).rev() {
+            frame.push(((len >> (i * 8)) & 0xFF) as u8);
+        }
+    }
+
+    // Unmasked payload
+    frame.extend_from_slice(payload);
+
+    tcp_send(fd, &frame)?;
+    Ok(())
+}
+
+/// Send a text message from the server over a WebSocket connection (no masking).
+pub fn ws_send_text_server(fd: u64, data: &str) -> Result<(), &'static str> {
+    ws_send_frame_server(fd, WS_OP_TEXT, data.as_bytes())
+}
+
 /// Receive a single WebSocket frame from the connection.
 ///
 /// Handles:
@@ -691,14 +746,22 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
     // Handle control frames.
     match opcode {
         WS_OP_PING => {
-            // Auto-respond with pong containing the same payload.
-            let _ = ws_send_frame(conn.fd, WS_OP_PONG, &payload);
+            // Auto-respond with pong. If received frame was masked, we are server (no masking in response).
+            if masked {
+                let _ = ws_send_frame_server(conn.fd, WS_OP_PONG, &payload);
+            } else {
+                let _ = ws_send_frame(conn.fd, WS_OP_PONG, &payload);
+            }
             // Recurse to get the next data frame.
             return ws_recv_frame(conn);
         }
         WS_OP_CLOSE => {
             // Send close frame back and mark disconnected.
-            let _ = ws_send_frame(conn.fd, WS_OP_CLOSE, &[]);
+            if masked {
+                let _ = ws_send_frame_server(conn.fd, WS_OP_CLOSE, &[]);
+            } else {
+                let _ = ws_send_frame(conn.fd, WS_OP_CLOSE, &[]);
+            }
             conn.connected = false;
             return Ok(WsFrame {
                 opcode: WS_OP_CLOSE,
@@ -745,4 +808,177 @@ pub fn ws_close(conn: &mut WsConnection) -> Result<(), &'static str> {
         conn.connected = false;
     }
     Ok(())
+}
+
+// ---- Server-Side Helpers ----------------------------------------------------
+
+/// Compute the SHA-1 hash of the input bytes (no_std, zero dependency).
+pub fn sha1(data: &[u8]) -> [u8; 20] {
+    let mut h0 = 0x67452301u32;
+    let mut h1 = 0xEFCDAB89u32;
+    let mut h2 = 0x98BADCFEu32;
+    let mut h3 = 0x10325476u32;
+    let mut h4 = 0xC3D2E1F0u32;
+
+    let mut msg = data.to_vec();
+    let original_len_bits = (data.len() as u64) * 8;
+    msg.push(0x80);
+    while (msg.len() * 8) % 512 != 448 {
+        msg.push(0x00);
+    }
+    msg.extend_from_slice(&original_len_bits.to_be_bytes());
+
+    for chunk in msg.chunks_exact(64) {
+        let mut w = [0u32; 80];
+        for i in 0..16 {
+            w[i] = u32::from_be_bytes([
+                chunk[i * 4],
+                chunk[i * 4 + 1],
+                chunk[i * 4 + 2],
+                chunk[i * 4 + 3],
+            ]);
+        }
+        for i in 16..80 {
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+        }
+
+        let mut a = h0;
+        let mut b = h1;
+        let mut c = h2;
+        let mut d = h3;
+        let mut e = h4;
+
+        for i in 0..80 {
+            let (f, k) = match i {
+                0..=19 => ((b & c) | (!b & d), 0x5A827999),
+                20..=39 => (b ^ c ^ d, 0x6ED9EBA1),
+                40..=59 => ((b & c) | (b & d) | (c & d), 0x8F1BBCDC),
+                _ => (b ^ c ^ d, 0xCA62C1D6),
+            };
+
+            let temp = a.rotate_left(5)
+                .wrapping_add(f)
+                .wrapping_add(e)
+                .wrapping_add(k)
+                .wrapping_add(w[i]);
+            e = d;
+            d = c;
+            c = b.rotate_left(30);
+            b = a;
+            a = temp;
+        }
+
+        h0 = h0.wrapping_add(a);
+        h1 = h1.wrapping_add(b);
+        h2 = h2.wrapping_add(c);
+        h3 = h3.wrapping_add(d);
+        h4 = h4.wrapping_add(e);
+    }
+
+    let mut out = [0u8; 20];
+    out[0..4].copy_from_slice(&h0.to_be_bytes());
+    out[4..8].copy_from_slice(&h1.to_be_bytes());
+    out[8..12].copy_from_slice(&h2.to_be_bytes());
+    out[12..16].copy_from_slice(&h3.to_be_bytes());
+    out[16..20].copy_from_slice(&h4.to_be_bytes());
+    out
+}
+
+/// Base64 encode the input bytes (no_std, zero dependency).
+pub fn base64_encode(input: &[u8]) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::new();
+    let mut i = 0;
+    while i < input.len() {
+        let chunk_len = input.len() - i;
+        if chunk_len >= 3 {
+            let n = ((input[i] as u32) << 16) | ((input[i + 1] as u32) << 8) | (input[i + 2] as u32);
+            result.push(CHARSET[((n >> 18) & 63) as usize] as char);
+            result.push(CHARSET[((n >> 12) & 63) as usize] as char);
+            result.push(CHARSET[((n >> 6) & 63) as usize] as char);
+            result.push(CHARSET[(n & 63) as usize] as char);
+            i += 3;
+        } else if chunk_len == 2 {
+            let n = ((input[i] as u32) << 8) | (input[i + 1] as u32);
+            result.push(CHARSET[((n >> 10) & 63) as usize] as char);
+            result.push(CHARSET[((n >> 4) & 63) as usize] as char);
+            result.push(CHARSET[((n << 2) & 63) as usize] as char);
+            result.push('=');
+            break;
+        } else {
+            let n = input[i] as u32;
+            result.push(CHARSET[((n >> 2) & 63) as usize] as char);
+            result.push(CHARSET[((n << 4) & 63) as usize] as char);
+            result.push('=');
+            result.push('=');
+            break;
+        }
+    }
+    result
+}
+
+/// Accepts a WebSocket connection on server_fd, performing the HTTP upgrade handshake.
+pub fn ws_accept(server_fd: u64) -> Result<WsConnection, &'static str> {
+    // Read the HTTP headers.
+    let mut buf = [0u8; 2048];
+    let mut total = 0;
+    
+    for _ in 0..1000 {
+        match tcp_recv(server_fd, &mut buf[total..]) {
+            Ok(n) if n > 0 => {
+                total += n;
+                if find_header_end(&buf[..total]).is_some() {
+                    break;
+                }
+            }
+            _ => {
+                unsafe { crate::syscall3(0, 0, 0, 0); } // Yield
+            }
+        }
+    }
+
+    if total == 0 {
+        return Err("ws_accept: no data received");
+    }
+
+    let headers = core::str::from_utf8(&buf[..total]).unwrap_or("");
+    let mut key_val = "";
+    
+    for line in headers.lines() {
+        let trimmed = line.trim();
+        // Case-insensitive check for Sec-WebSocket-Key
+        if trimmed.to_lowercase().starts_with("sec-websocket-key:") {
+            if let Some((_, val)) = trimmed.split_once(':') {
+                key_val = val.trim();
+                break;
+            }
+        }
+    }
+
+    if key_val.is_empty() {
+        return Err("ws_accept: Sec-WebSocket-Key header not found");
+    }
+
+    // Compute accept key
+    let mut key_combined = String::from(key_val);
+    key_combined.push_str("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+    let hashed = sha1(key_combined.as_bytes());
+    let accept_b64 = base64_encode(&hashed);
+
+    // Write upgrade response headers
+    let response = format!(
+        "HTTP/1.1 101 Switching Protocols\r\n\
+         Upgrade: websocket\r\n\
+         Connection: Upgrade\r\n\
+         Sec-WebSocket-Accept: {}\r\n\
+         \r\n",
+        accept_b64
+    );
+
+    tcp_send(server_fd, response.as_bytes())?;
+
+    Ok(WsConnection {
+        fd: server_fd,
+        connected: true,
+    })
 }
