@@ -211,14 +211,13 @@ pub extern "C" fn _start() -> ! {
     
     // Initialize server socket
     let mut server_fd = match init_server_socket() {
-        Ok(fd) => fd,
+        Ok(fd) => Some(fd),
         Err(e) => {
-            let err_msg = alloc::format!("[heliox-daemon] failed to init server socket: {}\n", e);
+            let err_msg = alloc::format!("[heliox-daemon] warning: failed to init server socket (offline mode): {}\n", e);
             unsafe {
                 syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                syscall3(SYS_EXIT, 1, 0, 0);
             }
-            loop {}
+            None
         }
     };
     let mut bridge_connected = false;
@@ -230,35 +229,36 @@ pub extern "C" fn _start() -> ! {
         orchestrator.tick();
         
         if !bridge_connected {
-            // Check for connection
-            let res = unsafe { syscall3(SYS_ACCEPT, server_fd, 0, 0) };
-            if (res as i64) >= 0 {
-                match network::ws_accept(server_fd) {
-                    Ok(conn) => {
-                        let print_msg = "[heliox-daemon] bridge client connected, handshake successful!\n";
-                        unsafe {
-                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
-                        }
-                        ws_conn = Some(conn);
-                        bridge_connected = true;
-                    }
-                    Err(e) => {
-                        let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
-                        unsafe {
-                            syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
-                        }
-                        let _ = network::tcp_close(server_fd);
-                        server_fd = match init_server_socket() {
-                            Ok(fd) => fd,
-                            Err(err) => {
-                                let err_msg = alloc::format!("[heliox-daemon] failed to re-init server socket: {}\n", err);
-                                unsafe {
-                                    syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                                    syscall3(SYS_EXIT, 1, 0, 0);
-                                }
-                                loop {}
+            if let Some(fd) = server_fd {
+                // Check for connection
+                let res = unsafe { syscall3(SYS_ACCEPT, fd, 0, 0) };
+                if (res as i64) >= 0 {
+                    match network::ws_accept(fd) {
+                        Ok(conn) => {
+                            let print_msg = "[heliox-daemon] bridge client connected, handshake successful!\n";
+                            unsafe {
+                                syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
                             }
-                        };
+                            ws_conn = Some(conn);
+                            bridge_connected = true;
+                        }
+                        Err(e) => {
+                            let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
+                            unsafe {
+                                syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
+                            }
+                            let _ = network::tcp_close(fd);
+                            server_fd = match init_server_socket() {
+                                Ok(new_fd) => Some(new_fd),
+                                Err(err) => {
+                                    let err_msg = alloc::format!("[heliox-daemon] warning: failed to re-init server socket: {}\n", err);
+                                    unsafe {
+                                        syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                    }
+                                    None
+                                }
+                            };
+                        }
                     }
                 }
             }
@@ -398,18 +398,19 @@ pub extern "C" fn _start() -> ! {
                             }
                             bridge_connected = false;
                             ws_conn = None;
-                            let _ = network::tcp_close(server_fd);
-                            server_fd = match init_server_socket() {
-                                Ok(fd) => fd,
-                                Err(err) => {
-                                    let err_msg = alloc::format!("[heliox-daemon] failed to re-init server socket: {}\n", err);
-                                    unsafe {
-                                        syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                                        syscall3(SYS_EXIT, 1, 0, 0);
+                            if let Some(fd) = server_fd {
+                                let _ = network::tcp_close(fd);
+                                server_fd = match init_server_socket() {
+                                    Ok(new_fd) => Some(new_fd),
+                                    Err(err) => {
+                                        let err_msg = alloc::format!("[heliox-daemon] warning: failed to re-init server socket: {}\n", err);
+                                        unsafe {
+                                            syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                        }
+                                        None
                                     }
-                                    loop {}
-                                }
-                            };
+                                };
+                            }
                         }
                     }
                     Err(e) if e == "ws: no data" => {
@@ -422,18 +423,19 @@ pub extern "C" fn _start() -> ! {
                         }
                         bridge_connected = false;
                         ws_conn = None;
-                        let _ = network::tcp_close(server_fd);
-                        server_fd = match init_server_socket() {
-                            Ok(fd) => fd,
-                            Err(err) => {
-                                let err_msg = alloc::format!("[heliox-daemon] failed to re-init server socket: {}\n", err);
-                                unsafe {
-                                    syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                                    syscall3(SYS_EXIT, 1, 0, 0);
+                        if let Some(fd) = server_fd {
+                            let _ = network::tcp_close(fd);
+                            server_fd = match init_server_socket() {
+                                Ok(new_fd) => Some(new_fd),
+                                Err(err) => {
+                                    let err_msg = alloc::format!("[heliox-daemon] warning: failed to re-init server socket: {}\n", err);
+                                    unsafe {
+                                        syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                                    }
+                                    None
                                 }
-                                loop {}
-                            }
-                        };
+                            };
+                        }
                     }
                 }
             }
