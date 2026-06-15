@@ -63,7 +63,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
-- 37 tools mapped to 38 kernel syscalls
+- 39 tools mapped to 39 kernel syscalls
 - Config-driven setup via `/disk/heliox/config.json`
 - Reasoning telemetry emitted over IPC to the GUI service
 
@@ -221,16 +221,17 @@ Or use the build script:
 | 35 | Close | Close a socket |
 | 36 | ReadCameraFrame | Read a YUYV frame from the camera driver |
 | 37 | CameraInfo | Get camera details (width, height, status) |
+| 38 | Kexec | Gated warm reboot/relocation to new kernel image |
 
-## Agent Tools (37 total)
+## Agent Tools (39 total)
 
 | Tier | Tools |
 |------|-------|
 | **0 — Observe** | `system_info`, `list_processes`, `query_memory`, `get_config`, `add_subtask`, `camera_capture`, `gesture_status` |
-| **1 — Safe** | `ipc_send`, `audit_write`, `yield_cpu`, `report_status`, `capability_check`, `read_file`, `read_dir`, `sleep`, `read_screen`, `set_volume`, `poll_input` |
+| **1 — Safe** | `ipc_send`, `audit_write`, `yield_cpu`, `report_status`, `capability_check`, `read_file`, `read_dir`, `sleep`, `read_screen`, `set_volume`, `poll_input`, `local_inference` |
 | **2 — Network** | `net_connect`, `net_send`, `net_recv`, `http_get`, `load_memory`, `set_goal`, `record_audio`, `browse_url` |
 | **3 — Modify** | `write_file`, `create_directory`, `save_memory`, `service_start`, `service_stop`, `play_audio`, `keyboard_type`, `mouse_click`, `mouse_move` |
-| **4 — Destructive** | `exec_process`, `delete_file` |
+| **4 — Destructive** | `exec_process`, `delete_file`, `trigger_kernel_upgrade` |
 
 ## Heliox Daemon Setup
 

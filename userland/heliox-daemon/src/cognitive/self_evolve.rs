@@ -8,6 +8,8 @@ use alloc::vec::Vec;
 
 fn read_file_to_vec(path: &str) -> Result<Vec<u8>, &'static str> {
     const SYS_READ_FILE: u64 = 15;
+    const SYS_WRITE: u64 = 34;
+    const FD_CONSOLE: u64 = 1;
     // We allocate a buffer on the heap (up to 4 MB for dummy kernel image)
     let mut buf = alloc::vec![0u8; 4 * 1024 * 1024];
     let bytes_read = unsafe {
@@ -19,6 +21,10 @@ fn read_file_to_vec(path: &str) -> Result<Vec<u8>, &'static str> {
             buf.len() as u64,
         )
     };
+    let msg = alloc::format!("[daemon-read] read {} res: {}\n", path, bytes_read as i64);
+    unsafe {
+        crate::syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64);
+    }
     if (bytes_read as i64) < 0 {
         Err("Failed to read file")
     } else {

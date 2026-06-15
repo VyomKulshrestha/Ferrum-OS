@@ -7,7 +7,7 @@
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
 3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   tools translate to real kernel syscalls (38 total, IDs 0–37).
+   tools translate to real kernel syscalls (39 total, IDs 0–38).
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
 5. **Hardware first** — an agentic OS needs real drivers, not stubs.
@@ -75,7 +75,7 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-38 syscalls (IDs 0–37) dispatched via `int 0x80`:
+39 syscalls (IDs 0–38) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
@@ -88,6 +88,7 @@ and can evolve without destabilizing the kernel.
 - Input: InjectKey(26), InjectMouse(27), PollInput(28)
 - Camera: ReadCameraFrame(36), CameraInfo(37)
 - Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices; Write(34) (write to console/serial)
+- Kexec: Kexec(38)
 
 ## Graphical Desktop Environment (GUI)
 
@@ -254,10 +255,10 @@ The `network.rs` client is dynamically driven by the Agent HUD configuration, su
 | Tier | Level | Auto-approve | Example Tools |
 |------|-------|-------------|---------------|
 | 0 | Observe | ✅ Always | `system_info`, `query_memory`, `camera_capture`, `gesture_status` |
-| 1 | Safe | ✅ Default | `read_file`, `read_dir`, `read_screen`, `poll_input` |
+| 1 | Safe | ✅ Default | `read_file`, `read_dir`, `read_screen`, `poll_input`, `local_inference` |
 | 2 | Network | ✅ Default | `http_get`, `browse_url`, `net_connect` |
 | 3 | Modify | ⚠️ Configurable | `write_file`, `play_audio`, `keyboard_type` |
-| 4 | Destructive | 🔒 Confirmation | `exec_process`, `delete_file` |
+| 4 | Destructive | 🔒 Confirmation | `exec_process`, `delete_file`, `trigger_kernel_upgrade` |
 
 ### Multi-Agent Domain Routing
 
@@ -384,6 +385,8 @@ userland/heliox-daemon/
 │       ├── planner.rs        # Task decomposition
 │       ├── tool_mapper.rs    # 37 tools → syscalls
 │       ├── gesture.rs        # Classical CV skin & hand gesture recognition
+│       ├── inference.rs      # Local no_std GGUF/Q4 toy inference runner
+│       ├── self_evolve.rs    # Host-assisted self-evolution kexec trigger
 │       ├── verifier.rs       # Output verification
 │       ├── reflector.rs      # Failure reflection
 │       ├── confirmation.rs   # Permission gates

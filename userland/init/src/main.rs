@@ -287,10 +287,16 @@ pub extern "C" fn _start() -> ! {
 
             // Test 2: Local offline inference
             write("[test] 2. Local offline inference\n");
-            unsafe {
-                syscall3(SYS_CREATE_DIR, "/disk/heliox".as_ptr() as u64, "/disk/heliox".len() as u64, 0);
-                syscall3(SYS_CREATE_DIR, "/disk/heliox/models".as_ptr() as u64, "/disk/heliox/models".len() as u64, 0);
-            }
+            let res_dir1 = unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/heliox".as_ptr() as u64, "/disk/heliox".len() as u64, 0)
+            };
+            write_num("[test] create /disk/heliox res: ", res_dir1 as i64, "\n");
+
+            let res_dir2 = unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/heliox/models".as_ptr() as u64, "/disk/heliox/models".len() as u64, 0)
+            };
+            write_num("[test] create /disk/heliox/models res: ", res_dir2 as i64, "\n");
+
             let mut model_bytes = [0u8; 1024];
             model_bytes[0] = b'G';
             model_bytes[1] = b'G';
@@ -303,22 +309,24 @@ pub extern "C" fn _start() -> ! {
             for idx in 8..1024 {
                 model_bytes[idx] = (idx % 250) as u8;
             }
-            unsafe {
+            let res_write1 = unsafe {
                 syscall4(
                     SYS_WRITE_FILE,
                     "/disk/heliox/models/toy.gguf".as_ptr() as u64,
                     "/disk/heliox/models/toy.gguf".len() as u64,
                     model_bytes.as_ptr() as u64,
                     model_bytes.len() as u64,
-                );
-            }
+                )
+            };
+            write_num("[test] write /disk/heliox/models/toy.gguf res: ", res_write1 as i64, "\n");
             write("[test] 2. Local offline inference setup complete\n");
 
             // Test 3: Setup host-assisted self-evolution kexec target
             write("[test] 3. Setup host-assisted self-evolution kexec target\n");
-            unsafe {
-                syscall3(SYS_CREATE_DIR, "/disk/boot".as_ptr() as u64, "/disk/boot".len() as u64, 0);
-            }
+            let res_dir3 = unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/boot".as_ptr() as u64, "/disk/boot".len() as u64, 0)
+            };
+            write_num("[test] create /disk/boot res: ", res_dir3 as i64, "\n");
             let mut payload = [0x90u8; 128];
             payload[0] = 0x7F;
             payload[1] = 0x45;
@@ -341,15 +349,16 @@ pub extern "C" fn _start() -> ! {
             payload[93] = 0xFA; // cli
             payload[94] = 0xF4; // hlt
 
-            unsafe {
+            let res_write2 = unsafe {
                 syscall4(
                     SYS_WRITE_FILE,
                     "/disk/boot/kernel.bin".as_ptr() as u64,
                     "/disk/boot/kernel.bin".len() as u64,
                     payload.as_ptr() as u64,
                     payload.len() as u64,
-                );
-            }
+                )
+            };
+            write_num("[test] write /disk/boot/kernel.bin res: ", res_write2 as i64, "\n");
             write("[test] 3. Kexec payload written to /disk/boot/kernel.bin\n");
 
             // Now, spawn heliox-daemon and let it run

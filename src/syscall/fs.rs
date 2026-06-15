@@ -15,8 +15,8 @@ use super::{SyscallResult, SyscallStatus};
 
 /// Maximum path length we'll accept from userspace.
 const MAX_PATH_LEN: usize = 4096;
-/// Maximum data size for a single read/write (1 MB).
-const MAX_DATA_LEN: usize = 1024 * 1024;
+/// Maximum data size for a single read/write (4 MB).
+const MAX_DATA_LEN: usize = 4 * 1024 * 1024;
 
 /// Read a string from a userspace pointer. Returns None if the pointer
 /// looks invalid or the resulting bytes are not valid UTF-8.
@@ -99,7 +99,8 @@ pub fn sys_read_file(args: [u64; 6]) -> SyscallResult {
             let copied = unsafe { copy_to_user(buf_ptr, bytes, buf_len) };
             SyscallResult::ok(copied as u64)
         }
-        Err(_e) => {
+        Err(e) => {
+            crate::println!("[kernel-read] read {} failed: {}", path, e);
             // File not found or read error
             SyscallResult::err(SyscallStatus::InvalidArgument)
         }
