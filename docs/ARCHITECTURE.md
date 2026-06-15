@@ -6,8 +6,8 @@
    kernel space. The kernel owns scheduling, memory, interrupts, and drivers.
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
-3. **Every action is a syscall** — the agent cannot bypass the kernel. All 35
-   tools translate to real kernel syscalls (30 total, IDs 0–29).
+3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
+   tools translate to real kernel syscalls (38 total, IDs 0–37).
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
 5. **Hardware first** — an agentic OS needs real drivers, not stubs.
@@ -25,7 +25,7 @@
 ├──────────────────────────────────────────────────────────┤
 │ Runtime Layer                                            │
 │ Service manager, IPC broker, capability checks,          │
-│ 35 tool ↔ syscall mapper, 5-tier permissions             │
+│ 37 tool ↔ syscall mapper, 5-tier permissions             │
 ├──────────────────────────────────────────────────────────┤
 │ GUI & Compositor Layer                                   │
 │ Window manager, JARVIS Agent HUD, taskbar, telemetry IPC │
@@ -75,17 +75,18 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-35 syscalls (IDs 0–34) dispatched via `int 0x80`:
+38 syscalls (IDs 0–37) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
 - Services: Start(3), Stop(4)
 - Security: CapCheck(5), AuditWrite(6)
-- Network: Socket(7), Bind(8), Listen(9), Accept(10), Recv(11), Send(12), Connect(14)
+- Network: Socket(7), Bind(8), Listen(9), Accept(10), Recv(11), Send(12), Connect(14), Close(35)
 - Filesystem: ReadFile(15), WriteFile(16), ReadDir(17), CreateDir(21), DeleteFile(22)
 - Graphics: ReadFbInfo(19), ReadTextBuffer(20)
 - Audio: PlayAudio(23), RecordAudio(24), SetVolume(25)
 - Input: InjectKey(26), InjectMouse(27), PollInput(28)
+- Camera: ReadCameraFrame(36), CameraInfo(37)
 - Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices; Write(34) (write to console/serial)
 
 ## Graphical Desktop Environment (GUI)
@@ -238,7 +239,7 @@ The `network.rs` client is dynamically driven by the Agent HUD configuration, su
 | Verifier | `verifier.rs` | Output checking, retry counting |
 | Reflector | `reflector.rs` | Failure recording, lesson extraction |
 | Confirmation | `confirmation.rs` | 5-tier permission gates for destructive tools |
-| Tool Mapper | `tool_mapper.rs` | 35 tools → syscall dispatch + INTERNAL routing |
+| Tool Mapper | `tool_mapper.rs` | 37 tools → syscall dispatch + INTERNAL routing |
 | Vector Store | `vector_store.rs` | TF-IDF embeddings, cosine search, disk persistence |
 | Web Agent | `web_agent.rs` | HTML stripping, entity decode, link/title extract |
 | Multi-Agent | `multi_agent.rs` | Domain classifier (Code/Web/System/Files/General) |
@@ -252,8 +253,8 @@ The `network.rs` client is dynamically driven by the Agent HUD configuration, su
 
 | Tier | Level | Auto-approve | Example Tools |
 |------|-------|-------------|---------------|
-| 0 | Observe | ✅ Always | `system_info`, `query_memory`, `poll_input` |
-| 1 | Safe | ✅ Default | `read_file`, `read_dir`, `read_screen` |
+| 0 | Observe | ✅ Always | `system_info`, `query_memory`, `camera_capture`, `gesture_status` |
+| 1 | Safe | ✅ Default | `read_file`, `read_dir`, `read_screen`, `poll_input` |
 | 2 | Network | ✅ Default | `http_get`, `browse_url`, `net_connect` |
 | 3 | Modify | ⚠️ Configurable | `write_file`, `play_audio`, `keyboard_type` |
 | 4 | Destructive | 🔒 Confirmation | `exec_process`, `delete_file` |
@@ -278,22 +279,39 @@ Per-domain success rates are tracked and reported.
 ### Capabilities
 
 Explicit permission tokens. Default deny. Each process receives a delegated
-capability set at launch.
+capability set at launch from its parent process via `sys_exec`, which filters
+delegatable tokens.
 
 | Profile | Token | Access |
 |---------|-------|--------|
 | root | `cap:system:all` | Full system management |
 | guest | `cap:fs:read` | Read-only filesystem |
+| daemon | `cap:quota:exempt` | Bypasses syscall rate & continuous CPU limits |
+| daemon | `cap:confirmation:bypass` | Bypasses kernel-side confirmation gates |
+
+### Resource Quotas
+
+To prevent rogue or runaway agent scripts from degrading system performance or freezing the kernel:
+- **Memory Mapping Bounds**: Processes are restricted to a maximum memory mapping quota of 2048 pages (8 MiB) inside `map_user`. Exceeding this triggers a frame allocation error.
+- **Continuous CPU execution limit**: The scheduler monitors tasks and reaps any user task that executes consecutively for more than 100 ticks (~5.5s) without yielding (`sys_yield`) or sleeping (`sys_sleep`). Reaped processes exit with code 140.
+- **Syscall Rate Limiting**: Restricts processes to 100 system calls per 200-tick window. Violations result in immediate process termination (exit code 140) and logging.
 
 ### Audit Log
 
 All denied operations, lifecycle events, and agent reasoning telemetry are
 recorded in the kernel audit log. Accessible via the `log` shell command.
+- **Out-of-Interrupt Persistence**: Disk writes inside interrupts (such as timer IRQs) are avoided to prevent deadlocks. An atomic `FLUSH_PENDING` flag is set by the timer interrupt.
+- **Deferred Disk Sync**: The log is flushed from memory to `/disk/heliox/audit.log` during safe out-of-interrupt contexts: syscall returns, process termination/reaping, and system shutdown/reboot.
+- **Log Truncation**: The persistent log is capped at 128KB, using character/newline-aligned front-truncation when the size limit is exceeded.
 
 ### Agent Confirmation Gates
 
-Tools at Tier 3–4 queue confirmation requests. The operator must approve
-(`confirm <id>`) or deny (`deny <id>`) before execution proceeds.
+Kernel-side confirmation gates are enforced for destructive Tier-4 operations (specifically `DeleteFile`, syscall 22):
+- **Syscall Suspension & Sleep Timeout**: When a gated syscall is called by a process lacking `cap:confirmation:bypass`, the calling process is placed into a `Blocked` state and given a 5-second default-deny sleep timeout.
+- **Instruction Pointer Rewinding (RIP-2)**: The saved user context frame's `rip` is decremented by 2 bytes. Because the `int 0x80` assembly instruction is exactly 2 bytes (`CD 80`), rewinding the instruction pointer causes the process to re-execute the system call immediately upon waking.
+- **Physical vs. Injected Key Filter**: Gates can only be approved by typing `y` (or denied with `n`) on a physical serial console or keyboard. Synthetic keystrokes injected by the agent via `sys_inject_key` are filtered using the `INJECTING_AGENT_KEY` atomic boolean, preventing the agent from autonomously bypassing its own security gates.
+- **Retry-and-Cache State**: When resumed, the process re-executes `int 0x80` and references the cached `confirmation_approved` or `confirmation_denied` fields on the task context to either complete the operation or return `-2` (`PermissionDenied`) without prompting again.
+
 
 ## Configuration
 
@@ -364,7 +382,8 @@ userland/heliox-daemon/
 │   └── cognitive/
 │       ├── orchestrator.rs   # ReAct loop
 │       ├── planner.rs        # Task decomposition
-│       ├── tool_mapper.rs    # 35 tools → syscalls
+│       ├── tool_mapper.rs    # 37 tools → syscalls
+│       ├── gesture.rs        # Classical CV skin & hand gesture recognition
 │       ├── verifier.rs       # Output verification
 │       ├── reflector.rs      # Failure reflection
 │       ├── confirmation.rs   # Permission gates

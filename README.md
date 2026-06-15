@@ -35,8 +35,9 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Security & Services
 - Capability registry and caller-held capability authorization
-- 5-tier permission model with operator confirmation gates
-- Audit logging hooks for security and lifecycle events
+- 5-tier permission model with operator confirmation gates (gated Tier 3/4 syscalls require physical key confirmation, using RIP-2 instruction rewinding for restartable blocking calls)
+- Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation)
+- Resource Quotas: Syscall rate limiting, continuous CPU execution limits, and memory mapping bounds check (default 8 MiB)
 - Modular service manager with typed service manifests
 - IPC broker with capability-checked message delivery
 
@@ -62,7 +63,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
-- 35 tools mapped to 30 kernel syscalls
+- 37 tools mapped to 38 kernel syscalls
 - Config-driven setup via `/disk/heliox/config.json`
 - Reasoning telemetry emitted over IPC to the GUI service
 
@@ -78,7 +79,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 | Vector store, TF-IDF, planner, reflector, JSON decoder    |
 +----------------------------------------------------------+
 | Runtime Layer                                            |
-| Services, permissions, IPC, config, 35 tool ↔ syscall map |
+| Services, permissions, IPC, config, 37 tool ↔ syscall map |
 +----------------------------------------------------------+
 | GUI & Compositor Layer                                   |
 | Window manager, JARVIS Agent HUD, taskbar, telemetry IPC  |
@@ -217,13 +218,16 @@ Or use the build script:
 | 32 | Sleep | Cooperatively sleep/suspend process |
 | 33 | WaitPid | Poll child process exit status |
 | 34 | Write | Write bytes to console or serial |
+| 35 | Close | Close a socket |
+| 36 | ReadCameraFrame | Read a YUYV frame from the camera driver |
+| 37 | CameraInfo | Get camera details (width, height, status) |
 
-## Agent Tools (35 total)
+## Agent Tools (37 total)
 
 | Tier | Tools |
 |------|-------|
-| **0 — Observe** | `system_info`, `list_processes`, `query_memory`, `get_config`, `poll_input`, `add_subtask` |
-| **1 — Safe** | `ipc_send`, `audit_write`, `yield_cpu`, `report_status`, `capability_check`, `read_file`, `read_dir`, `sleep`, `read_screen`, `set_volume` |
+| **0 — Observe** | `system_info`, `list_processes`, `query_memory`, `get_config`, `add_subtask`, `camera_capture`, `gesture_status` |
+| **1 — Safe** | `ipc_send`, `audit_write`, `yield_cpu`, `report_status`, `capability_check`, `read_file`, `read_dir`, `sleep`, `read_screen`, `set_volume`, `poll_input` |
 | **2 — Network** | `net_connect`, `net_send`, `net_recv`, `http_get`, `load_memory`, `set_goal`, `record_audio`, `browse_url` |
 | **3 — Modify** | `write_file`, `create_directory`, `save_memory`, `service_start`, `service_stop`, `play_audio`, `keyboard_type`, `mouse_click`, `mouse_move` |
 | **4 — Destructive** | `exec_process`, `delete_file` |
