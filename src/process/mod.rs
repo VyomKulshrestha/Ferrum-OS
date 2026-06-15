@@ -111,6 +111,7 @@ pub struct Process {
     user_stack_mapped: bool,
     /// Has `load_elf` parsed the ELF and mapped all PT_LOAD segments?
     loaded: bool,
+    pub max_memory_pages: u64,
 }
 
 impl Process {
@@ -130,7 +131,6 @@ impl Process {
         self.space.as_mut()
     }
 
-    /// Map a user range and copy `bytes` into it.
     pub fn map_user(
         &mut self,
         vaddr: VirtAddr,
@@ -138,7 +138,20 @@ impl Process {
         bytes: &[u8],
         flags: PageTableFlags,
     ) -> Result<u64, MapToError<Size4KiB>> {
+        let current_pages = self.user_frame_count() as u64;
+        let max_pages = self.max_memory_pages;
         let space = self.space.as_mut().ok_or(MapToError::ParentEntryHugePage)?;
+        
+        let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
+        let len_aligned = align_up(
+            vaddr_offset_in_page as u64 + memsz as u64,
+            Size4KiB::SIZE,
+        );
+        let pages_needed = len_aligned / Size4KiB::SIZE;
+        if current_pages + pages_needed > max_pages {
+            return Err(MapToError::FrameAllocationFailed);
+        }
+        
         space.map_user_range(vaddr, memsz, bytes, flags)
     }
 
@@ -528,14 +541,18 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         entry: 0,
         user_stack_mapped: false,
         loaded: false,
+        max_memory_pages: 2048,
     };
     Ok(process)
 }
 
-/// Register a freshly-built process in the global table so the shell can
-/// introspect it and Phase 1.4 can schedule it.
-pub fn register(process: Process) -> u64 {
+pub fn register(mut process: Process) -> u64 {
     let pid = process.pid;
+    let caps = crate::userspace::capabilities_for_program(&process.name);
+    let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
+    if is_exempt {
+        process.max_memory_pages = u64::MAX;
+    }
     PROCESSES.lock().push(ProcessRecord { process });
     pid
 }

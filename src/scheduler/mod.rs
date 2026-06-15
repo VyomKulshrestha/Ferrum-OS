@@ -168,6 +168,41 @@ impl TaskContext {
 // Task
 // ============================================================================
 
+/// Quota tracking for a task.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TaskQuotas {
+    pub max_memory_pages: u64,
+    pub max_cpu_ticks_continuous: u64,
+    pub used_cpu_ticks_continuous: u64,
+    pub max_syscalls_per_window: u64,
+    pub syscalls_in_window: u64,
+    pub syscall_window_start: u64,
+}
+
+impl TaskQuotas {
+    pub const fn unlimited() -> Self {
+        Self {
+            max_memory_pages: u64::MAX,
+            max_cpu_ticks_continuous: u64::MAX,
+            used_cpu_ticks_continuous: 0,
+            max_syscalls_per_window: u64::MAX,
+            syscalls_in_window: 0,
+            syscall_window_start: 0,
+        }
+    }
+
+    pub const fn default_user() -> Self {
+        Self {
+            max_memory_pages: 2048, // 8 MiB
+            max_cpu_ticks_continuous: 100, // ~5.5 seconds of uninterrupted execution
+            used_cpu_ticks_continuous: 0,
+            max_syscalls_per_window: 100, // 100 syscalls per window
+            syscalls_in_window: 0,
+            syscall_window_start: 0,
+        }
+    }
+}
+
 /// A schedulable task in the kernel.
 ///
 /// Each `Task` lives in `TASKS` and is referenced by its `pid`
@@ -183,6 +218,7 @@ pub struct Task {
     pub priority: Priority,
     pub ticks: u64,
     pub capabilities: Vec<String>,
+    pub quotas: TaskQuotas,
     /// Time slice remaining in PIT ticks. Reset to
     /// `TIME_SLICE_TICKS` every time the task is picked from a
     /// run-queue. When it reaches 0 the task is preemptible.
@@ -221,6 +257,7 @@ impl Task {
             priority,
             ticks: 0,
             capabilities: Vec::new(),
+            quotas: TaskQuotas::unlimited(),
             time_remaining: TIME_SLICE_TICKS,
             wake_at: u64::MAX,
             kernel_stack_top: 0,
@@ -350,6 +387,13 @@ pub fn register_user(
     let parent_id = if caller_pid == 0 { None } else { Some(caller_pid) };
     
     let mut sched = SCHEDULER.lock();
+    let is_exempt = capabilities.iter().any(|c| c == "cap:quota:exempt");
+    let quotas = if is_exempt {
+        TaskQuotas::unlimited()
+    } else {
+        TaskQuotas::default_user()
+    };
+    
     let mut task = Task {
         id: pid,
         name: String::from(name),
@@ -357,6 +401,7 @@ pub fn register_user(
         priority,
         ticks: 0,
         capabilities: capabilities.to_vec(),
+        quotas,
         time_remaining: TIME_SLICE_TICKS,
         wake_at: u64::MAX,
         kernel_stack_top: kernel_stack_top.as_u64(),
@@ -430,8 +475,11 @@ pub fn tick() {
         for task in sched.tasks.iter_mut() {
             if task.state == TaskState::Running || task.state == TaskState::Ready {
                 task.ticks = task.ticks.wrapping_add(1);
-                if task.state == TaskState::Running && task.time_remaining > 0 {
-                    task.time_remaining -= 1;
+                if task.state == TaskState::Running {
+                    task.quotas.used_cpu_ticks_continuous = task.quotas.used_cpu_ticks_continuous.saturating_add(1);
+                    if task.time_remaining > 0 {
+                        task.time_remaining -= 1;
+                    }
                 }
             }
         }
@@ -452,6 +500,7 @@ pub fn sleep_current(ticks: u64) -> bool {
             task.state = TaskState::Blocked;
             task.wake_at = now.saturating_add(ticks);
             task.time_remaining = 0;
+            task.quotas.used_cpu_ticks_continuous = 0;
             CURRENT_PID.store(0, Ordering::SeqCst);
             return true;
         }
@@ -562,6 +611,7 @@ pub fn yield_current() -> bool {
         if task.state == TaskState::Running {
             task.state = TaskState::Ready;
             task.time_remaining = TIME_SLICE_TICKS;
+            task.quotas.used_cpu_ticks_continuous = 0;
             let pri = task.priority.index();
             if !sched.run_queues[pri].contains(&pid) {
                 sched.run_queues[pri].push_back(pid);
@@ -1165,3 +1215,32 @@ extern "C" fn kernel_return_entry() -> ! {
     x86_64::instructions::interrupts::enable();
     crate::shell::run()
 }
+
+/// Check if the running task has exceeded its CPU continuous execution quota.
+/// If it has, mark it as dead, and return true (so it can be context switched away).
+pub fn check_and_enforce_quotas(pid: u64) -> bool {
+    let mut sched = SCHEDULER.lock();
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+        if task.state == TaskState::Running {
+            let continuous_exceeded = task.quotas.used_cpu_ticks_continuous > task.quotas.max_cpu_ticks_continuous;
+            if continuous_exceeded {
+                task.state = TaskState::Dead;
+                task.time_remaining = 0;
+                CURRENT_PID.store(0, Ordering::SeqCst);
+                // Also remove it from run queues
+                for q in sched.run_queues.iter_mut() {
+                    q.retain(|p| *p != pid);
+                }
+                drop(sched);
+                record_exit(pid, 140); // Exit code 140 for quota exceeded
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::ProcessKilled,
+                    "Task killed: continuous CPU quota exceeded",
+                );
+                return true;
+            }
+        }
+    }
+    false
+}
+
