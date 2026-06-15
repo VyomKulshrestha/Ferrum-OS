@@ -97,7 +97,7 @@ fn tool_tier(name: &str) -> PermissionTier {
         // Tier 1: Safe
         "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
         | "capability_check" | "read_file" | "read_dir" | "sleep"
-        | "read_screen" | "set_volume" | "poll_input" => PermissionTier::Safe,
+        | "read_screen" | "set_volume" | "poll_input" | "local_inference" => PermissionTier::Safe,
         // Tier 2: Network
         "net_connect" | "net_send" | "net_recv" | "http_get"
         | "load_memory" | "set_goal" | "record_audio"
@@ -107,7 +107,7 @@ fn tool_tier(name: &str) -> PermissionTier {
         | "service_start" | "service_stop" | "play_audio"
         | "keyboard_type" | "mouse_click" | "mouse_move" => PermissionTier::Modify,
         // Tier 4: Destructive
-        "exec_process" | "delete_file" => PermissionTier::Destructive,
+        "exec_process" | "delete_file" | "trigger_kernel_upgrade" => PermissionTier::Destructive,
         _ => PermissionTier::Destructive, // unknown tools default to highest tier
     }
 }
@@ -314,6 +314,8 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "service_stop" => execute_service_lifecycle(SYS_SERVICE_STOP, &tool_call.arguments),
         "exec_process" => execute_exec_process(&tool_call.arguments),
         "delete_file" => execute_delete_file(&tool_call.arguments),
+        "local_inference" => execute_local_inference(&tool_call.arguments),
+        "trigger_kernel_upgrade" => execute_trigger_kernel_upgrade(),
         "read_screen" => execute_read_screen(),
         "add_subtask" => execute_add_subtask(),
         "record_audio" => execute_record_audio(&tool_call.arguments),
@@ -1142,5 +1144,43 @@ fn execute_poll_input() -> ToolResult {
         tool_name: String::from("poll_input"),
         success: true,
         output,
+    }
+}
+
+fn execute_local_inference(args: &[(String, JsonValue)]) -> ToolResult {
+    let prompt = find_arg_string(args, "prompt").unwrap_or_default();
+    if prompt.is_empty() {
+        return ToolResult {
+            tool_name: String::from("local_inference"),
+            success: false,
+            output: String::from("Missing 'prompt' argument"),
+        };
+    }
+    match crate::cognitive::inference::run_local_inference(&prompt) {
+        Ok(res) => ToolResult {
+            tool_name: String::from("local_inference"),
+            success: true,
+            output: res,
+        },
+        Err(e) => ToolResult {
+            tool_name: String::from("local_inference"),
+            success: false,
+            output: alloc::format!("Local inference error: {}", e),
+        },
+    }
+}
+
+fn execute_trigger_kernel_upgrade() -> ToolResult {
+    match crate::cognitive::self_evolve::trigger_hot_reload() {
+        Ok(()) => ToolResult {
+            tool_name: String::from("trigger_kernel_upgrade"),
+            success: true,
+            output: String::from("Kernel hot-reload triggered successfully! Rebooting..."),
+        },
+        Err(e) => ToolResult {
+            tool_name: String::from("trigger_kernel_upgrade"),
+            success: false,
+            output: alloc::format!("Kernel hot-reload failed: {}", e),
+        },
     }
 }

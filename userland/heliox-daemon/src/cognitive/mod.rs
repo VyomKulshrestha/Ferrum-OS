@@ -10,3 +10,5 @@ pub mod voice;
 pub mod web_agent;
 pub mod multi_agent;
 pub mod gesture;
+pub mod inference;
+pub mod self_evolve;

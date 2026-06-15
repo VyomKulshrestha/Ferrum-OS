@@ -19,8 +19,8 @@ use linked_list_allocator::LockedHeap;
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-// Static heap size: 4 MB
-static mut HEAP: [u8; 4 * 1024 * 1024] = [0; 4 * 1024 * 1024];
+// Static heap size: 16 MB
+static mut HEAP: [u8; 16 * 1024 * 1024] = [0; 16 * 1024 * 1024];
 
 pub static LATEST_GESTURE: core::sync::atomic::AtomicU8 = core::sync::atomic::AtomicU8::new(0);
 
