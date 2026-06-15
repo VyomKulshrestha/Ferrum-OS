@@ -59,6 +59,7 @@ pub enum SyscallNumber {
     Close = 35,
     ReadCameraFrame = 36,
     CameraInfo = 37,
+    Kexec = 38,
 }
 
 /// Syscall return status.
@@ -103,6 +104,7 @@ pub mod audio;
 pub mod input;
 pub mod query;
 pub mod camera;
+pub mod kexec;
 
 use alloc::string::String;
 
@@ -185,8 +187,10 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             }
 
             // 2. Gated syscall checks
-            let is_gated = number == SyscallNumber::DeleteFile as u64;
-            let is_bypass = task.capabilities.iter().any(|c| c == "cap:confirmation:bypass");
+            let is_delete_file = number == SyscallNumber::DeleteFile as u64;
+            let is_kexec = number == SyscallNumber::Kexec as u64;
+            let is_gated = is_delete_file || is_kexec;
+            let is_bypass = !is_kexec && task.capabilities.iter().any(|c| c == "cap:confirmation:bypass");
 
             if is_gated && !is_bypass {
                 let is_approved = task.confirmation_approved;
@@ -209,11 +213,12 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     }
 
     if confirmation_needed {
+        let name = if number == SyscallNumber::Kexec as u64 { "Kexec" } else { "DeleteFile" };
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::SecurityViolation,
-            "DeleteFile syscall confirmation required",
+            &alloc::format!("{} syscall confirmation required", name),
         );
-        crate::println!("\n[SECURITY] Process is requesting destructive syscall: DeleteFile");
+        crate::println!("\n[SECURITY] Process is requesting destructive syscall: {}", name);
         crate::println!("[SECURITY] Operator confirmation required. Press 'y' to approve, 'n' to deny (5s timeout).");
         return SyscallResult::err(SyscallStatus::Blocked);
     }
@@ -471,6 +476,9 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             camera::sys_camera_info(args)
+        }
+        x if x == SyscallNumber::Kexec as u64 => {
+            kexec::sys_kexec(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

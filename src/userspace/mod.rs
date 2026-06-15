@@ -113,6 +113,7 @@ pub fn init() {
             String::from("cap:camera:read"),
             String::from("cap:quota:exempt"),
             String::from("cap:confirmation:bypass"),
+            String::from("cap:system:kexec"),
         ],
     ));
 }
