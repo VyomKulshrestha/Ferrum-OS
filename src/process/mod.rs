@@ -582,6 +582,7 @@ pub fn reap_dead() {
         drop_by_pid(pid);
     }
     crate::scheduler::cleanup_dead_tasks();
+    let _ = crate::logging::audit::flush_to_disk();
 }
 
 /// List all registered process records. Each entry is a tuple of (pid,

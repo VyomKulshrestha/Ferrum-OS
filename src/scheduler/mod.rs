@@ -446,6 +446,10 @@ pub fn tick() {
         sched.total_ticks = sched.total_ticks.wrapping_add(1);
         let now = sched.total_ticks;
 
+        if now % 100 == 0 {
+            crate::logging::audit::FLUSH_PENDING.store(true, Ordering::SeqCst);
+        }
+
         // First pass: decide which tasks to wake and which
         // ticks/time-slice to update, collecting them in
         // plain `Vec`s so we can re-borrow `sched.run_queues`

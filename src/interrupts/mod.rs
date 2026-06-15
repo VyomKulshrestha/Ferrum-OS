@@ -752,6 +752,11 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
             res.status as i64 as u64
         };
 
+        if crate::logging::audit::FLUSH_PENDING.load(core::sync::atomic::Ordering::SeqCst) {
+            crate::logging::audit::FLUSH_PENDING.store(false, core::sync::atomic::Ordering::SeqCst);
+            let _ = crate::logging::audit::flush_to_disk();
+        }
+
         // Preemption point: if the time slice expired while we were
         // in the kernel, rotate to the next runnable task before
         // returning to user space. The saved context includes rax,

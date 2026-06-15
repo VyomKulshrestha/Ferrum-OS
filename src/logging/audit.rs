@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // FerrumOS - Audit Trail Logger
 // ============================================================================
 // Records security-relevant events for post-incident analysis.
@@ -39,14 +39,20 @@ pub struct AuditEntry {
 /// Maximum number of audit entries to retain in memory
 const MAX_ENTRIES: usize = 256;
 
+use core::sync::atomic::AtomicBool;
+
+pub static FLUSH_PENDING: AtomicBool = AtomicBool::new(false);
+
 struct AuditLog {
     entries: Vec<AuditEntry>,
     initialized: bool,
+    flushed_count: usize,
 }
 
 static AUDIT_LOG: Mutex<AuditLog> = Mutex::new(AuditLog {
     entries: Vec::new(),
     initialized: false,
+    flushed_count: 0,
 });
 
 /// Initialize the audit log
@@ -75,6 +81,7 @@ pub fn log_event(event: AuditEvent, message: &str) {
         if log.entries.len() > MAX_ENTRIES {
             let drain_count = log.entries.len() - MAX_ENTRIES;
             log.entries.drain(0..drain_count);
+            log.flushed_count = log.flushed_count.saturating_sub(drain_count);
         }
         
         // Also output to serial for external logging
@@ -96,4 +103,53 @@ pub fn recent_entries(count: usize) -> Vec<AuditEntry> {
 /// Get total number of audit entries
 pub fn total_entries() -> usize {
     AUDIT_LOG.lock().entries.len()
+}
+
+/// Flush memory audit log to /disk/heliox/audit.log
+pub fn flush_to_disk() -> Result<(), String> {
+    let mut new_entries = Vec::new();
+    {
+        if let Some(mut log) = AUDIT_LOG.try_lock() {
+            if !log.initialized {
+                return Ok(());
+            }
+            let total = log.entries.len();
+            if log.flushed_count < total {
+                new_entries = log.entries[log.flushed_count..total].to_vec();
+                log.flushed_count = total;
+            }
+        } else {
+            return Ok(());
+        }
+    }
+
+    if new_entries.is_empty() {
+        return Ok(());
+    }
+
+    let log_path = "/disk/heliox/audit.log";
+    let mut content = match crate::fs::read_file(log_path) {
+        Ok(c) => c,
+        Err(_) => String::new(),
+    };
+
+    for entry in new_entries {
+        let line = alloc::format!("[{}] {:?}: {}\n", entry.tick, entry.event, entry.message);
+        content.push_str(&line);
+    }
+
+    const MAX_SIZE: usize = 128 * 1024;
+    if content.len() > MAX_SIZE {
+        let overflow = content.len() - MAX_SIZE;
+        if let Some(pos) = content[overflow..].find('\n') {
+            content = content[overflow + pos + 1..].to_string();
+        } else {
+            content = content[content.len() - MAX_SIZE..].to_string();
+        }
+    }
+
+    crate::fs::create_file(log_path, &content)?;
+    let _ = crate::fs::sync();
+
+    Ok(())
 }

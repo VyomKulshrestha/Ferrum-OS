@@ -73,6 +73,8 @@ pub fn init(phys_mem_offset: VirtAddr) {
 
 pub fn shutdown() -> ! {
     println!("Initiating ACPI shutdown...");
+    let _ = crate::logging::audit::flush_to_disk();
+    
     // A full ACPI shutdown involves parsing the \_S5 object using AML to get the SLP_TYPa and SLP_TYPb values,
     // then writing them along with the SLP_EN bit to the PM1a and PM1b control registers from the FADT.
     // For this minimal kernel, we'll try a common QEMU/Bochs shutdown sequence first.
@@ -96,6 +98,7 @@ pub fn shutdown() -> ! {
 
 pub fn reboot() -> ! {
     println!("Initiating reboot...");
+    let _ = crate::logging::audit::flush_to_disk();
     
     // Try 8042 keyboard controller pulse
     let mut port = Port::<u8>::new(0x64);
