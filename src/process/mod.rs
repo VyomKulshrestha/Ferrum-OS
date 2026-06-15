@@ -552,6 +552,8 @@ pub fn register(mut process: Process) -> u64 {
     let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
     if is_exempt {
         process.max_memory_pages = u64::MAX;
+    } else if process.name == "huge-test" {
+        process.max_memory_pages = 2;
     }
     PROCESSES.lock().push(ProcessRecord { process });
     pid

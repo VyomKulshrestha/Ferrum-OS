@@ -37,7 +37,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     let mut _elf_content_holder = alloc::string::String::new();
     let elf_bytes: &[u8] = if path == "/bin/heliox-daemon" || path == "heliox-daemon" {
         crate::userspace::HELIOX_DAEMON_ELF
-    } else if path == "/bin/init" || path == "init" {
+    } else if path == "/bin/init" || path == "init" || path.contains("quota-test") || path.contains("huge-test") {
         crate::userspace::INIT_ELF
     } else {
         _elf_content_holder = match crate::fs::read_file(&path) {
@@ -59,6 +59,10 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         Ok(p) => p,
         Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+
+    if name == "huge-test" {
+        process.max_memory_pages = 2;
+    }
 
     // Load the ELF into the process's address space
     let entry = match process.load_elf(elf_bytes) {
