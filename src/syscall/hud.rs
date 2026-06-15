@@ -43,7 +43,7 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     if len as usize != size {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
-    let bytes = match unsafe { super::fs::read_user_bytes(ptr, len, size as u64) } {
+    let bytes = match unsafe { super::fs::read_user_bytes(ptr, len, size) } {
         Some(b) => b,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
@@ -70,7 +70,7 @@ pub fn sys_hit_test(args: [u64; 6]) -> SyscallResult {
     let (window_id, label) = crate::gui::compositor::hit_test(x, y);
     
     // Copy the label string to userspace
-    let copy_len = if label_buf != 0 && label_len > 0 {
+    let _copy_len = if label_buf != 0 && label_len > 0 {
         let label_bytes = label.as_bytes();
         let copy_len = core::cmp::min(label_bytes.len(), label_len);
         let end = label_buf.saturating_add(copy_len as u64);

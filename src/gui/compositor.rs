@@ -223,6 +223,9 @@ pub fn render() {
     //    buttons).
     desktop::render_taskbar(hover, pressed, cursor_x, cursor_y, cursor_left);
 
+    // Draw HUD overlay on top of taskbar/windows (but below cursor)
+    draw_hud_overlay();
+
     // 4. Mark the cursor as dirty so the main loop redraws
     //    it on top of the new content.
     cursor::mark_dirty();
@@ -230,26 +233,115 @@ pub fn render() {
     COMPOSITOR.lock().needs_redraw = false;
 }
 
-pub fn handle_mouse_down(mx: u32, my: u32) {
-    let mut state = COMPOSITOR.lock();
+/// Helper to hit test overlapping windows, returning window ID and title.
+pub fn hit_test(mx: u32, my: u32) -> (u64, alloc::string::String) {
+    let state = COMPOSITOR.lock();
+    for window in state.windows.iter().rev() {
+        if window.contains_point(mx, my) {
+            return (window.id, window.title.clone());
+        }
+    }
+    (0, alloc::string::String::from("desktop"))
+}
 
+/// Render the transparent HUD overlay (waveform + pointing landmarks + suggestions).
+pub fn draw_hud_overlay() {
+    if !crate::syscall::hud::HUD_ENABLED.load(core::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
+    let state = crate::syscall::hud::HUD_STATE.lock();
+    let visible = (state.flags & 1) != 0;
+    if !visible {
+        return;
+    }
+    let listening = (state.flags & 2) != 0;
+    let pointing = (state.flags & 4) != 0;
+
+    // 1. Draw Waveform Panel at the bottom (just above the dock)
+    let start_x = 256u32;
+    let base_y = 700u32;
+    // Translucent panel background for the waveform (XRGB black, alpha=120)
+    crate::graphics::fill_rect_alpha(start_x - 10, base_y - 85, 512 + 20, 95, 0x0011111d, 120);
+    
+    for i in 0..64 {
+        let amp = state.waveform[i] as u32;
+        let h = (amp * 80) / 255;
+        let x = start_x + (i as u32) * 8;
+        let color = if listening { 0x0000FFFF } else { 0x00777777 }; // Cyan if listening, Gray if not
+        if h > 0 {
+            for dx in 0..6 {
+                crate::graphics::draw_line(x + dx, base_y - h, x + dx, base_y, color);
+            }
+        }
+    }
+
+    // 2. Draw Pointing Reticle & Landmarks
+    if pointing {
+        let px = state.point_x as u32;
+        let py = state.point_y as u32;
+        // Draw crosshair lines
+        crate::graphics::fill_rect_alpha(px.saturating_sub(10), py.saturating_sub(1), 20, 2, 0x00FF0000, 180);
+        crate::graphics::fill_rect_alpha(px.saturating_sub(1), py.saturating_sub(10), 2, 20, 0x00FF0000, 180);
+        
+        // Landmark dots
+        for i in 0..state.landmark_count as usize {
+            if i < 8 {
+                let lx = state.landmarks[i][0] as u32;
+                let ly = state.landmarks[i][1] as u32;
+                if lx > 0 || ly > 0 {
+                    crate::graphics::fill_rect_alpha(lx.saturating_sub(2), ly.saturating_sub(2), 5, 5, 0x0000FF00, 220);
+                }
+            }
+        }
+    }
+
+    // 3. Draw Suggestion Bubble at the top
+    let len = state.suggestion_len as usize;
+    if len > 0 && len <= 128 {
+        if let Ok(text) = core::str::from_utf8(&state.suggestion[..len]) {
+            let text_width = (text.len() as u32) * 8;
+            let bubble_w = text_width + 20;
+            let bubble_h = 32;
+            let bubble_x = (1024 - bubble_w) / 2;
+            let bubble_y = 80;
+            
+            crate::graphics::fill_rect_alpha(bubble_x, bubble_y, bubble_w, bubble_h, 0x001A1A2E, 160);
+            
+            // Draw border lines
+            crate::graphics::fill_rect_alpha(bubble_x, bubble_y, bubble_w, 1, 0x004E4FEB, 180);
+            crate::graphics::fill_rect_alpha(bubble_x, bubble_y + bubble_h - 1, bubble_w, 1, 0x004E4FEB, 180);
+            crate::graphics::fill_rect_alpha(bubble_x, bubble_y, 1, bubble_h, 0x004E4FEB, 180);
+            crate::graphics::fill_rect_alpha(bubble_x + bubble_w - 1, bubble_y, 1, bubble_h, 0x004E4FEB, 180);
+            
+            crate::graphics::draw_string(bubble_x + 10, bubble_y + 8, text, 0x0000FFFF, 0x001A1A2E);
+        }
+    }
+}
+
+pub fn handle_mouse_down(mx: u32, my: u32) {
     // Check if clicked the Dock area
     // Dock is at dock_x to dock_x + dock_w.
     // dock_x = (fb_width - 400) / 2 = 312
     // dock_y = fb_height - 50 = 718
     if my >= 718 && my <= 758 && mx >= 312 && mx <= 712 {
+        let mut state = COMPOSITOR.lock();
         let target = hit_test_taskbar(mx, my);
         state.pressed = target;
         state.needs_redraw = true;
         return;
     }
 
-    // Find window that was clicked (top-most first, which is end of array)
+    // Call hit_test to find clicked window id
+    let (clicked_win_id, _) = hit_test(mx, my);
+
+    let mut state = COMPOSITOR.lock();
     let mut clicked_idx = None;
-    for (i, window) in state.windows.iter().enumerate().rev() {
-        if window.contains_point(mx, my) {
-            clicked_idx = Some(i);
-            break;
+    if clicked_win_id != 0 {
+        for (i, window) in state.windows.iter().enumerate() {
+            if window.id == clicked_win_id {
+                clicked_idx = Some(i);
+                break;
+            }
         }
     }
 

@@ -157,3 +157,70 @@ pub fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: u32) {
         fb.draw_rect(x, y, w, h, color);
     }
 }
+
+/// Get the color of a single pixel.
+pub fn get_pixel(x: u32, y: u32) -> u32 {
+    let fb_guard = FRAMEBUFFER.lock();
+    if let Some(fb) = fb_guard.as_ref() {
+        fb.get_pixel(x, y)
+    } else {
+        0
+    }
+}
+
+/// Set the color of a single pixel directly.
+pub fn set_pixel(x: u32, y: u32, color: u32) {
+    let fb_guard = FRAMEBUFFER.lock();
+    if let Some(fb) = fb_guard.as_ref() {
+        fb.set_pixel(x, y, color);
+    }
+}
+
+/// Draw an alpha-blended pixel onto the back-buffer.
+pub fn blend_pixel(x: u32, y: u32, color: u32, alpha: u8) {
+    let fb_guard = FRAMEBUFFER.lock();
+    let fb = match fb_guard.as_ref() {
+        Some(fb) => fb,
+        None => return,
+    };
+    if x >= fb.width || y >= fb.height {
+        return;
+    }
+    if alpha == 255 {
+        fb.set_pixel(x, y, color);
+        return;
+    }
+    if alpha == 0 {
+        return;
+    }
+    
+    let bg = fb.get_pixel(x, y);
+    
+    let r_bg = ((bg >> 16) & 0xFF) as u32;
+    let g_bg = ((bg >> 8) & 0xFF) as u32;
+    let b_bg = (bg & 0xFF) as u32;
+    
+    let r_fg = ((color >> 16) & 0xFF) as u32;
+    let g_fg = ((color >> 8) & 0xFF) as u32;
+    let b_fg = (color & 0xFF) as u32;
+    
+    let a = alpha as u32;
+    let inv_a = 255 - a;
+    
+    let r_blend = ((r_fg * a + r_bg * inv_a) / 255) & 0xFF;
+    let g_blend = ((g_fg * a + g_bg * inv_a) / 255) & 0xFF;
+    let b_blend = ((b_fg * a + b_bg * inv_a) / 255) & 0xFF;
+    
+    let blended = (r_blend << 16) | (g_blend << 8) | b_blend;
+    fb.set_pixel(x, y, blended);
+}
+
+/// Draw a translucent filled rectangle at `(x, y)` with dimensions `w × h`.
+pub fn fill_rect_alpha(x: u32, y: u32, w: u32, h: u32, color: u32, alpha: u8) {
+    for dy in 0..h {
+        for dx in 0..w {
+            blend_pixel(x + dx, y + dy, color, alpha);
+        }
+    }
+}
+
