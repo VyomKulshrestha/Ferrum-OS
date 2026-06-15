@@ -59,6 +59,8 @@ pub fn init() {
         ("cap:audio:record", "Audio Recording", "audio:record", true),
         ("cap:input:inject", "Input Injection", "input:inject:*", true),
         ("cap:camera:read", "Camera Frame Access", "camera:read:*", true),
+        ("cap:quota:exempt", "Quota Exemption", "quota:exempt:*", true),
+        ("cap:confirmation:bypass", "Confirmation Gating Bypass", "confirmation:bypass:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {

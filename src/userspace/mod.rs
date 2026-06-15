@@ -111,6 +111,7 @@ pub fn init() {
             String::from("cap:audio:record"),
             String::from("cap:input:inject"),
             String::from("cap:camera:read"),
+            String::from("cap:quota:exempt"),
         ],
     ));
 }
