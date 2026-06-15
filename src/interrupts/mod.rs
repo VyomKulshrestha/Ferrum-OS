@@ -729,6 +729,23 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
         }
 
         let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);
+        if res.status == crate::syscall::SyscallStatus::Blocked {
+            save_user_context(current_pid, frame);
+            {
+                let mut sched = crate::scheduler::SCHEDULER.lock();
+                if let Some(idx) = sched.tasks.iter().position(|t| t.id == current_pid) {
+                    sched.contexts[idx].rip = sched.contexts[idx].rip.saturating_sub(2);
+                }
+            }
+            crate::scheduler::CURRENT_PID.store(0, core::sync::atomic::Ordering::SeqCst);
+            unsafe { resume_after_death() }
+        }
+
+        let active_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+        if active_pid == 0 {
+            unsafe { resume_after_death() }
+        }
+
         frame.rax = if res.status == crate::syscall::SyscallStatus::Ok {
             res.value
         } else {

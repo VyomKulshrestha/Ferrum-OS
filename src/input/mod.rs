@@ -15,6 +15,10 @@ extern crate alloc;
 #[allow(dead_code)]
 
 use spin::Mutex;
+use core::sync::atomic::{AtomicBool, Ordering};
+
+pub static INJECTING_AGENT_KEY: AtomicBool = AtomicBool::new(false);
+
 
 // ============================================================================
 // Input Event Types
@@ -145,6 +149,13 @@ fn now_ticks() -> u64 {
 /// also forwarded to the legacy keyboard queue so the interactive
 /// shell can see it.
 pub fn inject_key_event(ascii: u8, pressed: bool) {
+    let is_physical = pressed && !INJECTING_AGENT_KEY.load(Ordering::SeqCst);
+    if is_physical {
+        if crate::scheduler::wake_confirmation_waiters(ascii) {
+            return;
+        }
+    }
+
     let event_type = if pressed {
         InputEventType::KeyPress(ascii)
     } else {

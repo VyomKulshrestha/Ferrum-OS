@@ -238,6 +238,9 @@ pub struct Task {
     pub parent_id: Option<u64>,
     pub waiting_on_pid: Option<u64>,
     pub cpu_affinity: Option<u32>,
+    pub blocked_on_confirmation: bool,
+    pub confirmation_approved: bool,
+    pub confirmation_denied: bool,
 }
 
 impl Task {
@@ -265,6 +268,9 @@ impl Task {
             parent_id: None,
             waiting_on_pid: None,
             cpu_affinity: None,
+            blocked_on_confirmation: false,
+            confirmation_approved: false,
+            confirmation_denied: false,
         }
     }
 }
@@ -285,19 +291,19 @@ pub const TIME_SLICE_TICKS: u64 = 5;
 /// are round-robined within their queue.
 type RunQueues = [VecDeque<u64>; Priority::COUNT];
 
-struct Scheduler {
+pub(crate) struct Scheduler {
     /// Every `Task` in the system, including dead ones until
     /// `cleanup_dead_tasks` reaps them.
-    tasks: Vec<Task>,
+    pub(crate) tasks: Vec<Task>,
     /// Parallel to `tasks`: the saved register context for each
     /// task. Dead tasks' contexts are stale.
-    contexts: Vec<TaskContext>,
+    pub(crate) contexts: Vec<TaskContext>,
     /// Pids that are ready to run, bucketed by priority.
-    run_queues: RunQueues,
+    pub(crate) run_queues: RunQueues,
     /// Total PIT ticks since boot.
-    total_ticks: u64,
+    pub(crate) total_ticks: u64,
     /// Whether `init` has run.
-    initialized: bool,
+    pub(crate) initialized: bool,
 }
 
 impl Scheduler {
@@ -318,7 +324,7 @@ impl Scheduler {
     }
 }
 
-static SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
+pub(crate) static SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
 
 static SCHEDULER_INIT: AtomicBool = AtomicBool::new(false);
 
@@ -409,6 +415,9 @@ pub fn register_user(
         parent_id,
         waiting_on_pid: None,
         cpu_affinity: None,
+        blocked_on_confirmation: false,
+        confirmation_approved: false,
+        confirmation_denied: false,
     };
     if !task.capabilities.contains(&String::from("cap:process:user")) {
         task.capabilities.push(String::from("cap:process:user"));
@@ -456,6 +465,10 @@ pub fn tick() {
                 task.state = TaskState::Ready;
                 task.wake_at = u64::MAX;
                 task.time_remaining = TIME_SLICE_TICKS;
+                if task.blocked_on_confirmation {
+                    task.blocked_on_confirmation = false;
+                    task.confirmation_denied = true;
+                }
             }
             let pri = sched
                 .tasks
@@ -1214,6 +1227,41 @@ extern "C" fn kernel_return_entry() -> ! {
     }
     x86_64::instructions::interrupts::enable();
     crate::shell::run()
+}
+
+/// Wake any task blocked on confirmation.
+pub fn wake_confirmation_waiters(key: u8) -> bool {
+    let mut sched = SCHEDULER.lock();
+    let mut woken_any = false;
+    let mut task_idx = None;
+    for (idx, task) in sched.tasks.iter().enumerate() {
+        if task.state == TaskState::Blocked && task.blocked_on_confirmation {
+            task_idx = Some(idx);
+            break;
+        }
+    }
+    
+    if let Some(idx) = task_idx {
+        let task = &mut sched.tasks[idx];
+        task.state = TaskState::Ready;
+        task.blocked_on_confirmation = false;
+        task.wake_at = u64::MAX;
+        
+        let approved = key == b'y' || key == b'Y';
+        if approved {
+            task.confirmation_approved = true;
+        } else {
+            task.confirmation_denied = true;
+        }
+        
+        let pri = task.priority.index();
+        let pid = task.id;
+        if !sched.run_queues[pri].contains(&pid) {
+            sched.run_queues[pri].push_back(pid);
+        }
+        woken_any = true;
+    }
+    woken_any
 }
 
 /// Check if the running task has exceeded its CPU continuous execution quota.

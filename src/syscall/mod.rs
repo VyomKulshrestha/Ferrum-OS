@@ -70,6 +70,7 @@ pub enum SyscallStatus {
     PermissionDenied = -2,
     InvalidArgument = -3,
     NotImplemented = -4,
+    Blocked = -5,
 }
 
 /// Raw syscall result.
@@ -151,6 +152,75 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             None => return SyscallResult::err(SyscallStatus::InvalidArgument),
         },
     };
+
+    // Quotas and confirmation check
+    let mut is_denied = false;
+    let mut confirmation_needed = false;
+
+    {
+        let mut sched = crate::scheduler::SCHEDULER.lock();
+        let now = sched.total_ticks;
+        if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+            // 1. Syscall Rate limit check
+            if now.saturating_sub(task.quotas.syscall_window_start) > 200 {
+                task.quotas.syscall_window_start = now;
+                task.quotas.syscalls_in_window = 0;
+            }
+            task.quotas.syscalls_in_window = task.quotas.syscalls_in_window.saturating_add(1);
+            if task.quotas.syscalls_in_window > task.quotas.max_syscalls_per_window {
+                // Kill task due to rate limit violation
+                task.state = crate::scheduler::TaskState::Dead;
+                task.time_remaining = 0;
+                crate::scheduler::CURRENT_PID.store(0, core::sync::atomic::Ordering::SeqCst);
+                for q in sched.run_queues.iter_mut() {
+                    q.retain(|p| *p != pid);
+                }
+                drop(sched);
+                crate::scheduler::record_exit(pid, 140);
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::ProcessKilled,
+                    "Task killed: syscall rate quota exceeded",
+                );
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+
+            // 2. Gated syscall checks
+            let is_gated = number == SyscallNumber::DeleteFile as u64;
+            let is_bypass = task.capabilities.iter().any(|c| c == "cap:confirmation:bypass");
+
+            if is_gated && !is_bypass {
+                let is_approved = task.confirmation_approved;
+                is_denied = task.confirmation_denied;
+
+                if is_approved {
+                    task.confirmation_approved = false;
+                } else if is_denied {
+                    task.confirmation_denied = false;
+                } else {
+                    // Need to block and wait for confirmation
+                    task.blocked_on_confirmation = true;
+                    task.wake_at = now.saturating_add(91); // 5s timeout
+                    task.state = crate::scheduler::TaskState::Blocked;
+                    task.quotas.used_cpu_ticks_continuous = 0;
+                    confirmation_needed = true;
+                }
+            }
+        }
+    }
+
+    if confirmation_needed {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::SecurityViolation,
+            "DeleteFile syscall confirmation required",
+        );
+        crate::println!("\n[SECURITY] Process is requesting destructive syscall: DeleteFile");
+        crate::println!("[SECURITY] Operator confirmation required. Press 'y' to approve, 'n' to deny (5s timeout).");
+        return SyscallResult::err(SyscallStatus::Blocked);
+    }
+
+    if is_denied {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
 
     // Best-effort bookkeeping; real processes are not in the model
     // registry and that must not block their syscalls.

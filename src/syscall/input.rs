@@ -28,7 +28,10 @@ pub fn sys_inject_key(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
+    use core::sync::atomic::Ordering;
+    crate::input::INJECTING_AGENT_KEY.store(true, Ordering::SeqCst);
     crate::input::inject_key(ascii);
+    crate::input::INJECTING_AGENT_KEY.store(false, Ordering::SeqCst);
 
     SyscallResult::ok(0)
 }
