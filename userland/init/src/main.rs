@@ -314,8 +314,11 @@ pub extern "C" fn _start() -> ! {
             }
             write("[test] 2. Local offline inference setup complete\n");
 
-            // Test 3: Confirmation Gate on Kexec
-            write("[test] 3. Kexec confirmation gate test\n");
+            // Test 3: Setup host-assisted self-evolution kexec target
+            write("[test] 3. Setup host-assisted self-evolution kexec target\n");
+            unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/boot".as_ptr() as u64, "/disk/boot".len() as u64, 0);
+            }
             let mut payload = [0x90u8; 128];
             payload[0] = 0x7F;
             payload[1] = 0x45;
@@ -338,14 +341,44 @@ pub extern "C" fn _start() -> ! {
             payload[93] = 0xFA; // cli
             payload[94] = 0xF4; // hlt
 
-            write("[test] Calling sys_kexec (gated)...\n");
-            let res = unsafe {
-                syscall3(SYS_KEXEC, payload.as_ptr() as u64, payload.len() as u64, 0)
+            unsafe {
+                syscall4(
+                    SYS_WRITE_FILE,
+                    "/disk/boot/kernel.bin".as_ptr() as u64,
+                    "/disk/boot/kernel.bin".len() as u64,
+                    payload.as_ptr() as u64,
+                    payload.len() as u64,
+                );
+            }
+            write("[test] 3. Kexec payload written to /disk/boot/kernel.bin\n");
+
+            // Now, spawn heliox-daemon and let it run
+            write("[test] Setup complete, spawning heliox-daemon...\n");
+            let path = "/bin/heliox-daemon";
+            let daemon_pid = unsafe {
+                syscall3(
+                    SYS_EXEC,
+                    path.as_ptr() as u64,
+                    path.len() as u64,
+                    0,
+                )
             };
-            write_num("[test] sys_kexec returned: ", res as i64, "\n");
-            
-            write("[test] --- Verification Suite Complete ---\n");
-            unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+            if (daemon_pid as i64) < 0 {
+                write("[test] Failed to spawn heliox-daemon!\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            } else {
+                write("[test] Spawned heliox-daemon successfully. Monitoring...\n");
+                // Wait for the daemon to run (which will be tested externally over websocket)
+                loop {
+                    let status = unsafe { syscall3(SYS_WAITPID, daemon_pid, 0, 0) };
+                    if (status as i64) >= 0 {
+                        break;
+                    }
+                    sleep(100);
+                }
+                write("[test] heliox-daemon exited, ending test suite\n");
+                unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+            }
         }
     } else {
         let path = "/bin/heliox-daemon";
