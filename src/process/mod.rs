@@ -531,6 +531,13 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
     let mut next = NEXT_PID.lock();
     let pid = *next;
     *next += 1;
+    let caps = crate::userspace::capabilities_for_program(name);
+    let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
+    let max_memory_pages = if is_exempt {
+        u64::MAX
+    } else {
+        2048
+    };
     let process = Process {
         pid,
         name: alloc::string::String::from(name),
@@ -541,7 +548,7 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         entry: 0,
         user_stack_mapped: false,
         loaded: false,
-        max_memory_pages: 2048,
+        max_memory_pages,
     };
     Ok(process)
 }
