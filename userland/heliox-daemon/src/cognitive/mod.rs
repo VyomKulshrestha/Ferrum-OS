@@ -12,3 +12,4 @@ pub mod multi_agent;
 pub mod gesture;
 pub mod inference;
 pub mod self_evolve;
+pub mod fusion;

@@ -93,7 +93,7 @@ fn tool_tier(name: &str) -> PermissionTier {
     match name {
         // Tier 0: Observe
         "query_memory" | "get_config" | "system_info" | "list_processes"
-        | "add_subtask" | "camera_capture" | "gesture_status" => PermissionTier::Observe,
+        | "add_subtask" | "camera_capture" | "gesture_status" | "hud_update" | "hit_test" => PermissionTier::Observe,
         // Tier 1: Safe
         "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
         | "capability_check" | "read_file" | "read_dir" | "sleep"
@@ -316,6 +316,8 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "delete_file" => execute_delete_file(&tool_call.arguments),
         "local_inference" => execute_local_inference(&tool_call.arguments),
         "trigger_kernel_upgrade" => execute_trigger_kernel_upgrade(),
+        "hud_update" => execute_hud_update(&tool_call.arguments),
+        "hit_test" => execute_hit_test(&tool_call.arguments),
         "read_screen" => execute_read_screen(),
         "add_subtask" => execute_add_subtask(),
         "record_audio" => execute_record_audio(&tool_call.arguments),
@@ -1182,5 +1184,79 @@ fn execute_trigger_kernel_upgrade() -> ToolResult {
             success: false,
             output: alloc::format!("Kernel hot-reload failed: {}", e),
         },
+    }
+}
+
+fn execute_hud_update(args: &[(String, JsonValue)]) -> ToolResult {
+    let flags = find_arg_number(args, "flags").unwrap_or(0.0) as u32;
+    let point_x = find_arg_number(args, "point_x").unwrap_or(0.0) as u16;
+    let point_y = find_arg_number(args, "point_y").unwrap_or(0.0) as u16;
+    let suggestion = find_arg_string(args, "suggestion").unwrap_or_default();
+    
+    let mut state = crate::cognitive::fusion::HudState {
+        flags,
+        waveform: [0; 64],
+        gesture_type: 0,
+        point_x,
+        point_y,
+        landmark_count: 0,
+        landmarks: [[0; 2]; 8],
+        suggestion_len: 0,
+        suggestion: [0; 128],
+    };
+    
+    let sug_bytes = suggestion.as_bytes();
+    let copy_len = core::cmp::min(sug_bytes.len(), 128);
+    state.suggestion_len = copy_len as u8;
+    state.suggestion[..copy_len].copy_from_slice(&sug_bytes[..copy_len]);
+    
+    match crate::cognitive::fusion::push_hud_state(&state) {
+        Ok(()) => ToolResult {
+            tool_name: String::from("hud_update"),
+            success: true,
+            output: String::from("HUD state updated successfully"),
+        },
+        Err(e) => ToolResult {
+            tool_name: String::from("hud_update"),
+            success: false,
+            output: alloc::format!("Failed to update HUD: {}", e),
+        },
+    }
+}
+
+fn execute_hit_test(args: &[(String, JsonValue)]) -> ToolResult {
+    let x = find_arg_number(args, "x").unwrap_or(0.0) as u32;
+    let y = find_arg_number(args, "y").unwrap_or(0.0) as u32;
+    
+    let mut label_buf = [0u8; 64];
+    let syscall_hit_test: u64 = 40;
+    let window_id = unsafe {
+        syscall4(
+            syscall_hit_test,
+            x as u64,
+            y as u64,
+            label_buf.as_mut_ptr() as u64,
+            label_buf.len() as u64,
+        )
+    };
+    
+    let mut label_len = 0;
+    for &b in &label_buf {
+        if b == 0 {
+            break;
+        }
+        label_len += 1;
+    }
+    
+    let label = if label_len > 0 {
+        core::str::from_utf8(&label_buf[..label_len]).unwrap_or("desktop")
+    } else {
+        "desktop"
+    };
+    
+    ToolResult {
+        tool_name: String::from("hit_test"),
+        success: true,
+        output: alloc::format!("Hit window ID {} with label '{}'", window_id, label),
     }
 }

@@ -255,6 +255,13 @@ pub extern "C" fn _start() -> ! {
     let mut bridge_connected = false;
     let mut ws_conn: Option<network::WsConnection> = None;
 
+    let mut last_detailed = cognitive::gesture::DetailedGesture {
+        gesture: cognitive::gesture::GestureType::None,
+        cx: 0,
+        cy: 0,
+        landmarks: alloc::vec::Vec::new(),
+    };
+
     // Main Agent Loop
     let mut loop_count = 0;
     loop {
@@ -262,15 +269,17 @@ pub extern "C" fn _start() -> ! {
         if has_camera && (loop_count % 2 == 0) {
             if let Ok(bytes_read) = network::read_camera_frame(&mut frame_buf) {
                 if bytes_read == 153_600 {
-                    let detected = cognitive::gesture::process_frame(
+                    let detailed = cognitive::gesture::process_frame_detailed(
                         &frame_buf,
                         320,
                         240,
                         &mut label_buf,
                         &mut mask_buf,
                     );
+                    let detected = detailed.gesture;
                     LATEST_GESTURE.store(detected as u8, core::sync::atomic::Ordering::SeqCst);
                     tracker.push(detected);
+                    last_detailed = detailed.clone();
                     if let Some(stable) = tracker.stable_gesture() {
                         let g_name = cognitive::gesture::gesture_name(stable);
                         let log_msg = alloc::format!("[heliox-daemon] gesture: {}\n", g_name);
@@ -280,6 +289,12 @@ pub extern "C" fn _start() -> ! {
 
                         // Push stable gesture to orchestrator
                         orchestrator.push_gesture(stable as u8);
+
+                        // If pointing, note the gesture coordinate using uptime ticks
+                        if stable == cognitive::gesture::GestureType::Pointing {
+                            let ticks = cognitive::fusion::get_uptime_ticks();
+                            cognitive::fusion::note_gesture(ticks, detailed.cx, detailed.cy);
+                        }
 
                         // Direct-map control gestures
                         match stable {
@@ -373,10 +388,17 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
+        let mut waveform = [0u8; 64];
+        let mut is_listening = false;
+
         if !bridge_connected && orchestrator.config.stt_host != "unconfigured" {
             // Ambient Voice Command Listener (1-second buffer)
             if let Ok(buf) = cognitive::voice::record_audio(1000) {
-                if cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold) {
+                let has_voice = cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold);
+                if has_voice {
+                    is_listening = true;
+                    waveform = cognitive::fusion::downsample_to_waveform(&buf);
+
                     let print_msg = "[heliox-daemon] voice activity detected, recording command...\n";
                     unsafe {
                         syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
@@ -388,6 +410,7 @@ pub extern "C" fn _start() -> ! {
 
                     // Record 3-second command buffer
                     if let Ok(cmd_buf) = cognitive::voice::record_audio(3000) {
+                        waveform = cognitive::fusion::downsample_to_waveform(&cmd_buf);
                         match cognitive::voice::transcribe(&cmd_buf, &orchestrator.config.stt_host, orchestrator.config.stt_port) {
                             Ok(text) => {
                                 let transcript_msg = alloc::format!("[heliox-daemon] voice transcript: {}\n", text);
@@ -420,8 +443,14 @@ pub extern "C" fn _start() -> ! {
                             }
                         }
                     }
+                } else {
+                    waveform = cognitive::fusion::idle_waveform(loop_count);
                 }
+            } else {
+                waveform = cognitive::fusion::idle_waveform(loop_count);
             }
+        } else {
+            waveform = cognitive::fusion::idle_waveform(loop_count);
         }
 
         if bridge_connected {
@@ -549,6 +578,53 @@ pub extern "C" fn _start() -> ! {
                 }
             }
         }
+
+        let mut hud_state = cognitive::fusion::HudState {
+            flags: 1, // bit0 = visible
+            waveform,
+            gesture_type: LATEST_GESTURE.load(core::sync::atomic::Ordering::SeqCst),
+            point_x: 0,
+            point_y: 0,
+            landmark_count: 0,
+            landmarks: [[0; 2]; 8],
+            suggestion_len: 0,
+            suggestion: [0; 128],
+        };
+
+        if is_listening {
+            hud_state.flags |= 2;
+        }
+
+        if hud_state.gesture_type == cognitive::gesture::GestureType::Pointing as u8 {
+            hud_state.flags |= 4;
+            hud_state.point_x = (last_detailed.cx as u32 * 1024 / 320) as u16;
+            hud_state.point_y = (last_detailed.cy as u32 * 768 / 240) as u16;
+        }
+
+        let l_count = core::cmp::min(last_detailed.landmarks.len(), 8);
+        hud_state.landmark_count = l_count as u8;
+        for i in 0..l_count {
+            let lx = (last_detailed.landmarks[i].0 as u32 * 1024 / 320) as u16;
+            let ly = (last_detailed.landmarks[i].1 as u32 * 768 / 240) as u16;
+            hud_state.landmarks[i] = [lx, ly];
+        }
+
+        let sug_str = if orchestrator.paused {
+            alloc::string::String::from("Agent paused (OpenPalm to resume)")
+        } else {
+            let cur_goal = orchestrator.current_goal();
+            if cur_goal != "Explore the system" && !cur_goal.is_empty() {
+                cur_goal
+            } else {
+                alloc::string::String::from("Listening... (Hey Heliox)")
+            }
+        };
+        let sug_bytes = sug_str.as_bytes();
+        let copy_len = core::cmp::min(sug_bytes.len(), 128);
+        hud_state.suggestion_len = copy_len as u8;
+        hud_state.suggestion[..copy_len].copy_from_slice(&sug_bytes[..copy_len]);
+
+        let _ = cognitive::fusion::push_hud_state(&hud_state);
 
         loop_count += 1;
         if loop_count <= 5 {

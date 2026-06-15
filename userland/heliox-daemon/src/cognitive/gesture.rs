@@ -725,3 +725,69 @@ pub fn process_frame(
     // Stage 4+5: Classify gesture from contour + hull defects
     classify_gesture(&contour, &hand)
 }
+
+#[derive(Debug, Clone)]
+pub struct DetailedGesture {
+    pub gesture: GestureType,
+    pub cx: u16,
+    pub cy: u16,
+    pub landmarks: alloc::vec::Vec<(i16, i16)>,
+}
+
+pub fn process_frame_detailed(
+    yuyv: &[u8],
+    w: u16,
+    h: u16,
+    labels: &mut [u16],
+    mask: &mut [u8],
+) -> DetailedGesture {
+    skin_segment(yuyv, w, h, mask);
+    yield_cpu();
+
+    let hand = match find_hand(mask, w, h, labels) {
+        Some(hr) => hr,
+        None => return DetailedGesture {
+            gesture: GestureType::None,
+            cx: 0,
+            cy: 0,
+            landmarks: alloc::vec::Vec::new(),
+        },
+    };
+    yield_cpu();
+
+    let contour = trace_contour(labels, w, h, &hand);
+    if contour.len() < 5 {
+        return DetailedGesture {
+            gesture: GestureType::None,
+            cx: hand.cx,
+            cy: hand.cy,
+            landmarks: alloc::vec::Vec::new(),
+        };
+    }
+    yield_cpu();
+
+    let gesture = classify_gesture(&contour, &hand);
+    let hull_indices = convex_hull_indices(&contour);
+    let mut landmarks = alloc::vec::Vec::new();
+    
+    // Centroid is landmark 0
+    landmarks.push((hand.cx as i16, hand.cy as i16));
+    
+    // Fingertips from hull vertices
+    for idx in hull_indices {
+        if landmarks.len() >= 8 {
+            break;
+        }
+        if idx < contour.len() {
+            landmarks.push(contour[idx]);
+        }
+    }
+
+    DetailedGesture {
+        gesture,
+        cx: hand.cx,
+        cy: hand.cy,
+        landmarks,
+    }
+}
+

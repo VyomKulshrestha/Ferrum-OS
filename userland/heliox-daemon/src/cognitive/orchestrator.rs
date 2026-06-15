@@ -122,6 +122,7 @@ pub struct Orchestrator {
     memory: VectorStore,
     tick_count: u64,
     last_observation: String,
+    last_fused_goal: String,
     last_action: Option<String>,
     last_response: Option<String>,
     
@@ -145,6 +146,10 @@ impl Orchestrator {
 
     pub fn set_paused(&mut self, p: bool) {
         self.paused = p;
+    }
+
+    pub fn current_goal(&self) -> String {
+        self.planner.current_goal()
     }
 
     pub fn set_goal(&mut self, goal: &str) {
@@ -173,6 +178,7 @@ impl Orchestrator {
             memory: VectorStore::new(),
             tick_count: 0,
             last_observation: String::new(),
+            last_fused_goal: String::new(),
             last_action: None,
             last_response: None,
             telemetry_buffer: Vec::with_capacity(32),
@@ -295,6 +301,17 @@ impl Orchestrator {
     }
 
     fn observe(&mut self) {
+        let goal = self.planner.current_goal();
+        if goal != self.last_fused_goal {
+            let ticks = crate::cognitive::fusion::get_uptime_ticks();
+            if let Some(intent) = crate::cognitive::fusion::resolve_spatial_intent(&goal, ticks) {
+                let mut obs = format!("[FUSED] {} {} (at {},{})\n", intent.verb, intent.target_label, intent.sx, intent.sy);
+                obs.push_str(&self.last_observation);
+                self.last_observation = obs;
+                self.last_fused_goal = goal;
+            }
+        }
+
         if let Some(g_id) = self.pending_gesture {
             let name = match g_id {
                 1 => "Fist",
