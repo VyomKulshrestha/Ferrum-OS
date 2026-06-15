@@ -126,20 +126,15 @@ pub fn sys_write_file(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    // Read data from userspace
-    let content = if data_len == 0 {
-        String::new()
-    } else {
-        let slice = unsafe {
-            core::slice::from_raw_parts(data_ptr as *const u8, data_len)
-        };
-        match core::str::from_utf8(slice) {
-            Ok(s) => String::from(s),
-            Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
-        }
+    // Read data from userspace as raw bytes, bypassing UTF-8 validation
+    let slice = unsafe {
+        core::slice::from_raw_parts(data_ptr as *const u8, data_len)
+    };
+    let content = unsafe {
+        core::str::from_utf8_unchecked(slice)
     };
 
-    match crate::fs::create_file(&path, &content) {
+    match crate::fs::create_file(&path, content) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
