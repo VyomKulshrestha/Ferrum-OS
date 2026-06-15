@@ -734,7 +734,7 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
 
     // Read the first 2 bytes (minimum frame header).
     let mut header = [0u8; 2];
-    ws_read_exact(conn.fd, &mut header)?;
+    ws_read_exact(conn.fd, &mut header, true)?;
 
     let fin = (header[0] & 0x80) != 0;
     let opcode = header[0] & 0x0F;
@@ -746,12 +746,12 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
         len_byte as usize
     } else if len_byte == 126 {
         let mut ext = [0u8; 2];
-        ws_read_exact(conn.fd, &mut ext)?;
+        ws_read_exact(conn.fd, &mut ext, false)?;
         u16::from_be_bytes(ext) as usize
     } else {
         // 127 → 8-byte extended length
         let mut ext = [0u8; 8];
-        ws_read_exact(conn.fd, &mut ext)?;
+        ws_read_exact(conn.fd, &mut ext, false)?;
         u64::from_be_bytes(ext) as usize
     };
 
@@ -759,7 +759,7 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
     // but handle it gracefully).
     let mask_key = if masked {
         let mut mk = [0u8; 4];
-        ws_read_exact(conn.fd, &mut mk)?;
+        ws_read_exact(conn.fd, &mut mk, false)?;
         Some(mk)
     } else {
         None
@@ -768,7 +768,7 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
     // Read payload.
     let mut payload = alloc::vec![0u8; payload_len];
     if payload_len > 0 {
-        ws_read_exact(conn.fd, &mut payload)?;
+        ws_read_exact(conn.fd, &mut payload, false)?;
     }
 
     // Unmask if needed.
@@ -815,7 +815,7 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
 }
 
 /// Read exactly `buf.len()` bytes from the socket, retrying as needed.
-fn ws_read_exact(fd: u64, buf: &mut [u8]) -> Result<(), &'static str> {
+fn ws_read_exact(fd: u64, buf: &mut [u8], allow_no_data: bool) -> Result<(), &'static str> {
     let mut offset = 0;
     let mut retries = 0;
     while offset < buf.len() {
@@ -825,6 +825,9 @@ fn ws_read_exact(fd: u64, buf: &mut [u8]) -> Result<(), &'static str> {
                 retries = 0;
             }
             _ => {
+                if offset == 0 && allow_no_data {
+                    return Err("ws: no data");
+                }
                 retries += 1;
                 if retries > 2000 {
                     return Err("ws: read timeout");
