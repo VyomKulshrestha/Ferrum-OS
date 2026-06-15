@@ -62,6 +62,7 @@ pub fn init() {
         ("cap:quota:exempt", "Quota Exemption", "quota:exempt:*", true),
         ("cap:confirmation:bypass", "Confirmation Gating Bypass", "confirmation:bypass:*", true),
         ("cap:system:kexec", "Kernel Hot-Reload Execution", "system:kexec", true),
+        ("cap:hud:overlay", "HUD Overlay Access", "hud:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {

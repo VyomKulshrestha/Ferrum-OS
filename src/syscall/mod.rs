@@ -60,6 +60,8 @@ pub enum SyscallNumber {
     ReadCameraFrame = 36,
     CameraInfo = 37,
     Kexec = 38,
+    HudUpdate = 39,
+    HitTest = 40,
 }
 
 /// Syscall return status.
@@ -105,6 +107,7 @@ pub mod input;
 pub mod query;
 pub mod camera;
 pub mod kexec;
+pub mod hud;
 
 use alloc::string::String;
 
@@ -479,6 +482,18 @@ pub fn dispatch_with_capabilities(
         }
         x if x == SyscallNumber::Kexec as u64 => {
             kexec::sys_kexec(args)
+        }
+        x if x == SyscallNumber::HudUpdate as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_hud_update(args)
+        }
+        x if x == SyscallNumber::HitTest as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_hit_test(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching
