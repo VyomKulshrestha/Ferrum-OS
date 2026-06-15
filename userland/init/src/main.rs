@@ -15,6 +15,7 @@ const SYS_YIELD: u64 = 0;
 const SYS_READ_FILE: u64 = 15;
 const SYS_WRITE_FILE: u64 = 16;
 const SYS_EXEC: u64 = 18;
+const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
 const SYS_INJECT_KEY: u64 = 26;
 const SYS_EXIT: u64 = 30;
@@ -22,6 +23,7 @@ const SYS_GETPID: u64 = 31;
 const SYS_SLEEP: u64 = 32;
 const SYS_WAITPID: u64 = 33;
 const SYS_WRITE: u64 = 34;
+const SYS_KEXEC: u64 = 38;
 
 /// File descriptor for the console (mirrored to serial).
 const FD_CONSOLE: u64 = 1;
@@ -128,6 +130,45 @@ fn get_test_mode() -> u8 {
     }
 }
 
+fn test_sse_preemption() -> bool {
+    let val0: u64 = 0xDEADBEEF11223344;
+    let val1: u64 = 0xCAFEBABE55667788;
+    let mut out0: u64 = 0;
+    let mut out1: u64 = 0;
+
+    unsafe {
+        asm!(
+            "movq xmm0, {val0}",
+            "movq xmm1, {val1}",
+            // Loop 20 times yielding CPU so we get preempted and scheduled out/in
+            "mov rcx, 20",
+            "2:",
+            "mov rax, 0", // SYS_YIELD is 0
+            "int 0x80",
+            // Also spin a bit to let timer interrupt preemption happen
+            "mov rdx, 2000000",
+            "3:",
+            "dec rdx",
+            "jnz 3b",
+            "dec rcx",
+            "jnz 2b",
+            // Read back xmm0 and xmm1
+            "movq {out0}, xmm0",
+            "movq {out1}, xmm1",
+            val0 = in(reg) val0,
+            val1 = in(reg) val1,
+            out0 = out(reg) out0,
+            out1 = out(reg) out1,
+            out("rcx") _,
+            out("rdx") _,
+            out("rax") _,
+            options(nostack)
+        );
+    }
+
+    out0 == val0 && out1 == val1
+}
+
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     write("[init] userspace is alive in ring 3\n");
@@ -230,6 +271,80 @@ pub extern "C" fn _start() -> ! {
                 unsafe { syscall3(SYS_GETPID, 0, 0, 0); }
             }
             write("[test] child completed rate limit test (unexpected!)\n");
+            unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+        }
+    } else if test_mode == b'3' {
+        if pid == 2 {
+            write("[test] --- Phase F Verification Suite ---\n");
+
+            // Test 1: SSE preemption safety
+            write("[test] 1. SSE preemption safety\n");
+            if test_sse_preemption() {
+                write("[test] 1. SSE preemption safety: OK\n");
+            } else {
+                write("[test] 1. SSE preemption safety: FAILED\n");
+            }
+
+            // Test 2: Local offline inference
+            write("[test] 2. Local offline inference\n");
+            unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/heliox".as_ptr() as u64, "/disk/heliox".len() as u64, 0);
+                syscall3(SYS_CREATE_DIR, "/disk/heliox/models".as_ptr() as u64, "/disk/heliox/models".len() as u64, 0);
+            }
+            let mut model_bytes = [0u8; 1024];
+            model_bytes[0] = b'G';
+            model_bytes[1] = b'G';
+            model_bytes[2] = b'U';
+            model_bytes[3] = b'F';
+            model_bytes[4] = 3;
+            model_bytes[5] = 0;
+            model_bytes[6] = 0;
+            model_bytes[7] = 0;
+            for idx in 8..1024 {
+                model_bytes[idx] = (idx % 250) as u8;
+            }
+            unsafe {
+                syscall4(
+                    SYS_WRITE_FILE,
+                    "/disk/heliox/models/toy.gguf".as_ptr() as u64,
+                    "/disk/heliox/models/toy.gguf".len() as u64,
+                    model_bytes.as_ptr() as u64,
+                    model_bytes.len() as u64,
+                );
+            }
+            write("[test] 2. Local offline inference setup complete\n");
+
+            // Test 3: Confirmation Gate on Kexec
+            write("[test] 3. Kexec confirmation gate test\n");
+            let mut payload = [0x90u8; 128];
+            payload[0] = 0x7F;
+            payload[1] = 0x45;
+            payload[2] = 0x4C;
+            payload[3] = 0x46;
+            
+            payload[71] = 0x66; payload[72] = 0xBA; payload[73] = 0xF8; payload[74] = 0x03; // mov dx, 0x3f8
+            payload[75] = 0xB0; payload[76] = 0x4B; // mov al, 'K'
+            payload[77] = 0xEE; // out dx, al
+            payload[78] = 0xB0; payload[79] = 0x45; // mov al, 'E'
+            payload[80] = 0xEE; // out dx, al
+            payload[81] = 0xB0; payload[82] = 0x58; // mov al, 'X'
+            payload[83] = 0xEE; // out dx, al
+            payload[84] = 0xB0; payload[85] = 0x45; // mov al, 'E'
+            payload[86] = 0xEE; // out dx, al
+            payload[87] = 0xB0; payload[88] = 0x43; // mov al, 'C'
+            payload[89] = 0xEE; // out dx, al
+            payload[90] = 0xB0; payload[91] = 0x0A; // mov al, '\n'
+            payload[92] = 0xEE; // out dx, al
+            payload[93] = 0xFA; // cli
+            payload[94] = 0xF4; // hlt
+
+            write("[test] Calling sys_kexec (gated)...\n");
+            let res = unsafe {
+                syscall3(SYS_KEXEC, payload.as_ptr() as u64, payload.len() as u64, 0)
+            };
+            write_num("[test] sys_kexec returned: ", res as i64, "\n");
+            
+            write("[test] --- Verification Suite Complete ---\n");
             unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
         }
     } else {
