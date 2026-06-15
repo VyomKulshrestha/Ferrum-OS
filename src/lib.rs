@@ -153,16 +153,32 @@ pub mod gdt;
 // Kernel Initialization
 // ============================================================================
 
-/// Initialize core kernel hardware
-/// 
-/// This sets up the GDT, IDT, and enables hardware interrupts.
-/// Must be called before any interrupt-dependent subsystem.
 pub fn init() {
     gdt::init();
     interrupts::init_idt();
     unsafe { interrupts::PICS.lock().initialize() };
+    unsafe { enable_sse_extensions() };
     x86_64::instructions::interrupts::enable();
 }
+
+/// Enable SSE extensions in CPU control registers (CR0 and CR4).
+/// This enables legacy FPU, SSE registers, FXSAVE/FXRSTOR support,
+/// and SIMD floating-point exceptions.
+pub unsafe fn enable_sse_extensions() {
+    core::arch::asm!(
+        // 1. Enable legacy FPU & SSE in CR0 by clearing EM and setting MP
+        "mov rax, cr0",
+        "and ax, 0xFFFB", // clear EM (bit 2)
+        "or ax, 0x0002",  // set MP (bit 1)
+        "mov cr0, rax",
+        // 2. Enable FXSAVE/FXRSTOR and SIMD exceptions in CR4
+        "mov rax, cr4",
+        "or eax, 0x600",  // set OSFXSR (bit 9) and OSXMMEXCPT (bit 10)
+        "mov cr4, rax",
+        out("rax") _,
+    );
+}
+
 
 // ============================================================================
 // CPU Control

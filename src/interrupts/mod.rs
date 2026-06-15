@@ -623,8 +623,10 @@ fn save_user_context(pid: u64, frame: &SyscallFrame) {
         rflags: frame.rflags,
         rsp: frame.rsp,
         ss: frame.ss,
+        simd_state_ptr: 0,
     };
     crate::scheduler::write_context(pid, ctx);
+    crate::scheduler::save_simd_state(pid);
 }
 
 

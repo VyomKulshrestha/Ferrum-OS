@@ -138,6 +138,8 @@ pub struct TaskContext {
     pub rsp: u64,
     /// iretq frame - SS (0x10 ring 0, 0x23 ring 3).
     pub ss: u64,
+    /// Pointer to 16-byte aligned 512-byte buffer for fxsave/fxrstor
+    pub simd_state_ptr: u64,
 }
 
 impl TaskContext {
@@ -146,6 +148,7 @@ impl TaskContext {
             r15: 0, r14: 0, r13: 0, r12: 0, r11: 0, r10: 0, r9: 0, r8: 0,
             rbp: 0, rdi: 0, rsi: 0, rdx: 0, rcx: 0, rbx: 0, rax: 0,
             rip: 0, cs: 0, rflags: 0x3202, rsp: 0, ss: 0,
+            simd_state_ptr: 0,
         }
     }
 
@@ -159,6 +162,7 @@ impl TaskContext {
             rflags: 0x3202,
             rsp,
             ss: crate::gdt::USER_DATA_SELECTOR,
+            simd_state_ptr: 0,
         }
     }
 }
@@ -365,11 +369,19 @@ pub fn init() {
     SCHEDULER_INIT.store(true, Ordering::SeqCst);
 }
 
+fn allocate_simd_buffer() -> u64 {
+    let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
+    let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+    ptr as u64
+}
+
 /// Append a task to the scheduler's `tasks` and `contexts`
 /// vectors in lock-step. Caller must hold the `SCHEDULER` lock.
 fn push_task_locked(sched: &mut Scheduler, task: Task) -> u64 {
     let id = task.id;
-    sched.contexts.push(TaskContext::new());
+    let mut ctx = TaskContext::new();
+    ctx.simd_state_ptr = allocate_simd_buffer();
+    sched.contexts.push(ctx);
     sched.tasks.push(task);
     id
 }
@@ -422,7 +434,8 @@ pub fn register_user(
     if !task.capabilities.contains(&String::from("cap:process:user")) {
         task.capabilities.push(String::from("cap:process:user"));
     }
-    let ctx = TaskContext::new();
+    let mut ctx = TaskContext::new();
+    ctx.simd_state_ptr = allocate_simd_buffer();
     sched.contexts.push(ctx);
     sched.tasks.push(task);
     let idx = sched.tasks.len() - 1;
@@ -654,9 +667,11 @@ pub fn context_of(pid: u64) -> Option<TaskContext> {
 /// Overwrite the saved context for `pid`. Used by the syscall
 /// layer to capture the outgoing task's iretq frame before the
 /// context switch.
-pub fn write_context(pid: u64, ctx: TaskContext) {
+pub fn write_context(pid: u64, mut ctx: TaskContext) {
     let mut sched = SCHEDULER.lock();
     if let Some(idx) = sched.tasks.iter().position(|t| t.id == pid) {
+        let old_simd = sched.contexts[idx].simd_state_ptr;
+        ctx.simd_state_ptr = old_simd;
         sched.contexts[idx] = ctx;
     }
 }
@@ -787,10 +802,29 @@ pub fn cleanup_dead_tasks() {
     let mut i = 0;
     while i < sched.tasks.len() {
         if sched.tasks[i].state == TaskState::Dead {
+            let ctx = sched.contexts.remove(i);
+            if ctx.simd_state_ptr != 0 {
+                let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
+                unsafe { alloc::alloc::dealloc(ctx.simd_state_ptr as *mut u8, layout) };
+            }
             sched.tasks.remove(i);
-            sched.contexts.remove(i);
         } else {
             i += 1;
+        }
+    }
+}
+
+pub fn save_simd_state(pid: u64) {
+    let sched = SCHEDULER.lock();
+    if let Some(idx) = sched.tasks.iter().position(|t| t.id == pid) {
+        let ptr = sched.contexts[idx].simd_state_ptr;
+        if ptr != 0 {
+            unsafe {
+                core::arch::asm!(
+                    "fxsave64 [{}]",
+                    in(reg) ptr
+                );
+            }
         }
     }
 }
@@ -851,6 +885,13 @@ pub unsafe extern "C" fn context_switch_to(
         
         // Switch to the incoming task's kernel stack.
         "mov rsp, rdx",
+        
+        // Restore SIMD/SSE state for the incoming task.
+        "mov rax, [rsi + 0xA0]",
+        "test rax, rax",
+        "jz 9f",
+        "fxrstor64 [rax]",
+        "9:",
         
         // Push the incoming task's iretq frame on the new stack:
         //   RIP, CS, RFLAGS, RSP, SS
@@ -1173,9 +1214,9 @@ unsafe fn switch_to_kernel_entry(entry: extern "C" fn() -> !, stack: *mut Kernel
         rip: entry as u64,
         cs: crate::gdt::KERNEL_CODE_SELECTOR,
         rflags: 0x202, // IF=1
-        // Mimic post-`call` alignment (rsp % 16 == 8 at fn entry).
         rsp: top - 8,
         ss: crate::gdt::KERNEL_DATA_SELECTOR,
+        simd_state_ptr: 0,
     };
     context_switch_to(scratch_context() as *mut TaskContext, slot, top);
 }
