@@ -1,8 +1,9 @@
 # FerrumOS Build Helper Script
-# Usage: .\build.ps1 [build|run|clean|check]
+# Usage: .\build.ps1 [build|run|run-appliance|clean|check]
 
 param(
-    [string]$Action = "build"
+    [string]$Action = "build",
+    [string]$Memory = "4096M"
 )
 
 # Ensure the nightly rustup toolchain takes priority over standalone Rust
@@ -12,6 +13,44 @@ param(
 $NightlyBin = "$env:USERPROFILE\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\bin"
 $CargoBin = "$env:USERPROFILE\.cargo\bin"
 $env:Path = "$NightlyBin;$CargoBin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+function Launch-Qemu {
+    param(
+        [string]$img,
+        [string]$qemu,
+        [string]$Memory
+    )
+
+    $qemu_args = @("-m", $Memory, "-drive", "format=raw,file=$img", "-serial", "stdio", "-vga", "std", "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785", "-device", "rtl8139,netdev=net0", "-device", "intel-hda", "-device", "hda-duplex")
+    
+    Write-Host "Launching QEMU (Memory: $Memory)..." -ForegroundColor Cyan
+    
+    # Try launching with WHPX first
+    $whpx_args = @("-accel", "whpx,kernel-irqchip=off", "-cpu", "host") + $qemu_args
+    Write-Host "Running: qemu-system-x86_64 $($whpx_args -join ' ')" -ForegroundColor Gray
+    
+    $p = Start-Process -FilePath $qemu -ArgumentList $whpx_args -NoNewWindow -PassThru -ErrorAction SilentlyContinue
+    if ($p) {
+        # Wait 2 seconds to see if it crashes immediately
+        Start-Sleep -Seconds 2
+        if ($p.HasExited) {
+            $exitCode = $p.ExitCode
+            if ($exitCode -ne 0) {
+                Write-Host "WHPX launch failed (Exit Code: $exitCode). Falling back to TCG..." -ForegroundColor Yellow
+                $tcg_args = @("-accel", "tcg", "-cpu", "max") + $qemu_args
+                Write-Host "Running: qemu-system-x86_64 $($tcg_args -join ' ')" -ForegroundColor Gray
+                & $qemu $tcg_args
+            }
+        } else {
+            $p | Wait-Process
+        }
+    } else {
+        # Fallback if Start-Process itself fails
+        Write-Host "Failed to start QEMU with WHPX. Falling back to TCG..." -ForegroundColor Yellow
+        $tcg_args = @("-accel", "tcg", "-cpu", "max") + $qemu_args
+        & $qemu $tcg_args
+    }
+}
 
 switch ($Action) {
     "build" {
@@ -46,6 +85,9 @@ switch ($Action) {
         $img = "target\x86_64-unknown-none\debug\bootimage-ferrumos.bin"
         if (Test-Path $img) {
             $qemu = (Get-Command qemu-system-x86_64 -ErrorAction SilentlyContinue).Source
+            if (-not $qemu -and (Test-Path "C:\Program Files\qemu\qemu-system-x86_64.exe")) {
+                $qemu = "C:\Program Files\qemu\qemu-system-x86_64.exe"
+            }
             if (-not $qemu -and (Test-Path "C:\Program Files\GNS3\qemu-3.1.0\qemu-system-x86_64.exe")) {
                 $qemu = "C:\Program Files\GNS3\qemu-3.1.0\qemu-system-x86_64.exe"
             }
@@ -53,7 +95,28 @@ switch ($Action) {
                 Write-Host "qemu-system-x86_64 not found. Install QEMU or add it to PATH." -ForegroundColor Red
                 exit 1
             }
-            & $qemu -drive format=raw,file=$img -serial stdio -vga std -netdev user,id=net0,hostfwd=tcp::8785-:8785 -device rtl8139,netdev=net0 -device intel-hda -device hda-duplex
+            Launch-Qemu -img $img -qemu $qemu -Memory $Memory
+        } else {
+            Write-Host "Boot image not found. Build first." -ForegroundColor Red
+            exit 1
+        }
+    }
+    "run-appliance" {
+        Write-Host "Running FerrumOS as an Appliance in QEMU..." -ForegroundColor Cyan
+        $img = "target\x86_64-unknown-none\debug\bootimage-ferrumos.bin"
+        if (Test-Path $img) {
+            $qemu = (Get-Command qemu-system-x86_64 -ErrorAction SilentlyContinue).Source
+            if (-not $qemu -and (Test-Path "C:\Program Files\qemu\qemu-system-x86_64.exe")) {
+                $qemu = "C:\Program Files\qemu\qemu-system-x86_64.exe"
+            }
+            if (-not $qemu -and (Test-Path "C:\Program Files\GNS3\qemu-3.1.0\qemu-system-x86_64.exe")) {
+                $qemu = "C:\Program Files\GNS3\qemu-3.1.0\qemu-system-x86_64.exe"
+            }
+            if (-not $qemu) {
+                Write-Host "qemu-system-x86_64 not found. Install QEMU or add it to PATH." -ForegroundColor Red
+                exit 1
+            }
+            Launch-Qemu -img $img -qemu $qemu -Memory $Memory
         } else {
             Write-Host "Boot image not found. Build first." -ForegroundColor Red
             exit 1
@@ -72,6 +135,7 @@ switch ($Action) {
         }
     }
     default {
-        Write-Host "Usage: .\build.ps1 [build|run|clean|check]" -ForegroundColor Yellow
+        Write-Host "Usage: .\build.ps1 [build|run|run-appliance|clean|check]" -ForegroundColor Yellow
     }
 }
+
