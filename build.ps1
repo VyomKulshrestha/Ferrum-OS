@@ -29,25 +29,14 @@ function Launch-Qemu {
     $whpx_args = @("-accel", "whpx,kernel-irqchip=off", "-cpu", "host") + $qemu_args
     Write-Host "Running: qemu-system-x86_64 $($whpx_args -join ' ')" -ForegroundColor Gray
     
-    $p = Start-Process -FilePath $qemu -ArgumentList $whpx_args -NoNewWindow -PassThru -ErrorAction SilentlyContinue
-    if ($p) {
-        # Wait 2 seconds to see if it crashes immediately
-        Start-Sleep -Seconds 2
-        if ($p.HasExited) {
-            $exitCode = $p.ExitCode
-            if ($exitCode -ne 0) {
-                Write-Host "WHPX launch failed (Exit Code: $exitCode). Falling back to TCG..." -ForegroundColor Yellow
-                $tcg_args = @("-accel", "tcg", "-cpu", "max") + $qemu_args
-                Write-Host "Running: qemu-system-x86_64 $($tcg_args -join ' ')" -ForegroundColor Gray
-                & $qemu $tcg_args
-            }
-        } else {
-            $p | Wait-Process
-        }
-    } else {
-        # Fallback if Start-Process itself fails
-        Write-Host "Failed to start QEMU with WHPX. Falling back to TCG..." -ForegroundColor Yellow
+    # Run QEMU directly to keep stdin connected to the console
+    & $qemu $whpx_args
+    
+    # Fallback to TCG if WHPX failed
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "WHPX launch failed. Falling back to TCG..." -ForegroundColor Yellow
         $tcg_args = @("-accel", "tcg", "-cpu", "max") + $qemu_args
+        Write-Host "Running: qemu-system-x86_64 $($tcg_args -join ' ')" -ForegroundColor Gray
         & $qemu $tcg_args
     }
 }
