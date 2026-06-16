@@ -18,8 +18,9 @@ pub struct HardwareTierInfo {
 pub static HARDWARE_TIER: Mutex<Option<HardwareTierInfo>> = Mutex::new(None);
 
 pub fn init(boot_info: &'static BootInfo) {
-    // 1. Calculate total RAM from memory map (usable + reserved + bootloader etc.)
+    // 1. Calculate total RAM from memory map (summing all non-reserved regions)
     let total_bytes: u64 = boot_info.memory_map.iter()
+        .filter(|r| r.region_type != bootloader::bootinfo::MemoryRegionType::Reserved)
         .map(|r| r.range.end_addr() - r.range.start_addr())
         .sum();
     let ram_mb = total_bytes / (1024 * 1024);
