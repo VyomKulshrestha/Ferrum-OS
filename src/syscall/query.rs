@@ -69,9 +69,15 @@ fn query_system_info() -> String {
         "text"
     };
 
+    let (ram_mb, avx2, tier) = if let Some(info) = crate::hardware::get_info() {
+        (info.ram_mb, info.avx2, info.tier)
+    } else {
+        (0, false, "low")
+    };
+
     format!(
-        "{{\"uptime_ticks\":{},\"cpu_count\":1,\"kernel_version\":\"0.1.0\",\"boot_mode\":\"{}\",\"active_tasks\":{}}}",
-        uptime, boot_mode, active_tasks
+        "{{\"uptime_ticks\":{},\"cpu_count\":1,\"kernel_version\":\"0.1.0\",\"boot_mode\":\"{}\",\"active_tasks\":{},\"ram_mb\":{},\"avx2\":{},\"tier\":\"{}\"}}",
+        uptime, boot_mode, active_tasks, ram_mb, avx2, tier
     )
 }
 
