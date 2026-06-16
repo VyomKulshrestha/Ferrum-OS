@@ -76,12 +76,12 @@ pub fn resolve_spatial_intent(transcript: &str, current_ticks: u64) -> Option<Re
         return None;
     }
     
-    // Find the most recent Pointing gesture within 27 ticks (~1.5s at 18.2Hz)
+    // Find the most recent Pointing gesture within 150 ticks (~8.2s at 18.2Hz)
     let history = GESTURE_HISTORY.lock();
     let mut best_gesture = None;
     for &(ticks, sx, sy) in history.iter().rev() {
         let diff = current_ticks.saturating_sub(ticks);
-        if diff <= 27 {
+        if diff <= 150 {
             best_gesture = Some((sx, sy));
             break;
         }

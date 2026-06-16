@@ -233,6 +233,12 @@ impl Orchestrator {
             return;
         }
 
+        // Run spatial/deictic fusion immediately if a new goal has been set
+        let goal = self.planner.current_goal();
+        if goal != self.last_fused_goal {
+            self.observe();
+        }
+
         if self.tick_count % self.config.tick_interval != 0 {
             return;
         }
@@ -305,6 +311,10 @@ impl Orchestrator {
         if goal != self.last_fused_goal {
             let ticks = crate::cognitive::fusion::get_uptime_ticks();
             if let Some(intent) = crate::cognitive::fusion::resolve_spatial_intent(&goal, ticks) {
+                let log_msg = format!("[heliox-daemon] spatial fusion resolved: {} {} (at {},{})\n", intent.verb, intent.target_label, intent.sx, intent.sy);
+                unsafe {
+                    syscall3(34, 1, log_msg.as_ptr() as u64, log_msg.len() as u64);
+                }
                 let mut obs = format!("[FUSED] {} {} (at {},{})\n", intent.verb, intent.target_label, intent.sx, intent.sy);
                 obs.push_str(&self.last_observation);
                 self.last_observation = obs;

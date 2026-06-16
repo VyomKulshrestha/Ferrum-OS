@@ -611,9 +611,12 @@ pub fn classify_gesture(contour: &[(i16, i16)], hand: &HandRegion) -> GestureTyp
             if bbox_area == 0 {
                 return GestureType::Fist;
             }
-            let _ratio = (hand.area * 100) / bbox_area;
-            // Compact or not, 0 defects → Fist
-            GestureType::Fist
+            let elongation = (bbox_h * 100) / bbox_w;
+            if elongation > 180 {
+                GestureType::Pointing
+            } else {
+                GestureType::Fist
+            }
         }
         1 => {
             // Elongated: height*100/width > 180

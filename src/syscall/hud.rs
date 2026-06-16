@@ -40,12 +40,17 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     let ptr = args[0];
     let len = args[1];
     let size = core::mem::size_of::<HudState>();
+    crate::serial_println!("SYS_HUD_UPDATE: ptr=0x{:X}, len={}, size_of={}", ptr, len, size);
     if len as usize != size {
+        crate::serial_println!("SYS_HUD_UPDATE: Invalid size");
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     let bytes = match unsafe { super::fs::read_user_bytes(ptr, len, size) } {
         Some(b) => b,
-        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+        None => {
+            crate::serial_println!("SYS_HUD_UPDATE: read_user_bytes failed");
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
+        }
     };
     
     {
@@ -53,10 +58,17 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
         unsafe {
             core::ptr::copy_nonoverlapping(bytes.as_ptr(), &mut *state as *mut HudState as *mut u8, size);
         }
+        crate::serial_println!("SYS_HUD_UPDATE: copied state, flags={}, visible={}", state.flags, (state.flags & 1) != 0);
     }
     
     // Set needs_redraw to animate the HUD waveform/overlay
     crate::gui::compositor::COMPOSITOR.lock().needs_redraw = true;
+    
+    // Render and swap buffers immediately to update screen in headless test modes
+    crate::gui::compositor::render();
+    if let Some(fb) = crate::devices::vga_fb::FRAMEBUFFER.lock().as_ref() {
+        fb.swap_buffers();
+    }
     
     SyscallResult::ok(size as u64)
 }
@@ -67,7 +79,15 @@ pub fn sys_hit_test(args: [u64; 6]) -> SyscallResult {
     let label_buf = args[2];
     let label_len = args[3] as usize;
     
-    let (window_id, label) = crate::gui::compositor::hit_test(x, y);
+    {
+        let state = crate::gui::compositor::COMPOSITOR.lock();
+        crate::serial_println!("HUD: sys_hit_test({}, {}) - windows count: {}", x, y, state.windows.len());
+        for w in &state.windows {
+            crate::serial_println!("  win ID={}: title={}, x={}, y={}, w={}, h={}", w.id, w.title, w.x, w.y, w.width, w.height);
+        }
+    }
+    
+    let (window_id, label) = crate::gui::compositor::hit_test_exclude(x, y, true);
     
     // Copy the label string to userspace
     let _copy_len = if label_buf != 0 && label_len > 0 {

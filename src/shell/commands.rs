@@ -103,6 +103,7 @@ pub fn execute(input: &str) {
         "process" => cmd_process(args),
         "ring3" => cmd_ring3(args),
         "log" => cmd_log(),
+        "camera_gesture" => cmd_camera_gesture(args),
         "uptime" => cmd_uptime(),
         "scheduler" => cmd_scheduler(args),
         "test-syscall" => cmd_test_syscall(args),
@@ -1569,3 +1570,28 @@ fn cmd_disk(args: &[&str]) {
         );
     }
 }
+
+fn cmd_camera_gesture(args: &[&str]) {
+    if args.is_empty() {
+        println!("usage: camera_gesture [none|fist|openpalm|pointing|peace|threefingers|fourfingers|thumbsup]");
+        return;
+    }
+    let gesture = match args[0].to_lowercase().as_str() {
+        "none" => crate::devices::camera_synth::SyntheticGesture::None,
+        "fist" => crate::devices::camera_synth::SyntheticGesture::Fist,
+        "openpalm" => crate::devices::camera_synth::SyntheticGesture::OpenPalm,
+        "pointing" => crate::devices::camera_synth::SyntheticGesture::Pointing,
+        "peace" => crate::devices::camera_synth::SyntheticGesture::Peace,
+        "threefingers" => crate::devices::camera_synth::SyntheticGesture::ThreeFingers,
+        "fourfingers" => crate::devices::camera_synth::SyntheticGesture::FourFingers,
+        "thumbsup" => crate::devices::camera_synth::SyntheticGesture::ThumbsUp,
+        _ => {
+            println!("invalid gesture name: {}", args[0]);
+            return;
+        }
+    };
+    crate::devices::camera_synth::set_gesture(gesture);
+    crate::devices::camera_synth::tick();
+    println!("synthetic camera gesture set to {:?}", gesture);
+}
+

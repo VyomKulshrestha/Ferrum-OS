@@ -124,6 +124,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     if ferrumos::devices::vga_fb::detect() {
         ferrumos::graphics::init(1024, 768);
         ferrumos::graphics::console::init(1024, 768);
+        ferrumos::gui::init();
         ferrumos::devices::register_device(
             "vga.framebuffer",
             ferrumos::devices::DeviceClass::Display,

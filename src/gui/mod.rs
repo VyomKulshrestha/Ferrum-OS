@@ -70,6 +70,7 @@ pub fn init() {
     compositor::init();
     desktop::init();
     cursor::init();
+    compositor::spawn_demo_windows();
     crate::serial_println!("[gui] Desktop Environment initialized");
 }
 

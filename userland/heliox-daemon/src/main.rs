@@ -262,6 +262,46 @@ pub extern "C" fn _start() -> ! {
         landmarks: alloc::vec::Vec::new(),
     };
 
+    // Warm up the camera and stabilize initial gesture detection
+    if has_camera {
+        let warm_up_msg = "[heliox-daemon] warming up camera pipeline...\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, warm_up_msg.as_ptr() as u64, warm_up_msg.len() as u64);
+        }
+        for _ in 0..5 {
+            if let Ok(bytes_read) = network::read_camera_frame(&mut frame_buf) {
+                if bytes_read == 153_600 {
+                    let detailed = cognitive::gesture::process_frame_detailed(
+                        &frame_buf,
+                        320,
+                        240,
+                        &mut label_buf,
+                        &mut mask_buf,
+                    );
+                    let detected = detailed.gesture;
+                    LATEST_GESTURE.store(detected as u8, core::sync::atomic::Ordering::SeqCst);
+                    tracker.push(detected);
+                    last_detailed = detailed.clone();
+                    if let Some(stable) = tracker.stable_gesture() {
+                        let g_name = cognitive::gesture::gesture_name(stable);
+                        let log_msg = alloc::format!("[heliox-daemon] gesture: {}\n", g_name);
+                        unsafe {
+                            syscall3(SYS_WRITE, FD_CONSOLE, log_msg.as_ptr() as u64, log_msg.len() as u64);
+                        }
+                        orchestrator.push_gesture(stable as u8);
+                        if stable == cognitive::gesture::GestureType::Pointing {
+                            let ticks = cognitive::fusion::get_uptime_ticks();
+                            cognitive::fusion::note_gesture(ticks, detailed.cx, detailed.cy);
+                        }
+                    }
+                }
+            }
+            unsafe {
+                syscall3(SYS_SLEEP, 50, 0, 0);
+            }
+        }
+    }
+
     // Main Agent Loop
     let mut loop_count = 0;
     loop {

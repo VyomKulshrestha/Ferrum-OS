@@ -1071,25 +1071,32 @@ impl HdaController {
 
     /// Reset the stream descriptor (set SRST, wait, clear SRST).
     fn reset_stream(&self, sd_base: u32) {
+        crate::serial_println!("HDA: reset_stream({:#X}) start", sd_base);
         // Set stream reset bit (bit 0 of SD_CTL).
         self.regs.write8(sd_base + SD_CTL, 0x01);
         spin_wait(1000);
-        for _ in 0..POLL_TIMEOUT {
+        let mut ok1 = false;
+        for _ in 0..10000 {
             if (self.regs.read8(sd_base + SD_CTL) & 0x01) != 0 {
+                ok1 = true;
                 break;
             }
             core::hint::spin_loop();
         }
+        crate::serial_println!("HDA: reset_stream({:#X}) set SRST ok={}", sd_base, ok1);
 
         // Clear stream reset.
         self.regs.write8(sd_base + SD_CTL, 0x00);
         spin_wait(1000);
-        for _ in 0..POLL_TIMEOUT {
+        let mut ok2 = false;
+        for _ in 0..10000 {
             if (self.regs.read8(sd_base + SD_CTL) & 0x01) == 0 {
+                ok2 = true;
                 break;
             }
             core::hint::spin_loop();
         }
+        crate::serial_println!("HDA: reset_stream({:#X}) clear SRST ok={}", sd_base, ok2);
     }
 
     // ========================================================================
@@ -1102,8 +1109,12 @@ impl HdaController {
     /// 16 KiB is used.  If smaller, the remaining buffer is zero-filled
     /// (silence).
     fn play(&mut self, data: &[u8]) -> Result<(), &'static str> {
-        // Stop any running playback first.
+        crate::serial_println!("HDA: play() start");
+        // Stop any running playback and capture first to avoid DMA conflict.
         self.stop_stream(self.out_stream_base);
+        crate::serial_println!("HDA: play() stopped out");
+        self.stop_stream(self.in_stream_base);
+        crate::serial_println!("HDA: play() stopped in");
 
         let copy_len = core::cmp::min(data.len(), self.out_buf_size as usize);
         let buf_ptr = self.out_buf_virt.as_u64() as *mut u8;
@@ -1122,7 +1133,9 @@ impl HdaController {
         }
 
         // Ensure the stream is properly reset before starting.
+        crate::serial_println!("HDA: play() resetting stream");
         self.reset_stream(self.out_stream_base);
+        crate::serial_println!("HDA: play() reset stream done");
 
         // Re-program stream descriptor after reset.
         self.setup_output_stream()?;
@@ -1156,8 +1169,12 @@ impl HdaController {
     /// Returns the number of bytes actually captured (capped at buffer
     /// size and `buf.len()`).
     fn record(&mut self, buf: &mut [u8]) -> Result<usize, &'static str> {
-        // Stop any running capture.
+        crate::serial_println!("HDA: record() start");
+        // Stop any running capture and playback first to avoid DMA conflict.
         self.stop_stream(self.in_stream_base);
+        crate::serial_println!("HDA: record() stopped in");
+        self.stop_stream(self.out_stream_base);
+        crate::serial_println!("HDA: record() stopped out");
 
         // Zero the input buffer.
         let in_ptr = self.in_buf_virt.as_u64() as *mut u8;

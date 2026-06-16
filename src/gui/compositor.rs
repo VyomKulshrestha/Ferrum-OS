@@ -116,7 +116,7 @@ pub fn spawn_terminal() {
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
     } else {
-        let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
+        let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 400, 0x001A1A1A);
         w2.content.extend_from_slice(b"FerrumOS:~$ ");
         state.windows.push(w2);
         state.focused_idx = Some(state.windows.len() - 1);
@@ -172,7 +172,7 @@ pub fn spawn_demo_windows() {
     let mut w1 = Window::new(1, crate::gui::window::WindowType::SystemMonitor, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
     w1.content.extend_from_slice(b"CPU Usage: 14%\nMemory: 256MB / 4096MB\nTasks: 5 Active\n\n[Graph Placeholder]");
 
-    let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 300, 0x001A1A1A);
+    let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 400, 0x001A1A1A);
     w2.content.extend_from_slice(b"FerrumOS:~$ ");
 
     state.windows.push(w1);
@@ -235,14 +235,23 @@ pub fn render() {
 
 /// Helper to hit test overlapping windows, returning window ID and title.
 pub fn hit_test(mx: u32, my: u32) -> (u64, alloc::string::String) {
+    hit_test_exclude(mx, my, false)
+}
+
+/// Helper to hit test overlapping windows, with option to exclude Agent HUD.
+pub fn hit_test_exclude(mx: u32, my: u32, exclude_hud: bool) -> (u64, alloc::string::String) {
     let state = COMPOSITOR.lock();
     for window in state.windows.iter().rev() {
+        if exclude_hud && window.win_type == crate::gui::window::WindowType::AgentHud {
+            continue;
+        }
         if window.contains_point(mx, my) {
             return (window.id, window.title.clone());
         }
     }
     (0, alloc::string::String::from("desktop"))
 }
+
 
 /// Render the transparent HUD overlay (waveform + pointing landmarks + suggestions).
 pub fn draw_hud_overlay() {
