@@ -201,6 +201,12 @@ pub extern "C" fn _start() -> ! {
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
+
+    // Print active provider
+    let provider_msg = alloc::format!("[heliox-daemon] active provider: {}\n", orchestrator.config.provider);
+    unsafe {
+        syscall3(SYS_WRITE, FD_CONSOLE, provider_msg.as_ptr() as u64, provider_msg.len() as u64);
+    }
     
     // Send a message via IPC to the kernel to announce readiness
     let svc = "gui";

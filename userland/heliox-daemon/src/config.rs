@@ -51,11 +51,39 @@ pub struct Config {
     pub vad_threshold: u32,
 }
 
+fn detect_tier() -> String {
+    let mut buf = [0u8; 512];
+    let bytes_written = unsafe {
+        crate::syscall4(
+            29, // SYS_SYSTEM_QUERY
+            0,  // query_type = system_info
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+            0,
+        )
+    };
+    if bytes_written > 0 && (bytes_written as usize) <= buf.len() {
+        if let Ok(text) = core::str::from_utf8(&buf[..bytes_written as usize]) {
+            if let Some(idx) = text.find("\"tier\":") {
+                let rest = &text[idx + "\"tier\":".len()..];
+                // Find start quote of the string value
+                if let Some(start_q) = rest.find('"') {
+                    let val_rest = &rest[start_q + 1..];
+                    if let Some(end_q) = val_rest.find('"') {
+                        return String::from(&val_rest[..end_q]);
+                    }
+                }
+            }
+        }
+    }
+    String::from("low")
+}
+
 impl Config {
     /// Returns the default configuration.
     pub fn default() -> Self {
         Self {
-            provider: String::from("ollama"),
+            provider: String::from("auto"),
             model_name: String::from("llama3"),
             api_host: String::from("unconfigured"),
             api_port: 11434,
@@ -89,36 +117,43 @@ impl Config {
             )
         };
 
-        if (bytes_read as i64) < 0 {
-            // Failed to read file, return defaults
-            return config;
-        }
-
-        let json_str = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("");
-        
-        if let Ok(parsed) = json::parse(json_str) {
-            if let Some(obj) = parsed.as_object() {
-                for (k, v) in obj {
-                    match k.as_str() {
-                        "provider" => if let Some(s) = v.as_str() { config.provider = String::from(s); },
-                        "model_name" => if let Some(s) = v.as_str() { config.model_name = String::from(s); },
-                        "api_host" => if let Some(s) = v.as_str() { config.api_host = String::from(s); },
-                        "api_port" => if let Some(n) = v.as_f64() { config.api_port = n as u16; },
-                        "api_path" => if let Some(s) = v.as_str() { config.api_path = String::from(s); },
-                        "api_key" => if let Some(s) = v.as_str() { config.api_key = String::from(s); },
-                        "max_retries" => if let Some(n) = v.as_f64() { config.max_retries = n as u32; },
-                        "tick_interval" => if let Some(n) = v.as_f64() { config.tick_interval = n as u64; },
-                        "save_interval" => if let Some(n) = v.as_f64() { config.save_interval = n as u64; },
-                        "confirmation_timeout" => if let Some(n) = v.as_f64() { config.confirmation_timeout = n as u64; },
-                        "log_level" => if let Some(s) = v.as_str() { config.log_level = LogLevel::from_str(s); },
-                        "auto_approve_tier" => if let Some(n) = v.as_f64() { config.auto_approve_tier = n as u8; },
-                        "stt_host" => if let Some(s) = v.as_str() { config.stt_host = String::from(s); },
-                        "stt_port" => if let Some(n) = v.as_f64() { config.stt_port = n as u16; },
-                        "vad_threshold" => if let Some(n) = v.as_f64() { config.vad_threshold = n as u32; },
-                        _ => {}
+        if (bytes_read as i64) >= 0 {
+            let json_str = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("");
+            
+            if let Ok(parsed) = json::parse(json_str) {
+                if let Some(obj) = parsed.as_object() {
+                    for (k, v) in obj {
+                        match k.as_str() {
+                            "provider" => if let Some(s) = v.as_str() { config.provider = String::from(s); },
+                            "model_name" => if let Some(s) = v.as_str() { config.model_name = String::from(s); },
+                            "api_host" => if let Some(s) = v.as_str() { config.api_host = String::from(s); },
+                            "api_port" => if let Some(n) = v.as_f64() { config.api_port = n as u16; },
+                            "api_path" => if let Some(s) = v.as_str() { config.api_path = String::from(s); },
+                            "api_key" => if let Some(s) = v.as_str() { config.api_key = String::from(s); },
+                            "max_retries" => if let Some(n) = v.as_f64() { config.max_retries = n as u32; },
+                            "tick_interval" => if let Some(n) = v.as_f64() { config.tick_interval = n as u64; },
+                            "save_interval" => if let Some(n) = v.as_f64() { config.save_interval = n as u64; },
+                            "confirmation_timeout" => if let Some(n) = v.as_f64() { config.confirmation_timeout = n as u64; },
+                            "log_level" => if let Some(s) = v.as_str() { config.log_level = LogLevel::from_str(s); },
+                            "auto_approve_tier" => if let Some(n) = v.as_f64() { config.auto_approve_tier = n as u8; },
+                            "stt_host" => if let Some(s) = v.as_str() { config.stt_host = String::from(s); },
+                            "stt_port" => if let Some(n) = v.as_f64() { config.stt_port = n as u16; },
+                            "vad_threshold" => if let Some(n) = v.as_f64() { config.vad_threshold = n as u32; },
+                            _ => {}
+                        }
                     }
                 }
             }
+        }
+
+        // Post-load auto-provider resolution
+        if config.provider == "auto" {
+            let tier = detect_tier();
+            config.provider = match tier.as_str() {
+                "high" => String::from("local-1.1B"),
+                "standard" => String::from("local-15M"),
+                _ => String::from("cloud"),
+            };
         }
 
         config
