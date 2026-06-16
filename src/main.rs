@@ -40,6 +40,15 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::init();
     println!("[  OK  ] Interrupts and GDT initialized");
 
+    // Initialize hardware tier detection
+    ferrumos::hardware::init(boot_info);
+    if let Some(info) = ferrumos::hardware::get_info() {
+        println!(
+            "[  OK  ] Hardware detected: {}MB RAM | SSE:{} AVX:{} AVX2:{} | Tier: {}",
+            info.ram_mb, info.sse, info.avx, info.avx2, info.tier
+        );
+    }
+
     // ========================================================================
     // Phase 2: Memory Subsystem
     // ========================================================================

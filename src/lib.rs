@@ -122,6 +122,9 @@ pub mod heliox;
 /// Structured kernel logging with security audit events
 pub mod logging;
 
+/// Hardware identification and tier classification
+pub mod hardware;
+
 /// ATA PIO disk driver
 /// IDE primary/secondary channel access for persistent storage
 pub mod ata;
