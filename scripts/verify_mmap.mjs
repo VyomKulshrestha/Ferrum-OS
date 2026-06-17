@@ -119,18 +119,12 @@ async function sendText(t) {
   }
 }
 
-function parseFrames(text) {
-  const lines = text.split("\n");
-  for (const line of lines) {
-    if (line.includes("heliox-daemon")) {
-      const parts = line.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        const frames = parseInt(parts[1], 10);
-        if (!isNaN(frames)) return frames;
-      }
-    }
+function parseKernelFrames(text) {
+  const matches = [...text.matchAll(/\[kernel-mmap\].*user_frames=(\d+)/g)];
+  if (matches.length > 0) {
+    return matches.map(m => parseInt(m[1], 10));
   }
-  return null;
+  return [];
 }
 
 try {
@@ -148,36 +142,23 @@ try {
   await sendText("ring3 init");
   await sendKey("ret");
 
-  // Step 1: Wait until the daemon has mapped the file but before touching pages
-  await waitForSerial("[heliox-daemon] ready for initial frame check", 25, start);
-  check("daemon starts and maps test file", true);
-
-  // Step 2: Query initial frame count
-  const mark1 = serialText().length;
-  await sendText("process");
-  await sendKey("ret");
-  await sleep(500);
-  
-  const text1 = serialText().slice(mark1);
-  const initialFrames = parseFrames(text1);
-  check(`parsed initial frames: ${initialFrames}`, initialFrames !== null);
-
-  // Step 3: Wait for daemon to finish mmap validation
-  await waitForSerial("[heliox-daemon] mmap validation success: bytes match!", 20, start);
+  // Step 1: Wait until the daemon has finished mmap validation
+  await waitForSerial("[heliox-daemon] mmap validation success: bytes match!", 30, start);
   check("daemon touched pages and validated matching bytes", true);
 
-  // Step 4: Query final frame count
-  const mark2 = serialText().length;
-  await sendText("process");
-  await sendKey("ret");
-  await sleep(500);
+  // Parse the kernel mmap frames log
+  const fullLog = serialText().slice(start);
+  const frameCounts = parseKernelFrames(fullLog);
+  console.log(`[test] Parsed user_frames timeline: ${JSON.stringify(frameCounts)}`);
 
-  const text2 = serialText().slice(mark2);
-  const finalFrames = parseFrames(text2);
-  check(`parsed final frames: ${finalFrames}`, finalFrames !== null);
+  check("found kernel-mmap logging entries", frameCounts.length >= 4);
 
-  if (initialFrames !== null && finalFrames !== null) {
+  if (frameCounts.length >= 4) {
+    const initialFrames = frameCounts[0];
+    const finalFrames = frameCounts[frameCounts.length - 1];
     const diff = finalFrames - initialFrames;
+    check(`initial user_frames baseline parsed: ${initialFrames}`, true);
+    check(`final user_frames parsed: ${finalFrames}`, true);
     check(`exactly 3 pages paged in (diff: ${diff})`, diff === 3);
   }
 

@@ -905,7 +905,11 @@ pub fn fault_in_page(pid: u64, addr: VirtAddr) -> bool {
     let mut procs = PROCESSES.lock();
     if let Some(record) = procs.iter_mut().find(|r| r.process.pid == pid) {
         if let Some(ref mut space) = record.process.space {
-            return space.fault_in(addr);
+            let res = space.fault_in(addr);
+            if res {
+                crate::println!("[kernel-mmap] page paged in, pid={} user_frames={}", pid, space.user_frames.len());
+            }
+            return res;
         }
     }
     false
@@ -926,5 +930,6 @@ pub fn register_mmap(pid: u64, file_path: String, len: u64, flags: u64) -> Resul
         populated: alloc::collections::BTreeSet::new(),
     });
     
+    crate::println!("[kernel-mmap] mmap registered, pid={} user_frames={}", pid, space.user_frames.len());
     Ok(base)
 }
