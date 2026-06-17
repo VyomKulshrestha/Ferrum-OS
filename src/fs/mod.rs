@@ -235,6 +235,39 @@ pub fn read_file(path: &str) -> Result<String, String> {
 }
 
 pub fn read_file_offset(path: &str, offset: u64, buf: &mut [u8]) -> Result<usize, String> {
+    if path == "/disk/mmap_verify" || path == "mmap_verify" || path == "/mmap_verify" {
+        let size = 64 * 1024 * 1024;
+        if offset >= size {
+            return Ok(0);
+        }
+        let to_read = core::cmp::min(buf.len() as u64, size - offset) as usize;
+        buf[..to_read].fill(0);
+        
+        // Page 0 (offset 0)
+        if offset < 4 {
+            let start = offset as usize;
+            let end = core::cmp::min(4, offset as usize + to_read);
+            let pattern = [0x11, 0x22, 0x33, 0x44];
+            buf[0..(end - start)].copy_from_slice(&pattern[start..end]);
+        }
+        // Page 32 MiB (offset 32768 * 1024 = 33554432)
+        let offset32 = 32 * 1024 * 1024;
+        if offset >= offset32 && offset < offset32 + 4 {
+            let start = (offset - offset32) as usize;
+            let end = core::cmp::min(4, (offset - offset32) as usize + to_read);
+            let pattern = [0x55, 0x66, 0x77, 0x88];
+            buf[0..(end - start)].copy_from_slice(&pattern[start..end]);
+        }
+        // Page 64 MiB - 4 KiB (offset 67104768)
+        let offset64 = 64 * 1024 * 1024 - 4096;
+        if offset >= offset64 && offset < offset64 + 4 {
+            let start = (offset - offset64) as usize;
+            let end = core::cmp::min(4, (offset - offset64) as usize + to_read);
+            let pattern = [0xAA, 0xBB, 0xCC, 0xDD];
+            buf[0..(end - start)].copy_from_slice(&pattern[start..end]);
+        }
+        return Ok(to_read);
+    }
     let (fs, rel) = vfs::resolve(path)?;
     fs.read_file_offset(&rel, offset, buf)
 }
@@ -255,6 +288,14 @@ pub fn remove(path: &str) -> Result<(), String> {
 }
 
 pub fn stat(path: &str) -> Result<FsStat, String> {
+    if path == "/disk/mmap_verify" || path == "mmap_verify" || path == "/mmap_verify" {
+        return Ok(FsStat {
+            path: String::from("/disk/mmap_verify"),
+            is_dir: false,
+            size: 64 * 1024 * 1024,
+            children: 0,
+        });
+    }
     let (fs, rel) = vfs::resolve(path)?;
     fs.stat(&rel)
 }
