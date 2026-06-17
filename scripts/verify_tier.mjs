@@ -52,11 +52,13 @@ async function runScenario(memory, expectedTier, expectedProvider) {
   // We try launching with WHPX first
   const whpxArgs = [
     "-accel", "whpx,kernel-irqchip=off",
-    "-cpu", "host",
+    "-cpu", "Haswell",
     "-m", memory,
     "-drive", `format=raw,file=${image}`,
     "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
     "-serial", `file:${serialLog}`,
+    "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+    "-device", "rtl8139,netdev=net0",
     "-device", "intel-hda",
     "-device", "hda-duplex",
     "-no-reboot",
@@ -77,6 +79,8 @@ async function runScenario(memory, expectedTier, expectedProvider) {
       "-drive", `format=raw,file=${image}`,
       "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
       "-serial", `file:${serialLog}`,
+      "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+      "-device", "rtl8139,netdev=net0",
       "-device", "intel-hda",
       "-device", "hda-duplex",
       "-no-reboot",
@@ -109,6 +113,7 @@ async function runScenario(memory, expectedTier, expectedProvider) {
   // Connect to monitor and start ring3 init to spawn daemon
   const monitor = await connectMonitor();
   monitor.setEncoding("ascii");
+  await sleep(500);
   
   const mon = async (cmd) => {
     monitor.write(`${cmd}\n`);
@@ -126,12 +131,12 @@ async function runScenario(memory, expectedTier, expectedProvider) {
   };
 
   // Wait for prompt and boot into ring3
-  await waitForSerial("FerrumOS:~$", 15);
+  await waitForSerial("FerrumOS:~$", 35);
   await sendText("ring3 init");
   await sendKey("ret");
 
   // Wait for daemon startup and verify active provider log
-  await waitForSerial("[heliox-daemon] active provider:", 20);
+  await waitForSerial("[heliox-daemon] active provider:", 35);
   const daemonLog = serialText();
   
   const providerRegex = new RegExp(`active provider:\\s*${expectedProvider}`, "i");

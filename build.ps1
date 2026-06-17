@@ -26,7 +26,7 @@ function Launch-Qemu {
     Write-Host "Launching QEMU (Memory: $Memory)..." -ForegroundColor Cyan
     
     # Try launching with WHPX first
-    $whpx_args = @("-accel", "whpx,kernel-irqchip=off", "-cpu", "host") + $qemu_args
+    $whpx_args = @("-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell") + $qemu_args
     Write-Host "Running: qemu-system-x86_64 $($whpx_args -join ' ')" -ForegroundColor Gray
     
     # Run QEMU directly to keep stdin connected to the console

@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45470);
 const serialLog = path.join(repo, "target", "hud-verify-serial.log");
 const ppmDump = path.join(repo, "target", "hud_verify.ppm");
@@ -21,7 +24,12 @@ if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 try { fs.unlinkSync(ppmDump); } catch {}
 
-const qemuArgs = [
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const whpxArgs = [
+  "-accel", "whpx,kernel-irqchip=off",
+  "-cpu", "Haswell",
+  "-m", "4096M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -31,11 +39,32 @@ const qemuArgs = [
   "-device", "hda-duplex",
   "-no-reboot",
 ];
-if (!visible) qemuArgs.push("-display", "none");
+if (!visible) whpxArgs.push("-display", "none");
 
 console.log("[test] starting QEMU for HUD verification...");
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let qemuProcess = spawn(qemu, whpxArgs, { windowsHide: !visible });
+
+// Wait to see if it exits immediately (WHPX unsupported)
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("WHPX unsupported or failed, falling back to TCG...");
+  const tcgArgs = [
+    "-accel", "tcg",
+    "-cpu", "max",
+    "-m", "4096M",
+    "-drive", `format=raw,file=${image}`,
+    "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
+    "-serial", `file:${serialLog}`,
+    "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+    "-device", "rtl8139,netdev=net0",
+    "-device", "intel-hda",
+    "-device", "hda-duplex",
+    "-no-reboot",
+  ];
+  if (!visible) tcgArgs.push("-display", "none");
+  qemuProcess = spawn(qemu, tcgArgs, { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
