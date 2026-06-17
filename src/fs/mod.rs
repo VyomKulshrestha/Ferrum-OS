@@ -234,6 +234,11 @@ pub fn read_file(path: &str) -> Result<String, String> {
     fs.read_file(&rel)
 }
 
+pub fn read_file_offset(path: &str, offset: u64, buf: &mut [u8]) -> Result<usize, String> {
+    let (fs, rel) = vfs::resolve(path)?;
+    fs.read_file_offset(&rel, offset, buf)
+}
+
 pub fn create_file(path: &str, content: &str) -> Result<(), String> {
     let (fs, rel) = vfs::resolve(path)?;
     fs.create_file(&rel, content)

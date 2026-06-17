@@ -1021,6 +1021,52 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             .map_err(|_| String::from("file content is not valid UTF-8"))
     }
 
+    fn read_file_offset(&self, path: &str, offset: u64, buf: &mut [u8]) -> Result<usize, String> {
+        let inode_num = self.resolve_path(path)?;
+        let inode = self.read_inode(inode_num)?;
+        if (inode.mode & S_IFMT) != S_IFREG {
+            return Err(String::from("not a regular file"));
+        }
+
+        let size = if (inode.mode & S_IFMT) == S_IFREG {
+            let size_high = inode.dir_acl as u64;
+            inode.size as u64 | (size_high << 32)
+        } else {
+            inode.size as u64
+        };
+
+        if offset >= size {
+            return Ok(0);
+        }
+
+        let to_read_total = core::cmp::min(buf.len() as u64, size - offset) as usize;
+        let mut bytes_read = 0;
+        let block_size = self.block_size as u64;
+
+        let mut block_buf = vec![0u8; self.block_size as usize];
+        let inner = self.inner.lock();
+
+        while bytes_read < to_read_total {
+            let curr_offset = offset + bytes_read as u64;
+            let file_block = (curr_offset / block_size) as u32;
+            let block_offset = (curr_offset % block_size) as usize;
+
+            let phys_block = self.get_phys_block_inner(&inner, &inode, file_block)?;
+            let chunk_len = core::cmp::min(to_read_total - bytes_read, (block_size - block_offset as u64) as usize);
+
+            if phys_block == 0 {
+                buf[bytes_read..bytes_read + chunk_len].fill(0);
+            } else {
+                read_raw_block(&inner.device, self.block_size, phys_block, &mut block_buf)?;
+                buf[bytes_read..bytes_read + chunk_len].copy_from_slice(&block_buf[block_offset..block_offset + chunk_len]);
+            }
+
+            bytes_read += chunk_len;
+        }
+
+        Ok(bytes_read)
+    }
+
     fn create_file(&self, path: &str, content: &str) -> Result<(), String> {
         let (parent_path, file_name) = split_path(path)?;
         let parent_inode_num = self.resolve_path(&parent_path)?;

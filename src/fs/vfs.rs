@@ -25,6 +25,20 @@ pub trait Filesystem: Send + Sync {
     /// Read file content as string
     fn read_file(&self, path: &str) -> Result<String, String>;
 
+    /// Read file content at specific offset
+    fn read_file_offset(&self, path: &str, offset: u64, buf: &mut [u8]) -> Result<usize, String> {
+        let content = self.read_file(path)?;
+        let bytes = content.as_bytes();
+        if offset >= bytes.len() as u64 {
+            return Ok(0);
+        }
+        let start = offset as usize;
+        let end = core::cmp::min(bytes.len(), start + buf.len());
+        let len = end - start;
+        buf[..len].copy_from_slice(&bytes[start..end]);
+        Ok(len)
+    }
+
     /// Create/write a file
     fn create_file(&self, path: &str, content: &str) -> Result<(), String>;
 
