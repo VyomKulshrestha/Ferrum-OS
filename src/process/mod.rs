@@ -494,7 +494,8 @@ impl AddressSpace {
         let addr_val = addr.as_u64();
         let region_opt = self.mmap_regions.iter_mut().find(|r| {
             let base = r.base.as_u64();
-            addr_val >= base && addr_val < base + r.len
+            let aligned_len = align_up(r.len, Size4KiB::SIZE);
+            addr_val >= base && addr_val < base + aligned_len
         });
 
         let region = match region_opt {
@@ -565,6 +566,36 @@ impl Drop for AddressSpace {
         for frame in user_frames {
             crate::memory::deallocate_frame(frame);
         }
+
+        // Clean up intermediate user page tables under USER_P4_INDEX (index 1).
+        let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
+        let l4_table = unsafe { &mut *l4_virt.as_mut_ptr::<PageTable>() };
+        let l4_entry = &l4_table[USER_P4_INDEX];
+        if l4_entry.flags().contains(PageTableFlags::PRESENT) {
+            let l3_frame = PhysFrame::<Size4KiB>::containing_address(l4_entry.addr());
+            let l3_virt = crate::memory::phys_to_virt(l3_frame.start_address());
+            let l3_table = unsafe { &mut *l3_virt.as_mut_ptr::<PageTable>() };
+
+            for l3_idx in 0..512 {
+                let l3_entry = &l3_table[l3_idx];
+                if l3_entry.flags().contains(PageTableFlags::PRESENT) && !l3_entry.flags().contains(PageTableFlags::HUGE_PAGE) {
+                    let l2_frame = PhysFrame::<Size4KiB>::containing_address(l3_entry.addr());
+                    let l2_virt = crate::memory::phys_to_virt(l2_frame.start_address());
+                    let l2_table = unsafe { &mut *l2_virt.as_mut_ptr::<PageTable>() };
+
+                    for l2_idx in 0..512 {
+                        let l2_entry = &l2_table[l2_idx];
+                        if l2_entry.flags().contains(PageTableFlags::PRESENT) && !l2_entry.flags().contains(PageTableFlags::HUGE_PAGE) {
+                            let l1_frame = PhysFrame::<Size4KiB>::containing_address(l2_entry.addr());
+                            crate::memory::deallocate_frame(l1_frame);
+                        }
+                    }
+                    crate::memory::deallocate_frame(l2_frame);
+                }
+            }
+            crate::memory::deallocate_frame(l3_frame);
+        }
+
         crate::memory::deallocate_frame(self.l4_frame);
     }
 }
