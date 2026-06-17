@@ -109,8 +109,15 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         match ferrumos::fs::ext2::Ext2Fs::mount(block_dev) {
             Ok(ext2) => {
                 let fs = alloc::sync::Arc::new(ext2);
-                match ferrumos::fs::vfs::mount("/disk", fs, "ata.primary.master") {
-                    Ok(_) => println!("[  OK  ] Mounted ext2 filesystem at /disk"),
+                match ferrumos::fs::vfs::mount("/disk", fs.clone(), "ata.primary.master") {
+                    Ok(_) => {
+                        println!("[  OK  ] Mounted ext2 filesystem at /disk");
+                        if let Err(e) = fs.create_test_mmap_file("/mmap_verify") {
+                            println!("[ WARN ] Failed to create /disk/mmap_verify: {}", e);
+                        } else {
+                            println!("[  OK  ] Created /disk/mmap_verify (64 MiB test file)");
+                        }
+                    }
                     Err(e) => println!("[ WARN ] Failed to mount ext2 at /disk: {}", e),
                 }
             }

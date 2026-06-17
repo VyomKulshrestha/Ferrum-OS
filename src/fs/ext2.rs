@@ -297,6 +297,92 @@ impl<B: BlockDevice> Ext2Fs<B> {
         })
     }
 
+    /// Create a sparse 64 MiB test file with exactly 3 blocks populated with known data:
+    /// - Block 0 (offset 0)
+    /// - Block 32768 (offset 32 MiB)
+    /// - Block 65532 (offset 64 MiB - 4 KiB)
+    pub fn create_test_mmap_file(&self, path: &str) -> Result<(), String> {
+        let (parent_path, file_name) = split_path(path)?;
+        let parent_inode_num = self.resolve_path(&parent_path)?;
+
+        if self.resolve_path(path).is_ok() {
+            return Ok(()); // already exists
+        }
+
+        let new_inode_num = self.alloc_inode()?;
+
+        let blk0 = self.alloc_block()?;
+        let blk32 = self.alloc_block()?;
+        let blk64 = self.alloc_block()?;
+
+        let mut b0 = vec![0u8; self.block_size as usize];
+        let mut b32 = vec![0u8; self.block_size as usize];
+        let mut b64 = vec![0u8; self.block_size as usize];
+        b0[0..4].copy_from_slice(&[0x11, 0x22, 0x33, 0x44]);
+        b32[0..4].copy_from_slice(&[0x55, 0x66, 0x77, 0x88]);
+        b64[0..4].copy_from_slice(&[0xAA, 0xBB, 0xCC, 0xDD]);
+
+        self.write_block(blk0, &b0)?;
+        self.write_block(blk32, &b32)?;
+        self.write_block(blk64, &b64)?;
+
+        let mut inode = Inode {
+            mode: S_IFREG | 0o644,
+            uid: 0,
+            size: 64 * 1024 * 1024, // 64 MiB
+            atime: 0,
+            ctime: 0,
+            mtime: 0,
+            dtime: 0,
+            gid: 0,
+            links_count: 1,
+            blocks: (3 * self.block_size / 512) as u32,
+            flags: 0,
+            osd1: 0,
+            block: [0; 15],
+            generation: 0,
+            file_acl: 0,
+            dir_acl: 0,
+            faddr: 0,
+            osd2: [0; 12],
+        };
+
+        inode.block[0] = blk0;
+
+        let dib = self.alloc_block()?;
+        let mut dib_buf = vec![0u8; self.block_size as usize];
+        inode.block[13] = dib;
+
+        let sib1 = self.alloc_block()?;
+        let mut sib1_buf = vec![0u8; self.block_size as usize];
+
+        let sib2 = self.alloc_block()?;
+        let mut sib2_buf = vec![0u8; self.block_size as usize];
+
+        unsafe {
+            let dib_ptr = dib_buf.as_mut_ptr() as *mut u32;
+            let sib1_ptr = sib1_buf.as_mut_ptr() as *mut u32;
+            let sib2_ptr = sib2_buf.as_mut_ptr() as *mut u32;
+
+            core::ptr::write_unaligned(dib_ptr.add(126), sib1);
+            core::ptr::write_unaligned(sib1_ptr.add(244), blk32);
+
+            core::ptr::write_unaligned(dib_ptr.add(254), sib2);
+            core::ptr::write_unaligned(sib2_ptr.add(240), blk64);
+        }
+
+        self.write_block(dib, &dib_buf)?;
+        self.write_block(sib1, &sib1_buf)?;
+        self.write_block(sib2, &sib2_buf)?;
+
+        self.write_inode(new_inode_num, &inode)?;
+
+        self.add_dir_entry(parent_inode_num, &file_name, new_inode_num, FT_REG_FILE)?;
+        self.write_metadata()?;
+
+        Ok(())
+    }
+
     /// Read an ext2 block using the filesystem's block size.
     pub fn read_block(&self, block: u32, buf: &mut [u8]) -> Result<(), String> {
         let inner = self.inner.lock();

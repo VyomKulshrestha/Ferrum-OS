@@ -149,6 +149,113 @@ fn check_and_trigger_net_test() {
     }
 }
 
+fn check_and_trigger_mmap_test() {
+    let test_file = "/tmp/mmap_test";
+    let mut buf = [0u8; 64];
+    let res = unsafe {
+        syscall4(
+            SYS_READ_FILE,
+            test_file.as_ptr() as u64,
+            test_file.len() as u64,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    if (res as i64) > 0 {
+        // Delete the file so it doesn't loop
+        unsafe {
+            syscall3(SYS_DELETE_FILE, test_file.as_ptr() as u64, test_file.len() as u64, 0);
+        }
+        
+        let path = "/disk/mmap_verify";
+        let mmap_msg = "[heliox-daemon] running mmap test...\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, mmap_msg.as_ptr() as u64, mmap_msg.len() as u64);
+        }
+
+        const SYS_MMAP: u64 = 41;
+        let vaddr = unsafe {
+            syscall4(
+                SYS_MMAP,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                64 * 1024 * 1024, // 64 MiB
+                0, // flags
+            )
+        };
+
+        if (vaddr as i64) < 0 {
+            let err_msg = alloc::format!("[heliox-daemon] mmap failed: {}\n", vaddr as i64);
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
+                syscall3(SYS_EXIT, 1, 0, 0);
+            }
+        }
+
+        let success_msg = alloc::format!("[heliox-daemon] mmap success, base=0x{:x}\n", vaddr);
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, success_msg.as_ptr() as u64, success_msg.len() as u64);
+        }
+
+        let ready_msg = "[heliox-daemon] ready for initial frame check\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, ready_msg.as_ptr() as u64, ready_msg.len() as u64);
+        }
+
+        // Sleep 1 second to give the monitor time to run `process`
+        unsafe {
+            syscall3(SYS_SLEEP, 1000, 0, 0);
+        }
+
+        // Touch first page (offset 0)
+        let ptr = vaddr as *const u8;
+        let val1_0 = unsafe { *ptr.add(0) };
+        let val1_1 = unsafe { *ptr.add(1) };
+        let val1_2 = unsafe { *ptr.add(2) };
+        let val1_3 = unsafe { *ptr.add(3) };
+
+        // Touch middle page (offset 32 MiB)
+        let val2_0 = unsafe { *ptr.add(32 * 1024 * 1024 + 0) };
+        let val2_1 = unsafe { *ptr.add(32 * 1024 * 1024 + 1) };
+        let val2_2 = unsafe { *ptr.add(32 * 1024 * 1024 + 2) };
+        let val2_3 = unsafe { *ptr.add(32 * 1024 * 1024 + 3) };
+
+        // Touch last page (offset 64 MiB - 4 KiB)
+        let val3_0 = unsafe { *ptr.add(64 * 1024 * 1024 - 4096 + 0) };
+        let val3_1 = unsafe { *ptr.add(64 * 1024 * 1024 - 4096 + 1) };
+        let val3_2 = unsafe { *ptr.add(64 * 1024 * 1024 - 4096 + 2) };
+        let val3_3 = unsafe { *ptr.add(64 * 1024 * 1024 - 4096 + 3) };
+
+        let match1 = val1_0 == 0x11 && val1_1 == 0x22 && val1_2 == 0x33 && val1_3 == 0x44;
+        let match2 = val2_0 == 0x55 && val2_1 == 0x66 && val2_2 == 0x77 && val2_3 == 0x88;
+        let match3 = val3_0 == 0xAA && val3_1 == 0xBB && val3_2 == 0xCC && val3_3 == 0xDD;
+
+        let result_msg = alloc::format!(
+            "[heliox-daemon] mmap bytes: p1={:x}{:x}{:x}{:x} p2={:x}{:x}{:x}{:x} p3={:x}{:x}{:x}{:x}\n",
+            val1_0, val1_1, val1_2, val1_3,
+            val2_0, val2_1, val2_2, val2_3,
+            val3_0, val3_1, val3_2, val3_3
+        );
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, result_msg.as_ptr() as u64, result_msg.len() as u64);
+        }
+
+        if match1 && match2 && match3 {
+            let match_msg = "[heliox-daemon] mmap validation success: bytes match!\n";
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, match_msg.as_ptr() as u64, match_msg.len() as u64);
+                syscall3(SYS_EXIT, 0, 0, 0);
+            }
+        } else {
+            let mismatch_msg = "[heliox-daemon] mmap validation failed: bytes mismatch!\n";
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, mismatch_msg.as_ptr() as u64, mismatch_msg.len() as u64);
+                syscall3(SYS_EXIT, 1, 0, 0);
+            }
+        }
+    }
+}
+
 const SYS_ACCEPT: u64 = 10;
 
 fn init_server_socket() -> Result<u64, &'static str> {
@@ -198,6 +305,9 @@ pub extern "C" fn _start() -> ! {
 
     // Check for network test trigger
     check_and_trigger_net_test();
+
+    // Check for mmap test trigger
+    check_and_trigger_mmap_test();
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
