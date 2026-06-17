@@ -244,12 +244,14 @@ fn check_and_trigger_mmap_test() {
             let match_msg = "[heliox-daemon] mmap validation success: bytes match!\n";
             unsafe {
                 syscall3(SYS_WRITE, FD_CONSOLE, match_msg.as_ptr() as u64, match_msg.len() as u64);
+                syscall3(SYS_SLEEP, 2000, 0, 0);
                 syscall3(SYS_EXIT, 0, 0, 0);
             }
         } else {
             let mismatch_msg = "[heliox-daemon] mmap validation failed: bytes mismatch!\n";
             unsafe {
                 syscall3(SYS_WRITE, FD_CONSOLE, mismatch_msg.as_ptr() as u64, mismatch_msg.len() as u64);
+                syscall3(SYS_SLEEP, 2000, 0, 0);
                 syscall3(SYS_EXIT, 1, 0, 0);
             }
         }
