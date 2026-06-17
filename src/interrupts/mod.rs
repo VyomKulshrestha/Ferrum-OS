@@ -188,11 +188,22 @@ extern "x86-interrupt" fn page_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode,
 ) {
+    use x86_64::registers::control::Cr2;
+    if let Ok(cr2_addr) = Cr2::read() {
+        let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+        if pid != 0 {
+            if crate::process::fault_in_page(pid, cr2_addr) {
+                unsafe {
+                    x86_64::instructions::tlb::flush(cr2_addr);
+                }
+                return;
+            }
+        }
+    }
+
     if handle_userspace_fault("Page Fault", &stack_frame) {
         return;
     }
-
-    use x86_64::registers::control::Cr2;
 
     println!("[EXCEPTION] Page Fault");
     println!("  Accessed Address: {:?}", Cr2::read());

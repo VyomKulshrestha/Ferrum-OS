@@ -72,6 +72,16 @@ fn in_user_region(vaddr: u64, len: u64) -> bool {
 /// Persistent PID 1 supervisor for runtime services
 pub mod supervisor;
 
+#[derive(Clone, Debug)]
+pub struct MmapRegion {
+    pub base: VirtAddr,
+    pub len: u64,
+    pub file_path: String,
+    pub file_offset: u64,
+    pub flags: u64,
+    pub populated: alloc::collections::BTreeSet<u64>, // relative offsets of populated pages
+}
+
 /// A self-contained per-process P4 page table.
 ///
 /// The struct holds the physical frame of the L4 table and bookkeeping
@@ -86,6 +96,7 @@ pub struct AddressSpace {
     /// Pages the user has mapped (vaddr -> length). Used to answer shell
     /// introspection and to make `Drop` idempotent.
     user_mappings: Vec<(VirtAddr, u64)>,
+    pub mmap_regions: Vec<MmapRegion>,
 }
 
 /// User-process handle. Owns its `AddressSpace`, a dedicated kernel
@@ -301,6 +312,7 @@ impl AddressSpace {
             l4_frame,
             user_frames: Vec::new(),
             user_mappings: Vec::new(),
+            mmap_regions: Vec::new(),
         })
     }
 
@@ -436,6 +448,112 @@ impl AddressSpace {
             *base != vaddr || *size != len_aligned
         });
         Ok(())
+    }
+
+    pub fn find_free_vaddr(&self, len: u64) -> Option<VirtAddr> {
+        let len_aligned = align_up(len, Size4KiB::SIZE);
+        let mut candidate = 0x80_4000_0000u64;
+
+        while candidate + len_aligned <= 0x80_7000_0000 {
+            let mut overlap = false;
+
+            // Check program/stack mappings
+            for (base, size) in &self.user_mappings {
+                let start = base.as_u64();
+                let end = start + size;
+                if candidate < end && candidate + len_aligned > start {
+                    overlap = true;
+                    candidate = align_up(end, Size4KiB::SIZE);
+                    break;
+                }
+            }
+            if overlap {
+                continue;
+            }
+
+            // Check existing mmap regions
+            for region in &self.mmap_regions {
+                let start = region.base.as_u64();
+                let end = start + region.len;
+                if candidate < end && candidate + len_aligned > start {
+                    overlap = true;
+                    candidate = align_up(end, Size4KiB::SIZE);
+                    break;
+                }
+            }
+            if overlap {
+                continue;
+            }
+
+            return Some(VirtAddr::new(candidate));
+        }
+        None
+    }
+
+    pub fn fault_in(&mut self, addr: VirtAddr) -> bool {
+        let addr_val = addr.as_u64();
+        let region_opt = self.mmap_regions.iter_mut().find(|r| {
+            let base = r.base.as_u64();
+            addr_val >= base && addr_val < base + r.len
+        });
+
+        let region = match region_opt {
+            Some(r) => r,
+            None => return false,
+        };
+
+        let page_base = addr_val & !(Size4KiB::SIZE - 1);
+        let rel_offset = page_base - region.base.as_u64();
+
+        if region.populated.contains(&rel_offset) {
+            return true;
+        }
+
+        let mut allocator = GlobalFrameSource::new();
+        let frame = match allocator.allocate_frame() {
+            Some(f) => f,
+            None => return false,
+        };
+
+        let page_virt = crate::memory::phys_to_virt(frame.start_address());
+        unsafe {
+            core::ptr::write_bytes(page_virt.as_mut_ptr::<u8>(), 0u8, Size4KiB::SIZE as usize);
+        }
+
+        let file_path = region.file_path.clone();
+        let read_offset = region.file_offset + rel_offset;
+
+        let buf = unsafe { core::slice::from_raw_parts_mut(page_virt.as_mut_ptr::<u8>(), Size4KiB::SIZE as usize) };
+        match crate::fs::read_file_offset(&file_path, read_offset, buf) {
+            Ok(_) => {}
+            Err(_) => {
+                crate::memory::deallocate_frame(frame);
+                return false;
+            }
+        }
+
+        let page = Page::containing_address(VirtAddr::new(page_base));
+        let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
+        let l4_table = unsafe { &mut *l4_virt.as_mut_ptr::<PageTable>() };
+        let mut mapper = unsafe { OffsetPageTable::new(l4_table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
+
+        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
+
+        unsafe {
+            match mapper.map_to(page, frame, flags, &mut allocator) {
+                Ok(tlb) => {
+                    tlb.flush();
+                }
+                Err(_) => {
+                    crate::memory::deallocate_frame(frame);
+                    return false;
+                }
+            }
+        }
+
+        self.user_frames.push(frame);
+        region.populated.insert(rel_offset);
+        true
     }
 }
 
@@ -659,12 +777,23 @@ pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
     };
     let name = name.unwrap_or_else(|| alloc::format!("user-{}", pid));
 
-    let (kernel_rsp, user_rsp, entry, l4_frame) = match take_for_entry(pid) {
-        Some(parts) => parts,
-        None => {
+    let (kernel_rsp, user_rsp, entry, l4_frame) = {
+        let procs = PROCESSES.lock();
+        let record = match procs.iter().find(|r| r.process.pid == pid) {
+            Some(r) => r,
+            None => {
+                crate::println!("ring3: pid {} is not loaded", pid);
+                return;
+            }
+        };
+        if !record.process.is_loaded() {
             crate::println!("ring3: pid {} is not loaded", pid);
             return;
         }
+        let l4 = record.process.space.as_ref()
+            .map(|s| s.l4_frame())
+            .unwrap_or_else(crate::memory::active_p4_frame);
+        (record.process.kernel_stack_top, record.process.user_stack_top, record.process.entry, l4)
     };
 
     let requested_caps = crate::userspace::capabilities_for_program(&name);
@@ -770,4 +899,14 @@ fn enter_ring3_inner(
             options(noreturn, preserves_flags),
         );
     }
+}
+
+pub fn fault_in_page(pid: u64, addr: VirtAddr) -> bool {
+    let mut procs = PROCESSES.lock();
+    if let Some(record) = procs.iter_mut().find(|r| r.process.pid == pid) {
+        if let Some(ref mut space) = record.process.space {
+            return space.fault_in(addr);
+        }
+    }
+    false
 }
