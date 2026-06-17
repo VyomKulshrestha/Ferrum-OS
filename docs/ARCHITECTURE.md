@@ -7,7 +7,7 @@
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
 3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   tools translate to real kernel syscalls (39 total, IDs 0–38).
+   tools translate to real kernel syscalls (42 total, IDs 0–41).
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
 5. **Hardware first** — an agentic OS needs real drivers, not stubs.
@@ -65,6 +65,7 @@ and can evolve without destabilizing the kernel.
 - 4-level page tables with mapper
 - Kernel heap: 12 MiB, bump allocator with linked-list fallback
 - DMA: `allocate_contiguous_frames(n)` for NIC TX/RX and HDA BDL buffers
+- Demand paging: Page-fault handler resolved via on-demand file block reads from Ext2/VFS for memory-mapped files (`mmap`)
 
 ### Scheduler
 
@@ -75,7 +76,7 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-39 syscalls (IDs 0–38) dispatched via `int 0x80`:
+42 syscalls (IDs 0–41) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
@@ -83,7 +84,8 @@ and can evolve without destabilizing the kernel.
 - Security: CapCheck(5), AuditWrite(6)
 - Network: Socket(7), Bind(8), Listen(9), Accept(10), Recv(11), Send(12), Connect(14), Close(35)
 - Filesystem: ReadFile(15), WriteFile(16), ReadDir(17), CreateDir(21), DeleteFile(22)
-- Graphics: ReadFbInfo(19), ReadTextBuffer(20)
+- Memory: Mmap(41)
+- Graphics: ReadFbInfo(19), ReadTextBuffer(20), HudUpdate(39), HitTest(40)
 - Audio: PlayAudio(23), RecordAudio(24), SetVolume(25)
 - Input: InjectKey(26), InjectMouse(27), PollInput(28)
 - Camera: ReadCameraFrame(36), CameraInfo(37)

@@ -17,7 +17,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Preemptive task scheduler with per-task context switching and priority queues
 - Interactive shell with 35+ commands including `dashboard`
 - SMP initialization, ACPI shutdown/reboot
-- Real userspace execution: ELF loader, Ring-3 entry, per-process address spaces
+- Real userspace execution: ELF loader, Ring-3 entry, per-process address spaces, on-demand page-fault lazy allocation, and file-backed memory mapping (`mmap`)
 
 ### Graphical Desktop Environment (GUI)
 - Custom Compositor and Window Manager
@@ -222,6 +222,9 @@ Or use the build script:
 | 36 | ReadCameraFrame | Read a YUYV frame from the camera driver |
 | 37 | CameraInfo | Get camera details (width, height, status) |
 | 38 | Kexec | Gated warm reboot/relocation to new kernel image |
+| 39 | HudUpdate | Update HUD suggestion overlay |
+| 40 | HitTest | Perform a visual element hit-test |
+| 41 | Mmap | Memory map a file |
 
 ## Agent Tools (39 total)
 
