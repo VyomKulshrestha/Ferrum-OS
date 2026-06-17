@@ -115,6 +115,7 @@ pub fn init() {
             String::from("cap:confirmation:bypass"),
             String::from("cap:system:kexec"),
             String::from("cap:hud:overlay"),
+            String::from("cap:mem:mmap"),
         ],
     ));
 }

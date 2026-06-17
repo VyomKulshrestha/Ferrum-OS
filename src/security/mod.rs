@@ -63,6 +63,7 @@ pub fn init() {
         ("cap:confirmation:bypass", "Confirmation Gating Bypass", "confirmation:bypass:*", true),
         ("cap:system:kexec", "Kernel Hot-Reload Execution", "system:kexec", true),
         ("cap:hud:overlay", "HUD Overlay Access", "hud:*", true),
+        ("cap:mem:mmap", "Memory Map File", "memory:mmap:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {
