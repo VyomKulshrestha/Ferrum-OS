@@ -62,6 +62,7 @@ pub enum SyscallNumber {
     Kexec = 38,
     HudUpdate = 39,
     HitTest = 40,
+    Mmap = 41,
 }
 
 /// Syscall return status.
@@ -108,6 +109,7 @@ pub mod query;
 pub mod camera;
 pub mod kexec;
 pub mod hud;
+pub mod mmap;
 
 use alloc::string::String;
 
@@ -494,6 +496,13 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             hud::sys_hit_test(args)
+        }
+        x if x == SyscallNumber::Mmap as u64 => {
+            if !crate::security::has_capability(held_capabilities, "memory:mmap:*") &&
+               !crate::security::has_capability(held_capabilities, "memory:alloc:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            mmap::sys_mmap(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

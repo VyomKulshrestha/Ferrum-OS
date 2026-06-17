@@ -910,3 +910,21 @@ pub fn fault_in_page(pid: u64, addr: VirtAddr) -> bool {
     }
     false
 }
+
+pub fn register_mmap(pid: u64, file_path: String, len: u64, flags: u64) -> Result<VirtAddr, &'static str> {
+    let mut procs = PROCESSES.lock();
+    let record = procs.iter_mut().find(|r| r.process.pid == pid).ok_or("process not found")?;
+    let space = record.process.space.as_mut().ok_or("process has no address space")?;
+    
+    let base = space.find_free_vaddr(len).ok_or("no free virtual address range")?;
+    space.mmap_regions.push(MmapRegion {
+        base,
+        len,
+        file_path,
+        file_offset: 0,
+        flags,
+        populated: alloc::collections::BTreeSet::new(),
+    });
+    
+    Ok(base)
+}
