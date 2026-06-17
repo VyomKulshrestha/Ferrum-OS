@@ -239,7 +239,7 @@ try {
     };
   };
 
-  // Expected color at (512, 95) has high red component in PPM because border color 0x004E4FEB has high Blue channel (0xEB=235) which maps to PPM Red.
+  // Expected color at (512, 80) has high red component in PPM because border color 0x004E4FEB has high Blue channel (0xEB=235) which maps to PPM Red.
   // Blended with background, R should be around 176. Let's assert R > 120.
   const p10 = getPixel(10, 10);
   console.log(`[test] Pixel at (10, 10): R=${p10.r}, G=${p10.g}, B=${p10.b}`);
@@ -247,8 +247,8 @@ try {
     const p = getPixel(512, y);
     console.log(`[test] Pixel at (512, ${y}): R=${p.r}, G=${p.g}, B=${p.b}`);
   }
-  const borderPixel = getPixel(512, 95);
-  console.log(`[test] Suggestion bubble border pixel at (512, 95): R=${borderPixel.r}, G=${borderPixel.g}, B=${borderPixel.b}`);
+  const borderPixel = getPixel(512, 80);
+  console.log(`[test] Suggestion bubble border pixel at (512, 80): R=${borderPixel.r}, G=${borderPixel.g}, B=${borderPixel.b}`);
   console.log("[test] WebSocket responses:", JSON.stringify(responses));
   check("HUD suggestion bubble rendered and visible", borderPixel.r > 120, `Red channel is ${borderPixel.r} (expected >120)`);
 

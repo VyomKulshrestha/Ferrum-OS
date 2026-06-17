@@ -40,7 +40,6 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     let ptr = args[0];
     let len = args[1];
     let size = core::mem::size_of::<HudState>();
-    crate::serial_println!("SYS_HUD_UPDATE: ptr=0x{:X}, len={}, size_of={}", ptr, len, size);
     if len as usize != size {
         crate::serial_println!("SYS_HUD_UPDATE: Invalid size");
         return SyscallResult::err(SyscallStatus::InvalidArgument);
@@ -58,16 +57,35 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
         unsafe {
             core::ptr::copy_nonoverlapping(bytes.as_ptr(), &mut *state as *mut HudState as *mut u8, size);
         }
-        crate::serial_println!("SYS_HUD_UPDATE: copied state, flags={}, visible={}", state.flags, (state.flags & 1) != 0);
     }
     
-    // Set needs_redraw to animate the HUD waveform/overlay
+    // Set needs_redraw to animate the HUD waveform/overlay.
+    // The main GUI loop will perform the redraw and buffer swap on the next frame tick,
+    // which prevents CPU thrashing and screen shaking.
     crate::gui::compositor::COMPOSITOR.lock().needs_redraw = true;
     
-    // Render and swap buffers immediately to update screen in headless test modes
-    crate::gui::compositor::render();
-    if let Some(fb) = crate::devices::vga_fb::FRAMEBUFFER.lock().as_ref() {
-        fb.swap_buffers();
+    // Render and swap buffers immediately to update screen in headless test modes (where desktop is inactive).
+    // To prevent screen shaking (flicker), we ensure double buffering is initialized and active.
+    // We also process input events and draw the mouse cursor so that the cursor is visible.
+    if !crate::gui::is_active() {
+        {
+            let mut fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
+            if let Some(fb) = fb_guard.as_mut() {
+                fb.init_back_buffer();
+            }
+        }
+        
+        crate::gui::cursor::process_input();
+        crate::gui::compositor::render();
+        crate::gui::cursor::save_and_draw();
+        crate::gui::cursor::CURSOR.lock().dirty = false;
+        
+        {
+            let fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
+            if let Some(fb) = fb_guard.as_ref() {
+                fb.swap_buffers();
+            }
+        }
     }
     
     SyscallResult::ok(size as u64)
