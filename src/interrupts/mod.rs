@@ -192,11 +192,13 @@ extern "x86-interrupt" fn page_fault_handler(
     if let Ok(cr2_addr) = Cr2::read() {
         let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
         if pid != 0 {
-            if crate::process::fault_in_page(pid, cr2_addr) {
-                unsafe {
+            // Only attempt to resolve the fault if it was caused by a non-present page,
+            // not a protection violation (e.g. write to a read-only page table mapping).
+            if !error_code.contains(PageFaultErrorCode::PROTECTION_VIOLATION) {
+                if crate::process::fault_in_page(pid, cr2_addr) {
                     x86_64::instructions::tlb::flush(cr2_addr);
+                    return;
                 }
-                return;
             }
         }
     }
