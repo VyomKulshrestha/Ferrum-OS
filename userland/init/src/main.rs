@@ -389,6 +389,73 @@ pub extern "C" fn _start() -> ! {
                 unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
             }
         }
+    } else if test_mode == b'4' {
+        if pid == 2 {
+            write("[test] --- Phase H3 Verification Suite ---\n");
+
+            let res_dir1 = unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/heliox".as_ptr() as u64, "/disk/heliox".len() as u64, 0)
+            };
+            write_num("[test] create /disk/heliox res: ", res_dir1 as i64, "\n");
+
+            let res_dir2 = unsafe {
+                syscall3(SYS_CREATE_DIR, "/disk/heliox/models".as_ptr() as u64, "/disk/heliox/models".len() as u64, 0)
+            };
+            write_num("[test] create /disk/heliox/models res: ", res_dir2 as i64, "\n");
+
+            const MOCK_MODEL: &[u8] = include_bytes!("../fixtures/stories15M-q8.bin");
+            const MOCK_TOKENIZER: &[u8] = include_bytes!("../fixtures/tokenizer.bin");
+
+            let res_write1 = unsafe {
+                syscall4(
+                    SYS_WRITE_FILE,
+                    "/disk/heliox/models/stories15M-q8.bin".as_ptr() as u64,
+                    "/disk/heliox/models/stories15M-q8.bin".len() as u64,
+                    MOCK_MODEL.as_ptr() as u64,
+                    MOCK_MODEL.len() as u64,
+                )
+            };
+            write_num("[test] write /disk/heliox/models/stories15M-q8.bin res: ", res_write1 as i64, "\n");
+
+            let res_write2 = unsafe {
+                syscall4(
+                    SYS_WRITE_FILE,
+                    "/disk/heliox/tokenizer.bin".as_ptr() as u64,
+                    "/disk/heliox/tokenizer.bin".len() as u64,
+                    MOCK_TOKENIZER.as_ptr() as u64,
+                    MOCK_TOKENIZER.len() as u64,
+                )
+            };
+            write_num("[test] write /disk/heliox/tokenizer.bin res: ", res_write2 as i64, "\n");
+
+            write("[test] Local offline inference setup complete\n");
+
+            write("[test] Spawning heliox-daemon...\n");
+            let path = "/bin/heliox-daemon";
+            let daemon_pid = unsafe {
+                syscall3(
+                    SYS_EXEC,
+                    path.as_ptr() as u64,
+                    path.len() as u64,
+                    0,
+                )
+            };
+            if (daemon_pid as i64) < 0 {
+                write("[test] Failed to spawn heliox-daemon!\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            } else {
+                write("[test] Spawned heliox-daemon successfully. Monitoring...\n");
+                loop {
+                    let status = unsafe { syscall3(SYS_WAITPID, daemon_pid, 0, 0) };
+                    if (status as i64) >= 0 {
+                        break;
+                    }
+                    sleep(100);
+                }
+                write("[test] heliox-daemon exited, ending test suite\n");
+                unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+            }
+        }
     } else {
         let path = "/bin/heliox-daemon";
         loop {
