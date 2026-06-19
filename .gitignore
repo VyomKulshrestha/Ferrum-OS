@@ -14,3 +14,9 @@
 docs/ROADMAP.md
 REPORT.md
 
+# Ignore custom certificate keys and intermediate files
+userland/heliox-daemon/certs/*.key
+userland/heliox-daemon/certs/*.pem
+userland/heliox-daemon/certs/*.csr
+userland/heliox-daemon/certs/*.srl
+userland/heliox-daemon/certs/*.ext
