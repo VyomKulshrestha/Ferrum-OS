@@ -164,22 +164,44 @@ pub fn init() {
     x86_64::instructions::interrupts::enable();
 }
 
-/// Enable SSE extensions in CPU control registers (CR0 and CR4).
+/// Enable SSE and AVX extensions in CPU control registers if supported.
 /// This enables legacy FPU, SSE registers, FXSAVE/FXRSTOR support,
-/// and SIMD floating-point exceptions.
+/// and AVX register state management.
 pub unsafe fn enable_sse_extensions() {
+    // 1. Enable legacy FPU & SSE in CR0 by clearing EM and setting MP
     core::arch::asm!(
-        // 1. Enable legacy FPU & SSE in CR0 by clearing EM and setting MP
         "mov rax, cr0",
         "and ax, 0xFFFB", // clear EM (bit 2)
         "or ax, 0x0002",  // set MP (bit 1)
         "mov cr0, rax",
-        // 2. Enable FXSAVE/FXRSTOR and SIMD exceptions in CR4
+        out("rax") _,
+    );
+
+    // 2. Enable FXSAVE/FXRSTOR and SIMD exceptions in CR4
+    core::arch::asm!(
         "mov rax, cr4",
         "or eax, 0x600",  // set OSFXSR (bit 9) and OSXMMEXCPT (bit 10)
         "mov cr4, rax",
         out("rax") _,
     );
+
+    // 3. Enable AVX if supported by the hardware
+    let cpuid_1 = core::arch::x86_64::__cpuid(1);
+    let avx_supported = (cpuid_1.ecx & (1 << 28)) != 0;
+    if avx_supported {
+        core::arch::asm!(
+            "mov rax, cr4",
+            "or eax, 1 << 18", // OSXSAVE (bit 18)
+            "mov cr4, rax",
+            "xor ecx, ecx",    // XCR0 index
+            "xgetbv",          // read XCR0
+            "or eax, 0x6",     // SSE (bit 1) & AVX (bit 2)
+            "xsetbv",          // write back to XCR0
+            out("rax") _,
+            out("rcx") _,
+            out("rdx") _,
+        );
+    }
 }
 
 
