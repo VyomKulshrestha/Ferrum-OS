@@ -407,26 +407,37 @@ impl Orchestrator {
         
         self.emit_telemetry(TelemetryEventKind::ThinkStart, format!("Prompt generated ({} bytes)", prompt.len()));
 
-        // Use config-driven LLM endpoint instead of hardcoded values
-        match network::query_llm(
-            &self.config.provider,
-            &prompt,
-            &self.config.api_host,
-            self.config.api_port,
-            &self.config.api_path,
-            &self.config.model_name,
-            &self.config.api_key,
-        ) {
-            Ok(response) => {
-                if response.status_code == 200 {
-                    self.last_response = Some(response.body.clone());
-                    self.emit_telemetry(TelemetryEventKind::ThinkComplete, format!("Response received ({} bytes)", response.body.len()));
-                    Some(response.body)
-                } else {
-                    None
+        if self.config.provider.starts_with("local") {
+            match crate::cognitive::inference::run_local_inference(&prompt) {
+                Ok(res) => {
+                    self.last_response = Some(res.clone());
+                    self.emit_telemetry(TelemetryEventKind::ThinkComplete, format!("Local response generated ({} bytes)", res.len()));
+                    let json_res = format!(r#"{{"response":"{}"}}"#, res);
+                    Some(json_res)
                 }
+                Err(_) => None,
             }
-            Err(_) => None,
+        } else {
+            match network::query_llm(
+                &self.config.provider,
+                &prompt,
+                &self.config.api_host,
+                self.config.api_port,
+                &self.config.api_path,
+                &self.config.model_name,
+                &self.config.api_key,
+            ) {
+                Ok(response) => {
+                    if response.status_code == 200 {
+                        self.last_response = Some(response.body.clone());
+                        self.emit_telemetry(TelemetryEventKind::ThinkComplete, format!("Response received ({} bytes)", response.body.len()));
+                        Some(response.body)
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
+            }
         }
     }
 
