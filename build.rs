@@ -109,7 +109,26 @@ fn main() {
             }
         }
 
-        let cflags = format!("-I{}", ucrt_junction.to_str().unwrap());
+        let msvc_junction = PathBuf::from(&manifest_dir).join("target/msvc");
+        if !msvc_junction.exists() {
+            if let Some(msvc_dir) = find_msvc_include() {
+                let _ = Command::new("cmd")
+                    .args(&[
+                        "/c",
+                        "mklink",
+                        "/j",
+                        msvc_junction.to_str().unwrap(),
+                        msvc_dir.to_str().unwrap(),
+                    ])
+                    .status();
+            }
+        }
+
+        let cflags = format!(
+            "-I{} -I{}",
+            ucrt_junction.to_str().unwrap(),
+            msvc_junction.to_str().unwrap()
+        );
 
         let daemon_status = Command::new(&cargo)
             .arg("build")
@@ -141,5 +160,33 @@ fn main() {
     // binary ever links outside the user region, the kernel ELF loader
     // rejects it at load time (see `process::AddressSpace`), which surfaces
     // the misconfiguration loudly instead of silently corrupting memory.
+}
+
+fn find_msvc_include() -> Option<PathBuf> {
+    let base = PathBuf::from("C:\\Program Files\\Microsoft Visual Studio\\2022");
+    if !base.exists() {
+        return None;
+    }
+    if let Ok(entries) = std::fs::read_dir(&base) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let msvc_dir = entry.path().join("VC/Tools/MSVC");
+            if msvc_dir.exists() {
+                if let Ok(subentries) = std::fs::read_dir(&msvc_dir) {
+                    let mut versions: Vec<PathBuf> = subentries
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.path())
+                        .collect();
+                    versions.sort();
+                    if let Some(latest) = versions.last() {
+                        let inc_dir = latest.join("include");
+                        if inc_dir.exists() {
+                            return Some(inc_dir);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
