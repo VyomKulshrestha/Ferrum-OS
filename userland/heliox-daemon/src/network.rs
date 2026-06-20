@@ -10,6 +10,12 @@ use alloc::vec::Vec;
 use alloc::format;
 use core::arch::asm;
 
+use rand_core::{RngCore, CryptoRng};
+use embedded_io::{Read, Write, ErrorKind};
+use embedded_tls::blocking::{TlsConnection, TlsConfig, TlsContext};
+use embedded_tls::webpki::CertVerifier;
+use embedded_tls::{Aes128GcmSha256, Certificate, TlsClock};
+
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
 const SYS_SOCKET: u64 = 7;
 const SYS_BIND: u64 = 8;
@@ -20,6 +26,125 @@ const SYS_CONNECT: u64 = 14;
 const SYS_CLOSE: u64 = 35;
 const SYS_READ_CAMERA_FRAME: u64 = 36;
 const SYS_CAMERA_INFO: u64 = 37;
+const SYS_GET_RANDOM: u64 = 42;
+const SYS_GET_TIME: u64 = 43;
+
+// ---- Bundled CA Roots ------------------------------------------------------
+static ISRG_ROOT_X1: &[u8] = include_bytes!("../certs/isrg_root_x1.der");
+static GTS_ROOT_R1: &[u8] = include_bytes!("../certs/gts_root_r1.der");
+static GTS_ROOT_R4: &[u8] = include_bytes!("../certs/gts_root_r4.der");
+static GLOBALSIGN_ROOT_CA: &[u8] = include_bytes!("../certs/globalsign_root_ca.der");
+static DIGICERT_GLOBAL_ROOT_G2: &[u8] = include_bytes!("../certs/digicert_global_root_g2.der");
+static BALTIMORE_CYTRUST_ROOT: &[u8] = include_bytes!("../certs/baltimore_cybertrust_root.der");
+static AMAZON_ROOT_CA1: &[u8] = include_bytes!("../certs/amazon_root_ca1.der");
+static TEST_CA: &[u8] = include_bytes!("../certs/test_ca.der");
+
+pub fn get_ca_for_host(host: &str) -> &'static [u8] {
+    match host {
+        "127.0.0.1" | "localhost" | "10.0.2.2" => TEST_CA,
+        "api.openai.com" | "api.anthropic.com" => GTS_ROOT_R4,
+        "generativelanguage.googleapis.com" => GTS_ROOT_R1,
+        _ => {
+            if host.contains("openai.azure.com") {
+                BALTIMORE_CYTRUST_ROOT
+            } else if host.contains("amazonaws.com") {
+                AMAZON_ROOT_CA1
+            } else {
+                ISRG_ROOT_X1
+            }
+        }
+    }
+}
+
+// ---- Clock implementation --------------------------------------------------
+struct DaemonClock;
+
+impl TlsClock for DaemonClock {
+    fn now() -> Option<u64> {
+        let val = unsafe { syscall3(SYS_GET_TIME, 0, 0, 0) };
+        if val == 0 {
+            // print warning if the clock syscall failed
+            crate::serial_println!("[ WARN ] CMOS RTC clock read failed; falling back to hardcoded timestamp.");
+            Some(1781919100) // June 2026 fallback
+        } else {
+            Some(val)
+        }
+    }
+}
+
+// ---- Syscall Random implementation -----------------------------------------
+struct SyscallRng;
+
+impl RngCore for SyscallRng {
+    fn next_u32(&mut self) -> u32 {
+        let mut buf = [0u8; 4];
+        self.fill_bytes(&mut buf);
+        u32::from_le_bytes(buf)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        let mut buf = [0u8; 8];
+        self.fill_bytes(&mut buf);
+        u64::from_le_bytes(buf)
+    }
+
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        if let Err(e) = self.try_fill_bytes(dest) {
+            panic!("SyscallRng error: {:?}", e);
+        }
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        let ret = unsafe { syscall3(SYS_GET_RANDOM, dest.as_mut_ptr() as u64, dest.len() as u64, 0) };
+        if (ret as i64) < 0 {
+            panic!("SYS_GET_RANDOM failed or permission denied: RDRAND not working");
+        }
+        Ok(())
+    }
+}
+
+impl CryptoRng for SyscallRng {}
+
+// ---- Userspace Socket Adapter ----------------------------------------------
+struct UserspaceSocketAdapter {
+    fd: u64,
+}
+
+impl embedded_io::ErrorType for UserspaceSocketAdapter {
+    type Error = ErrorKind;
+}
+
+impl Read for UserspaceSocketAdapter {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        loop {
+            match tcp_recv(self.fd, buf) {
+                Ok(n) => return Ok(n),
+                Err("blocked") => {
+                    unsafe { syscall3(0, 0, 0, 0); } // SYS_YIELD
+                }
+                Err(_) => return Err(ErrorKind::Other),
+            }
+        }
+    }
+}
+
+impl Write for UserspaceSocketAdapter {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        loop {
+            match tcp_send(self.fd, buf) {
+                Ok(n) => return Ok(n),
+                Err("blocked") => {
+                    unsafe { syscall3(0, 0, 0, 0); } // SYS_YIELD
+                }
+                Err(_) => return Err(ErrorKind::Other),
+            }
+        }
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -97,6 +222,8 @@ pub fn tcp_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
     let sent_i = sent as i64;
     if sent_i >= 0 {
         Ok(sent_i as usize)
+    } else if sent_i == -5 {
+        Err("blocked")
     } else {
         Err("sys_send failed")
     }
@@ -108,6 +235,8 @@ pub fn tcp_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
     let received_i = received as i64;
     if received_i >= 0 {
         Ok(received_i as usize)
+    } else if received_i == -5 {
+        Err("blocked")
     } else {
         Err("sys_recv failed")
     }
@@ -233,19 +362,22 @@ pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'sta
 
     let mut response_buf = alloc::vec![0u8; 32768];
     let mut total_received = 0;
-    for _ in 0..1000 {
+    loop {
         match tcp_recv(fd, &mut response_buf[total_received..]) {
-            Ok(n) if n > 0 => {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
                 total_received += n;
                 if total_received >= response_buf.len() {
                     break;
                 }
             }
-            _ => {
-                if total_received > 0 {
-                    break;
-                }
+            Err("blocked") => {
                 unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(e) => {
+                return Err(e);
             }
         }
     }
@@ -312,24 +444,24 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &s
     // 6. Receive the response (up to 8 KiB)
     let mut response_buf = alloc::vec![0u8; 32768];
     let mut total_received = 0;
-
-    // Poll for response data (simple retry loop since sockets are non-blocking)
-    for _ in 0..1000 {
-        let n = tcp_recv(fd, &mut response_buf[total_received..])?;
-        if n > 0 {
-            total_received += n;
-            // Check if we've received the full response (look for double CRLF + body)
-            if total_received > 4 {
-                // Simple heuristic: if Connection: close, the server will close the connection
-                // For now, if we have data and a subsequent recv returns 0, we're done
-                continue;
+    loop {
+        match tcp_recv(fd, &mut response_buf[total_received..]) {
+            Ok(0) => {
+                break;
             }
-        } else if total_received > 0 {
-            // We had data and now recv returned 0 — response is complete
-            break;
+            Ok(n) => {
+                total_received += n;
+                if total_received >= response_buf.len() {
+                    break;
+                }
+            }
+            Err("blocked") => {
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(e) => {
+                return Err(e);
+            }
         }
-        // Yield to scheduler briefly
-        unsafe { crate::syscall3(0, 0, 0, 0); }
     }
 
     if total_received == 0 {
@@ -417,19 +549,22 @@ pub fn http_post_binary(
     // 7. Receive the response
     let mut response_buf = alloc::vec![0u8; 32768];
     let mut total_received = 0;
-    for _ in 0..1000 {
+    loop {
         match tcp_recv(fd, &mut response_buf[total_received..]) {
-            Ok(n) if n > 0 => {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
                 total_received += n;
                 if total_received >= response_buf.len() {
                     break;
                 }
             }
-            _ => {
-                if total_received > 0 {
-                    break;
-                }
+            Err("blocked") => {
                 unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(e) => {
+                return Err(e);
             }
         }
     }
@@ -521,7 +656,109 @@ pub fn query_llm(
         )
     };
 
-    http_post(host, port, path, &json, api_key)
+    if port == 443 || provider == "cloud" {
+        http_post_tls(host, port, path, &json, api_key)
+    } else {
+        http_post(host, port, path, &json, api_key)
+    }
+}
+
+pub fn http_post_tls(
+    host: &str,
+    port: u16,
+    path: &str,
+    json_body: &str,
+    api_key: &str,
+) -> Result<HttpResponse, &'static str> {
+    // 1. Resolve host
+    let ip = resolve_host(host).ok_or("DNS resolution failed")?;
+
+    // 2. TCP socket
+    let fd = tcp_socket()?;
+
+    // 3. Connect
+    tcp_connect(fd, ip, port)?;
+
+    // Yield to let the kernel complete connection handshakes if needed
+    for _ in 0..10 {
+        unsafe { crate::syscall3(0, 0, 0, 0); } // SYS_YIELD
+    }
+
+    // 4. Wrap socket in adapter
+    let socket = UserspaceSocketAdapter { fd };
+
+    // 5. Setup TLS Connection
+    let mut read_buf = alloc::vec![0u8; 16640];
+    let mut write_buf = alloc::vec![0u8; 16640];
+    let mut tls = TlsConnection::new(socket, &mut read_buf, &mut write_buf);
+
+    // 6. Setup TLS Config
+    let ca_der = get_ca_for_host(host);
+    let cert = Certificate::X509(ca_der);
+    let config = TlsConfig::<Aes128GcmSha256>::new()
+        .with_ca(cert)
+        .with_server_name(host);
+
+    // 7. Setup TlsContext
+    let mut rng = SyscallRng;
+    let context = TlsContext::new(&config, &mut rng);
+
+    // 8. Open TLS
+    tls.open::<_, CertVerifier<'_, Aes128GcmSha256, DaemonClock, 4096>>(context)
+        .map_err(|e| {
+            crate::serial_println!("[ ERROR ] TLS Handshake failed: {:?}", e);
+            "TLS handshake failed"
+        })?;
+
+    // 9. Send the request
+    let content_length = json_body.len();
+    let auth_header = if !api_key.is_empty() {
+        format!("Authorization: Bearer {}\r\n", api_key)
+    } else {
+        String::new()
+    };
+    
+    let request = format!(
+        "POST {} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\nConnection: close\r\n\r\n{}",
+        path, host, auth_header, content_length, json_body
+    );
+
+    tls.write_all(request.as_bytes()).map_err(|_| "TLS write failed")?;
+    tls.flush().map_err(|_| "TLS flush failed")?;
+
+    // 10. Receive the response
+    let mut response_buf = alloc::vec![0u8; 32768];
+    let mut total_received = 0;
+    loop {
+        match tls.read(&mut response_buf[total_received..]) {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
+                total_received += n;
+                if total_received >= response_buf.len() {
+                    break;
+                }
+            }
+            Err(e) => {
+                if total_received > 0 {
+                    break;
+                }
+                crate::serial_println!("[ ERROR ] TLS Read error: {:?}", e);
+                return Err("TLS read error");
+            }
+        }
+    }
+
+    if total_received == 0 {
+        return Err("no response received");
+    }
+
+    // 11. Parse response
+    let raw = core::str::from_utf8(&response_buf[..total_received])
+        .map_err(|_| "invalid UTF-8 in response")?;
+
+    parse_http_response(raw)
 }
 
 /// Send a prompt to an OpenAI-compatible API running on the QEMU host.
@@ -595,17 +832,25 @@ pub fn ws_connect(host: &str, port: u16, path: &str) -> Result<WsConnection, &'s
     // Read the upgrade response.
     let mut buf = [0u8; 1024];
     let mut total = 0;
-    for _ in 0..500 {
+    loop {
         match tcp_recv(fd, &mut buf[total..]) {
-            Ok(n) if n > 0 => {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
                 total += n;
-                // Check if we've received the full HTTP response headers.
-                if let Some(_) = find_header_end(&buf[..total]) {
+                if find_header_end(&buf[..total]).is_some() {
+                    break;
+                }
+                if total >= buf.len() {
                     break;
                 }
             }
-            _ => {
+            Err("blocked") => {
                 unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(e) => {
+                return Err(e);
             }
         }
     }
@@ -817,22 +1062,22 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
 /// Read exactly `buf.len()` bytes from the socket, retrying as needed.
 fn ws_read_exact(fd: u64, buf: &mut [u8], allow_no_data: bool) -> Result<(), &'static str> {
     let mut offset = 0;
-    let mut retries = 0;
     while offset < buf.len() {
         match tcp_recv(fd, &mut buf[offset..]) {
-            Ok(n) if n > 0 => {
-                offset += n;
-                retries = 0;
+            Ok(0) => {
+                return Err("ws: connection closed");
             }
-            _ => {
+            Ok(n) => {
+                offset += n;
+            }
+            Err("blocked") => {
                 if offset == 0 && allow_no_data {
                     return Err("ws: no data");
                 }
-                retries += 1;
-                if retries > 2000 {
-                    return Err("ws: read timeout");
-                }
-                unsafe { crate::syscall3(0, 0, 0, 0); }
+                unsafe { crate::syscall3(0, 0, 0, 0); } // yield
+            }
+            Err(e) => {
+                return Err(e);
             }
         }
     }
@@ -957,20 +1202,28 @@ pub fn base64_encode(input: &[u8]) -> String {
 
 /// Accepts a WebSocket connection on server_fd, performing the HTTP upgrade handshake.
 pub fn ws_accept(server_fd: u64) -> Result<WsConnection, &'static str> {
-    // Read the HTTP headers.
+    // Read the HTTP upgrade request headers.
     let mut buf = [0u8; 2048];
     let mut total = 0;
-    
-    for _ in 0..1000 {
+    loop {
         match tcp_recv(server_fd, &mut buf[total..]) {
-            Ok(n) if n > 0 => {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
                 total += n;
                 if find_header_end(&buf[..total]).is_some() {
                     break;
                 }
+                if total >= buf.len() {
+                    break;
+                }
             }
-            _ => {
-                unsafe { crate::syscall3(0, 0, 0, 0); } // Yield
+            Err("blocked") => {
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(e) => {
+                return Err(e);
             }
         }
     }
