@@ -43,6 +43,8 @@ fn main() {
         "-C",
         "code-model=large",
         "-C",
+        "target-feature=+sse2",
+        "-C",
         "link-arg=-no-pie",
         "-C",
         "link-arg=--image-base=0x8000000000",
