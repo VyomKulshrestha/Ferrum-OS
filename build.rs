@@ -80,6 +80,37 @@ fn main() {
     println!("cargo:rerun-if-changed=userland/heliox-daemon/src");
 
     if daemon_manifest.exists() {
+        let ucrt_junction = PathBuf::from(&manifest_dir).join("target/ucrt");
+        if !ucrt_junction.exists() {
+            let ucrt_base = PathBuf::from("C:\\Program Files (x86)\\Windows Kits\\10\\Include");
+            if ucrt_base.exists() {
+                if let Ok(entries) = std::fs::read_dir(&ucrt_base) {
+                    let mut versions: Vec<PathBuf> = entries
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.path())
+                        .filter(|p| p.is_dir() && p.file_name().unwrap().to_str().unwrap().starts_with("10."))
+                        .collect();
+                    versions.sort();
+                    if let Some(latest) = versions.last() {
+                        let ucrt_dir = latest.join("ucrt");
+                        if ucrt_dir.exists() {
+                            let _ = Command::new("cmd")
+                                .args(&[
+                                    "/c",
+                                    "mklink",
+                                    "/j",
+                                    ucrt_junction.to_str().unwrap(),
+                                    ucrt_dir.to_str().unwrap(),
+                                ])
+                                .status();
+                        }
+                    }
+                }
+            }
+        }
+
+        let cflags = format!("-I{}", ucrt_junction.to_str().unwrap());
+
         let daemon_status = Command::new(&cargo)
             .arg("build")
             .arg("--release")
@@ -89,6 +120,7 @@ fn main() {
             .env("CARGO_ENCODED_RUSTFLAGS", &userland_rustflags)
             .env("CC", "C:\\Program Files\\LLVM\\bin\\clang.exe")
             .env("AR", "C:\\Program Files\\LLVM\\bin\\llvm-ar.exe")
+            .env("CFLAGS", &cflags)
             .env_remove("RUSTFLAGS")
             .status()
             .expect("failed to spawn cargo for heliox-daemon build");
