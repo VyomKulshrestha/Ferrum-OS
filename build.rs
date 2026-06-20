@@ -125,7 +125,7 @@ fn main() {
         }
 
         let cflags = format!(
-            "-I{} -I{}",
+            "-I{} -I{} -fms-extensions -fms-compatibility",
             ucrt_junction.to_str().unwrap(),
             msvc_junction.to_str().unwrap()
         );
