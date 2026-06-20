@@ -7,6 +7,9 @@
 
 extern crate alloc;
 
+pub mod rand;
+pub mod time;
+
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use spin::Mutex;
@@ -64,6 +67,8 @@ pub fn init() {
         ("cap:system:kexec", "Kernel Hot-Reload Execution", "system:kexec", true),
         ("cap:hud:overlay", "HUD Overlay Access", "hud:*", true),
         ("cap:mem:mmap", "Memory Map File", "memory:mmap:*", true),
+        ("cap:crypto:rng", "Cryptographic Randomness Access", "crypto:rng", true),
+        ("cap:net:tls", "Network TLS Access", "net:tls:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {
