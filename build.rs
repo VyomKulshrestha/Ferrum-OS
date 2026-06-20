@@ -80,7 +80,7 @@ fn main() {
     println!("cargo:rerun-if-changed=userland/heliox-daemon/src");
 
     if daemon_manifest.exists() {
-        let ucrt_junction = PathBuf::from(&manifest_dir).join("target/ucrt");
+        let ucrt_junction = PathBuf::from(&manifest_dir).join("target").join("ucrt");
         if !ucrt_junction.exists() {
             let ucrt_base = PathBuf::from("C:\\Program Files (x86)\\Windows Kits\\10\\Include");
             if ucrt_base.exists() {
@@ -109,7 +109,7 @@ fn main() {
             }
         }
 
-        let msvc_junction = PathBuf::from(&manifest_dir).join("target/msvc");
+        let msvc_junction = PathBuf::from(&manifest_dir).join("target").join("msvc");
         if !msvc_junction.exists() {
             if let Some(msvc_dir) = find_msvc_include() {
                 let _ = Command::new("cmd")
