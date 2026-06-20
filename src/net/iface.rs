@@ -216,7 +216,11 @@ pub fn socket_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
 
     let socket = sockets.get_mut::<tcp::Socket>(handle);
     if !socket.can_recv() {
-        return Ok(0); // No data available yet, non-blocking
+        if socket.may_recv() {
+            return Err("blocked");
+        } else {
+            return Ok(0);
+        }
     }
 
     socket.recv_slice(buf).map_err(|_| "TCP recv failed")

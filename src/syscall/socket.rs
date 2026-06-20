@@ -86,6 +86,7 @@ pub fn sys_recv(fd: u64, buf_ptr: u64, len: u64) -> SyscallResult {
 
     match iface::socket_recv(fd, buf) {
         Ok(n) => SyscallResult::ok(n as u64),
+        Err("blocked") => SyscallResult::err(SyscallStatus::Blocked),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }

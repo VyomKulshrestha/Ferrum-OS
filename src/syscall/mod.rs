@@ -63,6 +63,8 @@ pub enum SyscallNumber {
     HudUpdate = 39,
     HitTest = 40,
     Mmap = 41,
+    GetRandom = 42,
+    GetTime = 43,
 }
 
 /// Syscall return status.
@@ -503,6 +505,36 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             mmap::sys_mmap(args)
+        }
+        x if x == SyscallNumber::GetRandom as u64 => {
+            if !crate::security::holds_capability_token(held_capabilities, "cap:crypto:rng") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            let buf_ptr = args[0];
+            let buf_len = args[1] as usize;
+            if buf_ptr == 0 || buf_len == 0 {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+            let end = buf_ptr.saturating_add(buf_len as u64);
+            if end >= 0x0000_7FFF_FFFF_FFFF {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+            let mut temp_buf = alloc::vec![0u8; buf_len];
+            match crate::security::rand::get_random(&mut temp_buf) {
+                Ok(()) => {
+                    unsafe {
+                        core::ptr::copy_nonoverlapping(temp_buf.as_ptr(), buf_ptr as *mut u8, buf_len);
+                    }
+                    SyscallResult::ok(buf_len as u64)
+                }
+                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+            }
+        }
+        x if x == SyscallNumber::GetTime as u64 => {
+            match crate::security::time::read_rtc_time() {
+                Some(secs) => SyscallResult::ok(secs),
+                None => SyscallResult::ok(0),
+            }
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

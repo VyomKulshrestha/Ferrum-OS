@@ -535,6 +535,16 @@ pub fn primary_master_info() -> Option<AtaDrive> {
     }
 }
 
+/// Get the primary slave drive info (if present).
+pub fn primary_slave_info() -> Option<AtaDrive> {
+    let lock = ATA.lock();
+    if let Some(ref ctl) = *lock {
+        ctl.primary.drives[1].clone()
+    } else {
+        None
+    }
+}
+
 /// Read sectors from an ATA drive.
 ///
 /// # Arguments

@@ -116,6 +116,8 @@ pub fn init() {
             String::from("cap:system:kexec"),
             String::from("cap:hud:overlay"),
             String::from("cap:mem:mmap"),
+            String::from("cap:crypto:rng"),
+            String::from("cap:net:tls"),
         ],
     ));
 }

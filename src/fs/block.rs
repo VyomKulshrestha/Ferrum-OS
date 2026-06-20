@@ -49,6 +49,12 @@ impl AtaBlockDevice {
         let info = crate::ata::primary_master_info()?;
         Some(Self::new(info.bus, info.drive, info.sectors))
     }
+
+    /// Create from primary slave if present.
+    pub fn from_primary_slave() -> Option<Self> {
+        let info = crate::ata::primary_slave_info()?;
+        Some(Self::new(info.bus, info.drive, info.sectors))
+    }
 }
 
 impl BlockDevice for AtaBlockDevice {

@@ -104,14 +104,16 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::ata::init();
     println!("[  OK  ] ATA PIO disk driver initialized");
     
-    // Mount ext2 filesystem if primary master is present
+    // Mount ext2 filesystem. Try primary master first; if that fails or is not Ext2, try primary slave.
+    let mut mounted = false;
     if let Some(block_dev) = ferrumos::fs::block::AtaBlockDevice::from_primary_master() {
         match ferrumos::fs::ext2::Ext2Fs::mount(block_dev) {
             Ok(ext2) => {
                 let fs = alloc::sync::Arc::new(ext2);
                 match ferrumos::fs::vfs::mount("/disk", fs.clone(), "ata.primary.master") {
                     Ok(_) => {
-                        println!("[  OK  ] Mounted ext2 filesystem at /disk");
+                        println!("[  OK  ] Mounted ext2 filesystem at /disk (from primary master)");
+                        mounted = true;
                         if let Err(e) = fs.create_test_mmap_file("/mmap_verify") {
                             println!("[ WARN ] Failed to create /disk/mmap_verify: {}", e);
                         } else {
@@ -122,6 +124,24 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
                 }
             }
             Err(e) => println!("[ INFO ] No ext2 filesystem found on primary master: {}", e),
+        }
+    }
+
+    if !mounted {
+        if let Some(block_dev) = ferrumos::fs::block::AtaBlockDevice::from_primary_slave() {
+            match ferrumos::fs::ext2::Ext2Fs::mount(block_dev) {
+                Ok(ext2) => {
+                    let fs = alloc::sync::Arc::new(ext2);
+                    match ferrumos::fs::vfs::mount("/disk", fs.clone(), "ata.primary.slave") {
+                        Ok(_) => {
+                            println!("[  OK  ] Mounted ext2 filesystem at /disk (from primary slave)");
+                            mounted = true;
+                        }
+                        Err(e) => println!("[ WARN ] Failed to mount ext2 at /disk: {}", e),
+                    }
+                }
+                Err(e) => println!("[ INFO ] No ext2 filesystem found on primary slave: {}", e),
+            }
         }
     }
     
