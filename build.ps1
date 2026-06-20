@@ -12,7 +12,7 @@ param(
 # on the same toolchain that owns the x86_64-unknown-none target.
 $NightlyBin = "$env:USERPROFILE\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\bin"
 $CargoBin = "$env:USERPROFILE\.cargo\bin"
-$env:Path = "$NightlyBin;$CargoBin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+$env:Path = "$NightlyBin;$CargoBin;C:\Program Files\LLVM\bin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 function Launch-Qemu {
     param(
