@@ -42,8 +42,10 @@ fn main() {
         "relocation-model=static",
         "-C",
         "code-model=large",
-        "-C",
-        "target-feature=+sse2",
+        "--cfg",
+        "aes_force_soft",
+        "--cfg",
+        "polyval_force_soft",
         "-C",
         "link-arg=-no-pie",
         "-C",
@@ -85,6 +87,8 @@ fn main() {
             .arg("x86_64-unknown-none")
             .current_dir(&daemon_dir)
             .env("CARGO_ENCODED_RUSTFLAGS", &userland_rustflags)
+            .env("CC", "C:\\Program Files\\LLVM\\bin\\clang.exe")
+            .env("AR", "C:\\Program Files\\LLVM\\bin\\llvm-ar.exe")
             .env_remove("RUSTFLAGS")
             .status()
             .expect("failed to spawn cargo for heliox-daemon build");
