@@ -21,7 +21,10 @@ function Launch-Qemu {
         [string]$Memory
     )
 
-    $qemu_args = @("-m", $Memory, "-drive", "format=raw,file=$img", "-serial", "stdio", "-vga", "std", "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785", "-device", "rtl8139,netdev=net0", "-device", "intel-hda", "-device", "hda-duplex")
+    $qemu_args = @("-m", $Memory, "-drive", "format=raw,file=$img", "-serial", "stdio", "-vga", "std", "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785", "-device", "rtl8139,netdev=net0", "-device", "intel-hda", "-device", "hda-duplex", "-rtc", "base=utc")
+    if (Test-Path "target\heliox-disk.img") {
+        $qemu_args += @("-drive", "format=raw,file=target\heliox-disk.img,if=ide,index=1")
+    }
     
     Write-Host "Launching QEMU (Memory: $Memory)..." -ForegroundColor Cyan
     
