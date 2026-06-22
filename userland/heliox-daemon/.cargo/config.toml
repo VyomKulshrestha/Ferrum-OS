@@ -1,0 +1,20 @@
+# Build the heliox-daemon userland for bare-metal x86_64.
+#
+# Linked directly at the dedicated user P4 slot (P4[1], base 0x80_0000_0000)
+# via `--image-base` for the same reason as init: a non-PIE absolute-addressed
+# image must be linked at its runtime load address. Each process has its own
+# address space, so both userland binaries can share the same link base.
+[build]
+target = "x86_64-unknown-none"
+target-dir = "target"
+
+[target.x86_64-unknown-none]
+# code-model=large is required at a 512 GiB link base — see the init crate's
+# config for the full explanation (32-bit relocations overflow otherwise).
+rustflags = [
+    "-C", "relocation-model=static",
+    "-C", "code-model=large",
+    "-C", "link-arg=-no-pie",
+    "-C", "link-arg=--image-base=0x8000000000",
+    "-C", "target-feature=+sse,+sse2",
+]
