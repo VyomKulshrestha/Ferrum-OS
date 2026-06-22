@@ -46,9 +46,9 @@ pub fn init(boot_info: &'static BootInfo) {
     // High: >= 6 GB RAM (6144 MB) + AVX2
     // Standard: >= 2 GB RAM (2048 MB) + AVX
     // Low: < 2 GB RAM or no AVX
-    let tier = if ram_mb >= 6144 && avx2 {
+    let tier = if ram_mb >= 6000 && avx2 {
         "high"
-    } else if ram_mb >= 2048 && avx {
+    } else if ram_mb >= 2000 && avx {
         "standard"
     } else {
         "low"

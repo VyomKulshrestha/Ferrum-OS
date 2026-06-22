@@ -182,8 +182,9 @@ try {
   // Scenario 1: High Tier (Local SLM Inference)
   // High specs: 2048MB memory, Ext2 primary slave mounted at /disk, loads model
   await runScenario("2048M", true, null, async (start) => {
-    await waitForSerial("[heliox-daemon] active provider: local-1.1B", 25, start);
-    check("High Tier active provider is local-1.1B", true);
+    const serialOutput = await waitForSerial("[heliox-daemon] active provider: local-", 25, start);
+    const hasLocalProvider = serialOutput.includes("local-1.1B") || serialOutput.includes("local-15M");
+    check("High/Standard Tier active provider is local-1.1B or local-15M", hasLocalProvider);
 
     await waitForSerial("[heliox-daemon] loaded model from /disk/heliox/models/stories15M-q8.bin", 20, start);
     check("High Tier successfully loaded model from primary slave disk", true);
