@@ -102,8 +102,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     let user_rsp = crate::process::pid_user_stack(pid)
         .map(|v| v.as_u64())
         .unwrap_or(0);
-    let target_user_rsp = if user_rsp > 8 { user_rsp - 8 } else { user_rsp };
-    let ctx = crate::scheduler::TaskContext::ring3(entry, target_user_rsp);
+    let ctx = crate::scheduler::TaskContext::ring3(entry, user_rsp);
     crate::scheduler::write_context(pid, ctx);
 
     crate::logging::audit::log_event(

@@ -845,10 +845,9 @@ pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
     // Seed the incoming task's saved iretq frame so that if it is
     // ever preempted and resumed by the scheduler, the saved context
     // is valid from the first instruction.
-    let target_user_rsp = if user_rsp.as_u64() > 8 { user_rsp.as_u64() - 8 } else { user_rsp.as_u64() };
     let ctx = crate::scheduler::TaskContext::ring3(
         entry,
-        target_user_rsp,
+        user_rsp.as_u64(),
     );
     crate::scheduler::write_context(pid, ctx);
     // Claim the CPU for this pid: mark it Running and drain it from
@@ -858,7 +857,7 @@ pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
     // its time slice.
     crate::scheduler::claim_for_run(pid);
 
-    enter_ring3_inner(kernel_rsp, VirtAddr::new(target_user_rsp), entry, l4_frame);
+    enter_ring3_inner(kernel_rsp, user_rsp, entry, l4_frame);
 }
 
 
