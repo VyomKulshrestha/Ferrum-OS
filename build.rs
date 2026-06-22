@@ -50,6 +50,8 @@ fn main() {
         "link-arg=-no-pie",
         "-C",
         "link-arg=--image-base=0x8000000000",
+        "-C",
+        "target-feature=+sse,+sse2,-soft-float",
     ]
     .join("\u{1f}");
 
@@ -80,55 +82,8 @@ fn main() {
     println!("cargo:rerun-if-changed=userland/heliox-daemon/src");
 
     if daemon_manifest.exists() {
-        let ucrt_junction = PathBuf::from(&manifest_dir).join("target").join("ucrt");
-        if !ucrt_junction.exists() {
-            let ucrt_base = PathBuf::from("C:\\Program Files (x86)\\Windows Kits\\10\\Include");
-            if ucrt_base.exists() {
-                if let Ok(entries) = std::fs::read_dir(&ucrt_base) {
-                    let mut versions: Vec<PathBuf> = entries
-                        .filter_map(|e| e.ok())
-                        .map(|e| e.path())
-                        .filter(|p| p.is_dir() && p.file_name().unwrap().to_str().unwrap().starts_with("10."))
-                        .collect();
-                    versions.sort();
-                    if let Some(latest) = versions.last() {
-                        let ucrt_dir = latest.join("ucrt");
-                        if ucrt_dir.exists() {
-                            let _ = Command::new("cmd")
-                                .args(&[
-                                    "/c",
-                                    "mklink",
-                                    "/j",
-                                    ucrt_junction.to_str().unwrap(),
-                                    ucrt_dir.to_str().unwrap(),
-                                ])
-                                .status();
-                        }
-                    }
-                }
-            }
-        }
-
-        let msvc_junction = PathBuf::from(&manifest_dir).join("target").join("msvc");
-        if !msvc_junction.exists() {
-            if let Some(msvc_dir) = find_msvc_include() {
-                let _ = Command::new("cmd")
-                    .args(&[
-                        "/c",
-                        "mklink",
-                        "/j",
-                        msvc_junction.to_str().unwrap(),
-                        msvc_dir.to_str().unwrap(),
-                    ])
-                    .status();
-            }
-        }
-
-        let cflags = format!(
-            "-I{} -I{} -fms-extensions -fms-compatibility",
-            ucrt_junction.to_str().unwrap(),
-            msvc_junction.to_str().unwrap()
-        );
+        let compat_dir = PathBuf::from(&manifest_dir).join("target").join("compat");
+        let cflags = format!("-I{}", compat_dir.to_str().unwrap());
 
         let daemon_status = Command::new(&cargo)
             .arg("build")
@@ -160,33 +115,5 @@ fn main() {
     // binary ever links outside the user region, the kernel ELF loader
     // rejects it at load time (see `process::AddressSpace`), which surfaces
     // the misconfiguration loudly instead of silently corrupting memory.
-}
-
-fn find_msvc_include() -> Option<PathBuf> {
-    let base = PathBuf::from("C:\\Program Files\\Microsoft Visual Studio\\2022");
-    if !base.exists() {
-        return None;
-    }
-    if let Ok(entries) = std::fs::read_dir(&base) {
-        for entry in entries.filter_map(|e| e.ok()) {
-            let msvc_dir = entry.path().join("VC/Tools/MSVC");
-            if msvc_dir.exists() {
-                if let Ok(subentries) = std::fs::read_dir(&msvc_dir) {
-                    let mut versions: Vec<PathBuf> = subentries
-                        .filter_map(|e| e.ok())
-                        .map(|e| e.path())
-                        .collect();
-                    versions.sort();
-                    if let Some(latest) = versions.last() {
-                        let inc_dir = latest.join("include");
-                        if inc_dir.exists() {
-                            return Some(inc_dir);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    None
 }
 

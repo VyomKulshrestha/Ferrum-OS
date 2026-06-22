@@ -64,7 +64,8 @@ impl TlsClock for DaemonClock {
         let val = unsafe { syscall3(SYS_GET_TIME, 0, 0, 0) };
         if val == 0 {
             // print warning if the clock syscall failed
-            crate::serial_println!("[ WARN ] CMOS RTC clock read failed; falling back to hardcoded timestamp.");
+            let log_msg = "[heliox-daemon] [ WARN ] CMOS RTC clock read failed; falling back to hardcoded timestamp.\n";
+            unsafe { syscall3(34, 1, log_msg.as_ptr() as u64, log_msg.len() as u64); }
             Some(1781919100) // June 2026 fallback
         } else {
             Some(val)
@@ -706,7 +707,8 @@ pub fn http_post_tls(
     // 8. Open TLS
     tls.open::<_, CertVerifier<'_, Aes128GcmSha256, DaemonClock, 4096>>(context)
         .map_err(|e| {
-            crate::serial_println!("[ ERROR ] TLS Handshake failed: {:?}", e);
+            let log_msg = alloc::format!("[heliox-daemon] [ ERROR ] TLS Handshake failed: {:?}\n", e);
+            unsafe { syscall3(34, 1, log_msg.as_ptr() as u64, log_msg.len() as u64); }
             "TLS handshake failed"
         })?;
 
@@ -744,7 +746,8 @@ pub fn http_post_tls(
                 if total_received > 0 {
                     break;
                 }
-                crate::serial_println!("[ ERROR ] TLS Read error: {:?}", e);
+                let log_msg = alloc::format!("[heliox-daemon] [ ERROR ] TLS Read error: {:?}\n", e);
+                unsafe { syscall3(34, 1, log_msg.as_ptr() as u64, log_msg.len() as u64); }
                 return Err("TLS read error");
             }
         }
