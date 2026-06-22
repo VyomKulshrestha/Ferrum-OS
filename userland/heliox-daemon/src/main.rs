@@ -57,6 +57,17 @@ pub unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) 
     ret
 }
 
+const SYS_GET_RANDOM: u64 = 42;
+
+fn custom_getrandom(buf: &mut [u8]) -> Result<(), getrandom::Error> {
+    let ret = unsafe { syscall3(SYS_GET_RANDOM, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
+    if (ret as i64) < 0 {
+        return Err(getrandom::Error::UNSUPPORTED);
+    }
+    Ok(())
+}
+getrandom::register_custom_getrandom!(custom_getrandom);
+
 const SYS_IPC_SEND: u64 = 1; // Assuming 1 is IpcSend in SyscallNumber
 const SYS_SOCKET: u64 = 7;
 const SYS_RECV: u64 = 11;
