@@ -125,11 +125,11 @@ fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -
     if pid != 0 {
         use x86_64::registers::control::Cr2;
         let rsp = stack_frame.stack_pointer.as_u64();
-        println!("[KERNEL] Userspace process {} caused {}, accessed address={:?}, RIP={:#x}, RSP={:#x}, CS={:?}, terminating.", 
+        crate::serial_println!("[KERNEL] Userspace process {} caused {}, accessed address={:?}, RIP={:#x}, RSP={:#x}, CS={:?}, terminating.", 
                  pid, fault_name, Cr2::read(), stack_frame.instruction_pointer.as_u64(), rsp, stack_frame.code_segment);
         
         // Print stack contents around RSP (up to 16 words / 128 bytes)
-        println!("  Stack dump around RSP:");
+        crate::serial_println!("  Stack dump around RSP:");
         for i in 0..16 {
             let addr = rsp + (i * 8);
             // Check if address is in the kernel stack range to avoid faulting again
@@ -137,9 +137,9 @@ fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -
             let stack_bottom = stack_top - 32 * 1024;
             if addr >= stack_bottom && addr < stack_top {
                 let val = unsafe { *(addr as *const u64) };
-                println!("    {:#x}: {:#x}", addr, val);
+                crate::serial_println!("    {:#x}: {:#x}", addr, val);
             } else {
-                println!("    {:#x}: <out of stack bounds>", addr);
+                crate::serial_println!("    {:#x}: <out of stack bounds>", addr);
             }
         }
 
@@ -745,11 +745,22 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
 
         let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);
         if res.status == crate::syscall::SyscallStatus::Blocked {
+            crate::serial_println!("[SYSCALL_BLOCKED] pid={} blocked on syscall {}", current_pid, syscall_no);
             save_user_context(current_pid, frame);
             {
                 let mut sched = crate::scheduler::SCHEDULER.lock();
                 if let Some(idx) = sched.tasks.iter().position(|t| t.id == current_pid) {
                     sched.contexts[idx].rip = sched.contexts[idx].rip.saturating_sub(2);
+                    
+                    let task = &mut sched.tasks[idx];
+                    task.state = crate::scheduler::TaskState::Ready;
+                    task.time_remaining = crate::scheduler::TIME_SLICE_TICKS;
+                    task.quotas.used_cpu_ticks_continuous = 0;
+                    
+                    let pri = task.priority.index();
+                    if !sched.run_queues[pri].contains(&current_pid) {
+                        sched.run_queues[pri].push_back(current_pid);
+                    }
                 }
             }
             crate::scheduler::CURRENT_PID.store(0, core::sync::atomic::Ordering::SeqCst);

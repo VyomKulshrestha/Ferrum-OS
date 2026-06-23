@@ -238,7 +238,14 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     // registry and that must not block their syscalls.
     let _ = crate::userspace::record_syscall(pid);
 
-    dispatch_with_capabilities(number, args, &held_capabilities)
+    let res = dispatch_with_capabilities(number, args, &held_capabilities);
+    if res.status == SyscallStatus::Blocked {
+        let mut sched = crate::scheduler::SCHEDULER.lock();
+        if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+            task.quotas.syscalls_in_window = task.quotas.syscalls_in_window.saturating_sub(1);
+        }
+    }
+    res
 }
 
 pub fn dispatch_with_capabilities(

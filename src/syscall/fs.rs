@@ -93,10 +93,10 @@ pub fn sys_read_file(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    match crate::fs::read_file(&path) {
-        Ok(content) => {
-            let bytes = content.as_bytes();
-            let copied = unsafe { copy_to_user(buf_ptr, bytes, buf_len) };
+    let mut temp_buf = alloc::vec![0u8; buf_len];
+    match crate::fs::read_file_offset(&path, 0, &mut temp_buf) {
+        Ok(bytes_read) => {
+            let copied = unsafe { copy_to_user(buf_ptr, &temp_buf[..bytes_read], bytes_read) };
             SyscallResult::ok(copied as u64)
         }
         Err(e) => {
