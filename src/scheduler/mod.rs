@@ -372,6 +372,14 @@ pub fn init() {
 fn allocate_simd_buffer() -> u64 {
     let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
     let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+    unsafe {
+        // FPU Control Word (FCW) at offset 0: default 0x037F (all exceptions masked)
+        let fcw_ptr = ptr as *mut u16;
+        *fcw_ptr = 0x037F;
+        // MXCSR at offset 24: default 0x1F80 (all exceptions masked)
+        let mxcsr_ptr = ptr.add(24) as *mut u32;
+        *mxcsr_ptr = 0x1F80;
+    }
     ptr as u64
 }
 
@@ -412,6 +420,47 @@ pub fn register_user(
         TaskQuotas::default_user()
     };
     
+    if let Some(idx) = sched.tasks.iter().position(|t| t.id == pid) {
+        sched.tasks[idx].name = String::from(name);
+        sched.tasks[idx].state = TaskState::Ready;
+        sched.tasks[idx].priority = priority;
+        sched.tasks[idx].ticks = 0;
+        sched.tasks[idx].capabilities = capabilities.to_vec();
+        if !sched.tasks[idx].capabilities.contains(&String::from("cap:process:user")) {
+            sched.tasks[idx].capabilities.push(String::from("cap:process:user"));
+        }
+        sched.tasks[idx].quotas = quotas;
+        sched.tasks[idx].time_remaining = TIME_SLICE_TICKS;
+        sched.tasks[idx].wake_at = u64::MAX;
+        sched.tasks[idx].kernel_stack_top = kernel_stack_top.as_u64();
+        sched.tasks[idx].cr3 = cr3;
+        sched.tasks[idx].parent_id = parent_id;
+        sched.tasks[idx].waiting_on_pid = None;
+        sched.tasks[idx].cpu_affinity = None;
+        sched.tasks[idx].blocked_on_confirmation = false;
+        sched.tasks[idx].confirmation_approved = false;
+        sched.tasks[idx].confirmation_denied = false;
+
+        let old_simd = sched.contexts[idx].simd_state_ptr;
+        let mut ctx = TaskContext::new();
+        ctx.simd_state_ptr = old_simd;
+        if old_simd != 0 {
+            unsafe {
+                let fcw_ptr = old_simd as *mut u16;
+                *fcw_ptr = 0x037F;
+                let mxcsr_ptr = (old_simd as *mut u8).add(24) as *mut u32;
+                *mxcsr_ptr = 0x1F80;
+            }
+        }
+        sched.contexts[idx] = ctx;
+
+        let pri_idx = priority.index();
+        if !sched.run_queues[pri_idx].contains(&pid) {
+            sched.run_queues[pri_idx].push_back(pid);
+        }
+        return;
+    }
+
     let mut task = Task {
         id: pid,
         name: String::from(name),
@@ -1003,6 +1052,8 @@ fn wake_waiting_parent(child_pid: u64, parent_pid: u64, code: u32) {
     }
     
     if let Some(idx) = parent_idx {
+        crate::serial_println!("[WAKE_PARENT] Waking parent pid={}, name={}, rip={:#x}, state={:?}, child_pid={}, exit_code={}", 
+                               parent_pid, sched.tasks[idx].name, sched.contexts[idx].rip, sched.tasks[idx].state, child_pid, code);
         sched.tasks[idx].state = TaskState::Ready;
         sched.tasks[idx].waiting_on_pid = None;
         sched.contexts[idx].rax = code as u64;
@@ -1012,6 +1063,8 @@ fn wake_waiting_parent(child_pid: u64, parent_pid: u64, code: u32) {
         if !sched.run_queues[pri].contains(&pid) {
             sched.run_queues[pri].push_back(pid);
         }
+    } else {
+        crate::serial_println!("[WAKE_PARENT] Parent pid={} not found or not Blocked waiting for child_pid={}", parent_pid, child_pid);
     }
 }
 
@@ -1176,6 +1229,10 @@ unsafe fn load_cr3(phys: u64) {
 pub unsafe fn resume_task(pid: u64) -> ! {
     let (kstack, cr3) = switch_target(pid).expect("resume_task: pid not registered");
     let ctx = context_of(pid).expect("resume_task: pid has no saved context");
+    crate::serial_println!("[RESUME_TASK] Resuming pid={}, name={}, rip={:#x}, rsp={:#x}, rax={:#x}", pid, {
+        let sched = SCHEDULER.lock();
+        sched.tasks.iter().find(|t| t.id == pid).map(|t| t.name.clone()).unwrap_or_else(|| String::from("unknown"))
+    }, ctx.rip, ctx.rsp, ctx.rax);
     crate::gdt::set_kernel_stack(VirtAddr::new(kstack));
     if cr3 != 0 {
         load_cr3(cr3);

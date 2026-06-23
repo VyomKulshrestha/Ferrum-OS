@@ -631,7 +631,7 @@ pub const KERNEL_STACK_SIZE: usize = 32 * 1024;
 /// Size of the per-process user stack. 64 KiB matches the
 /// smallest comfortable C stack for the placeholder `init`
 /// binary and the future userland programs.
-pub const USER_STACK_SIZE: usize = 64 * 1024;
+pub const USER_STACK_SIZE: usize = 1024 * 1024;
 
 /// Virtual address where every process's user stack lives. It sits inside
 /// the dedicated user P4 slot (P4[1]) at a 1.75 GiB offset — well above any
