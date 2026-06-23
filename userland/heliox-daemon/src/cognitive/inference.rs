@@ -788,6 +788,16 @@ pub fn run_local_inference(prompt: &str) -> Result<String, &'static str> {
         return Err("Failed to memory-map model weights file");
     }
 
+    let loaded_msg = alloc::format!("[heliox-daemon] loaded model from {}\n", model_path);
+    unsafe {
+        crate::syscall3(
+            SYS_WRITE,
+            FD_CONSOLE,
+            loaded_msg.as_ptr() as u64,
+            loaded_msg.len() as u64,
+        );
+    }
+
     // Skip the 256-byte header
     let mut ptr = unsafe { (vaddr as *const u8).add(256) };
 

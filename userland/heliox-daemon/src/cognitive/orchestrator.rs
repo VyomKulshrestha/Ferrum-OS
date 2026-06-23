@@ -228,7 +228,7 @@ impl Orchestrator {
         self.ipc_poll();
         self.tick_count += 1;
 
-        if self.config.api_host == "unconfigured" {
+        if self.config.api_host == "unconfigured" && !self.config.provider.starts_with("local") {
             // Idle Setup State: Don't do any background processing until configured.
             return;
         }

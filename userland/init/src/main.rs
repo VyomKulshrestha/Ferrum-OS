@@ -26,7 +26,7 @@ const SYS_WRITE: u64 = 34;
 const SYS_KEXEC: u64 = 38;
 
 /// File descriptor for the console (mirrored to serial).
-const FD_CONSOLE: u64 = 1;
+const FD_CONSOLE: u64 = 2;
 
 /// Three-argument `int 0x80`. rax = number, rdi/rsi/rdx = args.
 #[inline(always)]
@@ -478,15 +478,17 @@ pub extern "C" fn _start() -> ! {
             write("[init] Spawned heliox-daemon successfully, supervising...\n");
 
             // Sleep-polling loop to check daemon exit status
+            let mut status = 0;
             loop {
-                let status = unsafe { syscall3(SYS_WAITPID, daemon_pid, 0, 0) };
-                if (status as i64) >= 0 {
+                let res = unsafe { syscall3(SYS_WAITPID, daemon_pid, 0, 0) };
+                if (res as i64) >= 0 {
+                    status = res;
                     break;
                 }
                 sleep(100);
             }
 
-            write("[init] heliox-daemon exited or crashed! Restarting...\n");
+            write_num("[init] heliox-daemon exited or crashed! status=", status as i64, "\n");
             sleep(500); // Throttling restart
         }
     }

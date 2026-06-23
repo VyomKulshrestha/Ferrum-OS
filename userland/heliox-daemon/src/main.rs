@@ -80,7 +80,7 @@ const SYS_DELETE_FILE: u64 = 22;
 const SYS_EXIT: u64 = 30;
 const SYS_SLEEP: u64 = 32;
 const SYS_WRITE: u64 = 34;
-const FD_CONSOLE: u64 = 1;
+const FD_CONSOLE: u64 = 2;
 const SYS_INJECT_KEY: u64 = 26;
 const SYS_INJECT_MOUSE: u64 = 27;
 
@@ -811,11 +811,12 @@ pub extern "C" fn _start() -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {
-        unsafe {
-            syscall3(SYS_EXIT, 101, 0, 0);
-        }
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    let msg = alloc::format!("[heliox-daemon PANIC] {}\n", info);
+    unsafe {
+        syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64);
+        syscall3(SYS_EXIT, 101, 0, 0);
     }
+    loop {}
 }
 
