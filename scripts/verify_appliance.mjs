@@ -107,7 +107,7 @@ async function runScenario(memory, useDisk, setupFn, verifyFn) {
   const keyMap = new Map(Object.entries({
     " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus",
     ":": "shift-semicolon", "{": "shift-bracket_left", "}": "shift-bracket_right",
-    "\"": "shift-quote", ",": "comma"
+    "\"": "shift-apostrophe", ",": "comma"
   }));
 
   const sendKey = async (k) => { await mon(`sendkey ${k}`); };
@@ -181,7 +181,17 @@ try {
 
   // Scenario 1: High Tier (Local SLM Inference)
   // High specs: 2048MB memory, Ext2 primary slave mounted at /disk, loads model
-  await runScenario("2048M", true, null, async (start) => {
+  await runScenario("2048M", true, async (sendText, sendKey) => {
+    // Write config to VFS config.json
+    console.log("Writing config.json for local provider to VFS...");
+    const configStr = '{"provider":"auto","api_host":"localhost","tick_interval":1}';
+    await sendText("rm /disk/heliox/config.json");
+    await sendKey("ret");
+    await sleep(200);
+    await sendText(`write /disk/heliox/config.json ${configStr}`);
+    await sendKey("ret");
+    await sleep(500);
+  }, async (start) => {
     const serialOutput = await waitForSerial("[heliox-daemon] active provider: local-", 25, start);
     const hasLocalProvider = serialOutput.includes("local-1.1B") || serialOutput.includes("local-15M");
     check("High/Standard Tier active provider is local-1.1B or local-15M", hasLocalProvider);
@@ -199,6 +209,9 @@ try {
     // Write config to VFS config.json
     console.log("Writing config.json to VFS...");
     const configStr = '{"provider":"cloud","api_host":"10.0.2.2","api_port":8443,"api_path":"/","model_name":"mock","api_key":"key","tick_interval":1}';
+    await sendText("rm /disk/heliox/config.json");
+    await sendKey("ret");
+    await sleep(200);
     await sendText(`write /disk/heliox/config.json ${configStr}`);
     await sendKey("ret");
     await sleep(500);
