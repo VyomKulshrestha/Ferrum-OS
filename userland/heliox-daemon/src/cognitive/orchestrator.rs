@@ -408,7 +408,7 @@ impl Orchestrator {
         self.emit_telemetry(TelemetryEventKind::ThinkStart, format!("Prompt generated ({} bytes)", prompt.len()));
 
         if self.config.provider.starts_with("local") {
-            match crate::cognitive::inference::run_local_inference(&prompt) {
+            match crate::cognitive::inference::run_local_inference(&prompt, &self.config.provider) {
                 Ok(res) => {
                     self.last_response = Some(res.clone());
                     self.emit_telemetry(TelemetryEventKind::ThinkComplete, format!("Local response generated ({} bytes)", res.len()));
@@ -431,12 +431,36 @@ impl Orchestrator {
                     if response.status_code == 200 {
                         self.last_response = Some(response.body.clone());
                         self.emit_telemetry(TelemetryEventKind::ThinkComplete, format!("Response received ({} bytes)", response.body.len()));
+                        // emit_telemetry only forwards to the GUI over IPC; mirror
+                        // the message to the console/serial too so a successful
+                        // cloud round-trip is observable without a GUI attached
+                        // (e.g. from the serial log in headless/CI runs).
+                        let console_msg = format!(
+                            "[heliox-daemon] Response received ({} bytes)\n",
+                            response.body.len()
+                        );
+                        unsafe {
+                            syscall3(34, 1, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                        }
                         Some(response.body)
                     } else {
+                        let console_msg = format!(
+                            "[heliox-daemon] [ ERROR ] LLM query returned status {}\n",
+                            response.status_code
+                        );
+                        unsafe {
+                            syscall3(34, 1, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                        }
                         None
                     }
                 }
-                Err(_) => None,
+                Err(e) => {
+                    let console_msg = format!("[heliox-daemon] [ ERROR ] LLM query failed: {}\n", e);
+                    unsafe {
+                        syscall3(34, 1, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                    }
+                    None
+                }
             }
         }
     }

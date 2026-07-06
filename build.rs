@@ -107,6 +107,33 @@ fn main() {
         }
     }
 
+    // Build gui-smoke-test (D1 app-window framework verification binary).
+    let smoke_dir = PathBuf::from(&manifest_dir).join("userland/gui-smoke-test");
+    let smoke_manifest = smoke_dir.join("Cargo.toml");
+    println!("cargo:rerun-if-changed=userland/gui-smoke-test/Cargo.toml");
+    println!("cargo:rerun-if-changed=userland/gui-smoke-test/.cargo/config.toml");
+    println!("cargo:rerun-if-changed=userland/gui-smoke-test/src");
+
+    if smoke_manifest.exists() {
+        let smoke_status = Command::new(&cargo)
+            .arg("build")
+            .arg("--release")
+            .arg("--target")
+            .arg("x86_64-unknown-none")
+            .current_dir(&smoke_dir)
+            .env("CARGO_ENCODED_RUSTFLAGS", &userland_rustflags)
+            .env_remove("RUSTFLAGS")
+            .status()
+            .expect("failed to spawn cargo for gui-smoke-test build");
+
+        if !smoke_status.success() {
+            panic!(
+                "ferrumos gui-smoke-test build failed (dir={}); see output above",
+                smoke_dir.display()
+            );
+        }
+    }
+
     // The userland crates link themselves directly at the dedicated user P4
     // slot (P4[1], base 0x80_0000_0000) via `--image-base` in their
     // .cargo/config.toml. Because the images are non-PIE with absolute

@@ -269,6 +269,64 @@ fn check_and_trigger_mmap_test() {
     }
 }
 
+/// Test hook for verifying non-blocking audio capture (H5). Triggered by
+/// `/tmp/audio_test` (mirrors the mmap/net test hooks above). Records for a
+/// fixed duration and reports byte count + elapsed wall-clock ticks, so the
+/// verification harness can confirm real DMA-timed capture happened (not an
+/// instant no-op) while the shell/other tasks stay responsive throughout.
+fn check_and_trigger_audio_test() {
+    let test_file = "/tmp/audio_test";
+    let mut buf = [0u8; 64];
+    let res = unsafe {
+        syscall4(
+            SYS_READ_FILE,
+            test_file.as_ptr() as u64,
+            test_file.len() as u64,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    if (res as i64) > 0 {
+        unsafe {
+            syscall3(SYS_DELETE_FILE, test_file.as_ptr() as u64, test_file.len() as u64, 0);
+        }
+
+        let start_msg = "[heliox-daemon] running audio capture test...\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, start_msg.as_ptr() as u64, start_msg.len() as u64);
+        }
+
+        const SYS_RECORD_AUDIO: u64 = 24;
+        const DURATION_MS: u64 = 1000;
+        let mut rec_buf = alloc::vec![0u8; 4096 * 1024];
+        let start_ticks = cognitive::fusion::get_uptime_ticks();
+        let n = unsafe {
+            syscall3(
+                SYS_RECORD_AUDIO,
+                rec_buf.as_mut_ptr() as u64,
+                rec_buf.len() as u64,
+                DURATION_MS,
+            )
+        };
+        let end_ticks = cognitive::fusion::get_uptime_ticks();
+        let elapsed_ticks = end_ticks.saturating_sub(start_ticks);
+
+        let result_msg = alloc::format!(
+            "[heliox-daemon] audio capture result: bytes={} elapsed_ticks={}\n",
+            n as i64,
+            elapsed_ticks
+        );
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, result_msg.as_ptr() as u64, result_msg.len() as u64);
+        }
+
+        let done_msg = "[heliox-daemon] audio capture test complete\n";
+        unsafe {
+            syscall3(SYS_WRITE, FD_CONSOLE, done_msg.as_ptr() as u64, done_msg.len() as u64);
+        }
+    }
+}
+
 const SYS_ACCEPT: u64 = 10;
 
 fn init_server_socket() -> Result<u64, &'static str> {
@@ -321,6 +379,9 @@ pub extern "C" fn _start() -> ! {
 
     // Check for mmap test trigger
     check_and_trigger_mmap_test();
+
+    // Check for audio capture test trigger
+    check_and_trigger_audio_test();
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();

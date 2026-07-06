@@ -1,0 +1,19 @@
+[package]
+name = "ferrumos-gui-smoke-test"
+version = "0.0.1"
+edition = "2021"
+authors = ["FerrumOS Contributors"]
+description = "D1 app-window framework smoke test binary for FerrumOS"
+license = "MIT"
+
+[[bin]]
+name = "gui-smoke-test"
+path = "src/main.rs"
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 2

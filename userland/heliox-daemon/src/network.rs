@@ -10,11 +10,11 @@ use alloc::vec::Vec;
 use alloc::format;
 use core::arch::asm;
 
-use rand_core::{RngCore, CryptoRng};
+use rand_core::{RngCore, CryptoRng, CryptoRngCore};
 use embedded_io::{Read, Write, ErrorKind};
 use embedded_tls::blocking::{TlsConnection, TlsConfig, TlsContext};
 use embedded_tls::webpki::CertVerifier;
-use embedded_tls::{Aes128GcmSha256, Certificate, TlsClock};
+use embedded_tls::{Aes128GcmSha256, Certificate, CryptoProvider, TlsClock, TlsError, TlsVerifier};
 
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
 const SYS_SOCKET: u64 = 7;
@@ -105,6 +105,30 @@ impl RngCore for SyscallRng {
 }
 
 impl CryptoRng for SyscallRng {}
+
+// ---- CryptoProvider (embedded-tls 0.19+ verifier/rng bundle) ---------------
+// embedded-tls 0.18+ replaced the old `TlsContext::new(config, &mut rng)` +
+// `.open::<_, Verifier>()` turbofish with a single `CryptoProvider` that
+// bundles the RNG and the certificate verifier. This wrapper is the
+// minimal glue: it owns a `SyscallRng` and a `webpki::CertVerifier`
+// constructed with the CA selected for this connection's host.
+struct WebPkiProvider<'a> {
+    rng: SyscallRng,
+    verifier: CertVerifier<'a, Aes128GcmSha256, DaemonClock, 4096>,
+}
+
+impl<'a> CryptoProvider for WebPkiProvider<'a> {
+    type CipherSuite = Aes128GcmSha256;
+    type Signature = &'static [u8];
+
+    fn rng(&mut self) -> impl CryptoRngCore {
+        &mut self.rng
+    }
+
+    fn verifier(&mut self) -> Result<&mut impl TlsVerifier<Self::CipherSuite>, TlsError> {
+        Ok(&mut self.verifier)
+    }
+}
 
 // ---- Userspace Socket Adapter ----------------------------------------------
 struct UserspaceSocketAdapter {
@@ -671,6 +695,21 @@ pub fn http_post_tls(
     json_body: &str,
     api_key: &str,
 ) -> Result<HttpResponse, &'static str> {
+    // 0. Self-check cap:net:tls before opening an encrypted channel. TLS is
+    // parsed entirely in userspace (the kernel just sees opaque bytes over a
+    // plain socket), so there is no kernel-side syscall to gate on; this
+    // self-check via SYS_CAPABILITY_CHECK (CapabilityResource::NetTls = 5)
+    // is what makes cap:net:tls load-bearing instead of a capability that
+    // is granted but never actually consulted.
+    const SYS_CAPABILITY_CHECK: u64 = 5;
+    const CAP_NET_TLS: u64 = 5;
+    let held = unsafe { syscall3(SYS_CAPABILITY_CHECK, CAP_NET_TLS, 0, 0) };
+    if held == 0 {
+        let msg = "[heliox-daemon] [ ERROR ] cap:net:tls not held; refusing TLS connection\n";
+        unsafe { syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64); }
+        return Err("cap:net:tls not held");
+    }
+
     // 1. Resolve host
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
@@ -693,19 +732,21 @@ pub fn http_post_tls(
     let mut write_buf = alloc::vec![0u8; 16640];
     let mut tls = TlsConnection::new(socket, &mut read_buf, &mut write_buf);
 
-    // 6. Setup TLS Config
+    // 6. Setup TLS Config (CA now lives on the verifier, not TlsConfig - see
+    // WebPkiProvider below)
     let ca_der = get_ca_for_host(host);
-    let cert = Certificate::X509(ca_der);
-    let config = TlsConfig::<Aes128GcmSha256>::new()
-        .with_ca(cert)
-        .with_server_name(host);
+    let config = TlsConfig::new().with_server_name(host);
 
-    // 7. Setup TlsContext
-    let mut rng = SyscallRng;
-    let context = TlsContext::new(&config, &mut rng);
+    // 7. Setup TlsContext: bundle the RNG and the CA-bound certificate
+    // verifier into one CryptoProvider (embedded-tls 0.18+ API).
+    let provider = WebPkiProvider {
+        rng: SyscallRng,
+        verifier: CertVerifier::new(Certificate::X509(ca_der)),
+    };
+    let context = TlsContext::new(&config, provider);
 
     // 8. Open TLS
-    tls.open::<_, CertVerifier<'_, Aes128GcmSha256, DaemonClock, 4096>>(context)
+    tls.open(context)
         .map_err(|e| {
             let log_msg = alloc::format!("[heliox-daemon] [ ERROR ] TLS Handshake failed: {:?}\n", e);
             unsafe { syscall3(34, 1, log_msg.as_ptr() as u64, log_msg.len() as u64); }

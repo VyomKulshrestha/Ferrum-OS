@@ -76,6 +76,24 @@ pub fn sys_play_audio(args: [u64; 6]) -> SyscallResult {
     }
 }
 
+/// State for an in-progress non-blocking audio capture. Only one recording
+/// can be active at a time (the HDA controller has a single input stream),
+/// so a single slot is sufficient.
+struct CaptureSession {
+    pid: u64,
+    user_buf_ptr: u64,
+    user_buf_len: usize,
+    /// Kernel-side accumulation buffer, sized to the requested duration.
+    accum: alloc::vec::Vec<u8>,
+    copied_bytes: usize,
+    last_lpib: usize,
+    /// Absolute PIT tick at which we give up waiting for more data and
+    /// return whatever has been captured so far.
+    deadline_tick: u64,
+}
+
+static ACTIVE_CAPTURE: spin::Mutex<Option<CaptureSession>> = spin::Mutex::new(None);
+
 /// `sys_record_audio` — Record PCM audio into a userspace buffer.
 ///
 /// # Arguments (via `args`)
@@ -87,6 +105,23 @@ pub fn sys_play_audio(args: [u64; 6]) -> SyscallResult {
 /// # Returns
 ///
 /// Number of bytes written to `buf_ptr` on success, or an error status.
+///
+/// # Non-blocking design
+///
+/// The underlying HDA capture is DMA-driven and takes as long as
+/// `duration_ms` to fill (hundreds of milliseconds to seconds). Waiting for
+/// it with a busy-spin loop inside this syscall would run in kernel
+/// context and monopolize the single core for the whole duration, freezing
+/// every other task on the system.
+///
+/// Instead this syscall is a state machine driven by the kernel's existing
+/// generic `SyscallStatus::Blocked` retry mechanism (the same one the
+/// confirmation gate uses): the first call kicks off DMA and returns
+/// `Blocked`, which makes the interrupt layer rewind the caller's `int
+/// 0x80` and re-queue the task at the *back* of its run queue - giving any
+/// other ready task a scheduling slot before this task is retried. Each
+/// retry polls the DMA position once (no spinning) and either completes or
+/// returns `Blocked` again.
 #[allow(dead_code)]
 pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
     let buf_ptr = args[0];
@@ -103,16 +138,72 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    let recorded = match crate::audio::record(duration_ms) {
-        Ok(data) => data,
-        Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
-    };
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    let mut session = ACTIVE_CAPTURE.lock();
 
-    // SAFETY: buf_ptr was validated non-null and we cap the copy at
-    // buf_len which the caller guarantees is the buffer's capacity.
-    let copied = unsafe { copy_to_user(buf_ptr, &recorded, buf_len) };
+    match session.as_mut() {
+        Some(s) if s.pid == pid => {
+            // Retry: poll once, no spinning.
+            let now = crate::scheduler::total_ticks();
+            let target_len = s.accum.len();
+            let mut copied = s.copied_bytes;
+            let mut last_lpib = s.last_lpib;
+            let done = match crate::devices::hda::poll_recording_once(&mut s.accum, &mut copied, &mut last_lpib) {
+                Ok(d) => d,
+                Err(_) => {
+                    *session = None;
+                    return SyscallResult::err(SyscallStatus::InvalidArgument);
+                }
+            };
+            s.copied_bytes = copied;
+            s.last_lpib = last_lpib;
 
-    SyscallResult::ok(copied as u64)
+            if done || now >= s.deadline_tick {
+                crate::devices::hda::finish_recording_nonblocking();
+                let accum = core::mem::take(&mut s.accum);
+                let user_ptr = s.user_buf_ptr;
+                let user_len = s.user_buf_len;
+                let n = s.copied_bytes.min(target_len);
+                *session = None;
+                drop(session);
+                // SAFETY: user_ptr/user_len were validated when the capture
+                // started; they are immutable for the life of this session.
+                let out = unsafe { copy_to_user(user_ptr, &accum[..n], user_len) };
+                SyscallResult::ok(out as u64)
+            } else {
+                SyscallResult::err(SyscallStatus::Blocked)
+            }
+        }
+        Some(_) => {
+            // A different process already has a capture in flight - the
+            // single HDA input stream can't serve two callers at once.
+            SyscallResult::err(SyscallStatus::PermissionDenied)
+        }
+        None => {
+            // First call for this pid: kick off DMA and start the retry loop.
+            let format = crate::audio::AudioFormat::PCM_48KHZ_16BIT_STEREO;
+            let target_len = format.bytes_for_duration(duration_ms).min(MAX_AUDIO_BUF);
+            if target_len == 0 {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+            if crate::devices::hda::start_recording_nonblocking().is_err() {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+            // Generous safety margin over the requested duration so a slow
+            // DMA doesn't get truncated early; the PIT runs at ~18.2 Hz.
+            let timeout_ticks = ((duration_ms as u64 * 18) / 1000).saturating_add(36);
+            *session = Some(CaptureSession {
+                pid,
+                user_buf_ptr: buf_ptr,
+                user_buf_len: buf_len,
+                accum: alloc::vec![0u8; target_len],
+                copied_bytes: 0,
+                last_lpib: 0,
+                deadline_tick: crate::scheduler::total_ticks().saturating_add(timeout_ticks),
+            });
+            SyscallResult::err(SyscallStatus::Blocked)
+        }
+    }
 }
 
 /// `sys_set_volume` — Set the master audio output volume.

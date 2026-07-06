@@ -1294,6 +1294,124 @@ impl HdaController {
     }
 
     // ========================================================================
+    // Non-blocking capture (start / poll-once / finish)
+    // ========================================================================
+    //
+    // `record()` above does the whole capture in one call via a busy-spin
+    // poll loop (`core::hint::spin_loop()`), which runs in kernel context
+    // during the syscall and monopolizes the single core for the entire
+    // recording duration - multiple seconds of the whole OS being frozen.
+    // These three methods split that into: kick off DMA once, then let the
+    // *syscall layer* drive a poll-a-little/block/retry cycle (via the
+    // existing generic `SyscallStatus::Blocked` retry mechanism used by the
+    // confirmation gate), so other ready tasks get scheduled between polls
+    // instead of the CPU being held hostage by one spin loop.
+
+    /// Stop any running capture/playback, reset and reprogram the input
+    /// stream, and start the DMA capture. Does not wait for any data.
+    fn start_recording(&mut self) -> Result<(), &'static str> {
+        crate::serial_println!("HDA: start_recording()");
+        self.stop_stream(self.in_stream_base);
+        self.stop_stream(self.out_stream_base);
+
+        let in_ptr = self.in_buf_virt.as_u64() as *mut u8;
+        // Safety: in_ptr spans our contiguous DMA buffer.
+        unsafe {
+            core::ptr::write_bytes(in_ptr, 0, self.in_buf_size as usize);
+        }
+
+        self.reset_stream(self.in_stream_base);
+        self.setup_input_stream()?;
+
+        let _ = self.send_verb(0, self.input_adc_nid, VERB_SET_CHANNEL_STREAM | 0x20);
+        let _ = self.send_verb(
+            0,
+            self.input_adc_nid,
+            VERB_SET_STREAM_FORMAT | (STREAM_FORMAT_48K_16B_STEREO as u32),
+        );
+
+        self.start_stream(self.in_stream_base);
+        Ok(())
+    }
+
+    /// Check the hardware's current DMA position (`LPIB`) once and copy any
+    /// newly-available bytes since `*last_lpib` into `buf` starting at
+    /// `*copied_bytes`. Non-blocking - does not loop or spin. Returns `true`
+    /// once `*copied_bytes >= buf.len()`.
+    ///
+    /// This is exactly the body of `record()`'s poll loop, extracted to run
+    /// once per call instead of looping until completion.
+    fn poll_recording_once(&self, buf: &mut [u8], copied_bytes: &mut usize, last_lpib: &mut usize) -> bool {
+        if *copied_bytes >= buf.len() {
+            return true;
+        }
+
+        let lpib = (self.regs.read32(self.in_stream_base + SD_LPIB) as usize) % self.in_buf_size as usize;
+
+        // Clear buffer completion status if set, so QEMU knows we processed
+        // it and doesn't halt DMA.
+        let sts = self.regs.read8(self.in_stream_base + SD_STS);
+        if (sts & 0x04) != 0 {
+            self.regs.write8(self.in_stream_base + SD_STS, 0x04);
+        }
+
+        if lpib == *last_lpib {
+            return false;
+        }
+
+        if lpib > *last_lpib {
+            let mut chunk_len = lpib - *last_lpib;
+            if *copied_bytes + chunk_len > buf.len() {
+                chunk_len = buf.len() - *copied_bytes;
+            }
+            let src_ptr = (self.in_buf_virt.as_u64() + *last_lpib as u64) as *const u8;
+            let dst_ptr = unsafe { buf.as_mut_ptr().add(*copied_bytes) };
+            unsafe {
+                core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, chunk_len);
+            }
+            *copied_bytes += chunk_len;
+            *last_lpib = lpib;
+        } else {
+            // Wrap-around case.
+            let mut chunk1_len = self.in_buf_size as usize - *last_lpib;
+            let mut chunk2_len = lpib;
+
+            if *copied_bytes + chunk1_len > buf.len() {
+                chunk1_len = buf.len() - *copied_bytes;
+                chunk2_len = 0;
+            } else if *copied_bytes + chunk1_len + chunk2_len > buf.len() {
+                chunk2_len = buf.len() - *copied_bytes - chunk1_len;
+            }
+
+            if chunk1_len > 0 {
+                let src_ptr = (self.in_buf_virt.as_u64() + *last_lpib as u64) as *const u8;
+                let dst_ptr = unsafe { buf.as_mut_ptr().add(*copied_bytes) };
+                unsafe {
+                    core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, chunk1_len);
+                }
+                *copied_bytes += chunk1_len;
+            }
+            if chunk2_len > 0 {
+                let src_ptr = self.in_buf_virt.as_u64() as *const u8;
+                let dst_ptr = unsafe { buf.as_mut_ptr().add(*copied_bytes) };
+                unsafe {
+                    core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, chunk2_len);
+                }
+                *copied_bytes += chunk2_len;
+            }
+            *last_lpib = lpib;
+        }
+
+        *copied_bytes >= buf.len()
+    }
+
+    /// Stop the input stream after a non-blocking capture completes (or
+    /// times out).
+    fn finish_recording(&self) {
+        self.stop_stream(self.in_stream_base);
+    }
+
+    // ========================================================================
     // Volume Control
     // ========================================================================
 
@@ -1351,6 +1469,33 @@ pub fn stop_recording() {
     let guard = HDA.lock();
     if let Some(ref ctrl) = *guard {
         ctrl.stop_stream(ctrl.in_stream_base);
+    }
+}
+
+/// Kick off a non-blocking DMA capture (setup + start only, no waiting).
+/// Pair with repeated `poll_recording_once` calls and a final
+/// `finish_recording_nonblocking`. See `HdaController::start_recording` for
+/// why this exists instead of the single blocking `record_buffer` call.
+pub fn start_recording_nonblocking() -> Result<(), &'static str> {
+    let mut guard = HDA.lock();
+    let ctrl = guard.as_mut().ok_or("HDA: not initialised")?;
+    ctrl.start_recording()
+}
+
+/// Poll the in-progress capture once, copying any newly-available bytes
+/// into `buf`. Returns `true` once `*copied_bytes >= buf.len()`.
+pub fn poll_recording_once(buf: &mut [u8], copied_bytes: &mut usize, last_lpib: &mut usize) -> Result<bool, &'static str> {
+    let guard = HDA.lock();
+    let ctrl = guard.as_ref().ok_or("HDA: not initialised")?;
+    Ok(ctrl.poll_recording_once(buf, copied_bytes, last_lpib))
+}
+
+/// Stop the input stream after a non-blocking capture completes or times
+/// out.
+pub fn finish_recording_nonblocking() {
+    let guard = HDA.lock();
+    if let Some(ref ctrl) = *guard {
+        ctrl.finish_recording();
     }
 }
 

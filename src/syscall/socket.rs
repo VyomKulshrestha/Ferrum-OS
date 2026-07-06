@@ -111,6 +111,7 @@ pub fn sys_send(fd: u64, buf_ptr: u64, len: u64) -> SyscallResult {
             iface::poll();
             SyscallResult::ok(n as u64)
         }
+        Err("blocked") => SyscallResult::err(SyscallStatus::Blocked),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }

@@ -22,6 +22,11 @@ pub fn init_elf_size() -> usize {
 
 pub const HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemon/target/x86_64-unknown-none/release/heliox-daemon");
 
+/// D1 app-window framework smoke test — creates a window, presents a known
+/// fill color, and echoes received input events to serial so
+/// `scripts/verify_app_window.mjs` can assert the whole path end to end.
+pub const GUI_SMOKE_TEST_ELF: &[u8] = include_bytes!("../../userland/gui-smoke-test/target/x86_64-unknown-none/release/gui-smoke-test");
+
 extern crate alloc;
 
 use alloc::string::{String, ToString};
@@ -119,6 +124,12 @@ pub fn init() {
             String::from("cap:crypto:rng"),
             String::from("cap:net:tls"),
         ],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "gui-smoke-test",
+        "D1 app-window framework smoke test",
+        "/bin/gui-smoke-test",
+        vec![String::from("cap:gui:window")],
     ));
 }
 

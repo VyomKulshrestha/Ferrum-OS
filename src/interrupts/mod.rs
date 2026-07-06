@@ -745,7 +745,6 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
 
         let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);
         if res.status == crate::syscall::SyscallStatus::Blocked {
-            crate::serial_println!("[SYSCALL_BLOCKED] pid={} blocked on syscall {}", current_pid, syscall_no);
             save_user_context(current_pid, frame);
             {
                 let mut sched = crate::scheduler::SCHEDULER.lock();

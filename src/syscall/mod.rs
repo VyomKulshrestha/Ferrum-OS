@@ -65,6 +65,18 @@ pub enum SyscallNumber {
     Mmap = 41,
     GetRandom = 42,
     GetTime = 43,
+    /// Create a GUI window backed by a caller-owned pixel canvas.
+    /// args[0]=title_ptr, args[1]=title_len, args[2]=canvas_w, args[3]=canvas_h.
+    /// Returns the new window's id.
+    CreateWindow = 44,
+    /// Blit a caller-owned RGBA8 pixel buffer into a window it owns.
+    /// args[0]=window_id, args[1]=buf_ptr, args[2]=buf_len (must equal
+    /// canvas_w*canvas_h*4).
+    PresentWindow = 45,
+    /// Poll one pending input event scoped to a window the caller owns.
+    /// args[0]=window_id, args[1]=out_ptr (20 bytes), args[2]=out_len.
+    /// Returns 1 and fills out_ptr if an event was available, else 0.
+    PollWindowInput = 46,
 }
 
 /// Syscall return status.
@@ -112,6 +124,7 @@ pub mod camera;
 pub mod kexec;
 pub mod hud;
 pub mod mmap;
+pub mod gui_window;
 
 use alloc::string::String;
 
@@ -122,6 +135,7 @@ pub enum CapabilityResource {
     ServiceRegister = 2,
     AuditRead = 3,
     ProcessSpawn = 4,
+    NetTls = 5,
 }
 
 impl CapabilityResource {
@@ -131,6 +145,7 @@ impl CapabilityResource {
             Self::ServiceRegister => "service:register",
             Self::AuditRead => "audit:read",
             Self::ProcessSpawn => "process:spawn",
+            Self::NetTls => "net:tls:*",
         }
     }
 
@@ -140,6 +155,7 @@ impl CapabilityResource {
             2 => Some(Self::ServiceRegister),
             3 => Some(Self::AuditRead),
             4 => Some(Self::ProcessSpawn),
+            5 => Some(Self::NetTls),
             _ => None,
         }
     }
@@ -542,6 +558,24 @@ pub fn dispatch_with_capabilities(
                 Some(secs) => SyscallResult::ok(secs),
                 None => SyscallResult::ok(0),
             }
+        }
+        x if x == SyscallNumber::CreateWindow as u64 => {
+            if !crate::security::has_capability(held_capabilities, "gui:window:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            gui_window::sys_create_window(args)
+        }
+        x if x == SyscallNumber::PresentWindow as u64 => {
+            if !crate::security::has_capability(held_capabilities, "gui:window:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            gui_window::sys_present_window(args)
+        }
+        x if x == SyscallNumber::PollWindowInput as u64 => {
+            if !crate::security::has_capability(held_capabilities, "gui:window:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            gui_window::sys_poll_window_input(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

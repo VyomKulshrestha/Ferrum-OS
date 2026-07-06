@@ -10,6 +10,7 @@ pub mod window;
 pub mod compositor;
 pub mod desktop;
 pub mod cursor;
+pub mod app_window;
 
 use spin::Mutex;
 use crate::devices::vga_fb::FRAMEBUFFER;

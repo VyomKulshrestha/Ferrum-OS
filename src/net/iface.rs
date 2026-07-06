@@ -102,9 +102,12 @@ pub fn socket_create_tcp() -> Result<u64, &'static str> {
         return Err("network interface not initialized");
     }
 
-    // Create TCP socket with reasonable buffer sizes
-    let rx_buffer = tcp::SocketBuffer::new(vec![0u8; 4096]);
-    let tx_buffer = tcp::SocketBuffer::new(vec![0u8; 4096]);
+    // Create TCP socket with buffers large enough for a TLS 1.3 handshake
+    // flight (ServerHello + Certificate + CertVerify + Finished can exceed
+    // 4 KiB). 16 KiB matches the daemon's embedded-tls record buffers and
+    // avoids handshake stalls/resets from receive-window starvation.
+    let rx_buffer = tcp::SocketBuffer::new(vec![0u8; 16384]);
+    let tx_buffer = tcp::SocketBuffer::new(vec![0u8; 16384]);
     let socket = tcp::Socket::new(rx_buffer, tx_buffer);
 
     let mut sockets = SOCKETS.lock();
@@ -196,7 +199,23 @@ pub fn socket_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
 
     let socket = sockets.get_mut::<tcp::Socket>(handle);
     if !socket.can_send() {
-        return Err("socket not ready to send");
+        use smoltcp::socket::tcp::State;
+        match socket.state() {
+            // Still completing the TCP handshake (the window right after
+            // connect): not sendable *yet*, but will be — tell userspace to
+            // retry rather than failing. Previously this was misclassified as
+            // a hard error, which aborted the TLS ClientHello send.
+            State::SynSent | State::SynReceived | State::Listen => return Err("blocked"),
+            // Established but TX buffer full → retry; anything terminal/closing
+            // → genuine "cannot send".
+            _ => {
+                if socket.may_send() {
+                    return Err("blocked");
+                } else {
+                    return Err("socket not ready to send");
+                }
+            }
+        }
     }
 
     socket.send_slice(data).map_err(|_| "TCP send failed")
@@ -216,10 +235,21 @@ pub fn socket_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
 
     let socket = sockets.get_mut::<tcp::Socket>(handle);
     if !socket.can_recv() {
-        if socket.may_recv() {
-            return Err("blocked");
-        } else {
-            return Ok(0);
+        use smoltcp::socket::tcp::State;
+        match socket.state() {
+            // Still completing the TCP handshake: no data yet, NOT EOF — retry.
+            // (SYN-SENT has may_recv()==false, which previously returned Ok(0)
+            // and was misread by embedded-tls as a premature connection close.)
+            State::SynSent | State::SynReceived | State::Listen => return Err("blocked"),
+            // Established with no buffered data → retry; a peer that has closed
+            // its write side → genuine EOF.
+            _ => {
+                if socket.may_recv() {
+                    return Err("blocked");
+                } else {
+                    return Ok(0);
+                }
+            }
         }
     }
 

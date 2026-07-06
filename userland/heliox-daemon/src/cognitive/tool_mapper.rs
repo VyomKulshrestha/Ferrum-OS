@@ -1158,7 +1158,12 @@ fn execute_local_inference(args: &[(String, JsonValue)]) -> ToolResult {
             output: String::from("Missing 'prompt' argument"),
         };
     }
-    match crate::cognitive::inference::run_local_inference(&prompt) {
+    // This is a direct, explicit tool invocation rather than the automatic
+    // provider-routed THINK step, and `execute()`'s signature doesn't carry
+    // the daemon's Config through this call chain. Request the best-tier
+    // model unconditionally; `run_local_inference` gracefully falls back to
+    // the Standard-tier model if the High-tier checkpoint isn't on disk.
+    match crate::cognitive::inference::run_local_inference(&prompt, "local-1.1B") {
         Ok(res) => ToolResult {
             tool_name: String::from("local_inference"),
             success: true,

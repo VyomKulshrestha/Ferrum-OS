@@ -457,6 +457,37 @@ pub extern "C" fn _start() -> ! {
             }
         }
     } else {
+        // D1 app-window framework smoke test: spawned independently of
+        // heliox-daemon, gated by a flag file so it never runs on a normal
+        // boot. Mirrors the daemon's own `/tmp/X_test` self-test hooks,
+        // but lives here because it's a standalone binary, not a daemon
+        // feature.
+        let gui_test_file = "/tmp/gui_test";
+        let mut gui_test_buf = [0u8; 8];
+        let gui_test_res = unsafe {
+            syscall4(
+                SYS_READ_FILE,
+                gui_test_file.as_ptr() as u64,
+                gui_test_file.len() as u64,
+                gui_test_buf.as_mut_ptr() as u64,
+                gui_test_buf.len() as u64,
+            )
+        };
+        if (gui_test_res as i64) > 0 {
+            // Deliberately not deleted: init doesn't hold
+            // cap:confirmation:bypass, so SYS_DELETE_FILE would hit the
+            // Tier-4 confirmation gate and block forever waiting for a
+            // physical key press nobody is there to provide (unlike
+            // heliox-daemon's own `/tmp/X_test` hooks, which run with that
+            // capability granted). A stale flag on a volatile RamFS is
+            // harmless — it's gone on the next boot.
+            let smoke_path = "/bin/gui-smoke-test";
+            let smoke_pid = unsafe {
+                syscall3(SYS_EXEC, smoke_path.as_ptr() as u64, smoke_path.len() as u64, 0)
+            };
+            write_num("[init] spawned gui-smoke-test pid=", smoke_pid as i64, "\n");
+        }
+
         let path = "/bin/heliox-daemon";
         loop {
             write("[init] Spawning heliox-daemon...\n");
@@ -477,16 +508,22 @@ pub extern "C" fn _start() -> ! {
 
             write("[init] Spawned heliox-daemon successfully, supervising...\n");
 
-            // Sleep-polling loop to check daemon exit status
-            let mut status = 0;
-            loop {
-                let res = unsafe { syscall3(SYS_WAITPID, daemon_pid, 0, 0) };
-                if (res as i64) >= 0 {
-                    status = res;
-                    break;
-                }
-                sleep(100);
+            // SYS_WAITPID genuinely blocks (parks this task until the child
+            // exits; it never returns a "not yet" sentinel to poll), so a
+            // heartbeat loop wrapped around it would never run. Instead,
+            // print our own heartbeats *before* waiting: this keeps init
+            // Ready/Running while the daemon works through its startup
+            // checks (including a long-running device syscall like audio
+            // capture). Since init and the daemon are then both genuinely
+            // schedulable at the same time, init's heartbeats appearing at
+            // their normal ~50ms cadence is external proof the daemon's
+            // syscall isn't monopolizing the CPU; if they stall, it is.
+            for _ in 0..40 {
+                write("[init] heartbeat\n");
+                sleep(50);
             }
+
+            let status = unsafe { syscall3(SYS_WAITPID, daemon_pid, 0, 0) };
 
             write_num("[init] heliox-daemon exited or crashed! status=", status as i64, "\n");
             sleep(500); // Throttling restart

@@ -104,8 +104,15 @@ pub fn read_rtc_time() -> Option<u64> {
     UNIT_TEST_PASSED.call_once(|| {
         // Assert June 19, 2026 12:00:00 UTC (BCD format: yr=26h, mo=06h, dy=19h, hr=12h, min=00h, sec=00h)
         // In BCD: 26 = 0x26 = 38 decimal. 19 = 0x19 = 25 decimal.
+        // Expected epoch verified independently: 20454 days from 1970-01-01 to
+        // 2026-01-01 (10957 days to 2000-01-01, + 9497 days for 2000..2026)
+        // + 151 days for Jan..May 2026 + 18 days into June + 12:00:00 =
+        // 20623 * 86400 + 43200 = 1781870400. The previous constant
+        // (1781856000) was off by exactly 4 hours and tripped this
+        // self-check as a false positive once the daemon ran long enough
+        // to reach it, halting the kernel.
         let val = calculate_epoch(0x26, 0x06, 0x19, 0x12, 0x00, 0x00, false, true);
-        assert_eq!(val, Some(1781856000));
+        assert_eq!(val, Some(1781870400));
     });
 
     // Wait until CMOS is not updating

@@ -13,7 +13,20 @@ pub enum WindowType {
     SystemMonitor,
     Terminal,
     AgentHud,
+    /// A window owned by an arbitrary userland process (identified by the
+    /// `u64` pid), drawing into its own RGBA8 canvas via `PresentWindow`
+    /// instead of the kernel hand-drawing its content. This is the generic
+    /// app-window primitive: everything else (`Terminal`, `SystemMonitor`,
+    /// `AgentHud`) is still kernel-drawn and predates this variant.
+    App(u64),
 }
+
+/// Chrome geometry shared between window rendering and the app-window
+/// syscalls, so a process's requested canvas size maps to the same pixels
+/// the compositor actually blits. Total window size = canvas size + chrome.
+pub const CHROME_SIDE: u32 = 2;
+pub const CHROME_TOP: u32 = 22;
+pub const CHROME_BOTTOM: u32 = 2;
 
 pub struct Window {
     pub id: u64,
@@ -25,9 +38,16 @@ pub struct Window {
     pub height: u32,
     pub bg_color: u32,
     pub content: Vec<u8>, // simple text content for MVP
-    
+
     // For AgentHud input buffer
     pub input_buffer: String,
+
+    /// RGB canvas for `WindowType::App` windows, row-major, `canvas_w *
+    /// canvas_h` entries of `0x00RRGGBB`. Unused (empty) for every other
+    /// window type.
+    pub pixels: Vec<u32>,
+    pub canvas_w: u32,
+    pub canvas_h: u32,
 }
 
 impl Window {
@@ -43,7 +63,24 @@ impl Window {
             bg_color,
             content: Vec::new(),
             input_buffer: String::new(),
+            pixels: Vec::new(),
+            canvas_w: 0,
+            canvas_h: 0,
         }
+    }
+
+    /// Build an app-owned window. `canvas_w`/`canvas_h` are the drawable
+    /// pixel area the owning process presents into; the window's total
+    /// on-screen size is the canvas plus the shared chrome (title bar,
+    /// border) so app authors never need to know about chrome geometry.
+    pub fn new_app(id: u64, pid: u64, title: &str, x: u32, y: u32, canvas_w: u32, canvas_h: u32) -> Self {
+        let total_w = canvas_w + 2 * CHROME_SIDE;
+        let total_h = canvas_h + CHROME_TOP + CHROME_BOTTOM;
+        let mut w = Self::new(id, WindowType::App(pid), title, x, y, total_w, total_h, 0x00202020);
+        w.pixels = alloc::vec![0x00202020u32; (canvas_w as usize) * (canvas_h as usize)];
+        w.canvas_w = canvas_w;
+        w.canvas_h = canvas_h;
+        w
     }
 
     pub fn get_wrapped_lines(&self) -> Vec<String> {
@@ -233,6 +270,20 @@ impl Window {
                 graphics::fill_rect(self.x, input_y, self.width, 20, 0x001A1A1A);
                 graphics::draw_string(self.x + 4, input_y + 4, ">", 0x00FFFFFF, 0x001A1A1A);
                 graphics::draw_string(self.x + 20, input_y + 4, &self.input_buffer, 0x00FFFFFF, 0x001A1A1A);
+            }
+        } else if let WindowType::App(_) = self.win_type {
+            // App windows own their content: blit the process's last
+            // `PresentWindow`-submitted canvas verbatim, inset by the shared
+            // chrome geometry so it never draws over the title bar/border.
+            let ox = self.x + CHROME_SIDE;
+            let oy = self.y + CHROME_TOP;
+            for row in 0..self.canvas_h {
+                let row_base = (row * self.canvas_w) as usize;
+                for col in 0..self.canvas_w {
+                    if let Some(&px) = self.pixels.get(row_base + col as usize) {
+                        graphics::set_pixel(ox + col, oy + row, px & 0x00FF_FFFF);
+                    }
+                }
             }
         } else {
             // Regular windows: Draw text with scroll-scrolling if it exceeds visible limits

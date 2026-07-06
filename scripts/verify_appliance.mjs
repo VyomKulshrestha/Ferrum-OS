@@ -172,6 +172,18 @@ try {
     });
   });
 
+  mockHttpsServer.on("connection", (socket) => {
+    console.log(`[mock HTTPS server] TCP Connection established from ${socket.remoteAddress}:${socket.remotePort}`);
+  });
+
+  mockHttpsServer.on("secureConnection", (tlsSocket) => {
+    console.log(`[mock HTTPS server] Secure TLS connection established`);
+  });
+
+  mockHttpsServer.on("tlsClientError", (err, tlsSocket) => {
+    console.log(`[mock HTTPS server] TLS Client Error: ${err.message}`);
+  });
+
   await new Promise((resolve) => {
     mockHttpsServer.listen(8443, "0.0.0.0", () => {
       console.log("[mock HTTPS server] listening on port 8443");

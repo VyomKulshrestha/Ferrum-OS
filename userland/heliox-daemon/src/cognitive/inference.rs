@@ -686,27 +686,72 @@ fn sample_argmax(logits: &[f32]) -> usize {
     max_i
 }
 
-pub fn run_local_inference(prompt: &str) -> Result<String, &'static str> {
-    // 1. Detect if AVX2 is supported
-    let avx2_supported = crate::cognitive::inference::detect_avx2();
+/// High-tier model, used when `provider == "local-1.1B"` and the file is
+/// actually present on `/disk`. Falls back to the Standard-tier 15M model
+/// (`STANDARD_MODEL_PATH`) when it is not - v1 does not ship real
+/// multi-hundred-MB weights (see REPORT.md), so on a High-tier host today
+/// this fallback is the common path, not an edge case.
+const HIGH_TIER_MODEL_PATH: &str = "/disk/heliox/models/stories1.1B-q4.bin";
+/// Standard-tier model and the universal fallback for every other provider
+/// value (including "local-1.1B" when the High-tier file is absent).
+const STANDARD_MODEL_PATH: &str = "/disk/heliox/models/stories15M-q8.bin";
 
-    // 2. Read the model checkpoint header using SYS_READ_FILE
-    let model_path = "/disk/heliox/models/stories15M-q8.bin";
-    
-    // Read only first 256 bytes for config header
-    let mut header_buf = alloc::vec![0u8; 256];
+/// Read the first 256 bytes (the llama2.c config header) of `path` via
+/// `SYS_READ_FILE`. This doubles as the userland existence check: ring-3
+/// has no `stat` syscall, so "did the read return a full header" is the
+/// only signal available for "does this file exist and look valid."
+fn try_read_header(path: &str) -> Option<[u8; 256]> {
+    let mut header_buf = [0u8; 256];
     let bytes_read = unsafe {
         crate::syscall4(
             SYS_READ_FILE,
-            model_path.as_ptr() as u64,
-            model_path.len() as u64,
+            path.as_ptr() as u64,
+            path.len() as u64,
             header_buf.as_mut_ptr() as u64,
             header_buf.len() as u64,
         )
     };
     if (bytes_read as i64) < 256 {
-        return Err("Failed to read model config header or file too small");
+        None
+    } else {
+        Some(header_buf)
     }
+}
+
+pub fn run_local_inference(prompt: &str, provider: &str) -> Result<String, &'static str> {
+    // 1. Detect if AVX2 is supported
+    let avx2_supported = crate::cognitive::inference::detect_avx2();
+
+    // 2. Resolve the model path by tier and read its config header. High
+    // tier tries the 1.1B checkpoint first; if it isn't present on disk
+    // (v1 does not ship real multi-hundred-MB weights - see REPORT.md),
+    // fall back to the Standard-tier 15M model rather than failing
+    // inference outright. Every other provider value goes straight to the
+    // Standard-tier model.
+    let (model_path, header_buf) = if provider == "local-1.1B" {
+        match try_read_header(HIGH_TIER_MODEL_PATH) {
+            Some(hdr) => (HIGH_TIER_MODEL_PATH, hdr),
+            None => {
+                let msg = alloc::format!(
+                    "[heliox-daemon] [ WARN ] {} not found; falling back to {}\n",
+                    HIGH_TIER_MODEL_PATH,
+                    STANDARD_MODEL_PATH
+                );
+                unsafe {
+                    crate::syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64);
+                }
+                match try_read_header(STANDARD_MODEL_PATH) {
+                    Some(hdr) => (STANDARD_MODEL_PATH, hdr),
+                    None => return Err("Failed to read model config header or file too small"),
+                }
+            }
+        }
+    } else {
+        match try_read_header(STANDARD_MODEL_PATH) {
+            Some(hdr) => (STANDARD_MODEL_PATH, hdr),
+            None => return Err("Failed to read model config header or file too small"),
+        }
+    };
 
     let magic = u32::from_le_bytes([header_buf[0], header_buf[1], header_buf[2], header_buf[3]]);
     if magic != 0x616b3432 {

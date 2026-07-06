@@ -167,7 +167,16 @@ pub fn spawn_agent_hud(is_setup: bool) {
 
 pub fn spawn_demo_windows() {
     let mut state = COMPOSITOR.lock();
-    state.windows.clear();
+    // Remember what was focused before resetting the demo windows, so a
+    // pre-existing app window that had focus keeps it (matched by id,
+    // since indices shift once the demo windows are pushed back on).
+    let previously_focused_id = state.focused_idx.and_then(|i| state.windows.get(i)).map(|w| w.id);
+
+    // Reset the kernel-drawn demo windows only. App windows (owned by a
+    // userland process, e.g. via CreateWindow) are not part of this fixed
+    // demo set and must survive re-entering the desktop, the same way a
+    // real desktop doesn't close your open apps when it redraws.
+    state.windows.retain(|w| matches!(w.win_type, crate::gui::window::WindowType::App(_)));
 
     let mut w1 = Window::new(1, crate::gui::window::WindowType::SystemMonitor, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
     w1.content.extend_from_slice(b"CPU Usage: 14%\nMemory: 256MB / 4096MB\nTasks: 5 Active\n\n[Graph Placeholder]");
@@ -177,9 +186,14 @@ pub fn spawn_demo_windows() {
 
     state.windows.push(w1);
     state.windows.push(w2);
-    state.focused_idx = Some(1); // Focus the terminal window by default
+    // Keep focus on a pre-existing app window if it had it; otherwise
+    // default to the terminal, by actual index rather than a hardcoded
+    // position (pre-existing app windows shift where it lands in the vec).
+    state.focused_idx = previously_focused_id
+        .and_then(|id| state.windows.iter().position(|w| w.id == id))
+        .or_else(|| state.windows.iter().position(|w| w.id == 2));
     state.needs_redraw = true;
-    
+
     drop(state);
 
     // Check if agent needs config
@@ -369,7 +383,12 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
                             my >= win.y + 2 && my <= win.y + 18;
 
         if is_close_btn {
-            state.windows.pop(); // Since we just pushed it to the end, pop removes it!
+            let closed = state.windows.pop(); // Since we just pushed it to the end, pop removes it!
+            if let Some(w) = closed {
+                if let crate::gui::window::WindowType::App(_) = w.win_type {
+                    crate::gui::app_window::on_window_closed(w.id);
+                }
+            }
             state.focused_idx = if !state.windows.is_empty() {
                 Some(state.windows.len() - 1)
             } else {
@@ -384,6 +403,7 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         let is_title_bar = win.is_title_bar(mx, my);
         let win_x = win.x;
         let win_y = win.y;
+        let win_type = win.win_type;
 
         if is_title_bar {
             state.drag_active = true;
@@ -391,6 +411,16 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
             state.drag_start_my = my;
             state.drag_start_wx = win_x;
             state.drag_start_wy = win_y;
+        } else if let crate::gui::window::WindowType::App(_) = win_type {
+            // A click inside an app window's canvas (not the title bar or
+            // close button): forward it as a window-relative mouse-down
+            // event so the owning process can react to it.
+            let rel_x = mx.saturating_sub(win_x + crate::gui::window::CHROME_SIDE);
+            let rel_y = my.saturating_sub(win_y + crate::gui::window::CHROME_TOP);
+            crate::gui::app_window::push_input(
+                win_id,
+                crate::gui::app_window::AppInputEvent { tag: 3, a: 0, b: 1, c: rel_x, d: rel_y },
+            );
         }
 
         let _ = win_id; // suppress unused warning
@@ -699,6 +729,12 @@ pub fn handle_key_press(ascii: u8) {
                         }
                     }
                 }
+            } else if let crate::gui::window::WindowType::App(_) = win_type {
+                let window_id = state.windows[idx].id;
+                crate::gui::app_window::push_input(
+                    window_id,
+                    crate::gui::app_window::AppInputEvent { tag: 0, a: ascii as u32, b: 0, c: 0, d: 0 },
+                );
             }
         }
     }

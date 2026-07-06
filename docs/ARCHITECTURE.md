@@ -7,7 +7,9 @@
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
 3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   tools translate to real kernel syscalls (42 total, IDs 0–41).
+   agent tools translate to real kernel syscalls, out of 47 syscalls total
+   (IDs 0–46) — the rest back GUI/app-window, audio, and other non-agent
+   userland surfaces.
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
 5. **Hardware first** — an agentic OS needs real drivers, not stubs.
@@ -76,20 +78,21 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-42 syscalls (IDs 0–41) dispatched via `int 0x80`:
+47 syscalls (IDs 0–46) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
 - Services: Start(3), Stop(4)
-- Security: CapCheck(5), AuditWrite(6)
+- Security: CapCheck(5), AuditWrite(6), GetRandom(42)
 - Network: Socket(7), Bind(8), Listen(9), Accept(10), Recv(11), Send(12), Connect(14), Close(35)
 - Filesystem: ReadFile(15), WriteFile(16), ReadDir(17), CreateDir(21), DeleteFile(22)
 - Memory: Mmap(41)
 - Graphics: ReadFbInfo(19), ReadTextBuffer(20), HudUpdate(39), HitTest(40)
+- GUI app windows: CreateWindow(44), PresentWindow(45), PollWindowInput(46) — generic per-process windows, see below
 - Audio: PlayAudio(23), RecordAudio(24), SetVolume(25)
 - Input: InjectKey(26), InjectMouse(27), PollInput(28)
 - Camera: ReadCameraFrame(36), CameraInfo(37)
-- Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices; Write(34) (write to console/serial)
+- Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices; Write(34) (write to console/serial); GetTime(43) (RTC read, e.g. for TLS cert validity checks)
 - Kexec: Kexec(38)
 
 ## Graphical Desktop Environment (GUI)
@@ -103,8 +106,17 @@ The OS features a fully integrated windowing system and compositor:
 - Desktop taskbar dock with interactive JARVIS Agent HUD launcher
 - Interactive Agent HUD with multi-step setup wizard and Live Telemetry mode
 
+### Generic App-Window Framework
+Beyond the four kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal`, `AgentHud`), `WindowType::App(pid)` lets **any** userland process own a real window:
+- `CreateWindow(title, canvas_w, canvas_h)` allocates a window whose total size is the requested canvas plus shared chrome (`CHROME_SIDE`/`CHROME_TOP`/`CHROME_BOTTOM` in `src/gui/window.rs`) — apps never need to know about title-bar/border geometry.
+- `PresentWindow(window_id, rgba8_buf)` copies a caller-owned RGBA8 buffer into the window's canvas (`src/gui/app_window.rs`); `render()` blits it verbatim for `App` windows, the same title bar/border/close-button chrome as every other window type.
+- `PollWindowInput(window_id)` drains a per-window input queue (keyboard + mouse-down, capped at 64 events) fed by `compositor::handle_key_press`/`handle_mouse_down` whenever an `App` window is focused.
+- Gated behind the `gui:window:*` capability (`cap:gui:window`), following the same capability-registry pattern as every other resource-gated syscall.
+- App windows persist across `desktop` re-entry and keep focus across it (`spawn_demo_windows()` only resets the kernel-drawn demo set) — closing one via its `[X]` cleans up its input queue (`app_window::on_window_closed`).
+
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
+- `cursor::process_input()` is the single shared entry point every render/input pump goes through (both `run_desktop()`'s loop and `SYS_HUD_UPDATE`'s ambient pump call it) — it discards whatever piled up in the queue the first time it's ever called, so keystrokes typed before anything was compositing yet don't replay into whatever window happens to get focus first
 - Main GUI loop utilizes `hlt` for 0% idle CPU usage, waking only on hardware IRQs
 - Mouse events support 9-bit signed deltas with overflow protection
 - Real-time hover state feedback for dock buttons and window controls
@@ -367,11 +379,11 @@ src/
 ├── input/                # Unified input queue, USB HID, PS/2
 ├── audio/                # Audio mixer, PCM interface
 ├── graphics/             # Drawing primitives, console
-├── gui/                  # Compositor, window manager, desktop
+├── gui/                  # Compositor, window manager, desktop, app windows
 ├── security/             # Capabilities, audit log
 ├── services/             # Service manager, manifests
 ├── ipc/                  # IPC broker
-├── syscall/              # Dispatch, fs, process, query
+├── syscall/              # Dispatch, fs, process, query, gui windows
 ├── shell/                # Shell, commands, dashboard
 └── process/              # ELF loader, Ring-3, address spaces
 
@@ -397,4 +409,7 @@ userland/heliox-daemon/
 │       ├── screen_vision.rs  # Screen capture
 │       ├── voice.rs          # Audio tools
 │       └── json.rs           # no_std JSON parser
+
+userland/gui-smoke-test/  # App-window framework verification binary
+userland/init/            # First userspace process (PID 2), supervises heliox-daemon
 ```

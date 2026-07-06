@@ -69,6 +69,7 @@ pub fn init() {
         ("cap:mem:mmap", "Memory Map File", "memory:mmap:*", true),
         ("cap:crypto:rng", "Cryptographic Randomness Access", "crypto:rng", true),
         ("cap:net:tls", "Network TLS Access", "net:tls:*", true),
+        ("cap:gui:window", "GUI App Window Creation", "gui:window:*", true),
     ];
     
     for (name, desc, resource, delegatable) in &default_caps {

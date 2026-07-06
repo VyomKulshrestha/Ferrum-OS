@@ -2,6 +2,7 @@
 // FerrumOS - GUI Mouse Cursor & Input
 // ============================================================================
 
+use core::sync::atomic::{AtomicBool, Ordering};
 use spin::Mutex;
 use crate::devices::vga_fb::FRAMEBUFFER;
 use crate::input::EVENT_QUEUE;
@@ -55,7 +56,22 @@ pub fn mark_dirty() {
     CURSOR.lock().dirty = true;
 }
 
+/// Whether anything has ever actually consumed `EVENT_QUEUE` yet. Physical
+/// keys are queued into it from the moment the keyboard IRQ fires - at
+/// boot, at the plain shell prompt, while a ring-3 process is starting up -
+/// regardless of whether anyone is compositing a screen yet. `render()` (and
+/// hence keyboard delivery to a focused window) can end up being triggered
+/// for the first time from more than one call site (`run_desktop()`'s loop,
+/// or `SYS_HUD_UPDATE`'s ambient render pump), so the one-time discard of
+/// whatever piled up before that first call belongs here, in the single
+/// shared entry point, not duplicated in every caller.
+static INPUT_PRIMED: AtomicBool = AtomicBool::new(false);
+
 pub fn process_input() {
+    if !INPUT_PRIMED.swap(true, Ordering::SeqCst) {
+        while EVENT_QUEUE.lock().pop().is_some() {}
+    }
+
     let mut cursor = CURSOR.lock();
     let (max_w, max_h) = {
         let fb_guard = FRAMEBUFFER.lock();
