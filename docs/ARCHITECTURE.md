@@ -115,6 +115,12 @@ Beyond the four kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal`
 - Gated behind the `gui:window:*` capability (`cap:gui:window`), following the same capability-registry pattern as every other resource-gated syscall.
 - App windows persist across `desktop` re-entry and keep focus across it (`spawn_demo_windows()` only resets the kernel-drawn demo set) — closing one via its `[X]` cleans up its input queue (`app_window::on_window_closed`).
 
+### App Launcher & Installed Apps
+The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAUNCHER_ENTRIES`) can spawn real new processes, not just the kernel-drawn built-ins:
+- `crate::process::spawn_elf(name, elf_bytes, granted_caps)` (`src/process/mod.rs`) loads an ELF and registers it as a Ready scheduler task directly from kernel context — the same load/register logic `sys_exec` uses for a ring-3 caller, but with capabilities taken straight from the program's `crate::userspace` manifest instead of delegated from a caller. It only registers the task and returns; it never itself enters ring 3, so it's safe to call from the compositor's own render loop.
+- Installed apps (`userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (syscall wrappers, an `InputEvent` type, an RGBA8 `Canvas` with `fill_rect`/`draw_string`/`present`, using a userland copy of the kernel's bitmap font) — registered in the same `crate::userspace` program-manifest registry as `init`/`heliox-daemon`.
+- Each app owns a fixed-size heap (`#[global_allocator]` over a static array) sized comfortably above its own canvas buffer (`canvas_w * canvas_h * 4` bytes) — undersizing this causes a silent allocation failure and process exit on the very first frame, with no panic message, since apps don't need argv (there's no mechanism for it) and instead operate on fixed paths (Text Editor) or read-only browsing (File Manager).
+
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
 - `cursor::process_input()` is the single shared entry point every render/input pump goes through (both `run_desktop()`'s loop and `SYS_HUD_UPDATE`'s ambient pump call it) — it discards whatever piled up in the queue the first time it's ever called, so keystrokes typed before anything was compositing yet don't replay into whatever window happens to get focus first
@@ -412,5 +418,9 @@ userland/heliox-daemon/
 │       └── json.rs           # no_std JSON parser
 
 userland/gui-smoke-test/  # App-window framework verification binary
+userland/libferrumgui/    # Shared no_std SDK: syscalls, Canvas drawing, input polling
+userland/text-editor/     # Installed app: edit/save a text file
+userland/calculator/      # Installed app: mouse-driven arithmetic
+userland/file-manager/    # Installed app: browse /disk, preview files
 userland/init/            # First userspace process (PID 2), supervises heliox-daemon
 ```

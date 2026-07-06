@@ -41,6 +41,12 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         crate::userspace::INIT_ELF
     } else if path == "/bin/gui-smoke-test" || path == "gui-smoke-test" {
         crate::userspace::GUI_SMOKE_TEST_ELF
+    } else if path == "/bin/text-editor" || path == "text-editor" {
+        crate::userspace::TEXT_EDITOR_ELF
+    } else if path == "/bin/calculator" || path == "calculator" {
+        crate::userspace::CALCULATOR_ELF
+    } else if path == "/bin/file-manager" || path == "file-manager" {
+        crate::userspace::FILE_MANAGER_ELF
     } else {
         _elf_content_holder = match crate::fs::read_file(&path) {
             Ok(content) => content,

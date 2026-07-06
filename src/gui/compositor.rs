@@ -72,11 +72,41 @@ pub enum HoverTarget {
     LauncherEntry(usize),
 }
 
-/// Fixed set of things the launcher can open today. Real installed apps
-/// (once any exist) join this list in a later phase; for now these are the
-/// only things that can meaningfully be "launched" without inventing a
-/// process to run.
-pub const LAUNCHER_ENTRIES: [&str; 3] = ["Terminal", "System Monitor", "Heliox Assistant"];
+/// Everything the launcher can open: the 3 kernel-drawn built-ins, plus
+/// real installed apps spawned via `crate::process::spawn_elf` (see
+/// `launch_installed_app` below).
+pub const LAUNCHER_ENTRIES: [&str; 6] = [
+    "Terminal",
+    "System Monitor",
+    "Heliox Assistant",
+    "Text Editor",
+    "Calculator",
+    "File Manager",
+];
+
+/// Launch one of the real installed apps (the launcher entries beyond the
+/// 3 kernel-drawn built-ins) directly from kernel context. Mirrors what
+/// `sys_exec` does for a ring-3 caller, but with capabilities taken
+/// straight from the program's manifest instead of delegated from a
+/// caller - there is no ring-3 "caller" here, the launcher acts on the
+/// user's behalf the same way `bootstrap_init()` does for `init` at boot.
+fn launch_installed_app(program_name: &str) {
+    let elf_bytes: &[u8] = match program_name {
+        "text-editor" => crate::userspace::TEXT_EDITOR_ELF,
+        "calculator" => crate::userspace::CALCULATOR_ELF,
+        "file-manager" => crate::userspace::FILE_MANAGER_ELF,
+        _ => return,
+    };
+    let caps = crate::userspace::capabilities_for_program(program_name);
+    match crate::process::spawn_elf(program_name, elf_bytes, &caps) {
+        Ok(pid) => {
+            crate::serial_println!("[launcher] spawned {} as pid {}", program_name, pid);
+        }
+        Err(e) => {
+            crate::serial_println!("[launcher] failed to spawn {}: {}", program_name, e);
+        }
+    }
+}
 
 pub struct CompositorState {
     pub windows: Vec<Window>,
@@ -682,6 +712,9 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                         0 => spawn_terminal(),
                         1 => spawn_sys_mon(),
                         2 => spawn_agent_hud(false),
+                        3 => launch_installed_app("text-editor"),
+                        4 => launch_installed_app("calculator"),
+                        5 => launch_installed_app("file-manager"),
                         _ => {}
                     }
                     return;

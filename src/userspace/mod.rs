@@ -27,6 +27,11 @@ pub const HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemo
 /// `scripts/verify_app_window.mjs` can assert the whole path end to end.
 pub const GUI_SMOKE_TEST_ELF: &[u8] = include_bytes!("../../userland/gui-smoke-test/target/x86_64-unknown-none/release/gui-smoke-test");
 
+/// Real installed apps, built on the app-window framework + libferrumgui SDK.
+pub const TEXT_EDITOR_ELF: &[u8] = include_bytes!("../../userland/text-editor/target/x86_64-unknown-none/release/text-editor");
+pub const CALCULATOR_ELF: &[u8] = include_bytes!("../../userland/calculator/target/x86_64-unknown-none/release/calculator");
+pub const FILE_MANAGER_ELF: &[u8] = include_bytes!("../../userland/file-manager/target/x86_64-unknown-none/release/file-manager");
+
 extern crate alloc;
 
 use alloc::string::{String, ToString};
@@ -130,6 +135,27 @@ pub fn init() {
         "D1 app-window framework smoke test",
         "/bin/gui-smoke-test",
         vec![String::from("cap:gui:window")],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "text-editor",
+        "Read/write text files in a GUI window",
+        "/bin/text-editor",
+        vec![String::from("cap:gui:window"), String::from("cap:fs:read"), String::from("cap:fs:write")],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "calculator",
+        "Basic arithmetic calculator",
+        "/bin/calculator",
+        vec![String::from("cap:gui:window")],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "file-manager",
+        "Browse the filesystem and preview file contents",
+        "/bin/file-manager",
+        // Read-only: there's no argv mechanism to tell a spawned
+        // text-editor which file to open, so file-manager previews
+        // content in its own window instead of launching another process.
+        vec![String::from("cap:gui:window"), String::from("cap:fs:read")],
     ));
 }
 

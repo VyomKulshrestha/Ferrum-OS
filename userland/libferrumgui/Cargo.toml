@@ -1,0 +1,11 @@
+[package]
+name = "ferrumgui"
+version = "0.0.1"
+edition = "2021"
+authors = ["FerrumOS Contributors"]
+description = "Shared no_std SDK for FerrumOS GUI apps: syscalls, canvas drawing, input polling"
+license = "MIT"
+
+[lib]
+name = "ferrumgui"
+path = "src/lib.rs"

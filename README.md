@@ -24,9 +24,14 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Interactive Desktop Taskbar with a Start-menu launcher, one entry per open window, and a working Exit button
 - Movable, focusable GUI windows with close, minimize, and maximize buttons and interactive titles
 - **Generic app-window framework**: any userland process can call `CreateWindow`/`PresentWindow`/`PollWindowInput` to own a real window backed by its own RGBA8 canvas and a per-window input queue — not limited to the kernel's hardcoded System Monitor/Terminal/Agent HUD window types
+- The launcher spawns real new ELF processes on demand (`crate::process::spawn_elf`), not just a fixed set of kernel-drawn windows
 - PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
 - CPU-efficient main loop with interrupt-driven `hlt` architecture and off-screen double-buffering
 - Hardware cursor rendering with dynamic drop-shadows
+
+### Userland Apps
+- **Text Editor**, **Calculator**, **File Manager** — real installed apps built on the generic app-window framework, launchable from the desktop's Start menu alongside Terminal/System Monitor/Heliox Assistant
+- **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math
 
 ### Filesystem
 - Volatile in-memory RAM filesystem with VFS mount table

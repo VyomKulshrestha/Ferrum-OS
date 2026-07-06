@@ -798,6 +798,42 @@ pub fn take_for_entry(pid: u64) -> Option<(VirtAddr, VirtAddr, u64, PhysFrame)> 
     Some(process.into_entry_parts())
 }
 
+/// Load and schedule a new ring-3 process directly from kernel context,
+/// with an explicit set of granted capabilities - for callers that aren't
+/// a running ring-3 process themselves (e.g. the GUI's app launcher),
+/// so there's no `caller_pid`/`caller_capabilities` to delegate from the
+/// way `sys_exec` (`src/syscall/process.rs`) does for a ring-3 caller.
+///
+/// Unlike `enter_registered`, this only *registers* the process as Ready
+/// with the scheduler and returns normally - it does not itself switch
+/// into ring 3, so it's safe to call from a kernel-context loop (like the
+/// compositor's render loop) without abandoning the caller's stack.
+pub fn spawn_elf(name: &str, elf_bytes: &[u8], granted_caps: &[String]) -> Result<u64, &'static str> {
+    if elf_bytes.len() < 4 {
+        return Err("elf too small");
+    }
+
+    let mut new_process = create(name).map_err(|_| "failed to create process")?;
+    let entry = new_process.load_elf(elf_bytes).map_err(|_| "failed to load elf")?;
+
+    let pid = new_process.pid();
+    let kernel_rsp = new_process.kernel_stack_top();
+    let cr3 = new_process
+        .address_space()
+        .map(|s| s.l4_frame().start_address().as_u64())
+        .unwrap_or(0);
+
+    register(new_process);
+    crate::scheduler::register_user(pid, name, crate::scheduler::Priority::Normal, kernel_rsp, cr3, granted_caps);
+
+    let user_rsp = pid_user_stack(pid).map(|v| v.as_u64()).unwrap_or(0);
+    let target_user_rsp = if user_rsp > 8 { user_rsp - 8 } else { user_rsp };
+    let ctx = crate::scheduler::TaskContext::ring3(entry, target_user_rsp);
+    crate::scheduler::write_context(pid, ctx);
+
+    Ok(pid)
+}
+
 /// Transfer control to the registered process with the given pid
 /// at ring 3. The iretq never returns; if the process calls
 /// `SYS_EXIT` the kernel halts.
