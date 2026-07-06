@@ -30,8 +30,11 @@ static NEXT_APP_WINDOW_ID: AtomicU64 = AtomicU64::new(1000);
 pub const DEFAULT_APP_X: u32 = 150;
 pub const DEFAULT_APP_Y: u32 = 150;
 
-const MIN_CANVAS_W: u32 = 32;
-const MIN_CANVAS_H: u32 = 32;
+// 96px is the practical floor: the title bar now has three right-aligned
+// buttons (minimize/maximize/close) at 16px + gaps each, so anything
+// narrower would make them overlap or crowd out the title text entirely.
+const MIN_CANVAS_W: u32 = 96;
+const MIN_CANVAS_H: u32 = 48;
 const MAX_CANVAS_W: u32 = 760;
 const MAX_CANVAS_H: u32 = 560;
 const MAX_QUEUED_EVENTS: usize = 64;

@@ -28,6 +28,13 @@ pub const CHROME_SIDE: u32 = 2;
 pub const CHROME_TOP: u32 = 22;
 pub const CHROME_BOTTOM: u32 = 2;
 
+/// Title-bar button geometry, right-aligned in this order (left to right):
+/// minimize, maximize, close. Shared between rendering and hit-testing so
+/// the two can never drift apart.
+const TITLE_BTN_SIZE: u32 = 16;
+const TITLE_BTN_TOP: u32 = 2;
+const TITLE_BTN_GAP: u32 = 4;
+
 pub struct Window {
     pub id: u64,
     pub win_type: WindowType,
@@ -48,6 +55,15 @@ pub struct Window {
     pub pixels: Vec<u32>,
     pub canvas_w: u32,
     pub canvas_h: u32,
+
+    /// Hidden but still open: not rendered, not hit-testable, but keeps a
+    /// taskbar entry so it can be restored.
+    pub minimized: bool,
+    /// Snapped to fill the desktop content area (below the top strip,
+    /// above the dock). `restore_rect` holds the pre-maximize geometry so
+    /// toggling back off restores it exactly.
+    pub maximized: bool,
+    pub restore_rect: Option<(u32, u32, u32, u32)>,
 }
 
 impl Window {
@@ -66,6 +82,9 @@ impl Window {
             pixels: Vec::new(),
             canvas_w: 0,
             canvas_h: 0,
+            minimized: false,
+            maximized: false,
+            restore_rect: None,
         }
     }
 
@@ -81,6 +100,47 @@ impl Window {
         w.canvas_w = canvas_w;
         w.canvas_h = canvas_h;
         w
+    }
+
+    /// Close button rect `(x, y, w, h)`. Geometry unchanged from before
+    /// minimize/maximize existed, just centralised so rendering and
+    /// hit-testing can't drift apart.
+    pub fn close_btn_rect(&self) -> (u32, u32, u32, u32) {
+        (
+            self.x + self.width.saturating_sub(TITLE_BTN_SIZE + 4),
+            self.y + TITLE_BTN_TOP,
+            TITLE_BTN_SIZE,
+            TITLE_BTN_SIZE,
+        )
+    }
+
+    /// Maximize/restore button rect, immediately left of close.
+    pub fn maximize_btn_rect(&self) -> (u32, u32, u32, u32) {
+        let (cx, cy, cw, ch) = self.close_btn_rect();
+        (cx.saturating_sub(TITLE_BTN_SIZE + TITLE_BTN_GAP), cy, cw, ch)
+    }
+
+    /// Minimize button rect, immediately left of maximize.
+    pub fn minimize_btn_rect(&self) -> (u32, u32, u32, u32) {
+        let (mx, my, mw, mh) = self.maximize_btn_rect();
+        (mx.saturating_sub(TITLE_BTN_SIZE + TITLE_BTN_GAP), my, mw, mh)
+    }
+
+    fn point_in_rect(px: u32, py: u32, rect: (u32, u32, u32, u32)) -> bool {
+        let (rx, ry, rw, rh) = rect;
+        px >= rx && px < rx + rw && py >= ry && py < ry + rh
+    }
+
+    pub fn is_close_btn(&self, px: u32, py: u32) -> bool {
+        Self::point_in_rect(px, py, self.close_btn_rect())
+    }
+
+    pub fn is_maximize_btn(&self, px: u32, py: u32) -> bool {
+        Self::point_in_rect(px, py, self.maximize_btn_rect())
+    }
+
+    pub fn is_minimize_btn(&self, px: u32, py: u32) -> bool {
+        Self::point_in_rect(px, py, self.minimize_btn_rect())
     }
 
     pub fn get_wrapped_lines(&self) -> Vec<String> {
@@ -106,7 +166,7 @@ impl Window {
         lines
     }
 
-    pub fn render(&self, focused: bool, close_hovered: bool) {
+    pub fn render(&self, focused: bool, close_hovered: bool, maximize_hovered: bool, minimize_hovered: bool) {
         // 1. Draw Window Background
         graphics::fill_rect(self.x, self.y, self.width, self.height, self.bg_color);
 
@@ -127,24 +187,44 @@ impl Window {
             title_bg
         );
 
-        // Draw Close Button [X] at top-right. When hovered the
-        // background turns red so the user knows it's
-        // clickable.
+        // Draw Close/Maximize/Minimize buttons at top-right, right to
+        // left. Close turns red on hover (destructive); maximize/minimize
+        // turn the standard focused-title-bar highlight so they don't read
+        // as dangerous the way close does.
+        let (ccx, ccy, ccw, cch) = self.close_btn_rect();
         if close_hovered {
-            graphics::fill_rect(
-                self.x + self.width - 20,
-                self.y + 2,
-                16,
-                16,
-                0x00FF3333,
-            );
+            graphics::fill_rect(ccx, ccy, ccw, cch, 0x00FF3333);
         }
         graphics::draw_string(
-            self.x + self.width - 16,
-            self.y + 2,
+            ccx + 4,
+            ccy,
             "X",
             if close_hovered { 0x00FFFFFF } else { 0x00FF3333 },
             if close_hovered { 0x00FF3333 } else { title_bg }
+        );
+
+        let (mxx, mxy, mxw, mxh) = self.maximize_btn_rect();
+        if maximize_hovered {
+            graphics::fill_rect(mxx, mxy, mxw, mxh, 0x00304050);
+        }
+        graphics::draw_string(
+            mxx + 4,
+            mxy,
+            if self.maximized { "R" } else { "M" },
+            if maximize_hovered { 0x00FFFFFF } else { 0x00AAAAAA },
+            if maximize_hovered { 0x00304050 } else { title_bg }
+        );
+
+        let (mnx, mny, mnw, mnh) = self.minimize_btn_rect();
+        if minimize_hovered {
+            graphics::fill_rect(mnx, mny, mnw, mnh, 0x00304050);
+        }
+        graphics::draw_string(
+            mnx + 4,
+            mny,
+            "_",
+            if minimize_hovered { 0x00FFFFFF } else { 0x00AAAAAA },
+            if minimize_hovered { 0x00304050 } else { title_bg }
         );
 
         // 4. Draw Window Border. Focused windows get a 2px

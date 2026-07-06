@@ -102,8 +102,9 @@ The OS features a fully integrated windowing system and compositor:
 ### Compositor & Window Manager
 - Double-buffered rendering via VGA framebuffer (1024x768x32bpp)
 - Z-indexed overlapping windows with focus management
-- Interactive title bars (drag-to-move) and functioning close buttons
-- Desktop taskbar dock with interactive JARVIS Agent HUD launcher
+- Interactive title bars (drag-to-move) with close, minimize, and maximize buttons, all computed from shared rect helpers on `Window` (`close_btn_rect`/`maximize_btn_rect`/`minimize_btn_rect` in `src/gui/window.rs`) so rendering and hit-testing can't drift apart
+- Minimized windows are skipped by rendering and hit-testing but keep a taskbar entry; maximize snaps a window to the desktop content area and remembers its prior geometry to restore
+- Desktop taskbar with a Start-menu launcher, a dynamic per-window button (one slot per open window, up to `MAX_TASKBAR_SLOTS`), and a working Exit button — all positions computed once by `desktop::compute_taskbar_layout()` and shared between rendering and every click/hover hit-test
 - Interactive Agent HUD with multi-step setup wizard and Live Telemetry mode
 
 ### Generic App-Window Framework

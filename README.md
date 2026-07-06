@@ -21,8 +21,8 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Graphical Desktop Environment (GUI)
 - Custom Compositor and Window Manager
-- Interactive Desktop Taskbar and Dock
-- Movable, focusable GUI windows with close buttons and interactive titles
+- Interactive Desktop Taskbar with a Start-menu launcher, one entry per open window, and a working Exit button
+- Movable, focusable GUI windows with close, minimize, and maximize buttons and interactive titles
 - **Generic app-window framework**: any userland process can call `CreateWindow`/`PresentWindow`/`PollWindowInput` to own a real window backed by its own RGBA8 canvas and a per-window input queue — not limited to the kernel's hardcoded System Monitor/Terminal/Agent HUD window types
 - PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
 - CPU-efficient main loop with interrupt-driven `hlt` architecture and off-screen double-buffering

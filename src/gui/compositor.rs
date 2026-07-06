@@ -7,6 +7,49 @@ use spin::Mutex;
 use crate::gui::window::Window;
 use crate::gui::desktop;
 use crate::gui::cursor;
+use crate::devices::vga_fb::FRAMEBUFFER;
+
+/// Current framebuffer dimensions, or a sane fallback if it isn't up yet.
+fn fb_dims() -> (u32, u32) {
+    let fb_guard = FRAMEBUFFER.lock();
+    match fb_guard.as_ref() {
+        Some(fb) => (fb.width, fb.height),
+        None => (1024, 768),
+    }
+}
+
+/// Toggle a window between its normal size and filling the desktop
+/// content area (below the top status strip, above the dock). Saves the
+/// pre-maximize rect so restoring puts it back exactly where it was.
+///
+/// Note: an `App` window's canvas buffer does not resize with it - the
+/// extra area is simply background-colored padding around the unchanged
+/// canvas. Notifying an app of a resize so it can re-present at the new
+/// size is not wired up yet; this is a cosmetic limitation, not a
+/// correctness one (present() still validates against the original
+/// canvas_w * canvas_h, so nothing can read/write out of bounds).
+fn toggle_maximize(state: &mut CompositorState, idx: usize) {
+    let (fb_w, fb_h) = fb_dims();
+    let win = &mut state.windows[idx];
+    if win.maximized {
+        if let Some((rx, ry, rw, rh)) = win.restore_rect.take() {
+            win.x = rx;
+            win.y = ry;
+            win.width = rw;
+            win.height = rh;
+        }
+        win.maximized = false;
+    } else {
+        win.restore_rect = Some((win.x, win.y, win.width, win.height));
+        let top_margin = 60; // below the status strip
+        let bottom_margin = 60; // above the dock
+        win.x = 0;
+        win.y = top_margin;
+        win.width = fb_w;
+        win.height = fb_h.saturating_sub(top_margin + bottom_margin);
+        win.maximized = true;
+    }
+}
 
 /// Identifier of the taskbar button currently under the
 /// cursor, if any. Used by `render_taskbar` to highlight the
@@ -14,13 +57,26 @@ use crate::gui::cursor;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HoverTarget {
     None,
-    TerminalButton,
-    SysMonButton,
-    JarvisButton,
+    /// Opens/closes the launcher popup.
+    StartButton,
     ExitButton,
+    /// A per-window taskbar entry, keyed by window id (replaces the old
+    /// fixed Terminal/SysMon/Jarvis buttons - the taskbar now has one
+    /// button per actually-open window instead of 3 hardcoded ones).
+    TaskbarWindow(u64),
     /// Close button of the window with this id.
     WindowClose(u64),
+    WindowMaximize(u64),
+    WindowMinimize(u64),
+    /// An entry in the open launcher popup, by index into `LAUNCHER_ENTRIES`.
+    LauncherEntry(usize),
 }
+
+/// Fixed set of things the launcher can open today. Real installed apps
+/// (once any exist) join this list in a later phase; for now these are the
+/// only things that can meaningfully be "launched" without inventing a
+/// process to run.
+pub const LAUNCHER_ENTRIES: [&str; 3] = ["Terminal", "System Monitor", "Heliox Assistant"];
 
 pub struct CompositorState {
     pub windows: Vec<Window>,
@@ -38,6 +94,8 @@ pub struct CompositorState {
     /// Which taskbar button is currently being pressed (left
     /// mouse held down on it).
     pub pressed: HoverTarget,
+    /// Whether the Start-button launcher popup is open.
+    pub launcher_open: bool,
 }
 
 lazy_static::lazy_static! {
@@ -52,6 +110,7 @@ lazy_static::lazy_static! {
         needs_redraw: true,
         hover: HoverTarget::None,
         pressed: HoverTarget::None,
+        launcher_open: false,
     });
 }
 
@@ -221,21 +280,34 @@ pub fn render() {
     // 1. Clear to Desktop Background
     desktop::render_background();
 
-    // 2. Draw Windows from back to front. The hover state
-    //    tells the window renderer whether the close button
-    //    is being hovered so it can change colour.
+    // 2. Draw Windows from back to front, skipping minimized ones (they
+    //    keep a taskbar entry but are not on screen). The hover state
+    //    tells the window renderer whether its close/maximize/minimize
+    //    buttons are being hovered so they can change colour.
     let mut state = COMPOSITOR.lock();
     let focused_idx = state.focused_idx;
     for (i, window) in state.windows.iter().enumerate() {
+        if window.minimized {
+            continue;
+        }
         let focused = focused_idx == Some(i);
         let close_hovered = matches!(hover, HoverTarget::WindowClose(id) if id == window.id);
-        window.render(focused, close_hovered);
+        let maximize_hovered = matches!(hover, HoverTarget::WindowMaximize(id) if id == window.id);
+        let minimize_hovered = matches!(hover, HoverTarget::WindowMinimize(id) if id == window.id);
+        window.render(focused, close_hovered, maximize_hovered, minimize_hovered);
     }
+    let launcher_open = state.launcher_open;
     drop(state);
 
     // 3. Draw Taskbar (with hover/press state for the
     //    buttons).
     desktop::render_taskbar(hover, pressed, cursor_x, cursor_y, cursor_left);
+
+    // 3b. Draw the launcher popup on top of everything but the cursor, if
+    // the Start button toggled it open.
+    if launcher_open {
+        desktop::render_launcher(hover);
+    }
 
     // Draw HUD overlay on top of taskbar/windows (but below cursor)
     draw_hud_overlay();
@@ -256,6 +328,9 @@ pub fn hit_test(mx: u32, my: u32) -> (u64, alloc::string::String) {
 pub fn hit_test_exclude(mx: u32, my: u32, exclude_hud: bool) -> (u64, alloc::string::String) {
     let state = COMPOSITOR.lock();
     for window in state.windows.iter().rev() {
+        if window.minimized {
+            continue;
+        }
         if exclude_hud && window.win_type == crate::gui::window::WindowType::AgentHud {
             continue;
         }
@@ -342,16 +417,34 @@ pub fn draw_hud_overlay() {
 }
 
 pub fn handle_mouse_down(mx: u32, my: u32) {
-    // Check if clicked the Dock area
-    // Dock is at dock_x to dock_x + dock_w.
-    // dock_x = (fb_width - 400) / 2 = 312
-    // dock_y = fb_height - 50 = 718
-    if my >= 718 && my <= 758 && mx >= 312 && mx <= 712 {
+    let (fb_w, fb_h) = fb_dims();
+    let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
+    let dock_rect = (layout.dock_x, layout.dock_y, layout.dock_w, layout.dock_h);
+    let clicked_start = desktop::point_in(mx, my, layout.start_rect) && desktop::point_in(mx, my, dock_rect);
+
+    {
         let mut state = COMPOSITOR.lock();
-        let target = hit_test_taskbar(mx, my);
-        state.pressed = target;
-        state.needs_redraw = true;
-        return;
+
+        // The launcher takes priority over everything below it while
+        // open, except for the Start button itself (clicking Start again
+        // should just toggle it via the normal dock handling below, not
+        // also fire this "click outside closes it" branch).
+        if state.launcher_open && !clicked_start {
+            if let Some(idx) = desktop::launcher_entry_at(mx, my) {
+                state.pressed = HoverTarget::LauncherEntry(idx);
+                state.needs_redraw = true;
+                return;
+            }
+            state.launcher_open = false;
+            state.needs_redraw = true;
+        }
+
+        if desktop::point_in(mx, my, dock_rect) {
+            let target = hit_test_taskbar(mx, my, &state.windows);
+            state.pressed = target;
+            state.needs_redraw = true;
+            return;
+        }
     }
 
     // Call hit_test to find clicked window id
@@ -377,10 +470,9 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         state.focused_idx = Some(new_idx);
 
         let win = &state.windows[new_idx];
-
-        // Check if clicked the close button [X] (top right: x + width - 20 to x + width - 4)
-        let is_close_btn = mx >= win.x + win.width - 20 && mx <= win.x + win.width - 4 &&
-                            my >= win.y + 2 && my <= win.y + 18;
+        let is_close_btn = win.is_close_btn(mx, my);
+        let is_maximize_btn = win.is_maximize_btn(mx, my);
+        let is_minimize_btn = win.is_minimize_btn(mx, my);
 
         if is_close_btn {
             let closed = state.windows.pop(); // Since we just pushed it to the end, pop removes it!
@@ -394,6 +486,23 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
             } else {
                 None
             };
+            state.pressed = HoverTarget::None;
+            state.needs_redraw = true;
+            return;
+        }
+
+        if is_maximize_btn {
+            toggle_maximize(&mut state, new_idx);
+            state.pressed = HoverTarget::None;
+            state.needs_redraw = true;
+            return;
+        }
+
+        if is_minimize_btn {
+            state.windows[new_idx].minimized = true;
+            // A minimized window can't hold focus - fall back to whatever
+            // else is still visible, most-recently-raised first.
+            state.focused_idx = state.windows.iter().rposition(|w| !w.minimized);
             state.pressed = HoverTarget::None;
             state.needs_redraw = true;
             return;
@@ -434,27 +543,35 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
 
 pub fn handle_mouse_move(mx: u32, my: u32) {
     let mut state = COMPOSITOR.lock();
+    let (fb_w, fb_h) = fb_dims();
+    let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
+    let dock_rect = (layout.dock_x, layout.dock_y, layout.dock_w, layout.dock_h);
 
     // Update hover state for visual feedback.
-    let new_hover = if my >= 718 && my <= 758 && mx >= 312 && mx <= 712 {
-        hit_test_taskbar(mx, my)
-    } else {
-        // Check if hovering the close button of the focused window.
-        if let Some(idx) = state.focused_idx {
-            if let Some(win) = state.windows.get(idx) {
-                if mx >= win.x + win.width - 20 && mx <= win.x + win.width - 4
-                    && my >= win.y + 2 && my <= win.y + 18
-                {
-                    HoverTarget::WindowClose(win.id)
-                } else {
-                    HoverTarget::None
-                }
+    let new_hover = if desktop::point_in(mx, my, dock_rect) {
+        hit_test_taskbar(mx, my, &state.windows)
+    } else if state.launcher_open {
+        match desktop::launcher_entry_at(mx, my) {
+            Some(idx) => HoverTarget::LauncherEntry(idx),
+            None => HoverTarget::None,
+        }
+    } else if let Some(idx) = state.focused_idx {
+        // Check if hovering one of the focused window's title-bar buttons.
+        if let Some(win) = state.windows.get(idx) {
+            if win.is_close_btn(mx, my) {
+                HoverTarget::WindowClose(win.id)
+            } else if win.is_maximize_btn(mx, my) {
+                HoverTarget::WindowMaximize(win.id)
+            } else if win.is_minimize_btn(mx, my) {
+                HoverTarget::WindowMinimize(win.id)
             } else {
                 HoverTarget::None
             }
         } else {
             HoverTarget::None
         }
+    } else {
+        HoverTarget::None
     };
     if new_hover != state.hover {
         state.hover = new_hover;
@@ -479,53 +596,94 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
     }
 }
 
-/// Hit-test the taskbar at `(mx, my)`. Returns the button
-/// under the cursor, or `HoverTarget::None` if no button.
-fn hit_test_taskbar(mx: u32, my: u32) -> HoverTarget {
-    // Dock layout (must match `desktop::render_taskbar`):
-    //   dock_x = 312, dock_y = 718, dock_w = 400, dock_h = 40
-    if mx >= 327 && mx <= 427 && my >= 726 && my <= 750 {
-        HoverTarget::TerminalButton
-    } else if mx >= 437 && mx <= 537 && my >= 726 && my <= 750 {
-        HoverTarget::SysMonButton
-    } else if mx >= 547 && mx <= 647 && my >= 726 && my <= 750 {
-        HoverTarget::JarvisButton
-    } else {
-        HoverTarget::None
+/// Hit-test the taskbar at `(mx, my)` against the live window list.
+/// Returns the button under the cursor, or `HoverTarget::None`. Takes
+/// `windows` by reference rather than locking `COMPOSITOR` itself so
+/// callers that already hold the lock can pass it straight through
+/// without deadlocking this non-reentrant spinlock.
+fn hit_test_taskbar(mx: u32, my: u32, windows: &[Window]) -> HoverTarget {
+    let (fb_w, fb_h) = fb_dims();
+    let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
+
+    if desktop::point_in(mx, my, layout.start_rect) {
+        return HoverTarget::StartButton;
     }
+    if desktop::point_in(mx, my, layout.exit_rect) {
+        return HoverTarget::ExitButton;
+    }
+    for (slot, rect) in layout.window_rects.iter().enumerate() {
+        let Some(window) = windows.get(slot) else { break };
+        if desktop::point_in(mx, my, *rect) {
+            return HoverTarget::TaskbarWindow(window.id);
+        }
+    }
+    HoverTarget::None
 }
 
 pub fn handle_mouse_up(mx: u32, my: u32) {
     let mut state = COMPOSITOR.lock();
 
-    // If we were pressing a taskbar button, fire its action
-    // when the mouse is released over it. This is how every
-    // desktop dock works.
+    // If we were pressing a taskbar/launcher button, fire its action
+    // when the mouse is released over it. This is how every desktop
+    // dock (and every menu) works.
     if state.pressed != HoverTarget::None {
-        let released_on = hit_test_taskbar(mx, my);
+        let released_on = if state.launcher_open {
+            match desktop::launcher_entry_at(mx, my) {
+                Some(idx) => HoverTarget::LauncherEntry(idx),
+                None => HoverTarget::None,
+            }
+        } else {
+            hit_test_taskbar(mx, my, &state.windows)
+        };
         let pressed = state.pressed;
         state.pressed = HoverTarget::None;
 
         if pressed == released_on {
             match pressed {
-                HoverTarget::TerminalButton => {
-                    drop(state);
-                    spawn_terminal();
-                    return;
-                }
-                HoverTarget::SysMonButton => {
-                    drop(state);
-                    spawn_sys_mon();
-                    return;
-                }
-                HoverTarget::JarvisButton => {
-                    drop(state);
-                    spawn_agent_hud(false); // Assume false for now, window content holds true state
+                HoverTarget::StartButton => {
+                    state.launcher_open = !state.launcher_open;
+                    state.needs_redraw = true;
                     return;
                 }
                 HoverTarget::ExitButton => {
                     drop(state);
                     crate::gui::exit_desktop();
+                    return;
+                }
+                HoverTarget::TaskbarWindow(id) => {
+                    if let Some(idx) = state.windows.iter().position(|w| w.id == id) {
+                        let was_focused = state.focused_idx == Some(idx);
+                        let was_minimized = state.windows[idx].minimized;
+                        if was_minimized {
+                            // Restore and raise.
+                            state.windows[idx].minimized = false;
+                            let w = state.windows.remove(idx);
+                            state.windows.push(w);
+                            state.focused_idx = Some(state.windows.len() - 1);
+                        } else if was_focused {
+                            // Clicking the already-active window's taskbar
+                            // entry minimizes it, same as every real
+                            // taskbar.
+                            state.windows[idx].minimized = true;
+                            state.focused_idx = state.windows.iter().rposition(|w| !w.minimized);
+                        } else {
+                            let w = state.windows.remove(idx);
+                            state.windows.push(w);
+                            state.focused_idx = Some(state.windows.len() - 1);
+                        }
+                    }
+                    state.needs_redraw = true;
+                    return;
+                }
+                HoverTarget::LauncherEntry(idx) => {
+                    state.launcher_open = false;
+                    drop(state);
+                    match idx {
+                        0 => spawn_terminal(),
+                        1 => spawn_sys_mon(),
+                        2 => spawn_agent_hud(false),
+                        _ => {}
+                    }
                     return;
                 }
                 _ => {}
