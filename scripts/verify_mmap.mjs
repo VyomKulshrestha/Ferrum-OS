@@ -151,15 +151,23 @@ try {
   const frameCounts = parseKernelFrames(fullLog);
   console.log(`[test] Parsed user_frames timeline: ${JSON.stringify(frameCounts)}`);
 
-  check("found kernel-mmap logging entries", frameCounts.length >= 4);
+  check("found kernel-mmap logging entries", frameCounts.length >= 3);
 
-  if (frameCounts.length >= 4) {
+  if (frameCounts.length >= 3) {
     const initialFrames = frameCounts[0];
     const finalFrames = frameCounts[frameCounts.length - 1];
     const diff = finalFrames - initialFrames;
     check(`initial user_frames baseline parsed: ${initialFrames}`, true);
     check(`final user_frames parsed: ${finalFrames}`, true);
-    check(`exactly 3 pages paged in (diff: ${diff})`, diff === 3);
+    // fault_in() reads ahead up to 64 pages per fault (batching amortizes
+    // the VFS path/inode resolution cost that dominates loading a real,
+    // multi-megabyte mmap'd file - see REPORT.md's Phase D4 section), so
+    // touching 3 far-apart offsets in this 64MiB region now pulls in up to
+    // 3*64 = 192 pages total, not exactly 3 - readahead deliberately
+    // over-fetches neighboring pages it hasn't been asked for yet. What
+    // still matters here is that real, non-trivial paging happened (more
+    // than the 3 bytes actually touched) and stayed within the batch cap.
+    check(`readahead paged in more than the 3 touched bytes but no more than 3 batches' worth (diff: ${diff})`, diff > 3 && diff <= 3 * 64);
   }
 
   // Step 5: Verify no page fault/panic/leaks

@@ -144,6 +144,15 @@ Or use the build script:
 .\build.ps1 run
 ```
 
+## Appliance Packaging (Real Local Model)
+
+`scripts/make-appliance.ps1` builds the kernel and packages a real, trained language-model checkpoint onto a disk image the OS mounts at `/disk` — this is what powers Heliox's on-device ("local") brain, as opposed to the tiny synthetic fixture used only by the automated test suite. It builds the boot image, then packages `appliance/models/stories15M-q8.bin` and `appliance/models/tokenizer.bin` (real weights and vocabulary — see `appliance/models/README.md` for provenance and how to regenerate them) into a fresh ext2 disk image at `target/heliox-disk.img`. The script fails loudly if those model assets are missing rather than silently shipping a placeholder.
+
+```powershell
+.\scripts\make-appliance.ps1
+.\build.ps1 run-appliance
+```
+
 ## Shell Commands
 
 | Command | Description |
@@ -249,7 +258,7 @@ Or use the build script:
 
 ## Heliox Daemon Setup
 
-The Heliox agent daemon requires configuration to connect to your preferred LLM provider. There are two ways to set this up:
+Heliox is always the OS's native agent — it isn't something you choose to enable. The only thing setup decides is **which brain powers it**: an on-device model, or a cloud provider's API. There are two ways to set this up:
 
 > [!NOTE]
 > **RAM Filesystem Fallback**: The kernel pre-creates `/disk/heliox/` as a directory within the RAM filesystem (`RamFS`) at boot. If a physical Ext2 formatted ATA disk is not mounted at `/disk`, all configuration writing and loading will transparently fall back to the RAM filesystem, allowing you to use the setup wizard or shell without any partition setup.
@@ -260,14 +269,14 @@ The Heliox agent daemon requires configuration to connect to your preferred LLM 
    FerrumOS:~$ desktop
    ```
 2. Click inside the **Agent HUD** window to focus it (it will show a neon-cyan border).
-3. Follow the 3-step setup wizard by typing your values and pressing **Enter**:
-   * **Step 1: Select Provider**: Choose `ollama`, `openai`, `gemini`, or `claude`.
-   * **Step 2: API Host / Port**: Enter the address (e.g., `10.0.2.2:11434` for local Ollama, or `generativelanguage.googleapis.com:443` for Gemini).
-   * **Step 3: API Key**: Type your API key (or leave it blank for local Ollama).
+3. Follow the setup wizard by typing your choice at each step and pressing **Enter**:
+   * **Step 1 — Local or Cloud?** Type `local` (on-device, works offline) or `cloud` (OpenAI / Claude / Gemini).
+   * If **local**: choose `tiny` (the built-in model, auto-sized to your hardware tier) or `ollama` (a local Ollama server — you'll then be asked for its `host:port`, e.g. `10.0.2.2:11434`).
+   * If **cloud**: choose a provider (`openai`, `claude`, or `gemini`), then enter your API key.
 4. Once completed, the GUI compositor writes `/disk/heliox/config.json` and signals the daemon via IPC (`CONFIG_UPDATED`) to reload configuration and wake from the unconfigured state.
 
 ### Option B: Manual Configuration
-Create or edit the configuration file at `/disk/heliox/config.json` via the shell:
+Create or edit the configuration file at `/disk/heliox/config.json` via the shell. For a cloud provider:
 ```json
 {
   "provider": "gemini",
@@ -277,7 +286,7 @@ Create or edit the configuration file at `/disk/heliox/config.json` via the shel
   "model_name": "default"
 }
 ```
-If you edit the file manually via the shell, reboot or run `services start heliox-daemon` (or signal the daemon via IPC) to reload the config.
+For the on-device model, set `"provider": "local"` (auto-sizes to your hardware tier) and omit the API fields. If you edit the file manually via the shell, reboot or run `services start heliox-daemon` (or signal the daemon via IPC) to reload the config.
 
 ## Design Rules
 

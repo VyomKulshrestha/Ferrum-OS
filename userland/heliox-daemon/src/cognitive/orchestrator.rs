@@ -808,6 +808,20 @@ impl Orchestrator {
                     TelemetryEventKind::TickStart,
                     String::from("Configuration reloaded via IPC"),
                 );
+                // emit_telemetry only reaches the GUI's IPC channel, never
+                // the console/serial log - the same observability gap
+                // already fixed for LLM query results (orchestrator's
+                // think()). Print directly too so this is externally
+                // observable without inspecting internal daemon state.
+                let console_msg = format!(
+                    "[heliox-daemon] config reloaded via IPC, active provider: {}\n",
+                    self.config.provider
+                );
+                const SYS_WRITE: u64 = 34;
+                const FD_CONSOLE: u64 = 1;
+                unsafe {
+                    syscall3(SYS_WRITE, FD_CONSOLE, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                }
             }
         }
     }

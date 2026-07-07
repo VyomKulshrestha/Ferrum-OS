@@ -302,26 +302,37 @@ impl Window {
             if content_str.starts_with("NEEDS_CONFIG_") {
                 let step = content_str.chars().nth(13).unwrap_or('0');
                 
-                graphics::draw_string(self.x + 8, self.y + 40, "Heliox Initial Setup", 0x00FFFFFF, self.bg_color);
-                
+                graphics::draw_string(self.x + 8, self.y + 40, "Heliox is your OS agent - always on.", 0x00FFFFFF, self.bg_color);
+                graphics::draw_string(self.x + 8, self.y + 54, "Choose the brain that powers it:", 0x00FFFFFF, self.bg_color);
+
                 match step {
                     '0' => {
-                        graphics::draw_string(self.x + 8, self.y + 60, "Step 1: Select Provider", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 80, "(ollama, openai, gemini, claude)", 0x00AAAAAA, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 74, "Step 1: Local or Cloud?", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 90, "local  - on-device, works offline", 0x00AAAAAA, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 104, "cloud  - OpenAI / Claude / Gemini", 0x00AAAAAA, self.bg_color);
                     }
-                    '1' => {
-                        graphics::draw_string(self.x + 8, self.y + 60, "Step 2: API Host / Port", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 80, "(e.g. 10.0.2.2:4000 or 10.0.2.2:11434)", 0x00AAAAAA, self.bg_color);
+                    'L' => {
+                        graphics::draw_string(self.x + 8, self.y + 74, "Step 2: Which local brain?", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 90, "tiny    - built-in model, auto-sized", 0x00AAAAAA, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 104, "ollama  - a local Ollama server", 0x00AAAAAA, self.bg_color);
                     }
-                    '2' => {
-                        graphics::draw_string(self.x + 8, self.y + 60, "Step 3: API Key (if required)", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 80, "(Leave blank for local Ollama)", 0x00AAAAAA, self.bg_color);
+                    'H' => {
+                        graphics::draw_string(self.x + 8, self.y + 74, "Step 3: Ollama host:port", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 90, "(e.g. 10.0.2.2:11434)", 0x00AAAAAA, self.bg_color);
+                    }
+                    'C' => {
+                        graphics::draw_string(self.x + 8, self.y + 74, "Step 2: Which cloud provider?", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 90, "openai / claude / gemini", 0x00AAAAAA, self.bg_color);
+                    }
+                    'K' => {
+                        graphics::draw_string(self.x + 8, self.y + 74, "Step 3: API Key", 0x0000FFCC, self.bg_color);
+                        graphics::draw_string(self.x + 8, self.y + 90, "(from your provider's dashboard)", 0x00AAAAAA, self.bg_color);
                     }
                     _ => {}
                 }
                 
                 // Draw Input Buffer Field for Setup
-                let input_y = self.y + 110;
+                let input_y = self.y + 128;
                 graphics::fill_rect(self.x + 8, input_y, self.width - 16, 20, 0x001A1A1A);
                 graphics::draw_string(self.x + 12, input_y + 4, ">", 0x00FFFFFF, 0x001A1A1A);
                 graphics::draw_string(self.x + 28, input_y + 4, &self.input_buffer, 0x00FFFFFF, 0x001A1A1A);

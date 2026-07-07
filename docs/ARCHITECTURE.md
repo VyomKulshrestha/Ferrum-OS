@@ -252,6 +252,8 @@ The `network.rs` client is dynamically driven by the Agent HUD configuration, su
 1. **Ollama Format:** Flat `{"model", "prompt"}` JSON.
 2. **OpenAI Chat Format:** `{"messages": [{"role", "content"}]}` with `Authorization: Bearer` headers (supporting OpenAI, Gemini, and Claude via host proxy wrappers).
 
+The on-device ("local") brain is a real, trained checkpoint — a quantized int8 llama2.c-format model, memory-mapped from `/disk/heliox/models/` and packaged onto the appliance disk image by `scripts/make-appliance.ps1` (see `appliance/models/README.md` for provenance). It is not a placeholder: the daemon dequantizes and runs the actual weights, producing genuine generated text rather than a synthetic fixture.
+
 ### Components
 
 | Module | File | Role |
@@ -337,16 +339,16 @@ Kernel-side confirmation gates are enforced for destructive Tier-4 operations (s
 
 ## Configuration
 
-The agent requires configuration to connect to your preferred LLM provider. This can be configured in two ways:
+Heliox is always the OS's native agent — it isn't a setup choice. Configuration only decides which brain powers it, and can be set in two ways:
 
 > [!NOTE]
 > **RAM Filesystem Fallback**: The directory `/disk/heliox/` is pre-created within the RAM filesystem (`RamFS`) during boot. If a physical Ext2 disk is not mounted at `/disk`, configuration writing (via the HUD wizard) and reading (via the daemon) will fall back to memory transparently, avoiding any errors.
 
 ### 1. Interactive Desktop HUD Wizard
-If no configuration exists at boot, the **Agent HUD** window opens in setup mode on the desktop:
-- **Step 1: Select Provider**: `ollama`, `openai`, `gemini`, or `claude`.
-- **Step 2: API Host / Port**: e.g., `10.0.2.2:11434` (Ollama) or `generativelanguage.googleapis.com:443` (Gemini).
-- **Step 3: API Key**: Your API key (or blank for Ollama).
+If no configuration exists at boot, the **Agent HUD** window opens in setup mode on the desktop, walking through a branching choice rather than a flat list:
+- **Step 1 — Local or Cloud?** `local` (on-device, works offline) or `cloud` (OpenAI / Claude / Gemini).
+- **If local:** `tiny` (the built-in model, auto-sized to hardware tier) or `ollama` (prompts for a `host:port`, e.g. `10.0.2.2:11434`).
+- **If cloud:** pick a provider (`openai` / `claude` / `gemini`), then enter its API key.
 
 Once completed, the GUI compositor writes the `/disk/heliox/config.json` file dynamically and sends an IPC event `CONFIG_UPDATED` to wake/reload the agent daemon.
 

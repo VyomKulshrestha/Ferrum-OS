@@ -8,8 +8,11 @@
 extern crate alloc;
 
 use alloc::string::String;
-use crate::{syscall4, SYS_READ_FILE};
+use crate::{syscall3, syscall4, SYS_READ_FILE};
 use crate::cognitive::json::{self, JsonValue};
+
+const SYS_WRITE: u64 = 34;
+const FD_CONSOLE: u64 = 2;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LogLevel {
@@ -146,14 +149,28 @@ impl Config {
             }
         }
 
-        // Post-load auto-provider resolution
-        if config.provider == "auto" {
+        // Post-load provider resolution. "auto" picks local-vs-cloud based on
+        // hardware tier with no user say in it; "local" is an explicit user
+        // choice to always prefer on-device inference (the setup wizard
+        // offers both, see src/gui/compositor.rs). Both resolve to the same
+        // tier-appropriate local model where one exists - "local" gracefully
+        // falls back to cloud only on low-tier hardware that genuinely can't
+        // run either local checkpoint (README's tier table), so the user's
+        // choice is honored everywhere the hardware allows it.
+        if config.provider == "auto" || config.provider == "local" {
             let tier = detect_tier();
-            config.provider = match tier.as_str() {
+            let resolved = match tier.as_str() {
                 "high" => String::from("local-1.1B"),
                 "standard" => String::from("local-15M"),
                 _ => String::from("cloud"),
             };
+            if config.provider == "local" && resolved == "cloud" {
+                let msg = "[heliox-daemon] requested local provider but hardware tier can't run it - falling back to cloud\n";
+                unsafe {
+                    syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64);
+                }
+            }
+            config.provider = resolved;
         }
 
         config

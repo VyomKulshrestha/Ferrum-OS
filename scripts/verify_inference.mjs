@@ -27,8 +27,10 @@ if (!fs.existsSync(qemuExecutable)) throw new Error(`qemu not found at ${qemu} o
 try { fs.unlinkSync(serialLog); } catch {}
 
 const qemuArgs = [
-  "-accel", "tcg",
-  "-cpu", "max",
+  // heliox-daemon's heap is 64MB (sized for real model checkpoints - see
+  // src/main.rs) - QEMU's tiny default RAM isn't enough to spawn it even
+  // for this synthetic-fixture test, which otherwise barely touches memory.
+  "-m", "512M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -40,9 +42,23 @@ const qemuArgs = [
 ];
 if (!visible) qemuArgs.push("-display", "none");
 
-console.log(`Starting QEMU using ${qemuExecutable}...`);
-const qemuProcess = spawn(qemuExecutable, qemuArgs, { windowsHide: !visible });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// A process's ELF BSS (including heliox-daemon's static heap array) is
+// mapped and zeroed eagerly at spawn time, not demand-paged like an mmap'd
+// file - under pure TCG (software CPU emulation) that eager zeroing is slow
+// enough to blow past any reasonable test timeout once the heap is sized
+// for a real model. Every other script in this repo tries WHPX (hardware
+// virtualization) first for exactly this reason; this one predates that
+// pattern and hardcoded TCG - bring it in line.
+console.log(`Starting QEMU using ${qemuExecutable}...`);
+let qemuProcess = spawn(qemuExecutable, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("WHPX unsupported or failed, falling back to TCG...");
+  qemuProcess = spawn(qemuExecutable, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -99,7 +115,7 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 30);
+  await waitForSerial("FerrumOS:~$", 180);
   check("boot reaches shell prompt", true);
 
   console.log("Running Phase H3 Local SLM Inference Verification Suite...");
@@ -113,8 +129,8 @@ try {
   await waitForSerial("--- Phase H3 Verification Suite ---", 40, start);
   check("entered Phase H3 verification suite", true);
 
-  await waitForSerial("[test] Spawned heliox-daemon successfully", 40, start);
-  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 40, start);
+  await waitForSerial("[test] Spawned heliox-daemon successfully", 90, start);
+  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 90, start);
   check("daemon spawned and entered Ring-3 successfully", true);
 
   // Wait for the daemon server to bind

@@ -227,8 +227,13 @@ try {
   // Give the daemon's ambient loop time to spin up and pump at least one
   // compositor render cycle (via SYS_HUD_UPDATE - see D1's investigation
   // into why "desktop" isn't actually reachable as a shell command after
-  // ring3 init).
-  await sleep(2000);
+  // ring3 init). Wait for an actual readiness marker rather than a fixed
+  // sleep - heliox-daemon's heap grew from 16MB to 64MB to support real
+  // model checkpoints (see REPORT.md's Phase D4 section), and the ELF's
+  // BSS is zeroed eagerly at spawn time, so a fixed 2s budget that was
+  // fine for the old heap size no longer reliably covers spawn-to-ready.
+  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 30, start);
+  await sleep(1000);
 
   // --- 1. Wallpaper: the debug grid is gone ---------------------------
   let ppm = await screendump();

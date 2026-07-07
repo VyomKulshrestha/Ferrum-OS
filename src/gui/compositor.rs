@@ -233,6 +233,34 @@ pub fn init() {
     // Nothing to do for MVP init, structures are lazy_static
 }
 
+/// Write the finished config.json, switch the Agent HUD window out of setup
+/// mode, and wake the daemon to pick it up. Shared by every terminal state
+/// of the setup wizard (local/tiny, Ollama, and each cloud provider) so the
+/// "write config + notify" logic exists exactly once.
+fn finish_heliox_setup(win: &mut Window, provider: &str, host: &str, port: u16, api_key: &str, model_name: &str) {
+    let config_json = alloc::format!(
+        r#"{{ "provider": "{}", "api_host": "{}", "api_port": {}, "api_key": "{}", "model_name": "{}" }}"#,
+        provider, host, port, api_key, model_name
+    );
+    crate::fs::create_file("/disk/heliox/config.json", &config_json).ok();
+
+    win.content.clear();
+    let done_msg = alloc::format!("Agent initialized. Ambient mode active. (provider: {})\n", provider);
+    win.content.extend_from_slice(done_msg.as_bytes());
+
+    let _ = crate::ipc::send(
+        crate::ipc::Message::new(
+            0,
+            crate::ipc::Endpoint::new("heliox", "default"),
+            crate::ipc::MessageKind::Event,
+            "ipc:send:*",
+            b"CONFIG_UPDATED:",
+        )
+        .unwrap(),
+        &alloc::vec![alloc::string::String::from("cap:system:all")],
+    );
+}
+
 pub fn spawn_agent_hud(is_setup: bool) {
     let mut state = COMPOSITOR.lock();
     if let Some(idx) = state.windows.iter().position(|w| w.id == 3) {
@@ -822,50 +850,67 @@ pub fn handle_key_press(ascii: u8) {
                             win.input_buffer.clear();
                             
                             let content_str_again = core::str::from_utf8(&win.content).unwrap_or("");
-                            let step = content_str_again.chars().nth(13).unwrap_or('0');
-                            
-                            match step {
-                                '0' => {
-                                    win.content[13] = b'1';
-                                    let add = alloc::format!("PROV={}\n", text);
+                            let phase = content_str_again.chars().nth(13).unwrap_or('0');
+                            let choice = text.trim().to_ascii_lowercase();
+
+                            // Heliox itself isn't a setup choice - it's always the OS's
+                            // native agent. This wizard only decides which brain powers
+                            // it: Local (Ollama, or a tiny on-device model auto-picked by
+                            // hardware tier) or Cloud (OpenAI/Claude/Gemini + an API key).
+                            match phase {
+                                // Phase '0': top-level Local vs Cloud choice.
+                                '0' if choice == "local" => {
+                                    win.content[13] = b'L';
+                                }
+                                '0' if choice == "cloud" => {
+                                    win.content[13] = b'C';
+                                }
+                                '0' => { /* invalid input at this phase; stay put */ }
+
+                                // Phase 'L': which kind of local brain.
+                                'L' if choice == "tiny" || choice == "local" => {
+                                    // The tiny on-device model needs no host or API key -
+                                    // finish immediately. The exact checkpoint (15M/1.1B)
+                                    // is auto-selected by hardware tier at daemon startup
+                                    // (config.rs), same as "auto" - this is just an
+                                    // explicit user opt-in rather than only a fallback.
+                                    finish_heliox_setup(win, "local", "unconfigured", 0, "", "default");
+                                }
+                                'L' if choice == "ollama" => {
+                                    win.content[13] = b'H';
+                                }
+                                'L' => { /* invalid input; stay put */ }
+
+                                // Phase 'H': Ollama's local network address.
+                                'H' => {
+                                    let host_parts: alloc::vec::Vec<&str> = text.trim().split(':').collect();
+                                    let h = host_parts.first().copied().unwrap_or("10.0.2.2");
+                                    let p: u16 = host_parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(11434);
+                                    finish_heliox_setup(win, "ollama", h, p, "", "llama3");
+                                }
+
+                                // Phase 'C': which cloud provider.
+                                'C' if choice == "openai" || choice == "claude" || choice == "gemini" => {
+                                    win.content[13] = b'K';
+                                    let add = alloc::format!("PROV={}\n", choice);
                                     win.content.extend_from_slice(add.as_bytes());
                                 }
-                                '1' => {
-                                    win.content[13] = b'2';
-                                    let add = alloc::format!("HOST={}\n", text);
-                                    win.content.extend_from_slice(add.as_bytes());
-                                }
-                                '2' => {
-                                    let add = alloc::format!("KEY={}\n", text);
-                                    win.content.extend_from_slice(add.as_bytes());
-                                    
-                                    // Parse collected config
-                                    let final_str = core::str::from_utf8(&win.content).unwrap_or("");
-                                    let prov = final_str.lines().find(|l| l.starts_with("PROV=")).map(|l| &l[5..]).unwrap_or("ollama");
-                                    let host = final_str.lines().find(|l| l.starts_with("HOST=")).map(|l| &l[5..]).unwrap_or("10.0.2.2:11434");
-                                    let key = final_str.lines().find(|l| l.starts_with("KEY=")).map(|l| &l[4..]).unwrap_or("");
-                                    
-                                    let host_parts: alloc::vec::Vec<&str> = host.split(':').collect();
-                                    let h = host_parts.get(0).unwrap_or(&"10.0.2.2");
-                                    let p = host_parts.get(1).unwrap_or(&"11434");
-                                    
-                                    let config_json = alloc::format!(
-                                        r#"{{ "provider": "{}", "api_host": "{}", "api_port": {}, "api_key": "{}", "model_name": "{}" }}"#,
-                                        prov, h, p, key, if prov == "ollama" { "llama3" } else { "default" }
-                                    );
-                                    
-                                    crate::fs::create_file("/disk/heliox/config.json", &config_json).ok();
-                                    win.content.clear();
-                                    win.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
-                                    
-                                    // Send IPC wake up
-                                    let _ = crate::ipc::send(crate::ipc::Message::new(
-                                        0,
-                                        crate::ipc::Endpoint::new("heliox", "default"),
-                                        crate::ipc::MessageKind::Event,
-                                        "ipc:send:*",
-                                        b"CONFIG_UPDATED:",
-                                    ).unwrap(), &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                                'C' => { /* invalid input; stay put */ }
+
+                                // Phase 'K': the cloud provider's API key. Each provider's
+                                // endpoint is well-known, so - unlike Ollama, which could be
+                                // running anywhere on the local network - there's no reason
+                                // to also ask the user to type it out.
+                                'K' => {
+                                    let content_str = core::str::from_utf8(&win.content).unwrap_or("");
+                                    let prov = content_str.lines().find(|l| l.starts_with("PROV=")).map(|l| &l[5..]).unwrap_or("openai");
+                                    let (host, port, model) = match prov {
+                                        "claude" => ("api.anthropic.com", 443, "claude-3-haiku-20240307"),
+                                        "gemini" => ("generativelanguage.googleapis.com", 443, "gemini-1.5-flash"),
+                                        _ => ("api.openai.com", 443, "gpt-4o-mini"),
+                                    };
+                                    let prov_owned = alloc::string::String::from(prov);
+                                    finish_heliox_setup(win, &prov_owned, host, port, text.trim(), model);
                                 }
                                 _ => {}
                             }

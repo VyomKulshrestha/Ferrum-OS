@@ -299,6 +299,15 @@ unsafe fn dequantize(qx: &QuantizedTensor, x: &mut [f32], n: usize, gs: usize) {
         let scale = *qx.s.add(i / gs);
         let q_val = *qx.q.add(i);
         x[i] = (q_val as f32) * scale;
+        // `x` is a freshly heap-allocated buffer (e.g. the ~36MB token
+        // embedding table for a real model) - writing to it fault-allocates
+        // one physical frame per page with nothing else scheduled in
+        // between. Yield periodically so the daemon's network stack still
+        // gets serviced during what would otherwise be one long unbroken
+        // compute stretch.
+        if i % 65536 == 0 {
+            crate::syscall3(SYS_YIELD, 0, 0, 0);
+        }
     }
 }
 
@@ -843,6 +852,26 @@ pub fn run_local_inference(prompt: &str, provider: &str) -> Result<String, &'sta
         );
     }
 
+    // Cooperatively pre-fault every page of the mmap'd checkpoint before any
+    // tight pointer-chasing loop (dequantize, forward) touches it. A real
+    // model's weights span thousands of 4KB pages, each demand-paged in from
+    // the backing disk image on first touch; walking them all in one
+    // unyielded stretch would hold the CPU through that entire disk-read
+    // storm and starve the daemon's network stack long enough for an
+    // in-flight WebSocket request to time out.
+    const PAGE_SIZE: usize = 4096;
+    let file_base = vaddr as *const u8;
+    let mut warm_off = 0usize;
+    let mut pages_touched: u32 = 0;
+    while warm_off < total_file_size {
+        unsafe { core::ptr::read_volatile(file_base.add(warm_off)) };
+        warm_off += PAGE_SIZE;
+        pages_touched += 1;
+        if pages_touched % 64 == 0 {
+            unsafe { crate::syscall3(SYS_YIELD, 0, 0, 0) };
+        }
+    }
+
     // Skip the 256-byte header
     let mut ptr = unsafe { (vaddr as *const u8).add(256) };
 
@@ -907,16 +936,26 @@ pub fn run_local_inference(prompt: &str, provider: &str) -> Result<String, &'sta
     let mut state = RunState::new(&config, gs);
 
     // Encode Prompt
-    let prompt_tokens = tokenizer.encode(prompt, true, false);
+    let mut prompt_tokens = tokenizer.encode(prompt, true, false);
     if prompt_tokens.is_empty() {
         return Err("Empty prompt tokens");
     }
+    // A caller-supplied prompt (e.g. the orchestrator's autonomous-reasoning
+    // system prompt, which runs to several KB of text) can tokenize to far
+    // more tokens than this model's context window. The prompt-processing
+    // loop below has no per-iteration bounds check against `seq_len` - it
+    // just walks every prompt token - so an oversized prompt would drive
+    // `pos` past `seq_len` and index out of bounds in `forward()`. Truncate
+    // to the model's actual capacity, leaving room for at least one
+    // generated token.
+    if prompt_tokens.len() > seq_len.saturating_sub(1) {
+        prompt_tokens.truncate(seq_len.saturating_sub(1).max(1));
+    }
 
-    // Generate output
     let mut output_str = String::new();
     let mut token = prompt_tokens[0];
     let mut pos = 0;
-    
+
     // Process prompt tokens
     for &t in prompt_tokens.iter().skip(1) {
         forward(&weights, &mut state, token, pos, &config, gs, avx2_supported);
@@ -945,6 +984,21 @@ pub fn run_local_inference(prompt: &str, provider: &str) -> Result<String, &'sta
         token = next_token;
         pos += 1;
         unsafe { crate::syscall3(SYS_YIELD, 0, 0, 0); }
+    }
+
+    // Always log the generated text to the console, independent of whether
+    // the JSON-RPC response for this request ever makes it back over the
+    // WebSocket. A real model's first request pages in its whole checkpoint
+    // from disk before it can generate anything, which can outlast a
+    // client's connection patience - the console line is what proves actual
+    // generation happened even when that race is lost.
+    // Escape embedded newlines so a multi-paragraph story stays a single
+    // console line - log scrapers (and this file's own verify script) match
+    // on "line ends at \n", which a raw multi-line story would break.
+    let escaped_output = output_str.replace('\n', "\\n");
+    let result_msg = alloc::format!("[heliox-daemon] local_inference output: {}\n", escaped_output);
+    unsafe {
+        crate::syscall3(SYS_WRITE, FD_CONSOLE, result_msg.as_ptr() as u64, result_msg.len() as u64);
     }
 
     Ok(output_str)

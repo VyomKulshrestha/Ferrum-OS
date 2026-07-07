@@ -19,8 +19,17 @@ use linked_list_allocator::LockedHeap;
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-// Static heap size: 16 MB
-static mut HEAP: [u8; 16 * 1024 * 1024] = [0; 16 * 1024 * 1024];
+// Static heap size: 64 MB. The real stories15M-q8.bin checkpoint dequantizes
+// its token embedding table (vocab_size * dim floats = ~35MB) into a single
+// contiguous fp32 buffer for fast lookups - the dominant heap consumer,
+// since the quantized weight tensors stay int8 and are read straight out of
+// the mmap'd checkpoint file rather than copied onto this heap. A 16MB heap
+// was only ever sized for the tiny synthetic test fixture. Sized at ~35MB +
+// headroom rather than something larger: ELF BSS is mapped eagerly at
+// process-spawn time (not demand-paged like an mmap'd file), so every
+// spawn - including the synthetic-fixture tests that never touch a real
+// model - pays the cost of zeroing however big this array is.
+static mut HEAP: [u8; 64 * 1024 * 1024] = [0; 64 * 1024 * 1024];
 
 pub static LATEST_GESTURE: core::sync::atomic::AtomicU8 = core::sync::atomic::AtomicU8::new(0);
 

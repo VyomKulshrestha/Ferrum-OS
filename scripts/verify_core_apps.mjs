@@ -211,7 +211,13 @@ try {
 
   await sendText("ring3 init");
   await sendKey("ret");
-  await sleep(2000); // let heliox-daemon's ambient loop start pumping render/input
+  // Wait for an actual readiness marker rather than a fixed sleep -
+  // heliox-daemon's heap grew from 16MB to 64MB to support real model
+  // checkpoints (see REPORT.md's Phase D4 section), and its ELF's BSS is
+  // zeroed eagerly at spawn time, so a fixed 2s budget sized for the old
+  // heap no longer reliably covers spawn-to-ready.
+  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 30, start);
+  await sleep(1000);
 
   // --- Text Editor ------------------------------------------------------
   await openLauncherEntry(3);

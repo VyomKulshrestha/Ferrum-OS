@@ -491,6 +491,15 @@ impl AddressSpace {
     }
 
     pub fn fault_in(&mut self, addr: VirtAddr) -> bool {
+        // Read ahead this many pages per file-backed fault instead of just
+        // one. `read_file_offset` re-resolves the path and re-reads the
+        // inode on every call - for a multi-megabyte file (e.g. a real
+        // model checkpoint) touched page-by-page, that redundant lookup
+        // cost dominates over the actual block I/O and can turn loading a
+        // ~16MB file into thousands of full path/inode resolutions. Batching
+        // the read amortizes that cost across many pages per resolution.
+        const READAHEAD_PAGES: u64 = 64;
+
         let addr_val = addr.as_u64();
         let region_opt = self.mmap_regions.iter_mut().find(|r| {
             let base = r.base.as_u64();
@@ -503,58 +512,135 @@ impl AddressSpace {
             None => return false,
         };
 
-        let page_base = addr_val & !(Size4KiB::SIZE - 1);
+        let page_size = Size4KiB::SIZE;
+        let page_base = addr_val & !(page_size - 1);
         let rel_offset = page_base - region.base.as_u64();
 
         if region.populated.contains(&rel_offset) {
             return true;
         }
 
-        let mut allocator = GlobalFrameSource::new();
-        let frame = match allocator.allocate_frame() {
-            Some(f) => f,
-            None => return false,
-        };
+        let region_aligned_len = align_up(region.len, page_size);
 
-        let page_virt = crate::memory::phys_to_virt(frame.start_address());
-        unsafe {
-            core::ptr::write_bytes(page_virt.as_mut_ptr::<u8>(), 0u8, Size4KiB::SIZE as usize);
-        }
-
-        let file_path = region.file_path.clone();
-        let read_offset = region.file_offset + rel_offset;
-
-        let buf = unsafe { core::slice::from_raw_parts_mut(page_virt.as_mut_ptr::<u8>(), Size4KiB::SIZE as usize) };
-        match crate::fs::read_file_offset(&file_path, read_offset, buf) {
-            Ok(_) => {}
-            Err(_) => {
-                crate::memory::deallocate_frame(frame);
-                return false;
+        // Extend the batch forward from rel_offset while pages are still
+        // within the region and not already populated.
+        let mut batch_pages: u64 = 0;
+        while batch_pages < READAHEAD_PAGES {
+            let candidate_rel = rel_offset + batch_pages * page_size;
+            if candidate_rel >= region_aligned_len {
+                break;
             }
+            if region.populated.contains(&candidate_rel) {
+                break;
+            }
+            batch_pages += 1;
+        }
+        if batch_pages == 0 {
+            return true;
         }
 
-        let page = Page::containing_address(VirtAddr::new(page_base));
-        let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
-        let l4_table = unsafe { &mut *l4_virt.as_mut_ptr::<PageTable>() };
-        let mut mapper = unsafe { OffsetPageTable::new(l4_table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
-
-        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
-
-        unsafe {
-            match mapper.map_to(page, frame, flags, &mut allocator) {
-                Ok(tlb) => {
-                    tlb.flush();
-                }
-                Err(_) => {
-                    crate::memory::deallocate_frame(frame);
+        let mut allocator = GlobalFrameSource::new();
+        let mut frames: alloc::vec::Vec<PhysFrame> = alloc::vec::Vec::with_capacity(batch_pages as usize);
+        for _ in 0..batch_pages {
+            match allocator.allocate_frame() {
+                Some(f) => frames.push(f),
+                None => {
+                    for f in frames {
+                        crate::memory::deallocate_frame(f);
+                    }
                     return false;
                 }
             }
         }
 
-        self.user_frames.push(frame);
-        region.populated.insert(rel_offset);
-        true
+        for f in &frames {
+            let page_virt = crate::memory::phys_to_virt(f.start_address());
+            unsafe {
+                core::ptr::write_bytes(page_virt.as_mut_ptr::<u8>(), 0u8, page_size as usize);
+            }
+        }
+
+        // Read the whole batch in one shot into a scratch buffer, then copy
+        // each page's slice into its own physical frame.
+        let batch_len = (batch_pages * page_size) as usize;
+        let mut scratch = alloc::vec![0u8; batch_len];
+        let file_path = region.file_path.clone();
+        let read_offset = region.file_offset + rel_offset;
+        if crate::fs::read_file_offset(&file_path, read_offset, &mut scratch).is_err() {
+            for f in frames {
+                crate::memory::deallocate_frame(f);
+            }
+            return false;
+        }
+
+        for (i, f) in frames.iter().enumerate() {
+            let page_virt = crate::memory::phys_to_virt(f.start_address());
+            let dst = unsafe { core::slice::from_raw_parts_mut(page_virt.as_mut_ptr::<u8>(), page_size as usize) };
+            let start = i * page_size as usize;
+            dst.copy_from_slice(&scratch[start..start + page_size as usize]);
+        }
+
+        let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
+        let l4_table = unsafe { &mut *l4_virt.as_mut_ptr::<PageTable>() };
+        let mut mapper = unsafe { OffsetPageTable::new(l4_table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
+        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
+
+        // Track whether the page that actually caused this fault (index 0 -
+        // the rest of the batch is best-effort readahead) got mapped. If it
+        // didn't, this function must report failure rather than unconditional
+        // success: returning true here tells the page-fault handler to just
+        // retry the faulting instruction, and if the page was never actually
+        // mapped that retry faults again at the exact same address forever.
+        let mut origin_page_mapped = false;
+        for (i, frame) in frames.into_iter().enumerate() {
+            let this_rel = rel_offset + (i as u64) * page_size;
+            let this_page_base = region.base.as_u64() + this_rel;
+            let page = Page::containing_address(VirtAddr::new(this_page_base));
+            unsafe {
+                match mapper.map_to(page, frame, flags, &mut allocator) {
+                    Ok(tlb) => tlb.flush(),
+                    Err(e) => {
+                        if i == 0 {
+                            crate::println!("[kernel-mmap] map_to failed for faulting page addr={:#x}: {:?}", this_page_base, e);
+                        }
+                        crate::memory::deallocate_frame(frame);
+                        continue;
+                    }
+                }
+            }
+            if i == 0 {
+                origin_page_mapped = true;
+            }
+            self.user_frames.push(frame);
+            region.populated.insert(this_rel);
+        }
+
+        // Log here (where `batch_pages` is known) rather than in the
+        // fault_in_page() wrapper: a handful of sparse, deliberate touches
+        // (verify_mmap.mjs's test pokes 3 far-apart pages, each its own
+        // small batch) should always be visible, while a real model's
+        // multi-thousand-page sequential load produces many large batches
+        // that would flood the debug kernel's unoptimized println! path if
+        // every one printed - so those are throttled to periodic progress
+        // updates instead. Gating the "always visible" case on batch size
+        // (a property of *this* fault) is reliable in a way a global
+        // call-counter modulo isn't: the latter can skip an arbitrary
+        // subset of a small number of semantically distinct sparse events
+        // depending on what else happened to share that counter earlier.
+        static BULK_FAULT_CALLS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+        let frames = self.user_frames.len();
+        let is_bulk = batch_pages > 4 && frames > 16;
+        let bulk_call_num = if is_bulk { BULK_FAULT_CALLS.fetch_add(1, core::sync::atomic::Ordering::Relaxed) } else { 0 };
+        // Always show the first several large batches unconditionally
+        // (covers a handful of sparse-but-large-batch touches deterministically,
+        // e.g. a test probing a few widely-separated offsets in one mmap'd
+        // region) and fall back to periodic sampling only once a load is
+        // clearly a real multi-hundred-batch bulk sequential fetch.
+        if !is_bulk || bulk_call_num < 8 || bulk_call_num % 64 == 0 {
+            crate::println!("[kernel-mmap] page paged in, user_frames={}", frames);
+        }
+
+        origin_page_mapped
     }
 }
 
@@ -973,11 +1059,11 @@ pub fn fault_in_page(pid: u64, addr: VirtAddr) -> bool {
     let mut procs = PROCESSES.lock();
     if let Some(record) = procs.iter_mut().find(|r| r.process.pid == pid) {
         if let Some(ref mut space) = record.process.space {
-            let res = space.fault_in(addr);
-            if res {
-                crate::println!("[kernel-mmap] page paged in, pid={} user_frames={}", pid, space.user_frames.len());
-            }
-            return res;
+            // fault_in() itself logs (it's the one that knows the batch
+            // size, needed to tell a handful of deliberate sparse touches
+            // apart from a real model's bulk sequential load - see the
+            // comment there).
+            return space.fault_in(addr);
         }
     }
     false
