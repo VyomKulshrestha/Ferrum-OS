@@ -200,7 +200,18 @@ impl TaskQuotas {
             max_memory_pages: 2048, // 8 MiB
             max_cpu_ticks_continuous: 100, // ~5.5 seconds of uninterrupted execution
             used_cpu_ticks_continuous: 0,
-            max_syscalls_per_window: 100, // 100 syscalls per window
+            // 200-tick window (~11s at the PIT's ~18.2Hz). A normal D1
+            // app-window GUI loop (poll_window_input + occasional
+            // present + sleep every ~30ms, matching every app built on
+            // libferrumgui) makes ~2-3 syscalls per ~0.5-tick iteration,
+            // i.e. up to ~1000+ syscalls across one window even at rest -
+            // the old value of 100 killed any such app within its first
+            // 1-2 seconds of normal operation as "syscall rate quota
+            // exceeded", never previously noticed because D3's app tests
+            // only interact briefly. Sized with headroom above steady-state
+            // polling while still bounding a genuinely pathological
+            // syscall-spam loop with no sleep at all.
+            max_syscalls_per_window: 5000,
             syscalls_in_window: 0,
             syscall_window_start: 0,
         }

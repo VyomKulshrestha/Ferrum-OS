@@ -165,9 +165,10 @@ const startRect = [DOCK_X + DOCK_SIDE_PADDING, DOCK_Y + BTN_Y_INSET, START_BTN_W
 const rectCenter = ([x, y, w, h]) => [x + Math.floor(w / 2), y + Math.floor(h / 2)];
 
 // Launcher popup geometry mirrored from desktop.rs::launcher_rect / launcher_entry_rect.
-// LAUNCHER_ENTRIES = [Terminal, System Monitor, Heliox Assistant, Text Editor, Calculator, File Manager]
+// LAUNCHER_ENTRIES = [Terminal, System Monitor, Heliox Assistant, Text Editor,
+// Calculator, File Manager, Settings, Browser, App Store]
 const LAUNCHER_ENTRY_H = 28, LAUNCHER_PADDING = 8, LAUNCHER_ENTRY_W = 180;
-const LAUNCHER_ENTRY_COUNT = 6;
+const LAUNCHER_ENTRY_COUNT = 9;
 const launcherW = LAUNCHER_PADDING * 2 + LAUNCHER_ENTRY_W;
 const launcherH = LAUNCHER_PADDING * 2 + LAUNCHER_ENTRY_COUNT * LAUNCHER_ENTRY_H;
 const launcherX = startRect[0];

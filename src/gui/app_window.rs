@@ -2,11 +2,11 @@
 // FerrumOS - Generic App Window Registry
 // ============================================================================
 // Backs the CreateWindow / PresentWindow / PollWindowInput syscalls. This is
-// the piece that turns "the compositor can draw 4 hardcoded window types"
-// into "any userland process can own a real window": a window's pixels are
-// whatever the owning process last submitted via `present`, and its input
-// events are queued per-window instead of only ever reaching the kernel's
-// own Terminal/AgentHud handling.
+// the piece that turns "the compositor can draw a few hardcoded window
+// types" into "any userland process can own a real window": a window's
+// pixels are whatever the owning process last submitted via `present`, and
+// its input events are queued per-window instead of only ever reaching the
+// kernel's own Terminal handling.
 // ============================================================================
 
 extern crate alloc;
@@ -19,8 +19,8 @@ use crate::gui::compositor;
 use crate::gui::window::{Window, WindowType};
 
 /// App windows are allocated ids starting well above the kernel's own
-/// hardcoded window ids (1=SystemMonitor, 2=Terminal, 3=AgentHud) so the two
-/// spaces never collide.
+/// hardcoded window ids (1=SystemMonitor, 2=Terminal) so the two spaces
+/// never collide.
 static NEXT_APP_WINDOW_ID: AtomicU64 = AtomicU64::new(1000);
 
 /// Default placement for newly created app windows. Fixed (not

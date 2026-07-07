@@ -18,7 +18,11 @@ use spin::Mutex;
 ///
 /// Large buffers should later be transferred through shared memory handles
 /// guarded by capabilities, not by copying through the kernel message path.
-pub const MAX_PAYLOAD_BYTES: usize = 256;
+/// Bumped from the original 256 bytes to fit a real chat-style agent
+/// response (e.g. a generated story) in one message instead of chunking -
+/// at the 64-message queue cap (below) that's a 256KB worst case, negligible
+/// against the kernel's multi-MB heap.
+pub const MAX_PAYLOAD_BYTES: usize = 4096;
 
 /// Stable service endpoint identifier.
 #[derive(Debug, Clone, PartialEq, Eq)]

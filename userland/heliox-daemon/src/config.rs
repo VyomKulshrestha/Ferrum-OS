@@ -120,7 +120,8 @@ impl Config {
             )
         };
 
-        if (bytes_read as i64) >= 0 {
+        let file_existed = (bytes_read as i64) >= 0;
+        if file_existed {
             let json_str = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("");
             
             if let Ok(parsed) = json::parse(json_str) {
@@ -157,7 +158,18 @@ impl Config {
         // falls back to cloud only on low-tier hardware that genuinely can't
         // run either local checkpoint (README's tier table), so the user's
         // choice is honored everywhere the hardware allows it.
-        if config.provider == "auto" || config.provider == "local" {
+        //
+        // Gated on `file_existed`: a config.json that doesn't exist yet
+        // means setup has never run, not that the user chose "auto". If
+        // this resolved to a tier-appropriate local model regardless, the
+        // daemon would start real autonomous inference on every boot before
+        // the user ever completes the wizard (`tick()`'s idle-until-
+        // configured check only skips ticking for a provider that doesn't
+        // start with "local", so an unresolved "auto" default correctly
+        // keeps it idle - a resolved "local-15M" default did not). Once a
+        // config.json exists - including one a tool or user wrote with
+        // `"provider": "auto"` explicitly - it resolves exactly as before.
+        if file_existed && (config.provider == "auto" || config.provider == "local") {
             let tier = detect_tier();
             let resolved = match tier.as_str() {
                 "high" => String::from("local-1.1B"),

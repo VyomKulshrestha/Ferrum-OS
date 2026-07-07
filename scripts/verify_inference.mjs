@@ -86,7 +86,8 @@ async function mon(cmd, waitMs = 60) {
 
 const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus",
-  "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", "0": "0"
+  "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", "0": "0",
+  "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma", ":": "shift-semicolon"
 }));
 async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
 async function sendText(t) {
@@ -126,7 +127,13 @@ try {
   await sendText("ring3 init");
   await sendKey("ret");
 
-  await waitForSerial("--- Phase H3 Verification Suite ---", 40, start);
+  // heliox-assistant-panel auto-launches on missing config as part of raw
+  // kernel boot (main.rs, before the interactive shell prompt even exists -
+  // see REPORT.md's Phase D5 section), so there's no way for a command
+  // typed here to prevent it; it's real, if lightweight, background
+  // scheduling competition for whatever init's test-mode-4 setup needs to
+  // do. Patience, not avoidance.
+  await waitForSerial("--- Phase H3 Verification Suite ---", 90, start);
   check("entered Phase H3 verification suite", true);
 
   await waitForSerial("[test] Spawned heliox-daemon successfully", 90, start);

@@ -152,6 +152,20 @@ impl Orchestrator {
         self.planner.current_goal()
     }
 
+    pub fn tick_count(&self) -> u64 {
+        self.tick_count
+    }
+
+    /// Total recorded telemetry events and the most recent one, backing
+    /// the `agent_stats` JSON-RPC method. `TelemetryEvent`'s own fields
+    /// stay private - this returns owned/copy data instead of leaking a
+    /// reference to the internal ring buffer.
+    pub fn telemetry_summary(&self) -> (usize, Option<(u64, &'static str, String)>) {
+        let count = self.telemetry_buffer.len();
+        let last = self.telemetry_buffer.last().map(|ev| (ev.tick, ev.kind.as_str(), ev.message.clone()));
+        (count, last)
+    }
+
     pub fn set_goal(&mut self, goal: &str) {
         self.planner.set_goal(goal);
         self.verifier.reset();
@@ -205,10 +219,40 @@ impl Orchestrator {
             self.telemetry_buffer.remove(0);
         }
         self.telemetry_buffer.push(event);
+        // No longer forwarded over IPC to a "gui" listener - the kernel-
+        // hardcoded AgentHud window that read it is retired in favor of
+        // heliox-assistant-panel, a real app that gets its own focused
+        // "CHAT:" stream (see emit_chat below) instead of the full,
+        // high-volume internal telemetry firehose. The ring buffer above
+        // is what backs the agent_stats/get_history JSON-RPC methods.
+    }
 
-        // Send to GUI via IPC
-        let msg = format!("TELEMETRY:{}:{}", kind.as_str(), message);
-        let target_svc = "gui";
+    /// Send a chat-relevant update to heliox-assistant-panel (the real
+    /// app-window-based assistant UI, not the old kernel-hardcoded AgentHud
+    /// window). Distinct from `emit_telemetry` above: telemetry is a
+    /// high-volume internal event stream; chat is specifically the
+    /// user-visible conversation turns (thinking / done / error), sent to
+    /// its own "assistant" service so the two don't compete for the same
+    /// consumer or flood the chat UI with unrelated internal noise.
+    ///
+    /// `content` is truncated to fit within `ipc::MAX_PAYLOAD_BYTES` minus
+    /// the "CHAT:<role>:<state>:" prefix - IPC messages are bounded, unlike
+    /// a file, so an unusually long generation is clipped rather than
+    /// silently dropped by `IpcSend`'s own size check.
+    fn emit_chat(&self, role: &str, state: &str, content: &str) {
+        let prefix_len = 5 + role.len() + 1 + state.len() + 1; // "CHAT:" + role + ":" + state + ":"
+        let max_content = 4096usize.saturating_sub(prefix_len).saturating_sub(1);
+        let truncated: &str = if content.len() > max_content {
+            let mut end = max_content;
+            while end > 0 && !content.is_char_boundary(end) {
+                end -= 1;
+            }
+            &content[..end]
+        } else {
+            content
+        };
+        let msg = format!("CHAT:{}:{}:{}", role, state, truncated);
+        let target_svc = "assistant";
         unsafe {
             syscall4(
                 SYS_IPC_SEND,
@@ -269,16 +313,25 @@ impl Orchestrator {
         self.observe();
 
         // 2. THINK
+        self.emit_chat("agent", "thinking", "");
         let response = match self.think() {
             Some(r) => r,
             None => {
                 self.emit_telemetry(TelemetryEventKind::Error, String::from("LLM query failed or network not ready"));
+                self.emit_chat("agent", "error", "LLM query failed or network not ready");
                 return;
             }
         };
 
         // 3. ACT
         let actions = self.act(&response);
+        // `act()` parses `response` (raw JSON from the provider - an Ollama
+        // `{"response":...}` wrapper for local, or the full API body for
+        // cloud) and extracts the human-readable text into
+        // `self.last_response`. That's what belongs in the chat panel, not
+        // the raw JSON `response` itself.
+        let chat_text = self.last_response.clone().unwrap_or_else(|| response.clone());
+        self.emit_chat("agent", "done", &chat_text);
 
         // 4. VERIFY + REFLECT
         for (tool_name, success, output) in &actions {

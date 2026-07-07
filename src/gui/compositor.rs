@@ -75,13 +75,16 @@ pub enum HoverTarget {
 /// Everything the launcher can open: the 3 kernel-drawn built-ins, plus
 /// real installed apps spawned via `crate::process::spawn_elf` (see
 /// `launch_installed_app` below).
-pub const LAUNCHER_ENTRIES: [&str; 6] = [
+pub const LAUNCHER_ENTRIES: [&str; 9] = [
     "Terminal",
     "System Monitor",
     "Heliox Assistant",
     "Text Editor",
     "Calculator",
     "File Manager",
+    "Settings",
+    "Browser",
+    "App Store",
 ];
 
 /// Launch one of the real installed apps (the launcher entries beyond the
@@ -95,6 +98,10 @@ fn launch_installed_app(program_name: &str) {
         "text-editor" => crate::userspace::TEXT_EDITOR_ELF,
         "calculator" => crate::userspace::CALCULATOR_ELF,
         "file-manager" => crate::userspace::FILE_MANAGER_ELF,
+        "heliox-assistant-panel" => crate::userspace::HELIOX_ASSISTANT_PANEL_ELF,
+        "settings" => crate::userspace::SETTINGS_ELF,
+        "browser" => crate::userspace::BROWSER_ELF,
+        "app-store" => crate::userspace::APP_STORE_ELF,
         _ => return,
     };
     let caps = crate::userspace::capabilities_for_program(program_name);
@@ -233,55 +240,6 @@ pub fn init() {
     // Nothing to do for MVP init, structures are lazy_static
 }
 
-/// Write the finished config.json, switch the Agent HUD window out of setup
-/// mode, and wake the daemon to pick it up. Shared by every terminal state
-/// of the setup wizard (local/tiny, Ollama, and each cloud provider) so the
-/// "write config + notify" logic exists exactly once.
-fn finish_heliox_setup(win: &mut Window, provider: &str, host: &str, port: u16, api_key: &str, model_name: &str) {
-    let config_json = alloc::format!(
-        r#"{{ "provider": "{}", "api_host": "{}", "api_port": {}, "api_key": "{}", "model_name": "{}" }}"#,
-        provider, host, port, api_key, model_name
-    );
-    crate::fs::create_file("/disk/heliox/config.json", &config_json).ok();
-
-    win.content.clear();
-    let done_msg = alloc::format!("Agent initialized. Ambient mode active. (provider: {})\n", provider);
-    win.content.extend_from_slice(done_msg.as_bytes());
-
-    let _ = crate::ipc::send(
-        crate::ipc::Message::new(
-            0,
-            crate::ipc::Endpoint::new("heliox", "default"),
-            crate::ipc::MessageKind::Event,
-            "ipc:send:*",
-            b"CONFIG_UPDATED:",
-        )
-        .unwrap(),
-        &alloc::vec![alloc::string::String::from("cap:system:all")],
-    );
-}
-
-pub fn spawn_agent_hud(is_setup: bool) {
-    let mut state = COMPOSITOR.lock();
-    if let Some(idx) = state.windows.iter().position(|w| w.id == 3) {
-        let w = state.windows.remove(idx);
-        state.windows.push(w);
-        let new_idx = state.windows.len() - 1;
-        state.focused_idx = Some(new_idx);
-    } else {
-        // ID 3 = Agent HUD
-        let mut w3 = Window::new(3, crate::gui::window::WindowType::AgentHud, "Agent HUD", 200, 200, 400, 300, 0x000F111A);
-        if is_setup {
-            w3.content.extend_from_slice(b"NEEDS_CONFIG_0\n");
-        } else {
-            w3.content.extend_from_slice(b"Agent initialized. Ambient mode active.\n");
-        }
-        state.windows.push(w3);
-        state.focused_idx = Some(state.windows.len() - 1);
-    }
-    state.needs_redraw = true;
-}
-
 pub fn spawn_demo_windows() {
     let mut state = COMPOSITOR.lock();
     // Remember what was focused before resetting the demo windows, so a
@@ -310,12 +268,37 @@ pub fn spawn_demo_windows() {
         .and_then(|id| state.windows.iter().position(|w| w.id == id))
         .or_else(|| state.windows.iter().position(|w| w.id == 2));
     state.needs_redraw = true;
+}
 
-    drop(state);
-
-    // Check if agent needs config
-    if let Err(_) = crate::fs::read_file("/disk/heliox/config.json") {
-        spawn_agent_hud(true); // missing config -> setup state
+/// heliox-assistant-panel checks for /disk/heliox/config.json itself at
+/// startup and shows its own setup wizard when it's missing - auto-launch it
+/// here so first boot still prompts for setup without the user having to
+/// know to open it from the launcher, matching the old kernel-drawn
+/// AgentHud's auto-spawn-on-missing-config behavior.
+///
+/// Deliberately NOT called from `spawn_demo_windows` (which runs inside
+/// `gui::init()`, itself called from `main.rs` well before
+/// `scheduler::init()`): `launch_installed_app` -> `spawn_elf` ->
+/// `scheduler::register_user` silently no-ops while `SCHEDULER_INIT` is
+/// still false, so a process spawned that early gets a process-table entry
+/// and a loaded ELF but is never actually added to any run queue - it just
+/// sits forever, invisible to `schedule_next()`. The kernel-drawn AgentHud
+/// never hit this because it was just a `Window` struct pushed into
+/// `state.windows`, not a real scheduled process.
+///
+/// Also NOT called directly from `main.rs` right after `scheduler::init()`
+/// (an earlier version of this fix did exactly that): the scheduler being
+/// *initialized* isn't the only requirement - a process spawned that early
+/// still has to share the CPU with whatever `init` does immediately after
+/// `ring3 init` dispatches to it, and competing with `init`'s own startup
+/// work (e.g. `scripts/verify_inference.mjs`'s test-mode-4 setup) starved
+/// it of scheduling time before it ever ran at all. The actual call site is
+/// `sys_hud_update` (`src/syscall/hud.rs`), guarded to fire exactly once,
+/// the first time heliox-daemon's ambient loop pumps the HUD - by then the
+/// system is well past the fragile early-boot window.
+pub fn launch_assistant_panel_if_unconfigured() {
+    if crate::fs::read_file("/disk/heliox/config.json").is_err() {
+        launch_installed_app("heliox-assistant-panel");
     }
 }
 
@@ -382,14 +365,14 @@ pub fn hit_test(mx: u32, my: u32) -> (u64, alloc::string::String) {
     hit_test_exclude(mx, my, false)
 }
 
-/// Helper to hit test overlapping windows, with option to exclude Agent HUD.
-pub fn hit_test_exclude(mx: u32, my: u32, exclude_hud: bool) -> (u64, alloc::string::String) {
+/// Helper to hit test overlapping windows. `exclude_hud` is unused now that
+/// the kernel-drawn Agent HUD window is retired (kept as a parameter since
+/// `hit_test` below is a thin wrapper over this and existing callers pass
+/// the old `false`/`true` distinction).
+pub fn hit_test_exclude(mx: u32, my: u32, _exclude_hud: bool) -> (u64, alloc::string::String) {
     let state = COMPOSITOR.lock();
     for window in state.windows.iter().rev() {
         if window.minimized {
-            continue;
-        }
-        if exclude_hud && window.win_type == crate::gui::window::WindowType::AgentHud {
             continue;
         }
         if window.contains_point(mx, my) {
@@ -739,10 +722,13 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                     match idx {
                         0 => spawn_terminal(),
                         1 => spawn_sys_mon(),
-                        2 => spawn_agent_hud(false),
+                        2 => launch_installed_app("heliox-assistant-panel"),
                         3 => launch_installed_app("text-editor"),
                         4 => launch_installed_app("calculator"),
                         5 => launch_installed_app("file-manager"),
+                        6 => launch_installed_app("settings"),
+                        7 => launch_installed_app("browser"),
+                        8 => launch_installed_app("app-store"),
                         _ => {}
                     }
                     return;
@@ -833,134 +819,6 @@ pub fn handle_key_press(ascii: u8) {
                     _ => {
                         if ascii.is_ascii_graphic() || ascii == b' ' {
                             win.content.push(ascii);
-                            state.needs_redraw = true;
-                        }
-                    }
-                }
-            } else if win_type == crate::gui::window::WindowType::AgentHud {
-                let win = &mut state.windows[idx];
-                
-                // If it's the Setup Screen
-                let content_str = core::str::from_utf8(&win.content).unwrap_or("");
-                let is_setup = content_str.starts_with("NEEDS_CONFIG_");
-                if is_setup {
-                    match ascii {
-                        b'\n' => {
-                            let text = win.input_buffer.clone();
-                            win.input_buffer.clear();
-                            
-                            let content_str_again = core::str::from_utf8(&win.content).unwrap_or("");
-                            let phase = content_str_again.chars().nth(13).unwrap_or('0');
-                            let choice = text.trim().to_ascii_lowercase();
-
-                            // Heliox itself isn't a setup choice - it's always the OS's
-                            // native agent. This wizard only decides which brain powers
-                            // it: Local (Ollama, or a tiny on-device model auto-picked by
-                            // hardware tier) or Cloud (OpenAI/Claude/Gemini + an API key).
-                            match phase {
-                                // Phase '0': top-level Local vs Cloud choice.
-                                '0' if choice == "local" => {
-                                    win.content[13] = b'L';
-                                }
-                                '0' if choice == "cloud" => {
-                                    win.content[13] = b'C';
-                                }
-                                '0' => { /* invalid input at this phase; stay put */ }
-
-                                // Phase 'L': which kind of local brain.
-                                'L' if choice == "tiny" || choice == "local" => {
-                                    // The tiny on-device model needs no host or API key -
-                                    // finish immediately. The exact checkpoint (15M/1.1B)
-                                    // is auto-selected by hardware tier at daemon startup
-                                    // (config.rs), same as "auto" - this is just an
-                                    // explicit user opt-in rather than only a fallback.
-                                    finish_heliox_setup(win, "local", "unconfigured", 0, "", "default");
-                                }
-                                'L' if choice == "ollama" => {
-                                    win.content[13] = b'H';
-                                }
-                                'L' => { /* invalid input; stay put */ }
-
-                                // Phase 'H': Ollama's local network address.
-                                'H' => {
-                                    let host_parts: alloc::vec::Vec<&str> = text.trim().split(':').collect();
-                                    let h = host_parts.first().copied().unwrap_or("10.0.2.2");
-                                    let p: u16 = host_parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(11434);
-                                    finish_heliox_setup(win, "ollama", h, p, "", "llama3");
-                                }
-
-                                // Phase 'C': which cloud provider.
-                                'C' if choice == "openai" || choice == "claude" || choice == "gemini" => {
-                                    win.content[13] = b'K';
-                                    let add = alloc::format!("PROV={}\n", choice);
-                                    win.content.extend_from_slice(add.as_bytes());
-                                }
-                                'C' => { /* invalid input; stay put */ }
-
-                                // Phase 'K': the cloud provider's API key. Each provider's
-                                // endpoint is well-known, so - unlike Ollama, which could be
-                                // running anywhere on the local network - there's no reason
-                                // to also ask the user to type it out.
-                                'K' => {
-                                    let content_str = core::str::from_utf8(&win.content).unwrap_or("");
-                                    let prov = content_str.lines().find(|l| l.starts_with("PROV=")).map(|l| &l[5..]).unwrap_or("openai");
-                                    let (host, port, model) = match prov {
-                                        "claude" => ("api.anthropic.com", 443, "claude-3-haiku-20240307"),
-                                        "gemini" => ("generativelanguage.googleapis.com", 443, "gemini-1.5-flash"),
-                                        _ => ("api.openai.com", 443, "gpt-4o-mini"),
-                                    };
-                                    let prov_owned = alloc::string::String::from(prov);
-                                    finish_heliox_setup(win, &prov_owned, host, port, text.trim(), model);
-                                }
-                                _ => {}
-                            }
-                            state.needs_redraw = true;
-                            return;
-                        }
-                        0x08 => {
-                            if !win.input_buffer.is_empty() {
-                                win.input_buffer.pop();
-                                state.needs_redraw = true;
-                            }
-                        }
-                        _ => {
-                            if ascii.is_ascii_graphic() || ascii == b' ' {
-                                win.input_buffer.push(ascii as char);
-                                state.needs_redraw = true;
-                            }
-                        }
-                    }
-                    return;
-                }
-                
-                // Normal HUD Input
-                match ascii {
-                    b'\n' => {
-                        let text = win.input_buffer.clone();
-                        win.input_buffer.clear();
-                        
-                        let msg_str = alloc::format!("GOAL:{}", text);
-                        if let Ok(msg) = crate::ipc::Message::new(
-                            0,
-                            crate::ipc::Endpoint::new("heliox", "default"),
-                            crate::ipc::MessageKind::Event,
-                            "ipc:send:*",
-                            msg_str.as_bytes(),
-                        ) {
-                            let _ = crate::ipc::send(msg, &alloc::vec![alloc::string::String::from("cap:system:all")]);
-                        }
-                        
-                        state.needs_redraw = true;
-                    }
-                    0x08 => {
-                        if !win.input_buffer.is_empty() {
-                            win.input_buffer.pop();
-                            state.needs_redraw = true;
-                        }
-                    }
-                    _ => {
-                        if ascii.is_ascii_graphic() || ascii == b' ' {
-                            win.input_buffer.push(ascii as char);
                             state.needs_redraw = true;
                         }
                     }

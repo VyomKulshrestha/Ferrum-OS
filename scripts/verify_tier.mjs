@@ -120,7 +120,10 @@ async function runScenario(memory, expectedTier, expectedProvider) {
     await sleep(120);
   };
 
-  const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus" }));
+  const keyMap = new Map(Object.entries({
+    " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus",
+    "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma", ":": "shift-semicolon",
+  }));
   const sendKey = async (k) => { await mon(`sendkey ${k}`); };
   const sendText = async (t) => {
     for (const ch of t) {
@@ -132,6 +135,19 @@ async function runScenario(memory, expectedTier, expectedProvider) {
 
   // Wait for prompt and boot into ring3
   await waitForSerial("FerrumOS:~$", 35);
+
+  // heliox-daemon now stays idle (provider stuck at "auto", no tier
+  // resolution) until a config.json actually exists on disk - a fresh,
+  // totally unconfigured boot must NOT silently start autonomous inference
+  // (see REPORT.md's Phase D5 section). This test is about hardware-tier
+  // detection feeding provider selection, which only fires once the user
+  // has chosen "auto" (or the wizard completes) - so pre-write that choice
+  // via the shell before `ring3 init`, same pattern as
+  // verify_jsonrpc_methods.mjs's "configured" scenario.
+  await sendText('write /disk/heliox/config.json {"provider":"auto"}');
+  await sendKey("ret");
+  await sleep(300);
+
   await sendText("ring3 init");
   await sendKey("ret");
 

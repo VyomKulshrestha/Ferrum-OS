@@ -31,6 +31,13 @@ pub const GUI_SMOKE_TEST_ELF: &[u8] = include_bytes!("../../userland/gui-smoke-t
 pub const TEXT_EDITOR_ELF: &[u8] = include_bytes!("../../userland/text-editor/target/x86_64-unknown-none/release/text-editor");
 pub const CALCULATOR_ELF: &[u8] = include_bytes!("../../userland/calculator/target/x86_64-unknown-none/release/calculator");
 pub const FILE_MANAGER_ELF: &[u8] = include_bytes!("../../userland/file-manager/target/x86_64-unknown-none/release/file-manager");
+/// Replaces the kernel-hardcoded `WindowType::AgentHud`: setup wizard +
+/// chat UI as a real app, talking to heliox-daemon over IPC instead of the
+/// kernel appending telemetry text into a window it draws itself.
+pub const HELIOX_ASSISTANT_PANEL_ELF: &[u8] = include_bytes!("../../userland/heliox-assistant-panel/target/x86_64-unknown-none/release/heliox-assistant-panel");
+pub const SETTINGS_ELF: &[u8] = include_bytes!("../../userland/settings/target/x86_64-unknown-none/release/settings");
+pub const BROWSER_ELF: &[u8] = include_bytes!("../../userland/browser/target/x86_64-unknown-none/release/browser");
+pub const APP_STORE_ELF: &[u8] = include_bytes!("../../userland/app-store/target/x86_64-unknown-none/release/app-store");
 
 extern crate alloc;
 
@@ -156,6 +163,35 @@ pub fn init() {
         // text-editor which file to open, so file-manager previews
         // content in its own window instead of launching another process.
         vec![String::from("cap:gui:window"), String::from("cap:fs:read")],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "heliox-assistant-panel",
+        "Chat with the Heliox agent and run its first-run setup wizard",
+        "/bin/heliox-assistant-panel",
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:fs:read"),
+            String::from("cap:fs:write"),
+            String::from("cap:ipc:send"),
+        ],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "settings",
+        "View hardware tier and the Heliox agent's active configuration",
+        "/bin/settings",
+        vec![String::from("cap:gui:window"), String::from("cap:fs:read")],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "browser",
+        "Minimal HTTP text browser",
+        "/bin/browser",
+        vec![String::from("cap:gui:window"), String::from("cap:net:connect")],
+    ));
+    state.programs.push(ProgramManifest::new(
+        "app-store",
+        "Browse and launch every app built into this image",
+        "/bin/app-store",
+        vec![String::from("cap:gui:window")],
     ));
 }
 

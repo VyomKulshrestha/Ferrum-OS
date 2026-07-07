@@ -1,0 +1,23 @@
+[package]
+name = "ferrumos-app-store"
+version = "0.0.1"
+edition = "2021"
+authors = ["FerrumOS Contributors"]
+description = "Lists installed apps and launches them - FerrumOS has no network package repository yet, so this is an honest v1: browse and launch, not download"
+license = "MIT"
+
+[dependencies]
+linked_list_allocator = "0.10.5"
+ferrumgui = { path = "../libferrumgui" }
+
+[[bin]]
+name = "app-store"
+path = "src/main.rs"
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 2

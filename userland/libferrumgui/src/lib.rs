@@ -23,6 +23,8 @@ use core::arch::asm;
 
 // Syscall numbers - must match src/syscall/mod.rs::SyscallNumber.
 pub const SYS_YIELD: u64 = 0;
+pub const SYS_IPC_SEND: u64 = 1;
+pub const SYS_IPC_RECEIVE: u64 = 2;
 pub const SYS_READ_FILE: u64 = 15;
 pub const SYS_WRITE_FILE: u64 = 16;
 pub const SYS_READ_DIR: u64 = 17;
@@ -168,6 +170,36 @@ pub fn read_dir(path: &str, max_len: usize) -> Vec<DirEntry> {
 pub fn exec(path: &str) -> Option<u64> {
     let res = unsafe { syscall3(SYS_EXEC, path.as_ptr() as u64, path.len() as u64, 0) };
     if (res as i64) >= 0 { Some(res) } else { None }
+}
+
+// ============================================================================
+// IPC
+// ============================================================================
+
+/// Send a message to a named service (e.g. "heliox"). Requires the caller's
+/// manifest to hold `cap:ipc:send`. Returns `false` on failure (missing
+/// capability, payload over `ipc::MAX_PAYLOAD_BYTES`, or a full queue).
+pub fn ipc_send(service: &str, payload: &[u8]) -> bool {
+    let res = unsafe {
+        syscall4(SYS_IPC_SEND, service.as_ptr() as u64, service.len() as u64, payload.as_ptr() as u64, payload.len() as u64)
+    };
+    (res as i64) >= 0
+}
+
+/// Poll for the next queued message addressed to `service` (this app's own
+/// name, e.g. "assistant"), non-blocking. Returns `None` if there isn't one
+/// waiting - callers should poll this once per frame, the same way
+/// `poll_window_input` is polled, rather than blocking on it.
+pub fn ipc_receive(service: &str, max_len: usize) -> Option<Vec<u8>> {
+    let mut buf = alloc::vec![0u8; max_len];
+    let got = unsafe {
+        syscall4(SYS_IPC_RECEIVE, buf.as_mut_ptr() as u64, buf.len() as u64, service.as_ptr() as u64, service.len() as u64)
+    };
+    if (got as i64) <= 0 {
+        return None;
+    }
+    buf.truncate(got as usize);
+    Some(buf)
 }
 
 // ============================================================================

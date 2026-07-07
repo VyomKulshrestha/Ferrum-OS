@@ -36,7 +36,25 @@ pub static HUD_STATE: Mutex<HudState> = Mutex::new(HudState {
 
 pub static HUD_ENABLED: AtomicBool = AtomicBool::new(true);
 
+/// Guards the one-time "launch heliox-assistant-panel if unconfigured"
+/// check (see `compositor::launch_assistant_panel_if_unconfigured`) so it
+/// runs exactly once regardless of how many times `sys_hud_update` fires -
+/// heliox-daemon's ambient loop calls this every ~30-50ms.
+static ASSISTANT_PANEL_LAUNCH_CHECKED: AtomicBool = AtomicBool::new(false);
+
 pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
+    // Deliberately not done at raw kernel boot (main.rs, before the
+    // interactive shell prompt exists): a process spawned that early has
+    // to share the CPU with whatever userspace is doing immediately after
+    // `ring3 init` - concretely, this used to race `init`'s own test-mode
+    // setup logic in scripts/verify_inference.mjs, starving it of scheduling
+    // time before it ever got to run at all. Deferred until the daemon's
+    // ambient loop is already up and pumping, well past that fragile
+    // early-boot window.
+    if !ASSISTANT_PANEL_LAUNCH_CHECKED.swap(true, core::sync::atomic::Ordering::SeqCst) {
+        crate::gui::compositor::launch_assistant_panel_if_unconfigured();
+    }
+
     let ptr = args[0];
     let len = args[1];
     let size = core::mem::size_of::<HudState>();

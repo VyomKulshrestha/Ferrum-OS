@@ -47,6 +47,14 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         crate::userspace::CALCULATOR_ELF
     } else if path == "/bin/file-manager" || path == "file-manager" {
         crate::userspace::FILE_MANAGER_ELF
+    } else if path == "/bin/heliox-assistant-panel" || path == "heliox-assistant-panel" {
+        crate::userspace::HELIOX_ASSISTANT_PANEL_ELF
+    } else if path == "/bin/settings" || path == "settings" {
+        crate::userspace::SETTINGS_ELF
+    } else if path == "/bin/browser" || path == "browser" {
+        crate::userspace::BROWSER_ELF
+    } else if path == "/bin/app-store" || path == "app-store" {
+        crate::userspace::APP_STORE_ELF
     } else {
         _elf_content_holder = match crate::fs::read_file(&path) {
             Ok(content) => content,

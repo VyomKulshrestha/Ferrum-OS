@@ -128,6 +128,10 @@ fn main() {
     build_userland_crate(&cargo, &manifest_dir, "text-editor", &userland_rustflags);
     build_userland_crate(&cargo, &manifest_dir, "calculator", &userland_rustflags);
     build_userland_crate(&cargo, &manifest_dir, "file-manager", &userland_rustflags);
+    build_userland_crate(&cargo, &manifest_dir, "heliox-assistant-panel", &userland_rustflags);
+    build_userland_crate(&cargo, &manifest_dir, "settings", &userland_rustflags);
+    build_userland_crate(&cargo, &manifest_dir, "browser", &userland_rustflags);
+    build_userland_crate(&cargo, &manifest_dir, "app-store", &userland_rustflags);
 
     // The userland crates link themselves directly at the dedicated user P4
     // slot (P4[1], base 0x80_0000_0000) via `--image-base` in their

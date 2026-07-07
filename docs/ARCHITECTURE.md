@@ -30,7 +30,7 @@
 │ 37 tool ↔ syscall mapper, 5-tier permissions             │
 ├──────────────────────────────────────────────────────────┤
 │ GUI & Compositor Layer                                   │
-│ Window manager, JARVIS Agent HUD, taskbar, telemetry IPC │
+│ Window manager, generic app-window framework, taskbar    │
 ├──────────────────────────────────────────────────────────┤
 │ Kernel Layer                                             │
 │ Boot, GDT/IDT, page tables, heap, preemptive scheduler,  │
@@ -105,10 +105,10 @@ The OS features a fully integrated windowing system and compositor:
 - Interactive title bars (drag-to-move) with close, minimize, and maximize buttons, all computed from shared rect helpers on `Window` (`close_btn_rect`/`maximize_btn_rect`/`minimize_btn_rect` in `src/gui/window.rs`) so rendering and hit-testing can't drift apart
 - Minimized windows are skipped by rendering and hit-testing but keep a taskbar entry; maximize snaps a window to the desktop content area and remembers its prior geometry to restore
 - Desktop taskbar with a Start-menu launcher, a dynamic per-window button (one slot per open window, up to `MAX_TASKBAR_SLOTS`), and a working Exit button — all positions computed once by `desktop::compute_taskbar_layout()` and shared between rendering and every click/hover hit-test
-- Interactive Agent HUD with multi-step setup wizard and Live Telemetry mode
+- App Store: a discovery surface listing every installed app with a description, launching any of them via the same mechanism as the Start-menu launcher
 
 ### Generic App-Window Framework
-Beyond the four kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal`, `AgentHud`), `WindowType::App(pid)` lets **any** userland process own a real window:
+Beyond the three kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal`), `WindowType::App(pid)` lets **any** userland process own a real window — including the Heliox Assistant, which used to be a fourth kernel-hardcoded type (`AgentHud`) before it was rebuilt as an ordinary app on this framework:
 - `CreateWindow(title, canvas_w, canvas_h)` allocates a window whose total size is the requested canvas plus shared chrome (`CHROME_SIDE`/`CHROME_TOP`/`CHROME_BOTTOM` in `src/gui/window.rs`) — apps never need to know about title-bar/border geometry.
 - `PresentWindow(window_id, rgba8_buf)` copies a caller-owned RGBA8 buffer into the window's canvas (`src/gui/app_window.rs`); `render()` blits it verbatim for `App` windows, the same title bar/border/close-button chrome as every other window type.
 - `PollWindowInput(window_id)` drains a per-window input queue (keyboard + mouse-down, capped at 64 events) fed by `compositor::handle_key_press`/`handle_mouse_down` whenever an `App` window is focused.
@@ -118,7 +118,7 @@ Beyond the four kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal`
 ### App Launcher & Installed Apps
 The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAUNCHER_ENTRIES`) can spawn real new processes, not just the kernel-drawn built-ins:
 - `crate::process::spawn_elf(name, elf_bytes, granted_caps)` (`src/process/mod.rs`) loads an ELF and registers it as a Ready scheduler task directly from kernel context — the same load/register logic `sys_exec` uses for a ring-3 caller, but with capabilities taken straight from the program's `crate::userspace` manifest instead of delegated from a caller. It only registers the task and returns; it never itself enters ring 3, so it's safe to call from the compositor's own render loop.
-- Installed apps (`userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (syscall wrappers, an `InputEvent` type, an RGBA8 `Canvas` with `fill_rect`/`draw_string`/`present`, using a userland copy of the kernel's bitmap font) — registered in the same `crate::userspace` program-manifest registry as `init`/`heliox-daemon`.
+- Installed apps (`userland/heliox-assistant-panel/`, `userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`, `userland/settings/`, `userland/browser/`, `userland/app-store/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (syscall wrappers including `ipc_send`/`ipc_receive`, an `InputEvent` type, an RGBA8 `Canvas` with `fill_rect`/`draw_string`/`present`, using a userland copy of the kernel's bitmap font) — registered in the same `crate::userspace` program-manifest registry as `init`/`heliox-daemon`. The Heliox Assistant panel additionally uses `ipc_send`/`ipc_receive` to exchange chat state with `heliox-daemon`; Browser uses the raw socket syscalls (`Socket`/`Connect`/`Send`/`Recv`) directly; App Store calls `spawn_elf` to launch other installed apps by path.
 - Each app owns a fixed-size heap (`#[global_allocator]` over a static array) sized comfortably above its own canvas buffer (`canvas_w * canvas_h * 4` bytes) — undersizing this causes a silent allocation failure and process exit on the very first frame, with no panic message, since apps don't need argv (there's no mechanism for it) and instead operate on fixed paths (Text Editor) or read-only browsing (File Manager).
 
 ### Event Routing
@@ -248,11 +248,23 @@ Longest-prefix mount matching. Currently two mounts:
 
 The agent daemon continuously buffers 1-second chunks of audio from the Intel HDA hardware. When voice activity is detected, it transcribes the audio and generates a new `GOAL:`, bridging the physical world with the ReAct loop. It also periodically screenshots the desktop to proactively solve GUI errors.
 
-The `network.rs` client is dynamically driven by the Agent HUD configuration, supporting two payload schemas:
+The `network.rs` client is dynamically driven by the daemon's runtime configuration, supporting two payload schemas:
 1. **Ollama Format:** Flat `{"model", "prompt"}` JSON.
 2. **OpenAI Chat Format:** `{"messages": [{"role", "content"}]}` with `Authorization: Bearer` headers (supporting OpenAI, Gemini, and Claude via host proxy wrappers).
 
 The on-device ("local") brain is a real, trained checkpoint — a quantized int8 llama2.c-format model, memory-mapped from `/disk/heliox/models/` and packaged onto the appliance disk image by `scripts/make-appliance.ps1` (see `appliance/models/README.md` for provenance). It is not a placeholder: the daemon dequantizes and runs the actual weights, producing genuine generated text rather than a synthetic fixture.
+
+Until a configuration file actually exists on disk, the daemon stays idle: no ticking, no autonomous inference, `provider` stays `"auto"` unresolved. A missing config file is never treated as an implicit choice of hardware-tier-appropriate provider — that resolution only happens once a config file is present (whether written by the setup wizard or by hand), so the daemon never starts real computation before the user has actually chosen anything.
+
+### JSON-RPC Interface
+
+The daemon exposes a JSON-RPC 2.0 surface over its WebSocket server (port 8785): `ping`, `execute_tool` (runs one of the 39 agent tools), `gesture_event`, `health` (configured state + active provider), `get_config` (live config fields, excluding the API key), `system_status` (tick count, current goal, hardware info), and `agent_stats` (telemetry ring-buffer summary). All are backed by real orchestrator/config state rather than stubs — `system_status`'s tick count strictly advances between calls, and `agent_stats` correctly reports an empty buffer while the daemon is idle/unconfigured.
+
+### Chat IPC with the Heliox Assistant App
+
+The daemon and the Heliox Assistant app-window (`userland/heliox-assistant-panel/`) exchange state over two IPC channels rather than one hardcoded telemetry string:
+- `CHAT:{role}:{state}:{content}` — sent by the daemon to the `"assistant"` IPC service on every think/act cycle, with `state` one of `thinking`, `error`, or `done`, and `content` the actual human-readable response text once done. The app parses this into a real chat history.
+- `GOAL:{text}` — sent by the app to the `"heliox"` service when the user submits a chat message, reusing the same mechanism the setup wizard uses for `CONFIG_UPDATED` reloads.
 
 ### Components
 
@@ -318,7 +330,7 @@ delegatable tokens.
 To prevent rogue or runaway agent scripts from degrading system performance or freezing the kernel:
 - **Memory Mapping Bounds**: Processes are restricted to a maximum memory mapping quota of 2048 pages (8 MiB) inside `map_user`. Exceeding this triggers a frame allocation error.
 - **Continuous CPU execution limit**: The scheduler monitors tasks and reaps any user task that executes consecutively for more than 100 ticks (~5.5s) without yielding (`sys_yield`) or sleeping (`sys_sleep`). Reaped processes exit with code 140.
-- **Syscall Rate Limiting**: Restricts processes to 100 system calls per 200-tick window. Violations result in immediate process termination (exit code 140) and logging.
+- **Syscall Rate Limiting**: Restricts processes to 5000 system calls per 200-tick window (~11s) — sized to comfortably accommodate a real interactive GUI app's normal poll/sleep loop, not just brief scripted interactions. Violations result in immediate process termination (exit code 140) and logging.
 
 ### Audit Log
 
@@ -342,15 +354,15 @@ Kernel-side confirmation gates are enforced for destructive Tier-4 operations (s
 Heliox is always the OS's native agent — it isn't a setup choice. Configuration only decides which brain powers it, and can be set in two ways:
 
 > [!NOTE]
-> **RAM Filesystem Fallback**: The directory `/disk/heliox/` is pre-created within the RAM filesystem (`RamFS`) during boot. If a physical Ext2 disk is not mounted at `/disk`, configuration writing (via the HUD wizard) and reading (via the daemon) will fall back to memory transparently, avoiding any errors.
+> **RAM Filesystem Fallback**: The directory `/disk/heliox/` is pre-created within the RAM filesystem (`RamFS`) during boot. If a physical Ext2 disk is not mounted at `/disk`, configuration writing (via the assistant app) and reading (via the daemon) will fall back to memory transparently, avoiding any errors.
 
-### 1. Interactive Desktop HUD Wizard
-If no configuration exists at boot, the **Agent HUD** window opens in setup mode on the desktop, walking through a branching choice rather than a flat list:
+### 1. Interactive Desktop Wizard (Heliox Assistant app)
+If no configuration exists at boot, the **Heliox Assistant** app-window auto-launches in setup mode on the desktop (triggered once, from `sys_hud_update`, the first time the daemon's ambient loop pumps after boot), walking through a branching choice rather than a flat list:
 - **Step 1 — Local or Cloud?** `local` (on-device, works offline) or `cloud` (OpenAI / Claude / Gemini).
 - **If local:** `tiny` (the built-in model, auto-sized to hardware tier) or `ollama` (prompts for a `host:port`, e.g. `10.0.2.2:11434`).
 - **If cloud:** pick a provider (`openai` / `claude` / `gemini`), then enter its API key.
 
-Once completed, the GUI compositor writes the `/disk/heliox/config.json` file dynamically and sends an IPC event `CONFIG_UPDATED` to wake/reload the agent daemon.
+Once completed, the app writes the `/disk/heliox/config.json` file and sends an IPC event `CONFIG_UPDATED` to wake/reload the agent daemon.
 
 ### 2. Manual Configuration File
 Alternatively, the agent reads runtime config directly from `/disk/heliox/config.json`:
@@ -419,10 +431,14 @@ userland/heliox-daemon/
 │       ├── voice.rs          # Audio tools
 │       └── json.rs           # no_std JSON parser
 
-userland/gui-smoke-test/  # App-window framework verification binary
-userland/libferrumgui/    # Shared no_std SDK: syscalls, Canvas drawing, input polling
-userland/text-editor/     # Installed app: edit/save a text file
-userland/calculator/      # Installed app: mouse-driven arithmetic
-userland/file-manager/    # Installed app: browse /disk, preview files
-userland/init/            # First userspace process (PID 2), supervises heliox-daemon
+userland/gui-smoke-test/          # App-window framework verification binary
+userland/libferrumgui/            # Shared no_std SDK: syscalls, IPC send/receive, Canvas drawing, input polling
+userland/heliox-assistant-panel/  # Installed app: agent chat panel + setup wizard
+userland/text-editor/             # Installed app: edit/save a text file
+userland/calculator/              # Installed app: mouse-driven arithmetic
+userland/file-manager/            # Installed app: browse /disk, preview files
+userland/settings/                # Installed app: view live daemon config + hardware info
+userland/browser/                 # Installed app: minimal HTTP client over raw sockets
+userland/app-store/               # Installed app: discovery/launch surface for installed apps
+userland/init/                    # First userspace process (PID 2), supervises heliox-daemon
 ```

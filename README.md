@@ -23,15 +23,17 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Custom Compositor and Window Manager
 - Interactive Desktop Taskbar with a Start-menu launcher, one entry per open window, and a working Exit button
 - Movable, focusable GUI windows with close, minimize, and maximize buttons and interactive titles
-- **Generic app-window framework**: any userland process can call `CreateWindow`/`PresentWindow`/`PollWindowInput` to own a real window backed by its own RGBA8 canvas and a per-window input queue — not limited to the kernel's hardcoded System Monitor/Terminal/Agent HUD window types
+- **Generic app-window framework**: any userland process can call `CreateWindow`/`PresentWindow`/`PollWindowInput` to own a real window backed by its own RGBA8 canvas and a per-window input queue — every window on the desktop, including the AI assistant panel, is a real userland app, not a kernel-hardcoded window type
 - The launcher spawns real new ELF processes on demand (`crate::process::spawn_elf`), not just a fixed set of kernel-drawn windows
+- App Store: a discovery surface listing every installed app with a description, so you don't need to already know an app exists to launch it
 - PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
 - CPU-efficient main loop with interrupt-driven `hlt` architecture and off-screen double-buffering
 - Hardware cursor rendering with dynamic drop-shadows
 
 ### Userland Apps
-- **Text Editor**, **Calculator**, **File Manager** — real installed apps built on the generic app-window framework, launchable from the desktop's Start menu alongside Terminal/System Monitor/Heliox Assistant
-- **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math
+- **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
+- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store
+- **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers including IPC send/receive, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math or the raw syscall ABI
 
 ### Filesystem
 - Volatile in-memory RAM filesystem with VFS mount table
@@ -65,13 +67,14 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Bare-metal ReAct orchestrator (observe → think → act → verify → reflect)
 - Multi-Provider Support: Natively connects to local Ollama or cloud models (OpenAI, Gemini, Claude) via host proxy
 - Ambient Background Logic: Actively records voice from mic and performs anomaly screen vision checks
-- Interactive Agent HUD: Desktop GUI widget for Live Telemetry streaming and direct goal input
+- Chat state (thinking / done / error, with the actual response text) streamed to the Heliox Assistant app over a structured IPC channel; user messages flow back the same way
+- Stays genuinely idle — no autonomous ticking or inference — until the user has completed setup; a missing config file is never treated as an implicit choice
+- JSON-RPC 2.0 surface over its WebSocket server: `ping`, `execute_tool`, `gesture_event`, `health`, `get_config`, `system_status`, `agent_stats`
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
 - 39 tools mapped to 39 kernel syscalls
 - Config-driven setup via `/disk/heliox/config.json`
-- Reasoning telemetry emitted over IPC to the GUI service
 
 ## Architecture
 
@@ -88,7 +91,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 | Services, permissions, IPC, config, 37 tool ↔ syscall map |
 +----------------------------------------------------------+
 | GUI & Compositor Layer                                   |
-| Window manager, JARVIS Agent HUD, taskbar, telemetry IPC  |
+| Window manager, generic app-window framework, taskbar    |
 +----------------------------------------------------------+
 | Kernel Layer                                             |
 | Boot, memory, interrupts, scheduling, ELF loader, Ring-3  |
@@ -246,6 +249,18 @@ Or use the build script:
 | 45 | PresentWindow | Submit an RGBA8 pixel buffer to an owned window |
 | 46 | PollWindowInput | Poll one pending input event scoped to an owned window |
 
+## JSON-RPC Methods (WebSocket, port 8785)
+
+| Method | Description |
+|---|---|
+| `ping` | Liveness check, returns `"pong"` |
+| `execute_tool` | Run one of the 39 agent tools by name with args |
+| `gesture_event` | Report a gesture/HUD input event |
+| `health` | Whether the daemon is configured yet, and which provider is active |
+| `get_config` | Current runtime configuration (excludes the API key) |
+| `system_status` | Live tick count, current goal, and hardware info |
+| `agent_stats` | Telemetry ring-buffer summary: event count and the last event |
+
 ## Agent Tools (39 total)
 
 | Tier | Tools |
@@ -263,12 +278,13 @@ Heliox is always the OS's native agent — it isn't something you choose to enab
 > [!NOTE]
 > **RAM Filesystem Fallback**: The kernel pre-creates `/disk/heliox/` as a directory within the RAM filesystem (`RamFS`) at boot. If a physical Ext2 formatted ATA disk is not mounted at `/disk`, all configuration writing and loading will transparently fall back to the RAM filesystem, allowing you to use the setup wizard or shell without any partition setup.
 
-### Option A: Interactive Setup (Agent HUD)
+### Option A: Interactive Setup (Heliox Assistant)
 1. Boot the OS and launch the graphical desktop:
    ```
    FerrumOS:~$ desktop
    ```
-2. Click inside the **Agent HUD** window to focus it (it will show a neon-cyan border).
+   If no configuration exists yet, the **Heliox Assistant** app window launches automatically.
+2. Click inside the **Heliox Assistant** window to focus it.
 3. Follow the setup wizard by typing your choice at each step and pressing **Enter**:
    * **Step 1 — Local or Cloud?** Type `local` (on-device, works offline) or `cloud` (OpenAI / Claude / Gemini).
    * If **local**: choose `tiny` (the built-in model, auto-sized to your hardware tier) or `ollama` (a local Ollama server — you'll then be asked for its `host:port`, e.g. `10.0.2.2:11434`).

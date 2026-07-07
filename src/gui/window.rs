@@ -12,12 +12,13 @@ pub enum WindowType {
     Normal,
     SystemMonitor,
     Terminal,
-    AgentHud,
     /// A window owned by an arbitrary userland process (identified by the
     /// `u64` pid), drawing into its own RGBA8 canvas via `PresentWindow`
     /// instead of the kernel hand-drawing its content. This is the generic
-    /// app-window primitive: everything else (`Terminal`, `SystemMonitor`,
-    /// `AgentHud`) is still kernel-drawn and predates this variant.
+    /// app-window primitive: `Terminal`/`SystemMonitor` are still
+    /// kernel-drawn and predate this variant. The former third kernel-drawn
+    /// type, `AgentHud`, has been retired in favor of a real app
+    /// (`heliox-assistant-panel`) built on this primitive.
     App(u64),
 }
 
@@ -45,9 +46,6 @@ pub struct Window {
     pub height: u32,
     pub bg_color: u32,
     pub content: Vec<u8>, // simple text content for MVP
-
-    // For AgentHud input buffer
-    pub input_buffer: String,
 
     /// RGB canvas for `WindowType::App` windows, row-major, `canvas_w *
     /// canvas_h` entries of `0x00RRGGBB`. Unused (empty) for every other
@@ -78,7 +76,6 @@ impl Window {
             height,
             bg_color,
             content: Vec::new(),
-            input_buffer: String::new(),
             pixels: Vec::new(),
             canvas_w: 0,
             canvas_h: 0,
@@ -292,75 +289,6 @@ impl Window {
                     let (x2, y2) = get_coord(i + 1);
                     graphics::draw_line(x1, y1, x2, y2, line_color);
                 }
-            }
-        } else if self.win_type == WindowType::AgentHud {
-            // Agent HUD: Draw translucent background over the content area
-            // (We assume bg_color has an alpha/blend capability or is solid for now)
-            
-            // Check if we are in NeedsConfig state
-            let content_str = core::str::from_utf8(&self.content).unwrap_or("");
-            if content_str.starts_with("NEEDS_CONFIG_") {
-                let step = content_str.chars().nth(13).unwrap_or('0');
-                
-                graphics::draw_string(self.x + 8, self.y + 40, "Heliox is your OS agent - always on.", 0x00FFFFFF, self.bg_color);
-                graphics::draw_string(self.x + 8, self.y + 54, "Choose the brain that powers it:", 0x00FFFFFF, self.bg_color);
-
-                match step {
-                    '0' => {
-                        graphics::draw_string(self.x + 8, self.y + 74, "Step 1: Local or Cloud?", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 90, "local  - on-device, works offline", 0x00AAAAAA, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 104, "cloud  - OpenAI / Claude / Gemini", 0x00AAAAAA, self.bg_color);
-                    }
-                    'L' => {
-                        graphics::draw_string(self.x + 8, self.y + 74, "Step 2: Which local brain?", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 90, "tiny    - built-in model, auto-sized", 0x00AAAAAA, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 104, "ollama  - a local Ollama server", 0x00AAAAAA, self.bg_color);
-                    }
-                    'H' => {
-                        graphics::draw_string(self.x + 8, self.y + 74, "Step 3: Ollama host:port", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 90, "(e.g. 10.0.2.2:11434)", 0x00AAAAAA, self.bg_color);
-                    }
-                    'C' => {
-                        graphics::draw_string(self.x + 8, self.y + 74, "Step 2: Which cloud provider?", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 90, "openai / claude / gemini", 0x00AAAAAA, self.bg_color);
-                    }
-                    'K' => {
-                        graphics::draw_string(self.x + 8, self.y + 74, "Step 3: API Key", 0x0000FFCC, self.bg_color);
-                        graphics::draw_string(self.x + 8, self.y + 90, "(from your provider's dashboard)", 0x00AAAAAA, self.bg_color);
-                    }
-                    _ => {}
-                }
-                
-                // Draw Input Buffer Field for Setup
-                let input_y = self.y + 128;
-                graphics::fill_rect(self.x + 8, input_y, self.width - 16, 20, 0x001A1A1A);
-                graphics::draw_string(self.x + 12, input_y + 4, ">", 0x00FFFFFF, 0x001A1A1A);
-                graphics::draw_string(self.x + 28, input_y + 4, &self.input_buffer, 0x00FFFFFF, 0x001A1A1A);
-            } else {
-                // Draw Live Telemetry (Scrollable)
-                let start_line = if lines.len() > max_visible_lines - 2 {
-                    lines.len() - (max_visible_lines - 2)
-                } else {
-                    0
-                };
-
-                let mut cy = self.y + 20 + 8;
-                for line in &lines[start_line..] {
-                    let mut cx = self.x + 8;
-                    for ch in line.chars() {
-                        if cx + font::FONT_WIDTH as u32 <= self.x + self.width - 8 {
-                            graphics::draw_char(cx, cy, ch as u8, 0x0000FFCC, self.bg_color); // Neon Cyan for JARVIS feel
-                            cx += font::FONT_WIDTH as u32;
-                        }
-                    }
-                    cy += line_height;
-                }
-                
-                // Draw Input Buffer Field
-                let input_y = self.y + self.height - 20;
-                graphics::fill_rect(self.x, input_y, self.width, 20, 0x001A1A1A);
-                graphics::draw_string(self.x + 4, input_y + 4, ">", 0x00FFFFFF, 0x001A1A1A);
-                graphics::draw_string(self.x + 20, input_y + 4, &self.input_buffer, 0x00FFFFFF, 0x001A1A1A);
             }
         } else if let WindowType::App(_) = self.win_type {
             // App windows own their content: blit the process's last

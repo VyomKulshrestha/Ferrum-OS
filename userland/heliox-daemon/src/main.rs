@@ -758,6 +758,74 @@ pub extern "C" fn _start() -> ! {
                                                     }
                                                 }
                                             }
+                                        } else if method == "health" {
+                                            // Distinct from `ping`: reports whether the agent has
+                                            // completed setup and which provider is actually active,
+                                            // not just "the socket is alive".
+                                            let configured = orchestrator.config.api_host != "unconfigured" || orchestrator.config.provider.starts_with("local");
+                                            let res_json = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{{\"status\":\"ok\",\"configured\":{},\"provider\":{}}},\"id\":{}}}",
+                                                configured,
+                                                escape_json_string(&orchestrator.config.provider),
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                        } else if method == "get_config" {
+                                            // api_key is deliberately omitted - this method is meant
+                                            // for a trusted local UI to display current settings, not
+                                            // to round-trip secrets back over the wire.
+                                            let res_json = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{{\"provider\":{},\"model_name\":{},\"api_host\":{},\"api_port\":{},\"tick_interval\":{},\"auto_approve_tier\":{}}},\"id\":{}}}",
+                                                escape_json_string(&orchestrator.config.provider),
+                                                escape_json_string(&orchestrator.config.model_name),
+                                                escape_json_string(&orchestrator.config.api_host),
+                                                orchestrator.config.api_port,
+                                                orchestrator.config.tick_interval,
+                                                orchestrator.config.auto_approve_tier,
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                        } else if method == "system_status" {
+                                            let mut buf = [0u8; 512];
+                                            let bytes_written = unsafe {
+                                                syscall4(29, 0, buf.as_mut_ptr() as u64, buf.len() as u64, 0)
+                                            };
+                                            let sys_info = if bytes_written > 0 {
+                                                core::str::from_utf8(&buf[..bytes_written as usize]).unwrap_or("{}")
+                                            } else {
+                                                "{}"
+                                            };
+                                            let res_json = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{{\"tick_count\":{},\"goal\":{},\"system\":{}}},\"id\":{}}}",
+                                                orchestrator.tick_count(),
+                                                escape_json_string(&orchestrator.current_goal()),
+                                                sys_info,
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                        } else if method == "agent_stats" {
+                                            // Backed by the same ring buffer `emit_telemetry` has
+                                            // always recorded internally - previously write-only
+                                            // (forwarded to a "gui" IPC listener that no longer
+                                            // exists now that AgentHud is a real app instead of a
+                                            // kernel-hardcoded window), now actually readable.
+                                            let (count, last) = orchestrator.telemetry_summary();
+                                            let last_json = match last {
+                                                Some((tick, kind, message)) => alloc::format!(
+                                                    "{{\"tick\":{},\"kind\":{},\"message\":{}}}",
+                                                    tick,
+                                                    escape_json_string(kind),
+                                                    escape_json_string(&message)
+                                                ),
+                                                None => String::from("null"),
+                                            };
+                                            let res_json = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{{\"telemetry_event_count\":{},\"last_event\":{}}},\"id\":{}}}",
+                                                count,
+                                                last_json,
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &res_json);
                                         }
                                     }
                                     Err(_) => {
