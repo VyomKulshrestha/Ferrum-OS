@@ -29,6 +29,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
 - CPU-efficient main loop with interrupt-driven `hlt` architecture and off-screen double-buffering
 - Hardware cursor rendering with dynamic drop-shadows
+- Optional VirtIO-GPU 2D acceleration (`-device virtio-gpu-pci`) — when present, every composited frame is also delivered through the GPU's own resource/transfer/flush command set instead of only a raw framebuffer copy; purely additive, the existing Bochs VBE path remains the fallback when the device isn't attached
 
 ### Userland Apps
 - **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
@@ -67,6 +68,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Hardware Drivers
 - VGA framebuffer (Bochs VBE) with 1024×768 graphical console
+- VirtIO-GPU 2D driver (PCI modern-capability discovery, virtqueues, `RESOURCE_CREATE_2D`/`ATTACH_BACKING`/`SET_SCANOUT`/`TRANSFER_TO_HOST_2D`/`RESOURCE_FLUSH`), optional and additive
 - Intel HDA audio controller with play/record/volume DMA
 - XHCI USB 3.0 host controller with device enumeration
 - USB HID keyboard and mouse (boot protocol)

@@ -11,6 +11,7 @@ pub mod hda;
 pub mod pci;
 pub mod usb_hid;
 pub mod vga_fb;
+pub mod virtio_gpu;
 pub mod xhci;
 pub mod ps2_mouse;
 pub mod camera_synth;

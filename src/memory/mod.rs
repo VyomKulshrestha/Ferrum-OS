@@ -82,6 +82,18 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
     VirtAddr::new(offset.as_u64() + addr.as_u64())
 }
 
+/// Inverse of `phys_to_virt`: recovers the physical address backing a
+/// pointer already known to lie in the kernel's linear physical-memory
+/// mapping (e.g. a DMA buffer obtained via `allocate_contiguous_frames`
+/// + `phys_to_virt`), without needing to have stashed the physical
+/// address separately at allocation time.
+pub fn virt_to_phys_offset(virt: u64) -> u64 {
+    let offset = PHYS_MEM_OFFSET
+        .lock()
+        .expect("physical_memory_offset not initialised");
+    virt - offset.as_u64()
+}
+
 /// Return the physical address of the active P4 table (read from CR3).
 pub fn active_p4_phys() -> PhysAddr {
     use x86_64::registers::control::Cr3;

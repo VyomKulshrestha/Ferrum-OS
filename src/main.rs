@@ -174,6 +174,26 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         println!("[ INFO ] Bochs VBE not detected, staying in text mode");
     }
 
+    // Optional hardware-accelerated 2D present path (QEMU: -device
+    // virtio-gpu-pci). Purely additive: the raw Bochs-VBE framebuffer
+    // path above is untouched and remains the fallback whenever this
+    // device isn't present - every existing boot configuration (every
+    // verify_*.mjs script that doesn't add this device) is unaffected.
+    match ferrumos::devices::virtio_gpu::init() {
+        Ok(()) => {
+            ferrumos::devices::register_device(
+                "gpu.virtio",
+                ferrumos::devices::DeviceClass::Display,
+                ferrumos::devices::DeviceState::Online,
+                "virtio-gpu-2d",
+                "display:fb",
+            );
+        }
+        Err(e) => {
+            println!("[ INFO ] VirtIO-GPU not found: {}", e);
+        }
+    }
+
     // Initialize Intel HDA audio controller (QEMU: -device intel-hda -device hda-duplex)
     ferrumos::audio::init();
     

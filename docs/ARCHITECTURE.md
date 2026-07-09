@@ -245,6 +245,53 @@ Longest-prefix mount matching. Currently two mounts:
 - Console with scrolling text renderer
 - Screen vision: capture framebuffer text for agent read_screen tool
 
+### VirtIO-GPU 2D Driver (`src/devices/virtio_gpu.rs`) — optional, additive
+
+Real hardware-mediated 2D acceleration, honestly scoped: Bochs VBE (the
+driver above, and the only display path every other boot configuration
+uses) is a bare linear framebuffer with no blit/fill engine at all, so a
+genuine "GPU acceleration" claim needs a device that actually has
+resource/transfer semantics - VirtIO-GPU in 2D mode (no virgl/3D) is that
+device.
+
+- **PCI modern-capability discovery** — walks the standard PCI
+  capability list (not the XHCI-style extended-capability list used
+  elsewhere) looking for the vendor-specific `virtio_pci_cap` structures
+  (`find_virtio_cap`) to locate the COMMON_CFG and NOTIFY_CFG BAR
+  regions, rather than assuming a fixed BAR/offset layout.
+- **Virtqueue** — a deliberately minimal split-ring implementation: one
+  descriptor table, one available ring, one used ring (each its own
+  page, wasteful but simple), and only ever one command in flight at a
+  time (`send_sync`) — always descriptor slots 0/1, polling the used
+  ring for completion rather than handling interrupts, matching this
+  codebase's existing ATA PIO polling precedent.
+- **2D command set** — `RESOURCE_CREATE_2D` + `RESOURCE_ATTACH_BACKING`
+  + `SET_SCANOUT` once at first present; `TRANSFER_TO_HOST_2D` +
+  `RESOURCE_FLUSH` every frame after. The backing store is a contiguous
+  DMA buffer (`allocate_contiguous_frames`) the CPU still composites
+  into — the acceleration is in how the finished frame reaches the
+  display (a GPU-mediated resource/transfer/flush instead of a raw
+  synchronous MMIO copy loop), not in offloading the composition itself.
+- **Purely additive integration** — `src/devices/vga_fb.rs`'s
+  `swap_buffers()` (the single existing present chokepoint) still always
+  does its original raw MMIO copy unconditionally, and *additionally*
+  calls `virtio_gpu::present()` when `is_available()`. Every existing
+  boot configuration (every `verify_*.mjs` script that doesn't add
+  `-device virtio-gpu-pci`) never even calls into this module —
+  confirmed by rerunning the full GUI regression suite unchanged after
+  this driver landed.
+- **Not yet implemented**: per-frame dirty-rect transfer (today's
+  `present()` always transfers the whole frame) and `GET_DISPLAY_INFO`-driven
+  scanout sizing (the resolution is matched to `vga_fb`'s fixed
+  1024×768 instead of queried from the device) — both real, natural
+  follow-ups, not silently assumed done.
+
+### Verification — `scripts/verify_virtio_gpu.mjs` — 5/5 PASS
+The only script that adds `-device virtio-gpu-pci`: confirms the device
+initializes, confirms the desktop's normal compositor loop runs several
+real frames through it (driven by actual mouse-move events forcing
+redraws) with no `present()` failure logged and no fault/panic.
+
 ## Networking Stack
 
 ### TCP/IP (smoltcp)
@@ -481,7 +528,7 @@ src/
 ├── fs/                   # VFS, RamFS, Ext2
 ├── ata/                  # ATA PIO block driver
 ├── net/                  # RTL8139 NIC, smoltcp interface
-├── devices/              # PCI, HDA audio, XHCI USB, VGA FB
+├── devices/              # PCI, HDA audio, XHCI USB, VGA FB, VirtIO-GPU (optional)
 ├── input/                # Unified input queue, USB HID, PS/2
 ├── audio/                # Audio mixer, PCM interface
 ├── graphics/             # Drawing primitives, console

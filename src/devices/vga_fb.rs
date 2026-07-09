@@ -219,6 +219,21 @@ impl Framebuffer {
             unsafe {
                 core::ptr::copy_nonoverlapping(back, self.base, size);
             }
+            // Purely additive: when a virtio-gpu-pci device is present,
+            // also push this frame through its hardware-mediated 2D
+            // present path (src/devices/virtio_gpu.rs). The raw MMIO
+            // copy above always still runs unconditionally, so every
+            // existing boot configuration (anything without the device)
+            // is entirely unaffected - this can only ever be extra work,
+            // never a behavior change, when the device isn't found.
+            if super::virtio_gpu::is_available() {
+                let pixels = unsafe {
+                    core::slice::from_raw_parts(back as *const u32, size)
+                };
+                if let Err(e) = super::virtio_gpu::present(pixels, self.width, self.height) {
+                    crate::serial_println!("[virtio-gpu] present failed: {}", e);
+                }
+            }
         }
     }
 
