@@ -97,6 +97,15 @@ pub mod syscall;
 /// Tracks program manifests and process capabilities before ring-3 execution
 pub mod userspace;
 
+/// Package manager (ferrumpkg) - install/remove/list for packages staged
+/// on the appliance disk, gating what `sys_exec` will run (src/syscall/process.rs)
+pub mod pkg;
+
+/// Multi-user account registry - real usernames/uids/home directories/
+/// capability profiles, persisted to disk (src/shell/commands.rs's
+/// `login`/`useradd`/`whoami` are the user-facing surface)
+pub mod accounts;
+
 /// ELF64 binary parser
 /// Minimal header and program-header parser used by the future userspace
 /// loader (Phase 1.4). Pure, allocation-light, no_std-compatible.

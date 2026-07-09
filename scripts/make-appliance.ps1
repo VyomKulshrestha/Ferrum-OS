@@ -53,4 +53,38 @@ wsl debugfs -w -R "mkdir /heliox/models" target/heliox-disk.img
 wsl debugfs -w -R "write $modelSrc /heliox/models/stories15M-q8.bin" target/heliox-disk.img
 wsl debugfs -w -R "write $tokenizerSrc /heliox/tokenizer.bin" target/heliox-disk.img
 
+# 5. Stage ferrumpkg's local package cache. Packages are never written by
+# the kernel's own ext2 create_file at runtime - it only supports direct
+# blocks (12 max), far too small for a compiled ELF - so every package
+# binary is injected here, at build time, via debugfs (an independent,
+# unconstrained ext2 implementation) exactly like the model checkpoint
+# above. `pkg install` only ever toggles a small runtime registry file;
+# see src/pkg/mod.rs for the full rationale.
+Write-Host "Staging ferrumpkg packages onto the disk image..." -ForegroundColor Cyan
+$notesElf = "userland/notes/target/x86_64-unknown-none/release/notes"
+if (-not (Test-Path $notesElf)) {
+    Write-Host "Missing $notesElf - did the userland build succeed?" -ForegroundColor Red
+    exit 1
+}
+
+# Written under target/ (repo-relative), not the system temp directory -
+# `wsl debugfs` resolves relative paths against the repo the same way
+# $modelSrc/$notesElf already do above, but can't see a Windows temp path
+# like C:\Users\...\AppData\Local\Temp\... since that's outside the WSL
+# mount it operates from.
+$notesManifest = "target/notes-manifest.txt"
+@"
+name=notes
+version=1.0.0
+description=A simple persistent scratchpad, installed on demand
+capabilities=cap:gui:window,cap:fs:read,cap:fs:write
+"@ | Set-Content -Path $notesManifest -NoNewline -Encoding ascii
+
+wsl debugfs -w -R "mkdir /pkgs-available" target/heliox-disk.img
+wsl debugfs -w -R "mkdir /pkgs-available/notes" target/heliox-disk.img
+wsl debugfs -w -R "mkdir /pkgs" target/heliox-disk.img
+wsl debugfs -w -R "write $notesManifest /pkgs-available/notes/manifest.txt" target/heliox-disk.img
+wsl debugfs -w -R "write $notesElf /pkgs-available/notes/bin" target/heliox-disk.img
+Remove-Item $notesManifest -Force
+
 Write-Host "Disk image target/heliox-disk.img successfully created and packaged!" -ForegroundColor Green

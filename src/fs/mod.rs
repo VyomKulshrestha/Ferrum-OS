@@ -234,6 +234,37 @@ pub fn read_file(path: &str) -> Result<String, String> {
     fs.read_file(&rel)
 }
 
+/// Read a file's raw bytes without requiring valid UTF-8.
+///
+/// `read_file` rejects any file whose content isn't valid UTF-8 (ext2's
+/// `Filesystem::read_file` does a strict `String::from_utf8` over the
+/// inode data) - fine for config/text files, but a real ELF binary is
+/// essentially never valid UTF-8. Before this existed, `sys_exec`'s
+/// fallback path for loading an arbitrary program from the VFS (anything
+/// not in the kernel's embedded-binary match arms) went through
+/// `read_file` and would have failed on every real compiled binary - a
+/// latent bug that was never exercised because every app shipped so far
+/// loads from an embedded `include_bytes!` constant instead. This reuses
+/// `read_file_offset`, which ext2 already implements directly against
+/// raw inode bytes (proven binary-safe by the real quantized model
+/// checkpoint `mmap`/demand-paging path), pulling the whole file through
+/// repeated offset reads instead of a single UTF-8-checked slurp.
+pub fn read_file_bytes(path: &str) -> Result<Vec<u8>, String> {
+    let (fs, rel) = vfs::resolve(path)?;
+    let info = fs.stat(&rel)?;
+    let mut buf = alloc::vec![0u8; info.size];
+    let mut total = 0usize;
+    while total < buf.len() {
+        let n = fs.read_file_offset(&rel, total as u64, &mut buf[total..])?;
+        if n == 0 {
+            break;
+        }
+        total += n;
+    }
+    buf.truncate(total);
+    Ok(buf)
+}
+
 pub fn read_file_offset(path: &str, offset: u64, buf: &mut [u8]) -> Result<usize, String> {
     if path == "/disk/mmap_verify" || path == "mmap_verify" || path == "/mmap_verify" {
         let size = 64 * 1024 * 1024;

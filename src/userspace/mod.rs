@@ -208,6 +208,21 @@ pub fn capabilities_for_program(name: &str) -> Vec<String> {
         .unwrap_or_else(Vec::new)
 }
 
+/// Registers (or updates) a manifest entry at runtime, so a package
+/// installed by ferrumpkg (src/pkg/mod.rs) can go through the same
+/// `enter_registered` first-ring3-entry path every compiled-in program
+/// already uses - `enter_registered` re-derives capabilities from this
+/// same table via `capabilities_for_program`, which would otherwise
+/// silently return empty for any name it wasn't compiled with.
+pub fn register_dynamic_program(name: &str, description: &str, entry: &str, capabilities: Vec<String>) {
+    let mut state = USERSPACE.lock();
+    if let Some(existing) = state.programs.iter_mut().find(|p| p.name == name) {
+        existing.requested_capabilities = capabilities;
+    } else {
+        state.programs.push(ProgramManifest::new(name, description, entry, capabilities));
+    }
+}
+
 
 pub fn list_processes() -> Vec<UserProcess> {
     USERSPACE.lock().processes.clone()

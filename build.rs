@@ -132,6 +132,13 @@ fn main() {
     build_userland_crate(&cargo, &manifest_dir, "settings", &userland_rustflags);
     build_userland_crate(&cargo, &manifest_dir, "browser", &userland_rustflags);
     build_userland_crate(&cargo, &manifest_dir, "app-store", &userland_rustflags);
+    // Deliberately NOT embedded into the kernel binary via include_bytes!
+    // (unlike every app above) - notes is the demo package for ferrumpkg,
+    // staged onto the appliance disk image by scripts/make-appliance.ps1
+    // and loaded at runtime via sys_exec's VFS-read fallback path
+    // (src/syscall/process.rs), proving the kernel can run code it never
+    // shipped with, not just bookkeeping around pre-embedded binaries.
+    build_userland_crate(&cargo, &manifest_dir, "notes", &userland_rustflags);
 
     // The userland crates link themselves directly at the dedicated user P4
     // slot (P4[1], base 0x80_0000_0000) via `--image-base` in their

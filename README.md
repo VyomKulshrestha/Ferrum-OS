@@ -35,6 +35,16 @@ systems. The AI brain runs natively as a freestanding userspace process
 - **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store
 - **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers including IPC send/receive, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math or the raw syscall ABI
 
+### Package Manager (`ferrumpkg`)
+- Real `pkg list|install|remove|run` shell command — install/remove genuinely gate whether a package can be launched at all, backed by a registry that persists across reboots, not a cosmetic UI toggle
+- Packages are ordinary ELF binaries staged onto the appliance disk at build time (`scripts/make-appliance.ps1`), loaded and executed at runtime via the VFS — the kernel runs genuinely new code it was never compiled with, not just bookkeeping around pre-embedded apps
+- Honestly scoped: this is a local package cache, not a network-fetched repository — no package server exists or is pretended to
+
+### Multi-User Accounts
+- Real, persistent user accounts (`useradd`, `login`, `whoami`, `accounts`) with a username, uid, capability profile, and home directory, stored at `/disk/accounts.txt`
+- Logging in as a different account genuinely swaps the shell's held capabilities — a non-root `user` account can spawn processes and open GUI windows but is denied admin-only actions (reading the audit log, bypassing confirmation gates, quota exemption), not just cosmetically relabeled
+- Three profiles: `root` (full access), `user` (a real usable desktop account), `guest` (read-only)
+
 ### Filesystem
 - Volatile in-memory RAM filesystem with VFS mount table
 - ATA PIO block storage driver
@@ -184,6 +194,11 @@ Or use the build script:
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
+| `pkg list\|install\|remove\|run [name]` | Manage packages (ferrumpkg) |
+| `useradd <name> [root\|user\|guest]` | Create a real user account |
+| `login <name>` | Log in as an account, switching capabilities |
+| `accounts` | List all registered user accounts |
+| `whoami` | Show the current identity and held capabilities |
 | `dashboard` | Full-screen system status TUI |
 | `desktop` | Launch Graphical Desktop Environment (GUI) |
 | `agent status` | Show agent runtime boundary state |

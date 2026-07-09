@@ -13,6 +13,7 @@
 !.cargo/config.toml
 docs/ROADMAP.md
 REPORT.md
+model.md
 
 # Ignore custom certificate keys and intermediate files
 userland/heliox-daemon/certs/*.key

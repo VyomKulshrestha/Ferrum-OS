@@ -121,6 +121,63 @@ The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAU
 - Installed apps (`userland/heliox-assistant-panel/`, `userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`, `userland/settings/`, `userland/browser/`, `userland/app-store/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (syscall wrappers including `ipc_send`/`ipc_receive`, an `InputEvent` type, an RGBA8 `Canvas` with `fill_rect`/`draw_string`/`present`, using a userland copy of the kernel's bitmap font) — registered in the same `crate::userspace` program-manifest registry as `init`/`heliox-daemon`. The Heliox Assistant panel additionally uses `ipc_send`/`ipc_receive` to exchange chat state with `heliox-daemon`; Browser uses the raw socket syscalls (`Socket`/`Connect`/`Send`/`Recv`) directly; App Store calls `spawn_elf` to launch other installed apps by path.
 - Each app owns a fixed-size heap (`#[global_allocator]` over a static array) sized comfortably above its own canvas buffer (`canvas_w * canvas_h * 4` bytes) — undersizing this causes a silent allocation failure and process exit on the very first frame, with no panic message, since apps don't need argv (there's no mechanism for it) and instead operate on fixed paths (Text Editor) or read-only browsing (File Manager).
 
+### Package Manager (`src/pkg/mod.rs`)
+
+Real `pkg list|install|remove|run` semantics, honestly scoped: packages
+are a local cache staged onto the appliance disk at *build* time
+(`scripts/make-appliance.ps1`, via `debugfs` - the same mechanism that
+packages the real model checkpoint), not fetched from any network
+repository. Two on-disk locations:
+- `/disk/pkgs-available/<name>/{manifest.txt,bin}` - every package that
+  exists on the image, whether installed or not. `manifest.txt` is a flat
+  `key=value` format (no JSON parser exists in kernel space), declaring
+  `capabilities` from a fixed allow-list (`cap:gui:window`, `cap:fs:read`,
+  `cap:fs:write`, `cap:audio:play` - never network/exec/quota/confirmation
+  tokens).
+- `/disk/pkgs/registry.txt` - the only thing `install`/`remove` actually
+  write at runtime: a small list of installed package names. A package's
+  (potentially large) `bin` is never physically copied at install time -
+  ext2's own `create_file` only supports direct blocks (12 max), far too
+  small for a compiled ELF, so the same bytes `debugfs` staged are read
+  from `pkgs-available` either way; install/remove only toggle whether
+  `sys_exec` (`src/syscall/process.rs`) will actually run them.
+
+`sys_exec`'s VFS-read fallback path recognizes a `pkgs-available/<name>/bin`
+path shape, checks `pkg::is_installed(name)` before reading the file at
+all, and resolves capabilities from the package's own manifest
+(`pkg::capabilities_for`) instead of the empty result
+`capabilities_for_program` would otherwise return for a name it wasn't
+compiled with. The `pkg run` shell command (kernel context) additionally
+calls `userspace::register_dynamic_program` before `process::enter_registered`
+(see "Ring-3 scheduling from a cold shell" below) so that first-entry path's
+own capability re-derivation sees the same clamped set.
+
+**A real bug this uncovered:** ext2's `Filesystem::read_file` does a
+strict `String::from_utf8` over the raw inode bytes - correct for
+config/text files, but a real ELF binary is essentially never valid
+UTF-8. `sys_exec`'s fallback for loading *any* program from the VFS
+(compiled-in or a package) went through this and would have failed on
+every real binary; this was never caught before because every app until
+now loaded from an embedded `include_bytes!` constant, never through this
+path. Fixed by `fs::read_file_bytes` (`src/fs/mod.rs`), which pulls the
+whole file through the already binary-safe `read_file_offset` (the same
+call `mmap`'s demand-paging already proved safe for the model checkpoint)
+instead of a single UTF-8-checked slurp.
+
+**Ring-3 scheduling from a cold shell.** Timer-interrupt-driven preemption
+(`timer_interrupt_entry_inner`) only ever switches *away* from a
+currently-running ring-3 task (`frame.cs & 3 == 3`) - it never switches
+*into* one. Every existing verified app launch happens either from
+`run_desktop()`'s loop (which is itself continuously entering/preempting
+ring-3 code every frame) or from `ring3 init`'s explicit first entry. A
+package launched via `pkg run` from a plain, otherwise-idle kernel shell
+prompt hit this directly: `spawn_elf` registered the task as Ready, but
+with nothing already executing in ring 3 to preempt from, it sat Ready
+forever and never printed a single line. Fixed by having `pkg run` call
+`process::enter_registered` right after `spawn_elf` - the same explicit
+first ring0→ring3 transition the `ring3 <pid>` shell command already uses
+for compiled-in programs.
+
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
 - `cursor::process_input()` is the single shared entry point every render/input pump goes through (both `run_desktop()`'s loop and `SYS_HUD_UPDATE`'s ambient pump call it) — it discards whatever piled up in the queue the first time it's ever called, so keystrokes typed before anything was compositing yet don't replay into whatever window happens to get focus first
@@ -325,6 +382,34 @@ delegatable tokens.
 | daemon | `cap:quota:exempt` | Bypasses syscall rate & continuous CPU limits |
 | daemon | `cap:confirmation:bypass` | Bypasses kernel-side confirmation gates |
 
+### Multi-User Accounts
+
+Real accounts (`src/accounts/mod.rs`), not just the two debug session
+profiles above: a persistent registry at `/disk/accounts.txt` (one
+colon-separated `uid:username:profile:home` record per line, deliberately
+shaped like a classic `/etc/passwd` line). `useradd <name> [root|user|guest]`
+creates an account and its home directory (`/disk/home/<name>/`); `login
+<name>` swaps the interactive shell's active session to that account,
+which resolves to a real capability set via
+`accounts::capabilities_for_profile` - not merely a display-name change.
+
+The `user` profile is a genuinely usable middle ground between `root` and
+`guest`: `cap:fs:read`, `cap:fs:write`, `cap:process:spawn`,
+`cap:gui:window`, `cap:ipc:send`, `cap:net:connect`, `cap:audio:play`,
+`cap:camera:read` - enough to run apps and use the desktop, but none of
+root's admin-only tokens (`cap:quota:exempt`, `cap:confirmation:bypass`,
+`cap:system:kexec`, `cap:process:kill`, `cap:audit:read`,
+`cap:agent:control`, `cap:net:listen`, `cap:service:register`). A
+logged-in non-root account is provably denied capability-gated commands
+(e.g. `log`, which requires `audit:read`) until logging back in as root -
+verified end-to-end by `scripts/verify_accounts.mjs`.
+
+Deliberately out of scope: per-file ownership/permission-bit enforcement
+on ext2 inodes (the inode format has `uid`/`mode` fields, but nothing
+currently checks them against the calling process's account). Access
+control today is entirely at the capability layer, not the filesystem
+layer.
+
 ### Resource Quotas
 
 To prevent rogue or runaway agent scripts from degrading system performance or freezing the kernel:
@@ -406,6 +491,8 @@ src/
 ├── ipc/                  # IPC broker
 ├── syscall/              # Dispatch, fs, process, query, gui windows
 ├── shell/                # Shell, commands, dashboard
+├── pkg/                  # Package manager (ferrumpkg): install/remove/list
+├── accounts/             # Multi-user account registry
 └── process/              # ELF loader, Ring-3, address spaces
 
 userland/heliox-daemon/
@@ -440,5 +527,6 @@ userland/file-manager/            # Installed app: browse /disk, preview files
 userland/settings/                # Installed app: view live daemon config + hardware info
 userland/browser/                 # Installed app: minimal HTTP client over raw sockets
 userland/app-store/               # Installed app: discovery/launch surface for installed apps
+userland/notes/                   # ferrumpkg demo package - never embedded in the kernel binary
 userland/init/                    # First userspace process (PID 2), supervises heliox-daemon
 ```

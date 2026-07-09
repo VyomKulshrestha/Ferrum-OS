@@ -33,8 +33,10 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
+    let pkg_name = crate::pkg::package_name_from_bin_path(&path);
+
     // Intercept embedded binaries to avoid VFS read and heap allocation.
-    let mut _elf_content_holder = alloc::string::String::new();
+    let mut _elf_content_holder: alloc::vec::Vec<u8> = alloc::vec::Vec::new();
     let elf_bytes: &[u8] = if path == "/bin/heliox-daemon" || path == "heliox-daemon" {
         crate::userspace::HELIOX_DAEMON_ELF
     } else if path == "/bin/init" || path == "init" || path.contains("quota-test") || path.contains("huge-test") {
@@ -56,11 +58,29 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     } else if path == "/bin/app-store" || path == "app-store" {
         crate::userspace::APP_STORE_ELF
     } else {
-        _elf_content_holder = match crate::fs::read_file(&path) {
+        // A path under ferrumpkg's local package cache is only runnable
+        // once `pkg install` has actually registered it - the bytes sit
+        // on disk either way (see src/pkg/mod.rs's module doc for why
+        // they're never physically copied), so this is the real
+        // enforcement point: uninstalled packages can't be exec'd even
+        // though nothing stops a caller from typing their path directly.
+        if let Some(ref pkg_name) = pkg_name {
+            if !crate::pkg::is_installed(pkg_name) {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+        }
+
+        // Real ELF binaries are essentially never valid UTF-8, so this
+        // must use the raw-bytes reader (`read_file_bytes`), not the
+        // UTF-8-checked `read_file` - a package or any other on-disk
+        // program falls through to exactly this path (see
+        // `read_file_bytes`'s doc comment for why the String-based read
+        // would have silently broken every real binary here).
+        _elf_content_holder = match crate::fs::read_file_bytes(&path) {
             Ok(content) => content,
             Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
         };
-        _elf_content_holder.as_bytes()
+        _elf_content_holder.as_slice()
     };
 
     if elf_bytes.len() < 4 {
@@ -98,7 +118,15 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         Some(caps) => caps,
         None => alloc::vec![],
     };
-    let requested_caps = crate::userspace::capabilities_for_program(name);
+    // A package's requested capabilities come from its own on-disk
+    // manifest (already clamped to a safe allow-list by
+    // `pkg::capabilities_for`), not the kernel's compiled-in program
+    // manifest table - `capabilities_for_program` only knows names it
+    // shipped with and would otherwise silently grant nothing.
+    let requested_caps = match &pkg_name {
+        Some(pkg_name) => crate::pkg::capabilities_for(pkg_name),
+        None => crate::userspace::capabilities_for_program(name),
+    };
     let granted_caps = crate::security::filter_delegatable(&requested_caps, &caller_capabilities);
 
     // Register the process in the global process table

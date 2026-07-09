@@ -7,22 +7,33 @@ use crate::println;
 use crate::print;
 use spin::Mutex;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum SessionProfile {
     Root,
     Guest,
+    /// A real logged-in account from crate::accounts (username) - looked
+    /// up live rather than caching its capabilities, so a `useradd`-time
+    /// profile change (there isn't one today, but this is the natural
+    /// place it would apply) always takes effect immediately.
+    User(String),
 }
 
 static SESSION: Mutex<SessionProfile> = Mutex::new(SessionProfile::Root);
 
 fn current_session() -> SessionProfile {
-    *SESSION.lock()
+    SESSION.lock().clone()
 }
 
 fn current_capabilities() -> Vec<String> {
     match current_session() {
         SessionProfile::Root => alloc::vec![String::from("cap:system:all")],
         SessionProfile::Guest => alloc::vec![String::from("cap:fs:read")],
+        SessionProfile::User(username) => match crate::accounts::find(&username) {
+            Some(account) => crate::accounts::capabilities_for_profile(&account.profile),
+            // Account vanished (e.g. accounts.txt edited by hand) -
+            // fail closed to guest-level access rather than erroring.
+            None => alloc::vec![String::from("cap:fs:read")],
+        },
     }
 }
 
@@ -89,6 +100,7 @@ pub fn execute(input: &str) {
         "programs" => cmd_programs(),
         "users" => cmd_users(),
         "run" => cmd_run(args),
+        "pkg" => cmd_pkg(args),
         "syscall" => cmd_syscall(args),
         "agent" => cmd_agent(args),
         "heliox" => cmd_heliox(args),
@@ -110,6 +122,9 @@ pub fn execute(input: &str) {
         "uname" => cmd_uname(),
         "whoami" => cmd_whoami(),
         "session" => cmd_session(args),
+        "useradd" => cmd_useradd(args),
+        "login" => cmd_login(args),
+        "accounts" => cmd_accounts(),
         "spawn" => cmd_spawn(args),
         "kill" => cmd_kill(args),
         "security" => cmd_security(),
@@ -146,6 +161,7 @@ fn cmd_help() {
     println!("  programs   List userspace program manifests");
     println!("  users      List userspace process table");
     println!("  run <p>    Launch a userspace program");
+    println!("  pkg <list|install|remove|run> [name]  Manage packages (ferrumpkg)");
     println!("  syscall <pid> <num> [arg0]  Dispatch a userspace syscall");
     println!("  agent      Control the agent runtime boundary");
     println!("  heliox     Heliox-OS JSON-RPC bridge surface");
@@ -158,7 +174,10 @@ fn cmd_help() {
     println!("  test-syscall <yield|sleep|wait|priority>  Exercise Phase 2 syscalls");
     println!("  uname      Show system information");
     println!("  whoami     Show current identity");
-    println!("  session    Switch debug shell capability profile");
+    println!("  session    Switch debug shell capability profile (root|guest)");
+    println!("  useradd <name> [root|user|guest]  Create a real user account");
+    println!("  login <name>  Log in as a real account, switching capabilities");
+    println!("  accounts   List all registered user accounts");
     println!("  spawn <n>  Spawn a new task");
     println!("  kill <id>  Kill a task by ID");
     println!("  security   Show security status");
@@ -762,6 +781,100 @@ fn cmd_run(args: &[&str]) {
     match crate::userspace::launch(args[0], &held) {
         Ok(pid) => println!("launched {} as userspace pid {}", args[0], pid),
         Err(err) => println!("run: {}", err),
+    }
+}
+
+fn cmd_pkg(args: &[&str]) {
+    if args.is_empty() {
+        println!("pkg: usage: pkg <list|install|remove|run> [name]");
+        return;
+    }
+
+    match args[0] {
+        "list" => {
+            let installed = crate::pkg::list_installed();
+            for pkg in crate::pkg::list_available() {
+                let status = if installed.iter().any(|p| p.name == pkg.name) {
+                    "installed"
+                } else {
+                    "available"
+                };
+                println!("  {} ({}) [{}] - {}", pkg.name, pkg.version, status, pkg.description);
+            }
+            if installed.is_empty() {
+                println!("  (nothing installed yet - try: pkg install <name>)");
+            }
+        }
+        "install" => {
+            let Some(name) = args.get(1) else {
+                println!("pkg install: missing package name");
+                return;
+            };
+            match crate::pkg::install(name) {
+                Ok(()) => println!("installed {}", name),
+                Err(err) => println!("pkg install: {}", err),
+            }
+        }
+        "remove" => {
+            let Some(name) = args.get(1) else {
+                println!("pkg remove: missing package name");
+                return;
+            };
+            match crate::pkg::remove(name) {
+                Ok(()) => println!("removed {}", name),
+                Err(err) => println!("pkg remove: {}", err),
+            }
+        }
+        "run" => {
+            let Some(name) = args.get(1) else {
+                println!("pkg run: missing package name");
+                return;
+            };
+            if !crate::pkg::is_installed(name) {
+                println!("pkg run: not installed: {} (try: pkg install {})", name, name);
+                return;
+            }
+            let bin_path = crate::pkg::bin_path(name);
+            let elf_bytes = match crate::fs::read_file_bytes(&bin_path) {
+                Ok(b) => b,
+                Err(err) => {
+                    println!("pkg run: failed to read {}: {}", bin_path, err);
+                    return;
+                }
+            };
+            let caps = crate::pkg::capabilities_for(name);
+            // Kernel-context launch, same trust model as the desktop
+            // launcher's `launch_installed_app` - the caller here is the
+            // interactive shell operator, not an unprivileged ring-3
+            // process, so the manifest's (already-clamped) capabilities
+            // are granted directly rather than filtered through another
+            // process's held tokens.
+            match crate::process::spawn_elf(name, &elf_bytes, &caps) {
+                Ok(pid) => {
+                    println!("launched {} as pid {}", name, pid);
+                    // `spawn_elf` only registers the task as Ready - timer-
+                    // interrupt-driven preemption only ever switches *away*
+                    // from a currently-running ring-3 task
+                    // (src/interrupts/mod.rs's timer_interrupt_entry_inner
+                    // gates on `frame.cs & 3 == 3`), so if nothing is
+                    // already executing in ring 3 when this command runs
+                    // (e.g. sitting idle at the plain shell prompt), a
+                    // freshly spawned task would sit Ready forever with no
+                    // trigger to ever run it. `enter_registered` performs
+                    // that first ring0->ring3 transition explicitly, same
+                    // as the `ring3 <pid>` shell command already does for
+                    // compiled-in programs - registering this package's
+                    // capabilities into the same manifest table first so
+                    // `enter_registered`'s own capability re-derivation
+                    // (which only knows compiled-in names) doesn't zero
+                    // them back out.
+                    crate::userspace::register_dynamic_program(name, "ferrumpkg package", &bin_path, caps);
+                    crate::process::enter_registered(pid, &current_capabilities());
+                }
+                Err(err) => println!("pkg run: {}", err),
+            }
+        }
+        other => println!("pkg: unknown subcommand '{}' (expected list|install|remove|run)", other),
     }
 }
 
@@ -1397,8 +1510,15 @@ fn cmd_uname() {
 
 fn cmd_whoami() {
     match current_session() {
-        SessionProfile::Root => println!("kernel (uid=0, gid=0)"),
-        SessionProfile::Guest => println!("guest (uid=1000, gid=1000)"),
+        SessionProfile::Root => println!("root (uid=0, gid=0, home=/disk/root)"),
+        SessionProfile::Guest => println!("guest (uid=1000, gid=1000, home=none)"),
+        SessionProfile::User(username) => match crate::accounts::find(&username) {
+            Some(account) => println!(
+                "{} (uid={}, profile={}, home={})",
+                account.username, account.uid, account.profile, account.home
+            ),
+            None => println!("{} (account no longer exists)", username),
+        },
     }
     println!("Capabilities: {}", current_capabilities().join(", "));
 }
@@ -1406,11 +1526,12 @@ fn cmd_whoami() {
 fn cmd_session(args: &[&str]) {
     if args.is_empty() {
         let name = match current_session() {
-            SessionProfile::Root => "root",
-            SessionProfile::Guest => "guest",
+            SessionProfile::Root => String::from("root"),
+            SessionProfile::Guest => String::from("guest"),
+            SessionProfile::User(username) => username,
         };
         println!("Current session: {}", name);
-        println!("Profiles: root, guest");
+        println!("Profiles: root, guest (use `login <username>` for a real account)");
         return;
     }
 
@@ -1432,6 +1553,51 @@ fn cmd_session(args: &[&str]) {
             println!("session switched to guest");
         }
         _ => println!("session: usage: session [root|guest]"),
+    }
+}
+
+fn cmd_useradd(args: &[&str]) {
+    let Some(username) = args.first() else {
+        println!("useradd: usage: useradd <username> [root|user|guest]");
+        return;
+    };
+    let profile = args.get(1).copied().unwrap_or("user");
+    match crate::accounts::create(username, profile) {
+        Ok(account) => println!(
+            "created account '{}' (uid={}, profile={}, home={})",
+            account.username, account.uid, account.profile, account.home
+        ),
+        Err(err) => println!("useradd: {}", err),
+    }
+}
+
+fn cmd_login(args: &[&str]) {
+    let Some(username) = args.first() else {
+        println!("login: usage: login <username>");
+        return;
+    };
+    match crate::accounts::find(username) {
+        Some(account) => {
+            *SESSION.lock() = match account.profile.as_str() {
+                "root" => SessionProfile::Root,
+                "guest" => SessionProfile::Guest,
+                _ => SessionProfile::User(account.username.clone()),
+            };
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::CapabilityGranted,
+                &alloc::format!("shell logged in as '{}'", account.username),
+            );
+            println!("logged in as {} (profile={})", account.username, account.profile);
+        }
+        None => println!("login: no such account: {} (try: useradd {})", username, username),
+    }
+}
+
+fn cmd_accounts() {
+    println!("  UID   USERNAME       PROFILE  HOME");
+    println!("  ----  -------------  -------  ----");
+    for account in crate::accounts::list() {
+        println!("  {:<4}  {:<13}  {:<7}  {}", account.uid, account.username, account.profile, account.home);
     }
 }
 
@@ -1479,8 +1645,9 @@ fn cmd_security() {
     let entries = crate::logging::audit::recent_entries(100);
     println!("  Audit Events: {} recorded", entries.len());
     let session = match current_session() {
-        SessionProfile::Root => "root",
-        SessionProfile::Guest => "guest",
+        SessionProfile::Root => String::from("root"),
+        SessionProfile::Guest => String::from("guest"),
+        SessionProfile::User(username) => username,
     };
     println!("  Shell Session: {}", session);
 }
