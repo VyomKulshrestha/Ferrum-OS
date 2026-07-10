@@ -188,6 +188,14 @@ impl Orchestrator {
         // Load config from disk, fallback to defaults
         let config = Config::load("/disk/heliox/config.json");
 
+        // World model Phase 2: load a learned transition model if one
+        // was trained and staged onto this appliance disk
+        // (scripts/train_world_model.py). Purely optional - a boot with
+        // no weights file (or no disk at all) just keeps using Phase 1's
+        // rule table, silently, since `transition::predict_next_state`
+        // checks `learned::is_loaded()` internally.
+        super::world_model::learned::try_load();
+
         let mut planner = Planner::new();
         // The goal will be set dynamically via IPC or ambient vision
         // planner.set_goal("Explore the system and ensure everything is functioning.");
@@ -783,7 +791,7 @@ impl Orchestrator {
         // anyone tailing the serial log) - deliberately not gated behind
         // the interactive shell regaining control, which a fast-ticking
         // daemon (low tick_interval) can starve for a long time once
-        // ring3 init hands off (see scripts/verify_world_model_phase1.mjs's
+        // ring3 init hands off (see scripts/verify_world_model.mjs's
         // comment on why it doesn't type further shell commands after that).
         let tuple_msg = format!(
             "[heliox-daemon] [world-model] recorded experience tuple: tick={} action={} reward={:.2}\n",
@@ -793,10 +801,40 @@ impl Orchestrator {
             syscall3(34, 1, tuple_msg.as_ptr() as u64, tuple_msg.len() as u64);
         }
 
+        // Full-embedding export for offline training (see
+        // world_model::emit_dataset_row's doc comment) - the compact
+        // exp.bin record above can't hold these.
+        world_model::emit_dataset_row(
+            self.tick_count,
+            &before_embedding,
+            world_model::tool_id(&tc.name),
+            &after_embedding,
+            reward,
+        );
+
         self.wm_last_action_name = tc.name.clone();
         self.wm_last_action_failed = !result.success;
 
         result
+    }
+
+    /// Runs `count` synthetic-but-real actions through the exact same
+    /// `dispatch_with_world_model` path production traffic uses (real
+    /// syscalls, real snapshots, real gate decisions) without waiting on
+    /// an LLM/HTTP round-trip to propose each one - a fast way to
+    /// collect a real training dataset (see
+    /// `world_model::synthetic_action`'s doc comment) for offline
+    /// training, triggered by `main.rs`'s `check_and_trigger_world_model_collect`.
+    pub fn run_data_collection(&mut self, count: u32) {
+        for i in 0..count {
+            self.tick_count += 1;
+            let tc = super::world_model::synthetic_action(i);
+            let _ = self.dispatch_with_world_model(&tc);
+        }
+        let msg = format!("[heliox-daemon] [world-model] data collection complete: {} actions\n", count);
+        unsafe {
+            syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
+        }
     }
 
     fn verify_and_reflect(&mut self, tool_name: &str, success: bool, output: &str) {

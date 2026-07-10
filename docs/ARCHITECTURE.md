@@ -408,10 +408,19 @@ that it targets the daemon's own config file is still worth blocking).
 - **Encoding** — compresses that snapshot into a fixed-size numeric
   vector, hand-crafted today (no machine learning), with room reserved
   for a learned encoder later without changing anything above it.
-- **Transition prediction** — a small rule table maps each
+- **Transition prediction** — two interchangeable sources behind the
+  same `predict_next_state` call: a hand-coded rule table mapping each
   higher-consequence tool (`write_file`, `delete_file`, `exec_process`,
   `create_directory`, `service_start`/`stop`, `trigger_kernel_upgrade`,
-  `net_connect`) to its predicted effect on that vector.
+  `net_connect`) to its predicted effect on that vector, or - when
+  present - a small MLP (`cognitive/world_model/learned.rs`) trained
+  offline on real collected data (`scripts/collect_world_model_dataset.mjs`
+  + `scripts/train_world_model.py`, pure numpy) and loaded at boot the
+  same way the real LLM checkpoint is (a flat `f32` binary read via
+  `SYS_READ_FILE`). The learned model predicts an embedding *delta*, not
+  the absolute next state; whether a config-deleting `delete_file` call
+  gets caught is always a direct argument check, independent of which
+  source produced the numeric prediction.
 - **Risk scoring** — flags specific predicted outcomes (disk nearly
   full, the daemon's own config file about to be deleted, heap nearly
   exhausted) and blocks the real syscall if the combined score crosses
@@ -605,7 +614,8 @@ userland/heliox-daemon/
 │           ├── encoder.rs       # Snapshot -> fixed-size numeric vector
 │           ├── transition.rs    # Rule-based effect prediction
 │           ├── safety.rs        # Risk scoring + block threshold
-│           └── experience.rs    # exp.bin training-data buffer
+│           ├── experience.rs    # exp.bin training-data buffer
+│           └── learned.rs       # Trained MLP inference, optional
 
 userland/gui-smoke-test/          # App-window framework verification binary
 userland/libferrumgui/            # Shared no_std SDK: syscalls, IPC send/receive, Canvas drawing, input polling

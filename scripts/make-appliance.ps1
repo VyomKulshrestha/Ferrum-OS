@@ -87,4 +87,19 @@ wsl debugfs -w -R "write $notesManifest /pkgs-available/notes/manifest.txt" targ
 wsl debugfs -w -R "write $notesElf /pkgs-available/notes/bin" target/heliox-disk.img
 Remove-Item $notesManifest -Force
 
+# 6. Stage the world model's Phase 2 learned transition weights, if
+# trained (scripts/train_world_model.py). Entirely optional - a missing
+# file here just means heliox-daemon keeps using Phase 1's rule table
+# (cognitive/world_model/learned.rs's try_load() no-ops on a missing
+# file), so this never blocks appliance packaging the way the real LLM
+# checkpoint above does.
+$learnedWeights = "target/world_model_learned.bin"
+if (Test-Path $learnedWeights) {
+    Write-Host "Staging learned world-model weights onto the disk image..." -ForegroundColor Cyan
+    wsl debugfs -w -R "mkdir /heliox/world" target/heliox-disk.img
+    wsl debugfs -w -R "write $learnedWeights /heliox/world/model_learned.bin" target/heliox-disk.img
+} else {
+    Write-Host "No trained world-model weights found at $learnedWeights - heliox-daemon will use the Phase 1 rule table (run scripts/collect_world_model_dataset.mjs + scripts/train_world_model.py to train one)." -ForegroundColor Yellow
+}
+
 Write-Host "Disk image target/heliox-disk.img successfully created and packaged!" -ForegroundColor Green

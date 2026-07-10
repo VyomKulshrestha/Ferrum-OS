@@ -336,6 +336,45 @@ fn check_and_trigger_audio_test() {
     }
 }
 
+/// Test hook for collecting real world-model training data (see
+/// cognitive::world_model's module doc). Triggered by
+/// `/tmp/world_model_collect`, whose content is the number of synthetic
+/// actions to run (mirrors the mmap/net/audio test hooks above, except
+/// the file content is a count rather than just a presence check). Runs
+/// entirely before the daemon's normal tick loop starts, so it doesn't
+/// compete with anything else for ring-3 time.
+fn check_and_trigger_world_model_collect(orchestrator: &mut cognitive::orchestrator::Orchestrator) {
+    let test_file = "/tmp/world_model_collect";
+    let mut buf = [0u8; 32];
+    let res = unsafe {
+        syscall4(
+            SYS_READ_FILE,
+            test_file.as_ptr() as u64,
+            test_file.len() as u64,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    if (res as i64) <= 0 {
+        return;
+    }
+    unsafe {
+        syscall3(SYS_DELETE_FILE, test_file.as_ptr() as u64, test_file.len() as u64, 0);
+    }
+
+    let count_str = core::str::from_utf8(&buf[..res as usize]).unwrap_or("0").trim();
+    let count: u32 = count_str.parse().unwrap_or(0);
+    if count == 0 {
+        return;
+    }
+
+    let start_msg = alloc::format!("[heliox-daemon] running world-model data collection ({} actions)...\n", count);
+    unsafe {
+        syscall3(SYS_WRITE, FD_CONSOLE, start_msg.as_ptr() as u64, start_msg.len() as u64);
+    }
+    orchestrator.run_data_collection(count);
+}
+
 const SYS_ACCEPT: u64 = 10;
 
 fn init_server_socket() -> Result<u64, &'static str> {
@@ -394,6 +433,9 @@ pub extern "C" fn _start() -> ! {
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
+
+    // Check for world-model data collection trigger
+    check_and_trigger_world_model_collect(&mut orchestrator);
 
     // Print active provider
     let provider_msg = alloc::format!("[heliox-daemon] active provider: {}\n", orchestrator.config.provider);
