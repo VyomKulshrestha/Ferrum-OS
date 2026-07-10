@@ -82,6 +82,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Chat state (thinking / done / error, with the actual response text) streamed to the Heliox Assistant app over a structured IPC channel; user messages flow back the same way
 - Stays genuinely idle — no autonomous ticking or inference — until the user has completed setup; a missing config file is never treated as an implicit choice
 - JSON-RPC 2.0 surface over its WebSocket server: `ping`, `execute_tool`, `gesture_event`, `health`, `get_config`, `system_status`, `agent_stats`
+- **World model safety gate**: before any tool call reaches real execution, a predictive layer estimates its effect and blocks it if the prediction looks dangerous (e.g. deleting the daemon's own config, a disk-filling write) — a second, predictive check alongside the existing reactive Tier 3/4 confirmation gate, not a replacement for it. Every tool call (allowed or blocked) is recorded as a training example to `/disk/heliox/world/exp.bin` for future learned versions of this same gate.
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format

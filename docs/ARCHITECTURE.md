@@ -388,6 +388,42 @@ The daemon and the Heliox Assistant app-window (`userland/heliox-assistant-panel
 | JSON | `json.rs` | `no_std` recursive-descent JSON parser |
 | Config | `config.rs` | Runtime config from `/disk/heliox/config.json` |
 | Network | `network.rs` | TCP socket wrapper, HTTP/WS client |
+| World Model | `world_model/` | Predictive safety gate + experience buffer (see below) |
+
+### World Model Safety Gate (`cognitive/world_model/`)
+
+A predictive layer in front of `act()`'s tool dispatch, alongside (not
+instead of) the reactive `ConfirmationGate` above. Before any tool call
+reaches `tool_mapper::execute`, it's evaluated against a small internal
+model of what the call would do to the system, and blocked if the
+prediction looks dangerous - catching classes of harm a fixed permission
+tier can't enumerate (a `write_file` call isn't Tier 4, but predicting
+that it targets the daemon's own config file is still worth blocking).
+
+- **Observation** — samples live OS state (process count, heap usage,
+  filesystem entries, screen text) through the same syscalls the
+  daemon's existing tools already use (`SystemQuery`, `ReadDir`,
+  `read_screen`'s `ReadTextBuffer`) - no new syscalls, no new
+  capabilities.
+- **Encoding** — compresses that snapshot into a fixed-size numeric
+  vector, hand-crafted today (no machine learning), with room reserved
+  for a learned encoder later without changing anything above it.
+- **Transition prediction** — a small rule table maps each
+  higher-consequence tool (`write_file`, `delete_file`, `exec_process`,
+  `create_directory`, `service_start`/`stop`, `trigger_kernel_upgrade`,
+  `net_connect`) to its predicted effect on that vector.
+- **Risk scoring** — flags specific predicted outcomes (disk nearly
+  full, the daemon's own config file about to be deleted, heap nearly
+  exhausted) and blocks the real syscall if the combined score crosses
+  a threshold, logging the block to the console.
+- **Experience buffer** — every tool call, allowed or blocked, is
+  recorded as a compact fixed-size record to `/disk/heliox/world/exp.bin`
+  (front-truncated once capped, the same pattern the audit log uses) -
+  passive training data for a future learned version of the same gate.
+  Capped well below ext2's direct-block write ceiling (`create_file`
+  only supports up to 12 direct blocks - a real, previously-undiscovered
+  filesystem limit this surfaced), since the buffer is rewritten in full
+  on every append.
 
 ### Permission Tiers
 
@@ -563,7 +599,13 @@ userland/heliox-daemon/
 │       ├── multi_agent.rs    # Domain routing
 │       ├── screen_vision.rs  # Screen capture
 │       ├── voice.rs          # Audio tools
-│       └── json.rs           # no_std JSON parser
+│       ├── json.rs           # no_std JSON parser
+│       └── world_model/      # Predictive safety gate + experience buffer
+│           ├── observation.rs   # OS state snapshot collector
+│           ├── encoder.rs       # Snapshot -> fixed-size numeric vector
+│           ├── transition.rs    # Rule-based effect prediction
+│           ├── safety.rs        # Risk scoring + block threshold
+│           └── experience.rs    # exp.bin training-data buffer
 
 userland/gui-smoke-test/          # App-window framework verification binary
 userland/libferrumgui/            # Shared no_std SDK: syscalls, IPC send/receive, Canvas drawing, input polling

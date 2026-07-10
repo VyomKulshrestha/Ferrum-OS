@@ -137,6 +137,14 @@ pub struct Orchestrator {
     router: AgentRouter,
     pub pending_gesture: Option<u8>,
     pub paused: bool,
+
+    // World model (Phase 1, see model.md) - tracks the previous tool
+    // call's name/outcome so the *next* call's OsSnapshot can carry it
+    // as historical context (the encoder's one-hot last_action_id
+    // feature), separate from `last_action` above (a human-readable
+    // summary string, not machine-stable enough to feed an encoder).
+    wm_last_action_name: String,
+    wm_last_action_failed: bool,
 }
 
 impl Orchestrator {
@@ -202,6 +210,8 @@ impl Orchestrator {
             config,
             pending_gesture: None,
             paused: false,
+            wm_last_action_name: String::new(),
+            wm_last_action_failed: false,
         }
     }
 
@@ -560,7 +570,7 @@ impl Orchestrator {
 
         for tc in &tool_calls {
             self.total_actions += 1;
-            
+
             self.emit_telemetry(TelemetryEventKind::ActStart, format!("Executing tool: {}", tc.name));
 
             if let Some(plan) = self.planner.plan_mut() {
@@ -666,14 +676,7 @@ impl Orchestrator {
                         }
                     }
                 }
-                _ => {
-                    tool_mapper::execute(
-                        tc,
-                        &mut self.confirmation_gate,
-                        self.config.auto_approve_tier,
-                        self.tick_count,
-                    )
-                }
+                _ => self.dispatch_with_world_model(tc),
             };
 
             if result.output.contains("Awaiting confirmation") {
@@ -699,6 +702,101 @@ impl Orchestrator {
         }
 
         results
+    }
+
+    /// World model (Phase 1, see model.md): captures a snapshot, predicts
+    /// this action's effect, and blocks the real dispatch if the
+    /// prediction looks bad - a second, predictive check that runs
+    /// *before*, and independently of, `tool_mapper::execute`'s own
+    /// internal Tier 3/4 `ConfirmationGate` check. Either way, records an
+    /// experience tuple: a predicted-and-refused action is training
+    /// signal too, not just an allowed one.
+    fn dispatch_with_world_model(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        use super::world_model::{self, encoder, experience, observation};
+        use experience::ExperienceTuple;
+
+        let state_before = observation::capture_snapshot(
+            self.tick_count,
+            &self.wm_last_action_name,
+            self.wm_last_action_failed,
+        );
+        let decision = world_model::evaluate_action(&state_before, tc);
+
+        let result = if !decision.allowed {
+            let msg = format!(
+                "[heliox-daemon] [world-model] BLOCKED tool '{}': risk={:.2} ({})\n",
+                tc.name, decision.risk, decision.reason
+            );
+            unsafe {
+                syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
+            }
+            tool_mapper::ToolResult {
+                tool_name: tc.name.clone(),
+                success: false,
+                output: format!("Blocked by world-model safety gate: {}", decision.reason),
+            }
+        } else {
+            tool_mapper::execute(
+                tc,
+                &mut self.confirmation_gate,
+                self.config.auto_approve_tier,
+                self.tick_count,
+            )
+        };
+
+        let state_after = observation::capture_snapshot(self.tick_count, &tc.name, !result.success);
+
+        // Reward: derived from what's directly observable at this point
+        // (the tool's own success/failure and, for file-creating tools,
+        // that it succeeded). "Goal achieved" (+1.0) needs
+        // verify_and_reflect's plan-completion signal, which fires later
+        // and for the whole tick rather than per-call - tying that back
+        // into the most recent tuple is a natural, documented Phase 1.5
+        // follow-up, not implemented here.
+        let reward: f32 = if result.output.contains("Awaiting confirmation") {
+            -0.2
+        } else if !result.success {
+            -0.5
+        } else if tc.name == "write_file" || tc.name == "create_directory" {
+            0.3
+        } else {
+            0.0
+        };
+
+        let before_embedding = encoder::encode(&state_before);
+        let after_embedding = encoder::encode(&state_after);
+        experience::record_experience(&ExperienceTuple {
+            tick: self.tick_count,
+            action_id: world_model::tool_id(&tc.name),
+            success: result.success,
+            reward,
+            risk: decision.risk,
+            proc_count_before: encoder::proc_count(&before_embedding),
+            proc_count_after: encoder::proc_count(&after_embedding),
+            heap_fraction_before: encoder::heap_fraction(&before_embedding),
+            heap_fraction_after: encoder::heap_fraction(&after_embedding),
+            disk_usage_before: encoder::disk_usage_fraction(&before_embedding),
+            disk_usage_after: encoder::disk_usage_fraction(&after_embedding),
+        });
+
+        // Directly observable per-call signal for verification (and for
+        // anyone tailing the serial log) - deliberately not gated behind
+        // the interactive shell regaining control, which a fast-ticking
+        // daemon (low tick_interval) can starve for a long time once
+        // ring3 init hands off (see scripts/verify_world_model_phase1.mjs's
+        // comment on why it doesn't type further shell commands after that).
+        let tuple_msg = format!(
+            "[heliox-daemon] [world-model] recorded experience tuple: tick={} action={} reward={:.2}\n",
+            self.tick_count, tc.name, reward
+        );
+        unsafe {
+            syscall3(34, 1, tuple_msg.as_ptr() as u64, tuple_msg.len() as u64);
+        }
+
+        self.wm_last_action_name = tc.name.clone();
+        self.wm_last_action_failed = !result.success;
+
+        result
     }
 
     fn verify_and_reflect(&mut self, tool_name: &str, success: bool, output: &str) {
