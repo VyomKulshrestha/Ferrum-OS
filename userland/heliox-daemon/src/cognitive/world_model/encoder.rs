@@ -1,12 +1,15 @@
 // ============================================================================
-// Heliox World Model - Layer 3.1: Hand-Crafted State Encoder
+// Heliox World Model - Layer 3: State Encoder
 // ============================================================================
 // Compresses an OsSnapshot into a fixed-size [f32; 128] the transition
-// model can do arithmetic on. Pure Rust, no_std, deterministic - no ML,
-// no allocation beyond the fixed array itself, fits in a stack frame.
-// Phase 2 replaces this with a learned MLP without touching Layer 4 or
-// above (see model.md's Layer 3 section) - callers only ever see
-// `StateEmbedding`, never this module's internal feature layout.
+// model can do arithmetic on. Slots 0..51 (7 hand-crafted scalars + a
+// 41-wide one-hot last-action block) are always computed the same
+// deterministic way - no ML, no allocation, fits in a stack frame - since
+// safety.rs's risk rules and the transition model both read those exact
+// indices. Slots 51..128 (77 floats, unused in Phase 1) are filled with
+// a genuinely learned latent code from encoder_learned.rs whenever
+// weights are staged (Layer 3.2), and left at zero otherwise - callers
+// only ever see `StateEmbedding`, never which path filled it.
 // ============================================================================
 
 use super::observation::OsSnapshot;
@@ -57,6 +60,19 @@ pub fn encode(snapshot: &OsSnapshot) -> StateEmbedding {
     let id = super::tool_id(&snapshot.last_action_name);
     if (id as usize) < TOOL_NAMES.len() {
         v[IDX_TOOL_ONEHOT_BASE + id as usize] = 1.0;
+    }
+
+    // Layer 3.2: fill the otherwise-unused tail with a learned latent
+    // code, if an encoder was staged and loaded at boot. `raw` mirrors
+    // exactly what scripts/train_world_model_encoder.py's extract_raw()
+    // pulls out of an already-built embedding - the same 7 scalars plus
+    // the one-hot action block, just gathered into a contiguous array
+    // for the MLP's input layer.
+    let mut raw = [0f32; super::encoder_learned::RAW_INPUT_SIZE];
+    raw[..7].copy_from_slice(&v[..7]);
+    raw[7..].copy_from_slice(&v[IDX_TOOL_ONEHOT_BASE..IDX_TOOL_ONEHOT_BASE + TOOL_NAMES.len()]);
+    if let Some(latent) = super::encoder_learned::encode_latent(&raw) {
+        v[super::encoder_learned::LATENT_START..].copy_from_slice(&latent);
     }
 
     v

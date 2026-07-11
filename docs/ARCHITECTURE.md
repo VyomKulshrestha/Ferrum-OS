@@ -406,8 +406,14 @@ that it targets the daemon's own config file is still worth blocking).
   `read_screen`'s `ReadTextBuffer`) - no new syscalls, no new
   capabilities.
 - **Encoding** — compresses that snapshot into a fixed-size numeric
-  vector, hand-crafted today (no machine learning), with room reserved
-  for a learned encoder later without changing anything above it.
+  vector. The safety-critical fields (process count, heap/disk usage,
+  the one-hot action id, and everything the risk rules and rule-based
+  transition read directly) stay hand-crafted and deterministic; the
+  otherwise-unused remainder of the vector is filled by a small learned
+  autoencoder (`cognitive/world_model/encoder_learned.rs`, trained via
+  `scripts/train_world_model_encoder.py` on real collected snapshots)
+  when one is staged, falling back to zero-filled if not - additive,
+  never touching the indices the rest of the gate depends on.
 - **Transition prediction** — two interchangeable sources behind the
   same `predict_next_state` call: a hand-coded rule table mapping each
   higher-consequence tool (`write_file`, `delete_file`, `exec_process`,
@@ -425,6 +431,14 @@ that it targets the daemon's own config file is still worth blocking).
   full, the daemon's own config file about to be deleted, heap nearly
   exhausted) and blocks the real syscall if the combined score crosses
   a threshold, logging the block to the console.
+- **Lookahead** — rather than checking only the single-step prediction,
+  the gate simulates the proposed action repeated a few times in a row
+  through the transition model and keeps the worst risk seen across
+  that chain, catching effects that only emerge as they compound (an
+  action whose first application looks harmless but whose repetition
+  would fill the disk or exhaust the heap). The number of simulated
+  steps it took to reach the reported risk is logged alongside every
+  block.
 - **Experience buffer** — every tool call, allowed or blocked, is
   recorded as a compact fixed-size record to `/disk/heliox/world/exp.bin`
   (front-truncated once capped, the same pattern the audit log uses) -

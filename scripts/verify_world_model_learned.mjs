@@ -159,6 +159,13 @@ try {
     loadMsg.split("\n").find((l) => l.includes("loaded learned transition model")) || ""
   );
 
+  const encoderMsg = await waitForSerial("[world-model] loaded learned encoder", 15, start);
+  check(
+    "learned encoder loads from the staged weights file at boot",
+    true,
+    encoderMsg.split("\n").find((l) => l.includes("loaded learned encoder")) || ""
+  );
+
   // Even on the learned model, deletes_own_config is a direct argument
   // check (transition.rs), not a numeric prediction - must still block.
   const blockMsg = await waitForSerial("[world-model] BLOCKED tool 'delete_file'", 30, start);
@@ -166,6 +173,10 @@ try {
     "safety gate still blocks delete_file targeting config.json while using the learned model",
     true,
     blockMsg.split("\n").reverse().find((l) => l.includes("BLOCKED tool 'delete_file'")) || ""
+  );
+  check(
+    "block message reports the lookahead step count (Layer 6.2 wired in)",
+    /lookahead_steps=\d+/.test(blockMsg)
   );
 
   const full = serialText();

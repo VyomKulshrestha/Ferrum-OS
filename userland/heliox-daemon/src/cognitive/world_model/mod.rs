@@ -19,6 +19,7 @@ extern crate alloc;
 
 pub mod observation;
 pub mod encoder;
+pub mod encoder_learned;
 pub mod transition;
 pub mod safety;
 pub mod experience;
@@ -52,25 +53,66 @@ pub fn tool_id(name: &str) -> u8 {
     TOOL_NAMES.iter().position(|t| *t == name).map(|i| i as u8).unwrap_or(255)
 }
 
-/// Layer 6 stub result (MAX_LOOKAHEAD=1 - see model.md's Layer 6 section
-/// for why this isn't real multi-step planning yet).
+/// Layer 6.2: how many times ahead the proposed action is simulated
+/// against itself (see `evaluate_action`'s doc comment for why this is
+/// self-composition lookahead rather than LLM-branching search).
+pub const MAX_LOOKAHEAD: u32 = 3;
+
 pub struct GateDecision {
     pub allowed: bool,
     pub risk: f32,
     pub reason: String,
+    /// How many simulated repetitions it took to reach `risk` - 1 means
+    /// the action alone was risky; >1 means it only became risky once
+    /// repeated, the case MAX_LOOKAHEAD=1 (Phase 1) could never catch.
+    pub lookahead_steps: u32,
 }
 
-/// Ties Layers 1/3/4/5 together for a single proposed action: encode the
-/// current snapshot, predict its effect, score the prediction for risk,
-/// and decide whether `act()` should be allowed to dispatch it for real.
+/// Ties Layers 1/3/4/5/6 together for a single proposed action: encode
+/// the current snapshot, then simulate up to `MAX_LOOKAHEAD` repetitions
+/// of *this same action* via the transition model, taking the worst risk
+/// seen across the chain.
+///
+/// This is deliberately self-composition lookahead, not full LLM-branching
+/// search (model.md's `plan_with_simulation` sketch, which needs the LLM
+/// re-queried per candidate per step - a real re-architecture of the
+/// ReAct prompt/response protocol, deferred to Phase 3's beam search).
+/// What this *does* buy over Phase 1's MAX_LOOKAHEAD=1: an action whose
+/// single-step effect looks safe can still be caught if repeating it
+/// would compound into something dangerous - a ReAct loop stuck
+/// re-proposing a similar write/spawn is a real, observed failure mode,
+/// not a hypothetical one. `deletes_own_config` is checked freshly at
+/// every step (not just the first) since args could differ per real
+/// call, even though this simulation reuses one fixed action throughout.
 pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
-    let embedding = encoder::encode(state);
-    let prediction = transition::predict_next_state(&embedding, action);
-    let (risk, reason) = safety::risk_score(&prediction);
+    let mut embedding = encoder::encode(state);
+    let mut worst_risk = 0.0f32;
+    let mut worst_reason = String::new();
+    let mut worst_step = 1u32;
+
+    for step in 1..=MAX_LOOKAHEAD {
+        let prediction = transition::predict_next_state(&embedding, action);
+        let (risk, reason) = safety::risk_score(&prediction);
+        if risk > worst_risk {
+            worst_risk = risk;
+            worst_step = step;
+            worst_reason = if step == 1 {
+                reason
+            } else {
+                format!("after {} repeated steps: {}", step, reason)
+            };
+        }
+        if worst_risk > safety::BLOCK_THRESHOLD {
+            break;
+        }
+        embedding = prediction.embedding;
+    }
+
     GateDecision {
-        allowed: risk <= safety::BLOCK_THRESHOLD,
-        risk,
-        reason,
+        allowed: worst_risk <= safety::BLOCK_THRESHOLD,
+        risk: worst_risk,
+        reason: worst_reason,
+        lookahead_steps: worst_step,
     }
 }
 

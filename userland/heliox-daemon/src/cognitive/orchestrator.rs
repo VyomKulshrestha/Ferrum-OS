@@ -195,6 +195,10 @@ impl Orchestrator {
         // rule table, silently, since `transition::predict_next_state`
         // checks `learned::is_loaded()` internally.
         super::world_model::learned::try_load();
+        // Layer 3.2: same optional-load pattern - a boot with no staged
+        // encoder weights just leaves the embedding's tail slots at
+        // zero, exactly as Phase 1's encoder always left them.
+        super::world_model::encoder_learned::try_load();
 
         let mut planner = Planner::new();
         // The goal will be set dynamically via IPC or ambient vision
@@ -732,8 +736,8 @@ impl Orchestrator {
 
         let result = if !decision.allowed {
             let msg = format!(
-                "[heliox-daemon] [world-model] BLOCKED tool '{}': risk={:.2} ({})\n",
-                tc.name, decision.risk, decision.reason
+                "[heliox-daemon] [world-model] BLOCKED tool '{}': risk={:.2} lookahead_steps={} ({})\n",
+                tc.name, decision.risk, decision.lookahead_steps, decision.reason
             );
             unsafe {
                 syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
