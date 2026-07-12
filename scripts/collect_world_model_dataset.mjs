@@ -37,8 +37,54 @@ const outPath = path.join(repo, "target", "world_model_dataset.jsonl");
 const count = Number(process.argv[2] || process.env.WM_COLLECT_COUNT || 300);
 const visible = process.argv.includes("--visible");
 
+// Recovery mode: if the host process (or its shell) dies mid-collection -
+// e.g. a fork/resource failure in the wrapping shell, unrelated to QEMU or
+// the daemon itself - the serial log on disk still holds every
+// [world-model-dataset] line written before the crash, since that's a
+// plain file QEMU's -serial redirects to, independent of this script's own
+// process. `--recover [logfile]` just parses that file straight into the
+// JSONL dataset without booting anything, so a killed run's progress is
+// salvageable in seconds instead of re-collecting from scratch.
+if (process.argv.includes("--recover")) {
+  const recoverIdx = process.argv.indexOf("--recover");
+  const logToRecover = process.argv[recoverIdx + 1] && !process.argv[recoverIdx + 1].startsWith("-")
+    ? process.argv[recoverIdx + 1]
+    : serialLog;
+  if (!fs.existsSync(logToRecover)) throw new Error(`no serial log found at ${logToRecover}`);
+  const rows = parseDatasetRows(fs.readFileSync(logToRecover, "utf8"));
+  fs.writeFileSync(outPath, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
+  console.log(`recovered ${rows.length} examples from ${logToRecover} -> ${outPath}`);
+  process.exit(rows.length ? 0 : 1);
+}
+
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
 if (!fs.existsSync(diskImage)) throw new Error(`appliance disk image not found: ${diskImage} - run scripts/make-appliance.ps1 first`);
+
+function parseDatasetRows(text) {
+  const lineRe = /\[world-model-dataset\] tick=(\d+) action=(\d+) reward=([\-0-9.]+) before=([0-9a-f]+) after=([0-9a-f]+)/g;
+  const rows = [];
+  let m;
+  while ((m = lineRe.exec(text)) !== null) {
+    const hexToFloats = (hex) => {
+      const out = [];
+      for (let i = 0; i < hex.length; i += 8) {
+        const bits = parseInt(hex.slice(i, i + 8), 16);
+        const buf = new ArrayBuffer(4);
+        new DataView(buf).setUint32(0, bits, false);
+        out.push(new DataView(buf).getFloat32(0, false));
+      }
+      return out;
+    };
+    rows.push({
+      tick: Number(m[1]),
+      action: Number(m[2]),
+      reward: Number(m[3]),
+      before: hexToFloats(m[4]),
+      after: hexToFloats(m[5]),
+    });
+  }
+  return rows;
+}
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -145,30 +191,7 @@ try {
   await waitForSerial("data collection complete", Math.max(60, count * 2), start);
   console.log("data collection complete, parsing dataset...");
 
-  const full = serialText();
-  const lineRe = /\[world-model-dataset\] tick=(\d+) action=(\d+) reward=([\-0-9.]+) before=([0-9a-f]+) after=([0-9a-f]+)/g;
-  const rows = [];
-  let m;
-  while ((m = lineRe.exec(full)) !== null) {
-    const hexToFloats = (hex) => {
-      const out = [];
-      for (let i = 0; i < hex.length; i += 8) {
-        const bits = parseInt(hex.slice(i, i + 8), 16);
-        const buf = new ArrayBuffer(4);
-        new DataView(buf).setUint32(0, bits, false);
-        out.push(new DataView(buf).getFloat32(0, false));
-      }
-      return out;
-    };
-    rows.push({
-      tick: Number(m[1]),
-      action: Number(m[2]),
-      reward: Number(m[3]),
-      before: hexToFloats(m[4]),
-      after: hexToFloats(m[5]),
-    });
-  }
-
+  const rows = parseDatasetRows(serialText());
   fs.writeFileSync(outPath, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
   console.log(`wrote ${rows.length} examples to ${outPath}`);
   if (rows.length === 0) {
@@ -176,7 +199,16 @@ try {
     exitCode = 1;
   }
 } catch (err) {
+  // Even on a timeout/crash, the serial log already holds every example
+  // collected up to that point - salvage it instead of losing the whole
+  // run's progress. Genuine early failures (e.g. boot never reaching a
+  // shell prompt) just produce a 0-row partial file, same as before.
   console.error("collection failed:", err && err.message ? err.message : String(err));
+  const rows = parseDatasetRows(serialText());
+  if (rows.length > 0) {
+    fs.writeFileSync(outPath, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
+    console.error(`salvaged ${rows.length} examples into ${outPath} despite the failure above (partial - re-run to top up, or rerun with --recover to re-parse ${serialLog} later)`);
+  }
   exitCode = 1;
 } finally {
   monitor.destroy();
