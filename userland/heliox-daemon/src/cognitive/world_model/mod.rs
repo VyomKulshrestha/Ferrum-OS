@@ -119,12 +119,18 @@ pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
 /// Deterministically generates the i-th action in a fixed rotation over
 /// every tool `transition.rs`'s rule table actually models. Both the
 /// rotation slot (`i % 13`) and a `variant` counter (`i / 13`, how many
-/// full cycles have elapsed) feed the arguments, so repeated visits to
-/// the same tool genuinely vary content size, service id, mouse button/
-/// delta, network port, keyboard text, and - for exec_process/read_file
-/// - occasionally target a path that doesn't exist, a real failure case
-/// otherwise absent from the dataset. Used by
-/// `Orchestrator::run_data_collection` to gather real (not
+/// full cycles have elapsed) feed the arguments. Bucket counts are
+/// deliberately uneven across tools: arguments that demonstrably move the
+/// resulting state (write_file's content size: 16 buckets, 16B-3.9KB;
+/// exec_process/read_file's real-vs-missing-path ratio and missing-path
+/// pool: 16; create_directory's pool: 16; service_start/stop's id: 8) get
+/// the most buckets, since that's where more distinct values is real
+/// learnable signal rather than padding. Tools whose arguments barely
+/// move the embedding regardless of value (mouse button/delta, keyboard
+/// text, net_connect's port) get fewer (3-8) - piling on more variety
+/// there mostly just re-creates the "more repetitions, no new
+/// information" trap a bigger raw example count fell into on its own.
+/// Used by `Orchestrator::run_data_collection` to gather real (not
 /// synthetic-in-the-sense-of-fake) experience data: every action still
 /// goes through the exact same capture/predict/gate/dispatch/record path
 /// production traffic does, real syscalls and all, just without waiting
@@ -158,13 +164,31 @@ pub fn synthetic_action(i: u32) -> ToolCall {
     // that doesn't exist just fails gracefully, which is itself useful
     // training signal the dataset previously never contained).
     let variant = i / 13;
+    // Bucket counts below are deliberately uneven across tools, not just
+    // bumped uniformly: write_file/exec_process/read_file/create_directory
+    // arguments demonstrably change the resulting state delta (disk usage,
+    // last_error, reward), so widening *their* buckets adds real learnable
+    // signal. mouse/keyboard/net_connect's arguments barely move the
+    // embedding regardless of value (screen_hash aside), so those keep
+    // fewer buckets - more values there mostly just pads the dataset with
+    // combinations that map to near-identical deltas, which is the same
+    // "more repetitions of little-new information" trap a bigger raw
+    // example count fell into before.
     let (name, arguments): (&str, alloc::vec::Vec<(String, JsonValue)>) = match n {
         0 => {
-            let content = match variant % 4 {
-                0 => format!("sample data {}", i),
-                1 => "x".repeat(64),
-                2 => "y".repeat(512),
-                _ => "z".repeat(2048),
+            // 16 buckets spanning 16B-3.9KB (well under ext2's ~48KB
+            // direct-block ceiling) instead of 4 - content size is the one
+            // argument here that directly moves disk_usage_fraction, so
+            // finer granularity is real, not padding.
+            let content_len = 16 + (variant % 16) as usize * 256;
+            let content = if variant % 2 == 0 {
+                "x".repeat(content_len)
+            } else {
+                let mut s = format!("sample data {} ", i);
+                while s.len() < content_len {
+                    s.push_str("more data ");
+                }
+                s
             };
             ("write_file", vec![
                 (String::from("path"), JsonValue::Str(format!("/disk/wm_data_{}.txt", i))),
@@ -172,36 +196,43 @@ pub fn synthetic_action(i: u32) -> ToolCall {
             ])
         }
         1 => ("create_directory", vec![
-            // Reused from a small fixed pool (not ever-growing by i) -
-            // there's no remove-directory tool in the 39-tool set to
-            // clean these up, so an unbounded name here would leave
-            // /disk's directory listing growing forever, which
-            // query_fs_file_count's ReadDir call re-scans on every
-            // single snapshot - a real, previously-hit slowdown during
-            // long collection runs. Repeat calls legitimately fail
-            // ("already exists"), which is itself valid training signal.
-            (String::from("path"), JsonValue::Str(format!("/disk/wm_dir_{}", i % 8))),
+            // Widened from a pool of 8 to 16 (still bounded, not
+            // ever-growing by i) - there's no remove-directory tool in the
+            // 39-tool set to clean these up, so an unbounded name here
+            // would leave /disk's directory listing growing forever, which
+            // query_fs_file_count's ReadDir call re-scans on every single
+            // snapshot - a real, previously-hit slowdown during long
+            // collection runs. A bigger pool means more genuine
+            // first-time-creation events relative to "already exists"
+            // collisions, both of which are valid but distinct signal.
+            (String::from("path"), JsonValue::Str(format!("/disk/wm_dir_{}", i % 16))),
         ]),
         2 => ("delete_file", vec![
             (String::from("path"), JsonValue::Str(format!("/disk/wm_data_{}.txt", i.saturating_sub(2)))),
         ]),
         3 => {
-            // 1-in-4 targets a path that doesn't exist, a real failure
-            // case the dataset never previously covered.
-            let path = if variant % 4 == 3 {
-                format!("/disk/wm_missing_{}", i % 7)
+            // 1-in-3 (up from 1-in-4) targets a path that doesn't exist,
+            // from a widened pool of 16 (up from 7) distinct missing
+            // names, so the failure case is both more frequent and more
+            // varied, not just more of the same one or two misses.
+            let path = if variant % 3 == 2 {
+                format!("/disk/wm_missing_{}", i % 16)
             } else {
                 String::from("/disk/pkgs-available/notes/bin")
             };
             ("exec_process", vec![(String::from("path"), JsonValue::Str(path))])
         }
-        4 => ("service_start", vec![(String::from("service_id"), JsonValue::Number(((variant % 3) + 1) as f64))]),
-        5 => ("service_stop", vec![(String::from("service_id"), JsonValue::Number(((variant % 3) + 1) as f64))]),
+        4 => ("service_start", vec![(String::from("service_id"), JsonValue::Number(((variant % 8) + 1) as f64))]),
+        5 => ("service_stop", vec![(String::from("service_id"), JsonValue::Number(((variant % 8) + 1) as f64))]),
         6 => {
-            let port = match variant % 4 {
+            let port = match variant % 8 {
                 0 => 9.0,
-                1 => 80.0,
-                2 => 443.0,
+                1 => 25.0,
+                2 => 53.0,
+                3 => 80.0,
+                4 => 143.0,
+                5 => 443.0,
+                6 => 3000.0,
                 _ => 8785.0,
             };
             ("net_connect", vec![
@@ -212,21 +243,29 @@ pub fn synthetic_action(i: u32) -> ToolCall {
         7 => ("save_memory", vec![]),
         8 => ("play_audio", vec![]),
         9 => {
-            let text = match variant % 4 {
+            let text = match variant % 8 {
                 0 => String::from("x"),
                 1 => String::from("hello"),
                 2 => String::from("The quick brown fox"),
-                _ => String::from("1234567890"),
+                3 => String::from("1234567890"),
+                4 => String::from("a"),
+                5 => String::from("testing 123"),
+                6 => String::from("FerrumOS"),
+                _ => String::from("!@#$%^&*()"),
             };
             ("keyboard_type", vec![(String::from("text"), JsonValue::Str(text))])
         }
         10 => ("mouse_click", vec![(String::from("button"), JsonValue::Number((variant % 3) as f64))]),
         11 => {
-            let (dx, dy) = match variant % 4 {
+            let (dx, dy) = match variant % 8 {
                 0 => (1.0, 1.0),
                 1 => (-5.0, 3.0),
                 2 => (10.0, -10.0),
-                _ => (-1.0, -1.0),
+                3 => (-1.0, -1.0),
+                4 => (50.0, 0.0),
+                5 => (0.0, -50.0),
+                6 => (-20.0, 20.0),
+                _ => (100.0, 100.0),
             };
             ("mouse_move", vec![
                 (String::from("dx"), JsonValue::Number(dx)),
