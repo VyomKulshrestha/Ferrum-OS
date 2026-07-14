@@ -75,12 +75,68 @@ pub fn init() {
     crate::serial_println!("[gui] Desktop Environment initialized");
 }
 
+const DESKTOP_STACK_SIZE: usize = 64 * 1024;
+
+#[repr(C, align(16))]
+struct DesktopStack([u8; DESKTOP_STACK_SIZE]);
+static mut DESKTOP_STACK: DesktopStack = DesktopStack([0; DESKTOP_STACK_SIZE]);
+
+/// Pid of the desktop's registered kernel task (see
+/// `scheduler::register_kernel_task`). 0 means "never launched yet".
+static DESKTOP_TASK_PID: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
+fn desktop_stack_top() -> u64 {
+    let base = &raw mut DESKTOP_STACK as u64;
+    (base + DESKTOP_STACK_SIZE as u64) & !0xF
+}
+
 /// Enter the interactive GUI loop.
-/// This hijacks the current thread and drops into a loop that composites
-/// windows and handles mouse events. The loop idles via `sti; hlt` so
-/// it wakes on every interrupt (timer, mouse, keyboard) instead of
-/// spinning at full CPU.
-pub fn run_desktop() {
+///
+/// Dispatches into `desktop_entry` as a genuine scheduled kernel task
+/// (see `scheduler::register_kernel_task`) rather than calling it as a
+/// plain blocking function - a bare `loop { ...; hlt; }` running
+/// directly here was found to completely starve every ring-3 task
+/// (including `heliox-daemon`'s background ticking, and any freshly
+/// Start-menu-launched app, which would register as Ready but never
+/// get its first CPU cycle) for as long as the desktop stayed open.
+/// The timer interrupt's preemption logic only ever acted when the
+/// *interrupted* context was ring-3; registering this loop as a
+/// kernel task and marking its own `hlt` point as a known-safe
+/// preemption point (`enter_kernel_task_safepoint`, called from
+/// `desktop_entry`) lets the same round-robin ring-3 tasks already
+/// use also give this loop, and everything else, fair turns.
+///
+/// Never returns to the caller (mirrors `ring3`'s one-way dispatch) -
+/// the shell's own loop resumes fresh later via
+/// `scheduler::enter_kernel_return` once the desktop exits.
+pub fn run_desktop() -> ! {
+    let stack_top = desktop_stack_top();
+    let pid = DESKTOP_TASK_PID.load(core::sync::atomic::Ordering::SeqCst);
+    let pid = if pid == 0 {
+        let id = crate::scheduler::register_kernel_task(
+            "desktop",
+            crate::scheduler::Priority::Normal,
+            stack_top,
+            desktop_entry as u64,
+        );
+        DESKTOP_TASK_PID.store(id, core::sync::atomic::Ordering::SeqCst);
+        id
+    } else {
+        // Reopening after a previous session exited - reset to a
+        // clean entry point rather than resuming whatever stale
+        // mid-loop point it was last preempted at (see
+        // `reset_kernel_task_entry`'s doc).
+        crate::scheduler::reset_kernel_task_entry(pid, stack_top, desktop_entry as u64);
+        pid
+    };
+    crate::scheduler::claim_kernel_task_for_run(pid);
+    unsafe {
+        crate::scheduler::resume_task(pid);
+    }
+}
+
+/// The desktop kernel task's actual entry point - see `run_desktop`.
+extern "C" fn desktop_entry() -> ! {
     {
         let mut state = GUI.lock();
         state.active = true;
@@ -110,6 +166,7 @@ pub fn run_desktop() {
     crate::serial_println!("[gui] Initial desktop frame rendered");
 
     let mut last_update_ticks: u64 = 0;
+    let my_pid = DESKTOP_TASK_PID.load(core::sync::atomic::Ordering::SeqCst);
 
     // Main GUI Event Loop
     loop {
@@ -164,13 +221,17 @@ pub fn run_desktop() {
             }
         }
 
-        // 4. Idle: enable interrupts and halt the CPU until the next
-        //    interrupt fires. This keeps the GUI loop at interrupt
-        //    speed (~18.2 Hz for the PIT, faster for mouse/keyboard)
-        //    instead of spinning at full CPU. Without this the loop
-        //    runs millions of times per second and the cursor
-        //    save/restore thrashes.
+        // 4. Idle: mark this exact point as safe to preempt, then
+        //    enable interrupts and halt until the next one fires.
+        //    This keeps the loop at interrupt speed (~18.2 Hz for the
+        //    PIT, faster for mouse/keyboard) instead of spinning at
+        //    full CPU, AND - the actual fix - lets ring-3 tasks
+        //    (heliox-daemon, spawned apps) actually run in between
+        //    frames instead of being starved for the desktop's whole
+        //    lifetime.
+        crate::scheduler::enter_kernel_task_safepoint(my_pid);
         interrupts::enable_and_hlt();
+        crate::scheduler::leave_kernel_task_safepoint();
     }
 
     // Free the back buffer
@@ -181,4 +242,13 @@ pub fn run_desktop() {
     // Restore previous console text
     crate::graphics::redraw_console();
     crate::serial_println!("[gui] Exited Desktop loop");
+
+    // Hand control back to a fresh shell prompt. This task's own
+    // stack is abandoned here (see `enter_kernel_return`'s doc,
+    // exactly the pattern already used when a user process dies) -
+    // the next `desktop` command resets this same task to a clean
+    // entry point rather than resuming from here.
+    unsafe {
+        crate::scheduler::enter_kernel_return();
+    }
 }

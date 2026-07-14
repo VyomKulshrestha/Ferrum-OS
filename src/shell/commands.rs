@@ -153,6 +153,7 @@ fn cmd_help() {
     println!("  write <f> <text>  Write text to file");
     println!("  rm <path>  Remove file or directory");
     println!("  devices    List kernel-visible device surfaces");
+    println!("  camera_gesture <name>  Set the synthetic camera's gesture (none|fist|openpalm|pointing|peace|threefingers|fourfingers|thumbsup)");
     println!("  net        Show network interfaces and loopback state");
     println!("  caps       Show capability tokens");
     println!("  services   List/start/stop/restart service registry");

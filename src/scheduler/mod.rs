@@ -348,6 +348,38 @@ static SCHEDULER_INIT: AtomicBool = AtomicBool::new(false);
 /// asm, read by the syscall layer and `tick`.
 pub static CURRENT_PID: AtomicU64 = AtomicU64::new(0);
 
+/// Pid of a registered kernel task (see `register_kernel_task`, e.g.
+/// the desktop compositor loop) that is *right now* parked at its own
+/// designated, known-safe preemption point - immediately before its
+/// own `hlt`. 0 the rest of the time, including while that same task
+/// is doing real work (rendering, processing input) between one hlt
+/// and the next.
+///
+/// This exists because a long-running ring-0 `loop { ...; hlt; }`
+/// (the desktop GUI, originally) was found to completely starve every
+/// ring-3 task - including `heliox-daemon` - because the timer
+/// interrupt's preemption logic only ever acted when the *interrupted*
+/// context was ring-3 (`frame.cs & 3 == 3`); a newly-registered ring-3
+/// task (e.g. a Start-menu-launched app) sat Ready in its run-queue
+/// forever with no code path ever dispatching it. Arbitrary ring-0
+/// code (syscall handlers, boot, anything holding a lock) is never
+/// safe to preempt at a random instruction boundary - only a loop that
+/// explicitly opts in by calling `enter_kernel_task_safepoint` right
+/// before its own `hlt` is.
+pub static CURRENT_KERNEL_TASK_PID: AtomicU64 = AtomicU64::new(0);
+
+/// Mark that `pid` (a task registered via `register_kernel_task`) is
+/// about to `hlt` at its own designated, known-safe preemption point.
+/// Must be paired with `leave_kernel_task_safepoint` immediately after
+/// waking, before doing any further (non-reentrant) work.
+pub fn enter_kernel_task_safepoint(pid: u64) {
+    CURRENT_KERNEL_TASK_PID.store(pid, Ordering::SeqCst);
+}
+
+pub fn leave_kernel_task_safepoint() {
+    CURRENT_KERNEL_TASK_PID.store(0, Ordering::SeqCst);
+}
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -503,6 +535,99 @@ pub fn register_user(
     // Mark which index in `tasks`/`contexts` the pid lives at so
     // we can do O(1) lookups without scanning.
     debug_assert_eq!(sched.tasks[idx].id, pid);
+}
+
+/// Register a long-running ring-0 loop (e.g. the desktop compositor)
+/// as a genuine schedulable task, so ring-3 tasks actually get CPU
+/// time while it runs instead of it monopolizing the CPU the way a
+/// bare `loop { ...; hlt; }` does (see `CURRENT_KERNEL_TASK_PID`'s
+/// doc for why that happened). Runs on the boot/kernel address space
+/// (`cr3: 0` - `resume_task` then leaves CR3 untouched rather than
+/// loading a process address space) starting at `entry`, on its own
+/// dedicated `stack_top`. Uses the same pid range (>=100) `Task::new`
+/// already reserves for kernel-side tasks. The caller is responsible
+/// for the *first* dispatch (`claim_kernel_task_for_run` +
+/// `resume_task`); subsequent re-entry happens via the timer
+/// interrupt's normal round-robin once the task starts calling
+/// `enter_kernel_task_safepoint` before its own `hlt`.
+pub fn register_kernel_task(name: &str, priority: Priority, stack_top: u64, entry: u64) -> u64 {
+    let mut sched = SCHEDULER.lock();
+    let mut task = Task::new(String::from(name), priority);
+    task.state = TaskState::Ready;
+    task.kernel_stack_top = stack_top;
+    task.cr3 = 0;
+    task.capabilities.push(String::from("cap:system:all"));
+    let id = push_task_locked(&mut sched, task);
+    let idx = sched.contexts.len() - 1;
+    let simd_state_ptr = sched.contexts[idx].simd_state_ptr;
+    sched.contexts[idx] = kernel_task_entry_context(stack_top, entry, simd_state_ptr);
+    sched.run_queues[priority.index()].push_back(id);
+    id
+}
+
+/// Reset an already-registered kernel task (see `register_kernel_task`)
+/// back to a clean entry-point context. Used when re-launching a
+/// kernel task (e.g. reopening the desktop) rather than resuming
+/// whatever mid-loop point it last happened to be preempted at - all
+/// of a kernel task's real state lives in its own globals, so
+/// restarting its local loop variables from scratch is safe, the same
+/// abandon-and-fresh-re-enter pattern `kernel_return_entry` already
+/// uses for the shell.
+pub fn reset_kernel_task_entry(pid: u64, stack_top: u64, entry: u64) {
+    let simd_state_ptr = context_of(pid).map(|c| c.simd_state_ptr).unwrap_or(0);
+    write_context(pid, kernel_task_entry_context(stack_top, entry, simd_state_ptr));
+}
+
+fn kernel_task_entry_context(stack_top: u64, entry: u64, simd_state_ptr: u64) -> TaskContext {
+    TaskContext {
+        r15: 0, r14: 0, r13: 0, r12: 0, r11: 0, r10: 0, r9: 0, r8: 0,
+        rbp: 0, rdi: 0, rsi: 0, rdx: 0, rcx: 0, rbx: 0, rax: 0,
+        rip: entry,
+        cs: crate::gdt::KERNEL_CODE_SELECTOR,
+        rflags: 0x202, // IF=1
+        rsp: stack_top - 8,
+        ss: crate::gdt::KERNEL_DATA_SELECTOR,
+        simd_state_ptr,
+    }
+}
+
+/// Re-queue a currently-executing kernel task (registered via
+/// `register_kernel_task`) as Ready. Mirrors `yield_current`'s
+/// bookkeeping but keys off the task's own pid rather than
+/// `CURRENT_PID` - a kernel task is never "the current ring-3
+/// process", so `yield_current` itself is a no-op for it. Called by
+/// the timer interrupt when preempting a kernel task at its own
+/// `enter_kernel_task_safepoint` point.
+pub fn yield_current_kernel_task(pid: u64) -> bool {
+    let mut sched = SCHEDULER.lock();
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+        if task.state == TaskState::Running {
+            task.state = TaskState::Ready;
+            task.time_remaining = TIME_SLICE_TICKS;
+            let pri = task.priority.index();
+            if !sched.run_queues[pri].contains(&pid) {
+                sched.run_queues[pri].push_back(pid);
+            }
+            return true;
+        }
+    }
+    false
+}
+
+/// Claim a registered kernel task for its first dispatch, mirroring
+/// `claim_for_run`'s bookkeeping (drain from run-queues, mark
+/// Running) without touching `CURRENT_PID` - that stays 0 the whole
+/// time a kernel task runs, since it correctly means "no ring-3
+/// process currently owns the CPU". Follow with `resume_task(pid)`.
+pub fn claim_kernel_task_for_run(pid: u64) {
+    let mut sched = SCHEDULER.lock();
+    for q in sched.run_queues.iter_mut() {
+        q.retain(|p| *p != pid);
+    }
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+        task.state = TaskState::Running;
+        task.time_remaining = TIME_SLICE_TICKS;
+    }
 }
 
 

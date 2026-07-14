@@ -329,6 +329,30 @@ extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
                 }
             }
         }
+        return;
+    }
+
+    // Not ring-3: check whether we interrupted a registered kernel
+    // task (see `CURRENT_KERNEL_TASK_PID`'s doc) parked at its own
+    // designated safe point, immediately before its own `hlt`.
+    // Arbitrary ring-0 code (syscall handlers, boot, anything holding
+    // a lock) is NEVER touched here - only a loop that explicitly
+    // opted in by calling `enter_kernel_task_safepoint` right before
+    // this exact `hlt` is. Every such loop reaches this point at most
+    // once per iteration, so there's no time-slice check to make here
+    // the way there is for ring-3 - this IS the task's own yield point.
+    let kernel_task_pid = crate::scheduler::CURRENT_KERNEL_TASK_PID.load(core::sync::atomic::Ordering::SeqCst);
+    if kernel_task_pid != 0 {
+        unsafe {
+            if crate::scheduler::yield_current_kernel_task(kernel_task_pid) {
+                save_user_context(kernel_task_pid, frame);
+                if let Some(next) = crate::scheduler::schedule_next() {
+                    if next != kernel_task_pid {
+                        crate::scheduler::resume_task(next);
+                    }
+                }
+            }
+        }
     }
 }
 
