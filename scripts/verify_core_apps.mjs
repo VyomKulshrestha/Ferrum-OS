@@ -65,7 +65,8 @@ async function waitForSerial(needle, seconds, from = 0) {
 }
 
 const keyMap = new Map(Object.entries({
-  " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon"
+  " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon",
+  "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma",
 }));
 
 const whpxArgs = [
@@ -176,12 +177,19 @@ const launcherY = DOCK_Y - (launcherH + 8);
 const launcherEntryRect = (i) => [launcherX + LAUNCHER_PADDING, launcherY + LAUNCHER_PADDING + i * LAUNCHER_ENTRY_H, launcherW - LAUNCHER_PADDING * 2, LAUNCHER_ENTRY_H - 4];
 
 async function openLauncherEntry(index) {
+  // Input is only actually processed whenever heliox-daemon's ambient
+  // SYS_HUD_UPDATE pump next runs (see sys_hud_update's doc) - it now
+  // genuinely shares the CPU with the shell (and, if auto-launched,
+  // heliox-assistant-panel) after `ring3 init` instead of running with
+  // exclusive access, so each click needs more real wall-clock time to
+  // land before the next one is sent (see REPORT.md's shell/agent
+  // coexistence fix).
   const [sx, sy] = rectCenter(startRect);
   await clickAt(sx, sy);
-  await sleep(250);
+  await sleep(1500);
   const [ex, ey] = rectCenter(launcherEntryRect(index));
   await clickAt(ex, ey);
-  await sleep(700);
+  await sleep(2000);
 }
 
 // App windows always spawn at this fixed position (src/gui/app_window.rs).
@@ -221,9 +229,20 @@ try {
   await sleep(1000);
 
   // --- Text Editor ------------------------------------------------------
+  // Fresh checkpoint right before the click, not the old `start` from
+  // before `ring3 init` - the wait budget below must not have to also
+  // cover the (now longer, see openLauncherEntry's doc) HELIOX_READY and
+  // click-settling waits that already elapsed before this point.
+  let beforeTextEditor = serialText().length;
   await openLauncherEntry(3);
-  await waitForSerial("[text-editor] alive in ring 3", 10, start);
-  await waitForSerial("[text-editor] window created id=", 5, start);
+  // heliox-daemon now genuinely shares the CPU with the shell (and
+  // `init`) after `ring3 init` instead of abandoning the shell prompt
+  // one-way (see REPORT.md's shell/agent coexistence fix), so its
+  // ambient SYS_HUD_UPDATE pump - which is what notices this click and
+  // dispatches the launch - makes slower wall-clock progress than the
+  // old exclusive-CPU baseline this timeout was sized for.
+  await waitForSerial("[text-editor] alive in ring 3", 30, beforeTextEditor);
+  await waitForSerial("[text-editor] window created id=", 5, beforeTextEditor);
   check("Text Editor launched as a real new process", true);
 
   // Text Editor's window is focused immediately after CreateWindow, so
@@ -243,13 +262,13 @@ try {
   // Relaunch Text Editor as a brand new process and confirm it reads the
   // saved content back from disk - proof the save actually persisted,
   // not just that the same process's own self-report can be trusted.
-  // (Re-running a shell command like `cat` isn't an option here: once
-  // `ring3 init` has run, the plain shell prompt never processes another
-  // typed line - see D1's investigation into why "desktop" couldn't be
-  // typed as a follow-up command either.)
+  // (Using the launcher rather than a shell command like `cat` here is
+  // just following the same click-driven pattern the rest of this test
+  // uses, not a workaround - the shell prompt itself now stays usable
+  // after `ring3 init` too, see REPORT.md's shell/agent coexistence fix.)
   const beforeReload = serialText().length;
   await openLauncherEntry(3);
-  await waitForSerial("[text-editor] loaded:", 10, beforeReload);
+  await waitForSerial("[text-editor] loaded:", 20, beforeReload);
   const reloadLog = await waitForSerial("[text-editor] window created id=", 5, beforeReload);
   const loadedLine = serialText().slice(beforeReload).split("\n").find(l => l.includes("[text-editor] loaded:"));
   check("relaunching Text Editor reads the saved text back from disk", !!loadedLine && loadedLine.includes("hi"),
@@ -258,9 +277,10 @@ try {
   await closeAppWindow(480);
 
   // --- Calculator ---------------------------------------------------------
+  const beforeCalculator = serialText().length;
   await openLauncherEntry(4);
-  await waitForSerial("[calculator] alive in ring 3", 10, start);
-  await waitForSerial("[calculator] window created id=", 5, start);
+  await waitForSerial("[calculator] alive in ring 3", 20, beforeCalculator);
+  await waitForSerial("[calculator] window created id=", 5, beforeCalculator);
   check("Calculator launched as a real new process", true);
 
   // Calculator canvas: 200x280, DISPLAY_H=50, 4 cols x 5 rows, BTN_W=50, BTN_H=46.
@@ -291,12 +311,13 @@ try {
   await closeAppWindow(CW);
 
   // --- File Manager ---------------------------------------------------
+  const beforeFileManager = serialText().length;
   await openLauncherEntry(5);
-  await waitForSerial("[file-manager] alive in ring 3", 10, start);
-  const listingLog = await waitForSerial("[file-manager] listing /disk count=", 5, start);
+  await waitForSerial("[file-manager] alive in ring 3", 20, beforeFileManager);
+  const listingLog = await waitForSerial("[file-manager] listing /disk count=", 5, beforeFileManager);
   check("File Manager launched as a real new process and listed /disk", true);
 
-  const listingStart = serialText().indexOf("[file-manager] listing /disk count=", start);
+  const listingStart = serialText().indexOf("[file-manager] listing /disk count=", beforeFileManager);
   const listingText = serialText().slice(listingStart);
   const entryLines = [...listingText.matchAll(/\[file-manager\] entry ([df]) (.+)/g)]
     .map(m => ({ kind: m[1], name: m[2].trim() }))

@@ -920,9 +920,21 @@ pub fn spawn_elf(name: &str, elf_bytes: &[u8], granted_caps: &[String]) -> Resul
     Ok(pid)
 }
 
-/// Transfer control to the registered process with the given pid
-/// at ring 3. The iretq never returns; if the process calls
-/// `SYS_EXIT` the kernel halts.
+/// Register the already-loaded process `pid` as Ready with the
+/// scheduler and seed its initial ring-3 context - then return
+/// normally, exactly like `spawn_elf` does, rather than switching into
+/// it directly.
+///
+/// This used to do the switch itself (`claim_for_run` + a direct
+/// `enter_ring3_inner` iretq, never returning to the caller), which is
+/// why `ring3 init` used to permanently abandon the interactive shell's
+/// prompt, and `pkg run` used to abandon it too: both callers
+/// (`shell/commands.rs`) are - or, for the shell, now are - registered
+/// kernel tasks (see `scheduler::register_kernel_task`), so simply
+/// registering the target as Ready and letting the caller's own next
+/// safepoint/preemption point hand off to it via the normal
+/// `schedule_next`/`resume_task` round-robin is enough to get it
+/// running, without abandoning whoever dispatched it.
 pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
     let name = {
         let procs = PROCESSES.lock();
@@ -973,14 +985,10 @@ pub fn enter_registered(pid: u64, caller_capabilities: &[String]) {
         target_user_rsp,
     );
     crate::scheduler::write_context(pid, ctx);
-    // Claim the CPU for this pid: mark it Running and drain it from
-    // the ready queue so a later `schedule_next` cannot try to
-    // re-enter it through the seeded context while it is already
-    // executing. Also sets CURRENT_PID so the tick handler decrements
-    // its time slice.
-    crate::scheduler::claim_for_run(pid);
-
-    enter_ring3_inner(kernel_rsp, VirtAddr::new(target_user_rsp), entry, l4_frame);
+    // Registered as Ready - the caller keeps running; `pid` gets its
+    // first CPU cycle via the normal timer-interrupt-driven
+    // `schedule_next`/`resume_task` round-robin the next time anyone
+    // reaches a preemption point (see this function's doc comment).
 }
 
 
@@ -1004,54 +1012,6 @@ impl Process {
         core::mem::forget(space);
         core::mem::forget(self);
         (kernel_rsp, user_rsp, entry, l4)
-    }
-}
-
-/// Ring-3 dispatch: set TSS.RSP0, switch CR3, switch RSP, push
-/// the iretq frame, iretq. Never returns.
-fn enter_ring3_inner(
-    kernel_rsp: VirtAddr,
-    user_rsp: VirtAddr,
-    entry: u64,
-    l4_frame: PhysFrame,
-) -> ! {
-    use crate::gdt::{USER_CODE_SELECTOR, USER_DATA_SELECTOR};
-
-    let new_cr3 = l4_frame.start_address().as_u64();
-    let user_rsp_val = user_rsp.as_u64();
-    let kernel_rsp_val = kernel_rsp.as_u64();
-
-    unsafe {
-        crate::gdt::set_kernel_stack(kernel_rsp);
-    }
-
-    crate::println!(
-        "    [ring3] entry={:#x} new_cr3={:#x} user_rsp={:#x}",
-        entry,
-        new_cr3,
-        user_rsp_val
-    );
-
-    unsafe {
-        core::arch::asm!(
-            "mov cr3, {new_cr3}",
-            "mov rsp, {kernel_rsp}",
-            "sub rsp, 40",
-            "mov [rsp +  0], {rip}",
-            "mov [rsp +  8], {cs}",
-            "mov [rsp + 16], {rflags}",
-            "mov [rsp + 24], {user_rsp}",
-            "mov [rsp + 32], {ss}",
-            "iretq",
-            new_cr3 = in(reg) new_cr3,
-            kernel_rsp = in(reg) kernel_rsp_val,
-            rip = in(reg) entry,
-            cs = in(reg) USER_CODE_SELECTOR,
-            rflags = in(reg) 0x3202u64,
-            user_rsp = in(reg) user_rsp_val,
-            ss = in(reg) USER_DATA_SELECTOR,
-            options(noreturn, preserves_flags),
-        );
     }
 }
 

@@ -234,7 +234,14 @@ try {
   // BSS is zeroed eagerly at spawn time, so a fixed 2s budget that was
   // fine for the old heap size no longer reliably covers spawn-to-ready.
   await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 30, start);
-  await sleep(1000);
+  // heliox-daemon now genuinely shares the CPU with the shell (and
+  // `init`) after `ring3 init` instead of abandoning the shell prompt
+  // one-way (see REPORT.md's shell/agent coexistence fix) - a real,
+  // correct fairness change, but it means its ambient SYS_HUD_UPDATE
+  // render pump makes slower wall-clock progress than it did with
+  // exclusive CPU access, so the old fixed 1s budget isn't always
+  // enough for a few more render cycles to finish painting the taskbar.
+  await sleep(4000);
 
   // --- 1. Wallpaper: the debug grid is gone ---------------------------
   let ppm = await screendump();

@@ -1452,10 +1452,16 @@ extern "C" fn idle_entry() -> ! {
     }
 }
 
-/// Return-to-shell trampoline: reap whatever died, report the exit,
-/// and drop into a fresh shell prompt. The original boot-time shell
-/// stack frame (abandoned when `ring3` dispatched one-way into user
-/// space) is never resumed; this is a fresh re-entry.
+/// Return-to-shell fallback: reap whatever died, report the exit, and
+/// hand control back to the shell. `shell::run()` now resumes the
+/// shell's own registered kernel task (see `register_kernel_task`) from
+/// wherever it was last parked, rather than starting fresh - the shell
+/// is a normal, always-in-the-run-queue-when-idle participant these
+/// days, so in practice `schedule_next()` above usually finds and
+/// resumes it directly the moment it becomes Ready, without ever
+/// reaching this trampoline; this stays as a safety net for the
+/// remaining edge case (death happening before the shell has reached
+/// its own first safepoint).
 extern "C" fn kernel_return_entry() -> ! {
     CURRENT_PID.store(0, Ordering::SeqCst);
     crate::process::reap_dead();

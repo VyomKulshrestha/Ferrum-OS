@@ -182,16 +182,18 @@ try {
   const DEFAULT_APP_X = 150;
   const DEFAULT_APP_Y = 150;
 
-  // Note: this deliberately does NOT type "desktop" at the shell. `ring3
-  // init` hands the CPU to the ring-3 scheduler in a way the plain shell
-  // prompt never returns from in this kernel, so a command typed after it
-  // is never dispatched. The compositor still renders and processes input
-  // independently of the "desktop" command, though: heliox-daemon's own
-  // ambient loop periodically calls SYS_HUD_UPDATE, which pumps
-  // `cursor::process_input()` + `compositor::render()` on its own
-  // (src/syscall/hud.rs). Waiting for one of those cycles is enough to get
-  // both a real framebuffer frame and real input delivery.
-  await sleep(1200);
+  // Note: this deliberately does NOT type "desktop" at the shell. The
+  // compositor renders and processes input independently of the
+  // "desktop" command: heliox-daemon's own ambient loop periodically
+  // calls SYS_HUD_UPDATE, which pumps `cursor::process_input()` +
+  // `compositor::render()` on its own (src/syscall/hud.rs). Waiting for
+  // one of those cycles is enough to get both a real framebuffer frame
+  // and real input delivery. The shell now genuinely shares the CPU with
+  // heliox-daemon after `ring3 init` instead of abandoning the shell
+  // prompt one-way (see REPORT.md's shell/agent coexistence fix), so
+  // that ambient pump makes slower wall-clock progress than the old
+  // exclusive-CPU baseline this wait was sized for.
+  await sleep(6000);
 
   fs.rmSync(screenshotPath, { force: true });
   await mon(`screendump ${screenshotPath}`, 500);
