@@ -14,6 +14,7 @@
 docs/ROADMAP.md
 REPORT.md
 model.md
+work.md
 
 # Ignore custom certificate keys and intermediate files
 userland/heliox-daemon/certs/*.key
