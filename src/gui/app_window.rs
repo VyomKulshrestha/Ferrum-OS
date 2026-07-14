@@ -68,9 +68,31 @@ pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64
 
     let window = Window::new_app(id, pid, title, DEFAULT_APP_X, DEFAULT_APP_Y, canvas_w, canvas_h);
 
+    // Every window normally takes focus immediately on creation (a direct
+    // user action - clicking a launcher entry - expects that). The one
+    // exception is an opportunistic, out-of-band launch (see
+    // `compositor::launch_assistant_panel_if_unconfigured`), which
+    // shouldn't steal focus - and, since new windows all share the same
+    // default screen position, visually cover - whatever the caller
+    // already had open.
+    let suppress_focus_steal = compositor::take_suppress_focus_steal(pid);
+
     let mut state = compositor::COMPOSITOR.lock();
-    state.windows.push(window);
-    state.focused_idx = Some(state.windows.len() - 1);
+    if suppress_focus_steal {
+        // Windows render back-to-front in vec order regardless of focus,
+        // so pushing to the end (like every other window) would still
+        // visually cover whatever's already on screen even without
+        // taking focus. Insert at the bottom of the stack instead -
+        // behind every existing window, focused or not - and shift
+        // `focused_idx` to keep pointing at the same logical window.
+        state.windows.insert(0, window);
+        if let Some(idx) = state.focused_idx.as_mut() {
+            *idx += 1;
+        }
+    } else {
+        state.windows.push(window);
+        state.focused_idx = Some(state.windows.len() - 1);
+    }
     state.needs_redraw = true;
     drop(state);
 

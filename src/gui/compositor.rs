@@ -93,7 +93,26 @@ pub const LAUNCHER_ENTRIES: [&str; 9] = [
 /// straight from the program's manifest instead of delegated from a
 /// caller - there is no ring-3 "caller" here, the launcher acts on the
 /// user's behalf the same way `bootstrap_init()` does for `init` at boot.
-fn launch_installed_app(program_name: &str) {
+/// Pid of a process whose *next* `CreateWindow` call should not steal
+/// focus (see `launch_assistant_panel_if_unconfigured`'s doc for why).
+/// One-shot: consumed by `app_window::create_window` via
+/// `take_suppress_focus_steal`.
+static SUPPRESS_FOCUS_STEAL_PID: Mutex<Option<u64>> = Mutex::new(None);
+
+/// Checked by `app_window::create_window`: true if `pid`'s window should
+/// not take focus away from whatever is already focused. Clears the flag
+/// either way, so it only ever applies to that process's next window.
+pub fn take_suppress_focus_steal(pid: u64) -> bool {
+    let mut guard = SUPPRESS_FOCUS_STEAL_PID.lock();
+    if *guard == Some(pid) {
+        *guard = None;
+        true
+    } else {
+        false
+    }
+}
+
+fn launch_installed_app(program_name: &str) -> Option<u64> {
     let elf_bytes: &[u8] = match program_name {
         "text-editor" => crate::userspace::TEXT_EDITOR_ELF,
         "calculator" => crate::userspace::CALCULATOR_ELF,
@@ -102,15 +121,17 @@ fn launch_installed_app(program_name: &str) {
         "settings" => crate::userspace::SETTINGS_ELF,
         "browser" => crate::userspace::BROWSER_ELF,
         "app-store" => crate::userspace::APP_STORE_ELF,
-        _ => return,
+        _ => return None,
     };
     let caps = crate::userspace::capabilities_for_program(program_name);
     match crate::process::spawn_elf(program_name, elf_bytes, &caps) {
         Ok(pid) => {
             crate::serial_println!("[launcher] spawned {} as pid {}", program_name, pid);
+            Some(pid)
         }
         Err(e) => {
             crate::serial_println!("[launcher] failed to spawn {}: {}", program_name, e);
+            None
         }
     }
 }
@@ -298,7 +319,16 @@ pub fn spawn_demo_windows() {
 /// system is well past the fragile early-boot window.
 pub fn launch_assistant_panel_if_unconfigured() {
     if crate::fs::read_file("/disk/heliox/config.json").is_err() {
-        launch_installed_app("heliox-assistant-panel");
+        // Opportunistic, out-of-band launch (from `sys_hud_update`, not a
+        // user click) - unlike every other launcher entry, there's no
+        // explicit user intent behind this one. It shouldn't steal focus
+        // (and, since new windows all share the same default screen
+        // position, visually cover) whatever app the user - or, as
+        // `verify_app_window.mjs` found, a test app like gui-smoke-test -
+        // already had open and focused.
+        if let Some(pid) = launch_installed_app("heliox-assistant-panel") {
+            *SUPPRESS_FOCUS_STEAL_PID.lock() = Some(pid);
+        }
     }
 }
 
@@ -722,13 +752,13 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                     match idx {
                         0 => spawn_terminal(),
                         1 => spawn_sys_mon(),
-                        2 => launch_installed_app("heliox-assistant-panel"),
-                        3 => launch_installed_app("text-editor"),
-                        4 => launch_installed_app("calculator"),
-                        5 => launch_installed_app("file-manager"),
-                        6 => launch_installed_app("settings"),
-                        7 => launch_installed_app("browser"),
-                        8 => launch_installed_app("app-store"),
+                        2 => { launch_installed_app("heliox-assistant-panel"); }
+                        3 => { launch_installed_app("text-editor"); }
+                        4 => { launch_installed_app("calculator"); }
+                        5 => { launch_installed_app("file-manager"); }
+                        6 => { launch_installed_app("settings"); }
+                        7 => { launch_installed_app("browser"); }
+                        8 => { launch_installed_app("app-store"); }
                         _ => {}
                     }
                     return;
