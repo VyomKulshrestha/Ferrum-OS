@@ -328,7 +328,17 @@ pub fn stat(path: &str) -> Result<FsStat, String> {
         });
     }
     let (fs, rel) = vfs::resolve(path)?;
-    fs.stat(&rel)
+    let mut result = fs.stat(&rel)?;
+    // `rel` is relative to whatever mount owns it (e.g. `/disk/foo.txt`
+    // resolves to `foo.txt`'s own filesystem with the `/disk` mount prefix
+    // already stripped), and every `Filesystem::stat` impl builds its
+    // returned `path` from that stripped `rel`, not the path the caller
+    // actually typed - so `stat /disk/foo.txt` reported back `/foo.txt`,
+    // reading as if a different, and non-existent from the caller's own
+    // vantage point, path had been resolved instead (see `work.md`'s 2.7
+    // items). Report the real, full path the caller asked about.
+    result.path = normalize_path(path);
+    Ok(result)
 }
 
 pub fn usage() -> Result<FsUsage, String> {

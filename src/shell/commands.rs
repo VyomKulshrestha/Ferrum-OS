@@ -347,7 +347,7 @@ fn cmd_touch(args: &[&str]) {
         return;
     }
     match crate::fs::create_file(args[0], "") {
-        Ok(()) => {},
+        Ok(()) => println!("Created: {}", args[0]),
         Err(e) => println!("touch: {}", e),
     }
 }
