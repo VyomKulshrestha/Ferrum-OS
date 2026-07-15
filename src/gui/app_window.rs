@@ -78,7 +78,22 @@ pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64
     let suppress_focus_steal = compositor::take_suppress_focus_steal(pid);
 
     let mut state = compositor::COMPOSITOR.lock();
-    if suppress_focus_steal {
+    // Only protect focus that belongs to a real, user/test-opened app
+    // window. `gui::init()` unconditionally seeds two placeholder windows
+    // at boot (`compositor::spawn_demo_windows`, SystemMonitor id=1 and
+    // Terminal id=2) and focuses one of them even when the desktop is
+    // never actually opened or rendered - so `focused_idx` can be `Some`
+    // pointing at a window nobody ever sees or interacts with. Treating
+    // that phantom focus as worth protecting left the auto-launched panel
+    // permanently unfocused (and so unable to ever receive keyboard input)
+    // on a plain `ring3 init` boot with no real window ever opened - see
+    // work.md's verify_heliox_setup.mjs regression.
+    let protecting_real_app_focus = suppress_focus_steal
+        && state
+            .focused_idx
+            .and_then(|i| state.windows.get(i))
+            .is_some_and(|w| matches!(w.win_type, crate::gui::window::WindowType::App(_)));
+    if protecting_real_app_focus {
         // Windows render back-to-front in vec order regardless of focus,
         // so pushing to the end (like every other window) would still
         // visually cover whatever's already on screen even without
