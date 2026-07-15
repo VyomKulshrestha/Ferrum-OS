@@ -256,6 +256,14 @@ pub struct Task {
     pub blocked_on_confirmation: bool,
     pub confirmation_approved: bool,
     pub confirmation_denied: bool,
+    /// True only for `scheduler::init()`'s "kernel" placeholder (pid 100) -
+    /// never pushed to any run-queue, never actually dispatched, and its
+    /// `state` is set once and never updated again. It still shows up in
+    /// `ps`/`users` so those commands have something to say about the
+    /// kernel main context, but `cmd_scheduler`'s aggregate counts exclude
+    /// it - otherwise its permanently-frozen `Running` state inflated the
+    /// "running" tally by one forever (see `work.md` finding 2.4).
+    pub is_bookkeeping_stub: bool,
 }
 
 impl Task {
@@ -286,6 +294,7 @@ impl Task {
             blocked_on_confirmation: false,
             confirmation_approved: false,
             confirmation_denied: false,
+            is_bookkeeping_stub: false,
         }
     }
 }
@@ -384,11 +393,21 @@ pub fn leave_kernel_task_safepoint() {
 // Public API
 // ============================================================================
 
-/// Initialize the scheduler. Creates two bookkeeping tasks
-/// (`kernel` and `shell`) at `System` and `High` priority. They
-/// are never actually scheduled (the kernel main context stays
-/// on pid 0); they exist so the sweep's `ps` command and
-/// `list_tasks` keep the same surface as Phase 1.
+/// Initialize the scheduler. Creates one bookkeeping task (`kernel`,
+/// pid 100) at `System` priority, marked `is_bookkeeping_stub` - it's
+/// never actually scheduled (the kernel main context stays on pid 0)
+/// or updated again after this, so `ps`/`users` have something to show
+/// for the kernel main context and `cmd_scheduler`'s aggregate counts
+/// know to exclude it.
+///
+/// There used to be a second stub here, `shell` at `High` priority, for
+/// the same "give `ps` something to show" reason - before D13, the
+/// interactive shell prompt was a bare blocking loop with no scheduler
+/// presence of its own. Now that `shell::run()` registers the shell as
+/// a genuine, live kernel task at boot (see its own doc comment), that
+/// stub was retired entirely - it only ever produced a second, confusing,
+/// permanently-`Ready` "shell" row alongside the real one in `ps`/`users`
+/// (see `work.md` finding 2.3).
 pub fn init() {
     // Capture the boot L4 frame so the idle loop and the kernel return
     // trampoline can restore the kernel address space after the last
@@ -402,12 +421,8 @@ pub fn init() {
     let mut kernel_task = Task::new(String::from("kernel"), Priority::System);
     kernel_task.state = TaskState::Running;
     kernel_task.capabilities.push(String::from("cap:system:all"));
+    kernel_task.is_bookkeeping_stub = true;
     push_task_locked(&mut sched, kernel_task);
-
-    let mut shell_task = Task::new(String::from("shell"), Priority::High);
-    shell_task.state = TaskState::Ready;
-    shell_task.capabilities.push(String::from("cap:shell:interactive"));
-    push_task_locked(&mut sched, shell_task);
 
     SCHEDULER_INIT.store(true, Ordering::SeqCst);
 }
@@ -522,6 +537,7 @@ pub fn register_user(
         blocked_on_confirmation: false,
         confirmation_approved: false,
         confirmation_denied: false,
+        is_bookkeeping_stub: false,
     };
     if !task.capabilities.contains(&String::from("cap:process:user")) {
         task.capabilities.push(String::from("cap:process:user"));

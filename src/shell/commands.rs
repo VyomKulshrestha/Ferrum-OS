@@ -1432,20 +1432,26 @@ fn cmd_scheduler(_args: &[&str]) {
     let tasks = crate::scheduler::list_tasks();
     let current = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     let total = crate::scheduler::total_ticks();
-    let active = tasks
-        .iter()
+    // Bookkeeping-only stubs (currently just `scheduler::init()`'s "kernel"
+    // placeholder) are never pushed to a run-queue and never actually
+    // dispatched, so their `state` is a permanently-frozen label, not a
+    // real live count - excluded here so "running"/"active" etc. reflect
+    // genuinely schedulable tasks only (see `work.md` finding 2.4).
+    let schedulable = tasks.iter().filter(|t| !t.is_bookkeeping_stub);
+    let active = schedulable
+        .clone()
         .filter(|t| !matches!(t.state, crate::scheduler::TaskState::Dead))
         .count();
-    let ready = tasks
-        .iter()
+    let ready = schedulable
+        .clone()
         .filter(|t| matches!(t.state, crate::scheduler::TaskState::Ready))
         .count();
-    let running = tasks
-        .iter()
+    let running = schedulable
+        .clone()
         .filter(|t| matches!(t.state, crate::scheduler::TaskState::Running))
         .count();
-    let blocked = tasks
-        .iter()
+    let blocked = schedulable
+        .clone()
         .filter(|t| matches!(t.state, crate::scheduler::TaskState::Blocked))
         .count();
     println!("Scheduler State:");
