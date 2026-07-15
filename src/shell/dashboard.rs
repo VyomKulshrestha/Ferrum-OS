@@ -6,8 +6,14 @@
 // heap memory usage, scheduler tasks, and registered devices in styled
 // panels.
 //
-// Entry point: `run_dashboard()` — clears the screen, draws all panels,
-// then polls for ESC (0x1B) to return to the shell.
+// Entry point: `run_dashboard()` — dispatches `dashboard_entry` as a
+// registered kernel task (see `scheduler::register_kernel_task`), which
+// clears the screen, draws all panels, then waits for ESC (0x1B) to
+// return to the shell. Runs as a real scheduled task rather than a plain
+// blocking call so ring-3 tasks (heliox-daemon, init, ...) still get CPU
+// time while it's open - a bare busy-spin here used to starve everything,
+// the same class of bug already found and fixed for the desktop GUI loop
+// and the plain shell prompt.
 // ============================================================================
 
 #![allow(dead_code)]
@@ -16,6 +22,7 @@ extern crate alloc;
 
 use alloc::format;
 use alloc::string::String;
+use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::graphics::{
     self, fill_rect, draw_string, draw_char,
@@ -460,16 +467,68 @@ fn draw_footer() {
 // Public Entry Point
 // ============================================================================
 
+const DASHBOARD_STACK_SIZE: usize = 64 * 1024;
+
+#[repr(C, align(16))]
+struct DashboardStack([u8; DASHBOARD_STACK_SIZE]);
+static mut DASHBOARD_STACK: DashboardStack = DashboardStack([0; DASHBOARD_STACK_SIZE]);
+
+/// Pid of the dashboard's registered kernel task (see
+/// `scheduler::register_kernel_task`). 0 means "never launched yet".
+static DASHBOARD_TASK_PID: AtomicU64 = AtomicU64::new(0);
+
+fn dashboard_stack_top() -> u64 {
+    let base = &raw mut DASHBOARD_STACK as u64;
+    (base + DASHBOARD_STACK_SIZE as u64) & !0xF
+}
+
 /// Run the full-screen TUI dashboard.
 ///
-/// Draws all panels with live kernel data, then enters a spin-loop
-/// waiting for the ESC key (0x1B) to return to the shell. On exit,
-/// clears the screen.
-pub fn run_dashboard() {
+/// Dispatches into `dashboard_entry` as a genuine scheduled kernel task
+/// (see `scheduler::register_kernel_task`) instead of calling it as a
+/// plain blocking function. The old exit-wait loop here busy-spun on
+/// `core::hint::spin_loop()` - not even `hlt`-ing between checks - so it
+/// starved every ring-3 task (`heliox-daemon`, `init`, everything) for as
+/// long as the dashboard stayed open: the exact same class of bug found
+/// and fixed for the desktop GUI loop (`gui::run_desktop`) and the plain
+/// shell prompt (`shell::run`), just not caught here yet. Never returns
+/// to the caller (mirrors `gui::run_desktop`'s one-way dispatch) - the
+/// shell resumes fresh via `scheduler::enter_kernel_return` once the
+/// dashboard exits.
+pub fn run_dashboard() -> ! {
+    let stack_top = dashboard_stack_top();
+    let pid = DASHBOARD_TASK_PID.load(Ordering::SeqCst);
+    let pid = if pid == 0 {
+        let id = crate::scheduler::register_kernel_task(
+            "dashboard",
+            crate::scheduler::Priority::Normal,
+            stack_top,
+            dashboard_entry as u64,
+        );
+        DASHBOARD_TASK_PID.store(id, Ordering::SeqCst);
+        id
+    } else {
+        // Every field is redrawn from scratch on each launch anyway (no
+        // persistent state to preserve), so reopening after a previous
+        // session just resets to a clean entry point - same reasoning
+        // as `gui::run_desktop`'s reopen path.
+        crate::scheduler::reset_kernel_task_entry(pid, stack_top, dashboard_entry as u64);
+        pid
+    };
+    crate::scheduler::claim_kernel_task_for_run(pid);
+    unsafe {
+        crate::scheduler::resume_task(pid);
+    }
+}
+
+/// The dashboard kernel task's actual entry point - see `run_dashboard`.
+extern "C" fn dashboard_entry() -> ! {
     // ── Guard: framebuffer must be initialized ─────────────────────
     if !graphics::is_initialized() {
         crate::serial_println!("[dashboard] framebuffer not initialized, aborting");
-        return;
+        unsafe {
+            crate::scheduler::enter_kernel_return();
+        }
     }
 
     crate::serial_println!("[dashboard] launching system dashboard");
@@ -510,16 +569,31 @@ pub fn run_dashboard() {
     draw_footer();
 
     // ── Input loop: wait for ESC ───────────────────────────────────
+    // Marks this exact point as safe to preempt before halting, so
+    // ring-3 tasks (heliox-daemon, init, ...) actually get CPU time
+    // while the dashboard is open instead of being starved by a busy
+    // spin - see this function's doc comment.
+    let my_pid = DASHBOARD_TASK_PID.load(Ordering::SeqCst);
     loop {
         if let Some(key) = crate::interrupts::read_keyboard() {
             if key == 0x1B {
                 break;
             }
         }
-        core::hint::spin_loop();
+        crate::scheduler::enter_kernel_task_safepoint(my_pid);
+        x86_64::instructions::interrupts::enable_and_hlt();
+        crate::scheduler::leave_kernel_task_safepoint();
     }
 
     // ── Exit: Restore previous console state ───────────────────────
     crate::serial_println!("[dashboard] exiting dashboard");
     crate::graphics::redraw_console();
+
+    // Hand control back to a fresh shell prompt - this task's own stack
+    // is abandoned here (see `enter_kernel_return`'s doc); the next
+    // `dashboard` command resets this same task to a clean entry point
+    // rather than resuming from here.
+    unsafe {
+        crate::scheduler::enter_kernel_return();
+    }
 }
