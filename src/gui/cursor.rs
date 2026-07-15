@@ -65,11 +65,17 @@ pub fn mark_dirty() {
 /// or `SYS_HUD_UPDATE`'s ambient render pump), so the one-time discard of
 /// whatever piled up before that first call belongs here, in the single
 /// shared entry point, not duplicated in every caller.
+///
+/// Only keyboard events are discarded (see
+/// `crate::input::discard_stale_keyboard_events`) - mouse events are never
+/// typed at the shell prompt, so there's no backlog to discard for them,
+/// and wiping them too could eat a real click queued in the same narrow
+/// window as this one-time flush.
 static INPUT_PRIMED: AtomicBool = AtomicBool::new(false);
 
 pub fn process_input() {
     if !INPUT_PRIMED.swap(true, Ordering::SeqCst) {
-        while EVENT_QUEUE.lock().pop().is_some() {}
+        crate::input::discard_stale_keyboard_events();
     }
 
     let mut cursor = CURSOR.lock();

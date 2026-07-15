@@ -178,6 +178,35 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
     }
 }
 
+/// Drop any queued keyboard events, leaving mouse events untouched.
+///
+/// Used by `gui::cursor::process_input`'s one-time discard of stale
+/// keyboard backlog left over from before the GUI was ever looked at
+/// (typing at the plain shell prompt, e.g. `ring3 init` itself,
+/// shouldn't leak into whatever window ends up focused first). Mouse
+/// events are never typed at the shell prompt in the first place, so
+/// there's no backlog to discard for them - wiping the whole queue
+/// (as this used to do) could silently eat a real, freshly-issued
+/// click that happened to be queued in the same narrow window as this
+/// one-time flush, if heliox-daemon's ambient loop was slow to reach
+/// its first tick (e.g. while still loading a model). This is exactly
+/// what broke `verify_core_apps.mjs`'s Text Editor launch: the first
+/// mouse-move of the test's first click landed in the queue right
+/// before this flush and got wiped, so the click that followed fired
+/// at the cursor's stale default position instead of over the launcher.
+pub fn discard_stale_keyboard_events() {
+    let mut queue = EVENT_QUEUE.lock();
+    let mut retained = alloc::vec::Vec::new();
+    while let Some(event) = queue.pop() {
+        if !matches!(event.event_type, InputEventType::KeyPress(_) | InputEventType::KeyRelease(_)) {
+            retained.push(event);
+        }
+    }
+    for event in retained {
+        queue.push(event);
+    }
+}
+
 /// Inject mouse movement and button events.
 ///
 /// Called by the USB HID mouse driver. Generates a `MouseMove` event

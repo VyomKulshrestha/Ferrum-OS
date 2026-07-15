@@ -180,7 +180,7 @@ for compiled-in programs.
 
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
-- `cursor::process_input()` is the single shared entry point every render/input pump goes through (both `run_desktop()`'s loop and `SYS_HUD_UPDATE`'s ambient pump call it) — it discards whatever piled up in the queue the first time it's ever called, so keystrokes typed before anything was compositing yet don't replay into whatever window happens to get focus first
+- `cursor::process_input()` is the single shared entry point every render/input pump goes through (both `run_desktop()`'s loop and `SYS_HUD_UPDATE`'s ambient pump call it) — the first time it's ever called it discards only queued *keyboard* events (`input::discard_stale_keyboard_events`), so keystrokes typed before anything was compositing yet don't replay into whatever window happens to get focus first. Mouse events are left untouched: they were never typed at a shell prompt, so blanket-clearing the whole queue here used to risk silently eating a real, freshly-issued click if it landed in the same narrow window as this one-time flush (the actual cause of a `verify_core_apps.mjs` Text Editor regression - see `work.md`)
 - Main GUI loop utilizes `hlt` for 0% idle CPU usage, waking only on hardware IRQs
 - Mouse events support 9-bit signed deltas with overflow protection
 - Real-time hover state feedback for dock buttons and window controls
