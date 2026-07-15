@@ -21,7 +21,10 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45459);
 const serialLog = path.join(repo, "target", "ring3-verify-serial.log");
 const visible = process.argv.includes("--visible");
@@ -30,6 +33,18 @@ if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
 if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// This script predates the WHPX-acceleration + TCG-fallback pattern every
+// other verify_*.mjs script uses - it used to spawn QEMU with no `-accel`
+// flag at all, which defaults to QEMU's plain interpreted TCG and made the
+// kernel's now-much-larger boot sequence (heliox-daemon's real model,
+// world-model MLPs, etc. - all far bigger than when this script was
+// written) take well over a minute to reach the shell prompt, timing out
+// this script's original 30s boot budget. The kernel was never actually
+// hung - confirmed by waiting 120s against unaccelerated QEMU directly, at
+// which point it did reach the prompt. Accelerating this the same way
+// every other test does is the fix, not a longer timeout on slow emulation.
 const qemuArgs = [
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
@@ -38,10 +53,18 @@ const qemuArgs = [
   "-device", "hda-duplex",
   "-no-reboot",
 ];
-if (!visible) qemuArgs.push("-display", "none");
+let whpxArgs = ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs];
+if (!visible) whpxArgs.push("-display", "none");
 
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let qemuProcess = spawn(qemu, whpxArgs, { windowsHide: !visible });
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("WHPX unsupported or failed, falling back to TCG...");
+  let tcgArgs = ["-accel", "tcg", "-cpu", "max", ...qemuArgs];
+  if (!visible) tcgArgs.push("-display", "none");
+  qemuProcess = spawn(qemu, tcgArgs, { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -95,7 +118,7 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 30);
+  await waitForSerial("FerrumOS:~$", 45);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
@@ -118,13 +141,25 @@ try {
   await waitForSerial("[init] supervision complete, exiting cleanly", 15, start);
   check("SYS_SLEEP/SYS_YIELD supervision loop ran", true);
 
-  // Step 5: kernel reaps the process and returns to a fresh shell. Wait for
-  // the specific reap line ("...exited (code N)") rather than the generic
-  // "user process" substring, which also appears in the earlier audit line.
-  await waitForSerial("exited (code", 10, start);
+  // Step 5: kernel reaps the process and returns to a fresh shell.
+  //
+  // This used to wait for `[kernel] user process N exited (code N)` -
+  // `kernel_return_entry`'s reap-and-report trampoline (src/scheduler/mod.rs).
+  // That trampoline is D13-era legacy: before the shell became a genuine,
+  // always-in-the-run-queue-when-idle kernel task, it was the *only* way
+  // control ever returned to the shell after a ring-3 dispatch, so it fired
+  // on every exit. Post-D13, `schedule_next()` normally finds and resumes
+  // the shell directly the moment it's Ready, without ever reaching this
+  // trampoline (see its own doc comment) - so this line now only fires on
+  // the rare edge case of the shell not yet having reached its own first
+  // safepoint. Waiting on it unconditionally made this check flaky/stale.
+  //
+  // `sys_exit`'s own audit log line (src/interrupts/mod.rs), by contrast,
+  // fires unconditionally and immediately on every clean exit regardless of
+  // which reap path handles the cleanup afterward - the reliable signal.
+  await waitForSerial("[AUDIT] ProcessKilled: user process exited via sys_exit", 10, start);
   const exited = serialText().slice(start);
-  check("kernel reports clean exit + reaps", /user process \d+ exited \(code \d+\)/.test(exited),
-    (exited.match(/\[kernel\].*exited[^\n]*/) || [""])[0].trim());
+  check("kernel reports clean exit via sys_exit", /ProcessKilled: user process exited via sys_exit/.test(exited));
   await waitForSerial("FerrumOS:~$", 8, start + 1);
   check("shell prompt returns after init exit", true);
 

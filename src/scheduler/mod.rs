@@ -807,15 +807,38 @@ pub fn schedule_next() -> Option<u64> {
                 if affinity_ok {
                     // Remove from queue and run it
                     sched.run_queues[qi].remove(idx);
-                    
-                    // Reset time slice and mark running.
-                    if let Some(task_mut) = sched.tasks.iter_mut().find(|t| t.id == pid) {
-                        task_mut.state = TaskState::Running;
-                        task_mut.time_remaining = TIME_SLICE_TICKS;
-                    }
-                    
+
+                    // Reset time slice and mark running. Also capture
+                    // whether this is a genuine ring-3 user process (a
+                    // nonzero `cr3`) as opposed to one of our own kernel
+                    // tasks (shell/dashboard/desktop - always `cr3: 0`, see
+                    // `register_kernel_task`'s doc) - only a real ring-3
+                    // process should ever update `CURRENT_PID` (its own doc:
+                    // "0 means kernel main context"). This store used to be
+                    // unconditional, so whenever this function picked a
+                    // kernel task as "next" - an everyday occurrence once
+                    // D13 let kernel tasks round-robin with everything else
+                    // - `CURRENT_PID` got clobbered with that kernel task's
+                    // own pid, corrupting the "is a ring-3 process really
+                    // current right now" check `yield_current`/
+                    // `sleep_current` rely on (see `work.md` finding 2.6:
+                    // `test-syscall yield`/`sleep`'s `ran` result flipping
+                    // unpredictably was the visible symptom).
+                    let is_ring3_process = sched
+                        .tasks
+                        .iter_mut()
+                        .find(|t| t.id == pid)
+                        .map(|task_mut| {
+                            task_mut.state = TaskState::Running;
+                            task_mut.time_remaining = TIME_SLICE_TICKS;
+                            task_mut.cr3 != 0
+                        })
+                        .unwrap_or(false);
+
                     drop(sched);
-                    CURRENT_PID.store(pid, Ordering::SeqCst);
+                    if is_ring3_process {
+                        CURRENT_PID.store(pid, Ordering::SeqCst);
+                    }
                     return Some(pid);
                 } else {
                     // Task is for another CPU core, leave it in queue
