@@ -1153,15 +1153,30 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         Ok(bytes_read)
     }
 
+    /// Create a file, or overwrite it in place if it already exists (matching
+    /// the in-memory vfs's `create_file`, and what every caller of `write`
+    /// already assumes - see `work.md` finding 2.1). New content is fully
+    /// allocated and written before any of the old file's blocks are freed,
+    /// so a failure partway through leaves the original file untouched.
     fn create_file(&self, path: &str, content: &str) -> Result<(), String> {
         let (parent_path, file_name) = split_path(path)?;
         let parent_inode_num = self.resolve_path(&parent_path)?;
 
-        if self.resolve_path(path).is_ok() {
-            return Err(String::from("file already exists"));
-        }
+        let existing = match self.resolve_path(path) {
+            Ok(inode_num) => {
+                let inode = self.read_inode(inode_num)?;
+                if (inode.mode & S_IFMT) != S_IFREG {
+                    return Err(String::from("write: not a regular file"));
+                }
+                Some((inode_num, inode))
+            }
+            Err(_) => None,
+        };
 
-        let new_inode_num = self.alloc_inode()?;
+        let new_inode_num = match &existing {
+            Some((inode_num, _)) => *inode_num,
+            None => self.alloc_inode()?,
+        };
         let block_size = self.block_size as usize;
         let content_bytes = content.as_bytes();
         let mut blocks_allocated = Vec::new();
@@ -1180,7 +1195,9 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
                         for &b in &blocks_allocated {
                             let _ = self.free_block(b);
                         }
-                        let _ = self.free_inode(new_inode_num);
+                        if existing.is_none() {
+                            let _ = self.free_inode(new_inode_num);
+                        }
                         return Err(e);
                     }
                 }
@@ -1188,10 +1205,22 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
                     for &b in &blocks_allocated {
                         let _ = self.free_block(b);
                     }
-                    let _ = self.free_inode(new_inode_num);
+                    if existing.is_none() {
+                        let _ = self.free_inode(new_inode_num);
+                    }
                     return Err(e);
                 }
             }
+        }
+
+        if chunks > 12 {
+            for &b in &blocks_allocated {
+                let _ = self.free_block(b);
+            }
+            if existing.is_none() {
+                let _ = self.free_inode(new_inode_num);
+            }
+            return Err(String::from("ext2: file size exceeds direct block limit (12 blocks)"));
         }
 
         let mut inode = Inode {
@@ -1215,26 +1244,33 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             osd2: [0; 12],
         };
 
-        if chunks > 12 {
-            for &b in &blocks_allocated {
-                let _ = self.free_block(b);
-            }
-            let _ = self.free_inode(new_inode_num);
-            return Err(String::from("ext2: file size exceeds direct block limit (12 blocks)"));
-        }
-
         for (i, &blk) in blocks_allocated.iter().enumerate() {
             inode.block[i] = blk;
         }
 
+        // New content is safely on disk at this point - now it's safe to
+        // free the old file's data blocks (if this was an overwrite).
+        if let Some((_, old_inode)) = &existing {
+            let old_size = old_inode.size as usize;
+            let old_blocks: [u32; 15] = old_inode.block;
+            let old_chunks = (old_size + block_size - 1) / block_size;
+            for &blk in old_blocks.iter().take(old_chunks.min(old_blocks.len())) {
+                if blk != 0 {
+                    let _ = self.free_block(blk);
+                }
+            }
+        }
+
         self.write_inode(new_inode_num, &inode)?;
 
-        if let Err(e) = self.add_dir_entry(parent_inode_num, &file_name, new_inode_num, FT_REG_FILE) {
-            for &b in &blocks_allocated {
-                let _ = self.free_block(b);
+        if existing.is_none() {
+            if let Err(e) = self.add_dir_entry(parent_inode_num, &file_name, new_inode_num, FT_REG_FILE) {
+                for &b in &blocks_allocated {
+                    let _ = self.free_block(b);
+                }
+                let _ = self.free_inode(new_inode_num);
+                return Err(e);
             }
-            let _ = self.free_inode(new_inode_num);
-            return Err(e);
         }
 
         self.write_metadata()?;
