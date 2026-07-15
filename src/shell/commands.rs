@@ -822,7 +822,17 @@ fn cmd_pkg(args: &[&str]) {
                 return;
             };
             match crate::pkg::remove(name) {
-                Ok(()) => println!("removed {}", name),
+                Ok(()) => {
+                    // `pkg remove` only ever touched ferrumpkg's own install
+                    // registry - plain `run <name>` doesn't check that at
+                    // all, it dispatches through whatever `pkg run` left
+                    // behind in the dynamic program table via
+                    // `register_dynamic_program`, so without this a removed
+                    // package could still be launched by `run` (see
+                    // `work.md` finding 2.2).
+                    crate::userspace::unregister_dynamic_program(name, &crate::pkg::bin_path(name));
+                    println!("removed {}", name);
+                }
                 Err(err) => println!("pkg remove: {}", err),
             }
         }

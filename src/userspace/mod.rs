@@ -223,6 +223,24 @@ pub fn register_dynamic_program(name: &str, description: &str, entry: &str, capa
     }
 }
 
+/// Un-registers a manifest entry previously added by
+/// `register_dynamic_program` - called from `pkg remove` (see `cmd_pkg`
+/// in `src/shell/commands.rs`) so that plain `run <name>` (`launch`,
+/// below) stops finding a package after it's been removed. `pkg remove`
+/// itself only ever touched ferrumpkg's own install registry, never this
+/// table, which is why `run` (unlike `pkg run`) kept launching removed
+/// packages (see `work.md` finding 2.2).
+///
+/// Only removes the entry if its `entry` path still matches
+/// `expected_entry` - a guard against ever deleting a compiled-in
+/// program's manifest row in the edge case where a package happens to
+/// share a name with one (that program would have a different `entry`
+/// path than the package's own `pkg::bin_path`, so it's left alone).
+pub fn unregister_dynamic_program(name: &str, expected_entry: &str) {
+    let mut state = USERSPACE.lock();
+    state.programs.retain(|p| !(p.name == name && p.entry == expected_entry));
+}
+
 
 pub fn list_processes() -> Vec<UserProcess> {
     USERSPACE.lock().processes.clone()

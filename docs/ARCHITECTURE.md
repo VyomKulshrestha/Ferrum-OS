@@ -150,7 +150,12 @@ all, and resolves capabilities from the package's own manifest
 compiled with. The `pkg run` shell command (kernel context) additionally
 calls `userspace::register_dynamic_program` before `process::enter_registered`
 (see "Ring-3 scheduling from a cold shell" below) so that first-entry path's
-own capability re-derivation sees the same clamped set.
+own capability re-derivation sees the same clamped set. `pkg remove` calls
+the matching `userspace::unregister_dynamic_program` so that the plain
+`run <name>` shell command - which dispatches off this same dynamic table,
+not ferrumpkg's own install registry - stops finding a package once it's
+removed (previously it didn't, and kept launching removed packages
+indefinitely; see `work.md` finding 2.2).
 
 **A real bug this uncovered:** ext2's `Filesystem::read_file` does a
 strict `String::from_utf8` over the raw inode bytes - correct for
