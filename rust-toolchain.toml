@@ -1,11 +1,19 @@
 # FerrumOS Rust Toolchain Configuration
 # Requires nightly for bare-metal OS development features:
 # - custom_test_frameworks
-# - abi_x86_interrupt  
+# - abi_x86_interrupt
 # - naked_functions
 # - allocator_api
+#
+# Pinned to an exact date, not a floating "nightly" channel: an unpinned
+# nightly drifts to whatever's newest on each `rustup update` (or on a
+# fresh CI runner, every run), and unstable nightly APIs do change under
+# it - e.g. `Step` gaining new required trait methods broke the pinned
+# `x86_64` crate's own (now-outdated) impl the first time CI actually
+# fetched a newer nightly than this repo had ever built against locally.
+# Bump this date deliberately when upgrading, not implicitly.
 
 [toolchain]
-channel = "nightly"
+channel = "nightly-2026-05-08"
 components = ["rust-src", "llvm-tools-preview"]
 targets = ["x86_64-unknown-none"]
