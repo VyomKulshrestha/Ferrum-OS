@@ -28,5 +28,5 @@ opt-level = 2
 # TEMPORARY diagnostic: vendored copy of ring 0.17.14 with debug eprintln!s
 # added to its build.rs, to see exactly what it computes for asm_target on
 # CI vs a working local build - see vendor/ring-0.17.14/build.rs.
-# [patch.crates-io]
-# ring = { path = "vendor/ring-0.17.14" }
+[patch.crates-io]
+ring = { path = "vendor/ring-0.17.14" }
