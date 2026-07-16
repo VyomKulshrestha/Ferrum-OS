@@ -58,13 +58,23 @@ git clone https://github.com/VyomKulshrestha/Ferrum-OS.git
 cd Ferrum-OS
 ```
 
-### 2. Build the kernel + userland + bootimage
+### 2. Generate the mock model fixtures
+
+`userland/init` embeds a small mock model + tokenizer via `include_bytes!`
+(`userland/init/fixtures/*.bin`) — these are build inputs, not checked
+into git, and must exist before the first build:
+
+```powershell
+node scripts/generate_mock_model.mjs
+```
+
+### 3. Build the kernel + userland + bootimage
 
 ```powershell
 .\build.ps1 build
 ```
 
-### 3. Boot it
+### 4. Boot it
 
 ```powershell
 .\build.ps1 run          # plain kernel image
@@ -74,7 +84,7 @@ cd Ferrum-OS
 `run-appliance` needs `target\heliox-disk.img`, staged by
 [`scripts/make-appliance.ps1`](scripts/make-appliance.ps1).
 
-### 4. Run the test suite
+### 5. Run the test suite
 
 ```powershell
 node scripts/verify_shell_coexistence.mjs

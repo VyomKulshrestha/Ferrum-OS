@@ -23,6 +23,10 @@ jobs:
           rustc --version
         shell: pwsh
 
+      - name: Generate mock model fixtures (userland/init embeds these via include_bytes!)
+        run: node scripts/generate_mock_model.mjs
+        shell: pwsh
+
       - name: Build
         run: cargo build
         shell: pwsh
