@@ -36,5 +36,12 @@ jobs:
         shell: pwsh
 
       - name: Build
-        run: cargo build
+        # -vv on the *outer* build (not just the inner heliox-daemon one
+        # build.rs itself spawns) is required for any of that inner build's
+        # output to surface at all here: cargo only forwards build-script
+        # stdout/stderr matching "cargo:warning=" unless the outer -vv is
+        # set, and a nested `Command::new(cargo)` process spawned from
+        # inside a build script inherits that same captured-and-filtered
+        # stdio, so its own output is silently dropped otherwise too.
+        run: cargo build -vv
         shell: pwsh

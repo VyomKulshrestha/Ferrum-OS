@@ -114,11 +114,12 @@ fn main() {
         // silently skips all ASM sources only on CI (see work.md/this repo's
         // history for the missing-symbol link failure this is chasing).
         println!(
-            "cargo:warning=[diag] outer CARGO_CFG_TARGET_ARCH={:?} OS={:?} ENV={:?} ENDIAN={:?}",
+            "cargo:warning=[diag] outer CARGO_CFG_TARGET_ARCH={:?} OS={:?} ENV={:?} ENDIAN={:?} CI={:?}",
             env::var("CARGO_CFG_TARGET_ARCH"),
             env::var("CARGO_CFG_TARGET_OS"),
             env::var("CARGO_CFG_TARGET_ENV"),
             env::var("CARGO_CFG_TARGET_ENDIAN"),
+            env::var_os("CI"),
         );
 
         let mut daemon_cmd = Command::new(&cargo);
