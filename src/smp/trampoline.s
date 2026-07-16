@@ -1,6 +1,10 @@
 ; FerrumOS SMP Trampoline
 ; Loaded to physical address 0x8000
 ; Started in 16-bit real mode by INIT-SIPI-SIPI
+;
+; src/smp/mod.rs embeds the assembled trampoline.bin directly via
+; include_bytes! - if you change this file, reassemble it with:
+;   nasm -f bin trampoline.s -o trampoline.bin
 
 [BITS 16]
 [ORG 0x8000]

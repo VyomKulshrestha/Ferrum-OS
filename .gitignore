@@ -11,6 +11,12 @@
 *.exe
 !.cargo/
 !.cargo/config.toml
+# src/smp/mod.rs embeds this via include_bytes! - a tiny (230 byte), static,
+# pre-assembled real-mode AP trampoline blob (from trampoline.s, `nasm -f bin
+# trampoline.s -o trampoline.bin`), not a generated build artifact - needed
+# to survive the blanket *.bin rule above or the kernel fails to build on any
+# fresh clone.
+!src/smp/trampoline.bin
 docs/ROADMAP.md
 docs/HELIOX_INTEGRATION.md
 REPORT.md
