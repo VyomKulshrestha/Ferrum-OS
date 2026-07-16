@@ -1404,6 +1404,7 @@ unsafe fn load_cr3(phys: u64) {
 pub unsafe fn resume_task(pid: u64) -> ! {
     let (kstack, cr3) = switch_target(pid).expect("resume_task: pid not registered");
     let ctx = context_of(pid).expect("resume_task: pid has no saved context");
+    #[cfg(feature = "sched-trace")]
     crate::serial_println!("[RESUME_TASK] Resuming pid={}, name={}, rip={:#x}, rsp={:#x}, rax={:#x}", pid, {
         let sched = SCHEDULER.lock();
         sched.tasks.iter().find(|t| t.id == pid).map(|t| t.name.clone()).unwrap_or_else(|| String::from("unknown"))

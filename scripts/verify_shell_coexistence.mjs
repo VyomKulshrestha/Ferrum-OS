@@ -9,6 +9,11 @@
 // accepting commands *after* dispatching heliox-daemon, and the daemon
 // genuinely runs concurrently (not just a prompt that reappears cosmetically
 // while the daemon never gets scheduled).
+//
+// Requires a build with the `sched-trace` Cargo feature enabled (off by
+// default - see Cargo.toml and src/scheduler/mod.rs::resume_task), since
+// this script counts `[RESUME_TASK]` serial lines to judge fairness:
+//   cargo build --features sched-trace
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -111,6 +116,14 @@ try {
   let start = 0;
   await waitForSerial("FerrumOS:~$", 45, start);
   check("boot reaches shell prompt", true);
+
+  if (!serialText().includes("[RESUME_TASK]")) {
+    throw new Error(
+      "no [RESUME_TASK] lines seen yet - this image was likely built without " +
+      "the sched-trace feature this script depends on; rebuild with " +
+      "`cargo build --features sched-trace` and try again"
+    );
+  }
 
   // Configure a fast, deterministic local provider so heliox-daemon has
   // something real to log once it actually runs.

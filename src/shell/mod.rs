@@ -82,7 +82,17 @@ extern "C" fn shell_entry() -> ! {
     let my_pid = SHELL_TASK_PID.load(Ordering::SeqCst);
 
     loop {
-        if let Some(ch) = interrupts::read_keyboard() {
+        // Drain every character currently queued, not just one, before
+        // re-entering the safepoint: `yield_current_kernel_task` gives
+        // this loop's `hlt` up to the scheduler on every single timer
+        // tick regardless of whether more input is already waiting, so
+        // reading one character per turn needlessly multiplies how many
+        // preemption round-trips (and their interrupts-disabled windows,
+        // during which a second PS/2 scancode can overwrite the
+        // controller's single-byte buffer before the first is read - see
+        // work.md's keyboard input integrity finding) a burst of typed
+        // input has to survive to be seen intact.
+        while let Some(ch) = interrupts::read_keyboard() {
             match ch {
                 b'\n' => {
                     println!();

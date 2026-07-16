@@ -17,6 +17,22 @@ license = "MIT"
 [lib]
 test = false
 
+[features]
+default = []
+# Emits a `[RESUME_TASK]` serial trace line on every scheduler context
+# switch (src/scheduler/mod.rs). Off by default: printing to the (slow,
+# polled) serial port happens with interrupts disabled, and on every
+# single context switch that's frequent enough - one background ring-3
+# app polling every 30ms is enough - to routinely delay the PS/2 keyboard
+# IRQ past the point where a second scancode overwrites the controller's
+# single-byte buffer before the first is read, corrupting or dropping
+# keystrokes typed at the shell while anything is running in the
+# background. Needed only by scripts/verify_dashboard_scheduling.mjs and
+# scripts/verify_shell_coexistence.mjs, which assert on scheduling
+# fairness by counting these lines - build with
+# `cargo build --features sched-trace` before running either.
+sched-trace = []
+
 # ==== Dependencies ====
 # All dependencies are no_std compatible for bare-metal execution
 
