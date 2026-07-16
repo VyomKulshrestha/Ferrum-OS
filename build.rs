@@ -104,6 +104,23 @@ fn main() {
         let compat_dir = PathBuf::from(&manifest_dir).join("compat");
         let cflags = format!("-I{}", compat_dir.to_str().unwrap());
 
+        // TEMPORARY diagnostic: dump the exact CARGO_CFG_* values our own
+        // process (ferrumos's build.rs) was given for its own target - ring's
+        // vendored build.rs reads these same-named vars to decide which
+        // ASM_TARGETS entry matches (arch=x86_64, os mapped "none"->"linux"
+        // -> expects an "elf" perlasm match). If the child cargo invocation
+        // below doesn't freshly override these for ring's own build script,
+        // an unexpected inherited value here would explain why ring's build
+        // silently skips all ASM sources only on CI (see work.md/this repo's
+        // history for the missing-symbol link failure this is chasing).
+        println!(
+            "cargo:warning=[diag] outer CARGO_CFG_TARGET_ARCH={:?} OS={:?} ENV={:?} ENDIAN={:?}",
+            env::var("CARGO_CFG_TARGET_ARCH"),
+            env::var("CARGO_CFG_TARGET_OS"),
+            env::var("CARGO_CFG_TARGET_ENV"),
+            env::var("CARGO_CFG_TARGET_ENDIAN"),
+        );
+
         let mut daemon_cmd = Command::new(&cargo);
         daemon_cmd
             .arg("build")
