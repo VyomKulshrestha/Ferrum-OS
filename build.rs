@@ -104,7 +104,8 @@ fn main() {
         let compat_dir = PathBuf::from(&manifest_dir).join("compat");
         let cflags = format!("-I{}", compat_dir.to_str().unwrap());
 
-        let daemon_status = Command::new(&cargo)
+        let mut daemon_cmd = Command::new(&cargo);
+        daemon_cmd
             .arg("build")
             .arg("--release")
             .arg("--target")
@@ -114,7 +115,16 @@ fn main() {
             .env("CC", "C:\\Program Files\\LLVM\\bin\\clang.exe")
             .env("AR", "C:\\Program Files\\LLVM\\bin\\llvm-ar.exe")
             .env("CFLAGS", &cflags)
-            .env_remove("RUSTFLAGS")
+            .env_remove("RUSTFLAGS");
+        // TEMPORARY diagnostic: cargo suppresses cargo:warning=/stdout from a
+        // *dependency*'s build script (ring's, here) unless verbose - CI sets
+        // `CI=true` by default, so this surfaces exactly what ring's own
+        // vendored build.rs decides (asm target match, which sources it
+        // actually compiles) only there, without flooding local dev builds.
+        if env::var_os("CI").is_some() {
+            daemon_cmd.arg("-vv");
+        }
+        let daemon_status = daemon_cmd
             .status()
             .expect("failed to spawn cargo for heliox-daemon build");
 
