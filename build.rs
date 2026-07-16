@@ -145,6 +145,14 @@ fn main() {
             // -vv alone doesn't show this, since cc-rs runs the compiler
             // via Command::output() without echoing it by default.
             daemon_cmd.env("CC_ENABLE_DEBUG_OUTPUT", "1");
+            // TEMPORARY diagnostic: test whether ring's build script
+            // silently omitting its ASM sources on CI (confirmed identical
+            // CARGO_CFG_TARGET_* env vars to a working local build) is a
+            // parallel-build-script-scheduling race rather than an
+            // environment/config difference - CI runners typically have
+            // far fewer cores than local dev machines, which can surface
+            // races that never manifest locally.
+            daemon_cmd.arg("--jobs").arg("1");
         }
         let daemon_status = daemon_cmd
             .status()
