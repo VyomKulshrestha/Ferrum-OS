@@ -1,5 +1,6 @@
 # FerrumOS
 
+[![CI](https://github.com/VyomKulshrestha/Ferrum-OS/actions/workflows/ci.yml/badge.svg)](https://github.com/VyomKulshrestha/Ferrum-OS/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust: nightly](https://img.shields.io/badge/rust-nightly-orange.svg)](rust-toolchain.toml)
 [![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
