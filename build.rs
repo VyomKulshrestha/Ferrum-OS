@@ -95,7 +95,13 @@ fn main() {
     println!("cargo:rerun-if-changed=userland/heliox-daemon/src");
 
     if daemon_manifest.exists() {
-        let compat_dir = PathBuf::from(&manifest_dir).join("target").join("compat");
+        // Hand-written freestanding stubs for the handful of libc headers
+        // `ring`'s C code expects (assert.h/stdlib.h/string.h) - tracked at
+        // `compat/`, not `target/compat` (an earlier location that's
+        // gitignored along with the rest of `target/`, which silently
+        // broke any build starting from a fresh clone with no local
+        // `target/` directory yet, CI included).
+        let compat_dir = PathBuf::from(&manifest_dir).join("compat");
         let cflags = format!("-I{}", compat_dir.to_str().unwrap());
 
         let daemon_status = Command::new(&cargo)
