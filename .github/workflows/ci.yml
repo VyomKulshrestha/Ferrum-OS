@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build kernel + userland
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)
+        run: choco install llvm -y --no-progress
+        shell: pwsh
+
+      - name: Show toolchain (rustup reads rust-toolchain.toml automatically)
+        run: |
+          rustup show
+          rustc --version
+        shell: pwsh
+
+      - name: Build
+        run: cargo build
+        shell: pwsh
