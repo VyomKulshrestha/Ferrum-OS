@@ -104,26 +104,7 @@ fn main() {
         let compat_dir = PathBuf::from(&manifest_dir).join("compat");
         let cflags = format!("-I{}", compat_dir.to_str().unwrap());
 
-        // TEMPORARY diagnostic: dump the exact CARGO_CFG_* values our own
-        // process (ferrumos's build.rs) was given for its own target - ring's
-        // vendored build.rs reads these same-named vars to decide which
-        // ASM_TARGETS entry matches (arch=x86_64, os mapped "none"->"linux"
-        // -> expects an "elf" perlasm match). If the child cargo invocation
-        // below doesn't freshly override these for ring's own build script,
-        // an unexpected inherited value here would explain why ring's build
-        // silently skips all ASM sources only on CI (see work.md/this repo's
-        // history for the missing-symbol link failure this is chasing).
-        println!(
-            "cargo:warning=[diag] outer CARGO_CFG_TARGET_ARCH={:?} OS={:?} ENV={:?} ENDIAN={:?} CI={:?}",
-            env::var("CARGO_CFG_TARGET_ARCH"),
-            env::var("CARGO_CFG_TARGET_OS"),
-            env::var("CARGO_CFG_TARGET_ENV"),
-            env::var("CARGO_CFG_TARGET_ENDIAN"),
-            env::var_os("CI"),
-        );
-
-        let mut daemon_cmd = Command::new(&cargo);
-        daemon_cmd
+        let daemon_status = Command::new(&cargo)
             .arg("build")
             .arg("--release")
             .arg("--target")
@@ -133,29 +114,7 @@ fn main() {
             .env("CC", "C:\\Program Files\\LLVM\\bin\\clang.exe")
             .env("AR", "C:\\Program Files\\LLVM\\bin\\llvm-ar.exe")
             .env("CFLAGS", &cflags)
-            .env_remove("RUSTFLAGS");
-        // TEMPORARY diagnostic: cargo suppresses cargo:warning=/stdout from a
-        // *dependency*'s build script (ring's, here) unless verbose - CI sets
-        // `CI=true` by default, so this surfaces exactly what ring's own
-        // vendored build.rs decides (asm target match, which sources it
-        // actually compiles) only there, without flooding local dev builds.
-        if env::var_os("CI").is_some() {
-            daemon_cmd.arg("-vv");
-            // Forces the `cc` crate (which ring's build.rs uses) to print
-            // the exact compiler invocation for every file it compiles -
-            // -vv alone doesn't show this, since cc-rs runs the compiler
-            // via Command::output() without echoing it by default.
-            daemon_cmd.env("CC_ENABLE_DEBUG_OUTPUT", "1");
-            // TEMPORARY diagnostic: test whether ring's build script
-            // silently omitting its ASM sources on CI (confirmed identical
-            // CARGO_CFG_TARGET_* env vars to a working local build) is a
-            // parallel-build-script-scheduling race rather than an
-            // environment/config difference - CI runners typically have
-            // far fewer cores than local dev machines, which can surface
-            // races that never manifest locally.
-            daemon_cmd.arg("--jobs").arg("1");
-        }
-        let daemon_status = daemon_cmd
+            .env_remove("RUSTFLAGS")
             .status()
             .expect("failed to spawn cargo for heliox-daemon build");
 

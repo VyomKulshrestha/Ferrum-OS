@@ -331,15 +331,12 @@ fn ring_build_rs_main(c_root_dir: &Path, core_name_and_version: &str) {
 
     let asm_target = if is_little_endian {
         let os_str = if target.os == "none" { "linux" } else { &target.os };
-        eprintln!("[ring-vendor-debug] arch={:?} os={:?} os_str={:?} is_little_endian={} is_git={}", target.arch, target.os, os_str, is_little_endian, is_git);
         ASM_TARGETS.iter().find(|asm_target| {
             asm_target.arch == target.arch && asm_target.oss.contains(&os_str)
         })
     } else {
-        eprintln!("[ring-vendor-debug] arch={:?} os={:?} is_little_endian={} (false branch, asm_target forced None) is_git={}", target.arch, target.os, is_little_endian, is_git);
         None
     };
-    eprintln!("[ring-vendor-debug] asm_target resolved: {}", asm_target.is_some());
 
     // If `.git` exists then assume this is the "local hacking" case where
     // we want to make it easy to build *ring* using `cargo build`/`cargo test`

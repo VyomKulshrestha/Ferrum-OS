@@ -35,41 +35,6 @@ jobs:
         run: node scripts/generate_mock_model.mjs
         shell: pwsh
 
-      - name: Diagnostic - check registry ring cache for a stray .git dir
-        # Working theory: the plain registry-fetched ring 0.17.14 fails to
-        # link here (missing ASM-optimized symbols) but a vendored copy of
-        # the identical source doesn't - ring's build.rs branches its whole
-        # asm-source strategy on `fs::metadata(c_root_dir.join(".git")).is_ok()`,
-        # and a path dependency (the vendor) can never have that, while a
-        # pre-seeded/cached registry extraction on a hosted runner
-        # conceivably could. Fetches ring into the registry cache without a
-        # full build, then checks directly.
-        run: |
-          Push-Location userland\heliox-daemon
-          cargo fetch --target x86_64-unknown-none
-          Pop-Location
-          $ringDir = Get-ChildItem -Path "$env:USERPROFILE\.cargo\registry\src" -Directory | ForEach-Object {
-            Get-ChildItem -Path $_.FullName -Directory -Filter "ring-0.17.14*" -ErrorAction SilentlyContinue
-          }
-          foreach ($dir in $ringDir) {
-            $gitPath = Join-Path $dir.FullName ".git"
-            Write-Host "Checking $gitPath"
-            if (Test-Path $gitPath) {
-              Write-Host "##[warning] FOUND stray .git at $gitPath"
-              Get-Item $gitPath -Force | Format-List *
-            } else {
-              Write-Host "No .git at $gitPath"
-            }
-          }
-        shell: pwsh
-
       - name: Build
-        # -vv on the *outer* build (not just the inner heliox-daemon one
-        # build.rs itself spawns) is required for any of that inner build's
-        # output to surface at all here: cargo only forwards build-script
-        # stdout/stderr matching "cargo:warning=" unless the outer -vv is
-        # set, and a nested `Command::new(cargo)` process spawned from
-        # inside a build script inherits that same captured-and-filtered
-        # stdio, so its own output is silently dropped otherwise too.
-        run: cargo build -vv
+        run: cargo build
         shell: pwsh

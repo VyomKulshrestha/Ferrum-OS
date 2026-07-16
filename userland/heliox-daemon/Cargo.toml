@@ -25,8 +25,15 @@ opt-level = 0
 panic = "abort"
 opt-level = 2
 
-# TEMPORARY diagnostic: vendored copy of ring 0.17.14 with debug eprintln!s
-# added to its build.rs, to see exactly what it computes for asm_target on
-# CI vs a working local build - see vendor/ring-0.17.14/build.rs.
+# Vendored, byte-identical copy of ring 0.17.14 (see vendor/ring-0.17.14/),
+# patched in via a local path so its own build.rs is guaranteed a real
+# filesystem path with no `.git` sibling. The plain registry-fetched crate
+# (confirmed identical source, verified with a diff against this vendored
+# copy) reproducibly failed to link only in CI - ring's build.rs branches
+# its entire ASM-source strategy on `fs::metadata(c_root_dir.join(".git")).is_ok()`,
+# and something about the registry extraction on that hosted runner (not
+# reproducible locally) evidently makes that check come out differently
+# there than for a local build or for this vendored path dependency, which
+# silently skipped every ASM-optimized routine ring provides for x86_64.
 [patch.crates-io]
 ring = { path = "vendor/ring-0.17.14" }
