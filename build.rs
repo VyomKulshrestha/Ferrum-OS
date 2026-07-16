@@ -123,6 +123,11 @@ fn main() {
         // actually compiles) only there, without flooding local dev builds.
         if env::var_os("CI").is_some() {
             daemon_cmd.arg("-vv");
+            // Forces the `cc` crate (which ring's build.rs uses) to print
+            // the exact compiler invocation for every file it compiles -
+            // -vv alone doesn't show this, since cc-rs runs the compiler
+            // via Command::output() without echoing it by default.
+            daemon_cmd.env("CC_ENABLE_DEBUG_OUTPUT", "1");
         }
         let daemon_status = daemon_cmd
             .status()
