@@ -14,13 +14,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)
-        run: choco install llvm -y --no-progress
+        # windows-latest ships an older LLVM pre-installed, which a plain
+        # `choco install llvm` treats as "already installed" and silently
+        # keeps - that older clang linked `ring`'s C sources (curve25519,
+        # p256-nistz, sha2 asm variants) into an archive missing symbols
+        # the Rust side still called, failing at link time. Forcing the
+        # exact version this repo is actually built and verified against
+        # locally removes that as a variable entirely.
+        run: choco install llvm --version=22.1.7 -y --force --no-progress
         shell: pwsh
 
       - name: Show toolchain (rustup reads rust-toolchain.toml automatically)
         run: |
           rustup show
           rustc --version
+          clang --version
         shell: pwsh
 
       - name: Generate mock model fixtures (userland/init embeds these via include_bytes!)
