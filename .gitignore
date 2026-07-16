@@ -12,6 +12,7 @@
 !.cargo/
 !.cargo/config.toml
 docs/ROADMAP.md
+docs/HELIOX_INTEGRATION.md
 REPORT.md
 model.md
 work.md

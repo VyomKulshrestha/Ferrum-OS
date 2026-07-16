@@ -1,5 +1,9 @@
 # FerrumOS
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Rust: nightly](https://img.shields.io/badge/rust-nightly-orange.svg)](rust-toolchain.toml)
+[![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
+
 An operating system built in Rust — where the AI agent has full
 hardware control: it can see the screen, hear audio, type commands, browse the
 web, manage files, remember context, and autonomously operate.
@@ -329,3 +333,14 @@ For the on-device model, set `"provider": "local"` (auto-sizes to your hardware 
 - Capability-checked boundaries between kernel and agent.
 - Use Rust safety by default; keep unsafe blocks small and documented.
 - Hardware first — if you want an agentic OS, you need drivers.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+dev environment setup, code style, and pull request process. Please also
+review the [Code of Conduct](CODE_OF_CONDUCT.md). Found a security issue?
+See [SECURITY.md](SECURITY.md) — please don't open a public issue for it.
+
+## License
+
+FerrumOS is licensed under the [MIT License](LICENSE).
