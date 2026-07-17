@@ -267,7 +267,14 @@ pub extern "C" fn _start() -> ! {
             unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
         } else {
             write("[test] child starting rate limit test...\n");
-            for _ in 0..1100 {
+            // `scheduler::TaskQuotas::default_user`'s `max_syscalls_per_window`
+            // was raised from 100 to 5000 (headroom for legitimate GUI-app
+            // polling - see that constant's own doc comment) after this loop's
+            // iteration count was chosen; 1100 no longer exceeds the quota it's
+            // supposed to violate, so the kernel never kills this process and
+            // the test always failed regardless of anything else - comfortably
+            // over the current threshold now.
+            for _ in 0..6000 {
                 unsafe { syscall3(SYS_GETPID, 0, 0, 0); }
             }
             write("[test] child completed rate limit test (unexpected!)\n");

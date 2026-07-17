@@ -186,8 +186,9 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         let mut sched = crate::scheduler::SCHEDULER.lock();
         let now = sched.total_ticks;
         if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
-            // 1. Syscall Rate limit check
-            if now.saturating_sub(task.quotas.syscall_window_start) > 200 {
+            // 1. Syscall Rate limit check (~11s window - see
+            // `scheduler::TaskQuotas::default_user`'s matching comment)
+            if now.saturating_sub(task.quotas.syscall_window_start) > 11000 / crate::interrupts::PIT_TICK_MS {
                 task.quotas.syscall_window_start = now;
                 task.quotas.syscalls_in_window = 0;
             }
@@ -226,7 +227,7 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
                 } else {
                     // Need to block and wait for confirmation
                     task.blocked_on_confirmation = true;
-                    task.wake_at = now.saturating_add(91); // 5s timeout
+                    task.wake_at = now.saturating_add(5000 / crate::interrupts::PIT_TICK_MS); // 5s timeout
                     task.state = crate::scheduler::TaskState::Blocked;
                     task.quotas.used_cpu_ticks_continuous = 0;
                     confirmation_needed = true;

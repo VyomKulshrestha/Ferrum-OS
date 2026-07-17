@@ -382,9 +382,29 @@ impl AddressSpace {
                         .allocate_frame()
                         .ok_or(MapToError::FrameAllocationFailed)?;
                     unsafe {
+                        // `.ignore()`, not `.flush()`: this page is being
+                        // mapped into `self.l4_frame`, a table that is not
+                        // the CPU's currently active CR3 (the kernel's own
+                        // is), so there is no stale TLB entry for it to
+                        // invalidate - an `invlpg` here is pure overhead
+                        // with no correctness benefit. Under virtualization
+                        // (WHPX), `invlpg` is a privileged instruction that
+                        // typically costs a VM exit; a large PT_LOAD segment
+                        // (heliox-daemon's ~64MB heap arena needs ~16,385
+                        // pages) turned that into enough accumulated
+                        // overhead to occasionally blow past every boot
+                        // timeout in the verify suite (`verify_net.mjs`,
+                        // `verify_daemon.mjs`, `verify_bridge.mjs`,
+                        // `verify_camera.mjs`, ... - all just waiting on
+                        // heliox-daemon to finish loading). The process's
+                        // page table gets a fully coherent TLB context for
+                        // free the moment it's actually dispatched (CR3
+                        // reload flushes non-global entries unconditionally
+                        // on this kernel, which never sets PCID/global
+                        // pages for user mappings).
                         mapper
                             .map_to(page, new_frame, flags, &mut allocator)?
-                            .flush();
+                            .ignore();
                     }
                     (new_frame, true)
                 }

@@ -198,12 +198,15 @@ impl TaskQuotas {
     pub const fn default_user() -> Self {
         Self {
             max_memory_pages: 2048, // 8 MiB
-            max_cpu_ticks_continuous: 100, // ~5.5 seconds of uninterrupted execution
+            // ~5.5 seconds of uninterrupted execution. Expressed as a
+            // millisecond duration divided by the PIT's tick period so this
+            // stays correct if `interrupts::PIT_HZ` is ever retuned again.
+            max_cpu_ticks_continuous: 5500 / crate::interrupts::PIT_TICK_MS,
             used_cpu_ticks_continuous: 0,
-            // 200-tick window (~11s at the PIT's ~18.2Hz). A normal D1
-            // app-window GUI loop (poll_window_input + occasional
-            // present + sleep every ~30ms, matching every app built on
-            // libferrumgui) makes ~2-3 syscalls per ~0.5-tick iteration,
+            // ~11s window (see `syscall::mod.rs`'s matching window-reset
+            // check). A normal D1 app-window GUI loop (poll_window_input +
+            // occasional present + sleep every ~30ms, matching every app
+            // built on libferrumgui) makes ~2-3 syscalls per iteration,
             // i.e. up to ~1000+ syscalls across one window even at rest -
             // the old value of 100 killed any such app within its first
             // 1-2 seconds of normal operation as "syscall rate quota
@@ -299,11 +302,11 @@ impl Task {
     }
 }
 
-/// Default time slice in PIT ticks (~18.2 Hz). 18 ticks is just
-/// Default time slice in PIT ticks (~18.2 Hz). 5 ticks is just
-/// over 250ms; long enough for basic work, short enough for
-/// interactive preemption.
-pub const TIME_SLICE_TICKS: u64 = 5;
+/// Default time slice, ~275ms - long enough for basic work, short enough
+/// for interactive preemption. Expressed as a millisecond duration divided
+/// by the PIT's tick period so this stays correct if `interrupts::PIT_HZ`
+/// is ever retuned again.
+pub const TIME_SLICE_TICKS: u64 = 275 / crate::interrupts::PIT_TICK_MS;
 
 
 // ============================================================================

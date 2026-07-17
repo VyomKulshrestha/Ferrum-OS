@@ -10,9 +10,18 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45465);
 const serialLog = path.join(repo, "target", "camera-verify-serial.log");
+// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
+// rather than truncates, and this script's own waitForSerial(needle, s, 0)
+// checks start from byte 0, so a leftover log can produce a false-positive
+// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
+// booted, corrupting every offset computed afterward.
+fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
@@ -20,6 +29,7 @@ if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 
 const qemuArgs = [
+  "-m", "2048M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -30,10 +40,22 @@ const qemuArgs = [
   "-no-reboot",
 ];
 if (!visible) qemuArgs.push("-display", "none");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 console.log("[test] starting QEMU...");
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Without an explicit accelerator, QEMU falls back to plain (unaccelerated)
+// TCG at whatever default memory/speed it happens to pick - heliox-daemon's
+// ELF alone needs to map ~16,385 pages for its ~64MB heap arena
+// (src/process/mod.rs's map_user_range), and this reliably took long enough
+// under unaccelerated/under-provisioned QEMU to blow through every timeout
+// in this script, every run - not because anything was actually hung.
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("[test] WHPX unsupported or failed, falling back to TCG...");
+  qemuProcess = spawn(qemu, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -130,7 +152,7 @@ function parseFrame(buffer) {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 35);
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
@@ -140,18 +162,18 @@ try {
   await sendKey("ret");
 
   // Wait for the camera online log from kernel
-  await waitForSerial("[camera] device online (synthetic)", 20, 0);
+  await waitForSerial("[camera] device online (synthetic)", 45, 0);
   check("kernel detects and registers synthetic camera", true);
 
   // Wait for the daemon to start and initialize its socket
-  await waitForSerial("[heliox-daemon] userspace agent daemon is alive in ring 3", 20, start);
-  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 20, start);
-  await waitForSerial("[heliox-daemon] camera device detected, enabling gesture pipeline", 20, start);
+  await waitForSerial("[heliox-daemon] userspace agent daemon is alive in ring 3", 45, start);
+  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 45, start);
+  await waitForSerial("[heliox-daemon] camera device detected, enabling gesture pipeline", 45, start);
   check("daemon starts, detects camera, and initializes pipeline", true);
 
   // Wait for initial gesture processing log
-  await waitForSerial("[heliox-daemon] gesture: OpenPalm", 20, start);
-  await waitForSerial("[heliox-daemon] gesture OpenPalm -> direct: resume agent", 20, start);
+  await waitForSerial("[heliox-daemon] gesture: OpenPalm", 45, start);
+  await waitForSerial("[heliox-daemon] gesture OpenPalm -> direct: resume agent", 45, start);
   check("gesture OpenPalm detected and direct action triggered", true);
 
   // Connect via WebSocket
@@ -206,7 +228,7 @@ try {
     client.on("error", reject);
   });
 
-  await waitForSerial("[heliox-daemon] bridge client connected, handshake successful!", 15, start);
+  await waitForSerial("[heliox-daemon] bridge client connected, handshake successful!", 45, start);
   check("WebSocket bridge handshake successful", true);
 
   // Send ping request

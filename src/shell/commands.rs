@@ -1419,8 +1419,7 @@ fn cmd_log() {
 
 fn cmd_uptime() {
     let ticks = crate::scheduler::total_ticks();
-    // PIT fires ~18.2 times per second
-    let seconds = ticks / 18;
+    let seconds = (ticks * crate::interrupts::PIT_TICK_MS) / 1000;
     let minutes = seconds / 60;
     println!("Uptime: {} ticks (~{}m {}s)", ticks, minutes, seconds % 60);
 }
@@ -1464,7 +1463,7 @@ fn cmd_scheduler(_args: &[&str]) {
     println!(
         "  time slice:     {} PIT ticks (~{} ms)",
         crate::scheduler::TIME_SLICE_TICKS,
-        crate::scheduler::TIME_SLICE_TICKS * 55
+        crate::scheduler::TIME_SLICE_TICKS * crate::interrupts::PIT_TICK_MS
     );
 }
 

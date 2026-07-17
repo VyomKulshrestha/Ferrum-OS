@@ -223,12 +223,12 @@ extern "C" fn desktop_entry() -> ! {
 
         // 4. Idle: mark this exact point as safe to preempt, then
         //    enable interrupts and halt until the next one fires.
-        //    This keeps the loop at interrupt speed (~18.2 Hz for the
-        //    PIT, faster for mouse/keyboard) instead of spinning at
-        //    full CPU, AND - the actual fix - lets ring-3 tasks
-        //    (heliox-daemon, spawned apps) actually run in between
-        //    frames instead of being starved for the desktop's whole
-        //    lifetime.
+        //    This keeps the loop at interrupt speed (the PIT's configured
+        //    rate - see `interrupts::PIT_HZ` - or faster for mouse/keyboard)
+        //    instead of spinning at full CPU, AND - the actual fix - lets
+        //    ring-3 tasks (heliox-daemon, spawned apps) actually run in
+        //    between frames instead of being starved for the desktop's
+        //    whole lifetime.
         crate::scheduler::enter_kernel_task_safepoint(my_pid);
         interrupts::enable_and_hlt();
         crate::scheduler::leave_kernel_task_safepoint();

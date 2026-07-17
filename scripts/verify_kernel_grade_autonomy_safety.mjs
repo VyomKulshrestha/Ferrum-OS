@@ -7,9 +7,18 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45461);
 const serialLog = path.join(repo, "target", "phase-e-verify-serial.log");
+// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
+// rather than truncates, and this script's own waitForSerial(needle, s, 0)
+// checks start from byte 0, so a leftover log can produce a false-positive
+// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
+// booted, corrupting every offset computed afterward.
+fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
@@ -17,6 +26,7 @@ if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 
 const qemuArgs = [
+  "-m", "2048M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -25,10 +35,20 @@ const qemuArgs = [
   "-no-reboot",
 ];
 if (!visible) qemuArgs.push("-display", "none");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 console.log("Starting QEMU...");
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Without an explicit accelerator, QEMU falls back to plain (unaccelerated)
+// TCG at whatever default memory/speed it happens to pick, which reliably
+// took long enough to blow through every timeout in this script, every run -
+// not because anything was actually hung.
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("[test] WHPX unsupported or failed, falling back to TCG...");
+  qemuProcess = spawn(qemu, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -85,7 +105,7 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 30);
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   console.log("Running Phase E Autonomy & Safety Verification Suite...");
@@ -125,21 +145,36 @@ try {
   await waitForSerial("[test] sub-test 3.2: physical key approval (wait for y)", 10, start);
   // Update start to current serial length so we don't match the prompt from sub-test 3.1
   let start32 = serialText().length;
-  await waitForSerial("Operator confirmation required. Press 'y' to approve", 10, start32);
-  console.log("Sending physical 'y' key...");
-  await sendKey("y");
-  await waitForSerial("[test] sub-test 3.2 result: 0", 10, start32);
-  check("confirmation gate approved by physical 'y' (returns 0)", true);
+  const confirmationSeenAt = Date.now();
+  // Send the keypress a few times in quick succession (not spaced out) so
+  // that if one PS/2 scancode is lost to the same interrupt-timing race
+  // documented in work.md (§1.1) - which can happen even with nothing else
+  // running - a subsequent one still lands well inside the kernel's own 5s
+  // confirmation window. A real user facing a dropped keystroke would just
+  // press again; spacing retries out (each with its own wait) would instead
+  // eat into that same 5s budget and could make things worse, not better.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    console.log(`[test] sending physical 'y' key (attempt ${attempt + 1})...`);
+    await sendKey("y");
+  }
+  const remainingMs = 5000 - (Date.now() - confirmationSeenAt);
+  const remainingSeconds = Math.max(1, remainingMs / 1000) + 2; // +2s margin for the kernel to notice and print the result
+  const approved = !!(await waitForSerial("[test] sub-test 3.2 result: 0", remainingSeconds, start32).catch(() => null));
+  check("confirmation gate approved by physical 'y' (returns 0)", approved);
 
-  // Injected rejection
-  // Update start to current serial length to prevent early match on the timeout prompt
-  let start33 = serialText().length;
-  await waitForSerial("[test] sub-test 3.3: injected key (should timeout/deny)", 10, start33);
-  await waitForSerial("[test] sub-test 3.3 result: -2", 15, start33);
+  // Injected rejection. Deliberately keep using `start32` (not a freshly
+  // re-read `serialText().length`) as the search floor: the guest can print
+  // its next line (here, sub-test 3.3's own announcement) before this host
+  // script's very next statement gets to re-read the log, so re-pinning the
+  // offset right after a match resolves races the guest and can start the
+  // next search *after* the very text it's about to look for. Each of these
+  // strings is unique, so there's nothing to gain by narrowing the window.
+  await waitForSerial("[test] sub-test 3.3: injected key (should timeout/deny)", 10, start32);
+  await waitForSerial("[test] sub-test 3.3 result: -2", 15, start32);
   check("confirmation gate rejects agent-injected key (returns -2 on timeout)", true);
 
   await waitForSerial("--- Verification Suite Complete ---", 10, start);
-  await waitForSerial("FerrumOS:~$", 15, start);
+  await waitForSerial("FerrumOS:~$", 45, start);
 
   // Test 4: Persistent Audit Log
   console.log("Checking Persistent Audit Log...");

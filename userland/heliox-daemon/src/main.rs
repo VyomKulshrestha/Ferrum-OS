@@ -521,20 +521,23 @@ pub extern "C" fn _start() -> ! {
                     );
                     let detected = detailed.gesture;
                     LATEST_GESTURE.store(detected as u8, core::sync::atomic::Ordering::SeqCst);
+                    // Only `push()` here, priming the tracker's rolling
+                    // history - do NOT call `stable_gesture()` during
+                    // warm-up. It has a one-shot side effect (marks the
+                    // gesture as already emitted, `GestureTracker` above),
+                    // and this loop has no direct-action handling (the
+                    // Fist/OpenPalm/Pointing match below) to react with. If
+                    // the gesture present at boot was already stable across
+                    // all 5 warm-up frames, consuming the event here meant
+                    // the main loop's *first* `stable_gesture()` call always
+                    // saw it as already-handled and silently dropped the
+                    // pause/resume/click action forever - reproduced
+                    // directly: a gesture set before `ring3 init` never
+                    // triggered its direct action at all, only the informational
+                    // "gesture: <name>" log line, no matter how long the
+                    // daemon then ran (see work.md).
                     tracker.push(detected);
                     last_detailed = detailed.clone();
-                    if let Some(stable) = tracker.stable_gesture() {
-                        let g_name = cognitive::gesture::gesture_name(stable);
-                        let log_msg = alloc::format!("[heliox-daemon] gesture: {}\n", g_name);
-                        unsafe {
-                            syscall3(SYS_WRITE, FD_CONSOLE, log_msg.as_ptr() as u64, log_msg.len() as u64);
-                        }
-                        orchestrator.push_gesture(stable as u8);
-                        if stable == cognitive::gesture::GestureType::Pointing {
-                            let ticks = cognitive::fusion::get_uptime_ticks();
-                            cognitive::fusion::note_gesture(ticks, detailed.cx, detailed.cy);
-                        }
-                    }
                 }
             }
             unsafe {

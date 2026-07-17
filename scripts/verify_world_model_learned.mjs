@@ -27,6 +27,12 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45501);
 const serialLog = path.join(repo, "target", "world-model-learned-verify-serial.log");
+// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
+// rather than truncates, and this script's own waitForSerial(needle, s, 0)
+// checks start from byte 0, so a leftover log can produce a false-positive
+// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
+// booted, corrupting every offset computed afterward.
+fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);

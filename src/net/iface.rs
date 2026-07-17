@@ -299,9 +299,9 @@ pub fn poll() {
     let mut device_guard = DEVICE.lock();
 
     if let (Some(iface), Some(sockets)) = (iface_guard.as_mut(), sockets_guard.as_mut()) {
-        // PIT fires ~18.2 times/sec; convert ticks to approximate milliseconds
+        // Convert ticks to milliseconds at the PIT's configured rate.
         let ticks = crate::scheduler::total_ticks();
-        let timestamp = Instant::from_millis((ticks * 55) as i64); // ~55ms per tick
+        let timestamp = Instant::from_millis((ticks * crate::interrupts::PIT_TICK_MS) as i64);
         iface.poll(timestamp, &mut *device_guard, sockets);
     }
 }

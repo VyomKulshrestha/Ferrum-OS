@@ -19,7 +19,12 @@ const qemu = process.env.QEMU || defaultQemu;
 const visible = process.argv.includes("--visible");
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45457);
 const serialLog = path.join(repo, "target", "command-test-serial.log");
-
+// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
+// rather than truncates, and this script's own waitForSerial(needle, s, 0)
+// checks start from byte 0, so a leftover log can produce a false-positive
+// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
+// booted, corrupting every offset computed afterward.
+fs.rmSync(serialLog, { force: true });
 if (!fs.existsSync(image)) {
   throw new Error(`boot image not found: ${image}`);
 }

@@ -10,9 +10,18 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45460);
 const serialLog = path.join(repo, "target", "tcp-server-serial.log");
+// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
+// rather than truncates, and this script's own waitForSerial(needle, s, 0)
+// checks start from byte 0, so a leftover log can produce a false-positive
+// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
+// booted, corrupting every offset computed afterward.
+fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
@@ -20,6 +29,7 @@ if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 
 const qemuArgs = [
+  "-m", "2048M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -30,9 +40,19 @@ const qemuArgs = [
   "-no-reboot",
 ];
 if (!visible) qemuArgs.push("-display", "none");
-
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Without an explicit accelerator, QEMU falls back to plain (unaccelerated)
+// TCG at whatever default memory/speed it happens to pick, which reliably
+// took long enough to blow through every timeout in this script, every run -
+// not because anything was actually hung.
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("[test] WHPX unsupported or failed, falling back to TCG...");
+  qemuProcess = spawn(qemu, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -86,7 +106,8 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 30);
+  // Generous boot budget - see the accelerator comment above.
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
@@ -94,7 +115,7 @@ try {
   await sendText("net serve 8785");
   await sendKey("ret");
 
-  await waitForSerial("net serve: socket bound to port 8785. Waiting for connection...", 15, start);
+  await waitForSerial("net serve: socket bound to port 8785. Waiting for connection...", 30, start);
   check("server successfully binds and listens on guest port 8785", true);
 
   // Connect from host
@@ -121,16 +142,16 @@ try {
   });
 
   // Wait for the guest log to report connection and echo
-  await waitForSerial("net serve: connection established! Waiting for data...", 15, start);
+  await waitForSerial("net serve: connection established! Waiting for data...", 30, start);
   check("server reports connection established", true);
 
-  await waitForSerial("net serve: received 10 bytes: hello echo", 15, start);
+  await waitForSerial("net serve: received 10 bytes: hello echo", 30, start);
   check("server received data correctly", true);
 
-  await waitForSerial("net serve: echoed 10 bytes back to client", 15, start);
+  await waitForSerial("net serve: echoed 10 bytes back to client", 30, start);
   check("server echoes data back", true);
 
-  await waitForSerial("net serve: server finished successfully", 15, start);
+  await waitForSerial("net serve: server finished successfully", 30, start);
   check("server closed socket and exited cleanly", true);
 
   // Check if host client actually got the echoed data

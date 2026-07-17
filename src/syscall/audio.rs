@@ -189,9 +189,10 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
             if crate::devices::hda::start_recording_nonblocking().is_err() {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
-            // Generous safety margin over the requested duration so a slow
-            // DMA doesn't get truncated early; the PIT runs at ~18.2 Hz.
-            let timeout_ticks = ((duration_ms as u64 * 18) / 1000).saturating_add(36);
+            // Generous safety margin (~2s) over the requested duration so a
+            // slow DMA doesn't get truncated early.
+            let timeout_ticks = (duration_ms as u64 / crate::interrupts::PIT_TICK_MS)
+                .saturating_add(2000 / crate::interrupts::PIT_TICK_MS);
             *session = Some(CaptureSession {
                 pid,
                 user_buf_ptr: buf_ptr,

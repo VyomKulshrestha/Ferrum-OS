@@ -6,7 +6,8 @@
 // capture in heliox-daemon, and checks that:
 //   1. Real DMA-captured bytes come back (n > 0).
 //   2. The capture takes roughly as long as requested (elapsed_ticks is
-//      consistent with ~1000ms at the PIT's ~18.2 Hz rate, not near-zero).
+//      consistent with ~1000ms at the PIT's configured rate - see
+//      interrupts::PIT_TICK_MS - not near-zero).
 //   3. init - an independent, concurrently-scheduled task - keeps printing
 //      its heartbeat throughout the recording window, proving the syscall's
 //      Blocked-retry design is not monopolizing the CPU.
@@ -25,6 +26,12 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 }
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45481);
 const serialLog = path.join(repo, "target", "audio-verify-serial.log");
+// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
+// rather than truncates, and this script's own waitForSerial(needle, s, 0)
+// checks start from byte 0, so a leftover log can produce a false-positive
+// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
+// booted, corrupting every offset computed afterward.
+fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -65,6 +72,16 @@ const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon"
 }));
 
+// `-audiodev none,id=hda0` + `audiodev=hda0` on the hda-duplex device gives
+// the emulated input stream a real (if silent) clocked PCM source. Without
+// this, the codec's input line has nothing feeding it at all - the DMA
+// position (LPIB) genuinely never advances, so every capture call
+// legitimately reads back 0 bytes forever (not a kernel bug: there was
+// nothing to record). The `bytes > 0` check only cares about byte *count*,
+// not content, so silence is enough to prove the capture path itself works.
+const audioArgs = ["-audiodev", "none,id=hda0"];
+const hdaDuplexArgs = ["-device", "hda-duplex,audiodev=hda0"];
+
 const whpxArgs = [
   "-accel", "whpx,kernel-irqchip=off",
   "-cpu", "Haswell",
@@ -74,8 +91,9 @@ const whpxArgs = [
   "-serial", `file:${serialLog}`,
   "-netdev", "user,id=net0,hostfwd=tcp::8786-:8785",
   "-device", "rtl8139,netdev=net0",
+  ...audioArgs,
   "-device", "intel-hda",
-  "-device", "hda-duplex",
+  ...hdaDuplexArgs,
   "-no-reboot",
 ];
 if (!visible) whpxArgs.push("-display", "none");
@@ -94,9 +112,9 @@ if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
     "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
     "-serial", `file:${serialLog}`,
     "-netdev", "user,id=net0,hostfwd=tcp::8786-:8785",
-    "-device", "rtl8139,netdev=net0",
+    ...audioArgs,
     "-device", "intel-hda",
-    "-device", "hda-duplex",
+    ...hdaDuplexArgs,
     "-no-reboot",
   ];
   if (!visible) tcgArgs.push("-display", "none");
@@ -124,7 +142,9 @@ async function sendText(t) {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 35);
+  // Generous boot budget - real host-load variance (not a hang) has been
+  // observed pushing boot well past a tight timeout; see work.md.
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
@@ -140,13 +160,13 @@ try {
 
   // Wait for the capture to start
   const startMarker = "[heliox-daemon] running audio capture test...";
-  await waitForSerial(startMarker, 30, start);
+  await waitForSerial(startMarker, 45, start);
   check("daemon started audio capture test", true);
   const captureStartOffset = serialText().indexOf(startMarker, start);
 
   // Wait for it to complete (should take ~1s of real DMA time, plus scheduling slack)
   const resultRe = /\[heliox-daemon\] audio capture result: bytes=(-?\d+) elapsed_ticks=(\d+)/;
-  const afterStart = await waitForSerial("audio capture result:", 15, captureStartOffset);
+  const afterStart = await waitForSerial("audio capture result:", 30, captureStartOffset);
   const m = afterStart.match(resultRe);
   check("found audio capture result line", !!m);
 
@@ -159,12 +179,13 @@ try {
 
   check(`captured real, non-zero bytes (bytes=${bytes})`, bytes > 0);
 
-  // PIT runs at ~18.2 Hz; ~1000ms should be roughly 18 ticks. Allow a wide
-  // band (8..200) to absorb scheduling jitter while still ruling out an
-  // instant/fake return (elapsed_ticks near 0) or a runaway hang.
-  check(`elapsed ticks consistent with real ~1s DMA capture (elapsed_ticks=${elapsedTicks})`, elapsedTicks >= 8 && elapsedTicks <= 200);
+  // PIT runs at 1000 Hz (see interrupts::PIT_TICK_MS); ~1000ms should be
+  // roughly 1000 ticks. Allow a wide band to absorb scheduling jitter while
+  // still ruling out an instant/fake return (elapsed_ticks near 0) or a
+  // runaway hang.
+  check(`elapsed ticks consistent with real ~1s DMA capture (elapsed_ticks=${elapsedTicks})`, elapsedTicks >= 300 && elapsedTicks <= 6000);
 
-  await waitForSerial("audio capture test complete", 5, captureStartOffset);
+  await waitForSerial("audio capture test complete", 15, captureStartOffset);
   const completeOffset = serialText().indexOf("audio capture test complete", captureStartOffset);
 
   // Count init's heartbeats between capture start and completion - proof

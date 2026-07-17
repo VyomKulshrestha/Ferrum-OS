@@ -113,6 +113,71 @@ pub fn init_idt() {
 }
 
 // ============================================================================
+// PIT (Programmable Interval Timer) configuration
+// ============================================================================
+//
+// Left at its power-on-default divisor (65536) - an un-reprogrammed 8253/8254
+// free-runs at ~18.2 Hz (~55ms/tick) - this used to be genuinely fine for a
+// coarse round-robin slice, but it also meant every `sys_sleep` request under
+// 55ms (e.g. a GUI app's `sleep(30)` poll loop, see `userland/*/src/main.rs`)
+// rounded up to "wake on literally the very next tick": with a background
+// ring-3 app active, that put a scheduler context-switch decision (with
+// interrupts briefly disabled - see `scheduler::resume_task`) on nearly every
+// single tick, continuously, for as long as that app ran. Combined with the
+// PS/2 8042 controller's single-scancode/small-FIFO buffering, a keyboard
+// scancode arriving during one of those windows could be lost outright -
+// reproduced directly: typing a command while a background app polls every
+// ~30ms lost whole trailing words, not just an occasional character (see
+// work.md). Reprogrammed to 1000 Hz (1ms/tick) so `sleep()` no longer forces
+// a wake (and therefore a context-switch decision) far more often than the
+// caller actually asked for - this doesn't change the *existence* of the
+// race (nothing can un-overwrite an already-clobbered hardware scancode
+// register), but it removes the amplification that turned an inherent,
+// narrow hardware race into a near-guaranteed one.
+//
+// Every tick-based constant elsewhere in the kernel that assumed the old
+// ~55ms/tick rate (`scheduler::TIME_SLICE_TICKS`, the quota windows in
+// `scheduler::TaskQuotas::default_user`, `sys_sleep`'s ms-to-ticks
+// conversion, `net::iface`'s tick-to-millisecond timestamp conversion, and
+// the `uptime`/`scheduler` shell commands' tick-to-time display) has been
+// rescaled to preserve the same real-world durations at the new rate -
+// search for `PIT_TICK_MS` to find every dependent site.
+
+/// The PIT's own oscillator frequency (fixed by the hardware).
+const PIT_BASE_HZ: u32 = 1_193_182;
+
+/// Target tick rate after reprogramming. 1000 Hz (1ms/tick) is the standard
+/// choice for a general-purpose preemptible kernel - fine enough for
+/// millisecond-precision `sleep()`, coarse enough that the timer ISR itself
+/// (see `timer_interrupt_entry_inner`) is a vanishingly small fraction of
+/// each tick's duration.
+const PIT_HZ: u32 = 1000;
+
+/// Milliseconds per tick at `PIT_HZ`. Every ms<->tick conversion elsewhere
+/// in the kernel is written in terms of this constant instead of a
+/// hardcoded literal, so there is exactly one place to change the rate.
+pub const PIT_TICK_MS: u64 = 1000 / PIT_HZ as u64;
+
+/// Reprogram PIT channel 0 (the timer IRQ0 source) from its power-on-default
+/// ~18.2 Hz to `PIT_HZ`. Must run once, after `init_idt`/PIC init and before
+/// interrupts are enabled, so the very first tick already arrives at the new
+/// rate.
+pub fn init_pit() {
+    use x86_64::instructions::port::Port;
+
+    let divisor = (PIT_BASE_HZ / PIT_HZ) as u16;
+    unsafe {
+        let mut command: Port<u8> = Port::new(0x43);
+        let mut channel0: Port<u8> = Port::new(0x40);
+        // Channel 0, lobyte/hibyte access, mode 3 (square wave generator) -
+        // the standard configuration for a periodic timer interrupt.
+        command.write(0x36u8);
+        channel0.write((divisor & 0xFF) as u8);
+        channel0.write((divisor >> 8) as u8);
+    }
+}
+
+// ============================================================================
 // CPU Exception Handlers
 // ============================================================================
 
@@ -743,8 +808,8 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
             frame.rax = 0;
             return;
         } else if syscall_no == SyscallNumber::Sleep as u64 {
-            // arg0 = milliseconds; PIT runs ~18.2 Hz (~55 ms/tick).
-            let ticks = arg0.div_ceil(55).max(1);
+            // arg0 = milliseconds.
+            let ticks = arg0.div_ceil(PIT_TICK_MS).max(1);
             if crate::scheduler::sleep_current(ticks) {
                 save_user_context(current_pid, frame);
                 unsafe { resume_after_death() }
@@ -774,15 +839,36 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
                 let mut sched = crate::scheduler::SCHEDULER.lock();
                 if let Some(idx) = sched.tasks.iter().position(|t| t.id == current_pid) {
                     sched.contexts[idx].rip = sched.contexts[idx].rip.saturating_sub(2);
-                    
+
                     let task = &mut sched.tasks[idx];
-                    task.state = crate::scheduler::TaskState::Ready;
-                    task.time_remaining = crate::scheduler::TIME_SLICE_TICKS;
-                    task.quotas.used_cpu_ticks_continuous = 0;
-                    
-                    let pri = task.priority.index();
-                    if !sched.run_queues[pri].contains(&current_pid) {
-                        sched.run_queues[pri].push_back(current_pid);
+                    // The confirmation gate (`syscall::mod.rs`'s gated-syscall
+                    // check) already put this task into a genuine
+                    // Blocked-until-`wake_at` state of its own, complete with a
+                    // real future deadline, *before* returning this same
+                    // `Blocked` status - unconditionally overwriting that back
+                    // to Ready here (the correct thing to do for a plain
+                    // retry-ASAP syscall like the non-blocking audio capture
+                    // poll, which never touches `task.state` itself) discarded
+                    // the confirmation timeout entirely: every retry re-entered
+                    // the gate check, found itself still neither approved nor
+                    // denied, and set a *fresh* 5-second `wake_at` again,
+                    // spinning forever and re-printing the confirmation prompt
+                    // on every scheduler cycle instead of ever actually timing
+                    // out (see work.md). Leave a task alone here if it already
+                    // arranged its own real wake-up - `scheduler::tick()`'s
+                    // normal `wake_at <= now` sweep is what should resume it.
+                    let already_genuinely_blocked =
+                        task.state == crate::scheduler::TaskState::Blocked
+                            && task.wake_at != u64::MAX;
+                    if !already_genuinely_blocked {
+                        task.state = crate::scheduler::TaskState::Ready;
+                        task.time_remaining = crate::scheduler::TIME_SLICE_TICKS;
+                        task.quotas.used_cpu_ticks_continuous = 0;
+
+                        let pri = task.priority.index();
+                        if !sched.run_queues[pri].contains(&current_pid) {
+                            sched.run_queues[pri].push_back(current_pid);
+                        }
                     }
                 }
             }
