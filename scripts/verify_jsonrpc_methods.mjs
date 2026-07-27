@@ -17,6 +17,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freeTcpPort } from "./lib/free_port.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -26,6 +27,10 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
   qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
 }
 const basePort = Number(process.env.FERRUMOS_MONITOR_PORT || 45488);
+const configuredHostPort = Number(process.env.FERRUMOS_HOST_PORT || 0);
+const firstHostPort = configuredHostPort || await freeTcpPort();
+let secondHostPort = configuredHostPort ? configuredHostPort + 1 : await freeTcpPort();
+while (secondHostPort === firstHostPort) secondHostPort = await freeTcpPort();
 const visible = process.argv.includes("--visible");
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -152,7 +157,7 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
 // --- Scenario 1: fresh boot, no config, exercise the "unconfigured" state --
 {
   const label = "unconfigured";
-  const ctx = await runScenario(label, basePort, 8785);
+  const ctx = await runScenario(label, basePort, firstHostPort);
   if (ctx) {
     const { ws, monitor, qemuProcess } = ctx;
     try {
@@ -218,7 +223,7 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
 // --- Scenario 2: config pre-written before ring3 init, exercise the "configured and ticking" state --
 {
   const label = "configured";
-  const ctx = await runScenario(label, basePort + 1, 8786, async (sendText, sendKey, monitor) => {
+  const ctx = await runScenario(label, basePort + 1, secondHostPort, async (sendText, sendKey, monitor) => {
     // Written via the plain kernel shell prompt before ring3 init even
     // runs - proven pattern from verify_real_model.mjs/verify_heliox_setup.mjs,
     // sidesteps any GUI-focus timing since nothing but the shell exists yet.

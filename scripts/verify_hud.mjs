@@ -6,6 +6,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freeTcpPort } from "./lib/free_port.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -15,6 +16,7 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
   qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
 }
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45470);
+const hostPort = Number(process.env.FERRUMOS_HOST_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "hud-verify-serial.log");
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
 // rather than truncates, and this script's own waitForSerial(needle, s, 0)
@@ -39,7 +41,7 @@ const whpxArgs = [
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
-  "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+  "-netdev", `user,id=net0,hostfwd=tcp:127.0.0.1:${hostPort}-:8785`,
   "-device", "rtl8139,netdev=net0",
   "-device", "intel-hda",
   "-device", "hda-duplex",
@@ -61,7 +63,7 @@ if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
     "-drive", `format=raw,file=${image}`,
     "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
     "-serial", `file:${serialLog}`,
-    "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+    "-netdev", `user,id=net0,hostfwd=tcp:127.0.0.1:${hostPort}-:8785`,
     "-device", "rtl8139,netdev=net0",
     "-device", "intel-hda",
     "-device", "hda-duplex",
@@ -172,7 +174,7 @@ try {
   
   // Connect via WebSocket to heliox-daemon
   console.log("[test] connecting to daemon WebSocket server...");
-  const client = net.createConnection({ port: 8785, host: "127.0.0.1" });
+  const client = net.createConnection({ port: hostPort, host: "127.0.0.1" });
   
   let handshakeDone = false;
   let serverResponseData = Buffer.alloc(0);
@@ -182,7 +184,7 @@ try {
     client.on("connect", () => {
       client.write(
         "GET / HTTP/1.1\r\n" +
-        "Host: 127.0.0.1:8785\r\n" +
+        `Host: 127.0.0.1:${hostPort}\r\n` +
         "Upgrade: websocket\r\n" +
         "Connection: Upgrade\r\n" +
         "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n" +

@@ -58,7 +58,7 @@ const qemuArgs = [
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
-  "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+  "-netdev", "user,id=net0",
   "-device", "rtl8139,netdev=net0",
   "-device", "intel-hda",
   "-device", "hda-duplex",

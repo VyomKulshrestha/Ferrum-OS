@@ -12,6 +12,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freeTcpPort } from "./lib/free_port.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -24,6 +25,7 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 }
 
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45486);
+const hostPort = Number(process.env.FERRUMOS_HOST_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "real-model-verify-serial.log");
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
 // rather than truncates, and this script's own waitForSerial(needle, s, 0)
@@ -74,7 +76,7 @@ const qemuArgs = [
   "-drive", `format=raw,file=${diskImage},if=ide,index=1`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
-  "-netdev", "user,id=net0,hostfwd=tcp::8785-:8785",
+  "-netdev", `user,id=net0,hostfwd=tcp:127.0.0.1:${hostPort}-:8785`,
   "-device", "rtl8139,netdev=net0",
   "-device", "intel-hda",
   "-device", "hda-duplex",
@@ -156,7 +158,7 @@ try {
   await sleep(2000); // let the WebSocket server bind
 
   console.log("[test] connecting to daemon WebSocket, requesting local_inference...");
-  const ws = new WebSocket("ws://127.0.0.1:8785");
+  const ws = new WebSocket(`ws://127.0.0.1:${hostPort}`);
   let response = null;
   let wsError = null;
 
