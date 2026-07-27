@@ -148,7 +148,7 @@ const keyMap = new Map(
 );
 
 async function sendKey(key) {
-  await monitorCommand(`sendkey ${key}`, 120);
+  await monitorCommand(`sendkey ${key} 20`, 120);
 }
 
 async function sendText(text) {

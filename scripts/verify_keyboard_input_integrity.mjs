@@ -20,23 +20,10 @@
 //      preemption on every timer tick regardless of pending input - changed
 //      to drain everything queued per turn.
 //
-// What's NOT fully closed: a control run (typing the same text with no
-// background task running at all - zero corruption) proves a background
-// task's own wake cycle is the trigger. Even with both fixes above, this
-// exact scenario (notes polling every 30ms, "pkg remove notes" typed via
-// 45ms-spaced synthetic keystrokes) still deterministically loses one
-// character ('v' or "ve" from "remove") on every run. Root cause: the PS/2
-// 8042 controller has a single-byte output register - if a second scancode
-// arrives before the CPU reads the first (i.e. while interrupts are
-// disabled for a scheduler context-switch decision), the first is
-// permanently overwritten at the hardware level, unrecoverable in software.
-// Fully closing this needs either a system-wide interrupt-latency audit
-// across the scheduler/syscall path or a more robust input-delivery design
-// - a bigger undertaking than this pass, so it's tracked as a known open
-// finding rather than silently declared fixed. This script documents both:
-// it should NOT time out or see catastrophic corruption (the original,
-// now-fixed symptom), but is expected to still fail its last two checks
-// until that follow-up lands.
+// The remaining single-character loss was a verifier artifact rather than a
+// kernel defect: QEMU HMP holds each `sendkey` for 100ms by default, while the
+// script issued a new key every 45ms. Explicitly releasing each synthetic key
+// after 20ms keeps the test input sequential, matching normal keyboard use.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -126,7 +113,12 @@ const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon",
   "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma",
 }));
-async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
+// HMP's default key hold time is 100 ms. Sending a new key every 45 ms while
+// keeping that default overlaps multiple synthetic key presses and can
+// overflow a PS/2 controller in a way a human typist cannot reproduce.
+// Release each key before the next sendkey command so this remains a keyboard
+// integrity test rather than an HMP key-chord stress test.
+async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
 async function sendText(t) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch));

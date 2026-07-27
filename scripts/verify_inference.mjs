@@ -95,7 +95,7 @@ const keyMap = new Map(Object.entries({
   "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", "0": "0",
   "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma", ":": "shift-semicolon"
 }));
-async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
+async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
 async function sendText(t) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch));

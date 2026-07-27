@@ -83,7 +83,7 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
     }
     throw new Error(`[${label}] timed out waiting for "${needle}"\nRecent serial:\n${serialText().slice(-3000)}`);
   };
-  async function sendKey(k, mon) { mon.write(`sendkey ${k}\n`); await sleep(45); }
+  async function sendKey(k, mon) { mon.write(`sendkey ${k} 20\n`); await sleep(45); }
   async function sendText(t, mon) {
     for (const ch of t) {
       if (keyMap.has(ch)) await sendKey(keyMap.get(ch), mon);

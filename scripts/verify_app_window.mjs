@@ -114,7 +114,7 @@ async function mon(cmd, waitMs = 60) {
   await sleep(waitMs);
 }
 
-async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
+async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
 
 async function sendText(t) {
   for (const ch of t) {

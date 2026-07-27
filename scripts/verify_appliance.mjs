@@ -116,7 +116,7 @@ async function runScenario(memory, useDisk, setupFn, verifyFn) {
     "\"": "shift-apostrophe", ",": "comma"
   }));
 
-  const sendKey = async (k) => { await mon(`sendkey ${k}`); };
+  const sendKey = async (k) => { await mon(`sendkey ${k} 20`); };
   const sendText = async (t) => {
     for (const ch of t) {
       if (keyMap.has(ch)) await sendKey(keyMap.get(ch));

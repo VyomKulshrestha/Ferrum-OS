@@ -130,7 +130,7 @@ async function runScenario(memory, expectedTier, expectedProvider) {
     " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus",
     "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma", ":": "shift-semicolon",
   }));
-  const sendKey = async (k) => { await mon(`sendkey ${k}`); };
+  const sendKey = async (k) => { await mon(`sendkey ${k} 20`); };
   const sendText = async (t) => {
     for (const ch of t) {
       if (keyMap.has(ch)) await sendKey(keyMap.get(ch));

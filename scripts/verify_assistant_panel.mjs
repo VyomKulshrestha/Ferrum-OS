@@ -83,7 +83,7 @@ async function waitForSerial(needle, seconds, from = 0) {
 const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon"
 }));
-async function sendKey(k, mon) { mon.write(`sendkey ${k}\n`); await sleep(45); }
+async function sendKey(k, mon) { mon.write(`sendkey ${k} 20\n`); await sleep(45); }
 async function sendText(t, mon) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch), mon);

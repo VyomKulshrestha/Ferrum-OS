@@ -105,7 +105,7 @@ async function runScenario(label, wizardSteps, expectPrefix) {
     monitor.write(`${cmd}\n`);
     await sleep(waitMs);
   }
-  async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
+  async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
   async function sendText(t) {
     for (const ch of t) {
       if (keyMap.has(ch)) await sendKey(keyMap.get(ch));

@@ -154,7 +154,7 @@ const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon",
   "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma",
 }));
-async function sendKey(k) { await mon(`sendkey ${k}`, 45); }
+async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
 async function sendText(t) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch));

@@ -107,7 +107,7 @@ const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus" }))
 // keystrokes typed afterward land less reliably than at a plain idle
 // prompt - a too-fast 45ms gap here previously dropped a keystroke and
 // mangled "pkg remove notes" into "pkg remo notes".
-async function sendKey(k) { await mon(`sendkey ${k}`, 90); }
+async function sendKey(k) { await mon(`sendkey ${k} 20`, 90); }
 async function sendText(t) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch));
