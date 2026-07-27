@@ -90,7 +90,10 @@ const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon",
   "{": "shift-bracket_left", "}": "shift-bracket_right", "\"": "shift-apostrophe", ",": "comma",
 }));
-async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
+// This is a command-coverage audit, not a maximum-rate keyboard benchmark.
+// Use a fast but human-plausible cadence so command results are not polluted
+// by QEMU HMP/PS/2 saturation while background userspace is starting.
+async function sendKey(k) { await mon(`sendkey ${k} 20`, 120); }
 async function sendText(t) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch));
@@ -215,7 +218,13 @@ try {
   // --- ring3 / desktop (start real background activity; test near the end so
   // it doesn't interfere with anything above, and confirm the shell/agent
   // coexistence fix - see REPORT.md D13 - by running a command AFTER it) -----
+  const beforeRing3 = serialText().length;
   await runCmd("ring3 init", 15);
+  // The shell prompt returns as soon as init is dispatched, before init has
+  // spawned heliox-daemon. Do not turn daemon startup output into an input
+  // race; post-ring3 command coverage begins once the daemon is actually live.
+  await waitForSerial("[heliox-daemon] loop tick complete, sleeping...", 30, beforeRing3);
+  await sleep(250);
   await runCmd("agent status");
   await runCmd("uptime");
   await runCmd("heliox status");
