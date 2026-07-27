@@ -13,12 +13,21 @@ const image = path.join(
   "debug",
   "bootimage-ferrumos.bin",
 );
-const defaultQemu =
-  "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
-const qemu = process.env.QEMU || defaultQemu;
+let qemu =
+  process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (
+  !fs.existsSync(qemu) &&
+  fs.existsSync(
+    "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe",
+  )
+) {
+  qemu =
+    "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const visible = process.argv.includes("--visible");
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45457);
 const serialLog = path.join(repo, "target", "command-test-serial.log");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
 // rather than truncates, and this script's own waitForSerial(needle, s, 0)
 // checks start from byte 0, so a leftover log can produce a false-positive
@@ -40,6 +49,8 @@ try {
 }
 
 const qemuArgs = [
+  "-m",
+  "2048M",
   "-drive",
   `format=raw,file=${image}`,
   "-device",
@@ -53,15 +64,32 @@ const qemuArgs = [
   "-no-reboot",
 ];
 
+let whpxArgs = [
+  "-accel",
+  "whpx,kernel-irqchip=off",
+  "-cpu",
+  "Haswell",
+  ...qemuArgs,
+];
 if (!visible) {
-  qemuArgs.push("-display", "none");
+  whpxArgs.push("-display", "none");
 }
 
-const qemuProcess = spawn(qemu, qemuArgs, {
+let qemuProcess = spawn(qemu, whpxArgs, {
   windowsHide: !visible,
 });
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  console.log("WHPX unsupported or failed, falling back to TCG...");
+  const tcgArgs = ["-accel", "tcg", "-cpu", "max", ...qemuArgs];
+  if (!visible) {
+    tcgArgs.push("-display", "none");
+  }
+  qemuProcess = spawn(qemu, tcgArgs, {
+    windowsHide: !visible,
+  });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -269,7 +297,7 @@ const tests = [
 const results = [];
 
 try {
-  await waitForSerial("FerrumOS:~$", 25);
+  await waitForSerial("FerrumOS:~$", 180);
   for (const [command, expected] of tests.slice(0, -1)) {
     await runCommand(command, expected);
     results.push(`PASS\t${command}`);
