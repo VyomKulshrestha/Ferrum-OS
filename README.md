@@ -20,7 +20,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - GDT, IDT, CPU exception handlers, PIC timer and hardware IRQs
 - Page-table setup, boot-info frame allocation, and a 12 MiB kernel heap (increased to support VBE double-buffering)
 - Preemptive task scheduler with per-task context switching and priority queues
-- Interactive shell with 35+ commands including `dashboard`
+- Interactive shell with 48 documented commands including `dashboard`
 - SMP initialization, ACPI shutdown/reboot
 - Real userspace execution: ELF loader, Ring-3 entry, per-process address spaces, on-demand page-fault lazy allocation, and file-backed memory mapping (`mmap`)
 
@@ -78,7 +78,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - XHCI USB 3.0 host controller with device enumeration
 - USB HID keyboard and mouse (boot protocol)
 - PS/2 keyboard and mouse via 8042 controller (IRQ1 & IRQ12)
-- PIT 8254 timer, UART 16550 serial
+- PIT 8254 timer programmed at 1 kHz, UART 16550 serial
 
 ### Agent Daemon (`heliox-daemon`)
 - Bare-metal ReAct orchestrator (observe → think → act → verify → reflect)
@@ -91,7 +91,9 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
-- 39 tools mapped to 39 kernel syscalls
+- 39 public agent operations backed by the 47-syscall kernel ABI (37 are
+  advertised directly to the model; local inference and kernel upgrade are
+  exposed through controlled runtime/bridge paths)
 - Config-driven setup via `/disk/heliox/config.json`
 
 ## Architecture
@@ -185,7 +187,9 @@ node scripts\verify_all_audits.mjs
 The consolidated runner executes `command_sweep.mjs` and
 `audit_all_commands.mjs`, stops on the first failure, and returns a non-zero
 exit code for automation. Feature-specific end-to-end verifiers remain
-available as `scripts\verify_*.mjs`.
+available as `scripts\verify_*.mjs`. The v0.1.1 release baseline is 86/86
+command-sweep cases and 65/65 exhaustive catalog cases, with every command
+returning its expected prompt and no unknown-command or kernel-fault signature.
 
 ## Shell Commands
 
@@ -290,14 +294,14 @@ available as `scripts\verify_*.mjs`.
 | Method | Description |
 |---|---|
 | `ping` | Liveness check, returns `"pong"` |
-| `execute_tool` | Run one of the 39 agent tools by name with args |
+| `execute_tool` | Run a public agent operation by name with args |
 | `gesture_event` | Report a gesture/HUD input event |
 | `health` | Whether the daemon is configured yet, and which provider is active |
 | `get_config` | Current runtime configuration (excludes the API key) |
 | `system_status` | Live tick count, current goal, and hardware info |
 | `agent_stats` | Telemetry ring-buffer summary: event count and the last event |
 
-## Agent Tools (39 total)
+## Public Agent Operations (39 total)
 
 | Tier | Tools |
 |------|-------|

@@ -53,7 +53,7 @@ and can evolve without destabilizing the kernel.
 ### Boot Sequence
 
 1. BIOS/UEFI → `bootloader` crate hands control to `_start`
-2. GDT, IDT, PIC (8259) remapped, PIT configured
+2. GDT, IDT, PIC (8259) remapped, PIT programmed at 1 kHz
 3. Page tables from boot info, frame allocator initialized
 4. Kernel heap mapped (12 MiB at `0x4444_4444_0000` to support double-buffering)
 5. Preemptive scheduler with idle task
@@ -75,6 +75,8 @@ and can evolve without destabilizing the kernel.
 - Context switching via `switch_to()` assembly stub
 - Per-task kernel stacks, sleep/wake/yield syscalls
 - PID assignment, task state tracking (Ready/Running/Blocked/Dead)
+- 275 ms default time slice, derived from the PIT period so timer-rate changes
+  do not silently alter scheduling or quota durations
 
 ### Syscall Dispatch
 
@@ -185,6 +187,10 @@ for compiled-in programs.
 
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
+- Console, serial, and userspace `SYS_WRITE` output is emitted in bounded
+  chunks with hardware interrupts serviceable between chunks. Long log lines
+  therefore cannot starve the PS/2 keyboard IRQ while Heliox or an audit is
+  printing.
 - `cursor::process_input()` is the single shared entry point every render/input pump goes through (both `run_desktop()`'s loop and `SYS_HUD_UPDATE`'s ambient pump call it) — the first time it's ever called it discards only queued *keyboard* events (`input::discard_stale_keyboard_events`), so keystrokes typed before anything was compositing yet don't replay into whatever window happens to get focus first. Mouse events are left untouched: they were never typed at a shell prompt, so blanket-clearing the whole queue here used to risk silently eating a real, freshly-issued click if it landed in the same narrow window as this one-time flush (the actual cause of a `verify_core_apps.mjs` Text Editor regression - see `work.md`)
 - Main GUI loop utilizes `hlt` for 0% idle CPU usage, waking only on hardware IRQs
 - Mouse events support 9-bit signed deltas with overflow protection
@@ -355,7 +361,7 @@ redraws) with no `present()` failure logged and no fault/panic.
 
 ### Ambient Intelligence & Multi-Provider Support
 
-The agent daemon continuously buffers 1-second chunks of audio from the Intel HDA hardware. When voice activity is detected, it transcribes the audio and generates a new `GOAL:`, bridging the physical world with the ReAct loop. It also periodically screenshots the desktop to proactively solve GUI errors.
+The agent daemon continuously buffers 1-second chunks of audio from the Intel HDA hardware. When voice activity is detected, it transcribes the audio and generates a new `GOAL:`, bridging the physical world with the ReAct loop. It also periodically screenshots the desktop to proactively solve GUI errors. A stable Pointing gesture is retained for an 8.2-second multimodal association window (8,200 ticks at the 1 kHz PIT), allowing a later phrase such as "open this" to resolve through `HitTest` to the pointed window after audio capture and transcription complete.
 
 The `network.rs` client is dynamically driven by the daemon's runtime configuration, supporting two payload schemas:
 1. **Ollama Format:** Flat `{"model", "prompt"}` JSON.
@@ -367,7 +373,7 @@ Until a configuration file actually exists on disk, the daemon stays idle: no ti
 
 ### JSON-RPC Interface
 
-The daemon exposes a JSON-RPC 2.0 surface over its WebSocket server (port 8785): `ping`, `execute_tool` (runs one of the 39 agent tools), `gesture_event`, `health` (configured state + active provider), `get_config` (live config fields, excluding the API key), `system_status` (tick count, current goal, hardware info), and `agent_stats` (telemetry ring-buffer summary). All are backed by real orchestrator/config state rather than stubs — `system_status`'s tick count strictly advances between calls, and `agent_stats` correctly reports an empty buffer while the daemon is idle/unconfigured.
+The daemon exposes a JSON-RPC 2.0 surface over its WebSocket server (port 8785): `ping`, `execute_tool` (runs a public agent operation), `gesture_event`, `health` (configured state + active provider), `get_config` (live config fields, excluding the API key), `system_status` (tick count, current goal, hardware info), and `agent_stats` (telemetry ring-buffer summary). All are backed by real orchestrator/config state rather than stubs — `system_status`'s tick count strictly advances between calls, and `agent_stats` correctly reports an empty buffer while the daemon is idle/unconfigured.
 
 ### Chat IPC with the Heliox Assistant App
 
@@ -525,8 +531,8 @@ layer.
 
 To prevent rogue or runaway agent scripts from degrading system performance or freezing the kernel:
 - **Memory Mapping Bounds**: Processes are restricted to a maximum memory mapping quota of 2048 pages (8 MiB) inside `map_user`. Exceeding this triggers a frame allocation error.
-- **Continuous CPU execution limit**: The scheduler monitors tasks and reaps any user task that executes consecutively for more than 100 ticks (~5.5s) without yielding (`sys_yield`) or sleeping (`sys_sleep`). Reaped processes exit with code 140.
-- **Syscall Rate Limiting**: Restricts processes to 5000 system calls per 200-tick window (~11s) — sized to comfortably accommodate a real interactive GUI app's normal poll/sleep loop, not just brief scripted interactions. Violations result in immediate process termination (exit code 140) and logging.
+- **Continuous CPU execution limit**: The scheduler monitors tasks and reaps any user task that executes consecutively for more than 5,500 ticks (~5.5s at the 1 kHz PIT) without yielding (`sys_yield`) or sleeping (`sys_sleep`). Reaped processes exit with code 140.
+- **Syscall Rate Limiting**: Restricts processes to 5,000 system calls per 11,000-tick window (~11s at the 1 kHz PIT) — sized to comfortably accommodate a real interactive GUI app's normal poll/sleep loop, not just brief scripted interactions. Violations result in immediate process termination (exit code 140) and logging.
 
 ### Audit Log
 
@@ -580,6 +586,31 @@ Alternatively, the agent reads runtime config directly from `/disk/heliox/config
 
 All fields have sensible defaults. Missing or malformed config silently falls
 back. If manually editing this file, restart the daemon (`services stop heliox-daemon` then `services start heliox-daemon`) or reboot the system to apply changes.
+
+## Release Verification
+
+The release harness has two layers:
+
+- `node scripts/verify_all_audits.mjs` runs the 86-case shell command sweep and
+  the independent 65-case exhaustive command catalog sequentially, failing on
+  the first non-zero child result.
+- The 38 feature-specific `scripts/verify_*.mjs` files are run individually
+  for isolated QEMU evidence across Ring-3, scheduling, GUI apps, networking,
+  storage, accounts, Heliox, real/synthetic inference, voice/fusion, and both
+  rule-based and learned world-model safety paths.
+
+The dashboard/shell coexistence checks require a scheduler-trace boot image:
+
+```powershell
+$env:Path = "$env:USERPROFILE\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\bin;$env:USERPROFILE\.cargo\bin;$env:Path"
+cargo bootimage --features sched-trace
+node scripts\verify_dashboard_scheduling.mjs
+node scripts\verify_shell_coexistence.mjs
+```
+
+Rebuild the normal image with `.\build.ps1 build` afterward; scheduler tracing
+is intentionally disabled in release builds because synchronous per-switch
+serial output increases interrupt latency.
 
 ## Source Tree
 
