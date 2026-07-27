@@ -2,7 +2,7 @@
 // FerrumOS - heliox-daemon End-to-End Voice & STT Loop verification
 // ============================================================================
 // Boots the kernel in QEMU with audio devices, runs a mock Whisper STT server
-// on host port 8786, writes a custom config to /disk/heliox/config.json with
+// on a free host port, writes a custom config to /disk/heliox/config.json with
 // vad_threshold=0 to force silent capture, and asserts that:
 //   1. the daemon starts up and detects voice activity,
 //   2. records 3 seconds and POSTs to mock Whisper STT,
@@ -15,12 +15,17 @@ import net from "node:net";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freeTcpPort } from "./lib/free_port.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
-const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45460);
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
+const port = Number(process.env.FERRUMOS_MONITOR_PORT || await freeTcpPort());
+const sttPort = Number(process.env.FERRUMOS_STT_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "voice-verify-serial.log");
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
 // rather than truncates, and this script's own waitForSerial(needle, s, 0)
@@ -62,26 +67,37 @@ const mockServer = http.createServer((req, res) => {
 });
 
 await new Promise((resolve) => {
-  mockServer.listen(8786, "127.0.0.1", () => {
-    console.log("[mock server] STT listening on port 8786");
+  mockServer.listen(sttPort, "127.0.0.1", () => {
+    console.log(`[mock server] STT listening on port ${sttPort}`);
     resolve();
   });
 });
 
 const qemuArgs = [
+  "-m", "2048M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
   "-netdev", "user,id=net0",
   "-device", "rtl8139,netdev=net0",
+  "-audiodev", "none,id=hda0",
   "-device", "intel-hda",
-  "-device", "hda-duplex",
+  "-device", "hda-duplex,audiodev=hda0",
   "-no-reboot",
 ];
 if (!visible) qemuArgs.push("-display", "none");
 
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let qemuProcess = spawn(
+  qemu,
+  ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs],
+  { windowsHide: !visible },
+);
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  qemuProcess = spawn(qemu, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -148,13 +164,13 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 30);
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
 
   // 2. Write custom config.json to enable STT loop and set vad_threshold to 0
-  await sendText("write /disk/heliox/config.json {\"api_host\":\"host\",\"stt_host\":\"10.0.2.2\",\"stt_port\":8786,\"vad_threshold\":0}");
+  await sendText(`write /disk/heliox/config.json {"api_host":"host","stt_host":"10.0.2.2","stt_port":${sttPort},"vad_threshold":0}`);
   await sendKey("ret");
   await sleep(600);
 
