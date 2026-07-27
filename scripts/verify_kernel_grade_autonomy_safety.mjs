@@ -146,17 +146,11 @@ try {
   // Update start to current serial length so we don't match the prompt from sub-test 3.1
   let start32 = serialText().length;
   const confirmationSeenAt = Date.now();
-  // Send the keypress a few times in quick succession (not spaced out) so
-  // that if one PS/2 scancode is lost to the same interrupt-timing race
-  // documented in work.md (§1.1) - which can happen even with nothing else
-  // running - a subsequent one still lands well inside the kernel's own 5s
-  // confirmation window. A real user facing a dropped keystroke would just
-  // press again; spacing retries out (each with its own wait) would instead
-  // eat into that same 5s budget and could make things worse, not better.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    console.log(`[test] sending physical 'y' key (attempt ${attempt + 1})...`);
-    await sendKey("y");
-  }
+  // Send exactly one approval. Retrying speculatively leaves extra physical
+  // 'y' events in the keyboard queue, where they can approve the next,
+  // deliberately agent-injected confirmation and invalidate the safety test.
+  console.log("[test] sending physical 'y' key...");
+  await sendKey("y");
   const remainingMs = 5000 - (Date.now() - confirmationSeenAt);
   const remainingSeconds = Math.max(1, remainingMs / 1000) + 2; // +2s margin for the kernel to notice and print the result
   const approved = !!(await waitForSerial("[test] sub-test 3.2 result: 0", remainingSeconds, start32).catch(() => null));
@@ -179,6 +173,11 @@ try {
   // Test 4: Persistent Audit Log
   console.log("Checking Persistent Audit Log...");
   await sleep(1000); // Wait for shell prompt and CPU to settle after process exit
+  // The deliberately agent-injected 'y' press/release events are correctly
+  // rejected by the physical-confirmation gate, but still reach the normal
+  // shell input bridge. Clear that expected synthetic input before issuing
+  // the next independent shell command.
+  for (let i = 0; i < 4; i++) await sendKey("backspace");
   start = serialText().length;
   await sendText("cat /disk/heliox/audit.log");
   await sendKey("ret");
