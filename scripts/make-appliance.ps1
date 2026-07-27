@@ -94,9 +94,13 @@ Remove-Item $notesManifest -Force
 # file), so this never blocks appliance packaging the way the real LLM
 # checkpoint above does.
 $learnedWeights = "target/world_model_learned.bin"
+$encoderWeights = "target/world_model_encoder.bin"
+if ((Test-Path $learnedWeights) -or (Test-Path $encoderWeights)) {
+    wsl debugfs -w -R "mkdir /heliox/world" target/heliox-disk.img
+}
+
 if (Test-Path $learnedWeights) {
     Write-Host "Staging learned world-model weights onto the disk image..." -ForegroundColor Cyan
-    wsl debugfs -w -R "mkdir /heliox/world" target/heliox-disk.img
     wsl debugfs -w -R "write $learnedWeights /heliox/world/model_learned.bin" target/heliox-disk.img
 } else {
     Write-Host "No trained world-model weights found at $learnedWeights - heliox-daemon will use the Phase 1 rule table (run scripts/collect_world_model_dataset.mjs + scripts/train_world_model.py to train one)." -ForegroundColor Yellow
@@ -106,10 +110,8 @@ if (Test-Path $learnedWeights) {
 # (scripts/train_world_model_encoder.py). Same optional pattern as the
 # transition weights above - a missing file just leaves the embedding's
 # tail slots at zero (encoder_learned.rs's try_load() no-ops).
-$encoderWeights = "target/world_model_encoder.bin"
 if (Test-Path $encoderWeights) {
     Write-Host "Staging learned world-model encoder onto the disk image..." -ForegroundColor Cyan
-    wsl debugfs -w -R "mkdir /heliox/world" target/heliox-disk.img
     wsl debugfs -w -R "write $encoderWeights /heliox/world/model_encoder.bin" target/heliox-disk.img
 } else {
     Write-Host "No trained world-model encoder found at $encoderWeights - heliox-daemon will leave the embedding's latent slots at zero (run scripts/train_world_model_encoder.py to train one)." -ForegroundColor Yellow
