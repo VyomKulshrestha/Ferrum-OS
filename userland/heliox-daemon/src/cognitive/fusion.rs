@@ -33,6 +33,11 @@ pub struct ResolvedIntent {
 
 static GESTURE_HISTORY: Mutex<Vec<(u64, u16, u16)>> = Mutex::new(Vec::new());
 
+// The kernel programs the PIT at 1 kHz, so uptime ticks are milliseconds.
+// Keep the original ~8.2 second gesture/voice association window after the
+// timer-rate migration from the legacy 18.2 Hz default.
+const GESTURE_FUSION_WINDOW_TICKS: u64 = 8_200;
+
 pub fn get_uptime_ticks() -> u64 {
     let mut buf = [0u8; 512];
     let bytes_written = unsafe {
@@ -76,12 +81,12 @@ pub fn resolve_spatial_intent(transcript: &str, current_ticks: u64) -> Option<Re
         return None;
     }
     
-    // Find the most recent Pointing gesture within 150 ticks (~8.2s at 18.2Hz)
+    // Find the most recent Pointing gesture within the multimodal association window.
     let history = GESTURE_HISTORY.lock();
     let mut best_gesture = None;
     for &(ticks, sx, sy) in history.iter().rev() {
         let diff = current_ticks.saturating_sub(ticks);
-        if diff <= 150 {
+        if diff <= GESTURE_FUSION_WINDOW_TICKS {
             best_gesture = Some((sx, sy));
             break;
         }
@@ -205,4 +210,3 @@ pub fn idle_waveform(loop_count: u64) -> [u8; 64] {
     }
     wave
 }
-
