@@ -62,7 +62,14 @@ fn write_mouse(data: u8) {
     unsafe { data_port.write(data) };
     
     wait_read();
-    let _ack = unsafe { data_port.read() }; // ACK
+    let ack = unsafe { data_port.read() };
+    if ack != MOUSE_ACK {
+        crate::serial_println!(
+            "[ WARN ] PS/2 mouse command 0x{:02X} returned 0x{:02X}, expected ACK",
+            data,
+            ack
+        );
+    }
 }
 
 pub fn init() {

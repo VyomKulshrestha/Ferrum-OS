@@ -6,7 +6,7 @@ use core::arch::x86_64::__cpuid;
 
 /// Probe CPUID to check if RDRAND is supported by the processor.
 pub fn is_rdrand_supported() -> bool {
-    let cpuid_result = unsafe { __cpuid(1) };
+    let cpuid_result = __cpuid(1);
     (cpuid_result.ecx & (1 << 30)) != 0
 }
 

@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use core::arch::asm;
-use core::panic::PanicInfo;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -1002,4 +1001,3 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     }
     loop {}
 }
-

@@ -503,7 +503,7 @@ pub fn run_dashboard() -> ! {
             "dashboard",
             crate::scheduler::Priority::Normal,
             stack_top,
-            dashboard_entry as u64,
+            dashboard_entry as *const () as u64,
         );
         DASHBOARD_TASK_PID.store(id, Ordering::SeqCst);
         id
@@ -512,7 +512,11 @@ pub fn run_dashboard() -> ! {
         // persistent state to preserve), so reopening after a previous
         // session just resets to a clean entry point - same reasoning
         // as `gui::run_desktop`'s reopen path.
-        crate::scheduler::reset_kernel_task_entry(pid, stack_top, dashboard_entry as u64);
+        crate::scheduler::reset_kernel_task_entry(
+            pid,
+            stack_top,
+            dashboard_entry as *const () as u64,
+        );
         pid
     };
     crate::scheduler::claim_kernel_task_for_run(pid);

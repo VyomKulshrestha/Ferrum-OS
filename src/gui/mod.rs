@@ -117,7 +117,7 @@ pub fn run_desktop() -> ! {
             "desktop",
             crate::scheduler::Priority::Normal,
             stack_top,
-            desktop_entry as u64,
+            desktop_entry as *const () as u64,
         );
         DESKTOP_TASK_PID.store(id, core::sync::atomic::Ordering::SeqCst);
         id
@@ -126,7 +126,11 @@ pub fn run_desktop() -> ! {
         // clean entry point rather than resuming whatever stale
         // mid-loop point it was last preempted at (see
         // `reset_kernel_task_entry`'s doc).
-        crate::scheduler::reset_kernel_task_entry(pid, stack_top, desktop_entry as u64);
+        crate::scheduler::reset_kernel_task_entry(
+            pid,
+            stack_top,
+            desktop_entry as *const () as u64,
+        );
         pid
     };
     crate::scheduler::claim_kernel_task_for_run(pid);

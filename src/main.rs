@@ -135,7 +135,6 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
                     match ferrumos::fs::vfs::mount("/disk", fs.clone(), "ata.primary.slave") {
                         Ok(_) => {
                             println!("[  OK  ] Mounted ext2 filesystem at /disk (from primary slave)");
-                            mounted = true;
                         }
                         Err(e) => println!("[ WARN ] Failed to mount ext2 at /disk: {}", e),
                     }

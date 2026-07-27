@@ -355,7 +355,7 @@ pub fn render() {
     //    keep a taskbar entry but are not on screen). The hover state
     //    tells the window renderer whether its close/maximize/minimize
     //    buttons are being hovered so they can change colour.
-    let mut state = COMPOSITOR.lock();
+    let state = COMPOSITOR.lock();
     let focused_idx = state.focused_idx;
     for (i, window) in state.windows.iter().enumerate() {
         if window.minimized {

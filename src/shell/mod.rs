@@ -55,7 +55,7 @@ pub fn run() -> ! {
             "shell",
             crate::scheduler::Priority::Normal,
             stack_top,
-            shell_entry as u64,
+            shell_entry as *const () as u64,
         );
         SHELL_TASK_PID.store(id, Ordering::SeqCst);
         id
