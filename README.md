@@ -174,6 +174,19 @@ Or use the build script:
 .\build.ps1 run-appliance
 ```
 
+## Command Verification
+
+Run both shell command audits sequentially against QEMU:
+
+```powershell
+node scripts\verify_all_audits.mjs
+```
+
+The consolidated runner executes `command_sweep.mjs` and
+`audit_all_commands.mjs`, stops on the first failure, and returns a non-zero
+exit code for automation. Feature-specific end-to-end verifiers remain
+available as `scripts\verify_*.mjs`.
+
 ## Shell Commands
 
 | Command | Description |
