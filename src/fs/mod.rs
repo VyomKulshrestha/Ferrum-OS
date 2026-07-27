@@ -83,7 +83,7 @@ impl RamFs {
         
         // Create a welcome file
         children.insert("readme.txt".to_string(), FsNode::File {
-            content: String::from("Welcome to FerrumOS v0.1.0\nAI-Native Autonomous OS Foundation\n"),
+            content: String::from("Welcome to FerrumOS v0.1.1\nAI-Native Autonomous OS Foundation\n"),
         });
         
         // Create /etc/motd
@@ -92,7 +92,7 @@ impl RamFs {
                 content: String::from("FerrumOS"),
             });
             etc_children.insert("version".to_string(), FsNode::File {
-                content: String::from("0.1.0"),
+                content: String::from("0.1.1"),
             });
         }
         

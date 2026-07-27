@@ -1,14 +1,14 @@
 # ============================================================================
 # FerrumOS - A Rust-based AI-Native Autonomous Operating System
 # ============================================================================
-# Version: 0.1.0
+# Version: 0.1.1
 # Architecture: x86_64 bare-metal
 # Philosophy: Security-first, modular, AI-runtime-ready
 # ============================================================================
 
 [package]
 name = "ferrumos"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["FerrumOS Contributors"]
 description = "A minimal modular Rust-based operating system designed as the foundation for an AI-native autonomous computing environment"

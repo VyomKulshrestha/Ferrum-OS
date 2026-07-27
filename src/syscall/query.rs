@@ -76,7 +76,7 @@ fn query_system_info() -> String {
     };
 
     format!(
-        "{{\"uptime_ticks\":{},\"cpu_count\":1,\"kernel_version\":\"0.1.0\",\"boot_mode\":\"{}\",\"active_tasks\":{},\"ram_mb\":{},\"avx2\":{},\"tier\":\"{}\"}}",
+        "{{\"uptime_ticks\":{},\"cpu_count\":1,\"kernel_version\":\"0.1.1\",\"boot_mode\":\"{}\",\"active_tasks\":{},\"ram_mb\":{},\"avx2\":{},\"tier\":\"{}\"}}",
         uptime, boot_mode, active_tasks, ram_mb, avx2, tier
     )
 }

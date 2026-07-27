@@ -1519,7 +1519,7 @@ fn cmd_test_syscall(args: &[&str]) {
 }
 
 fn cmd_uname() {
-    println!("FerrumOS v0.1.0 x86_64 (Rust nightly)");
+    println!("FerrumOS v0.1.1 x86_64 (Rust nightly)");
     println!("AI-Native Autonomous OS Foundation");
     println!("Kernel: microkernel-inspired, capability-based");
 }
@@ -1669,7 +1669,7 @@ fn cmd_security() {
 }
 
 fn cmd_about() {
-    println!("FerrumOS v0.1.0");
+    println!("FerrumOS v0.1.1");
     println!("A minimal modular Rust-based operating system designed as");
     println!("the foundation for an AI-native autonomous computing environment.");
     println!();
@@ -1777,4 +1777,3 @@ fn cmd_camera_gesture(args: &[&str]) {
     crate::devices::camera_synth::tick();
     println!("synthetic camera gesture set to {:?}", gesture);
 }
-

@@ -384,14 +384,14 @@ fn print_boot_banner() {
     println!(" |  _  |  __/ |   < (_) | |_| |___) |");
     println!(" |_| |_|\\___|_|_|\\_\\___/ \\___/|____/");
     println!();
-    println!("  Booting FerrumOS v0.1.0 - AI-Native Autonomous OS");
+    println!("  Booting FerrumOS v0.1.1 - AI-Native Autonomous OS");
     println!("  Architecture: x86_64 | Mode: Protected");
     println!();
 }
 
 /// Print the shell-ready status screen using only VGA-safe ASCII.
 fn print_ready_banner() {
-    println!("FerrumOS v0.1.0");
+    println!("FerrumOS v0.1.1");
     println!("AI-Native Autonomous OS Foundation");
     println!();
     println!("[ OK ] Interrupts and GDT initialized");
