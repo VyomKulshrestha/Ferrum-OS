@@ -304,28 +304,30 @@ pub extern "C" fn _start() -> ! {
             };
             write_num("[test] create /disk/heliox/models res: ", res_dir2 as i64, "\n");
 
-            let mut model_bytes = [0u8; 1024];
-            model_bytes[0] = b'G';
-            model_bytes[1] = b'G';
-            model_bytes[2] = b'U';
-            model_bytes[3] = b'F';
-            model_bytes[4] = 3;
-            model_bytes[5] = 0;
-            model_bytes[6] = 0;
-            model_bytes[7] = 0;
-            for idx in 8..1024 {
-                model_bytes[idx] = (idx % 250) as u8;
-            }
+            const MOCK_MODEL: &[u8] = include_bytes!("../fixtures/stories15M-q8.bin");
+            const MOCK_TOKENIZER: &[u8] = include_bytes!("../fixtures/tokenizer.bin");
+
             let res_write1 = unsafe {
                 syscall4(
                     SYS_WRITE_FILE,
-                    "/disk/heliox/models/toy.gguf".as_ptr() as u64,
-                    "/disk/heliox/models/toy.gguf".len() as u64,
-                    model_bytes.as_ptr() as u64,
-                    model_bytes.len() as u64,
+                    "/disk/heliox/models/stories15M-q8.bin".as_ptr() as u64,
+                    "/disk/heliox/models/stories15M-q8.bin".len() as u64,
+                    MOCK_MODEL.as_ptr() as u64,
+                    MOCK_MODEL.len() as u64,
                 )
             };
-            write_num("[test] write /disk/heliox/models/toy.gguf res: ", res_write1 as i64, "\n");
+            write_num("[test] write /disk/heliox/models/stories15M-q8.bin res: ", res_write1 as i64, "\n");
+
+            let res_write2 = unsafe {
+                syscall4(
+                    SYS_WRITE_FILE,
+                    "/disk/heliox/tokenizer.bin".as_ptr() as u64,
+                    "/disk/heliox/tokenizer.bin".len() as u64,
+                    MOCK_TOKENIZER.as_ptr() as u64,
+                    MOCK_TOKENIZER.len() as u64,
+                )
+            };
+            write_num("[test] write /disk/heliox/tokenizer.bin res: ", res_write2 as i64, "\n");
             write("[test] 2. Local offline inference setup complete\n");
 
             // Test 3: Setup host-assisted self-evolution kexec target

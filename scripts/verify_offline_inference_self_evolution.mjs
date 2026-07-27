@@ -18,7 +18,10 @@ import { freeTcpPort } from "./lib/free_port.mjs";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const qemu = process.env.QEMU || "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
+if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
+  qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
+}
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45462);
 const hostPort = Number(process.env.FERRUMOS_HOST_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "phase-f-verify-serial.log");
@@ -35,6 +38,7 @@ if (!fs.existsSync(qemu)) throw new Error(`qemu not found: ${qemu}`);
 try { fs.unlinkSync(serialLog); } catch {}
 
 const qemuArgs = [
+  "-m", "2048M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -47,8 +51,17 @@ const qemuArgs = [
 if (!visible) qemuArgs.push("-display", "none");
 
 console.log("Starting QEMU...");
-const qemuProcess = spawn(qemu, qemuArgs, { windowsHide: !visible });
+let qemuProcess = spawn(
+  qemu,
+  ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs],
+  { windowsHide: !visible },
+);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+await sleep(2500);
+if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
+  qemuProcess = spawn(qemu, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: !visible });
+  await sleep(1500);
+}
 
 async function connectMonitor() {
   const deadline = Date.now() + 15_000;
@@ -105,7 +118,7 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 30);
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   console.log("Running Phase F Offline Inference & Self-Evolution Verification Suite...");
@@ -202,8 +215,8 @@ try {
 
   const success = localInferenceResponse.success;
   const output = localInferenceResponse.output;
-  check("local offline inference execution (Q4 Gemv scalar calculation completes successfully)",
-    success && output.includes("Local SLM Response: Hello! I am your offline assistant"));
+  check("local offline inference execution (deterministic llama2.c fixture produces expected sequence)",
+    success && output.startsWith("pqrst"), `Got output: ${JSON.stringify(output)}`);
 
   // Now the kernel upgrade has been triggered.
   // We expect the gated syscall prompt to appear.
