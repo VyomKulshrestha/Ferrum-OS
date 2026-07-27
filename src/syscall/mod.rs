@@ -609,10 +609,23 @@ fn sys_write_console(args: [u64; 6]) -> SyscallResult {
     // `print!` already tees to the serial port (see vga::_print), so
     // fd=1 must not also call serial_print! or every byte doubles on
     // the serial console. fd=2 is the serial-only path.
+    //
+    // int 0x80 uses an interrupt gate, so IF is normally clear throughout a
+    // syscall. UART/framebuffer output can take milliseconds; keeping IF
+    // clear for that whole write starves the PS/2 keyboard while background
+    // userspace logs. This handler holds no scheduler or device locks before
+    // printing, so hardware IRQs can safely run for the duration of the I/O.
+    let interrupts_were_enabled = x86_64::instructions::interrupts::are_enabled();
+    if !interrupts_were_enabled {
+        x86_64::instructions::interrupts::enable();
+    }
     if fd == 1 {
         crate::print!("{}", text);
     } else {
         crate::serial_print!("{}", text);
+    }
+    if !interrupts_were_enabled {
+        x86_64::instructions::interrupts::disable();
     }
     SyscallResult::ok(bytes.len() as u64)
 }

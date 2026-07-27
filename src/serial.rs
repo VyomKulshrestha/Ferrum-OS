@@ -28,9 +28,18 @@ pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
-    interrupts::without_interrupts(|| {
+    if interrupts::are_enabled() {
+        // UART output is slow enough that masking interrupts for the whole
+        // formatted write can lose PS/2 input while background tasks log.
+        // Kernel code is not preempted by the scheduler, so it is safe to
+        // keep hardware interrupts enabled while this lock is held.
         SERIAL1.lock().write_fmt(args).expect("Printing to serial failed");
-    });
+    } else if let Some(mut serial) = SERIAL1.try_lock() {
+        // Interrupt/exception paths must never spin on a serial lock held by
+        // the interrupted context. Best-effort output is preferable to a
+        // recursive-lock deadlock; a colliding diagnostic line may be lost.
+        let _ = serial.write_fmt(args);
+    }
 }
 
 /// Print to the host serial port (no newline)

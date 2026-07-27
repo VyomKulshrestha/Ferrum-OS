@@ -241,12 +241,24 @@ pub fn _print(args: fmt::Arguments) {
 
     crate::serial::_print(args);
 
-    interrupts::without_interrupts(|| {
+    if interrupts::are_enabled() {
         if let Some(console) = crate::graphics::console::CONSOLE.lock().as_mut() {
             let _ = console.write_fmt(args);
             return;
         }
-        
+
         let _ = WRITER.lock().write_fmt(args);
-    });
+    } else {
+        // Avoid recursive-lock deadlocks when an exception needs to print
+        // while the interrupted context is already rendering.
+        if let Some(mut guard) = crate::graphics::console::CONSOLE.try_lock() {
+            if let Some(console) = guard.as_mut() {
+                let _ = console.write_fmt(args);
+                return;
+            }
+        }
+        if let Some(mut writer) = WRITER.try_lock() {
+            let _ = writer.write_fmt(args);
+        }
+    }
 }

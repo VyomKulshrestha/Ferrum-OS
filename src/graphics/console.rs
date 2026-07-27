@@ -332,9 +332,13 @@ pub fn _print(args: fmt::Arguments) {
     // Always forward to serial so output is visible in the QEMU terminal
     crate::serial::_print(args);
 
-    interrupts::without_interrupts(|| {
+    if interrupts::are_enabled() {
         if let Some(console) = CONSOLE.lock().as_mut() {
             console.write_fmt(args).unwrap();
         }
-    });
+    } else if let Some(mut guard) = CONSOLE.try_lock() {
+        if let Some(console) = guard.as_mut() {
+            let _ = console.write_fmt(args);
+        }
+    }
 }
