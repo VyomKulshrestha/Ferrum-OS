@@ -768,13 +768,11 @@ pub extern "C" fn _start() -> ! {
                                                         arguments,
                                                     };
                                                     
-                                                    // Execute tool mapping
-                                                    let tool_result = cognitive::tool_mapper::execute(
-                                                        &tool_call,
-                                                        &mut orchestrator.confirmation_gate,
-                                                        4, // auto_approve_tier = 4 to bypass confirmation
-                                                        loop_count
-                                                    );
+                                                    // Public tool calls use the same world-model
+                                                    // prediction, safety gate, and experience recorder
+                                                    // as provider-generated ReAct actions.
+                                                    let tool_result = orchestrator
+                                                        .execute_tool_with_world_model(&tool_call);
                                                     
                                                     let res_json = alloc::format!(
                                                         "{{\"jsonrpc\":\"2.0\",\"result\":{{\"success\":{},\"output\":{}}},\"id\":{}}}",
@@ -783,6 +781,51 @@ pub extern "C" fn _start() -> ! {
                                                         id_str
                                                     );
                                                     let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                }
+                                            }
+                                        } else if method == "agent_step" {
+                                            let goal = parsed.get("params")
+                                                .and_then(|p| p.get("goal"))
+                                                .and_then(|g| g.as_str())
+                                                .unwrap_or("");
+                                            if goal.is_empty() {
+                                                let res_json = alloc::format!(
+                                                    "{{\"jsonrpc\":\"2.0\",\"error\":{{\"code\":-32602,\"message\":\"missing goal\"}},\"id\":{}}}",
+                                                    id_str
+                                                );
+                                                let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                            } else {
+                                                match orchestrator.run_goal_once(goal) {
+                                                    Ok((response, actions)) => {
+                                                        let mut actions_json = String::from("[");
+                                                        for (index, (tool, success, output)) in actions.iter().enumerate() {
+                                                            if index > 0 {
+                                                                actions_json.push(',');
+                                                            }
+                                                            actions_json.push_str(&alloc::format!(
+                                                                "{{\"tool\":{},\"success\":{},\"output\":{}}}",
+                                                                escape_json_string(tool),
+                                                                success,
+                                                                escape_json_string(output)
+                                                            ));
+                                                        }
+                                                        actions_json.push(']');
+                                                        let res_json = alloc::format!(
+                                                            "{{\"jsonrpc\":\"2.0\",\"result\":{{\"response\":{},\"actions\":{}}},\"id\":{}}}",
+                                                            escape_json_string(&response),
+                                                            actions_json,
+                                                            id_str
+                                                        );
+                                                        let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                    }
+                                                    Err(message) => {
+                                                        let res_json = alloc::format!(
+                                                            "{{\"jsonrpc\":\"2.0\",\"error\":{{\"code\":-32001,\"message\":{}}},\"id\":{}}}",
+                                                            escape_json_string(message),
+                                                            id_str
+                                                        );
+                                                        let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                    }
                                                 }
                                             }
                                         } else if method == "gesture_event" {

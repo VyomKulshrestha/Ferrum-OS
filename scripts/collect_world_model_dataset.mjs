@@ -33,14 +33,17 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45499);
 const serialLog = path.join(repo, "target", "world-model-collect-serial.log");
-// Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
-// rather than truncates, and this script's own waitForSerial(needle, s, 0)
-// checks start from byte 0, so a leftover log can produce a false-positive
-// match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
-// booted, corrupting every offset computed afterward.
-fs.rmSync(serialLog, { force: true });
-const outPath = path.join(repo, "target", "world_model_dataset.jsonl");
-const count = Number(process.argv[2] || process.env.WM_COLLECT_COUNT || 300);
+const cliValue = (name, fallback) => {
+  const i = process.argv.indexOf(name);
+  return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith("-")
+    ? process.argv[i + 1]
+    : fallback;
+};
+const positionalCount = process.argv.slice(2).find((v) => /^\d+$/.test(v));
+const outPath = path.resolve(cliValue("--out", process.env.WM_DATASET_OUT || path.join(repo, "target", "world_model_dataset.jsonl")));
+const count = Number(positionalCount || process.env.WM_COLLECT_COUNT || 300);
+const ramMb = Number(cliValue("--ram", process.env.WM_RAM_MB || 512));
+const append = process.argv.includes("--append");
 const visible = process.argv.includes("--visible");
 
 // Recovery mode: if the host process (or its shell) dies mid-collection -
@@ -57,39 +60,80 @@ if (process.argv.includes("--recover")) {
     ? process.argv[recoverIdx + 1]
     : serialLog;
   if (!fs.existsSync(logToRecover)) throw new Error(`no serial log found at ${logToRecover}`);
-  const rows = parseDatasetRows(fs.readFileSync(logToRecover, "utf8"));
-  fs.writeFileSync(outPath, rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
+  const rows = decorateRows(parseDatasetRows(fs.readFileSync(logToRecover, "utf8")));
+  writeRows(rows);
   console.log(`recovered ${rows.length} examples from ${logToRecover} -> ${outPath}`);
   process.exit(rows.length ? 0 : 1);
 }
+
+// Only truncate after recovery mode has had a chance to read the default log.
+// QEMU's `-serial file:X` appends, so a normal fresh run must remove stale data.
+fs.rmSync(serialLog, { force: true });
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
 if (!fs.existsSync(diskImage)) throw new Error(`appliance disk image not found: ${diskImage} - run scripts/make-appliance.ps1 first`);
 
 function parseDatasetRows(text) {
-  const lineRe = /\[world-model-dataset\] tick=(\d+) action=(\d+) reward=([\-0-9.]+) before=([0-9a-f]+) after=([0-9a-f]+)/g;
   const rows = [];
-  let m;
-  while ((m = lineRe.exec(text)) !== null) {
-    const hexToFloats = (hex) => {
-      const out = [];
-      for (let i = 0; i < hex.length; i += 8) {
-        const bits = parseInt(hex.slice(i, i + 8), 16);
-        const buf = new ArrayBuffer(4);
-        new DataView(buf).setUint32(0, bits, false);
-        out.push(new DataView(buf).getFloat32(0, false));
-      }
-      return out;
-    };
-    rows.push({
-      tick: Number(m[1]),
-      action: Number(m[2]),
-      reward: Number(m[3]),
-      before: hexToFloats(m[4]),
-      after: hexToFloats(m[5]),
-    });
+  const hexToFloats = (hex) => {
+    const out = [];
+    for (let i = 0; i < hex.length; i += 8) {
+      const bits = parseInt(hex.slice(i, i + 8), 16);
+      const buf = new ArrayBuffer(4);
+      new DataView(buf).setUint32(0, bits, false);
+      out.push(new DataView(buf).getFloat32(0, false));
+    }
+    return out;
+  };
+  const v2 = /\[world-model-dataset-v2\] tick=(\d+) action=(\d+) reward=([\-0-9.]+) success=([01])(?: executed=([01]))? risk=([\-0-9.]+) features=([0-9a-f]+) before=([0-9a-f]+) after=([0-9a-f]+)/;
+  const v1 = /\[world-model-dataset\] tick=(\d+) action=(\d+) reward=([\-0-9.]+) before=([0-9a-f]+) after=([0-9a-f]+)/;
+  for (const line of text.split(/\r?\n/)) {
+    let m = line.match(v2);
+    if (m) {
+      rows.push({
+        schema_version: 2,
+        tick: Number(m[1]),
+        action: Number(m[2]),
+        reward: Number(m[3]),
+        success: m[4] === "1",
+        executed: m[5] === undefined ? true : m[5] === "1",
+        risk: Number(m[6]),
+        action_features: hexToFloats(m[7]),
+        before: hexToFloats(m[8]),
+        after: hexToFloats(m[9]),
+      });
+      continue;
+    }
+    m = line.match(v1);
+    if (m) {
+      rows.push({
+        schema_version: 1,
+        tick: Number(m[1]),
+        action: Number(m[2]),
+        reward: Number(m[3]),
+        before: hexToFloats(m[4]),
+        after: hexToFloats(m[5]),
+      });
+    }
   }
   return rows;
+}
+
+function decorateRows(rows) {
+  return rows.map((row, index) => ({
+    source: "synthetic",
+    episode_id: `synthetic-${ramMb}m-${Math.floor(index / 13)}`,
+    step: index % 13,
+    ram_mb: ramMb,
+    ...row,
+  }));
+}
+
+function writeRows(rows) {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  const payload = rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
+  if (append) fs.appendFileSync(outPath, payload);
+  else fs.writeFileSync(outPath, payload);
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -121,7 +165,7 @@ async function waitForSerial(needle, seconds, from = 0) {
 try { fs.unlinkSync(serialLog); } catch {}
 
 const qemuArgs = [
-  "-m", "512M",
+  "-m", `${ramMb}M`,
   "-drive", `format=raw,file=${image}`,
   "-drive", `format=raw,file=${diskImage},if=ide,index=1`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
@@ -197,8 +241,8 @@ try {
   await waitForSerial("data collection complete", Math.max(60, count * 2), start);
   console.log("data collection complete, parsing dataset...");
 
-  const rows = parseDatasetRows(serialText());
-  fs.writeFileSync(outPath, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
+  const rows = decorateRows(parseDatasetRows(serialText()));
+  writeRows(rows);
   console.log(`wrote ${rows.length} examples to ${outPath}`);
   if (rows.length === 0) {
     console.error("no dataset rows parsed - check the serial log for [world-model-dataset] lines");
@@ -210,9 +254,9 @@ try {
   // run's progress. Genuine early failures (e.g. boot never reaching a
   // shell prompt) just produce a 0-row partial file, same as before.
   console.error("collection failed:", err && err.message ? err.message : String(err));
-  const rows = parseDatasetRows(serialText());
+  const rows = decorateRows(parseDatasetRows(serialText()));
   if (rows.length > 0) {
-    fs.writeFileSync(outPath, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
+    writeRows(rows);
     console.error(`salvaged ${rows.length} examples into ${outPath} despite the failure above (partial - re-run to top up, or rerun with --recover to re-parse ${serialLog} later)`);
   }
   exitCode = 1;

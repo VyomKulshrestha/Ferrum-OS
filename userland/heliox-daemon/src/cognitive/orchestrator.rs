@@ -184,6 +184,38 @@ impl Orchestrator {
         );
     }
 
+    /// Execute a public JSON-RPC tool through the same predictive gate and
+    /// dataset recorder as ReAct-generated actions.
+    pub fn execute_tool_with_world_model(
+        &mut self,
+        tc: &super::json::ToolCall,
+    ) -> tool_mapper::ToolResult {
+        self.total_actions += 1;
+        self.dispatch_with_world_model(tc)
+    }
+
+    /// Run one provider-backed ReAct cycle for a supplied goal, ignoring the
+    /// normal tick cadence. The hybrid host collector uses this to associate
+    /// one prompt/response episode with the exact transition rows it caused.
+    /// Provider selection remains entirely inside `think()`.
+    pub fn run_goal_once(
+        &mut self,
+        goal: &str,
+    ) -> Result<(String, Vec<(String, bool, String)>), &'static str> {
+        self.tick_count += 1;
+        self.set_goal(goal);
+        self.observe();
+        self.emit_chat("agent", "thinking", "");
+        let response = self.think().ok_or("LLM query failed or network not ready")?;
+        let actions = self.act(&response);
+        let chat_text = self.last_response.clone().unwrap_or_else(|| response.clone());
+        self.emit_chat("agent", "done", &chat_text);
+        for (tool_name, success, output) in &actions {
+            self.verify_and_reflect(tool_name, *success, output);
+        }
+        Ok((chat_text, actions))
+    }
+
     pub fn new() -> Self {
         // Load config from disk, fallback to defaults
         let config = Config::load("/disk/heliox/config.json");
@@ -592,104 +624,7 @@ impl Orchestrator {
                 }
             }
 
-            let result = match tc.name.as_str() {
-                "query_memory" => {
-                    let query = super::json::find_tool_arg_string(&tc.arguments, "query")
-                        .unwrap_or(self.last_observation.clone());
-                    let top_k = super::json::find_tool_arg_number(&tc.arguments, "top_k")
-                        .unwrap_or(3.0) as usize;
-                    let search_results = self.memory.search(&query, top_k, None);
-                    let mut output = String::from("Memory search results:\n");
-                    for doc in &search_results {
-                        output.push_str(&format!("- [{}] {}\n", doc.category.as_str(),
-                            if doc.content.len() > 200 { &doc.content[..200] } else { &doc.content }));
-                    }
-                    tool_mapper::ToolResult {
-                        tool_name: String::from("query_memory"),
-                        success: true,
-                        output,
-                    }
-                }
-                "save_memory" => {
-                    let save_result = self.memory.save("/disk/heliox/memory.json");
-                    tool_mapper::ToolResult {
-                        tool_name: String::from("save_memory"),
-                        success: save_result.is_ok(),
-                        output: match save_result {
-                            Ok(()) => String::from("Memory saved to /disk/heliox/memory.json"),
-                            Err(e) => format!("Save failed: {}", e),
-                        },
-                    }
-                }
-                "load_memory" => {
-                    let load_result = self.memory.load("/disk/heliox/memory.json");
-                    tool_mapper::ToolResult {
-                        tool_name: String::from("load_memory"),
-                        success: load_result.is_ok(),
-                        output: match load_result {
-                            Ok(()) => format!("Memory loaded ({} documents)", self.memory.document_count()),
-                            Err(e) => format!("Load failed: {}", e),
-                        },
-                    }
-                }
-                "set_goal" => {
-                    let goal = super::json::find_tool_arg_string(&tc.arguments, "goal")
-                        .unwrap_or_default();
-                    if !goal.is_empty() {
-                        self.planner.set_goal(&goal);
-                        self.verifier.reset();
-                        self.reflector.reset();
-                    }
-                    tool_mapper::ToolResult {
-                        tool_name: String::from("set_goal"),
-                        success: !goal.is_empty(),
-                        output: format!("Goal set to: {}", goal),
-                    }
-                }
-                "get_config" => {
-                    tool_mapper::ToolResult {
-                        tool_name: String::from("get_config"),
-                        success: true,
-                        output: format!(
-                            "tick_interval={}, save_interval={}, max_retries={}, auto_approve_tier={}",
-                            self.config.tick_interval, self.config.save_interval, 
-                            self.config.max_retries, self.config.auto_approve_tier
-                        ),
-                    }
-                }
-                "add_subtask" => {
-                    let description = super::json::find_tool_arg_string(&tc.arguments, "description")
-                        .unwrap_or_default();
-                    if description.is_empty() {
-                        tool_mapper::ToolResult {
-                            tool_name: String::from("add_subtask"),
-                            success: false,
-                            output: String::from("Missing 'description' argument"),
-                        }
-                    } else {
-                        let depends_on_str = super::json::find_tool_arg_string(&tc.arguments, "depends_on")
-                            .unwrap_or_default();
-                        let depends_on: Vec<u32> = if depends_on_str.is_empty() {
-                            Vec::new()
-                        } else {
-                            depends_on_str.split(',')
-                                .filter_map(|s| s.trim().parse::<u32>().ok())
-                                .collect()
-                        };
-                        let task_id = if let Some(plan) = self.planner.plan_mut() {
-                            plan.add_task(&description, None, "", depends_on, Vec::new())
-                        } else {
-                            0
-                        };
-                        tool_mapper::ToolResult {
-                            tool_name: String::from("add_subtask"),
-                            success: task_id > 0,
-                            output: format!("Subtask added with id={}: {}", task_id, description),
-                        }
-                    }
-                }
-                _ => self.dispatch_with_world_model(tc),
-            };
+            let result = self.dispatch_with_world_model(tc);
 
             if result.output.contains("Awaiting confirmation") {
                 self.emit_telemetry(TelemetryEventKind::ConfirmationQueued, format!("Tool {} requires confirmation", tc.name));
@@ -714,6 +649,114 @@ impl Orchestrator {
         }
 
         results
+    }
+
+    /// Executes a canonical Heliox action after the world-model gate passes.
+    /// Keeping every action behind one dispatcher ensures internal memory/
+    /// planner tools and ordinary syscall-backed tools share the same
+    /// observation and training path.
+    fn execute_action(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        match tc.name.as_str() {
+            "query_memory" => {
+                let query = super::json::find_tool_arg_string(&tc.arguments, "query")
+                    .unwrap_or(self.last_observation.clone());
+                let top_k = super::json::find_tool_arg_number(&tc.arguments, "top_k")
+                    .unwrap_or(3.0) as usize;
+                let search_results = self.memory.search(&query, top_k, None);
+                let mut output = String::from("Memory search results:\n");
+                for doc in &search_results {
+                    output.push_str(&format!("- [{}] {}\n", doc.category.as_str(),
+                        if doc.content.len() > 200 { &doc.content[..200] } else { &doc.content }));
+                }
+                tool_mapper::ToolResult {
+                    tool_name: String::from("query_memory"),
+                    success: true,
+                    output,
+                }
+            }
+            "save_memory" => {
+                let save_result = self.memory.save("/disk/heliox/memory.json");
+                tool_mapper::ToolResult {
+                    tool_name: String::from("save_memory"),
+                    success: save_result.is_ok(),
+                    output: match save_result {
+                        Ok(()) => String::from("Memory saved to /disk/heliox/memory.json"),
+                        Err(e) => format!("Save failed: {}", e),
+                    },
+                }
+            }
+            "load_memory" => {
+                let load_result = self.memory.load("/disk/heliox/memory.json");
+                tool_mapper::ToolResult {
+                    tool_name: String::from("load_memory"),
+                    success: load_result.is_ok(),
+                    output: match load_result {
+                        Ok(()) => format!("Memory loaded ({} documents)", self.memory.document_count()),
+                        Err(e) => format!("Load failed: {}", e),
+                    },
+                }
+            }
+            "set_goal" => {
+                let goal = super::json::find_tool_arg_string(&tc.arguments, "goal")
+                    .unwrap_or_default();
+                if !goal.is_empty() {
+                    self.planner.set_goal(&goal);
+                    self.verifier.reset();
+                    self.reflector.reset();
+                }
+                tool_mapper::ToolResult {
+                    tool_name: String::from("set_goal"),
+                    success: !goal.is_empty(),
+                    output: format!("Goal set to: {}", goal),
+                }
+            }
+            "get_config" => tool_mapper::ToolResult {
+                tool_name: String::from("get_config"),
+                success: true,
+                output: format!(
+                    "tick_interval={}, save_interval={}, max_retries={}, auto_approve_tier={}",
+                    self.config.tick_interval, self.config.save_interval,
+                    self.config.max_retries, self.config.auto_approve_tier
+                ),
+            },
+            "add_subtask" => {
+                let description = super::json::find_tool_arg_string(&tc.arguments, "description")
+                    .unwrap_or_default();
+                if description.is_empty() {
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("add_subtask"),
+                        success: false,
+                        output: String::from("Missing 'description' argument"),
+                    }
+                } else {
+                    let depends_on_str = super::json::find_tool_arg_string(&tc.arguments, "depends_on")
+                        .unwrap_or_default();
+                    let depends_on: Vec<u32> = if depends_on_str.is_empty() {
+                        Vec::new()
+                    } else {
+                        depends_on_str.split(',')
+                            .filter_map(|s| s.trim().parse::<u32>().ok())
+                            .collect()
+                    };
+                    let task_id = if let Some(plan) = self.planner.plan_mut() {
+                        plan.add_task(&description, None, "", depends_on, Vec::new())
+                    } else {
+                        0
+                    };
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("add_subtask"),
+                        success: task_id > 0,
+                        output: format!("Subtask added with id={}: {}", task_id, description),
+                    }
+                }
+            }
+            _ => tool_mapper::execute(
+                tc,
+                &mut self.confirmation_gate,
+                self.config.auto_approve_tier,
+                self.tick_count,
+            ),
+        }
     }
 
     /// World model (Phase 1, see model.md): captures a snapshot, predicts
@@ -748,13 +791,12 @@ impl Orchestrator {
                 output: format!("Blocked by world-model safety gate: {}", decision.reason),
             }
         } else {
-            tool_mapper::execute(
-                tc,
-                &mut self.confirmation_gate,
-                self.config.auto_approve_tier,
-                self.tick_count,
-            )
+            self.execute_action(tc)
         };
+        let execution_attempted = decision.allowed
+            && !result.output.contains("Awaiting confirmation")
+            && !result.output.contains("Action denied by operator")
+            && !result.output.contains("Confirmation request expired");
 
         let state_after = observation::capture_snapshot(self.tick_count, &tc.name, !result.success);
 
@@ -811,9 +853,12 @@ impl Orchestrator {
         world_model::emit_dataset_row(
             self.tick_count,
             &before_embedding,
-            world_model::tool_id(&tc.name),
+            tc,
             &after_embedding,
             reward,
+            result.success,
+            execution_attempted,
+            decision.risk,
         );
 
         self.wm_last_action_name = tc.name.clone();

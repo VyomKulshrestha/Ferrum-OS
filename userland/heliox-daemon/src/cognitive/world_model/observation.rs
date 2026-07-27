@@ -7,7 +7,7 @@
 // execute_system_info() already call it, ReadDir (17) exactly as
 // execute_read_dir() already calls it, and screen_vision::capture_screen()
 // (which itself wraps ReadTextBuffer, 20). No new syscalls, no new
-// capabilities - this is the same 39-tool surface the daemon already has,
+// capabilities - this is the same 41-action surface the daemon already has,
 // called on its own schedule instead of only when the LLM asks for it.
 // ============================================================================
 

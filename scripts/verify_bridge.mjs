@@ -19,12 +19,14 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45460);
 const hostPort = Number(process.env.FERRUMOS_HOST_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "bridge-verify-serial.log");
+const runDisk = path.join(repo, "target", "bridge-verify-disk.img");
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
 // rather than truncates, and this script's own waitForSerial(needle, s, 0)
 // checks start from byte 0, so a leftover log can produce a false-positive
 // match (e.g. an old "FerrumOS:~$" prompt) before this run's QEMU has even
 // booted, corrupting every offset computed afterward.
 fs.rmSync(serialLog, { force: true });
+fs.rmSync(runDisk, { force: true });
 const visible = process.argv.includes("--visible");
 
 if (!fs.existsSync(image)) throw new Error(`boot image not found: ${image}`);
@@ -43,7 +45,10 @@ const qemuArgs = [
   "-no-reboot",
 ];
 if (fs.existsSync(diskImage)) {
-  qemuArgs.push("-drive", `format=raw,file=${diskImage},if=ide,index=1`);
+  // Never mutate the packaged appliance. This test deliberately removes its
+  // provider config below so autonomous ticks cannot starve a bridge request.
+  fs.copyFileSync(diskImage, runDisk);
+  qemuArgs.push("-drive", `format=raw,file=${runDisk},if=ide,index=1`);
 }
 if (!visible) qemuArgs.push("-display", "none");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -165,6 +170,13 @@ try {
   await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
+  if (fs.existsSync(runDisk)) {
+    const configStart = serialText().length;
+    await sendText("rm /disk/heliox/config.json");
+    await sendKey("ret");
+    await waitForSerial("FerrumOS:~$", 15, configStart);
+  }
+
   const start = serialText().length;
 
   // Start init which spawns the daemon
@@ -249,6 +261,7 @@ try {
 
   // Send execute_tool request
   console.log("[test] sending execute_tool...");
+  const executeStart = serialText().length;
   client.write(makeFrame(JSON.stringify({
     method: "execute_tool",
     params: {
@@ -259,13 +272,22 @@ try {
   })));
 
   // Wait for execute_tool response
-  deadline = Date.now() + 5000;
+  // The world-model path captures two live snapshots around execution. Allow
+  // the same slow-TCG/host-load variance as the boot waits.
+  deadline = Date.now() + 60000;
   while (responses.length < 2 && Date.now() < deadline) {
     await sleep(50);
   }
 
   check("received execute_tool response from daemon", responses.length >= 2 && responses[1].id === 101);
   check("execute_tool result was successful", responses.length >= 2 && responses[1].result && responses[1].result.success === true);
+  const executeLog = await waitForSerial("[world-model-dataset-v2]", 15, executeStart);
+  check(
+    "public execute_tool passes through the world-model recorder",
+    executeLog.includes("action=2")
+      && executeLog.includes("success=1")
+      && executeLog.includes("executed=1"),
+  );
 
   // Send gesture_event request
   console.log("[test] sending gesture_event...");
@@ -303,6 +325,8 @@ try {
 } finally {
   monitor.destroy();
   qemuProcess.kill("SIGKILL");
+  await sleep(300);
+  fs.rmSync(runDisk, { force: true });
 }
 
 console.log(results.join("\n"));

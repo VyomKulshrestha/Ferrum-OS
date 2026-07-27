@@ -47,7 +47,7 @@ pub fn predict_next_state(state: &StateEmbedding, action: &ToolCall) -> Predicti
             .unwrap_or_default()
             .contains(OWN_CONFIG_PATH);
 
-    if let Some(delta) = learned::predict_delta(state, super::tool_id(&action.name)) {
+    if let Some(delta) = learned::predict_delta(state, action) {
         let mut next = *state;
         for i in 0..next.len() {
             // Clamped to [0,1]: every field encoder.rs actually defines
@@ -142,4 +142,3 @@ fn rule_based_delta(state: &StateEmbedding, action: &ToolCall) -> (StateEmbeddin
 
     (next, proc_count_delta)
 }
-

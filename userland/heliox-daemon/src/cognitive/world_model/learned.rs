@@ -23,17 +23,33 @@ use alloc::vec;
 use alloc::vec::Vec;
 use spin::Mutex;
 use super::encoder::{EMBEDDING_SIZE, StateEmbedding};
-use super::NUM_TOOLS;
+use super::action_features;
+use super::super::json::ToolCall;
+use super::{NUM_TOOLS, tool_id};
 
 const SYS_READ_FILE: u64 = 15;
 pub const WEIGHTS_PATH: &str = "/disk/heliox/world/model_learned.bin";
-const INPUT_SIZE: usize = EMBEDDING_SIZE + NUM_TOOLS;
+const LEGACY_INPUT_SIZE: usize = EMBEDDING_SIZE + NUM_TOOLS;
+const HYBRID_INPUT_SIZE: usize = LEGACY_INPUT_SIZE + action_features::ACTION_FEATURE_SIZE;
 const MAX_FILE_SIZE: usize = 2 * 1024 * 1024; // generous - actual weights are a few hundred KB at most
+const V2_MAGIC: u32 = u32::from_le_bytes(*b"FWM2");
+const V2_VERSION: u32 = 2;
+
+// The legacy corpus trained only this 13-tool rotation. Its file format has
+// no coverage metadata, so unseen actions must fall back to deterministic
+// rules instead of activating random, never-trained one-hot columns.
+const LEGACY_COVERAGE: u64 =
+    (1u64 << 7) | (1u64 << 13) | (1u64 << 17) | (1u64 << 18) |
+    (1u64 << 19) | (1u64 << 23) | (1u64 << 24) | (1u64 << 25) |
+    (1u64 << 26) | (1u64 << 34) | (1u64 << 36) | (1u64 << 37) |
+    (1u64 << 38);
 
 struct Mlp {
     input_size: usize,
     hidden_size: usize,
     output_size: usize,
+    action_feature_size: usize,
+    coverage: u64,
     w1: Vec<f32>, // [input_size][hidden_size], row-major
     b1: Vec<f32>, // [hidden_size]
     w2: Vec<f32>, // [hidden_size][output_size], row-major
@@ -59,9 +75,10 @@ fn read_f32_slice(buf: &[u8], offset: usize, count: usize) -> Vec<f32> {
 /// boot; safe to call repeatedly (e.g. after retraining and re-staging a
 /// new weights file) since it just replaces whatever was loaded before.
 ///
-/// Format (written by scripts/train_world_model.py's write_weights):
-///   header: 3 x u32 LE = input_size, hidden_size, output_size
-///   then f32 LE arrays: w1 (input*hidden), b1 (hidden), w2 (hidden*output), b2 (output)
+/// Legacy format: 3 x u32 LE = input_size, hidden_size, output_size.
+/// Hybrid v2 format: "FWM2", version, input/hidden/output sizes,
+/// action-feature size, and a 64-bit trained-tool coverage mask.
+/// Both are followed by f32 LE arrays w1, b1, w2, b2.
 pub fn try_load() -> bool {
     let mut buf = vec![0u8; MAX_FILE_SIZE];
     let n = unsafe {
@@ -79,12 +96,40 @@ pub fn try_load() -> bool {
     let len = n as usize;
     buf.truncate(len);
 
-    let input_size = read_u32_le(&buf, 0) as usize;
-    let hidden_size = read_u32_le(&buf, 4) as usize;
-    let output_size = read_u32_le(&buf, 8) as usize;
+    let first = read_u32_le(&buf, 0);
+    let (header_len, input_size, hidden_size, output_size, action_feature_size, coverage) =
+        if first == V2_MAGIC {
+            if len < 32 || read_u32_le(&buf, 4) != V2_VERSION {
+                return false;
+            }
+            let coverage_low = read_u32_le(&buf, 24) as u64;
+            let coverage_high = read_u32_le(&buf, 28) as u64;
+            (
+                32usize,
+                read_u32_le(&buf, 8) as usize,
+                read_u32_le(&buf, 12) as usize,
+                read_u32_le(&buf, 16) as usize,
+                read_u32_le(&buf, 20) as usize,
+                coverage_low | (coverage_high << 32),
+            )
+        } else {
+            (
+                12usize,
+                first as usize,
+                read_u32_le(&buf, 4) as usize,
+                read_u32_le(&buf, 8) as usize,
+                0usize,
+                LEGACY_COVERAGE,
+            )
+        };
 
-    let expected_len = 12 + (input_size * hidden_size + hidden_size + hidden_size * output_size + output_size) * 4;
-    if input_size != INPUT_SIZE || output_size != EMBEDDING_SIZE || expected_len != len {
+    let expected_input = LEGACY_INPUT_SIZE + action_feature_size;
+    let expected_len = header_len + (input_size * hidden_size + hidden_size + hidden_size * output_size + output_size) * 4;
+    if input_size != expected_input
+        || (action_feature_size != 0 && action_feature_size != action_features::ACTION_FEATURE_SIZE)
+        || output_size != EMBEDDING_SIZE
+        || expected_len != len
+    {
         let msg = alloc::format!(
             "[heliox-daemon] [world-model] learned model weights file has unexpected shape (input={} hidden={} output={} expected_bytes={} actual_bytes={}), ignoring\n",
             input_size, hidden_size, output_size, expected_len, len
@@ -93,7 +138,7 @@ pub fn try_load() -> bool {
         return false;
     }
 
-    let mut offset = 12;
+    let mut offset = header_len;
     let w1 = read_f32_slice(&buf, offset, input_size * hidden_size);
     offset += w1.len() * 4;
     let b1 = read_f32_slice(&buf, offset, hidden_size);
@@ -102,11 +147,21 @@ pub fn try_load() -> bool {
     offset += w2.len() * 4;
     let b2 = read_f32_slice(&buf, offset, output_size);
 
-    *MODEL.lock() = Some(Mlp { input_size, hidden_size, output_size, w1, b1, w2, b2 });
+    *MODEL.lock() = Some(Mlp {
+        input_size,
+        hidden_size,
+        output_size,
+        action_feature_size,
+        coverage,
+        w1,
+        b1,
+        w2,
+        b2,
+    });
 
     let msg = alloc::format!(
-        "[heliox-daemon] [world-model] loaded learned transition model (input={} hidden={} output={})\n",
-        input_size, hidden_size, output_size
+        "[heliox-daemon] [world-model] loaded learned transition model (input={} hidden={} output={} arg_features={} coverage=0x{:x})\n",
+        input_size, hidden_size, output_size, action_feature_size, coverage
     );
     unsafe { crate::syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64) };
     true
@@ -116,17 +171,26 @@ pub fn is_loaded() -> bool {
     MODEL.lock().is_some()
 }
 
-/// Predicts the embedding *delta* a proposed action would produce, given
-/// the current embedding and its one-hot tool id. Returns None if no
-/// model is loaded (caller falls back to the Phase 1 rule table).
-pub fn predict_delta(state: &StateEmbedding, action_id: u8) -> Option<[f32; EMBEDDING_SIZE]> {
+/// Predicts the embedding delta for a canonical ToolCall. Hybrid weights see
+/// both the tool id and argument features; legacy weights see only the id.
+/// An action absent from the weight file's coverage mask falls back to the
+/// deterministic rule table.
+pub fn predict_delta(state: &StateEmbedding, action: &ToolCall) -> Option<[f32; EMBEDDING_SIZE]> {
     let guard = MODEL.lock();
     let model = guard.as_ref()?;
+    let action_id = tool_id(&action.name);
+    if action_id as usize >= NUM_TOOLS || model.coverage & (1u64 << action_id) == 0 {
+        return None;
+    }
 
-    let mut input = [0f32; INPUT_SIZE];
+    let mut input = alloc::vec![0f32; model.input_size];
     input[..EMBEDDING_SIZE].copy_from_slice(state);
     if (action_id as usize) < NUM_TOOLS {
         input[EMBEDDING_SIZE + action_id as usize] = 1.0;
+    }
+    if model.action_feature_size == action_features::ACTION_FEATURE_SIZE {
+        let features = action_features::encode(action);
+        input[LEGACY_INPUT_SIZE..HYBRID_INPUT_SIZE].copy_from_slice(&features);
     }
 
     // hidden = relu(input @ w1 + b1) - w1 is [input_size][hidden_size] row-major.

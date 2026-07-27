@@ -20,6 +20,7 @@ extern crate alloc;
 pub mod observation;
 pub mod encoder;
 pub mod encoder_learned;
+pub mod action_features;
 pub mod transition;
 pub mod safety;
 pub mod experience;
@@ -296,9 +297,12 @@ pub fn synthetic_action(i: u32) -> ToolCall {
 pub fn emit_dataset_row(
     tick: u64,
     state_before: &encoder::StateEmbedding,
-    action_id: u8,
+    action: &ToolCall,
     state_after: &encoder::StateEmbedding,
     reward: f32,
+    success: bool,
+    executed: bool,
+    risk: f32,
 ) {
     let mut before_hex = String::with_capacity(encoder::EMBEDDING_SIZE * 8);
     for f in state_before.iter() {
@@ -308,9 +312,22 @@ pub fn emit_dataset_row(
     for f in state_after.iter() {
         after_hex.push_str(&format!("{:08x}", f.to_bits()));
     }
+    let features = action_features::encode(action);
+    let mut features_hex = String::with_capacity(action_features::ACTION_FEATURE_SIZE * 8);
+    for f in features.iter() {
+        features_hex.push_str(&format!("{:08x}", f.to_bits()));
+    }
     let line = format!(
-        "[heliox-daemon] [world-model-dataset] tick={} action={} reward={:.4} before={} after={}\n",
-        tick, action_id, reward, before_hex, after_hex
+        "[heliox-daemon] [world-model-dataset-v2] tick={} action={} reward={:.4} success={} executed={} risk={:.4} features={} before={} after={}\n",
+        tick,
+        tool_id(&action.name),
+        reward,
+        if success { 1 } else { 0 },
+        if executed { 1 } else { 0 },
+        risk,
+        features_hex,
+        before_hex,
+        after_hex
     );
     unsafe {
         crate::syscall3(34, 1, line.as_ptr() as u64, line.len() as u64);
