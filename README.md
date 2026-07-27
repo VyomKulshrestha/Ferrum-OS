@@ -86,15 +86,56 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Ambient Background Logic: Actively records voice from mic and performs anomaly screen vision checks
 - Chat state (thinking / done / error, with the actual response text) streamed to the Heliox Assistant app over a structured IPC channel; user messages flow back the same way
 - Stays genuinely idle — no autonomous ticking or inference — until the user has completed setup; a missing config file is never treated as an implicit choice
-- JSON-RPC 2.0 surface over its WebSocket server: `ping`, `execute_tool`, `gesture_event`, `health`, `get_config`, `system_status`, `agent_stats`
-- **World model safety gate**: before any tool call reaches real execution, a predictive layer estimates its effect and blocks it if the prediction looks dangerous (e.g. deleting the daemon's own config, a disk-filling write) — a second, predictive check alongside the existing reactive Tier 3/4 confirmation gate, not a replacement for it. Every tool call (allowed or blocked) is recorded as a training example to `/disk/heliox/world/exp.bin`. The prediction itself comes from a small MLP trained offline on real collected data (`scripts/train_world_model.py`) and loaded at boot the same way the real LLM checkpoint is, falling back to a hand-coded rule table whenever no trained weights are staged. State is encoded through a mix of hand-crafted scalars and a learned latent code (an autoencoder trained on real collected snapshots) so the safety-critical fields stay deterministic while the rest of the state gets a genuinely learned representation. Before allowing an action, the gate also simulates it repeated a few steps ahead through the learned transition model, catching effects that only show up as they compound rather than on the very first step.
+- JSON-RPC 2.0 surface over its WebSocket server: `ping`, `execute_tool`, `agent_step`, `gesture_event`, `health`, `get_config`, `system_status`, `agent_stats`
+- **World model safety gate**: every public tool path — provider-generated ReAct actions, internal memory/planner actions, and JSON-RPC `execute_tool` calls — passes through one predictive gate before execution. It estimates the action's effect and blocks dangerous predictions (for example, deleting the daemon's own config or filling the disk), alongside rather than instead of the existing Tier 3/4 confirmation gate. Every allowed, failed, or blocked call is recorded to the compact on-disk experience buffer and emitted as a full host-trainable transition. The optional learned transition model consumes deterministic OS state, the canonical tool id, and 16 normalized argument features; provider/model identity is never an input. A v2 weights file records exactly which tools were present during training, so uncovered tools safely use the deterministic rule table instead of an untrained output. The learned state encoder and three-step lookahead remain additive and retain their deterministic safety-critical fields.
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
-- 39 public agent operations backed by the 47-syscall kernel ABI (37 are
-  advertised directly to the model; local inference and kernel upgrade are
-  exposed through controlled runtime/bridge paths)
+- 41 canonical executable agent operations backed by the 47-syscall kernel ABI
+  (37 are advertised directly to the model; local inference, kernel upgrade,
+  HUD update, and hit testing remain controlled runtime/bridge actions)
 - Config-driven setup via `/disk/heliox/config.json`
+
+### Hybrid World-Model Training
+
+The hybrid pipeline combines broad deterministic syscall coverage with
+provider-backed ReAct episodes. The provider is used only to propose realistic
+goals and tool calls; FerrumOS records the real before/after state, outcome,
+risk, tool id, and normalized arguments. This keeps the trained world model
+independent of OpenAI, Claude, Gemini, Ollama, or the bundled 15M local language
+model.
+
+```powershell
+# Generate 10,000 balanced scenarios spanning all 41 canonical actions.
+# The 37 advertised tools stay provider-driven; four controlled runtime actions
+# receive deterministic replay calls so they cannot be silently under-sampled.
+node scripts/generate_world_model_hybrid_corpus.mjs --count 10000
+
+# Collect resumably through the real Heliox ReAct path.
+$env:WM_PROVIDER_URL = "https://provider.example/v1/chat/completions"
+$env:WM_PROVIDER_KEY = "..."
+$env:WM_PROVIDER_MODEL = "model-name"
+node scripts/collect_world_model_hybrid.mjs --corpus target/world_model_hybrid_corpus.jsonl --ram 512,2048 --resume
+
+# Preserve the 9,700 real legacy transitions, attach their exact historical
+# arguments, and append the new ReAct episodes.
+node scripts/upgrade_world_model_dataset.mjs --input target/world_model_dataset.jsonl --append target/world_model_hybrid_dataset.jsonl
+
+# Train an episode-safe matched encoder/transition pair.
+python scripts/train_world_model_encoder.py --dataset target/world_model_dataset_hybrid.jsonl --encoded-dataset target/world_model_dataset_hybrid_encoded.jsonl --hidden 256 --epochs 3000 --patience 4
+python scripts/train_world_model.py --dataset target/world_model_dataset_hybrid_encoded.jsonl --hidden 256 --epochs 1500 --patience 4
+
+# Deterministic corpus checks plus a real four-scenario QEMU smoke run.
+node scripts/verify_world_model_hybrid.mjs
+```
+
+Both trainers split by complete episode when episode ids are available, report
+held-out metrics, and can restore the best validation checkpoint with
+`--patience`. Collection appends each step and its raw provider response
+immediately, so `--resume` can continue a long 10–15k run without discarding
+completed episodes. Blocked or confirmation-only actions remain in the audit
+corpus but are excluded from transition fitting and learned-tool coverage: an
+unchanged state after a refusal is not evidence of what the action would do.
 
 ## Architecture
 

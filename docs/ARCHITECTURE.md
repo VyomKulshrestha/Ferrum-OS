@@ -390,7 +390,7 @@ The daemon and the Heliox Assistant app-window (`userland/heliox-assistant-panel
 | Verifier | `verifier.rs` | Output checking, retry counting |
 | Reflector | `reflector.rs` | Failure recording, lesson extraction |
 | Confirmation | `confirmation.rs` | 5-tier permission gates for destructive tools |
-| Tool Mapper | `tool_mapper.rs` | 37 tools → syscall dispatch + INTERNAL routing |
+| Tool Mapper | `tool_mapper.rs` | 41 executable actions (37 LLM-advertised) → syscall dispatch + INTERNAL routing |
 | Vector Store | `vector_store.rs` | TF-IDF embeddings, cosine search, disk persistence |
 | Web Agent | `web_agent.rs` | HTML stripping, entity decode, link/title extract |
 | Multi-Agent | `multi_agent.rs` | Domain classifier (Code/Web/System/Files/General) |
@@ -403,13 +403,15 @@ The daemon and the Heliox Assistant app-window (`userland/heliox-assistant-panel
 
 ### World Model Safety Gate (`cognitive/world_model/`)
 
-A predictive layer in front of `act()`'s tool dispatch, alongside (not
-instead of) the reactive `ConfirmationGate` above. Before any tool call
-reaches `tool_mapper::execute`, it's evaluated against a small internal
-model of what the call would do to the system, and blocked if the
-prediction looks dangerous - catching classes of harm a fixed permission
-tier can't enumerate (a `write_file` call isn't Tier 4, but predicting
-that it targets the daemon's own config file is still worth blocking).
+A predictive layer in front of every Heliox tool dispatch, alongside (not
+instead of) the reactive `ConfirmationGate` above. Provider-generated ReAct
+actions, internal memory/planner actions, and public JSON-RPC `execute_tool`
+calls all converge on `dispatch_with_world_model`; there is no second public
+execution path that bypasses prediction or data recording. `agent_step` exposes
+one provider-backed ReAct cycle for controlled episode collection. Before any
+tool call reaches its real implementation, it is evaluated against a small
+internal model of what the call would do to the system and blocked if the
+prediction looks dangerous.
 
 - **Observation** — samples live OS state (process count, heap usage,
   filesystem entries, screen text) through the same syscalls the
@@ -425,6 +427,12 @@ that it targets the daemon's own config file is still worth blocking).
   `scripts/train_world_model_encoder.py` on real collected snapshots)
   when one is staged, falling back to zero-filled if not - additive,
   never touching the indices the rest of the gate depends on.
+- **Action conditioning** — provider output is first normalized into the same
+  canonical `ToolCall` used by every other path. The learned transition input is
+  the 128-float state, a 41-wide tool one-hot, and 16 bounded argument features
+  (counts and lengths, stable path/host hashes, numeric values, and explicit
+  critical/missing-path flags). Provider name, model size, and response style
+  are audit metadata only and never become model inputs.
 - **Transition prediction** — two interchangeable sources behind the
   same `predict_next_state` call: a hand-coded rule table mapping each
   higher-consequence tool (`write_file`, `delete_file`, `exec_process`,
@@ -434,10 +442,14 @@ that it targets the daemon's own config file is still worth blocking).
   offline on real collected data (`scripts/collect_world_model_dataset.mjs`
   + `scripts/train_world_model.py`, pure numpy) and loaded at boot the
   same way the real LLM checkpoint is (a flat `f32` binary read via
-  `SYS_READ_FILE`). The learned model predicts an embedding *delta*, not
-  the absolute next state; whether a config-deleting `delete_file` call
-  gets caught is always a direct argument check, independent of which
-  source produced the numeric prediction.
+  `SYS_READ_FILE`). The v2 `FWM2` file header includes the argument-feature
+  width and a 64-bit trained-tool coverage mask. A tool absent from training
+  falls back to the rule table instead of consuming random, untrained one-hot
+  weights. Legacy 169-input checkpoints still load with conservative known-tool
+  coverage. The learned model predicts an embedding *delta*, not the absolute
+  next state; whether a config-deleting `delete_file` call gets caught is always
+  a direct argument check, independent of which source produced the numeric
+  prediction.
 - **Risk scoring** — flags specific predicted outcomes (disk nearly
   full, the daemon's own config file about to be deleted, heap nearly
   exhausted) and blocks the real syscall if the combined score crosses
@@ -458,6 +470,31 @@ that it targets the daemon's own config file is still worth blocking).
   only supports up to 12 direct blocks - a real, previously-undiscovered
   filesystem limit this surfaced), since the buffer is rewritten in full
   on every append.
+- **Hybrid host corpus** — `generate_world_model_hybrid_corpus.mjs` creates a
+  deterministic balanced goal set across all 41 canonical executable actions.
+  Thirty-seven LLM-advertised tools remain provider-driven; the four controlled
+  runtime actions (`local_inference`, `trigger_kernel_upgrade`, `hud_update`,
+  and `hit_test`) receive deterministic replay calls so they cannot be silently
+  under-sampled. The collector records the expected and actual tool separately
+  and reports realized coverage rather than assuming prompt balance equals
+  action balance.
+  `collect_world_model_hybrid.mjs` runs those goals through `agent_step`, joins
+  raw provider responses to the daemon's real before/action/after rows, appends
+  each episode durably, supports multiple RAM profiles, and resumes completed
+  episodes. Offline replay responses make the same path deterministic in CI.
+  `upgrade_world_model_dataset.mjs` preserves the existing 9,700 real syscall
+  transitions while reconstructing the exact historical arguments used to
+  create them. The encoder and transition trainers split by complete episode,
+  preserve metadata, report per-tool/core metrics, and optionally restore the
+  best validation checkpoint with `--patience`. Each row distinguishes result
+  `success` from whether execution was actually attempted. Blocked and
+  confirmation-only rows stay available for policy analysis but are excluded
+  from transition fitting and trained-tool coverage, preventing a refusal's
+  unchanged state from being learned as a safe action outcome.
+- **Verification** — `verify_world_model_hybrid.mjs` checks 41-action corpus
+  balance and boots a disposable QEMU appliance for four replayed ReAct
+  scenarios covering a successful write, successful read, failed read, and
+  world-model-blocked config deletion.
 
 ### Permission Tiers
 
@@ -647,7 +684,7 @@ userland/heliox-daemon/
 │   └── cognitive/
 │       ├── orchestrator.rs   # ReAct loop
 │       ├── planner.rs        # Task decomposition
-│       ├── tool_mapper.rs    # 37 tools → syscalls
+│       ├── tool_mapper.rs    # 41 executable actions (37 LLM-advertised) → syscalls
 │       ├── gesture.rs        # Classical CV skin & hand gesture recognition
 │       ├── inference.rs      # Local no_std GGUF/Q4 toy inference runner
 │       ├── self_evolve.rs    # Host-assisted self-evolution kexec trigger
