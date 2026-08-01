@@ -181,6 +181,16 @@ try {
     createdLog.includes("[gui-smoke-test] process spawn capability denied as expected") &&
       !createdLog.includes("process spawn escaped sandbox"),
   );
+  check(
+    "GUI-only process cannot call package-management APIs",
+    createdLog.includes("[gui-smoke-test] package request capability denied as expected") &&
+      !createdLog.includes("package API escaped sandbox"),
+  );
+  check(
+    "GUI-only process cannot call the trusted app launcher",
+    createdLog.includes("[gui-smoke-test] app launcher capability denied as expected") &&
+      !createdLog.includes("app launcher escaped sandbox"),
+  );
   const createOffset = serialText().indexOf("[gui-smoke-test] window created id=", start);
 
   const m = createdLog.match(/window created id=(\d+) canvas_w=(\d+) canvas_h=(\d+)/);

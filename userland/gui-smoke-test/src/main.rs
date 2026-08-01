@@ -23,6 +23,8 @@ const SYS_WRITE: u64 = 34;
 const SYS_CREATE_WINDOW: u64 = 44;
 const SYS_PRESENT_WINDOW: u64 = 45;
 const SYS_POLL_WINDOW_INPUT: u64 = 46;
+const SYS_PACKAGE_LIST: u64 = 47;
+const SYS_APP_LAUNCH: u64 = 51;
 
 /// File descriptor for the console (mirrored to serial).
 const FD_CONSOLE: u64 = 2;
@@ -148,6 +150,36 @@ pub extern "C" fn _start() -> ! {
         write("[gui-smoke-test] process spawn capability denied as expected\n");
     } else {
         write("[gui-smoke-test] ERROR process spawn escaped sandbox\n");
+    }
+
+    let mut package_buf = [0u8; 64];
+    let package_result = unsafe {
+        syscall3(
+            SYS_PACKAGE_LIST,
+            package_buf.as_mut_ptr() as u64,
+            package_buf.len() as u64,
+            0,
+        )
+    };
+    if package_result as i64 == -2 {
+        write("[gui-smoke-test] package request capability denied as expected\n");
+    } else {
+        write("[gui-smoke-test] ERROR package API escaped sandbox\n");
+    }
+
+    let app_name = "text-editor";
+    let app_launch_result = unsafe {
+        syscall3(
+            SYS_APP_LAUNCH,
+            app_name.as_ptr() as u64,
+            app_name.len() as u64,
+            0,
+        )
+    };
+    if app_launch_result as i64 == -2 {
+        write("[gui-smoke-test] app launcher capability denied as expected\n");
+    } else {
+        write("[gui-smoke-test] ERROR app launcher escaped sandbox\n");
     }
 
     let title = "Smoke Test";

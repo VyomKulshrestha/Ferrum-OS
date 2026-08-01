@@ -6,9 +6,9 @@
 //   - Browser: launches (network fetch itself needs a mock server, out of
 //     scope here - verify_appliance.mjs already proves the underlying TCP
 //     stack works end to end).
-//   - App Store: launches, and clicking its "Text Editor" row actually
-//     spawns a second real process via the same sys_exec path the launcher
-//     itself uses.
+//   - App Store: launches built-ins through the least-privilege app broker,
+//     then installs/removes/rolls back/launches a signed package while the
+//     other apps and Heliox remain scheduled.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
+const diskImage = path.join(repo, "target", "heliox-disk.img");
 let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
 if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
   qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
@@ -31,6 +32,7 @@ const serialLog = path.join(repo, "target", "new-apps-verify-serial.log");
 // booted, corrupting every offset computed afterward.
 fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
+if (!fs.existsSync(diskImage)) throw new Error(`appliance disk not found: ${diskImage}`);
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -66,6 +68,7 @@ async function waitForSerial(needle, seconds, from = 0) {
 const whpxArgs = [
   "-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", "-m", "4096M",
   "-drive", `format=raw,file=${image}`,
+  "-drive", `format=raw,file=${diskImage},if=ide,index=1`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`, "-vga", "std", "-no-reboot",
 ];
@@ -78,6 +81,7 @@ if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
   console.log("WHPX unsupported or failed, falling back to TCG...");
   const tcgArgs = ["-accel", "tcg", "-cpu", "max", "-m", "4096M",
     "-drive", `format=raw,file=${image}`,
+    "-drive", `format=raw,file=${diskImage},if=ide,index=1`,
     "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
     "-serial", `file:${serialLog}`, "-vga", "std", "-no-reboot"];
   if (!visible) tcgArgs.push("-display", "none");
@@ -187,7 +191,59 @@ try {
   await clickAt(rowX, rowY);
   await waitForSerial("[app-store] launched Text Editor as pid", 5, beforeLaunch);
   await waitForSerial("[text-editor] alive in ring 3", 10, beforeLaunch);
-  check("clicking a row in App Store launches the real corresponding app", true);
+  const editorLog = await waitForSerial("[text-editor] window created id=", 5, beforeLaunch);
+  check(
+    "App Store broker launches Text Editor with its own filesystem capabilities",
+    editorLog.includes("[text-editor] package path denied as expected") &&
+      !editorLog.includes("filesystem read denied: /disk/scratch.txt"),
+  );
+
+  // Open a fresh App Store window above Text Editor and exercise the signed
+  // package lifecycle while Settings, Browser, Heliox, and the first App
+  // Store remain scheduled in the background.
+  const packageStoreStart = serialText().length;
+  await openLauncherEntry(8);
+  await waitForSerial("[app-store] window created id=", 10, packageStoreStart);
+
+  const tabY = APP_Y + CHROME_TOP + 14;
+  await clickAt(APP_X + 175, tabY);
+  await waitForSerial("[app-store] signed package catalog opened", 5, packageStoreStart);
+  check("App Store reads the kernel-verified signed package catalog", true);
+
+  const packageButtonX = APP_X + 374;
+  const packageRowY = APP_Y + CHROME_TOP + 51;
+  let actionStart = serialText().length;
+  await clickAt(packageButtonX, packageRowY);
+  await waitForSerial("[app-store] confirmation required to install notes", 5, actionStart);
+  check("App Store surfaces privileged package capabilities before install", true);
+
+  actionStart = serialText().length;
+  await clickAt(packageButtonX, packageRowY);
+  await waitForSerial("[app-store] installed notes generation", 10, actionStart);
+  check("confirmed App Store install commits a package transaction", true);
+
+  actionStart = serialText().length;
+  await clickAt(packageButtonX, packageRowY);
+  await waitForSerial("[app-store] confirmation required to remove notes", 5, actionStart);
+  await clickAt(packageButtonX, packageRowY);
+  await waitForSerial("[app-store] removed notes generation", 10, actionStart);
+  check("App Store removal is confirmed and committed without disrupting background apps", true);
+
+  // Roll back the removal and launch from the signed-package row, proving
+  // both recovery and that the UI does more than toggle display state.
+  actionStart = serialText().length;
+  await clickAt(APP_X + 371, tabY);
+  await waitForSerial("[app-store] confirmation required to rollback packages", 5, actionStart);
+  actionStart = serialText().length;
+  await clickAt(APP_X + 371, tabY);
+  await waitForSerial("[app-store] rolled back registry to generation", 10, actionStart);
+  check("App Store rollback restores the previous valid package generation", true);
+
+  actionStart = serialText().length;
+  await clickAt(APP_X + 308, packageRowY);
+  await waitForSerial("[app-store] launched package notes as pid", 10, actionStart);
+  await waitForSerial("[notes] alive in ring 3", 10, actionStart);
+  check("App Store launches the installed signed package in real ring 3", true);
 
   const full = serialText().slice(start);
   check("no userspace fault or page fault panic", !/terminating|General Protection|Page Fault/.test(full));

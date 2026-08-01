@@ -190,9 +190,13 @@ pub fn init() {
     ));
     state.programs.push(ProgramManifest::new(
         "app-store",
-        "Browse and launch every app built into this image",
+        "Browse built-in apps and manage signed packages",
         "/bin/app-store",
-        vec![String::from("cap:gui:window"), String::from("cap:process:spawn")],
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:app:launch"),
+            String::from("cap:pkg:request"),
+        ],
     ));
 }
 
@@ -207,6 +211,24 @@ pub fn capabilities_for_program(name: &str) -> Vec<String> {
         .find(|program| program.name == name)
         .map(|program| program.requested_capabilities.clone())
         .unwrap_or_else(Vec::new)
+}
+
+/// Launch a trusted, compiled-in desktop app with its own manifest authority.
+/// This is the broker used by App Store: making App Store hold every target
+/// app's filesystem/network permissions would violate least privilege, while
+/// ordinary `Exec` correctly delegates only authority the caller itself holds.
+pub fn launch_embedded_app(name: &str) -> Result<u64, String> {
+    let elf = match name {
+        "heliox-assistant-panel" => HELIOX_ASSISTANT_PANEL_ELF,
+        "text-editor" => TEXT_EDITOR_ELF,
+        "calculator" => CALCULATOR_ELF,
+        "file-manager" => FILE_MANAGER_ELF,
+        "settings" => SETTINGS_ELF,
+        "browser" => BROWSER_ELF,
+        _ => return Err(alloc::format!("not a launchable desktop app: {}", name)),
+    };
+    let capabilities = capabilities_for_program(name);
+    crate::process::spawn_elf(name, elf, &capabilities).map_err(String::from)
 }
 
 /// Registers (or updates) a manifest entry at runtime, so a package

@@ -36,6 +36,12 @@ pub const SYS_WRITE: u64 = 34;
 pub const SYS_CREATE_WINDOW: u64 = 44;
 pub const SYS_PRESENT_WINDOW: u64 = 45;
 pub const SYS_POLL_WINDOW_INPUT: u64 = 46;
+pub const SYS_PACKAGE_LIST: u64 = 47;
+pub const SYS_PACKAGE_INSTALL: u64 = 48;
+pub const SYS_PACKAGE_REMOVE: u64 = 49;
+pub const SYS_PACKAGE_ROLLBACK: u64 = 50;
+pub const SYS_APP_LAUNCH: u64 = 51;
+pub const SYS_PACKAGE_LAUNCH: u64 = 52;
 
 /// File descriptor for the console (mirrored to serial).
 pub const FD_CONSOLE: u64 = 2;
@@ -170,6 +176,106 @@ pub fn read_dir(path: &str, max_len: usize) -> Vec<DirEntry> {
 pub fn exec(path: &str) -> Option<u64> {
     let res = unsafe { syscall3(SYS_EXEC, path.as_ptr() as u64, path.len() as u64, 0) };
     if (res as i64) >= 0 { Some(res) } else { None }
+}
+
+// ============================================================================
+// Signed package manager
+// ============================================================================
+
+#[derive(Clone)]
+pub struct PackageInfo {
+    pub name: String,
+    pub version: String,
+    pub installed: bool,
+    pub privileged_capabilities: Vec<String>,
+    pub description: String,
+}
+
+pub fn package_catalog() -> Vec<PackageInfo> {
+    let mut buf = alloc::vec![0u8; 32 * 1024];
+    let got = unsafe {
+        syscall3(
+            SYS_PACKAGE_LIST,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+            0,
+        )
+    };
+    if (got as i64) < 0 || got as usize > buf.len() {
+        return Vec::new();
+    }
+    buf.truncate(got as usize);
+    let text = String::from_utf8_lossy(&buf);
+    let mut packages = Vec::new();
+    for line in text.lines() {
+        let mut fields = line.splitn(5, '|');
+        let (Some(name), Some(version), Some(installed), Some(privileged), Some(description)) = (
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+        ) else {
+            continue;
+        };
+        packages.push(PackageInfo {
+            name: String::from(name),
+            version: String::from(version),
+            installed: installed == "1",
+            privileged_capabilities: privileged
+                .split(',')
+                .filter(|capability| !capability.is_empty())
+                .map(String::from)
+                .collect(),
+            description: String::from(description),
+        });
+    }
+    packages
+}
+
+fn package_action(number: u64, name: &str, confirmed: bool) -> Option<u64> {
+    let result = unsafe {
+        syscall4(
+            number,
+            name.as_ptr() as u64,
+            name.len() as u64,
+            if confirmed { 1 } else { 0 },
+            0,
+        )
+    };
+    if (result as i64) >= 0 { Some(result) } else { None }
+}
+
+pub fn package_install(name: &str, confirmed: bool) -> Option<u64> {
+    package_action(SYS_PACKAGE_INSTALL, name, confirmed)
+}
+
+pub fn package_remove(name: &str, confirmed: bool) -> Option<u64> {
+    package_action(SYS_PACKAGE_REMOVE, name, confirmed)
+}
+
+pub fn package_rollback(confirmed: bool) -> Option<u64> {
+    let result = unsafe { syscall3(SYS_PACKAGE_ROLLBACK, if confirmed { 1 } else { 0 }, 0, 0) };
+    if (result as i64) >= 0 { Some(result) } else { None }
+}
+
+/// Ask the trusted launcher broker to start a compiled-in desktop app with
+/// that app's own manifest capabilities (not App Store's capability set).
+pub fn launch_app(name: &str) -> Option<u64> {
+    let result = unsafe { syscall3(SYS_APP_LAUNCH, name.as_ptr() as u64, name.len() as u64, 0) };
+    if (result as i64) >= 0 { Some(result) } else { None }
+}
+
+pub fn package_launch(name: &str) -> Option<u64> {
+    let result = unsafe {
+        syscall3(
+            SYS_PACKAGE_LAUNCH,
+            name.as_ptr() as u64,
+            name.len() as u64,
+            0,
+        )
+    };
+    if (result as i64) >= 0 { Some(result) } else { None }
 }
 
 // ============================================================================

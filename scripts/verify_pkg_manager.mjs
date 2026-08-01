@@ -230,13 +230,15 @@ try {
   await runCommand("pkg install notes --confirm", start);
   out = serialText().slice(start);
   check("pkg install succeeds again", /installed notes/.test(out), out.trim());
+  const finalInstallGeneration = Number(out.match(/registry generation (\d+)/)?.[1]);
+  const activeRegistrySlot = finalInstallGeneration % 2 === 0 ? "a" : "b";
 
-  // Simulate a torn/corrupt newest slot. Generation 5 is in registry.b for
-  // this deterministic fresh-image sequence; registry.a still contains the
-  // previous valid generation 4 (notes removed). Reads must fall back safely,
-  // and the next confirmed mutation must repair the bad slot.
+  // Simulate a torn/corrupt newest slot. The alternating slot follows the
+  // generation parity; the other slot still contains the previous valid
+  // generation (notes removed). Reads must fall back safely, and the next
+  // confirmed mutation must repair the bad slot.
   start = serialText().length;
-  await runCommand("write /disk/pkgs/registry.b corrupt", start);
+  await runCommand(`write /disk/pkgs/registry.${activeRegistrySlot} corrupt`, start);
 
   start = serialText().length;
   await runCommand("pkg list", start);
@@ -246,7 +248,11 @@ try {
   start = serialText().length;
   await runCommand("pkg install notes --confirm", start);
   out = serialText().slice(start);
-  check("next package transaction repairs the corrupt registry slot", /installed notes.*generation 5/.test(out), out.trim());
+  check(
+    "next package transaction repairs the corrupt registry slot",
+    out.includes(`installed notes (registry generation ${finalInstallGeneration})`),
+    out.trim(),
+  );
 
   start = serialText().length;
   await sendText("pkg run notes");

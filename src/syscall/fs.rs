@@ -61,7 +61,7 @@ pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::v
 /// # Safety
 /// The caller must ensure `dst` points to writable user memory of at
 /// least `max_len` bytes.
-unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
+pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
     if to_copy > 0 && dst != 0 {
         let end = dst.saturating_add(to_copy as u64);

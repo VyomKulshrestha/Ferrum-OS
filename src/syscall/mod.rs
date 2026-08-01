@@ -77,6 +77,18 @@ pub enum SyscallNumber {
     /// args[0]=window_id, args[1]=out_ptr (20 bytes), args[2]=out_len.
     /// Returns 1 and fills out_ptr if an event was available, else 0.
     PollWindowInput = 46,
+    /// Serialize the signed package catalog into a caller buffer.
+    PackageList = 47,
+    /// Install a signed package. args[0..2]=name ptr/len, args[2]=confirmed.
+    PackageInstall = 48,
+    /// Remove an installed package. args[0..2]=name ptr/len, args[2]=confirmed.
+    PackageRemove = 49,
+    /// Roll the package registry back. args[0]=confirmed.
+    PackageRollback = 50,
+    /// Launch a compiled-in desktop app through the trusted launcher broker.
+    AppLaunch = 51,
+    /// Launch an installed signed package through the package broker.
+    PackageLaunch = 52,
 }
 
 /// Syscall return status.
@@ -114,6 +126,7 @@ impl SyscallResult {
 extern crate alloc;
 
 pub mod audio;
+pub mod app;
 pub mod camera;
 pub mod fs;
 pub mod graphics;
@@ -122,6 +135,7 @@ pub mod hud;
 pub mod input;
 pub mod kexec;
 pub mod mmap;
+pub mod pkg;
 pub mod process;
 pub mod query;
 pub mod socket;
@@ -576,6 +590,42 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             gui_window::sys_poll_window_input(args)
+        }
+        x if x == SyscallNumber::PackageList as u64 => {
+            if !crate::security::has_capability(held_capabilities, "pkg:request") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            pkg::sys_package_list(args)
+        }
+        x if x == SyscallNumber::PackageInstall as u64 => {
+            if !crate::security::has_capability(held_capabilities, "pkg:request") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            pkg::sys_package_install(args)
+        }
+        x if x == SyscallNumber::PackageRemove as u64 => {
+            if !crate::security::has_capability(held_capabilities, "pkg:request") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            pkg::sys_package_remove(args)
+        }
+        x if x == SyscallNumber::PackageRollback as u64 => {
+            if !crate::security::has_capability(held_capabilities, "pkg:request") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            pkg::sys_package_rollback(args)
+        }
+        x if x == SyscallNumber::AppLaunch as u64 => {
+            if !crate::security::has_capability(held_capabilities, "app:launch") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            app::sys_app_launch(args)
+        }
+        x if x == SyscallNumber::PackageLaunch as u64 => {
+            if !crate::security::has_capability(held_capabilities, "pkg:request") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            pkg::sys_package_launch(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

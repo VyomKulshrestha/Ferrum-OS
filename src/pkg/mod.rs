@@ -34,8 +34,8 @@ const REGISTRY_FORMAT: &str = "1";
 const MANIFEST_FORMAT: &str = "1";
 const TRUSTED_KEY_ID: &str = "ferrumos-release-1";
 const TRUSTED_PUBLIC_KEY: [u8; 32] = [
-    0x51, 0x65, 0xa8, 0x06, 0x8d, 0xf3, 0x06, 0x51, 0xf0, 0xfe, 0xc7, 0x54, 0x33, 0xa3, 0x50, 0x28,
-    0x68, 0xe4, 0x9c, 0x8d, 0x82, 0x6b, 0xb2, 0xa1, 0x4b, 0x72, 0xad, 0x28, 0xc6, 0xdd, 0xfe, 0x16,
+    0xde, 0x42, 0x53, 0xba, 0xd0, 0xb3, 0x44, 0x4a, 0x1c, 0x44, 0xc4, 0x73, 0x4d, 0x51, 0x48, 0xc1,
+    0x71, 0x39, 0xc4, 0xab, 0x3d, 0x9e, 0x02, 0x1c, 0x05, 0xdb, 0x8f, 0x1a, 0xf4, 0x07, 0x51, 0xa9,
 ];
 const MAX_MANIFEST_BYTES: usize = 4096;
 const MAX_REGISTRY_BYTES: usize = 48 * 1024;
@@ -73,6 +73,13 @@ pub struct PackageMeta {
     pub capabilities: Vec<String>,
     pub binary_sha256: [u8; 32],
     pub signing_key: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PackageCatalogEntry {
+    pub package: PackageMeta,
+    pub installed: bool,
+    pub privileged_capabilities: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -180,8 +187,16 @@ fn parse_manifest(text: &str) -> Result<PackageMeta, String> {
         return Err(String::from("version must be numeric MAJOR.MINOR.PATCH"));
     }
     let description = description.ok_or_else(|| String::from("manifest missing description"))?;
-    if description.is_empty() || description.len() > 160 {
-        return Err(String::from("description must be 1..160 bytes"));
+    if description.is_empty()
+        || description.len() > 160
+        || description.contains('|')
+        || !description
+            .bytes()
+            .all(|byte| byte == b' ' || byte.is_ascii_graphic())
+    {
+        return Err(String::from(
+            "description must be 1..160 printable bytes without '|'",
+        ));
     }
     let capabilities = capabilities.ok_or_else(|| String::from("manifest missing capabilities"))?;
     for (idx, capability) in capabilities.iter().enumerate() {
@@ -604,6 +619,33 @@ pub fn list_installed() -> Vec<PackageMeta> {
                     && installed.version == meta.version
                     && installed.binary_sha256 == meta.binary_sha256
             })
+        })
+        .collect()
+}
+
+/// A consistent App Store/package-API snapshot. Available package files are
+/// immutable to unprivileged apps, and installation state is compared under
+/// the transaction mutex so every row comes from one registry generation.
+pub fn catalog() -> Vec<PackageCatalogEntry> {
+    let _guard = PACKAGE_STATE.lock();
+    let registry = match current_registry() {
+        Ok((_, registry)) => registry,
+        Err(_) => return Vec::new(),
+    };
+    list_available()
+        .into_iter()
+        .map(|package| {
+            let installed = registry.packages.iter().any(|record| {
+                record.name == package.name
+                    && record.version == package.version
+                    && record.binary_sha256 == package.binary_sha256
+            });
+            let privileged_capabilities = privileged_capabilities(&package);
+            PackageCatalogEntry {
+                package,
+                installed,
+                privileged_capabilities,
+            }
         })
         .collect()
 }

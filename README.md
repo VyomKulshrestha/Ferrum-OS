@@ -30,7 +30,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 - Movable, focusable GUI windows with close, minimize, and maximize buttons and interactive titles
 - **Generic app-window framework**: any userland process can call `CreateWindow`/`PresentWindow`/`PollWindowInput` to own a real window backed by its own RGBA8 canvas and a per-window input queue — every window on the desktop, including the AI assistant panel, is a real userland app, not a kernel-hardcoded window type
 - The launcher spawns real new ELF processes on demand (`crate::process::spawn_elf`), not just a fixed set of kernel-drawn windows
-- App Store: a discovery surface listing every installed app with a description, so you don't need to already know an app exists to launch it
+- App Store: browses built-in apps plus the kernel-verified signed package cache; installs, removes, rolls back, and launches packages with explicit capability/removal confirmation
 - PS/2 Mouse integration with 9-bit signed delta parsing and auto-recovery
 - CPU-efficient main loop with interrupt-driven `hlt` architecture and off-screen double-buffering
 - Hardware cursor rendering with dynamic drop-shadows
@@ -39,7 +39,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 ### Userland Apps
 - **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
 - **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
-- **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers including IPC send/receive, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math or the raw syscall ABI
+- **`libferrumgui`** — shared `no_std` SDK crate (window/input, IPC, trusted app-launcher, and signed-package syscall wrappers plus an RGBA8 `Canvas`) so new apps don't hand-roll pixel math or the raw syscall ABI
 
 Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder.
 
@@ -334,6 +334,12 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | 44 | CreateWindow | Create an app-owned GUI window with a caller-sized canvas |
 | 45 | PresentWindow | Submit an RGBA8 pixel buffer to an owned window |
 | 46 | PollWindowInput | Poll one pending input event scoped to an owned window |
+| 47 | PackageList | Read the kernel-verified signed package catalog |
+| 48 | PackageInstall | Install a signed package transactionally |
+| 49 | PackageRemove | Remove an installed package transactionally |
+| 50 | PackageRollback | Restore the prior valid package registry snapshot |
+| 51 | AppLaunch | Launch a trusted compiled-in app with its own manifest |
+| 52 | PackageLaunch | Validate, load, and launch an installed signed package |
 
 ## JSON-RPC Methods (WebSocket, port 8785)
 
