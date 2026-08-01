@@ -127,8 +127,17 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     // the same atomic `pkg::load_installed` operation that authorized and
     // loaded its signed ELF, not the kernel's compiled-in program manifest
     // table (which only knows programs shipped in the image).
-    let requested_caps =
-        package_capabilities.unwrap_or_else(|| crate::userspace::capabilities_for_program(name));
+    let requested_caps = package_capabilities.unwrap_or_else(|| {
+        // The quota/oversize probes reuse INIT_ELF under isolated executable
+        // names. They need to read `/tmp/init_test` to select their test mode,
+        // but must not inherit init's `cap:system:all` (especially its quota
+        // exemption), otherwise the probes cannot exercise their limits.
+        if name == "quota-test" || name == "huge-test" {
+            alloc::vec![alloc::string::String::from("cap:fs:read")]
+        } else {
+            crate::userspace::capabilities_for_program(name)
+        }
+    });
     let granted_caps = crate::security::filter_delegatable(&requested_caps, &caller_capabilities);
 
     // Register the process in the global process table
