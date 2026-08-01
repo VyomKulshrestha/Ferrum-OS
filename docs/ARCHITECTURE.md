@@ -622,6 +622,17 @@ Kernel-side confirmation gates are enforced for destructive Tier-4 operations (s
 - **Physical vs. Injected Key Filter**: Gates can only be approved by typing `y` (or denied with `n`) on a physical serial console or keyboard. Synthetic keystrokes injected by the agent via `sys_inject_key` are filtered using the `INJECTING_AGENT_KEY` atomic boolean, preventing the agent from autonomously bypassing its own security gates.
 - **Retry-and-Cache State**: When resumed, the process re-executes `int 0x80` and references the cached `confirmation_approved` or `confirmation_denied` fields on the task context to either complete the operation or return `-2` (`PermissionDenied`) without prompting again.
 
+Heliox tools also have a daemon-owned logical confirmation gate. A numeric
+`heliox confirm <id>` request is authorized by the kernel bridge and forwarded
+as `CONFIRM:<id>` through capability-checked IPC to `heliox-daemon`; the caller
+then retries the pending tool. Destructive kernel operations such as kexec still
+encounter their separate physical confirmation gate, so approving a model plan
+does not bypass kernel authority.
+Control IPC is polled both on the daemon's normal tick (even while cognition is
+paused) and immediately after a WebSocket frame wakes the task, before that
+frame is dispatched. This closes the approval-vs-retry race when the daemon was
+blocked in socket receive.
+
 
 ## Configuration
 

@@ -320,10 +320,12 @@ impl Orchestrator {
 
     /// Main tick function called from the daemon's main loop.
     pub fn tick(&mut self) {
+        // Control messages must remain live even while cognitive work is
+        // paused, otherwise an operator cannot confirm/deny or resume it.
+        self.ipc_poll();
         if self.paused {
             return;
         }
-        self.ipc_poll();
         self.tick_count += 1;
 
         if self.config.api_host == "unconfigured" && !self.config.provider.starts_with("local") {
@@ -411,6 +413,15 @@ impl Orchestrator {
                 }
             }
         }
+    }
+
+    /// Poll control IPC at an external request boundary.
+    ///
+    /// A connected WebSocket may block the main loop after its normal
+    /// tick-time poll. The frame that wakes it must observe a shell/UI approval
+    /// already in the IPC queue before executing the retried tool.
+    pub fn poll_control(&mut self) {
+        self.ipc_poll();
     }
 
     fn observe(&mut self) {

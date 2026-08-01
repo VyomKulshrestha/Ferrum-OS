@@ -850,6 +850,33 @@ pub fn submit_request(
         _ => {}
     }
 
+    // The userspace daemon owns execution-time tool confirmations. Numeric
+    // IDs are therefore forwarded over the same capability-checked IPC broker
+    // it polls for CONFIRM/DENY control messages. Non-numeric plan IDs remain
+    // valid for the kernel-side planner registry and are not misrouted.
+    let daemon_confirmation = if method_name == "confirm" {
+        input
+            .parse::<u32>()
+            .ok()
+            .map(|confirmation_id| alloc::format!("CONFIRM:{}", confirmation_id))
+    } else {
+        None
+    };
+    drop(state);
+
+    if let Some(payload) = daemon_confirmation {
+        let message = crate::ipc::Message::new(
+            0,
+            crate::ipc::Endpoint::new("heliox", "control"),
+            crate::ipc::MessageKind::Request,
+            "ipc:send:*",
+            payload.as_bytes(),
+        )
+        .map_err(|_| String::from("failed to construct daemon confirmation message"))?;
+        crate::ipc::send(message, held_capabilities)
+            .map_err(|_| String::from("failed to deliver daemon confirmation message"))?;
+    }
+
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::FileAccess,
         &alloc::format!("heliox envelope dispatched: {}", method_name),

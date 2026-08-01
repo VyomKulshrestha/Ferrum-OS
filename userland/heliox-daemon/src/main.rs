@@ -741,6 +741,10 @@ pub extern "C" fn _start() -> ! {
                 match network::ws_recv_frame(conn) {
                     Ok(frame) => {
                         if frame.opcode == 0x01 { // WS_OP_TEXT
+                            // Consume confirmations/control queued while this
+                            // task was blocked in socket receive before the
+                            // waking request is dispatched.
+                            orchestrator.poll_control();
                             if let Ok(payload_str) = core::str::from_utf8(&frame.payload) {
                                 match cognitive::json::parse(payload_str) {
                                     Ok(parsed) => {

@@ -134,7 +134,9 @@ function parseKernelFrames(text) {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 35);
+  // The mmap scenario starts only after the full graphical/hardware boot;
+  // match the standard end-to-end allowance used by the other QEMU suites.
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;

@@ -158,6 +158,7 @@ try {
   let wsOpen = false;
   let wsError = null;
   let localInferenceResponse = null;
+  let upgradeResponse = null;
 
   ws.onopen = () => {
     wsOpen = true;
@@ -196,6 +197,8 @@ try {
             args: {}
           }
         }));
+      } else if (data.id === "test-upgrade") {
+        upgradeResponse = data.result;
       }
     } catch (e) {
       console.error("Error parsing WS message:", e);
@@ -218,10 +221,39 @@ try {
   check("local offline inference execution (deterministic llama2.c fixture produces expected sequence)",
     success && output.startsWith("pqrst"), `Got output: ${JSON.stringify(output)}`);
 
-  // Now the kernel upgrade has been triggered.
-  // We expect the gated syscall prompt to appear.
-  console.log("Waiting for confirmation gate prompt...");
+  const upgradeDeadline = Date.now() + 10_000;
+  while (Date.now() < upgradeDeadline && !upgradeResponse) {
+    if (wsError) throw wsError;
+    await sleep(200);
+  }
+  if (!upgradeResponse) throw new Error("Timeout waiting for upgrade confirmation request");
+
+  const confirmationMatch = upgradeResponse.output.match(/Awaiting confirmation \(id=(\d+)\)/);
+  if (!confirmationMatch) {
+    throw new Error(`upgrade did not return a confirmation ID: ${upgradeResponse.output}`);
+  }
+
+  // Resolve the daemon-owned logical gate through the documented kernel-shell
+  // bridge, then retry the tool. Kexec itself still has a distinct physical
+  // confirmation gate in the kernel; both approvals must succeed.
+  const confirmationId = confirmationMatch[1];
   let startKexec = serialText().length;
+  await sendText(`heliox confirm ${confirmationId}`);
+  await sendKey("ret");
+  await waitForSerial(`confirmation gate resolved: ${confirmationId}`, 10, startKexec);
+  // The shell acknowledgement means the IPC message is queued. Let the
+  // independently scheduled daemon reach its next poll before retrying; this
+  // intentionally verifies cross-process delivery instead of a same-stack
+  // shortcut.
+  await sleep(3000);
+  ws.send(JSON.stringify({
+    jsonrpc: "2.0",
+    id: "test-upgrade-confirmed",
+    method: "execute_tool",
+    params: { tool: "trigger_kernel_upgrade", args: {} }
+  }));
+
+  console.log("Waiting for physical kexec confirmation gate prompt...");
   await waitForSerial("Operator confirmation required. Press 'y' to approve", 15, startKexec);
   console.log("Sending physical 'y' key to confirm kexec...");
   await sendKey("y");
