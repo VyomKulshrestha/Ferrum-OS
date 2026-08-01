@@ -231,6 +231,11 @@ Longest-prefix mount matching. Currently two mounts:
 | `/` | RamFS | Volatile in-memory filesystem |
 | `/disk` | Ext2 | ATA PIO block storage, persistent |
 
+The VFS exposes separate text and raw-byte paths. `WriteFile(16)` and offset
+reads preserve arbitrary bytes on both mounts; text consumers still receive a
+strict UTF-8 error. This keeps ELF/model files binary-safe without constructing
+invalid Rust strings or weakening per-process filesystem capability checks.
+
 ### Ext2
 
 - Superblock, block groups, inode table parsing

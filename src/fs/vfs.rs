@@ -42,6 +42,13 @@ pub trait Filesystem: Send + Sync {
     /// Create/write a file
     fn create_file(&self, path: &str, content: &str) -> Result<(), String>;
 
+    /// Create/write a file from arbitrary bytes.
+    fn create_file_bytes(&self, path: &str, content: &[u8]) -> Result<(), String> {
+        let text = core::str::from_utf8(content)
+            .map_err(|_| String::from("filesystem does not support binary writes"))?;
+        self.create_file(path, text)
+    }
+
     /// Create a directory
     fn create_dir(&self, path: &str) -> Result<(), String>;
 

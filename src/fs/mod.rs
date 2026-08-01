@@ -58,7 +58,7 @@ pub struct Mount {
 /// A filesystem entry - either a file or directory
 #[derive(Debug, Clone)]
 enum FsNode {
-    File { content: String },
+    File { content: Vec<u8> },
     Directory { children: BTreeMap<String, FsNode> },
 }
 
@@ -83,16 +83,16 @@ impl RamFs {
         
         // Create a welcome file
         children.insert("readme.txt".to_string(), FsNode::File {
-            content: String::from("Welcome to FerrumOS v0.1.1\nAI-Native Autonomous OS Foundation\n"),
+            content: Vec::from("Welcome to FerrumOS v0.1.1\nAI-Native Autonomous OS Foundation\n".as_bytes()),
         });
         
         // Create /etc/motd
         if let Some(FsNode::Directory { children: ref mut etc_children }) = children.get_mut("etc") {
             etc_children.insert("hostname".to_string(), FsNode::File {
-                content: String::from("FerrumOS"),
+                content: Vec::from("FerrumOS".as_bytes()),
             });
             etc_children.insert("version".to_string(), FsNode::File {
-                content: String::from("0.1.1"),
+                content: Vec::from("0.1.1".as_bytes()),
             });
         }
         
@@ -126,19 +126,41 @@ impl vfs::Filesystem for RamFs {
         let root_guard = self.root.lock();
         let node = navigate(&root_guard, path)?;
         match node {
-            FsNode::File { content } => Ok(content.clone()),
+            FsNode::File { content } => String::from_utf8(content.clone())
+                .map_err(|_| String::from("file is not valid UTF-8")),
+            FsNode::Directory { .. } => Err(String::from("is a directory")),
+        }
+    }
+
+    fn read_file_offset(&self, path: &str, offset: u64, buf: &mut [u8]) -> Result<usize, String> {
+        let root_guard = self.root.lock();
+        let node = navigate(&root_guard, path)?;
+        match node {
+            FsNode::File { content } => {
+                let start = offset as usize;
+                if start >= content.len() {
+                    return Ok(0);
+                }
+                let len = core::cmp::min(buf.len(), content.len() - start);
+                buf[..len].copy_from_slice(&content[start..start + len]);
+                Ok(len)
+            }
             FsNode::Directory { .. } => Err(String::from("is a directory")),
         }
     }
 
     fn create_file(&self, path: &str, content: &str) -> Result<(), String> {
+        self.create_file_bytes(path, content.as_bytes())
+    }
+
+    fn create_file_bytes(&self, path: &str, content: &[u8]) -> Result<(), String> {
         let mut root_guard = self.root.lock();
         let (parent_path, file_name) = split_path(path)?;
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
             FsNode::Directory { children } => {
-                children.insert(file_name, FsNode::File { content: String::from(content) });
+                children.insert(file_name, FsNode::File { content: Vec::from(content) });
                 Ok(())
             }
             _ => Err(String::from("parent is not a directory")),
@@ -306,6 +328,12 @@ pub fn read_file_offset(path: &str, offset: u64, buf: &mut [u8]) -> Result<usize
 pub fn create_file(path: &str, content: &str) -> Result<(), String> {
     let (fs, rel) = vfs::resolve(path)?;
     fs.create_file(&rel, content)
+}
+
+/// Create or replace a file without imposing a text encoding on its content.
+pub fn create_file_bytes(path: &str, content: &[u8]) -> Result<(), String> {
+    let (fs, rel) = vfs::resolve(path)?;
+    fs.create_file_bytes(&rel, content)
 }
 
 pub fn create_dir(path: &str) -> Result<(), String> {

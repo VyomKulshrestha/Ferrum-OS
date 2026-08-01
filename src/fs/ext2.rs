@@ -1159,6 +1159,10 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
     /// allocated and written before any of the old file's blocks are freed,
     /// so a failure partway through leaves the original file untouched.
     fn create_file(&self, path: &str, content: &str) -> Result<(), String> {
+        self.create_file_bytes(path, content.as_bytes())
+    }
+
+    fn create_file_bytes(&self, path: &str, content_bytes: &[u8]) -> Result<(), String> {
         let (parent_path, file_name) = split_path(path)?;
         let parent_inode_num = self.resolve_path(&parent_path)?;
 
@@ -1178,7 +1182,6 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             None => self.alloc_inode()?,
         };
         let block_size = self.block_size as usize;
-        let content_bytes = content.as_bytes();
         let mut blocks_allocated = Vec::new();
 
         let chunks = (content_bytes.len() + block_size - 1) / block_size;

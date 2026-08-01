@@ -183,12 +183,7 @@ pub fn sys_write_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
         None if data_len == 0 => alloc::vec::Vec::new(),
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    let content = match core::str::from_utf8(&data) {
-        Ok(content) => content,
-        Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
-    };
-
-    match crate::fs::create_file(&path, content) {
+    match crate::fs::create_file_bytes(&path, &data) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
