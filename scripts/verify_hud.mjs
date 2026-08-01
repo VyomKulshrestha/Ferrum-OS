@@ -160,7 +160,11 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 35);
+  // Full graphical boot initializes the framebuffer, HDA, networking, and
+  // embedded userspace before the prompt. Leave the same host-load margin as
+  // the other end-to-end verifiers instead of treating a slow boot as a HUD
+  // failure while serial is still making forward progress.
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;

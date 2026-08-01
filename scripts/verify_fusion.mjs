@@ -138,7 +138,10 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 35);
+  // Full graphical boot can exceed 35 seconds under concurrent host load;
+  // the fusion path has not started until the shell is ready, so use the
+  // repository's normal end-to-end boot budget here as well.
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
