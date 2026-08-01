@@ -109,6 +109,7 @@ pub const MAX_TASKBAR_SLOTS: usize = 4;
 
 const START_BTN_W: u32 = 70;
 const EXIT_BTN_W: u32 = 70;
+const CLOCK_W: u32 = 80;
 const WINDOW_SLOT_W: u32 = 110;
 const SLOT_GAP: u32 = 6;
 const GROUP_GAP: u32 = 15;
@@ -124,6 +125,7 @@ pub struct TaskbarLayout {
     pub dock_h: u32,
     pub start_rect: (u32, u32, u32, u32),
     pub exit_rect: (u32, u32, u32, u32),
+    pub clock_rect: (u32, u32, u32, u32),
     /// Fixed-size slots, independent of how many windows are actually
     /// open right now - callers only look at `window_rects[..open_count]`.
     pub window_rects: Vec<(u32, u32, u32, u32)>,
@@ -135,8 +137,12 @@ pub struct TaskbarLayout {
 /// hand-duplicated magic numbers.
 pub fn compute_taskbar_layout(fb_w: u32, fb_h: u32) -> TaskbarLayout {
     let windows_w = MAX_TASKBAR_SLOTS as u32 * WINDOW_SLOT_W + (MAX_TASKBAR_SLOTS as u32 - 1) * SLOT_GAP;
-    let dock_w = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windows_w + GROUP_GAP + EXIT_BTN_W;
-    let dock_x = fb_w.saturating_sub(dock_w) / 2;
+    // Keep the established Start/window/Exit group centered, then extend the
+    // tray to its right for the clock. Existing hit targets do not jump when
+    // the non-interactive tray is added.
+    let controls_w = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windows_w + GROUP_GAP + EXIT_BTN_W;
+    let dock_w = controls_w + SLOT_GAP + CLOCK_W;
+    let dock_x = fb_w.saturating_sub(controls_w) / 2;
     let dock_y = fb_h.saturating_sub(DOCK_H + 10);
 
     let start_rect = (dock_x + DOCK_SIDE_PADDING, dock_y + BTN_Y_INSET, START_BTN_W, BTN_H);
@@ -148,9 +154,22 @@ pub fn compute_taskbar_layout(fb_w: u32, fb_h: u32) -> TaskbarLayout {
         cx += WINDOW_SLOT_W + SLOT_GAP;
     }
 
-    let exit_rect = (dock_x + dock_w - DOCK_SIDE_PADDING - EXIT_BTN_W, dock_y + BTN_Y_INSET, EXIT_BTN_W, BTN_H);
+    let exit_rect = (dock_x + controls_w - DOCK_SIDE_PADDING - EXIT_BTN_W, dock_y + BTN_Y_INSET, EXIT_BTN_W, BTN_H);
+    let clock_rect = (exit_rect.0 + EXIT_BTN_W + SLOT_GAP, dock_y + BTN_Y_INSET, CLOCK_W, BTN_H);
 
-    TaskbarLayout { dock_x, dock_y, dock_w, dock_h: DOCK_H, start_rect, exit_rect, window_rects }
+    TaskbarLayout { dock_x, dock_y, dock_w, dock_h: DOCK_H, start_rect, exit_rect, clock_rect, window_rects }
+}
+
+fn taskbar_clock_text() -> alloc::string::String {
+    match crate::security::time::read_rtc_time() {
+        Some(epoch) => {
+            let seconds_today = epoch % 86_400;
+            let hour = seconds_today / 3_600;
+            let minute = (seconds_today % 3_600) / 60;
+            alloc::format!("{:02}:{:02} UTC", hour, minute)
+        }
+        None => alloc::string::String::from("--:-- UTC"),
+    }
 }
 
 fn truncate_label(s: &str, max_chars: usize) -> alloc::string::String {
@@ -265,6 +284,22 @@ pub fn render_taskbar(
     };
     let (ex, ey, ew, eh) = layout.exit_rect;
     draw_button(ex, ey, ew, eh, "Exit", 0x00FF8888, exit_state);
+
+    // Non-interactive system tray clock sourced from the hardware RTC. The
+    // explicit UTC label matches the QEMU boot configuration (`-rtc base=utc`)
+    // and avoids claiming a timezone preference the OS does not yet store.
+    let (cx, cy, cw, ch) = layout.clock_rect;
+    let clock_text = taskbar_clock_text();
+    static CLOCK_LOGGED: spin::Once = spin::Once::new();
+    CLOCK_LOGGED.call_once(|| {
+        crate::serial_println!("[desktop] taskbar clock {}", clock_text);
+    });
+    graphics::fill_rect(cx, cy, cw, ch, 0x00182028);
+    graphics::draw_line(cx, cy, cx + cw - 1, cy, 0x00444444);
+    graphics::draw_line(cx, cy + ch - 1, cx + cw - 1, cy + ch - 1, 0x00444444);
+    graphics::draw_line(cx, cy, cx, cy + ch - 1, 0x00444444);
+    graphics::draw_line(cx + cw - 1, cy, cx + cw - 1, cy + ch - 1, 0x00444444);
+    graphics::draw_string(cx + 4, cy + 5, &clock_text, 0x00D8E8F0, 0x00182028);
 
     graphics::draw_string(24, 12, "FerrumOS Desktop", 0x0000FFCC, COLOR_BACKGROUND);
     graphics::draw_string(24, 32, "Start: launch apps    Drag a title bar to move a window", 0x00B8C7D9, COLOR_BACKGROUND);

@@ -4,8 +4,9 @@
 // ============================================================================
 // Proves the desktop reads as a real shell, not a fixed 3-window demo:
 //   1. The debug measurement grid is gone from the background.
-//   2. The taskbar has a Start button, an Exit button, and (separately
-//      verified) one entry per open window instead of 3 hardcoded ones.
+//   2. The taskbar has a Start button, an Exit button, a hardware-RTC clock,
+//      and (separately verified) one entry per open window instead of 3
+//      hardcoded ones.
 //   3. Clicking a window's minimize button hides it (still gone from the
 //      framebuffer) and its taskbar entry can bring it back.
 //   4. Clicking a window's maximize button grows it to fill most of the
@@ -229,6 +230,7 @@ const windowSlotRects = [];
   }
 }
 const exitRect = [DOCK_X + DOCK_W - DOCK_SIDE_PADDING - EXIT_BTN_W, DOCK_Y + BTN_Y_INSET, EXIT_BTN_W, BTN_H];
+const clockRect = [exitRect[0] + EXIT_BTN_W + SLOT_GAP, DOCK_Y + BTN_Y_INSET, 80, BTN_H];
 const rectCenter = ([x, y, w, h]) => [x + Math.floor(w / 2), y + Math.floor(h / 2)];
 
 // Launcher popup geometry mirrored from desktop.rs::launcher_rect / launcher_entry_rect.
@@ -289,6 +291,7 @@ try {
   // --- 2. Taskbar: Start and Exit buttons exist at computed positions --
   const startBorder = ppm.pixelAt(startRect[0], startRect[1]);
   const exitBorder = ppm.pixelAt(exitRect[0], exitRect[1]);
+  const clockBorder = ppm.pixelAt(clockRect[0], clockRect[1]);
   check(
     "Start button renders at its computed dock position",
     startBorder.r === 0x44 && startBorder.g === 0x44 && startBorder.b === 0x44,
@@ -347,6 +350,15 @@ try {
     "maximize grows the window to fill most of the desktop",
     farPoint.r === 0x1e && farPoint.g === 0x1e && farPoint.b === 0x1e,
     `got (${farPoint.r},${farPoint.g},${farPoint.b}) at (700,400)`
+  );
+  check(
+    "hardware RTC clock renders in the taskbar tray",
+    clockBorder.r === 0x44 && clockBorder.g === 0x44 && clockBorder.b === 0x44,
+    `got (${clockBorder.r},${clockBorder.g},${clockBorder.b}) at (${clockRect[0]},${clockRect[1]})`
+  );
+  check(
+    "taskbar clock exposes a valid HH:MM UTC value",
+    /\[desktop\] taskbar clock (?:[01]\d|2[0-3]):[0-5]\d UTC/.test(serialText())
   );
 
   // Restore it back down so it doesn't interfere with the launcher test below.

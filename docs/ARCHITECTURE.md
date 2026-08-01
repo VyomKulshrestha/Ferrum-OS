@@ -106,7 +106,7 @@ The OS features a fully integrated windowing system and compositor:
 - Z-indexed overlapping windows with focus management
 - Interactive title bars (drag-to-move) with close, minimize, and maximize buttons, all computed from shared rect helpers on `Window` (`close_btn_rect`/`maximize_btn_rect`/`minimize_btn_rect` in `src/gui/window.rs`) so rendering and hit-testing can't drift apart
 - Minimized windows are skipped by rendering and hit-testing but keep a taskbar entry; maximize snaps a window to the desktop content area and remembers its prior geometry to restore
-- Desktop taskbar with a Start-menu launcher, a dynamic per-window button (one slot per open window, up to `MAX_TASKBAR_SLOTS`), and a working Exit button — all positions computed once by `desktop::compute_taskbar_layout()` and shared between rendering and every click/hover hit-test. Window placement supports minimize, maximize/restore, and left/right/top edge dragging; snapped windows retain their pre-drag floating rectangle for deterministic restoration.
+- Desktop taskbar with a Start-menu launcher, a dynamic per-window button (one slot per open window, up to `MAX_TASKBAR_SLOTS`), a working Exit button, and a non-interactive UTC clock sourced from the CMOS RTC (`security::time::read_rtc_time`) — all positions computed once by `desktop::compute_taskbar_layout()` and shared between rendering and every click/hover hit-test. Window placement supports minimize, maximize/restore, and left/right/top edge dragging; snapped windows retain their pre-drag floating rectangle for deterministic restoration.
 - App Store: a discovery surface listing every installed app with a description, launching any of them via the same mechanism as the Start-menu launcher
 
 ### Generic App-Window Framework
