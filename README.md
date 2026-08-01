@@ -38,7 +38,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Userland Apps
 - **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
-- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store
+- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
 - **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers including IPC send/receive, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math or the raw syscall ABI
 
 ### Package Manager (`ferrumpkg`)

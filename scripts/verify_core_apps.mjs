@@ -335,11 +335,14 @@ try {
   const entryCount = countMatch ? parseInt(countMatch[1], 10) : entryLines.length;
   const firstListing = entryLines.slice(0, entryCount);
   const targetIdx = firstListing.findIndex(e => e.kind === "f" && e.name === "fm_test.txt");
+  const folderIdx = firstListing.findIndex(e => e.kind === "d" && e.name === "heliox");
   check("fm_test.txt appears in the /disk listing", targetIdx >= 0, JSON.stringify(firstListing));
+  check("heliox appears as a navigable directory", folderIdx >= 0, JSON.stringify(firstListing));
 
   if (targetIdx >= 0) {
     const LINE_HEIGHT = 18;
-    const rowCenterY = LINE_HEIGHT * (targetIdx + 1) + LINE_HEIGHT / 2;
+    const CONTENT_TOP = 52;
+    const rowCenterY = CONTENT_TOP + targetIdx * LINE_HEIGHT + LINE_HEIGHT / 2;
     const clickX = APP_X + CHROME_SIDE + 30;
     const clickY = APP_Y + CHROME_TOP + rowCenterY;
     const beforePreview = serialText().length;
@@ -347,6 +350,45 @@ try {
     await sleep(400);
     await waitForSerial("[file-manager] previewing /disk/fm_test.txt", 5, beforePreview);
     check("clicking fm_test.txt opens its preview", true);
+
+    // The preview's Back button must return to the directory it came from,
+    // rather than silently resetting to /disk regardless of navigation.
+    const beforeBack = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 40, APP_Y + CHROME_TOP + 37);
+    await waitForSerial("[file-manager] action back", 5, beforeBack);
+    await waitForSerial("[file-manager] listing /disk count=", 5, beforeBack);
+    check("preview Back returns to its parent directory", true);
+
+    const beforeRefresh = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 250, APP_Y + CHROME_TOP + 37);
+    await waitForSerial("[file-manager] action refresh", 5, beforeRefresh);
+    await waitForSerial("[file-manager] listing /disk count=", 5, beforeRefresh);
+    check("File Manager refresh re-reads the current directory", true);
+  }
+
+  if (folderIdx >= 0) {
+    const LINE_HEIGHT = 18;
+    const CONTENT_TOP = 52;
+    const folderY = CONTENT_TOP + folderIdx * LINE_HEIGHT + LINE_HEIGHT / 2;
+    const beforeOpenFolder = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 30, APP_Y + CHROME_TOP + folderY);
+    await waitForSerial("[file-manager] listing /disk/heliox count=", 5, beforeOpenFolder);
+    check("clicking a directory navigates into it", true);
+
+    const beforeHistoryBack = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 40, APP_Y + CHROME_TOP + 37);
+    await waitForSerial("[file-manager] listing /disk count=", 5, beforeHistoryBack);
+    check("Back returns to the previous directory", true);
+
+    const beforeHistoryForward = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 118, APP_Y + CHROME_TOP + 37);
+    await waitForSerial("[file-manager] listing /disk/heliox count=", 5, beforeHistoryForward);
+    check("Forward restores the next directory in history", true);
+
+    const beforeUp = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 188, APP_Y + CHROME_TOP + 37);
+    await waitForSerial("[file-manager] listing /disk count=", 5, beforeUp);
+    check("Up navigates to the parent directory", true);
   }
 
   await closeAppWindow(420);
