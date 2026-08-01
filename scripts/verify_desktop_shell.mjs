@@ -1,6 +1,6 @@
 // ============================================================================
 // FerrumOS - Desktop Shell Verification (wallpaper, taskbar, launcher,
-// minimize/maximize)
+// minimize/maximize/edge snapping)
 // ============================================================================
 // Proves the desktop reads as a real shell, not a fixed 3-window demo:
 //   1. The debug measurement grid is gone from the background.
@@ -12,6 +12,8 @@
 //      screen.
 //   5. The Start button opens a launcher that can relaunch a closed
 //      built-in window.
+//   6. Dragging a title bar to the left, right, and top edges snaps it to
+//      half-screen, half-screen, and maximized placements respectively.
 //
 // Mouse interaction is done via QEMU's relative PS/2 `mouse_move` deltas
 // from the cursor's known boot position (512, 384) - this driver applies
@@ -135,19 +137,44 @@ async function sendText(t) {
 // Cursor tracking: the driver starts at (512, 384) and applies relative
 // deltas as literal pixels (src/gui/cursor.rs), so we can track absolute
 // position purely in JS and always know exactly where a click will land.
+// The guest clamps the 14x17 cursor bounding box fully on-screen.
+const CURSOR_MAX_X = 1024 - 14;
+const CURSOR_MAX_Y = 768 - 17;
 let cursorX = 512;
 let cursorY = 384;
 async function moveMouseTo(tx, ty) {
-  const dx = tx - cursorX;
-  const dy = ty - cursorY;
-  await mon(`mouse_move ${dx} ${dy}`, 150);
-  cursorX = tx;
-  cursorY = ty;
+  tx = Math.max(0, Math.min(CURSOR_MAX_X, tx));
+  ty = Math.max(0, Math.min(CURSOR_MAX_Y, ty));
+  const sx = cursorX, sy = cursorY;
+  const dx = tx - sx, dy = ty - sy;
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 100));
+  for (let i = 1; i <= steps; i++) {
+    const nextX = Math.round(sx + dx * i / steps);
+    const nextY = Math.round(sy + dy * i / steps);
+    await mon(`mouse_move ${nextX - cursorX} ${nextY - cursorY}`, 80);
+    cursorX = nextX;
+    cursorY = nextY;
+  }
 }
 async function clickAt(tx, ty) {
   await moveMouseTo(tx, ty);
   await mon("mouse_button 1", 150);
   await mon("mouse_button 0", 200);
+}
+async function dragFromTo(sx, sy, tx, ty) {
+  await moveMouseTo(sx, sy);
+  await mon("mouse_button 1", 150);
+  // Keep each relative PS/2 movement inside the signed-byte packet range;
+  // a single 800px QEMU monitor delta can be truncated by the guest driver.
+  const dx = tx - sx, dy = ty - sy;
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 100));
+  for (let i = 1; i <= steps; i++) {
+    await moveMouseTo(
+      Math.round(sx + dx * i / steps),
+      Math.round(sy + dy * i / steps),
+    );
+  }
+  await mon("mouse_button 0", 300);
 }
 
 function parsePpm(buf) {
@@ -323,20 +350,61 @@ try {
   );
 
   // Restore it back down so it doesn't interfere with the launcher test below.
-  await clickAt(maxX + 8, maxY + 8);
+  const [maximizedRestoreX, maximizedRestoreY] = maximizeBtnRect(0, 60, FB_W).slice(0, 2);
+  await clickAt(maximizedRestoreX + 8, maximizedRestoreY + 8);
   await sleep(400);
 
-  // --- 5. Launcher: close the Terminal, relaunch it from the Start menu -
+  // --- 5. Edge snapping: left, right, then top maximize ----------------
+  let snapOffset = serialText().length;
+  await dragFromTo(SYSMON_X + 80, SYSMON_Y + 10, 0, 160);
+  await waitForSerial("[desktop] snapped window id=1 left", 5, snapOffset);
+  ppm = await screendump();
+  const leftHalf = ppm.pixelAt(300, 400);
+  const outsideLeftHalf = ppm.pixelAt(700, 400);
+  check(
+    "dragging to the left edge snaps the window to the left half",
+    leftHalf.r === 0x1e && leftHalf.g === 0x1e && leftHalf.b === 0x1e &&
+      !(outsideLeftHalf.r === 0x1e && outsideLeftHalf.g === 0x1e && outsideLeftHalf.b === 0x1e)
+  );
+
+  snapOffset = serialText().length;
+  await dragFromTo(180, 70, FB_W - 1, 160);
+  await waitForSerial("[desktop] snapped window id=1 right", 5, snapOffset);
+  ppm = await screendump();
+  const rightHalf = ppm.pixelAt(800, 400);
+  const outsideRightHalf = ppm.pixelAt(200, 400);
+  check(
+    "dragging to the right edge snaps the window to the right half",
+    rightHalf.r === 0x1e && rightHalf.g === 0x1e && rightHalf.b === 0x1e &&
+      !(outsideRightHalf.r === 0x1e && outsideRightHalf.g === 0x1e && outsideRightHalf.b === 0x1e)
+  );
+
+  snapOffset = serialText().length;
+  await dragFromTo(800, 70, 800, 0);
+  await waitForSerial("[desktop] snapped window id=1 maximized", 5, snapOffset);
+  ppm = await screendump();
+  const topSnapFill = ppm.pixelAt(500, 400);
+  check(
+    "dragging to the top edge maximizes the window",
+    topSnapFill.r === 0x1e && topSnapFill.g === 0x1e && topSnapFill.b === 0x1e
+  );
+
+  // Restore from the maximized placement to the original floating rect.
+  const [snapRestoreX, snapRestoreY] = maximizeBtnRect(0, 60, FB_W).slice(0, 2);
+  const beforeSnapRestore = serialText().length;
+  await clickAt(snapRestoreX + 8, snapRestoreY + 8);
+  await waitForSerial("[desktop] restored window id=1", 5, beforeSnapRestore);
+
+  // --- 6. Launcher: close the Terminal, relaunch it from the Start menu -
   // Terminal is window id 2, spawned at (450,150,400,400).
   const TERM_X = 450, TERM_Y = 150, TERM_W = 400;
   const [closeX, closeY] = closeBtnRect(TERM_X, TERM_Y, TERM_W).slice(0, 2);
+  const beforeTerminalClose = serialText().length;
   await clickAt(closeX + 8, closeY + 8);
-  await sleep(400);
+  await waitForSerial("[desktop] closed window id=2 title=TERMINAL", 5, beforeTerminalClose);
+  check("Terminal window closes when its close button is clicked", true);
 
   ppm = await screendump();
-  const termGoneAt = ppm.pixelAt(TERM_X + 100, TERM_Y + 200);
-  check("Terminal window closes when its close button is clicked", !(termGoneAt.r === 0x1a && termGoneAt.g === 0x1a && termGoneAt.b === 0x1a),
-    `got (${termGoneAt.r},${termGoneAt.g},${termGoneAt.b})`);
 
   const [startX, startY] = rectCenter(startRect);
   await clickAt(startX, startY);

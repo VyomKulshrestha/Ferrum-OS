@@ -39,8 +39,14 @@ fn toggle_maximize(state: &mut CompositorState, idx: usize) {
             win.height = rh;
         }
         win.maximized = false;
+        win.snapped = false;
+        crate::serial_println!("[desktop] restored window id={}", win.id);
     } else {
-        win.restore_rect = Some((win.x, win.y, win.width, win.height));
+        // A snapped window already retains its original floating geometry.
+        // Do not replace that with the half-screen rect when maximizing it.
+        if !win.snapped {
+            win.restore_rect = Some((win.x, win.y, win.width, win.height));
+        }
         let top_margin = 60; // below the status strip
         let bottom_margin = 60; // above the dock
         win.x = 0;
@@ -48,6 +54,54 @@ fn toggle_maximize(state: &mut CompositorState, idx: usize) {
         win.width = fb_w;
         win.height = fb_h.saturating_sub(top_margin + bottom_margin);
         win.maximized = true;
+        win.snapped = false;
+    }
+}
+
+#[derive(Clone, Copy)]
+enum EdgePlacement {
+    Left,
+    Right,
+    Maximized,
+}
+
+/// Place a dragged window against a desktop edge while retaining the exact
+/// floating rect captured when the drag began. App-owned canvas dimensions
+/// stay fixed, matching the existing maximize behavior documented above.
+fn apply_edge_placement(state: &mut CompositorState, idx: usize, placement: EdgePlacement) {
+    let (fb_w, fb_h) = fb_dims();
+    let top_margin = 60;
+    let bottom_margin = 60;
+    let content_h = fb_h.saturating_sub(top_margin + bottom_margin);
+    let half_w = fb_w / 2;
+    let restore_rect = state.drag_restore_rect;
+    let win = &mut state.windows[idx];
+
+    win.restore_rect = Some(restore_rect);
+    win.y = top_margin;
+    win.height = content_h;
+    match placement {
+        EdgePlacement::Left => {
+            win.x = 0;
+            win.width = half_w;
+            win.maximized = false;
+            win.snapped = true;
+            crate::serial_println!("[desktop] snapped window id={} left", win.id);
+        }
+        EdgePlacement::Right => {
+            win.x = half_w;
+            win.width = fb_w.saturating_sub(half_w);
+            win.maximized = false;
+            win.snapped = true;
+            crate::serial_println!("[desktop] snapped window id={} right", win.id);
+        }
+        EdgePlacement::Maximized => {
+            win.x = 0;
+            win.width = fb_w;
+            win.maximized = true;
+            win.snapped = false;
+            crate::serial_println!("[desktop] snapped window id={} maximized", win.id);
+        }
     }
 }
 
@@ -144,6 +198,9 @@ pub struct CompositorState {
     pub drag_start_my: u32,
     pub drag_start_wx: u32,
     pub drag_start_wy: u32,
+    /// Original floating geometry for the active drag. Edge placement stores
+    /// this instead of the cursor-shifted edge geometry so Restore is useful.
+    pub drag_restore_rect: (u32, u32, u32, u32),
     pub needs_redraw: bool,
     /// What the cursor is currently hovering over. Used by
     /// the taskbar to highlight buttons and by the window
@@ -165,6 +222,7 @@ lazy_static::lazy_static! {
         drag_start_my: 0,
         drag_start_wx: 0,
         drag_start_wy: 0,
+        drag_restore_rect: (0, 0, 0, 0),
         needs_redraw: true,
         hover: HoverTarget::None,
         pressed: HoverTarget::None,
@@ -548,6 +606,7 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         if is_close_btn {
             let closed = state.windows.pop(); // Since we just pushed it to the end, pop removes it!
             if let Some(w) = closed {
+                crate::serial_println!("[desktop] closed window id={} title={}", w.id, w.title);
                 if let crate::gui::window::WindowType::App(_) = w.win_type {
                     crate::gui::app_window::on_window_closed(w.id);
                 }
@@ -586,11 +645,29 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         let win_type = win.win_type;
 
         if is_title_bar {
+            // Pull a snapped/maximized window back to its floating size as
+            // soon as the user starts dragging its title bar, like Windows.
+            let win = &mut state.windows[new_idx];
+            let floating_rect = if win.maximized || win.snapped {
+                win.restore_rect.take().unwrap_or((win.x, win.y, win.width, win.height))
+            } else {
+                (win.x, win.y, win.width, win.height)
+            };
+            if win.maximized || win.snapped {
+                let (_, _, floating_w, floating_h) = floating_rect;
+                win.x = mx.saturating_sub(floating_w / 2);
+                win.y = my.saturating_sub(10);
+                win.width = floating_w;
+                win.height = floating_h;
+                win.maximized = false;
+                win.snapped = false;
+            }
             state.drag_active = true;
             state.drag_start_mx = mx;
             state.drag_start_my = my;
-            state.drag_start_wx = win_x;
-            state.drag_start_wy = win_y;
+            state.drag_start_wx = state.windows[new_idx].x;
+            state.drag_start_wy = state.windows[new_idx].y;
+            state.drag_restore_rect = floating_rect;
         } else if let crate::gui::window::WindowType::App(_) = win_type {
             // A click inside an app window's canvas (not the title bar or
             // close button): forward it as a window-relative mouse-down
@@ -769,6 +846,29 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
         state.needs_redraw = true;
     }
 
+    if state.drag_active {
+        if let Some(idx) = state.focused_idx {
+            let (fb_w, _) = fb_dims();
+            const EDGE_THRESHOLD: u32 = 16;
+            let placement = if my <= EDGE_THRESHOLD {
+                Some(EdgePlacement::Maximized)
+            } else if mx <= EDGE_THRESHOLD {
+                Some(EdgePlacement::Left)
+            } else if mx >= fb_w.saturating_sub(EDGE_THRESHOLD + 1) {
+                Some(EdgePlacement::Right)
+            } else {
+                None
+            };
+            if let Some(placement) = placement {
+                apply_edge_placement(&mut state, idx, placement);
+            } else if let Some(win) = state.windows.get_mut(idx) {
+                win.restore_rect = None;
+                win.maximized = false;
+                win.snapped = false;
+            }
+            state.needs_redraw = true;
+        }
+    }
     state.drag_active = false;
 }
 

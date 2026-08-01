@@ -61,6 +61,11 @@ pub struct Window {
     /// above the dock). `restore_rect` holds the pre-maximize geometry so
     /// toggling back off restores it exactly.
     pub maximized: bool,
+    /// Occupies the left or right half of the desktop after an edge drag.
+    /// The exact side is represented by the current geometry; this flag is
+    /// used to preserve floating restore behavior when dragging again or
+    /// maximizing a snapped window.
+    pub snapped: bool,
     pub restore_rect: Option<(u32, u32, u32, u32)>,
 }
 
@@ -81,6 +86,7 @@ impl Window {
             canvas_h: 0,
             minimized: false,
             maximized: false,
+            snapped: false,
             restore_rect: None,
         }
     }

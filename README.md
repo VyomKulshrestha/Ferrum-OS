@@ -41,6 +41,8 @@ systems. The AI brain runs natively as a freestanding userspace process
 - **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
 - **`libferrumgui`** — shared `no_std` SDK crate (syscall wrappers including IPC send/receive, an RGBA8 `Canvas` with drawing primitives, input polling) so new apps don't hand-roll pixel math or the raw syscall ABI
 
+Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry.
+
 ### Package Manager (`ferrumpkg`)
 - Real `pkg list|install|remove|run` shell command — install/remove genuinely gate whether a package can be launched at all, backed by a registry that persists across reboots, not a cosmetic UI toggle
 - Packages are ordinary ELF binaries staged onto the appliance disk at build time (`scripts/make-appliance.ps1`), loaded and executed at runtime via the VFS — the kernel runs genuinely new code it was never compiled with, not just bookkeeping around pre-embedded apps
