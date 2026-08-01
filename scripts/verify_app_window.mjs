@@ -171,6 +171,11 @@ try {
 
   const createdLog = await waitForSerial("[gui-smoke-test] window created id=", 30, start);
   check("gui-smoke-test created an app window", true);
+  check(
+    "GUI-only process cannot write files",
+    createdLog.includes("[gui-smoke-test] filesystem capability denied as expected") &&
+      !createdLog.includes("filesystem write escaped sandbox"),
+  );
   const createOffset = serialText().indexOf("[gui-smoke-test] window created id=", start);
 
   const m = createdLog.match(/window created id=(\d+) canvas_w=(\d+) canvas_h=(\d+)/);

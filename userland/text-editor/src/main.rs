@@ -74,10 +74,22 @@ fn redraw(canvas: &mut Canvas, buffer: &str, status: &str) {
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     unsafe {
-        ALLOCATOR.lock().init(core::ptr::addr_of_mut!(HEAP) as *mut u8, HEAP.len());
+        ALLOCATOR
+            .lock()
+            .init(core::ptr::addr_of_mut!(HEAP) as *mut u8, HEAP.len());
     }
 
     ferrumgui::write_console("[text-editor] alive in ring 3\n");
+
+    // The editor legitimately holds broad filesystem read/write authority,
+    // but package repository state is a separate trust boundary. Verify that
+    // an ordinary app cannot modify it while continuing to allow its normal
+    // document path below.
+    if ferrumgui::write_file("/disk/pkgs/text-editor-probe.txt", b"blocked") {
+        ferrumgui::write_console("[text-editor] ERROR package path escaped sandbox\n");
+    } else {
+        ferrumgui::write_console("[text-editor] package path denied as expected\n");
+    }
 
     let mut buffer = match ferrumgui::read_file(EDIT_PATH, MAX_FILE_LEN) {
         Some(bytes) => String::from_utf8_lossy(&bytes).into_owned(),

@@ -58,6 +58,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - ATA PIO block storage driver
 - Read-write Ext2 filesystem with block/inode allocation
 - VFS layer with longest-prefix mount matching and sync
+- Ring-3 file syscalls enforce each process manifest's read/write capabilities; package repository and registry paths additionally require the non-delegatable `cap:pkg:manage` token, so a normal file-capable app cannot replace signed packages or installation state
 
 ### Security & Services
 - Capability registry and caller-held capability authorization

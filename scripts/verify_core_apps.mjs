@@ -248,7 +248,12 @@ try {
   // dispatches the launch - makes slower wall-clock progress than the
   // old exclusive-CPU baseline this timeout was sized for.
   await waitForSerial("[text-editor] alive in ring 3", 30, beforeTextEditor);
-  await waitForSerial("[text-editor] window created id=", 5, beforeTextEditor);
+  const textEditorStart = await waitForSerial("[text-editor] window created id=", 5, beforeTextEditor);
+  check(
+    "text editor cannot modify package repository state",
+    textEditorStart.includes("[text-editor] package path denied as expected") &&
+      !textEditorStart.includes("package path escaped sandbox"),
+  );
   check("Text Editor launched as a real new process", true);
 
   // Text Editor's window is focused immediately after CreateWindow, so

@@ -113,18 +113,18 @@ impl SyscallResult {
 
 extern crate alloc;
 
-pub mod socket;
-pub mod fs;
-pub mod process;
-pub mod graphics;
 pub mod audio;
-pub mod input;
-pub mod query;
 pub mod camera;
-pub mod kexec;
-pub mod hud;
-pub mod mmap;
+pub mod fs;
+pub mod graphics;
 pub mod gui_window;
+pub mod hud;
+pub mod input;
+pub mod kexec;
+pub mod mmap;
+pub mod process;
+pub mod query;
+pub mod socket;
 
 use alloc::string::String;
 
@@ -188,7 +188,9 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
             // 1. Syscall Rate limit check (~11s window - see
             // `scheduler::TaskQuotas::default_user`'s matching comment)
-            if now.saturating_sub(task.quotas.syscall_window_start) > 11000 / crate::interrupts::PIT_TICK_MS {
+            if now.saturating_sub(task.quotas.syscall_window_start)
+                > 11000 / crate::interrupts::PIT_TICK_MS
+            {
                 task.quotas.syscall_window_start = now;
                 task.quotas.syscalls_in_window = 0;
             }
@@ -214,7 +216,11 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             let is_delete_file = number == SyscallNumber::DeleteFile as u64;
             let is_kexec = number == SyscallNumber::Kexec as u64;
             let is_gated = is_delete_file || is_kexec;
-            let is_bypass = !is_kexec && task.capabilities.iter().any(|c| c == "cap:confirmation:bypass");
+            let is_bypass = !is_kexec
+                && task
+                    .capabilities
+                    .iter()
+                    .any(|c| c == "cap:confirmation:bypass");
 
             if is_gated && !is_bypass {
                 let is_approved = task.confirmation_approved;
@@ -237,12 +243,19 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     }
 
     if confirmation_needed {
-        let name = if number == SyscallNumber::Kexec as u64 { "Kexec" } else { "DeleteFile" };
+        let name = if number == SyscallNumber::Kexec as u64 {
+            "Kexec"
+        } else {
+            "DeleteFile"
+        };
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::SecurityViolation,
             &alloc::format!("{} syscall confirmation required", name),
         );
-        crate::println!("\n[SECURITY] Process is requesting destructive syscall: {}", name);
+        crate::println!(
+            "\n[SECURITY] Process is requesting destructive syscall: {}",
+            name
+        );
         crate::println!("[SECURITY] Operator confirmation required. Press 'y' to approve, 'n' to deny (5s timeout).");
         return SyscallResult::err(SyscallStatus::Blocked);
     }
@@ -277,20 +290,22 @@ pub fn dispatch_with_capabilities(
             // args[1] = target service string len
             // args[2] = payload ptr
             // args[3] = payload len
-            let target_service = match unsafe { crate::syscall::fs::read_user_str(args[0], args[1]) } {
-                Some(s) => s,
-                None => return SyscallResult::err(SyscallStatus::InvalidArgument),
-            };
-            
+            let target_service =
+                match unsafe { crate::syscall::fs::read_user_str(args[0], args[1]) } {
+                    Some(s) => s,
+                    None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+                };
+
             let payload_len = args[3] as usize;
             if payload_len > crate::ipc::MAX_PAYLOAD_BYTES || (payload_len > 0 && args[2] == 0) {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
-            
+
             let payload = if payload_len == 0 {
                 alloc::vec::Vec::new()
             } else {
-                let slice = unsafe { core::slice::from_raw_parts(args[2] as *const u8, payload_len) };
+                let slice =
+                    unsafe { core::slice::from_raw_parts(args[2] as *const u8, payload_len) };
                 slice.to_vec()
             };
 
@@ -321,17 +336,17 @@ pub fn dispatch_with_capabilities(
                     None => return SyscallResult::err(SyscallStatus::InvalidArgument),
                 }
             };
-            
+
             match crate::ipc::receive_for_service(&service_name) {
                 Ok(message) => {
                     let buf_ptr = args[0];
                     let buf_len = args[1] as usize;
-                    
+
                     if buf_ptr == 0 || buf_len == 0 {
                         // User just wants to consume/drop the message or check if there is one
                         return SyscallResult::ok(message.payload().len() as u64);
                     }
-                    
+
                     let to_copy = message.payload().len().min(buf_len);
                     if to_copy > 0 {
                         let end = buf_ptr.saturating_add(to_copy as u64);
@@ -346,7 +361,7 @@ pub fn dispatch_with_capabilities(
                             );
                         }
                     }
-                    
+
                     SyscallResult::ok(to_copy as u64)
                 }
                 Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
@@ -397,15 +412,9 @@ pub fn dispatch_with_capabilities(
             }
             socket::sys_socket(args[0], args[1], args[2])
         }
-        x if x == SyscallNumber::Bind as u64 => {
-            socket::sys_bind(args[0], args[1])
-        }
-        x if x == SyscallNumber::Listen as u64 => {
-            socket::sys_listen(args[0], args[1])
-        }
-        x if x == SyscallNumber::Accept as u64 => {
-            socket::sys_accept(args[0])
-        }
+        x if x == SyscallNumber::Bind as u64 => socket::sys_bind(args[0], args[1]),
+        x if x == SyscallNumber::Listen as u64 => socket::sys_listen(args[0], args[1]),
+        x if x == SyscallNumber::Accept as u64 => socket::sys_accept(args[0]),
         x if x == SyscallNumber::Recv as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
@@ -418,39 +427,23 @@ pub fn dispatch_with_capabilities(
             }
             socket::sys_send(args[0], args[1], args[2])
         }
-        x if x == SyscallNumber::Wait as u64 => {
-            SyscallResult::ok(0)
-        }
+        x if x == SyscallNumber::Wait as u64 => SyscallResult::ok(0),
         x if x == SyscallNumber::Connect as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             socket::sys_connect(args[0], args[1], args[2])
         }
-        x if x == SyscallNumber::ReadFile as u64 => {
-            fs::sys_read_file(args)
-        }
-        x if x == SyscallNumber::WriteFile as u64 => {
-            fs::sys_write_file(args)
-        }
-        x if x == SyscallNumber::ReadDir as u64 => {
-            fs::sys_read_dir(args)
-        }
-        x if x == SyscallNumber::Exec as u64 => {
-            process::sys_exec(args)
-        }
+        x if x == SyscallNumber::ReadFile as u64 => fs::sys_read_file(args, held_capabilities),
+        x if x == SyscallNumber::WriteFile as u64 => fs::sys_write_file(args, held_capabilities),
+        x if x == SyscallNumber::ReadDir as u64 => fs::sys_read_dir(args, held_capabilities),
+        x if x == SyscallNumber::Exec as u64 => process::sys_exec(args),
         x if x == SyscallNumber::ReadFramebufferInfo as u64 => {
             graphics::sys_read_framebuffer_info(args)
         }
-        x if x == SyscallNumber::ReadTextBuffer as u64 => {
-            graphics::sys_read_text_buffer(args)
-        }
-        x if x == SyscallNumber::CreateDir as u64 => {
-            fs::sys_create_dir(args)
-        }
-        x if x == SyscallNumber::DeleteFile as u64 => {
-            fs::sys_delete_file(args)
-        }
+        x if x == SyscallNumber::ReadTextBuffer as u64 => graphics::sys_read_text_buffer(args),
+        x if x == SyscallNumber::CreateDir as u64 => fs::sys_create_dir(args, held_capabilities),
+        x if x == SyscallNumber::DeleteFile as u64 => fs::sys_delete_file(args, held_capabilities),
         x if x == SyscallNumber::PlayAudio as u64 => {
             if !crate::security::has_capability(held_capabilities, "audio:play") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
@@ -481,12 +474,8 @@ pub fn dispatch_with_capabilities(
             }
             input::sys_inject_mouse(args)
         }
-        x if x == SyscallNumber::PollInput as u64 => {
-            input::sys_poll_input(args)
-        }
-        x if x == SyscallNumber::SystemQuery as u64 => {
-            query::sys_system_query(args)
-        }
+        x if x == SyscallNumber::PollInput as u64 => input::sys_poll_input(args),
+        x if x == SyscallNumber::SystemQuery as u64 => query::sys_system_query(args),
         x if x == SyscallNumber::GetPid as u64 => {
             let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
             SyscallResult::ok(pid)
@@ -508,9 +497,7 @@ pub fn dispatch_with_capabilities(
             }
             camera::sys_camera_info(args)
         }
-        x if x == SyscallNumber::Kexec as u64 => {
-            kexec::sys_kexec(args)
-        }
+        x if x == SyscallNumber::Kexec as u64 => kexec::sys_kexec(args),
         x if x == SyscallNumber::HudUpdate as u64 => {
             if !crate::security::has_capability(held_capabilities, "hud:overlay") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
@@ -524,8 +511,9 @@ pub fn dispatch_with_capabilities(
             hud::sys_hit_test(args)
         }
         x if x == SyscallNumber::Mmap as u64 => {
-            if !crate::security::has_capability(held_capabilities, "memory:mmap:*") &&
-               !crate::security::has_capability(held_capabilities, "memory:alloc:*") {
+            if !crate::security::has_capability(held_capabilities, "memory:mmap:*")
+                && !crate::security::has_capability(held_capabilities, "memory:alloc:*")
+            {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             mmap::sys_mmap(args)
@@ -547,19 +535,21 @@ pub fn dispatch_with_capabilities(
             match crate::security::rand::get_random(&mut temp_buf) {
                 Ok(()) => {
                     unsafe {
-                        core::ptr::copy_nonoverlapping(temp_buf.as_ptr(), buf_ptr as *mut u8, buf_len);
+                        core::ptr::copy_nonoverlapping(
+                            temp_buf.as_ptr(),
+                            buf_ptr as *mut u8,
+                            buf_len,
+                        );
                     }
                     SyscallResult::ok(buf_len as u64)
                 }
                 Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
             }
         }
-        x if x == SyscallNumber::GetTime as u64 => {
-            match crate::security::time::read_rtc_time() {
-                Some(secs) => SyscallResult::ok(secs),
-                None => SyscallResult::ok(0),
-            }
-        }
+        x if x == SyscallNumber::GetTime as u64 => match crate::security::time::read_rtc_time() {
+            Some(secs) => SyscallResult::ok(secs),
+            None => SyscallResult::ok(0),
+        },
         x if x == SyscallNumber::CreateWindow as u64 => {
             if !crate::security::has_capability(held_capabilities, "gui:window:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);

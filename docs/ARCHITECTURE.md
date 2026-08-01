@@ -127,6 +127,8 @@ The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAU
 
 Packages under `/disk/pkgs-available/<name>/` carry a strict format-v1 `manifest.txt`, detached Ed25519 `manifest.sig`, and ELF `bin`. The kernel verifies the manifest against its release public key, requires the manifest name to match the sandbox directory, rejects unknown/duplicate fields and undelegatable capabilities, and compares the ELF's SHA-256 digest with the signed value before install or launch. The corresponding private release key is intentionally not part of the repository.
 
+The ring-3 filesystem syscalls enforce `cap:fs:read` and `cap:fs:write` at their common kernel dispatch boundary. `/disk/pkgs` and `/disk/pkgs-available` are a second, protected trust domain: even a process holding both ordinary filesystem tokens is denied unless it directly holds the non-delegatable `cap:pkg:manage` token. User paths must be absolute and reject `.`/`..` components, preventing alternate path spellings from bypassing that boundary. `gui-smoke-test` and Text Editor exercise both denial cases from real scheduled ring-3 processes.
+
 Real `pkg list|install|remove|run` semantics, honestly scoped: packages
 are a local cache staged onto the appliance disk at *build* time
 (`scripts/make-appliance.ps1`, via `debugfs` - the same mechanism that

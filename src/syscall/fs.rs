@@ -10,8 +10,8 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 use super::{SyscallResult, SyscallStatus};
+use alloc::string::String;
 
 /// Maximum path length we'll accept from userspace.
 const MAX_PATH_LEN: usize = 4096;
@@ -73,6 +73,51 @@ unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     to_copy
 }
 
+fn valid_absolute_path(path: &str) -> bool {
+    path.starts_with('/')
+        && path.len() <= MAX_PATH_LEN
+        && !path
+            .split('/')
+            .any(|component| component == "." || component == "..")
+}
+
+fn is_package_control_path(path: &str) -> bool {
+    let mut components = path.split('/').filter(|component| !component.is_empty());
+    matches!(components.next(), Some("disk"))
+        && matches!(components.next(), Some("pkgs") | Some("pkgs-available"))
+}
+
+fn authorize_path(path: &str, write: bool, held_capabilities: &[String]) -> bool {
+    if !valid_absolute_path(path) {
+        return false;
+    }
+
+    let resource = if write { "fs:write:*" } else { "fs:read:*" };
+    if !crate::security::has_capability(held_capabilities, resource) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!(
+                "filesystem {} denied: {}",
+                if write { "write" } else { "read" },
+                path
+            ),
+        );
+        return false;
+    }
+
+    if is_package_control_path(path)
+        && !crate::security::holds_capability_token(held_capabilities, "cap:pkg:manage")
+    {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("package repository path denied: {}", path),
+        );
+        return false;
+    }
+
+    true
+}
+
 /// `sys_read_file` — Read a file from the VFS into a userspace buffer.
 ///
 /// args[0] = path_ptr (user pointer to path string)
@@ -81,11 +126,14 @@ unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
 /// args[3] = buf_len
 ///
 /// Returns: number of bytes written to buf, or error.
-pub fn sys_read_file(args: [u64; 6]) -> SyscallResult {
+pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if !authorize_path(&path, false, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
@@ -115,11 +163,14 @@ pub fn sys_read_file(args: [u64; 6]) -> SyscallResult {
 /// args[3] = data_len
 ///
 /// Returns: 0 on success, or error.
-pub fn sys_write_file(args: [u64; 6]) -> SyscallResult {
+pub fn sys_write_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if !authorize_path(&path, true, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
 
     let data_ptr = args[2];
     let data_len = args[3] as usize;
@@ -127,12 +178,14 @@ pub fn sys_write_file(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    // Read data from userspace as raw bytes, bypassing UTF-8 validation
-    let slice = unsafe {
-        core::slice::from_raw_parts(data_ptr as *const u8, data_len)
+    let data = match unsafe { read_user_bytes(data_ptr as u64, data_len as u64, MAX_DATA_LEN) } {
+        Some(data) => data,
+        None if data_len == 0 => alloc::vec::Vec::new(),
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    let content = unsafe {
-        core::str::from_utf8_unchecked(slice)
+    let content = match core::str::from_utf8(&data) {
+        Ok(content) => content,
+        Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
     match crate::fs::create_file(&path, content) {
@@ -150,11 +203,14 @@ pub fn sys_write_file(args: [u64; 6]) -> SyscallResult {
 ///
 /// Returns: number of bytes written to buf (newline-separated entry names),
 /// or error.
-pub fn sys_read_dir(args: [u64; 6]) -> SyscallResult {
+pub fn sys_read_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if !authorize_path(&path, false, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
@@ -188,11 +244,14 @@ pub fn sys_read_dir(args: [u64; 6]) -> SyscallResult {
 /// args[1] = path_len
 ///
 /// Returns: 0 on success, or error.
-pub fn sys_create_dir(args: [u64; 6]) -> SyscallResult {
+pub fn sys_create_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if !authorize_path(&path, true, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
 
     match crate::fs::create_dir(&path) {
         Ok(()) => SyscallResult::ok(0),
@@ -206,11 +265,14 @@ pub fn sys_create_dir(args: [u64; 6]) -> SyscallResult {
 /// args[1] = path_len
 ///
 /// Returns: 0 on success, or error.
-pub fn sys_delete_file(args: [u64; 6]) -> SyscallResult {
+pub fn sys_delete_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if !authorize_path(&path, true, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
 
     match crate::fs::remove(&path) {
         Ok(()) => SyscallResult::ok(0),

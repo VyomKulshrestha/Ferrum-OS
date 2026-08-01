@@ -15,6 +15,7 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 
 const SYS_YIELD: u64 = 0;
+const SYS_WRITE_FILE: u64 = 16;
 const SYS_EXIT: u64 = 30;
 const SYS_SLEEP: u64 = 32;
 const SYS_WRITE: u64 = 34;
@@ -112,6 +113,27 @@ fn write_int(num: i64) {
 pub extern "C" fn _start() -> ! {
     write("[gui-smoke-test] alive in ring 3\n");
 
+    // This binary intentionally has only cap:gui:window. Exercise the
+    // deny-by-default filesystem boundary from real ring 3 before testing
+    // the window syscalls, so a manifest that merely documents authority
+    // without enforcing it cannot pass the smoke test.
+    let probe_path = "/tmp/gui-smoke-fs-probe";
+    let probe_data = "must-not-be-written";
+    let write_result = unsafe {
+        syscall4(
+            SYS_WRITE_FILE,
+            probe_path.as_ptr() as u64,
+            probe_path.len() as u64,
+            probe_data.as_ptr() as u64,
+            probe_data.len() as u64,
+        )
+    };
+    if write_result as i64 == -2 {
+        write("[gui-smoke-test] filesystem capability denied as expected\n");
+    } else {
+        write("[gui-smoke-test] ERROR filesystem write escaped sandbox\n");
+    }
+
     let title = "Smoke Test";
     let window_id = unsafe {
         syscall4(
@@ -165,7 +187,14 @@ pub extern "C" fn _start() -> ! {
             write("[gui-smoke-test] input wait timed out\n");
             break;
         }
-        let got = unsafe { syscall3(SYS_POLL_WINDOW_INPUT, window_id, buf.as_mut_ptr() as u64, 20) };
+        let got = unsafe {
+            syscall3(
+                SYS_POLL_WINDOW_INPUT,
+                window_id,
+                buf.as_mut_ptr() as u64,
+                20,
+            )
+        };
         if got == 1 {
             let tag = buf[0];
             if tag == 0 {
