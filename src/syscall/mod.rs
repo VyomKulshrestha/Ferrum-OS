@@ -437,7 +437,16 @@ pub fn dispatch_with_capabilities(
         x if x == SyscallNumber::ReadFile as u64 => fs::sys_read_file(args, held_capabilities),
         x if x == SyscallNumber::WriteFile as u64 => fs::sys_write_file(args, held_capabilities),
         x if x == SyscallNumber::ReadDir as u64 => fs::sys_read_dir(args, held_capabilities),
-        x if x == SyscallNumber::Exec as u64 => process::sys_exec(args),
+        x if x == SyscallNumber::Exec as u64 => {
+            if !crate::security::has_capability(held_capabilities, "process:spawn") {
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::PermissionDenied,
+                    "ring3 exec denied: caller lacks process:spawn",
+                );
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            process::sys_exec(args)
+        }
         x if x == SyscallNumber::ReadFramebufferInfo as u64 => {
             graphics::sys_read_framebuffer_info(args)
         }

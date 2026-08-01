@@ -16,6 +16,7 @@ use core::panic::PanicInfo;
 
 const SYS_YIELD: u64 = 0;
 const SYS_WRITE_FILE: u64 = 16;
+const SYS_EXEC: u64 = 18;
 const SYS_EXIT: u64 = 30;
 const SYS_SLEEP: u64 = 32;
 const SYS_WRITE: u64 = 34;
@@ -132,6 +133,21 @@ pub extern "C" fn _start() -> ! {
         write("[gui-smoke-test] filesystem capability denied as expected\n");
     } else {
         write("[gui-smoke-test] ERROR filesystem write escaped sandbox\n");
+    }
+
+    let exec_path = "/bin/calculator";
+    let exec_result = unsafe {
+        syscall3(
+            SYS_EXEC,
+            exec_path.as_ptr() as u64,
+            exec_path.len() as u64,
+            0,
+        )
+    };
+    if exec_result as i64 == -2 {
+        write("[gui-smoke-test] process spawn capability denied as expected\n");
+    } else {
+        write("[gui-smoke-test] ERROR process spawn escaped sandbox\n");
     }
 
     let title = "Smoke Test";

@@ -176,6 +176,11 @@ try {
     createdLog.includes("[gui-smoke-test] filesystem capability denied as expected") &&
       !createdLog.includes("filesystem write escaped sandbox"),
   );
+  check(
+    "GUI-only process cannot spawn another process",
+    createdLog.includes("[gui-smoke-test] process spawn capability denied as expected") &&
+      !createdLog.includes("process spawn escaped sandbox"),
+  );
   const createOffset = serialText().indexOf("[gui-smoke-test] window created id=", start);
 
   const m = createdLog.match(/window created id=(\d+) canvas_w=(\d+) canvas_h=(\d+)/);

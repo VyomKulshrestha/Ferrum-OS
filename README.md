@@ -63,6 +63,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 
 ### Security & Services
 - Capability registry and caller-held capability authorization
+- Ring-3 process creation requires the explicit `cap:process:spawn` token; GUI access alone cannot launch child apps
 - 5-tier permission model with operator confirmation gates (gated Tier 3/4 syscalls require physical key confirmation, using RIP-2 instruction rewinding for restartable blocking calls)
 - Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation)
 - Resource Quotas: Syscall rate limiting, continuous CPU execution limits, and memory mapping bounds check (default 8 MiB)

@@ -135,6 +135,7 @@ pub fn init() {
             String::from("cap:mem:mmap"),
             String::from("cap:crypto:rng"),
             String::from("cap:net:tls"),
+            String::from("cap:process:spawn"),
         ],
     ));
     state.programs.push(ProgramManifest::new(
@@ -191,7 +192,7 @@ pub fn init() {
         "app-store",
         "Browse and launch every app built into this image",
         "/bin/app-store",
-        vec![String::from("cap:gui:window")],
+        vec![String::from("cap:gui:window"), String::from("cap:process:spawn")],
     ));
 }
 

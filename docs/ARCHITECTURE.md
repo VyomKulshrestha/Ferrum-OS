@@ -544,6 +544,11 @@ Explicit permission tokens. Default deny. Each process receives a delegated
 capability set at launch from its parent process via `sys_exec`, which filters
 delegatable tokens.
 
+The `Exec` syscall itself is gated on `process:spawn`; this check happens
+before ELF resolution/loading. First-party programs that legitimately launch
+children (Heliox and App Store) declare `cap:process:spawn`, while the GUI-only
+ring-3 smoke test proves that window authority alone cannot spawn a process.
+
 | Profile | Token | Access |
 |---------|-------|--------|
 | root | `cap:system:all` | Full system management |
