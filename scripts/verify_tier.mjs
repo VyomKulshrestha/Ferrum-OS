@@ -140,7 +140,9 @@ async function runScenario(memory, expectedTier, expectedProvider) {
   };
 
   // Wait for prompt and boot into ring3
-  await waitForSerial("FerrumOS:~$", 35);
+  // The 8 GiB profile takes longer to complete the full graphical/hardware
+  // boot under host load even after tier detection has already succeeded.
+  await waitForSerial("FerrumOS:~$", 90);
 
   // heliox-daemon now stays idle (provider stuck at "auto", no tier
   // resolution) until a config.json actually exists on disk - a fresh,
