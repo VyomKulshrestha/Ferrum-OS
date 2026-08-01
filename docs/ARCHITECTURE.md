@@ -125,6 +125,8 @@ The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAU
 
 ### Package Manager (`src/pkg/mod.rs`)
 
+Packages under `/disk/pkgs-available/<name>/` carry a strict format-v1 `manifest.txt`, detached Ed25519 `manifest.sig`, and ELF `bin`. The kernel verifies the manifest against its release public key, requires the manifest name to match the sandbox directory, rejects unknown/duplicate fields and undelegatable capabilities, and compares the ELF's SHA-256 digest with the signed value before install or launch. The corresponding private release key is intentionally not part of the repository.
+
 Real `pkg list|install|remove|run` semantics, honestly scoped: packages
 are a local cache staged onto the appliance disk at *build* time
 (`scripts/make-appliance.ps1`, via `debugfs` - the same mechanism that

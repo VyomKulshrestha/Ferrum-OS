@@ -44,7 +44,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder.
 
 ### Package Manager (`ferrumpkg`)
-- Real `pkg list|install|remove|run` shell command — install/remove genuinely gate whether a package can be launched at all, backed by a registry that persists across reboots, not a cosmetic UI toggle
+- Real `pkg list|verify|install|remove|run` shell command — Ed25519-signed manifests bind package identity, version, requested capabilities, and the ELF's SHA-256 digest to a kernel trust root before install or launch; install/remove genuinely gate whether a package can be launched at all, backed by a registry that persists across reboots, not a cosmetic UI toggle
 - Packages are ordinary ELF binaries staged onto the appliance disk at build time (`scripts/make-appliance.ps1`), loaded and executed at runtime via the VFS — the kernel runs genuinely new code it was never compiled with, not just bookkeeping around pre-embedded apps
 - Honestly scoped: this is a local package cache, not a network-fetched repository — no package server exists or is pretended to
 

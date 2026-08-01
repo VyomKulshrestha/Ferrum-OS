@@ -52,6 +52,11 @@ pic8259 = "0.11.0"
 # Spinlock-based synchronization (no_std)
 spin = "0.9.8"
 
+# Signed ferrumpkg manifests and payload integrity. Both crates are no_std;
+# only verification code and SHA-256 are linked into the kernel.
+ed25519-dalek = { version = "2.1.1", default-features = false, features = ["alloc"] }
+sha2 = { version = "0.10.8", default-features = false, features = ["force-soft"] }
+
 # Kernel heap allocator
 linked_list_allocator = "0.10.5"
 

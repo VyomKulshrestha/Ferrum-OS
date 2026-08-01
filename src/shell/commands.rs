@@ -787,7 +787,7 @@ fn cmd_run(args: &[&str]) {
 
 fn cmd_pkg(args: &[&str]) {
     if args.is_empty() {
-        println!("pkg: usage: pkg <list|install|remove|run> [name]");
+        println!("pkg: usage: pkg <list|verify|install|remove|run> [name]");
         return;
     }
 
@@ -814,6 +814,16 @@ fn cmd_pkg(args: &[&str]) {
             match crate::pkg::install(name) {
                 Ok(()) => println!("installed {}", name),
                 Err(err) => println!("pkg install: {}", err),
+            }
+        }
+        "verify" => {
+            let Some(name) = args.get(1) else {
+                println!("pkg verify: missing package name");
+                return;
+            };
+            match crate::pkg::verify(name) {
+                Ok(meta) => println!("verified {} {} signed by {}", meta.name, meta.version, meta.signing_key),
+                Err(err) => println!("pkg verify: {}", err),
             }
         }
         "remove" => {
@@ -885,7 +895,7 @@ fn cmd_pkg(args: &[&str]) {
                 Err(err) => println!("pkg run: {}", err),
             }
         }
-        other => println!("pkg: unknown subcommand '{}' (expected list|install|remove|run)", other),
+        other => println!("pkg: unknown subcommand '{}' (expected list|verify|install|remove|run)", other),
     }
 }
 

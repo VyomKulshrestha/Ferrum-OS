@@ -6,4 +6,10 @@ target = "x86_64-unknown-none"
 
 [target.x86_64-unknown-none]
 runner = "bootimage runner"
-rustflags = ["-C", "relocation-model=static", "-C", "link-arg=-no-pie"]
+rustflags = [
+    "-C", "relocation-model=static",
+    "-C", "link-arg=-no-pie",
+    # curve25519-dalek otherwise auto-selects its nightly AVX2 backend on
+    # x86_64, which this bare-metal LLVM target cannot lower safely.
+    "--cfg", "curve25519_dalek_backend=\"serial\"",
+]

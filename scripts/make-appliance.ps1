@@ -72,20 +72,32 @@ if (-not (Test-Path $notesElf)) {
 # $modelSrc/$notesElf already do above, but can't see a Windows temp path
 # like C:\Users\...\AppData\Local\Temp\... since that's outside the WSL
 # mount it operates from.
-$notesManifest = "target/notes-manifest.txt"
-@"
-name=notes
-version=1.0.0
-description=A simple persistent scratchpad, installed on demand
-capabilities=cap:gui:window,cap:fs:read,cap:fs:write
-"@ | Set-Content -Path $notesManifest -NoNewline -Encoding ascii
+$notesManifest = "appliance/packages/notes/manifest.txt"
+$notesSignature = "appliance/packages/notes/manifest.sig"
+if (-not (Test-Path $notesManifest) -or -not (Test-Path $notesSignature)) {
+    Write-Host "Missing signed notes package metadata." -ForegroundColor Red
+    exit 1
+}
+$manifestHashLine = Select-String -Path $notesManifest -Pattern '^binary_sha256=([0-9a-f]{64})$'
+if (-not $manifestHashLine) {
+    Write-Host "Signed notes manifest has no valid binary_sha256." -ForegroundColor Red
+    exit 1
+}
+$expectedNotesHash = $manifestHashLine.Matches[0].Groups[1].Value
+$actualNotesHash = (Get-FileHash -Algorithm SHA256 $notesElf).Hash.ToLowerInvariant()
+if ($actualNotesHash -ne $expectedNotesHash) {
+    Write-Host "Notes ELF digest changed; refusing to package it under the existing signature." -ForegroundColor Red
+    Write-Host "Expected: $expectedNotesHash" -ForegroundColor Red
+    Write-Host "Actual:   $actualNotesHash" -ForegroundColor Red
+    exit 1
+}
 
 wsl debugfs -w -R "mkdir /pkgs-available" target/heliox-disk.img
 wsl debugfs -w -R "mkdir /pkgs-available/notes" target/heliox-disk.img
 wsl debugfs -w -R "mkdir /pkgs" target/heliox-disk.img
 wsl debugfs -w -R "write $notesManifest /pkgs-available/notes/manifest.txt" target/heliox-disk.img
+wsl debugfs -w -R "write $notesSignature /pkgs-available/notes/manifest.sig" target/heliox-disk.img
 wsl debugfs -w -R "write $notesElf /pkgs-available/notes/bin" target/heliox-disk.img
-Remove-Item $notesManifest -Force
 
 # 6. Stage the world model's Phase 2 learned transition weights, if
 # trained (scripts/train_world_model.py). Entirely optional - a missing

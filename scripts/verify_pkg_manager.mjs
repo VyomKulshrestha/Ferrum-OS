@@ -148,6 +148,11 @@ try {
   let out = serialText().slice(start);
   check("pkg list shows notes as available before install", /notes.*\[available\]/.test(out), out.trim());
 
+  start = serialText().length;
+  await runCommand("pkg verify notes", start);
+  out = serialText().slice(start);
+  check("pkg verify accepts the release-signed manifest and matching ELF", /verified notes 1\.0\.0 signed by ferrumos-release-1/.test(out), out.trim());
+
   // 2. Running an available-but-uninstalled package must be refused - the
   // whole point of ferrumpkg's install gate (src/pkg/mod.rs, sys_exec's
   // check in src/syscall/process.rs) is that the bytes existing on disk
