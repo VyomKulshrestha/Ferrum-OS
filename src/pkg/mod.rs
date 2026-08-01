@@ -6,14 +6,14 @@
 // debugfs - the same mechanism that packages the real model checkpoint),
 // not fetched from a network repository. What's "real" here is that
 // install/remove genuinely gate whether `sys_exec` will run a package's
-// binary at all (see src/syscall/process.rs), backed by state that
-// persists across reboots - not a UI-only toggle.
+// binary at all (see src/syscall/process.rs), backed by a serialized,
+// checksummed dual-slot registry that persists across reboots.
 //
 // A package never needs its binary physically copied at runtime: ext2's
 // own `create_file` (src/fs/ext2.rs) only supports direct blocks (12 max),
 // so writing a multi-hundred-KB ELF through it at runtime would fail long
-// before install ever got there. Instead, only a small text registry file
-// changes at runtime; the (potentially large) binary stays where debugfs
+// before install ever got there. Instead, only small registry snapshots
+// change at runtime; the (potentially large) binary stays where debugfs
 // put it under /disk/pkgs-available/ whether installed or not.
 // ============================================================================
 
@@ -24,9 +24,13 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use ed25519_dalek::{Signature, VerifyingKey};
 use sha2::{Digest, Sha256};
+use spin::Mutex;
 
 pub const AVAILABLE_ROOT: &str = "/disk/pkgs-available";
-const REGISTRY_PATH: &str = "/disk/pkgs/registry.txt";
+const LEGACY_REGISTRY_PATH: &str = "/disk/pkgs/registry.txt";
+const REGISTRY_A_PATH: &str = "/disk/pkgs/registry.a";
+const REGISTRY_B_PATH: &str = "/disk/pkgs/registry.b";
+const REGISTRY_FORMAT: &str = "1";
 const MANIFEST_FORMAT: &str = "1";
 const TRUSTED_KEY_ID: &str = "ferrumos-release-1";
 const TRUSTED_PUBLIC_KEY: [u8; 32] = [
@@ -34,6 +38,14 @@ const TRUSTED_PUBLIC_KEY: [u8; 32] = [
     0x68, 0xe4, 0x9c, 0x8d, 0x82, 0x6b, 0xb2, 0xa1, 0x4b, 0x72, 0xad, 0x28, 0xc6, 0xdd, 0xfe, 0x16,
 ];
 const MAX_MANIFEST_BYTES: usize = 4096;
+const MAX_REGISTRY_BYTES: usize = 48 * 1024;
+const MAX_INSTALLED_PACKAGES: usize = 128;
+
+/// Serializes every registry read-modify-write transaction. The ext2 driver
+/// serializes individual filesystem calls, but without this higher-level lock
+/// two App Store/shell operations could both read generation N and overwrite
+/// each other's generation N+1 result.
+static PACKAGE_STATE: Mutex<()> = Mutex::new(());
 
 /// Capabilities a package manifest may request. Deliberately excludes
 /// net:*, exec/delete-tier, quota:exempt, confirmation:bypass, and
@@ -50,6 +62,9 @@ pub const PACKAGE_CAP_ALLOWLIST: &[&str] = &[
     "cap:audio:play",
 ];
 
+pub const PRIVILEGED_PACKAGE_CAPABILITIES: &[&str] =
+    &["cap:fs:read", "cap:fs:write", "cap:audio:play"];
+
 #[derive(Debug, Clone)]
 pub struct PackageMeta {
     pub name: String,
@@ -58,6 +73,41 @@ pub struct PackageMeta {
     pub capabilities: Vec<String>,
     pub binary_sha256: [u8; 32],
     pub signing_key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct InstalledPackage {
+    name: String,
+    version: String,
+    binary_sha256: [u8; 32],
+}
+
+#[derive(Debug, Clone)]
+struct RegistrySnapshot {
+    generation: u64,
+    packages: Vec<InstalledPackage>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RegistrySlot {
+    A,
+    B,
+}
+
+impl RegistrySlot {
+    fn path(self) -> &'static str {
+        match self {
+            Self::A => REGISTRY_A_PATH,
+            Self::B => REGISTRY_B_PATH,
+        }
+    }
+
+    fn other(self) -> Self {
+        match self {
+            Self::A => Self::B,
+            Self::B => Self::A,
+        }
+    }
 }
 
 /// Parses the flat `key=value` manifest format (no JSON parser exists in
@@ -236,24 +286,255 @@ pub fn verify(name: &str) -> Result<PackageMeta, String> {
     verify_package_dir(name)
 }
 
-fn read_registry() -> Vec<String> {
-    match crate::fs::read_file(REGISTRY_PATH) {
-        Ok(content) => content
+pub fn privileged_capabilities(meta: &PackageMeta) -> Vec<String> {
+    meta.capabilities
+        .iter()
+        .filter(|cap| PRIVILEGED_PACKAGE_CAPABILITIES.contains(&cap.as_str()))
+        .cloned()
+        .collect()
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
+}
+
+fn registry_body(snapshot: &RegistrySnapshot) -> String {
+    let mut packages = snapshot.packages.clone();
+    packages.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut body = format!(
+        "format={}\ngeneration={}\n",
+        REGISTRY_FORMAT, snapshot.generation
+    );
+    for package in packages {
+        body.push_str(&format!(
+            "package={}|{}|{}\n",
+            package.name,
+            package.version,
+            hex_encode(&package.binary_sha256)
+        ));
+    }
+    body
+}
+
+fn serialize_registry(snapshot: &RegistrySnapshot) -> Result<String, String> {
+    if snapshot.packages.len() > MAX_INSTALLED_PACKAGES {
+        return Err(String::from("package registry capacity exceeded"));
+    }
+    let body = registry_body(snapshot);
+    let checksum = Sha256::digest(body.as_bytes());
+    let content = format!("{}checksum={}\n", body, hex_encode(checksum.as_slice()));
+    if content.len() > MAX_REGISTRY_BYTES {
+        return Err(String::from("package registry exceeds 48 KiB limit"));
+    }
+    Ok(content)
+}
+
+fn parse_registry(content: &str) -> Result<RegistrySnapshot, String> {
+    if content.len() > MAX_REGISTRY_BYTES {
+        return Err(String::from("registry exceeds 48 KiB limit"));
+    }
+    let checksum_line = content
+        .lines()
+        .last()
+        .ok_or_else(|| String::from("registry is empty"))?;
+    let checksum_text = checksum_line
+        .strip_prefix("checksum=")
+        .ok_or_else(|| String::from("registry checksum must be last"))?;
+    let expected = parse_hex::<32>(checksum_text)
+        .ok_or_else(|| String::from("registry checksum is invalid"))?;
+    let checksum_offset = content
+        .rfind("checksum=")
+        .ok_or_else(|| String::from("registry checksum missing"))?;
+    let body = &content[..checksum_offset];
+    if Sha256::digest(body.as_bytes()).as_slice() != expected {
+        return Err(String::from("registry checksum mismatch"));
+    }
+
+    let mut format_seen = false;
+    let mut generation = None;
+    let mut packages = Vec::new();
+    for line in body.lines() {
+        if line == format!("format={}", REGISTRY_FORMAT) && !format_seen {
+            format_seen = true;
+            continue;
+        }
+        if let Some(value) = line.strip_prefix("generation=") {
+            if generation.is_some() {
+                return Err(String::from("duplicate registry generation"));
+            }
+            generation = Some(
+                value
+                    .parse::<u64>()
+                    .map_err(|_| String::from("invalid registry generation"))?,
+            );
+            continue;
+        }
+        if let Some(value) = line.strip_prefix("package=") {
+            let mut fields = value.split('|');
+            let (Some(name), Some(version), Some(digest), None) =
+                (fields.next(), fields.next(), fields.next(), fields.next())
+            else {
+                return Err(String::from("invalid registry package record"));
+            };
+            if !valid_package_name(name) || !valid_version(version) {
+                return Err(String::from("invalid package identity in registry"));
+            }
+            if packages
+                .iter()
+                .any(|package: &InstalledPackage| package.name == name)
+            {
+                return Err(format!("duplicate registry package: {}", name));
+            }
+            packages.push(InstalledPackage {
+                name: name.to_string(),
+                version: version.to_string(),
+                binary_sha256: parse_hex::<32>(digest)
+                    .ok_or_else(|| String::from("invalid package digest in registry"))?,
+            });
+            continue;
+        }
+        return Err(format!("unknown registry line: {}", line));
+    }
+    if !format_seen {
+        return Err(String::from("unsupported or missing registry format"));
+    }
+    if packages.len() > MAX_INSTALLED_PACKAGES {
+        return Err(String::from("package registry capacity exceeded"));
+    }
+    Ok(RegistrySnapshot {
+        generation: generation.ok_or_else(|| String::from("registry generation missing"))?,
+        packages,
+    })
+}
+
+fn read_slot(slot: RegistrySlot) -> Result<Option<RegistrySnapshot>, String> {
+    let content = match crate::fs::read_file(slot.path()) {
+        Ok(content) => content,
+        Err(_) => return Ok(None),
+    };
+    parse_registry(&content)
+        .map(Some)
+        .map_err(|err| format!("{} is corrupt: {}", slot.path(), err))
+}
+
+fn legacy_snapshot() -> RegistrySnapshot {
+    let mut packages = Vec::new();
+    if let Ok(content) = crate::fs::read_file(LEGACY_REGISTRY_PATH) {
+        for name in content
             .lines()
-            .map(|l| l.trim().to_string())
-            .filter(|l| !l.is_empty())
-            .collect(),
-        Err(_) => Vec::new(),
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+        {
+            if packages.len() >= MAX_INSTALLED_PACKAGES
+                || packages
+                    .iter()
+                    .any(|package: &InstalledPackage| package.name == name)
+            {
+                continue;
+            }
+            if let Ok(meta) = verify_package_dir(name) {
+                packages.push(InstalledPackage {
+                    name: meta.name,
+                    version: meta.version,
+                    binary_sha256: meta.binary_sha256,
+                });
+            }
+        }
+    }
+    RegistrySnapshot {
+        generation: 0,
+        packages,
     }
 }
 
-fn write_registry(names: &[String]) -> Result<(), String> {
-    let content = names.join("\n");
-    // ext2's create_file errors on an existing path rather than
-    // truncating - remove-then-create is the same read-modify-write
-    // pattern config.rs already uses for /disk/heliox/config.json.
-    let _ = crate::fs::remove(REGISTRY_PATH);
-    crate::fs::create_file(REGISTRY_PATH, &content)
+fn registry_snapshots() -> Result<Vec<(RegistrySlot, RegistrySnapshot)>, String> {
+    let mut snapshots = Vec::new();
+    let mut errors = Vec::new();
+    for slot in [RegistrySlot::A, RegistrySlot::B] {
+        match read_slot(slot) {
+            Ok(Some(snapshot)) => snapshots.push((slot, snapshot)),
+            Ok(None) => {}
+            Err(err) => errors.push(err),
+        }
+    }
+    snapshots.sort_by(|a, b| b.1.generation.cmp(&a.1.generation));
+    if !errors.is_empty() {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::SecurityViolation,
+            &format!(
+                "ferrumpkg ignored corrupt registry slot(s): {}",
+                errors.join("; ")
+            ),
+        );
+    }
+    if snapshots.is_empty() && !errors.is_empty() {
+        let message = errors.join("; ");
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::SecurityViolation,
+            &format!("ferrumpkg registry recovery failed: {}", message),
+        );
+        return Err(message);
+    }
+    Ok(snapshots)
+}
+
+fn current_registry() -> Result<(Option<RegistrySlot>, RegistrySnapshot), String> {
+    let snapshots = registry_snapshots()?;
+    Ok(snapshots
+        .into_iter()
+        .next()
+        .map(|(slot, snapshot)| (Some(slot), snapshot))
+        .unwrap_or_else(|| (None, legacy_snapshot())))
+}
+
+fn write_verified(slot: RegistrySlot, snapshot: &RegistrySnapshot) -> Result<(), String> {
+    let content = serialize_registry(snapshot)?;
+    crate::fs::create_file(slot.path(), &content)?;
+    let persisted = crate::fs::read_file(slot.path())?;
+    let read_back = parse_registry(&persisted)?;
+    let mut expected_packages = snapshot.packages.clone();
+    expected_packages.sort_by(|a, b| a.name.cmp(&b.name));
+    if read_back.generation != snapshot.generation || read_back.packages != expected_packages {
+        return Err(format!(
+            "registry read-back verification failed for {}",
+            slot.path()
+        ));
+    }
+    crate::fs::sync()
+}
+
+fn commit_registry(
+    current_slot: Option<RegistrySlot>,
+    current: &RegistrySnapshot,
+    mut packages: Vec<InstalledPackage>,
+) -> Result<u64, String> {
+    let next_generation = current
+        .generation
+        .checked_add(1)
+        .ok_or_else(|| String::from("registry generation exhausted"))?;
+
+    let target = match current_slot {
+        Some(slot) => slot.other(),
+        None => {
+            // Seed the pre-transaction state first so the very first install
+            // can be rolled back just like every later mutation.
+            write_verified(RegistrySlot::A, current)?;
+            RegistrySlot::B
+        }
+    };
+    packages.sort_by(|a, b| a.name.cmp(&b.name));
+    let next = RegistrySnapshot {
+        generation: next_generation,
+        packages,
+    };
+    write_verified(target, &next)?;
+    Ok(next_generation)
 }
 
 /// Every package staged on disk under AVAILABLE_ROOT, whether installed
@@ -278,45 +559,143 @@ pub fn list_available() -> Vec<PackageMeta> {
 }
 
 pub fn is_installed(name: &str) -> bool {
-    read_registry().iter().any(|n| n == name)
+    let _guard = PACKAGE_STATE.lock();
+    installed_meta(name).is_ok()
+}
+
+fn installed_meta(name: &str) -> Result<PackageMeta, String> {
+    let (_, registry) = current_registry()?;
+    let meta = verify_package_dir(name)?;
+    if registry.packages.iter().any(|installed| {
+        installed.name == meta.name
+            && installed.version == meta.version
+            && installed.binary_sha256 == meta.binary_sha256
+    }) {
+        Ok(meta)
+    } else {
+        Err(format!(
+            "not installed or installed version changed: {}",
+            name
+        ))
+    }
+}
+
+/// Atomically validates installation state, signature/version/digest binding,
+/// and loads the executable bytes under the package transaction lock. Removal
+/// may proceed after this returns, but it cannot interleave between the launch
+/// authorization check and loading a different payload.
+pub fn load_installed(name: &str) -> Result<(PackageMeta, Vec<u8>), String> {
+    let _guard = PACKAGE_STATE.lock();
+    let meta = installed_meta(name)?;
+    let binary = crate::fs::read_file_bytes(&bin_path(name))?;
+    Ok((meta, binary))
 }
 
 pub fn list_installed() -> Vec<PackageMeta> {
-    let installed = read_registry();
+    let _guard = PACKAGE_STATE.lock();
+    let Ok((_, registry)) = current_registry() else {
+        return Vec::new();
+    };
     list_available()
         .into_iter()
-        .filter(|p| installed.iter().any(|n| n == &p.name))
+        .filter(|meta| {
+            registry.packages.iter().any(|installed| {
+                installed.name == meta.name
+                    && installed.version == meta.version
+                    && installed.binary_sha256 == meta.binary_sha256
+            })
+        })
         .collect()
 }
 
-pub fn install(name: &str) -> Result<(), String> {
-    verify(name).map_err(|err| format!("package verification failed: {}", err))?;
-    let mut registry = read_registry();
-    if registry.iter().any(|n| n == name) {
+pub fn install(name: &str, privileged_confirmed: bool) -> Result<u64, String> {
+    let _guard = PACKAGE_STATE.lock();
+    let meta = verify(name).map_err(|err| format!("package verification failed: {}", err))?;
+    let privileged = privileged_capabilities(&meta);
+    if !privileged.is_empty() && !privileged_confirmed {
+        return Err(format!(
+            "confirmation required for capabilities: {} (rerun with --confirm)",
+            privileged.join(", ")
+        ));
+    }
+    let (slot, registry) = current_registry()?;
+    if registry.packages.iter().any(|package| package.name == name) {
         return Err(format!("already installed: {}", name));
     }
-    registry.push(name.to_string());
-    write_registry(&registry)?;
+    let mut packages = registry.packages.clone();
+    packages.push(InstalledPackage {
+        name: meta.name,
+        version: meta.version,
+        binary_sha256: meta.binary_sha256,
+    });
+    let generation = commit_registry(slot, &registry, packages)?;
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::FileAccess,
-        &format!("ferrumpkg: installed '{}'", name),
+        &format!(
+            "ferrumpkg: installed '{}' at generation {}",
+            name, generation
+        ),
     );
-    Ok(())
+    Ok(generation)
 }
 
-pub fn remove(name: &str) -> Result<(), String> {
-    let mut registry = read_registry();
-    let before = registry.len();
-    registry.retain(|n| n != name);
-    if registry.len() == before {
+pub fn remove(name: &str) -> Result<u64, String> {
+    let _guard = PACKAGE_STATE.lock();
+    let (slot, registry) = current_registry()?;
+    let mut packages = registry.packages.clone();
+    let before = packages.len();
+    packages.retain(|package| package.name != name);
+    if packages.len() == before {
         return Err(format!("not installed: {}", name));
     }
-    write_registry(&registry)?;
+    let generation = commit_registry(slot, &registry, packages)?;
     crate::logging::audit::log_event(
         crate::logging::audit::AuditEvent::FileAccess,
-        &format!("ferrumpkg: removed '{}'", name),
+        &format!("ferrumpkg: removed '{}' at generation {}", name, generation),
     );
-    Ok(())
+    Ok(generation)
+}
+
+pub fn rollback() -> Result<u64, String> {
+    let _guard = PACKAGE_STATE.lock();
+    let snapshots = registry_snapshots()?;
+    if snapshots.len() < 2 {
+        return Err(String::from("no previous valid registry generation"));
+    }
+    let (current_slot, current) = &snapshots[0];
+    let previous = &snapshots[1].1;
+    let generation = commit_registry(Some(*current_slot), current, previous.packages.clone())?;
+    for removed in current.packages.iter().filter(|package| {
+        !previous
+            .packages
+            .iter()
+            .any(|prior| prior.name == package.name)
+    }) {
+        crate::userspace::unregister_dynamic_program(&removed.name, &bin_path(&removed.name));
+    }
+    crate::logging::audit::log_event(
+        crate::logging::audit::AuditEvent::FileAccess,
+        &format!(
+            "ferrumpkg: rolled back registry at generation {}",
+            generation
+        ),
+    );
+    Ok(generation)
+}
+
+pub fn registry_status() -> Result<(u64, usize, bool), String> {
+    let _guard = PACKAGE_STATE.lock();
+    let snapshots = registry_snapshots()?;
+    if let Some((_, current)) = snapshots.first() {
+        Ok((
+            current.generation,
+            current.packages.len(),
+            snapshots.len() >= 2,
+        ))
+    } else {
+        let legacy = legacy_snapshot();
+        Ok((legacy.generation, legacy.packages.len(), false))
+    }
 }
 
 /// The path `sys_exec` should read a package's ELF from. Never physically
@@ -330,7 +709,10 @@ pub fn bin_path(name: &str) -> String {
 /// manifest can't be found - `sys_exec` treats that the same as any other
 /// program with no matching manifest.
 pub fn capabilities_for(name: &str) -> Vec<String> {
-    verify(name).map(|p| p.capabilities).unwrap_or_default()
+    let _guard = PACKAGE_STATE.lock();
+    installed_meta(name)
+        .map(|package| package.capabilities)
+        .unwrap_or_default()
 }
 
 /// Extracts the package name from a path of the form

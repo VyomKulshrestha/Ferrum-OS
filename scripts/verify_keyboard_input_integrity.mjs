@@ -136,7 +136,7 @@ try {
   // same script (which removes it further down) left on the persistent
   // appliance disk image.
   const beforeInstall = serialText().length;
-  await sendText("pkg install notes");
+  await sendText("pkg install notes --confirm");
   await sendKey("ret");
   await waitForSerial("FerrumOS:~$", 10, beforeInstall);
   check("notes is installed", true);

@@ -129,29 +129,40 @@ Packages under `/disk/pkgs-available/<name>/` carry a strict format-v1 `manifest
 
 The ring-3 filesystem syscalls enforce `cap:fs:read` and `cap:fs:write` at their common kernel dispatch boundary. `/disk/pkgs` and `/disk/pkgs-available` are a second, protected trust domain: even a process holding both ordinary filesystem tokens is denied unless it directly holds the non-delegatable `cap:pkg:manage` token. User paths must be absolute and reject `.`/`..` components, preventing alternate path spellings from bypassing that boundary. `gui-smoke-test` and Text Editor exercise both denial cases from real scheduled ring-3 processes.
 
-Real `pkg list|install|remove|run` semantics, honestly scoped: packages
+Real `pkg list|verify|install|remove|run|status|rollback` semantics, honestly scoped: packages
 are a local cache staged onto the appliance disk at *build* time
 (`scripts/make-appliance.ps1`, via `debugfs` - the same mechanism that
 packages the real model checkpoint), not fetched from any network
 repository. Two on-disk locations:
-- `/disk/pkgs-available/<name>/{manifest.txt,bin}` - every package that
+- `/disk/pkgs-available/<name>/{manifest.txt,manifest.sig,bin}` - every package that
   exists on the image, whether installed or not. `manifest.txt` is a flat
   `key=value` format (no JSON parser exists in kernel space), declaring
   `capabilities` from a fixed allow-list (`cap:gui:window`, `cap:fs:read`,
   `cap:fs:write`, `cap:audio:play` - never network/exec/quota/confirmation
   tokens).
-- `/disk/pkgs/registry.txt` - the only thing `install`/`remove` actually
-  write at runtime: a small list of installed package names. A package's
+- `/disk/pkgs/registry.a` and `registry.b` - checksummed, monotonically
+  generation-numbered snapshots binding every installed name to its exact
+  signed version and ELF digest. A package mutation holds the package-state
+  mutex across read/modify/write, writes the inactive slot, reads it back,
+  verifies it, and syncs it; the prior slot remains a rollback/recovery point.
+  A legacy `registry.txt` is imported on first mutation. A package's
   (potentially large) `bin` is never physically copied at install time -
   ext2's own `create_file` only supports direct blocks (12 max), far too
   small for a compiled ELF, so the same bytes `debugfs` staged are read
   from `pkgs-available` either way; install/remove only toggle whether
   `sys_exec` (`src/syscall/process.rs`) will actually run them.
 
+Capabilities that access files or audio require an explicit confirmation
+(`pkg install <name> --confirm`; the App Store presents the same authority
+before its confirmed request). Package launch calls `pkg::load_installed`,
+which holds the same transaction mutex while it validates the registry's
+version/digest binding and loads the signed ELF. Therefore remove/rollback
+cannot race the authorization check into loading replacement bytes; already
+running processes are intentionally not killed by uninstall.
+
 `sys_exec`'s VFS-read fallback path recognizes a `pkgs-available/<name>/bin`
-path shape, checks `pkg::is_installed(name)` before reading the file at
-all, and resolves capabilities from the package's own manifest
-(`pkg::capabilities_for`) instead of the empty result
+path shape and resolves both the verified ELF and capabilities through the
+same atomic `pkg::load_installed` operation instead of the empty result
 `capabilities_for_program` would otherwise return for a name it wasn't
 compiled with. The `pkg run` shell command (kernel context) additionally
 calls `userspace::register_dynamic_program` before `process::enter_registered`

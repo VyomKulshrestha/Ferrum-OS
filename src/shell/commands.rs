@@ -1,10 +1,10 @@
 // FerrumOS - Shell Commands
 extern crate alloc;
 
+use crate::print;
+use crate::println;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::println;
-use crate::print;
 use spin::Mutex;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,10 +71,10 @@ pub fn execute(input: &str) {
     if parts.is_empty() {
         return;
     }
-    
+
     let command = parts[0];
     let args = &parts[1..];
-    
+
     match command {
         "help" => cmd_help(),
         "clear" => cmd_clear(),
@@ -212,7 +212,10 @@ fn cmd_ps() {
             crate::scheduler::Priority::High => "high  ",
             crate::scheduler::Priority::System => "system",
         };
-        println!("  {:>3}  {}  {}  {:>7}  {}", task.id, state, prio, task.ticks, task.name);
+        println!(
+            "  {:>3}  {}  {}  {:>7}  {}",
+            task.id, state, prio, task.ticks, task.name
+        );
     }
     println!("\nTotal tasks: {}", tasks.len());
 }
@@ -293,17 +296,12 @@ fn cmd_mounts() {
             for mount in crate::fs::mounts() {
                 println!(
                     "  {} on {} type {} ({})",
-                    mount.device,
-                    mount.path,
-                    mount.fs_type,
-                    mount.flags
+                    mount.device, mount.path, mount.fs_type, mount.flags
                 );
             }
             println!(
                 "Usage: {} files, {} directories, {} bytes",
-                usage.files,
-                usage.directories,
-                usage.bytes
+                usage.files, usage.directories, usage.bytes
             );
         }
         Err(err) => println!("mounts: {}", err),
@@ -411,11 +409,7 @@ fn cmd_devices() {
         };
         println!(
             "  {:>2}  {}  {}  {:<12}  {}",
-            device.id,
-            state,
-            class,
-            device.driver,
-            device.name
+            device.id, state, class, device.driver, device.name
         );
         println!("      cap: {}", device.capability);
     }
@@ -471,7 +465,10 @@ fn cmd_net(args: &[&str]) {
             return;
         }
 
-        println!("net serve: socket bound to port {}. Waiting for connection...", port);
+        println!(
+            "net serve: socket bound to port {}. Waiting for connection...",
+            port
+        );
 
         let mut active = false;
         // Wait up to ~10 seconds
@@ -504,7 +501,7 @@ fn cmd_net(args: &[&str]) {
                 Ok(n) if n > 0 => {
                     let text = core::str::from_utf8(&buf[..n]).unwrap_or("<invalid utf-8>");
                     println!("net serve: received {} bytes: {}", n, text);
-                    
+
                     // Echo the data back
                     match crate::net::iface::socket_send(fd, &buf[..n]) {
                         Ok(sent) => {
@@ -557,19 +554,14 @@ fn cmd_net(args: &[&str]) {
         };
         println!(
             "  {} {} {} {}",
-            interface.name,
-            state,
-            interface.address,
-            interface.driver
+            interface.name, state, interface.address, interface.driver
         );
     }
     println!("Routes:");
     for route in crate::net::routes() {
         println!(
             "  {} via {} dev {}",
-            route.destination,
-            route.gateway,
-            route.interface
+            route.destination, route.gateway, route.interface
         );
     }
 }
@@ -674,20 +666,14 @@ fn cmd_services(args: &[&str]) {
             let sandbox = if svc.sandboxed { "sandbox" } else { "trusted" };
             println!(
                 "  [{}] {} {:>9} {:>7} - {} ({})",
-                svc.id,
-                state,
-                layer,
-                sandbox,
-                svc.name,
-                svc.description
+                svc.id, state, layer, sandbox, svc.name, svc.description
             );
             if !svc.required_capabilities.is_empty() {
                 println!("       caps: {}", svc.required_capabilities.join(", "));
             }
             println!(
                 "       health checks: {} restarts: {}",
-                svc.health_checks,
-                svc.restart_count
+                svc.health_checks, svc.restart_count
             );
         }
     }
@@ -723,7 +709,10 @@ fn cmd_programs() {
     let programs = crate::userspace::list_programs();
     println!("Userspace Programs:");
     for program in &programs {
-        println!("  {} - {} ({})", program.name, program.description, program.entry);
+        println!(
+            "  {} - {} ({})",
+            program.name, program.description, program.entry
+        );
         if !program.requested_capabilities.is_empty() {
             println!("       caps: {}", program.requested_capabilities.join(", "));
         }
@@ -757,11 +746,7 @@ fn cmd_users() {
         };
         println!(
             "  {:>3}  {}  {:>8}  {:>6}  {}",
-            task.id,
-            state,
-            affinity,
-            parent,
-            task.name
+            task.id, state, affinity, parent, task.name
         );
         if !task.capabilities.is_empty() {
             println!("       caps: {}", task.capabilities.join(", "));
@@ -787,7 +772,7 @@ fn cmd_run(args: &[&str]) {
 
 fn cmd_pkg(args: &[&str]) {
     if args.is_empty() {
-        println!("pkg: usage: pkg <list|verify|install|remove|run> [name]");
+        println!("pkg: usage: pkg <list|verify|install|remove|run|status|rollback> [name]");
         return;
     }
 
@@ -811,8 +796,13 @@ fn cmd_pkg(args: &[&str]) {
                 println!("pkg install: missing package name");
                 return;
             };
-            match crate::pkg::install(name) {
-                Ok(()) => println!("installed {}", name),
+            let confirmed = args.get(2) == Some(&"--confirm");
+            if args.len() > 2 && !confirmed {
+                println!("pkg install: expected --confirm after package name");
+                return;
+            }
+            match crate::pkg::install(name, confirmed) {
+                Ok(generation) => println!("installed {} (registry generation {})", name, generation),
                 Err(err) => println!("pkg install: {}", err),
             }
         }
@@ -832,7 +822,7 @@ fn cmd_pkg(args: &[&str]) {
                 return;
             };
             match crate::pkg::remove(name) {
-                Ok(()) => {
+                Ok(generation) => {
                     // `pkg remove` only ever touched ferrumpkg's own install
                     // registry - plain `run <name>` doesn't check that at
                     // all, it dispatches through whatever `pkg run` left
@@ -841,7 +831,7 @@ fn cmd_pkg(args: &[&str]) {
                     // package could still be launched by `run` (see
                     // `work.md` finding 2.2).
                     crate::userspace::unregister_dynamic_program(name, &crate::pkg::bin_path(name));
-                    println!("removed {}", name);
+                    println!("removed {} (registry generation {})", name, generation);
                 }
                 Err(err) => println!("pkg remove: {}", err),
             }
@@ -851,19 +841,15 @@ fn cmd_pkg(args: &[&str]) {
                 println!("pkg run: missing package name");
                 return;
             };
-            if !crate::pkg::is_installed(name) {
-                println!("pkg run: not installed: {} (try: pkg install {})", name, name);
-                return;
-            }
             let bin_path = crate::pkg::bin_path(name);
-            let elf_bytes = match crate::fs::read_file_bytes(&bin_path) {
-                Ok(b) => b,
+            let (meta, elf_bytes) = match crate::pkg::load_installed(name) {
+                Ok(package) => package,
                 Err(err) => {
-                    println!("pkg run: failed to read {}: {}", bin_path, err);
+                    println!("pkg run: not installed: {} ({})", name, err);
                     return;
                 }
             };
-            let caps = crate::pkg::capabilities_for(name);
+            let caps = meta.capabilities;
             // Kernel-context launch, same trust model as the desktop
             // launcher's `launch_installed_app` - the caller here is the
             // interactive shell operator, not an unprivileged ring-3
@@ -895,7 +881,20 @@ fn cmd_pkg(args: &[&str]) {
                 Err(err) => println!("pkg run: {}", err),
             }
         }
-        other => println!("pkg: unknown subcommand '{}' (expected list|verify|install|remove|run)", other),
+        "status" => match crate::pkg::registry_status() {
+            Ok((generation, count, rollback)) => println!(
+                "package registry: generation={} installed={} rollback={}",
+                generation,
+                count,
+                if rollback { "available" } else { "unavailable" }
+            ),
+            Err(err) => println!("pkg status: {}", err),
+        },
+        "rollback" => match crate::pkg::rollback() {
+            Ok(generation) => println!("package registry rolled back (generation {})", generation),
+            Err(err) => println!("pkg rollback: {}", err),
+        },
+        other => println!("pkg: unknown subcommand '{}' (expected list|verify|install|remove|run|status|rollback)", other),
     }
 }
 
@@ -1009,12 +1008,24 @@ fn cmd_heliox_status() {
     println!("  Protocol:     {}", status.protocol);
     println!("  Version:      {}", status.version);
     println!("  Services:     {}", status.services_registered);
-    println!("  Methods:      {} (JSON-RPC 2.0 over WebSocket)", status.methods);
-    println!("  Actions:      {} (5-tier permission model)", status.actions);
-    println!("  Envelopes:    {} (invoked {}, denied {})",
-        status.envelopes_seen, status.methods_invoked, status.methods_denied);
-    println!("  Voice listener: {} (events={}, commands={})",
-        status.voice_listener.name(), status.voice_events, status.voice_commands);
+    println!(
+        "  Methods:      {} (JSON-RPC 2.0 over WebSocket)",
+        status.methods
+    );
+    println!(
+        "  Actions:      {} (5-tier permission model)",
+        status.actions
+    );
+    println!(
+        "  Envelopes:    {} (invoked {}, denied {})",
+        status.envelopes_seen, status.methods_invoked, status.methods_denied
+    );
+    println!(
+        "  Voice listener: {} (events={}, commands={})",
+        status.voice_listener.name(),
+        status.voice_events,
+        status.voice_commands
+    );
     println!("  Gesture events: {}", status.gesture_events);
     println!("  Multimodal intents: {}", status.multimodal_intents);
     println!("  Screen vision: {:?}", status.screen_vision);
@@ -1041,7 +1052,10 @@ fn cmd_heliox_methods() {
             crate::heliox::MethodClass::Request => "request",
             crate::heliox::MethodClass::Notification => "notif",
         };
-        println!("  {:<32}  {:<11}  {}", method.name, class, method.required_capability);
+        println!(
+            "  {:<32}  {:<11}  {}",
+            method.name, class, method.required_capability
+        );
     }
 }
 
@@ -1065,10 +1079,12 @@ fn cmd_heliox_actions() {
     let categories = heliox::list_action_categories();
     println!("Heliox Action Catalog:");
     for category in &categories {
-        println!("[{}] {} ({} actions)",
+        println!(
+            "[{}] {} ({} actions)",
             category.tier.index(),
             category.tier.name(),
-            category.actions.len());
+            category.actions.len()
+        );
         for action in category.actions {
             println!("  {}", action);
         }
@@ -1087,10 +1103,16 @@ fn cmd_heliox_services() {
                     crate::services::ServiceState::Stopped => "STOPPED",
                     crate::services::ServiceState::Failed => "FAILED ",
                 };
-                println!("  [{}] {} {} - {}", svc.id, state, slot.name, slot.description);
+                println!(
+                    "  [{}] {} {} - {}",
+                    svc.id, state, slot.name, slot.description
+                );
             }
             None => {
-                println!("  [?] (not registered) {} - {}", slot.name, slot.description);
+                println!(
+                    "  [?] (not registered) {} - {}",
+                    slot.name, slot.description
+                );
             }
         }
     }
@@ -1103,7 +1125,11 @@ fn cmd_heliox_send(args: &[&str]) {
         return;
     }
     let method = args[0];
-    let input = if args.len() > 1 { args[1..].join(" ") } else { String::new() };
+    let input = if args.len() > 1 {
+        args[1..].join(" ")
+    } else {
+        String::new()
+    };
     let Ok(held) = require_token("cap:heliox:bridge") else {
         return;
     };
@@ -1152,7 +1178,11 @@ fn cmd_heliox_persona(args: &[&str]) {
     }
     match args[0] {
         "add" => {
-            let payload = if args.len() > 1 { args[1..].join(" ") } else { String::new() };
+            let payload = if args.len() > 1 {
+                args[1..].join(" ")
+            } else {
+                String::new()
+            };
             if payload.is_empty() {
                 println!("heliox persona add: usage: heliox persona add <key>=<value>");
                 return;
@@ -1263,7 +1293,10 @@ fn cmd_heliox_voice(args: &[&str]) {
                 "ipc:send:*",
                 msg_str.as_bytes(),
             ) {
-                let _ = crate::ipc::send(msg, &alloc::vec![alloc::string::String::from("cap:system:all")]);
+                let _ = crate::ipc::send(
+                    msg,
+                    &alloc::vec![alloc::string::String::from("cap:system:all")],
+                );
             } else {
                 println!("heliox voice event: failed to construct IPC message (too long)");
             }
@@ -1350,7 +1383,12 @@ fn cmd_elf(_args: &[&str]) {
             }
 
             if let (Some(min), Some(max)) = (parsed.load_vaddr_min(), parsed.load_vaddr_max()) {
-                println!("  range:      [{:#x}, {:#x})  ({} bytes)", min, max, max - min);
+                println!(
+                    "  range:      [{:#x}, {:#x})  ({} bytes)",
+                    min,
+                    max,
+                    max - min
+                );
             }
         }
         Err(err) => println!("  parse:      FAILED ({})", err),
@@ -1385,10 +1423,7 @@ fn cmd_ring3(args: &[&str]) {
     let candidate = if let Ok(pid_num) = target.parse::<u64>() {
         procs.iter().find(|(pid, _, _)| *pid == pid_num).cloned()
     } else {
-        procs
-            .iter()
-            .find(|(_, name, _)| name == target)
-            .cloned()
+        procs.iter().find(|(_, name, _)| name == target).cloned()
     };
 
     let Some((pid, name, frames)) = candidate else {
@@ -1613,9 +1648,15 @@ fn cmd_login(args: &[&str]) {
                 crate::logging::audit::AuditEvent::CapabilityGranted,
                 &alloc::format!("shell logged in as '{}'", account.username),
             );
-            println!("logged in as {} (profile={})", account.username, account.profile);
+            println!(
+                "logged in as {} (profile={})",
+                account.username, account.profile
+            );
         }
-        None => println!("login: no such account: {} (try: useradd {})", username, username),
+        None => println!(
+            "login: no such account: {} (try: useradd {})",
+            username, username
+        ),
     }
 }
 
@@ -1623,7 +1664,10 @@ fn cmd_accounts() {
     println!("  UID   USERNAME       PROFILE  HOME");
     println!("  ----  -------------  -------  ----");
     for account in crate::accounts::list() {
-        println!("  {:<4}  {:<13}  {:<7}  {}", account.uid, account.username, account.profile, account.home);
+        println!(
+            "  {:<4}  {:<13}  {:<7}  {}",
+            account.uid, account.username, account.profile, account.home
+        );
     }
 }
 
@@ -1632,11 +1676,12 @@ fn cmd_spawn(args: &[&str]) {
         return;
     }
 
-    let name = if args.is_empty() { "user_task" } else { args[0] };
-    let id = crate::scheduler::spawn(
-        String::from(name),
-        crate::scheduler::Priority::Normal,
-    );
+    let name = if args.is_empty() {
+        "user_task"
+    } else {
+        args[0]
+    };
+    let id = crate::scheduler::spawn(String::from(name), crate::scheduler::Priority::Normal);
     println!("Spawned task '{}' with PID {}", name, id);
 }
 
@@ -1704,13 +1749,7 @@ fn cmd_disk(args: &[&str]) {
             return;
         };
         let mut buf = [0u8; 512];
-        match crate::ata::read_sectors(
-            crate::ata::AtaBus::Primary,
-            0,
-            lba,
-            1,
-            &mut buf,
-        ) {
+        match crate::ata::read_sectors(crate::ata::AtaBus::Primary, 0, lba, 1, &mut buf) {
             Ok(()) => {
                 println!("Sector {} (512 bytes):", lba);
                 // Print hexdump (first 256 bytes to avoid flooding VGA)

@@ -133,7 +133,7 @@ try {
   await runCommand("pkg remove notes", start);
 
   start = serialText().length;
-  await runCommand("pkg install notes", start);
+  await runCommand("pkg install notes --confirm", start);
   let out = serialText().slice(start);
   check("pkg install succeeds", /installed notes/.test(out), out.trim());
 

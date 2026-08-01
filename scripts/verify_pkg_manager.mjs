@@ -106,7 +106,7 @@ async function mon(cmd, waitMs = 150) {
   monitor.write(`${cmd}\n`);
   await sleep(waitMs);
 }
-const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus" }));
+const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash" }));
 async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
 async function sendText(t) {
   for (const ch of t) {
@@ -163,9 +163,20 @@ try {
   check("pkg run refuses an uninstalled package", /not installed/.test(out), out.trim());
   check("uninstalled package did not actually start", !/\[notes\] alive in ring 3/.test(out), out.trim());
 
-  // 3. Install, then confirm it now reports installed.
+  // 3. Privileged package capabilities require an explicit confirmation.
   start = serialText().length;
   await runCommand("pkg install notes", start);
+  out = serialText().slice(start);
+  check("pkg install requires confirmation for filesystem authority", /confirmation required for capabilities:.*cap:fs:read.*cap:fs:write/.test(out), out.trim());
+
+  start = serialText().length;
+  await runCommand("pkg run notes", start);
+  out = serialText().slice(start);
+  check("unconfirmed install does not mutate registry", /not installed/.test(out), out.trim());
+
+  // 4. Confirm installation, then confirm it now reports installed.
+  start = serialText().length;
+  await runCommand("pkg install notes --confirm", start);
   out = serialText().slice(start);
   check("pkg install succeeds", /installed notes/.test(out), out.trim());
 
@@ -174,7 +185,12 @@ try {
   out = serialText().slice(start);
   check("pkg list shows notes as installed after install", /notes.*\[installed\]/.test(out), out.trim());
 
-  // 4. Remove, then confirm the ability to run it is genuinely revoked -
+  start = serialText().length;
+  await runCommand("pkg status", start);
+  out = serialText().slice(start);
+  check("dual-slot registry reports a generation and rollback point", /generation=\d+ installed=1 rollback=available/.test(out), out.trim());
+
+  // 5. Remove, then confirm the ability to run it is genuinely revoked -
   // not just a UI label change. Done *before* the final successful run
   // below, deliberately: once that run actually enters ring 3, this
   // long-running GUI app (and init/heliox-daemon, both already alive)
@@ -193,13 +209,44 @@ try {
   check("pkg run refuses notes again after remove", /not installed/.test(out), out.trim());
   check("removed package did not start", !/\[notes\] alive in ring 3/.test(out), out.trim());
 
-  // 5. Reinstall and actually run it - real ring-3 code that was never
+  start = serialText().length;
+  await runCommand("pkg rollback", start);
+  out = serialText().slice(start);
+  check("pkg rollback restores the previous registry snapshot", /package registry rolled back \(generation \d+\)/.test(out), out.trim());
+
+  start = serialText().length;
+  await runCommand("pkg list", start);
+  out = serialText().slice(start);
+  check("rollback restores notes as installed", /notes.*\[installed\]/.test(out), out.trim());
+
+  // Return to the removed state before the final clean install/run.
+  start = serialText().length;
+  await runCommand("pkg remove notes", start);
+
+  // 6. Reinstall and actually run it - real ring-3 code that was never
   // part of the kernel binary (see build.rs's comment on the notes
   // crate). This is the last interactive step in this scenario.
   start = serialText().length;
-  await runCommand("pkg install notes", start);
+  await runCommand("pkg install notes --confirm", start);
   out = serialText().slice(start);
   check("pkg install succeeds again", /installed notes/.test(out), out.trim());
+
+  // Simulate a torn/corrupt newest slot. Generation 5 is in registry.b for
+  // this deterministic fresh-image sequence; registry.a still contains the
+  // previous valid generation 4 (notes removed). Reads must fall back safely,
+  // and the next confirmed mutation must repair the bad slot.
+  start = serialText().length;
+  await runCommand("write /disk/pkgs/registry.b corrupt", start);
+
+  start = serialText().length;
+  await runCommand("pkg list", start);
+  out = serialText().slice(start);
+  check("corrupt newest registry slot falls back to previous valid generation", /notes.*\[available\]/.test(out), out.trim());
+
+  start = serialText().length;
+  await runCommand("pkg install notes --confirm", start);
+  out = serialText().slice(start);
+  check("next package transaction repairs the corrupt registry slot", /installed notes.*generation 5/.test(out), out.trim());
 
   start = serialText().length;
   await sendText("pkg run notes");

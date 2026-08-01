@@ -170,7 +170,7 @@ try {
 
   // --- pkg -----------------------------------------------------------------
   await runCmd("pkg list");
-  await runCmd("pkg install notes");
+  await runCmd("pkg install notes --confirm");
   await runCmd("pkg run notes", 10);
   await runCmd("pkg remove notes");
 

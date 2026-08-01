@@ -34,12 +34,17 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     };
 
     let pkg_name = crate::pkg::package_name_from_bin_path(&path);
+    let mut package_capabilities = None;
 
     // Intercept embedded binaries to avoid VFS read and heap allocation.
     let mut _elf_content_holder: alloc::vec::Vec<u8> = alloc::vec::Vec::new();
     let elf_bytes: &[u8] = if path == "/bin/heliox-daemon" || path == "heliox-daemon" {
         crate::userspace::HELIOX_DAEMON_ELF
-    } else if path == "/bin/init" || path == "init" || path.contains("quota-test") || path.contains("huge-test") {
+    } else if path == "/bin/init"
+        || path == "init"
+        || path.contains("quota-test")
+        || path.contains("huge-test")
+    {
         crate::userspace::INIT_ELF
     } else if path == "/bin/gui-smoke-test" || path == "gui-smoke-test" {
         crate::userspace::GUI_SMOKE_TEST_ELF
@@ -64,21 +69,21 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         // they're never physically copied), so this is the real
         // enforcement point: uninstalled packages can't be exec'd even
         // though nothing stops a caller from typing their path directly.
-        if let Some(ref pkg_name) = pkg_name {
-            if !crate::pkg::is_installed(pkg_name) {
-                return SyscallResult::err(SyscallStatus::PermissionDenied);
+        _elf_content_holder = if let Some(ref pkg_name) = pkg_name {
+            let (meta, binary) = match crate::pkg::load_installed(pkg_name) {
+                Ok(package) => package,
+                Err(_) => return SyscallResult::err(SyscallStatus::PermissionDenied),
+            };
+            package_capabilities = Some(meta.capabilities);
+            binary
+        } else {
+            // Real ELF binaries are essentially never valid UTF-8, so this
+            // must use the raw-bytes reader (`read_file_bytes`), not the
+            // UTF-8-checked `read_file`.
+            match crate::fs::read_file_bytes(&path) {
+                Ok(content) => content,
+                Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
             }
-        }
-
-        // Real ELF binaries are essentially never valid UTF-8, so this
-        // must use the raw-bytes reader (`read_file_bytes`), not the
-        // UTF-8-checked `read_file` - a package or any other on-disk
-        // program falls through to exactly this path (see
-        // `read_file_bytes`'s doc comment for why the String-based read
-        // would have silently broken every real binary here).
-        _elf_content_holder = match crate::fs::read_file_bytes(&path) {
-            Ok(content) => content,
-            Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
         };
         _elf_content_holder.as_slice()
     };
@@ -118,15 +123,12 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         Some(caps) => caps,
         None => alloc::vec![],
     };
-    // A package's requested capabilities come from its own on-disk
-    // manifest (already clamped to a safe allow-list by
-    // `pkg::capabilities_for`), not the kernel's compiled-in program
-    // manifest table - `capabilities_for_program` only knows names it
-    // shipped with and would otherwise silently grant nothing.
-    let requested_caps = match &pkg_name {
-        Some(pkg_name) => crate::pkg::capabilities_for(pkg_name),
-        None => crate::userspace::capabilities_for_program(name),
-    };
+    // A package's requested capabilities come from the metadata returned by
+    // the same atomic `pkg::load_installed` operation that authorized and
+    // loaded its signed ELF, not the kernel's compiled-in program manifest
+    // table (which only knows programs shipped in the image).
+    let requested_caps =
+        package_capabilities.unwrap_or_else(|| crate::userspace::capabilities_for_program(name));
     let granted_caps = crate::security::filter_delegatable(&requested_caps, &caller_capabilities);
 
     // Register the process in the global process table
@@ -157,4 +159,3 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
 
     SyscallResult::ok(pid)
 }
-

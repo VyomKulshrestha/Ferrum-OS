@@ -99,7 +99,10 @@ async function runScenario(kind, index) {
     };
     const mon = async (command, waitMs = 70) => { monitor.write(`${command}\n`); await sleep(waitMs); };
     const send = async (text) => {
-      for (const ch of text) await mon(`sendkey ${ch === " " ? "spc" : ch} 20`);
+      for (const ch of text) {
+        const key = ch === " " ? "spc" : ch === "-" ? "minus" : ch;
+        await mon(`sendkey ${key} 20`);
+      }
       await mon("sendkey ret 20", 120);
     };
 
@@ -112,7 +115,7 @@ async function runScenario(kind, index) {
     check(`${kind} tampering is rejected by pkg verify`, output.includes(expected), output.trim());
 
     const installStart = serialText().length;
-    await send("pkg install notes");
+    await send("pkg install notes --confirm");
     await waitFor("FerrumOS:~$", 10, installStart);
     output = serialText().slice(installStart);
     check(`${kind} tampering cannot be installed`, output.includes("package verification failed") && output.includes(expected), output.trim());

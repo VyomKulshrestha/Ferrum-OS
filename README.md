@@ -44,7 +44,8 @@ systems. The AI brain runs natively as a freestanding userspace process
 Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder.
 
 ### Package Manager (`ferrumpkg`)
-- Real `pkg list|verify|install|remove|run` shell command — Ed25519-signed manifests bind package identity, version, requested capabilities, and the ELF's SHA-256 digest to a kernel trust root before install or launch; install/remove genuinely gate whether a package can be launched at all, backed by a registry that persists across reboots, not a cosmetic UI toggle
+- Real `pkg list|verify|install|remove|run|status|rollback` shell command — Ed25519-signed manifests bind package identity, version, requested capabilities, and the ELF's SHA-256 digest to a kernel trust root before install or launch; privileged capabilities require `pkg install <name> --confirm`
+- Install/remove are serialized transactions recorded in two checksummed, generation-numbered registry slots. A torn/corrupt newest write falls back to the prior valid generation, the next mutation repairs it, and `pkg rollback` restores the previous valid package set; launch authorization and ELF loading are atomic with respect to these transactions
 - Packages are ordinary ELF binaries staged onto the appliance disk at build time (`scripts/make-appliance.ps1`), loaded and executed at runtime via the VFS — the kernel runs genuinely new code it was never compiled with, not just bookkeeping around pre-embedded apps
 - Honestly scoped: this is a local package cache, not a network-fetched repository — no package server exists or is pretended to
 
@@ -263,7 +264,7 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
-| `pkg list\|install\|remove\|run [name]` | Manage packages (ferrumpkg) |
+| `pkg list\|verify\|install\|remove\|run\|status\|rollback [name]` | Manage signed packages (use `pkg install <name> --confirm` for privileged capabilities) |
 | `useradd <name> [root\|user\|guest]` | Create a real user account |
 | `login <name>` | Log in as an account, switching capabilities |
 | `accounts` | List all registered user accounts |
