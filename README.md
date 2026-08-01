@@ -261,7 +261,7 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `services` | List registered services |
 | `services start/stop <id>` | Start or stop a service |
 | `ipc` | Show IPC broker statistics |
-| `syscalls` | Show syscall ABI table (0–29) |
+| `syscalls` | Show the complete syscall ABI table (0–52) |
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |

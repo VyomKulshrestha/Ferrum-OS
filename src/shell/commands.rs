@@ -162,7 +162,8 @@ fn cmd_help() {
     println!("  programs   List userspace program manifests");
     println!("  users      List userspace process table");
     println!("  run <p>    Launch a userspace program");
-    println!("  pkg <list|install|remove|run> [name]  Manage packages (ferrumpkg)");
+    println!("  pkg <list|verify|install|remove|run|status|rollback> [name]");
+    println!("             Manage signed packages (privileged install needs --confirm)");
     println!("  syscall <pid> <num> [arg0]  Dispatch a userspace syscall");
     println!("  agent      Control the agent runtime boundary");
     println!("  heliox     Heliox-OS JSON-RPC bridge surface");
@@ -689,7 +690,10 @@ fn cmd_ipc() {
 }
 
 fn cmd_syscalls() {
+    // Keep the long-standing first-line marker stable for serial tooling;
+    // the complete range is reported on the next line.
     println!("Syscall ABI:");
+    println!("  range: 0-52");
     println!("  0  yield");
     println!("  1  ipc_send");
     println!("  2  ipc_receive");
@@ -697,12 +701,36 @@ fn cmd_syscalls() {
     println!("  4  service_stop");
     println!("  5  capability_check");
     println!("  6  audit_write");
+    println!("  7  socket                 8  bind");
+    println!("  9  listen                10  accept");
+    println!(" 11  recv                  12  send");
+    println!(" 13  wait                  14  connect");
+    println!(" 15  read_file             16  write_file");
+    println!(" 17  read_dir              18  exec");
+    println!(" 19  framebuffer_info      20  read_text_buffer");
+    println!(" 21  create_dir            22  delete_file");
+    println!(" 23  play_audio            24  record_audio");
+    println!(" 25  set_volume            26  inject_key");
+    println!(" 27  inject_mouse          28  poll_input");
+    println!(" 29  system_query          30  exit");
+    println!(" 31  get_pid               32  sleep");
+    println!(" 33  wait_pid              34  write");
+    println!(" 35  close                 36  read_camera_frame");
+    println!(" 37  camera_info           38  kexec");
+    println!(" 39  hud_update            40  hit_test");
+    println!(" 41  mmap                  42  get_random");
+    println!(" 43  get_time              44  create_window");
+    println!(" 45  present_window        46  poll_window_input");
+    println!(" 47  package_list          48  package_install");
+    println!(" 49  package_remove        50  package_rollback");
+    println!(" 51  app_launch            52  package_launch");
     println!("Capability resources:");
     println!("  1  ipc:send:*");
     println!("  2  service:register");
     println!("  3  audit:read");
     println!("  4  process:spawn");
-    println!("Status: process capability dispatch active");
+    println!("  5  net:tls:*");
+    println!("Status: capability dispatch active");
 }
 
 fn cmd_programs() {

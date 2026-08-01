@@ -7,8 +7,8 @@
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
 3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   agent tools translate to real kernel syscalls, out of 47 syscalls total
-   (IDs 0–46) — the rest back GUI/app-window, audio, and other non-agent
+   agent tools translate to real kernel syscalls, out of 53 syscalls total
+   (IDs 0–52) — the rest back GUI/app-window, signed packages, audio, and other non-agent
    userland surfaces.
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
@@ -80,7 +80,7 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-47 syscalls (IDs 0–46) dispatched via `int 0x80`:
+53 syscalls (IDs 0–52) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
@@ -555,8 +555,9 @@ delegatable tokens.
 
 The `Exec` syscall itself is gated on `process:spawn`; this check happens
 before ELF resolution/loading. First-party programs that legitimately launch
-children (Heliox and App Store) declare `cap:process:spawn`, while the GUI-only
-ring-3 smoke test proves that window authority alone cannot spawn a process.
+children such as Heliox declare `cap:process:spawn`; App Store instead uses
+the narrow trusted-launcher brokers. The GUI-only ring-3 smoke test proves
+that window authority alone cannot spawn a process or call either broker.
 
 | Profile | Token | Access |
 |---------|-------|--------|
@@ -734,7 +735,7 @@ userland/heliox-daemon/
 │           └── learned.rs       # Trained MLP inference, optional
 
 userland/gui-smoke-test/          # App-window framework verification binary
-userland/libferrumgui/            # Shared no_std SDK: syscalls, IPC send/receive, Canvas drawing, input polling
+userland/libferrumgui/            # Shared no_std SDK: window/input, IPC, app/package brokers, Canvas drawing
 userland/heliox-assistant-panel/  # Installed app: agent chat panel + setup wizard
 userland/text-editor/             # Installed app: edit/save a text file
 userland/calculator/              # Installed app: mouse-driven arithmetic
