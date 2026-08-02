@@ -518,6 +518,7 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
     // Shift state tracking
     static SHIFT_PRESSED: spin::Mutex<bool> = spin::Mutex::new(false);
     static CTRL_PRESSED: spin::Mutex<bool> = spin::Mutex::new(false);
+    static ALT_PRESSED: spin::Mutex<bool> = spin::Mutex::new(false);
     
     match scancode {
         // Shift pressed
@@ -540,9 +541,18 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
             *CTRL_PRESSED.lock() = false;
             None
         }
+        0x38 => {
+            *ALT_PRESSED.lock() = true;
+            None
+        }
+        0xB8 => {
+            *ALT_PRESSED.lock() = false;
+            None
+        }
         _ => {
             let is_shift = *SHIFT_PRESSED.lock();
             let is_ctrl = *CTRL_PRESSED.lock();
+            let is_alt = *ALT_PRESSED.lock();
             match scancode {
                 0x01 => Some(0x1B), // Escape
                 0x02 => Some(if is_shift { b'!' } else { b'1' }),
@@ -558,7 +568,7 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
                 0x0C => Some(if is_shift { b'_' } else { b'-' }),
                 0x0D => Some(if is_shift { b'+' } else { b'=' }),
                 0x0E => Some(0x08), // Backspace
-                0x0F => Some(b'\t'),
+                0x0F => Some(if is_alt { crate::input::KEY_ALT_TAB } else { b'\t' }),
                 0x10 => Some(if is_shift { b'Q' } else { b'q' }),
                 0x11 => Some(if is_shift { b'W' } else { b'w' }),
                 0x12 => Some(if is_shift { b'E' } else { b'e' }),

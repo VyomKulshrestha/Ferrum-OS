@@ -302,7 +302,7 @@ pub fn render_taskbar(
     graphics::draw_string(cx + 4, cy + 5, &clock_text, 0x00D8E8F0, 0x00182028);
 
     graphics::draw_string(24, 12, "FerrumOS Desktop", 0x0000FFCC, COLOR_BACKGROUND);
-    graphics::draw_string(24, 32, "Start: launch apps    Drag a title bar to move a window", 0x00B8C7D9, COLOR_BACKGROUND);
+    graphics::draw_string(24, 32, "Start: launch apps    Alt+Tab: switch apps    Drag title bars to move", 0x00B8C7D9, COLOR_BACKGROUND);
 }
 
 // ============================================================================

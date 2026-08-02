@@ -19,6 +19,10 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 pub static INJECTING_AGENT_KEY: AtomicBool = AtomicBool::new(false);
 
+/// Internal key token emitted by both hardware keyboard paths for Alt+Tab.
+/// It is consumed by the compositor and is never forwarded to an app window.
+pub const KEY_ALT_TAB: u8 = 0xF1;
+
 
 // ============================================================================
 // Input Event Types

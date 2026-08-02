@@ -905,6 +905,30 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
 
 pub fn handle_key_press(ascii: u8) {
     let mut state = COMPOSITOR.lock();
+
+    if ascii == crate::input::KEY_ALT_TAB {
+        if state.windows.len() > 1 {
+            let current = state.focused_idx.unwrap_or(state.windows.len() - 1);
+            let target = if current == 0 { state.windows.len() - 1 } else { current - 1 };
+            let from_id = state.windows.get(current).map(|window| window.id).unwrap_or(0);
+            let mut window = state.windows.remove(target);
+            window.minimized = false;
+            let to_id = window.id;
+            let to_title = window.title.clone();
+            state.windows.push(window);
+            state.focused_idx = Some(state.windows.len() - 1);
+            state.launcher_open = false;
+            state.needs_redraw = true;
+            crate::serial_println!(
+                "[desktop] alt-tab from={} to={} title={}",
+                from_id,
+                to_id,
+                to_title
+            );
+        }
+        return;
+    }
+
     let focused_idx = state.focused_idx;
 
     if let Some(idx) = focused_idx {
