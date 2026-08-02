@@ -262,7 +262,8 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `services` | List registered services |
 | `services start/stop <id>` | Start or stop a service |
 | `ipc` | Show IPC broker statistics |
-| `syscalls` | Show the complete syscall ABI table (0–52) |
+| `clipboard get\|set\|clear\|status` | Inspect or update the capability-gated shared clipboard |
+| `syscalls` | Show the complete syscall ABI table (0–54) |
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
@@ -341,6 +342,8 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | 50 | PackageRollback | Restore the prior valid package registry snapshot |
 | 51 | AppLaunch | Launch a trusted compiled-in app with its own manifest |
 | 52 | PackageLaunch | Validate, load, and launch an installed signed package |
+| 53 | ClipboardRead | Copy the volatile shared clipboard into a caller buffer |
+| 54 | ClipboardWrite | Replace the bounded volatile shared clipboard |
 
 ## JSON-RPC Methods (WebSocket, port 8785)
 

@@ -8,7 +8,7 @@
 // content in its own window instead of launching this with a target file.
 //
 // Controls: type to insert, Backspace to delete, Enter for a newline,
-// Escape to save.
+// Ctrl+C to copy all text, Ctrl+V to paste, Escape to save.
 #![no_std]
 #![no_main]
 
@@ -105,7 +105,7 @@ pub extern "C" fn _start() -> ! {
     ferrumgui::write_console("\n");
 
     let mut canvas = Canvas::new(CANVAS_W, CANVAS_H);
-    let mut status = "Escape to save";
+    let mut status = "Ctrl+C copy all | Ctrl+V paste | Esc save";
     redraw(&mut canvas, &buffer, status);
     canvas.present(window_id);
 
@@ -117,6 +117,35 @@ pub extern "C" fn _start() -> ! {
             }
             let ascii = a as u8;
             match ascii {
+                0x03 => {
+                    if ferrumgui::clipboard_write(buffer.as_bytes()) {
+                        ferrumgui::write_console("[text-editor] copied all to clipboard\n");
+                        status = "Copied all text";
+                    } else {
+                        ferrumgui::write_console("[text-editor] clipboard copy failed\n");
+                        status = "Copy failed";
+                    }
+                    dirty = true;
+                }
+                0x16 => {
+                    match ferrumgui::clipboard_read(MAX_FILE_LEN) {
+                        Some(bytes) => {
+                            let remaining = MAX_FILE_LEN.saturating_sub(buffer.len());
+                            let to_append = bytes.len().min(remaining);
+                            let pasted = String::from_utf8_lossy(&bytes[..to_append]);
+                            buffer.push_str(&pasted);
+                            ferrumgui::write_console("[text-editor] pasted clipboard bytes=");
+                            ferrumgui::write_int(to_append as i64);
+                            ferrumgui::write_console("\n");
+                            status = if to_append < bytes.len() { "Pasted (truncated)" } else { "Pasted" };
+                        }
+                        None => {
+                            ferrumgui::write_console("[text-editor] clipboard paste failed\n");
+                            status = "Paste failed";
+                        }
+                    }
+                    dirty = true;
+                }
                 0x1B => {
                     // Escape: save.
                     if ferrumgui::write_file(EDIT_PATH, buffer.as_bytes()) {
@@ -130,17 +159,17 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x08 => {
                     buffer.pop();
-                    status = "Escape to save";
+                    status = "Ctrl+C copy all | Ctrl+V paste | Esc save";
                     dirty = true;
                 }
                 b'\n' | b'\r' => {
                     buffer.push('\n');
-                    status = "Escape to save";
+                    status = "Ctrl+C copy all | Ctrl+V paste | Esc save";
                     dirty = true;
                 }
                 _ if ascii.is_ascii_graphic() || ascii == b' ' => {
                     buffer.push(ascii as char);
-                    status = "Escape to save";
+                    status = "Ctrl+C copy all | Ctrl+V paste | Esc save";
                     dirty = true;
                 }
                 _ => {}

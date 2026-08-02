@@ -96,6 +96,7 @@ pub fn execute(input: &str) {
         "caps" => cmd_caps(),
         "services" => cmd_services(args),
         "ipc" => cmd_ipc(),
+        "clipboard" => cmd_clipboard(args),
         "syscalls" => cmd_syscalls(),
         "programs" => cmd_programs(),
         "users" => cmd_users(),
@@ -158,6 +159,7 @@ fn cmd_help() {
     println!("  caps       Show capability tokens");
     println!("  services   List/start/stop/restart service registry");
     println!("  ipc        Show IPC broker statistics");
+    println!("  clipboard <get|set|clear|status>  Use the shared desktop clipboard");
     println!("  syscalls   Show syscall ABI numbers");
     println!("  programs   List userspace program manifests");
     println!("  users      List userspace process table");
@@ -689,11 +691,53 @@ fn cmd_ipc() {
     println!("  Denied:   {}", stats.denied);
 }
 
+fn cmd_clipboard(args: &[&str]) {
+    match args.first().copied() {
+        Some("get") => {
+            if require_resource("clipboard:read").is_err() { return; }
+            let snapshot = crate::clipboard::snapshot();
+            if snapshot.bytes.is_empty() {
+                println!("(clipboard empty)");
+            } else {
+                println!("{}", String::from_utf8_lossy(&snapshot.bytes));
+            }
+        }
+        Some("status") => {
+            if require_resource("clipboard:read").is_err() { return; }
+            let snapshot = crate::clipboard::snapshot();
+            println!("Clipboard:");
+            println!("  Bytes:      {}", snapshot.bytes.len());
+            println!("  Generation: {}", snapshot.generation);
+            println!("  Owner PID:  {}", snapshot.owner_pid);
+        }
+        Some("set") => {
+            if require_resource("clipboard:write").is_err() { return; }
+            if args.len() < 2 {
+                println!("clipboard set: missing text");
+                return;
+            }
+            let text = args[1..].join(" ");
+            match crate::clipboard::write(0, text.as_bytes()) {
+                Ok(generation) => println!("clipboard updated (generation {})", generation),
+                Err(err) => println!("clipboard set: {}", err),
+            }
+        }
+        Some("clear") => {
+            if require_resource("clipboard:write").is_err() { return; }
+            match crate::clipboard::write(0, &[]) {
+                Ok(generation) => println!("clipboard cleared (generation {})", generation),
+                Err(err) => println!("clipboard clear: {}", err),
+            }
+        }
+        _ => println!("clipboard: usage: clipboard <get|set <text>|clear|status>"),
+    }
+}
+
 fn cmd_syscalls() {
     // Keep the long-standing first-line marker stable for serial tooling;
     // the complete range is reported on the next line.
     println!("Syscall ABI:");
-    println!("  range: 0-52");
+    println!("  range: 0-54");
     println!("  0  yield");
     println!("  1  ipc_send");
     println!("  2  ipc_receive");
@@ -724,6 +768,7 @@ fn cmd_syscalls() {
     println!(" 47  package_list          48  package_install");
     println!(" 49  package_remove        50  package_rollback");
     println!(" 51  app_launch            52  package_launch");
+    println!(" 53  clipboard_read        54  clipboard_write");
     println!("Capability resources:");
     println!("  1  ipc:send:*");
     println!("  2  service:register");

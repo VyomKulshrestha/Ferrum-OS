@@ -517,6 +517,7 @@ extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFr
 fn scancode_to_ascii(scancode: u8) -> Option<u8> {
     // Shift state tracking
     static SHIFT_PRESSED: spin::Mutex<bool> = spin::Mutex::new(false);
+    static CTRL_PRESSED: spin::Mutex<bool> = spin::Mutex::new(false);
     
     match scancode {
         // Shift pressed
@@ -529,8 +530,19 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
             *SHIFT_PRESSED.lock() = false;
             None
         }
+        // Ctrl pressed/released. Applications receive conventional ASCII
+        // control bytes for shortcuts rather than raw modifier events.
+        0x1D => {
+            *CTRL_PRESSED.lock() = true;
+            None
+        }
+        0x9D => {
+            *CTRL_PRESSED.lock() = false;
+            None
+        }
         _ => {
             let is_shift = *SHIFT_PRESSED.lock();
+            let is_ctrl = *CTRL_PRESSED.lock();
             match scancode {
                 0x01 => Some(0x1B), // Escape
                 0x02 => Some(if is_shift { b'!' } else { b'1' }),
@@ -575,8 +587,8 @@ fn scancode_to_ascii(scancode: u8) -> Option<u8> {
                 0x2B => Some(if is_shift { b'|' } else { b'\\' }),
                 0x2C => Some(if is_shift { b'Z' } else { b'z' }),
                 0x2D => Some(if is_shift { b'X' } else { b'x' }),
-                0x2E => Some(if is_shift { b'C' } else { b'c' }),
-                0x2F => Some(if is_shift { b'V' } else { b'v' }),
+                0x2E => Some(if is_ctrl { 0x03 } else if is_shift { b'C' } else { b'c' }),
+                0x2F => Some(if is_ctrl { 0x16 } else if is_shift { b'V' } else { b'v' }),
                 0x30 => Some(if is_shift { b'B' } else { b'b' }),
                 0x31 => Some(if is_shift { b'N' } else { b'n' }),
                 0x32 => Some(if is_shift { b'M' } else { b'm' }),

@@ -89,6 +89,10 @@ pub enum SyscallNumber {
     AppLaunch = 51,
     /// Launch an installed signed package through the package broker.
     PackageLaunch = 52,
+    /// Read the volatile system clipboard into a caller-owned buffer.
+    ClipboardRead = 53,
+    /// Replace the volatile system clipboard with caller-provided bytes.
+    ClipboardWrite = 54,
 }
 
 /// Syscall return status.
@@ -128,6 +132,7 @@ extern crate alloc;
 pub mod audio;
 pub mod app;
 pub mod camera;
+pub mod clipboard;
 pub mod fs;
 pub mod graphics;
 pub mod gui_window;
@@ -626,6 +631,18 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             pkg::sys_package_launch(args)
+        }
+        x if x == SyscallNumber::ClipboardRead as u64 => {
+            if !crate::security::has_capability(held_capabilities, "clipboard:read") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            clipboard::sys_clipboard_read(args)
+        }
+        x if x == SyscallNumber::ClipboardWrite as u64 => {
+            if !crate::security::has_capability(held_capabilities, "clipboard:write") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            clipboard::sys_clipboard_write(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

@@ -128,6 +128,18 @@ pub fn init() {
             "gui:window:*",
             true,
         ),
+        (
+            "cap:clipboard:read",
+            "Clipboard Read",
+            "clipboard:read",
+            true,
+        ),
+        (
+            "cap:clipboard:write",
+            "Clipboard Write",
+            "clipboard:write",
+            true,
+        ),
     ];
 
     for (name, desc, resource, delegatable) in &default_caps {

@@ -148,6 +148,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::security::init();
     println!("[  OK  ] Capability-based security initialized");
 
+    ferrumos::clipboard::init();
+    println!("[  OK  ] Shared clipboard service initialized");
+
     // ========================================================================
     // Phase 3b: VGA Framebuffer & Graphical Console
     // ========================================================================

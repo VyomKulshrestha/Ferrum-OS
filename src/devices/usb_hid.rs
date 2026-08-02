@@ -311,6 +311,7 @@ pub fn process_keyboard_report(data: &[u8], prev_keycodes: &[u8; 6]) {
     };
 
     let shifted = report.has_shift();
+    let ctrl = report.has_ctrl();
 
     // Detect newly pressed keys (present in current but not in previous)
     for &keycode in &report.keycodes {
@@ -320,7 +321,14 @@ pub fn process_keyboard_report(data: &[u8], prev_keycodes: &[u8; 6]) {
         // Check if this keycode was already pressed in the previous report
         let was_pressed = prev_keycodes.iter().any(|&prev| prev == keycode);
         if !was_pressed {
-            let ascii = hid_to_ascii(keycode, shifted);
+            let mut ascii = hid_to_ascii(keycode, shifted);
+            // HID usages 0x06/0x19 are C/V. Match the PS/2 path by sending
+            // standard control bytes so GUI apps share one shortcut ABI.
+            if ctrl && keycode == 0x06 {
+                ascii = 0x03;
+            } else if ctrl && keycode == 0x19 {
+                ascii = 0x16;
+            }
             crate::input::inject_key_event(ascii, true);
         }
     }

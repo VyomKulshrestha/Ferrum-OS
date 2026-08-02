@@ -74,6 +74,9 @@ pub mod services;
 /// Kernel-owned deterministic message metadata for future service transport
 pub mod ipc;
 
+/// Volatile, capability-gated clipboard shared by desktop applications.
+pub mod clipboard;
+
 /// Network subsystem
 /// Provides loopback networking and interface state before NIC drivers exist
 pub mod net;

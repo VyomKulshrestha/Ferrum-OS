@@ -7,7 +7,7 @@
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
 3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   agent tools translate to real kernel syscalls, out of 53 syscalls total
+   agent tools translate to real kernel syscalls, out of 55 syscalls total
    (IDs 0–52) — the rest back GUI/app-window, signed packages, audio, and other non-agent
    userland surfaces.
 4. **Capability-gated** — default deny. Services receive only the capabilities
@@ -80,7 +80,7 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-53 syscalls (IDs 0–52) dispatched via `int 0x80`:
+55 syscalls (IDs 0–54) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
 - IPC: Send(1), Receive(2)
@@ -96,6 +96,8 @@ and can evolve without destabilizing the kernel.
 - Camera: ReadCameraFrame(36), CameraInfo(37)
 - Query: SystemQuery(29) — returns JSON for system info, processes, memory, devices; Write(34) (write to console/serial); GetTime(43) (RTC read, e.g. for TLS cert validity checks)
 - Kexec: Kexec(38)
+- Clipboard: ClipboardRead(53), ClipboardWrite(54) — a volatile 64 KiB
+  kernel broker gated independently by `clipboard:read` and `clipboard:write`
 
 ## Graphical Desktop Environment (GUI)
 
@@ -114,6 +116,7 @@ Beyond the three kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal
 - `CreateWindow(title, canvas_w, canvas_h)` allocates a window whose total size is the requested canvas plus shared chrome (`CHROME_SIDE`/`CHROME_TOP`/`CHROME_BOTTOM` in `src/gui/window.rs`) — apps never need to know about title-bar/border geometry.
 - `PresentWindow(window_id, rgba8_buf)` copies a caller-owned RGBA8 buffer into the window's canvas (`src/gui/app_window.rs`); `render()` blits it verbatim for `App` windows, the same title bar/border/close-button chrome as every other window type.
 - `PollWindowInput(window_id)` drains a per-window input queue (keyboard + mouse-down, capped at 64 events) fed by `compositor::handle_key_press`/`handle_mouse_down` whenever an `App` window is focused.
+- The keyboard paths normalize PS/2 and USB Ctrl+C/Ctrl+V into the same control-byte ABI. Text Editor uses the clipboard SDK wrappers to copy its full buffer or paste at the cursor, so content crosses process boundaries without granting either process access to the other's memory.
 - Gated behind the `gui:window:*` capability (`cap:gui:window`), following the same capability-registry pattern as every other resource-gated syscall.
 - App windows persist across `desktop` re-entry and keep focus across it (`spawn_demo_windows()` only resets the kernel-drawn demo set) — closing one via its `[X]` cleans up its input queue (`app_window::on_window_closed`).
 
@@ -129,7 +132,7 @@ Ordinary `Exec` delegates only capabilities the parent holds. App Store therefor
 
 Packages under `/disk/pkgs-available/<name>/` carry a strict format-v1 `manifest.txt`, detached Ed25519 `manifest.sig`, and ELF `bin`. The kernel verifies the manifest against its release public key, requires the manifest name to match the sandbox directory, rejects unknown/duplicate fields and undelegatable capabilities, and compares the ELF's SHA-256 digest with the signed value before install or launch. The corresponding private release key is intentionally not part of the repository.
 
-The ring-3 filesystem syscalls enforce `cap:fs:read` and `cap:fs:write` at their common kernel dispatch boundary. `/disk/pkgs` and `/disk/pkgs-available` are a second, protected trust domain: even a process holding both ordinary filesystem tokens is denied unless it directly holds the non-delegatable `cap:pkg:manage` token. User paths must be absolute and reject `.`/`..` components, preventing alternate path spellings from bypassing that boundary. `gui-smoke-test` and Text Editor exercise both denial cases from real scheduled ring-3 processes.
+The ring-3 filesystem syscalls enforce `cap:fs:read` and `cap:fs:write` at their common kernel dispatch boundary. `/disk/pkgs` and `/disk/pkgs-available` are a second, protected trust domain: even a process holding both ordinary filesystem tokens is denied unless it directly holds the non-delegatable `cap:pkg:manage` token. User paths must be absolute and reject `.`/`..` components, preventing alternate path spellings from bypassing that boundary. `gui-smoke-test` and Text Editor exercise both denial cases from real scheduled ring-3 processes. Clipboard authority is separate again: Text Editor and Heliox receive delegatable read/write tokens, while an ordinary guest shell receives neither.
 
 Real `pkg list|verify|install|remove|run|status|rollback` semantics, honestly scoped: packages
 are a local cache staged onto the appliance disk at *build* time

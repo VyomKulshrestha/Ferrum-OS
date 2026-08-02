@@ -136,6 +136,8 @@ pub fn init() {
             String::from("cap:crypto:rng"),
             String::from("cap:net:tls"),
             String::from("cap:process:spawn"),
+            String::from("cap:clipboard:read"),
+            String::from("cap:clipboard:write"),
         ],
     ));
     state.programs.push(ProgramManifest::new(
@@ -148,7 +150,13 @@ pub fn init() {
         "text-editor",
         "Read/write text files in a GUI window",
         "/bin/text-editor",
-        vec![String::from("cap:gui:window"), String::from("cap:fs:read"), String::from("cap:fs:write")],
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:fs:read"),
+            String::from("cap:fs:write"),
+            String::from("cap:clipboard:read"),
+            String::from("cap:clipboard:write"),
+        ],
     ));
     state.programs.push(ProgramManifest::new(
         "calculator",

@@ -42,6 +42,8 @@ pub const SYS_PACKAGE_REMOVE: u64 = 49;
 pub const SYS_PACKAGE_ROLLBACK: u64 = 50;
 pub const SYS_APP_LAUNCH: u64 = 51;
 pub const SYS_PACKAGE_LAUNCH: u64 = 52;
+pub const SYS_CLIPBOARD_READ: u64 = 53;
+pub const SYS_CLIPBOARD_WRITE: u64 = 54;
 
 /// File descriptor for the console (mirrored to serial).
 pub const FD_CONSOLE: u64 = 2;
@@ -144,6 +146,23 @@ pub fn read_file(path: &str, max_len: usize) -> Option<Vec<u8>> {
 pub fn write_file(path: &str, data: &[u8]) -> bool {
     let res = unsafe { syscall4(SYS_WRITE_FILE, path.as_ptr() as u64, path.len() as u64, data.as_ptr() as u64, data.len() as u64) };
     (res as i64) >= 0
+}
+
+/// Read the current volatile system clipboard, bounded by `max_len`.
+pub fn clipboard_read(max_len: usize) -> Option<Vec<u8>> {
+    let mut buf = alloc::vec![0u8; max_len];
+    let result = unsafe { syscall3(SYS_CLIPBOARD_READ, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
+    if (result as i64) < 0 || result as usize > buf.len() {
+        return None;
+    }
+    buf.truncate(result as usize);
+    Some(buf)
+}
+
+/// Replace the volatile system clipboard. Returns false if denied or too large.
+pub fn clipboard_write(data: &[u8]) -> bool {
+    let result = unsafe { syscall3(SYS_CLIPBOARD_WRITE, data.as_ptr() as u64, data.len() as u64, 0) };
+    (result as i64) >= 0
 }
 
 /// Directory entry, parsed from the `SYS_READ_DIR` "d/f <name>\n" format.
