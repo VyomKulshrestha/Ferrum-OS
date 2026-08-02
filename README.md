@@ -236,7 +236,7 @@ node scripts\verify_all_audits.mjs
 The consolidated runner executes `command_sweep.mjs` and
 `audit_all_commands.mjs`, stops on the first failure, and returns a non-zero
 exit code for automation. Feature-specific end-to-end verifiers remain
-available as `scripts\verify_*.mjs`. The v0.1.1 release baseline is 86/86
+available as `scripts\verify_*.mjs`. The v0.1.1 release baseline is 97/97
 command-sweep cases and 65/65 exhaustive catalog cases, with every command
 returning its expected prompt and no unknown-command or kernel-fault signature.
 

@@ -131,6 +131,14 @@ try {
   await runCmd("caps");
   await runCmd("services");
   await runCmd("ipc");
+  await runCmd("clipboard status");
+  await runCmd("clipboard set audit");
+  await runCmd("clipboard get");
+  await runCmd("clipboard clear");
+  await runCmd("notify audit complete");
+  await runCmd("notifications");
+  await runCmd("notifications clear");
+  await runCmd("notifications");
   await runCmd("syscalls");
   await runCmd("programs");
   await runCmd("users");
@@ -205,6 +213,9 @@ try {
   // --- session / useradd / login (identity-changing - kept near the end) -----
   await runCmd("session guest");
   await runCmd("whoami");
+  await runCmd("clipboard get");
+  await runCmd("notify denied body");
+  await runCmd("notifications");
   await runCmd("session root");
   await runCmd("useradd audituser user");
   await runCmd("login audituser");
