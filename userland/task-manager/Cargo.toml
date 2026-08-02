@@ -1,0 +1,23 @@
+[package]
+name = "ferrumos-task-manager"
+version = "0.0.1"
+edition = "2021"
+authors = ["FerrumOS Contributors"]
+description = "Live process list and privileged task termination"
+license = "MIT"
+
+[dependencies]
+linked_list_allocator = "0.10.5"
+ferrumgui = { path = "../libferrumgui" }
+
+[[bin]]
+name = "task-manager"
+path = "src/main.rs"
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 2

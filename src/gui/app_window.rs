@@ -188,3 +188,28 @@ pub fn poll_input(window_id: u64, pid: u64) -> Option<AppInputEvent> {
 pub fn on_window_closed(window_id: u64) {
     INPUT_QUEUES.lock().remove(&window_id);
 }
+
+/// Remove every window owned by a task that has been terminated out of band.
+/// Scheduler termination happens before this call, and both window pixels and
+/// queued input are discarded before the compositor draws again.
+pub fn close_for_pid(pid: u64) {
+    let mut state = compositor::COMPOSITOR.lock();
+    let mut closed_ids = alloc::vec::Vec::new();
+    state.windows.retain(|window| match window.win_type {
+        WindowType::App(owner) if owner == pid => {
+            closed_ids.push(window.id);
+            false
+        }
+        _ => true,
+    });
+    state.focused_idx = state.windows.iter().rposition(|window| !window.minimized);
+    state.needs_redraw = true;
+    drop(state);
+
+    let closed_count = closed_ids.len();
+    let mut queues = INPUT_QUEUES.lock();
+    for id in closed_ids {
+        queues.remove(&id);
+    }
+    crate::serial_println!("[app-window] closed pid={} windows={}", pid, closed_count);
+}

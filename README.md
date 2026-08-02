@@ -38,7 +38,7 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Userland Apps
 - **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
-- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store**, **Notification Center** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
+- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store**, **Notification Center**, **Task Manager** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
 - Desktop notifications: bounded 32-entry history, capability-gated post/read/manage operations, top-right toast rendering, and a Notification Center with clear controls
 - Keyboard task switching: PS/2 and USB HID normalize Alt+Tab into one compositor-only action that raises/restores the previous window without leaking the shortcut into the focused app
 - **`libferrumgui`** — shared `no_std` SDK crate (window/input, IPC, trusted app-launcher, and signed-package syscall wrappers plus an RGBA8 `Canvas`) so new apps don't hand-roll pixel math or the raw syscall ABI
@@ -267,7 +267,7 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `clipboard get\|set\|clear\|status` | Inspect or update the capability-gated shared clipboard |
 | `notify <title> <body>` | Post a desktop notification |
 | `notifications [clear]` | List or clear desktop notification history |
-| `syscalls` | Show the complete syscall ABI table (0–57) |
+| `syscalls` | Show the complete syscall ABI table (0–58) |
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
@@ -351,6 +351,7 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | 55 | NotificationPost | Post a bounded notification to the desktop service |
 | 56 | NotificationList | Read newest-first notification history |
 | 57 | NotificationDismiss | Dismiss one notification or clear all history |
+| 58 | ProcessKill | Terminate a non-critical task through the privileged task broker |
 
 ## JSON-RPC Methods (WebSocket, port 8785)
 

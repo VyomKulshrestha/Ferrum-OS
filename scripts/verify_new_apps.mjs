@@ -122,9 +122,9 @@ const startRect = [DOCK_X + DOCK_SIDE_PADDING, DOCK_Y + BTN_Y_INSET, START_BTN_W
 const rectCenter = ([x, y, w, h]) => [x + Math.floor(w / 2), y + Math.floor(h / 2)];
 
 // LAUNCHER_ENTRIES = [Terminal, System Monitor, Heliox Assistant, Text Editor,
-// Calculator, File Manager, Settings, Browser, App Store, Notification Center] (src/gui/compositor.rs)
+// Calculator, File Manager, Settings, Browser, App Store, Notification Center, Task Manager] (src/gui/compositor.rs)
 const LAUNCHER_ENTRY_H = 28, LAUNCHER_PADDING = 8, LAUNCHER_ENTRY_W = 180;
-const LAUNCHER_ENTRY_COUNT = 10;
+const LAUNCHER_ENTRY_COUNT = 11;
 const launcherW = LAUNCHER_PADDING * 2 + LAUNCHER_ENTRY_W;
 const launcherH = LAUNCHER_PADDING * 2 + LAUNCHER_ENTRY_COUNT * LAUNCHER_ENTRY_H;
 const launcherX = startRect[0];

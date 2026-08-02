@@ -139,6 +139,7 @@ fn main() {
     build_userland_crate(&cargo, &manifest_dir, "browser", &userland_rustflags);
     build_userland_crate(&cargo, &manifest_dir, "app-store", &userland_rustflags);
     build_userland_crate(&cargo, &manifest_dir, "notification-center", &userland_rustflags);
+    build_userland_crate(&cargo, &manifest_dir, "task-manager", &userland_rustflags);
     // Deliberately NOT embedded into the kernel binary via include_bytes!
     // (unlike every app above) - notes is the demo package for ferrumpkg,
     // staged onto the appliance disk image by scripts/make-appliance.ps1

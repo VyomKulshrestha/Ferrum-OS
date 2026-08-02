@@ -39,6 +39,7 @@ pub const SETTINGS_ELF: &[u8] = include_bytes!("../../userland/settings/target/x
 pub const BROWSER_ELF: &[u8] = include_bytes!("../../userland/browser/target/x86_64-unknown-none/release/browser");
 pub const APP_STORE_ELF: &[u8] = include_bytes!("../../userland/app-store/target/x86_64-unknown-none/release/app-store");
 pub const NOTIFICATION_CENTER_ELF: &[u8] = include_bytes!("../../userland/notification-center/target/x86_64-unknown-none/release/notification-center");
+pub const TASK_MANAGER_ELF: &[u8] = include_bytes!("../../userland/task-manager/target/x86_64-unknown-none/release/task-manager");
 
 extern crate alloc;
 
@@ -219,6 +220,15 @@ pub fn init() {
             String::from("cap:notification:manage"),
         ],
     ));
+    state.programs.push(ProgramManifest::new(
+        "task-manager",
+        "Inspect live tasks and terminate non-critical processes",
+        "/bin/task-manager",
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:process:kill"),
+        ],
+    ));
 }
 
 pub fn list_programs() -> Vec<ProgramManifest> {
@@ -247,6 +257,7 @@ pub fn launch_embedded_app(name: &str) -> Result<u64, String> {
         "settings" => SETTINGS_ELF,
         "browser" => BROWSER_ELF,
         "notification-center" => NOTIFICATION_CENTER_ELF,
+        "task-manager" => TASK_MANAGER_ELF,
         _ => return Err(alloc::format!("not a launchable desktop app: {}", name)),
     };
     let capabilities = capabilities_for_program(name);

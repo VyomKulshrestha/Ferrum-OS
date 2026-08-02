@@ -1,5 +1,5 @@
-// End-to-end notification service verification: capability denial, shell
-// post/list, ring-3 Notification Center read/clear, and Text Editor posting.
+// Verify the trusted Task Manager reads live tasks and terminates a normal
+// app without leaving its window or input queue behind.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const serialLog = path.join(repo, "target", "notifications-verify-serial.log");
-const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45519);
+const serialLog = path.join(repo, "target", "task-manager-verify-serial.log");
+const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45521);
 let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
 if (!fs.existsSync(qemu)) qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
 fs.rmSync(serialLog, { force: true });
@@ -42,7 +42,6 @@ const qemuArgs = (accel, cpu) => [
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`, "-vga", "std", "-display", "none", "-no-reboot",
 ];
-
 let child = spawn(qemu, qemuArgs("whpx,kernel-irqchip=off", "Haswell"), { windowsHide: true });
 await sleep(2500);
 if (child.exitCode !== null) {
@@ -61,9 +60,6 @@ try {
   async function text(value) {
     for (const char of value) {
       if (char === " ") await key("spc");
-      else if (char === "/") await key("slash");
-      else if (char === "-") await key("minus");
-      else if (char === ".") await key("dot");
       else await key(char.toLowerCase());
     }
   }
@@ -75,7 +71,6 @@ try {
     await mon("mouse_button 1", 120);
     await mon("mouse_button 0", 250);
   }
-
   const dockX = Math.floor((1024 - 658) / 2), dockY = 718;
   const startX = dockX + 50, startY = dockY + 20;
   const launcherX = dockX + 15, launcherY = dockY - (16 + 11 * 28 + 8);
@@ -87,48 +82,30 @@ try {
   }
 
   await waitForSerial("FerrumOS:~$", 40);
-  check("notification service initialized", serialText().includes("Desktop notification service initialized"));
   let offset = serialText().length;
-  await command("session guest");
-  await command("notify denied body");
-  const denied = await waitForSerial("permission denied: notification:post", 5, offset);
-  check("guest cannot post notifications", denied.includes("permission denied: notification:post"));
-
-  await command("session root");
-  offset = serialText().length;
-  await command("notify Backup complete");
-  await command("notifications");
-  const shellLog = await waitForSerial("[1] backup - complete (pid 0)", 5, offset);
-  check("shell posts and lists notification history", shellLog.includes("notification posted (id 1)"));
-
   await command("ring3 init");
   await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 35, offset);
-  offset = serialText().length;
-  await launch(9);
-  const centerLog = await waitForSerial("[notification-center] loaded count=1", 30, offset);
-  check("Notification Center reads broker history in ring 3", centerLog.includes("loaded count=1"));
+  await launch(10);
+  const startup = await waitForSerial("[task-manager] self-kill denied as expected", 30, offset);
+  check("Task Manager launches as a real ring-3 process", true);
+  check("ProcessKill rejects terminating the caller", startup.includes("self-kill denied as expected") && !startup.includes("ERROR self-kill"));
 
-  // Clear button: app canvas starts at (152,172), clear rect center=(406,18).
-  await click(558, 190);
-  await waitForSerial("[notification-center] cleared all", 8, offset);
-  check("Notification Center clears broker history", true);
-
-  // Close center, launch Text Editor, and save to exercise app-originated post.
-  await click(150 + 464 - 12, 160);
-  await sleep(500);
+  await launch(4);
+  await waitForSerial("[calculator] window created id=", 30, offset);
   offset = serialText().length;
-  await launch(3);
-  await waitForSerial("[text-editor] window created id=", 30, offset);
-  await key("esc");
-  const postLog = await waitForSerial("title=File saved", 8, offset);
-  check("Text Editor posts save notification", /\[notification\] posted id=2 pid=[1-9][0-9]* title=File saved/.test(postLog));
-
-  await click(150 + 484 - 12, 160);
-  await sleep(500);
-  offset = serialText().length;
-  await launch(9);
-  const reload = await waitForSerial("[notification-center] loaded count=1", 30, offset);
-  check("Notification Center sees app-originated notification", reload.includes("loaded count=1"));
+  await key("alt-tab");
+  await waitForSerial("title=Task Manager", 8, offset);
+  // Canvas begins at (152,172). Refresh, first row, then End task.
+  await click(471, 191);
+  await waitForSerial("[task-manager] refreshed", 8, offset);
+  await click(387, 236);
+  await click(567, 191);
+  const killed = await waitForSerial("name=calculator", 8, offset);
+  check("Task Manager terminates selected normal app", killed.includes("[task-manager] killed pid="));
+  check("terminated app is removed from scheduler run queues", killed.includes("ProcessKilled: Task marked dead"));
+  check("terminated app window and input queue are removed", killed.includes("[app-window] closed pid=") && killed.includes("windows=1"));
+  check("Task Manager remains alive after ending target", killed.includes("[task-manager] ended pid="));
+  check("no userspace fault during task termination", !killed.includes("USERSPACE FAULT") && !killed.includes("PAGE FAULT"));
 } catch (error) {
   results.push(`FAIL\tverifier completed\t${error.message}`);
 } finally {
@@ -136,7 +113,7 @@ try {
   child.kill();
 }
 
-console.log("\nNotification verification:");
+console.log("\nTask Manager verification:");
 for (const result of results) console.log(result);
 const failed = results.filter((result) => result.startsWith("FAIL"));
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

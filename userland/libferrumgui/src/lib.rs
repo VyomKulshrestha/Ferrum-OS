@@ -47,6 +47,7 @@ pub const SYS_CLIPBOARD_WRITE: u64 = 54;
 pub const SYS_NOTIFICATION_POST: u64 = 55;
 pub const SYS_NOTIFICATION_LIST: u64 = 56;
 pub const SYS_NOTIFICATION_DISMISS: u64 = 57;
+pub const SYS_PROCESS_KILL: u64 = 58;
 
 /// File descriptor for the console (mirrored to serial).
 pub const FD_CONSOLE: u64 = 2;
@@ -105,6 +106,10 @@ pub fn exit(code: u64) -> ! {
             syscall3(SYS_YIELD, 0, 0, 0);
         }
     }
+}
+
+pub fn get_pid() -> u64 {
+    unsafe { syscall3(SYS_GETPID, 0, 0, 0) }
 }
 
 /// Write an integer to the console with no surrounding text, for chaining
@@ -227,6 +232,29 @@ pub fn notification_list() -> Vec<NotificationInfo> {
 
 pub fn notification_dismiss(id: u64) -> bool {
     let result = unsafe { syscall3(SYS_NOTIFICATION_DISMISS, id, 0, 0) };
+    (result as i64) >= 0
+}
+
+pub fn system_query(query_type: u64, max_len: usize) -> Option<Vec<u8>> {
+    let mut buf = alloc::vec![0u8; max_len];
+    let result = unsafe {
+        syscall4(
+            29,
+            query_type,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+            0,
+        )
+    };
+    if (result as i64) < 0 || result as usize > buf.len() {
+        return None;
+    }
+    buf.truncate(result as usize);
+    Some(buf)
+}
+
+pub fn process_kill(pid: u64) -> bool {
+    let result = unsafe { syscall3(SYS_PROCESS_KILL, pid, 0, 0) };
     (result as i64) >= 0
 }
 

@@ -7,8 +7,8 @@
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
 3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   agent tools translate to real kernel syscalls, out of 58 syscalls total
-   (IDs 0–57) — the rest back GUI/app-window, signed packages, audio, and other non-agent
+   agent tools translate to real kernel syscalls, out of 59 syscalls total
+   (IDs 0–58) — the rest back GUI/app-window, signed packages, audio, and other non-agent
    userland surfaces.
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
@@ -80,9 +80,10 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-58 syscalls (IDs 0–57) dispatched via `int 0x80`:
+59 syscalls (IDs 0–58) dispatched via `int 0x80`:
 
 - Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
+- Task control: ProcessKill(58) — privileged termination of non-critical tasks; self, init, and quota-exempt system agents are protected
 - IPC: Send(1), Receive(2)
 - Services: Start(3), Stop(4)
 - Security: CapCheck(5), AuditWrite(6), GetRandom(42)
@@ -115,6 +116,7 @@ The OS features a fully integrated windowing system and compositor:
 - Desktop taskbar with a Start-menu launcher, a dynamic per-window button (one slot per open window, up to `MAX_TASKBAR_SLOTS`), a working Exit button, and a non-interactive UTC clock sourced from the CMOS RTC (`security::time::read_rtc_time`) — all positions computed once by `desktop::compute_taskbar_layout()` and shared between rendering and every click/hover hit-test. Window placement supports minimize, maximize/restore, and left/right/top edge dragging; snapped windows retain their pre-drag floating rectangle for deterministic restoration.
 - App Store: two discovery surfaces for built-in apps and the verified local signed-package cache, with capability-aware install, confirmed remove, rollback, and launch controls
 - Notification service: ring-3 apps post bounded title/body records into a kernel-owned history; the compositor renders a toast from a cloned snapshot and Notification Center lists or clears records through separately gated syscalls, so it never shares an application lock or address space with the renderer
+- Task Manager: reads the live `SystemQuery(29)` process list and holds the non-delegatable `cap:process:kill` token only because the trusted launcher assigns its compiled-in manifest directly. `ProcessKill(58)` rejects self/critical targets, marks the scheduler task dead, drains run queues, and removes that PID's windows/input queues before redraw.
 
 ### Generic App-Window Framework
 Beyond the three kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal`), `WindowType::App(pid)` lets **any** userland process own a real window — including the Heliox Assistant, which used to be a fourth kernel-hardcoded type (`AgentHud`) before it was rebuilt as an ordinary app on this framework:
@@ -128,7 +130,7 @@ Beyond the three kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal
 ### App Launcher & Installed Apps
 The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAUNCHER_ENTRIES`) can spawn real new processes, not just the kernel-drawn built-ins:
 - `crate::process::spawn_elf(name, elf_bytes, granted_caps)` (`src/process/mod.rs`) loads an ELF and registers it as a Ready scheduler task directly from kernel context — the same load/register logic `sys_exec` uses for a ring-3 caller, but with capabilities taken straight from the program's `crate::userspace` manifest instead of delegated from a caller. It only registers the task and returns; it never itself enters ring 3, so it's safe to call from the compositor's own render loop.
-- Installed apps (`userland/heliox-assistant-panel/`, `userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`, `userland/settings/`, `userland/browser/`, `userland/app-store/`, `userland/notification-center/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (window/input, IPC, clipboard, notifications, trusted-launcher, and signed-package syscall wrappers; an `InputEvent`; and an RGBA8 `Canvas`) — registered in the same `crate::userspace` manifest table as `init`/`heliox-daemon`. The Heliox Assistant panel exchanges structured state with `heliox-daemon`; Browser uses raw socket syscalls; App Store uses the narrow `cap:app:launch` and `cap:pkg:request` broker APIs described below.
+- Installed apps (`userland/heliox-assistant-panel/`, `userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`, `userland/settings/`, `userland/browser/`, `userland/app-store/`, `userland/notification-center/`, `userland/task-manager/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (window/input, IPC, clipboard, notifications, system query, task control, trusted-launcher, and signed-package syscall wrappers; an `InputEvent`; and an RGBA8 `Canvas`) — registered in the same `crate::userspace` manifest table as `init`/`heliox-daemon`. The Heliox Assistant panel exchanges structured state with `heliox-daemon`; Browser uses raw socket syscalls; App Store uses the narrow `cap:app:launch` and `cap:pkg:request` broker APIs described below.
 
 Ordinary `Exec` delegates only capabilities the parent holds. App Store therefore does not receive every target app's filesystem/network authority and does not use raw `Exec`: `AppLaunch(51)` accepts only a compiled-in desktop-app name and launches it with that trusted program's manifest, while `PackageLaunch(52)` atomically validates/loads an installed signed package and launches it with its signed, allow-listed capabilities. Both broker calls are separately capability-gated; a GUI-only ring-3 probe is denied access to them.
 - Each app owns a fixed-size heap (`#[global_allocator]` over a static array) sized comfortably above its own canvas buffer (`canvas_w * canvas_h * 4` bytes) — undersizing this causes a silent allocation failure and process exit on the very first frame, with no panic message, since apps don't need argv (there's no mechanism for it) and instead operate on fixed paths (Text Editor) or read-only browsing (File Manager). File Manager owns its path and Back/Forward history in Ring 3 and exposes Back, Forward, Up, and Refresh controls; file previews retain their parent directory so Back never resets unrelated browsing state.

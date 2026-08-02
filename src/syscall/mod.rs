@@ -99,6 +99,8 @@ pub enum SyscallNumber {
     NotificationList = 56,
     /// Dismiss one notification, or all notifications when id=0.
     NotificationDismiss = 57,
+    /// Terminate a non-critical task through the privileged task broker.
+    ProcessKill = 58,
 }
 
 /// Syscall return status.
@@ -668,6 +670,12 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             notification::sys_notification_dismiss(args)
+        }
+        x if x == SyscallNumber::ProcessKill as u64 => {
+            if !crate::security::has_capability(held_capabilities, "process:kill:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            process::sys_process_kill(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

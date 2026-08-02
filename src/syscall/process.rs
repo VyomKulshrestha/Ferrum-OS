@@ -13,6 +13,33 @@ extern crate alloc;
 
 use super::{SyscallResult, SyscallStatus};
 
+/// Terminate a non-critical task selected by a privileged task manager.
+/// The caller cannot kill itself, PID 0, init, or quota-exempt system agents.
+pub fn sys_process_kill(args: [u64; 6]) -> SyscallResult {
+    let target = args[0];
+    let caller = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    if target == 0 || target == caller {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+
+    let Some(task) = crate::scheduler::list_tasks().into_iter().find(|task| task.id == target) else {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    };
+    if task.state == crate::scheduler::TaskState::Dead
+        || task.capabilities.iter().any(|cap| cap == "cap:system:all" || cap == "cap:quota:exempt")
+    {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+
+    if crate::scheduler::kill(target) {
+        crate::gui::app_window::close_for_pid(target);
+        crate::serial_println!("[task-manager] killed pid={} name={}", target, task.name);
+        SyscallResult::ok(target)
+    } else {
+        SyscallResult::err(SyscallStatus::InvalidArgument)
+    }
+}
+
 /// `sys_exec` — Spawn a new process from an ELF binary on the VFS.
 ///
 /// args[0] = path_ptr (user pointer to ELF path string, e.g. "/disk/bin/worker")
@@ -62,6 +89,10 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         crate::userspace::BROWSER_ELF
     } else if path == "/bin/app-store" || path == "app-store" {
         crate::userspace::APP_STORE_ELF
+    } else if path == "/bin/notification-center" || path == "notification-center" {
+        crate::userspace::NOTIFICATION_CENTER_ELF
+    } else if path == "/bin/task-manager" || path == "task-manager" {
+        crate::userspace::TASK_MANAGER_ELF
     } else {
         // A path under ferrumpkg's local package cache is only runnable
         // once `pkg install` has actually registered it - the bytes sit

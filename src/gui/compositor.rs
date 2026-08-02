@@ -130,7 +130,7 @@ pub enum HoverTarget {
 /// Everything the launcher can open: the 3 kernel-drawn built-ins, plus
 /// real installed apps spawned via `crate::process::spawn_elf` (see
 /// `launch_installed_app` below).
-pub const LAUNCHER_ENTRIES: [&str; 10] = [
+pub const LAUNCHER_ENTRIES: [&str; 11] = [
     "Terminal",
     "System Monitor",
     "Heliox Assistant",
@@ -141,6 +141,7 @@ pub const LAUNCHER_ENTRIES: [&str; 10] = [
     "Browser",
     "App Store",
     "Notification Center",
+    "Task Manager",
 ];
 
 /// Launch one of the real installed apps (the launcher entries beyond the
@@ -178,6 +179,7 @@ fn launch_installed_app(program_name: &str) -> Option<u64> {
         "browser" => crate::userspace::BROWSER_ELF,
         "app-store" => crate::userspace::APP_STORE_ELF,
         "notification-center" => crate::userspace::NOTIFICATION_CENTER_ELF,
+        "task-manager" => crate::userspace::TASK_MANAGER_ELF,
         _ => return None,
     };
     let caps = crate::userspace::capabilities_for_program(program_name);
@@ -867,6 +869,7 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                         7 => { launch_installed_app("browser"); }
                         8 => { launch_installed_app("app-store"); }
                         9 => { launch_installed_app("notification-center"); }
+                        10 => { launch_installed_app("task-manager"); }
                         _ => {}
                     }
                     return;
