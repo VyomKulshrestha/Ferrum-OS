@@ -77,6 +77,9 @@ pub mod ipc;
 /// Volatile, capability-gated clipboard shared by desktop applications.
 pub mod clipboard;
 
+/// Bounded capability-gated desktop notification history.
+pub mod notification;
+
 /// Network subsystem
 /// Provides loopback networking and interface state before NIC drivers exist
 pub mod net;

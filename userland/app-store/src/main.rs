@@ -22,7 +22,7 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 static mut HEAP: [u8; 2 * 1024 * 1024] = [0; 2 * 1024 * 1024];
 
 const CANVAS_W: u32 = 420;
-const CANVAS_H: u32 = 340;
+const CANVAS_H: u32 = 390;
 const ROW_H: u32 = 48;
 
 struct AppEntry {
@@ -31,13 +31,14 @@ struct AppEntry {
     description: &'static str,
 }
 
-const APPS: [AppEntry; 6] = [
+const APPS: [AppEntry; 7] = [
     AppEntry { name: "Heliox Assistant", program: "heliox-assistant-panel", description: "Chat with the Heliox agent" },
     AppEntry { name: "Text Editor", program: "text-editor", description: "Read and write text files" },
     AppEntry { name: "Calculator", program: "calculator", description: "Basic arithmetic" },
     AppEntry { name: "File Manager", program: "file-manager", description: "Browse the filesystem" },
     AppEntry { name: "Settings", program: "settings", description: "System and agent info" },
     AppEntry { name: "Browser", program: "browser", description: "Minimal HTTP text page viewer" },
+    AppEntry { name: "Notification Center", program: "notification-center", description: "Review desktop alerts" },
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq)]

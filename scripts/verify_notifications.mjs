@@ -1,6 +1,5 @@
-// Verify the capability-gated clipboard across the kernel shell and a real
-// ring-3 Text Editor process. This covers the service, syscall ABI, PS/2
-// Ctrl+V/Ctrl+C translation, SDK wrappers, and persistence after paste.
+// End-to-end notification service verification: capability denial, shell
+// post/list, ring-3 Notification Center read/clear, and Text Editor posting.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -9,15 +8,14 @@ import { fileURLToPath } from "node:url";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const serialLog = path.join(repo, "target", "clipboard-verify-serial.log");
-const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45518);
+const serialLog = path.join(repo, "target", "notifications-verify-serial.log");
+const port = Number(process.env.FERRUMOS_MONITOR_PORT || 45519);
 let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
 if (!fs.existsSync(qemu)) qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
 fs.rmSync(serialLog, { force: true });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const serialText = () => { try { return fs.readFileSync(serialLog, "utf8"); } catch { return ""; } };
-
 async function waitForSerial(needle, seconds, from = 0) {
   const deadline = Date.now() + seconds * 1000;
   while (Date.now() < deadline) {
@@ -27,7 +25,6 @@ async function waitForSerial(needle, seconds, from = 0) {
   }
   throw new Error(`timed out waiting for ${JSON.stringify(needle)}\n${serialText().slice(-3000)}`);
 }
-
 async function connectMonitor() {
   for (let i = 0; i < 80; i++) {
     try {
@@ -39,7 +36,6 @@ async function connectMonitor() {
   }
   throw new Error("could not connect to QEMU monitor");
 }
-
 const qemuArgs = (accel, cpu) => [
   "-accel", accel, "-cpu", cpu, "-m", "4096M",
   "-drive", `format=raw,file=${image}`,
@@ -56,8 +52,7 @@ if (child.exitCode !== null) {
 
 let monitor;
 const results = [];
-function check(name, ok) { results.push(`${ok ? "PASS" : "FAIL"}\t${name}`); }
-
+const check = (name, ok) => results.push(`${ok ? "PASS" : "FAIL"}\t${name}`);
 try {
   monitor = await connectMonitor();
   monitor.setEncoding("ascii");
@@ -73,7 +68,6 @@ try {
     }
   }
   async function command(value) { await text(value); await key("ret"); await sleep(300); }
-
   let cursorX = 512, cursorY = 384;
   async function click(x, y) {
     await mon(`mouse_move ${x - cursorX} ${y - cursorY}`, 120);
@@ -82,56 +76,59 @@ try {
     await mon("mouse_button 0", 250);
   }
 
-  // Geometry mirrors desktop.rs at 1024x768 with ten launcher entries.
-  const dockX = Math.floor((1024 - 680) / 2), dockY = 718;
-  const startX = dockX + 15 + 35, startY = dockY + 20;
+  const dockX = Math.floor((1024 - 658) / 2), dockY = 718;
+  const startX = dockX + 50, startY = dockY + 20;
   const launcherX = dockX + 15, launcherY = dockY - (16 + 10 * 28 + 8);
-  async function launchTextEditor() {
+  async function launch(index) {
     await click(startX, startY);
     await sleep(1500);
-    await click(launcherX + 98, launcherY + 8 + 3 * 28 + 12);
+    await click(launcherX + 98, launcherY + 8 + index * 28 + 12);
     await sleep(1800);
   }
 
   await waitForSerial("FerrumOS:~$", 40);
-  check("clipboard service initialized", serialText().includes("Shared clipboard service initialized"));
-
+  check("notification service initialized", serialText().includes("Desktop notification service initialized"));
   let offset = serialText().length;
   await command("session guest");
-  await command("clipboard get");
-  const denied = await waitForSerial("permission denied: clipboard:read", 5, offset);
-  check("guest session cannot read clipboard", denied.includes("permission denied: clipboard:read"));
+  await command("notify denied body");
+  const denied = await waitForSerial("permission denied: notification:post", 5, offset);
+  check("guest cannot post notifications", denied.includes("permission denied: notification:post"));
 
   await command("session root");
-  await command("write /disk/scratch.txt seed");
   offset = serialText().length;
-  await command("clipboard set shared");
-  const setLog = await waitForSerial("clipboard updated (generation 1)", 5, offset);
-  check("shell writes bounded shared clipboard", setLog.includes("[clipboard] write pid=0 bytes=6 generation=1"));
+  await command("notify Backup complete");
+  await command("notifications");
+  const shellLog = await waitForSerial("[1] backup - complete (pid 0)", 5, offset);
+  check("shell posts and lists notification history", shellLog.includes("notification posted (id 1)"));
 
   await command("ring3 init");
   await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 35, offset);
-
   offset = serialText().length;
-  await launchTextEditor();
+  await launch(9);
+  const centerLog = await waitForSerial("[notification-center] loaded count=1", 30, offset);
+  check("Notification Center reads broker history in ring 3", centerLog.includes("loaded count=1"));
+
+  // Clear button: app canvas starts at (152,172), clear rect center=(406,18).
+  await click(558, 190);
+  await waitForSerial("[notification-center] cleared all", 8, offset);
+  check("Notification Center clears broker history", true);
+
+  // Close center, launch Text Editor, and save to exercise app-originated post.
+  await click(150 + 464 - 12, 160);
+  await sleep(500);
+  offset = serialText().length;
+  await launch(3);
   await waitForSerial("[text-editor] window created id=", 30, offset);
-  await key("ctrl-v");
-  const pasteLog = await waitForSerial("[text-editor] pasted clipboard bytes=6", 8, offset);
-  check("ring-3 app reads shell-owned clipboard with Ctrl+V", pasteLog.includes("pasted clipboard bytes=6"));
-
   await key("esc");
-  await waitForSerial("[text-editor] saved", 8, offset);
-  // Close the 484px-wide app window, then prove a new process loads the paste.
-  await click(150 + 484 - 12, 160);
-  await sleep(600);
-  offset = serialText().length;
-  await launchTextEditor();
-  const reload = await waitForSerial("[text-editor] window created id=", 30, offset);
-  check("pasted content persists through Text Editor save", reload.includes("[text-editor] loaded: seedshared"));
+  const postLog = await waitForSerial("title=File saved", 8, offset);
+  check("Text Editor posts save notification", /\[notification\] posted id=2 pid=[1-9][0-9]* title=File saved/.test(postLog));
 
-  await key("ctrl-c");
-  const copyLog = await waitForSerial("[text-editor] copied all to clipboard", 8, offset);
-  check("ring-3 app writes clipboard with Ctrl+C", /\[clipboard\] write pid=[1-9][0-9]* bytes=10/.test(copyLog));
+  await click(150 + 484 - 12, 160);
+  await sleep(500);
+  offset = serialText().length;
+  await launch(9);
+  const reload = await waitForSerial("[notification-center] loaded count=1", 30, offset);
+  check("Notification Center sees app-originated notification", reload.includes("loaded count=1"));
 } catch (error) {
   results.push(`FAIL\tverifier completed\t${error.message}`);
 } finally {
@@ -139,7 +136,7 @@ try {
   child.kill();
 }
 
-console.log("\nClipboard verification:");
+console.log("\nNotification verification:");
 for (const result of results) console.log(result);
 const failed = results.filter((result) => result.startsWith("FAIL"));
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

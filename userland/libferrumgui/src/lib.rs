@@ -44,6 +44,9 @@ pub const SYS_APP_LAUNCH: u64 = 51;
 pub const SYS_PACKAGE_LAUNCH: u64 = 52;
 pub const SYS_CLIPBOARD_READ: u64 = 53;
 pub const SYS_CLIPBOARD_WRITE: u64 = 54;
+pub const SYS_NOTIFICATION_POST: u64 = 55;
+pub const SYS_NOTIFICATION_LIST: u64 = 56;
+pub const SYS_NOTIFICATION_DISMISS: u64 = 57;
 
 /// File descriptor for the console (mirrored to serial).
 pub const FD_CONSOLE: u64 = 2;
@@ -162,6 +165,68 @@ pub fn clipboard_read(max_len: usize) -> Option<Vec<u8>> {
 /// Replace the volatile system clipboard. Returns false if denied or too large.
 pub fn clipboard_write(data: &[u8]) -> bool {
     let result = unsafe { syscall3(SYS_CLIPBOARD_WRITE, data.as_ptr() as u64, data.len() as u64, 0) };
+    (result as i64) >= 0
+}
+
+#[derive(Clone)]
+pub struct NotificationInfo {
+    pub id: u64,
+    pub source_pid: u64,
+    pub created_ticks: u64,
+    pub title: String,
+    pub body: String,
+}
+
+pub fn notification_post(title: &str, body: &str) -> Option<u64> {
+    let result = unsafe {
+        syscall4(
+            SYS_NOTIFICATION_POST,
+            title.as_ptr() as u64,
+            title.len() as u64,
+            body.as_ptr() as u64,
+            body.len() as u64,
+        )
+    };
+    if (result as i64) >= 0 { Some(result) } else { None }
+}
+
+pub fn notification_list() -> Vec<NotificationInfo> {
+    let mut buf = alloc::vec![0u8; 16 * 1024];
+    let result = unsafe {
+        syscall3(
+            SYS_NOTIFICATION_LIST,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+            0,
+        )
+    };
+    if (result as i64) < 0 || result as usize > buf.len() {
+        return Vec::new();
+    }
+    buf.truncate(result as usize);
+    let text = String::from_utf8_lossy(&buf);
+    let mut notifications = Vec::new();
+    for line in text.lines() {
+        let mut fields = line.splitn(5, '|');
+        let (Some(id), Some(source_pid), Some(created_ticks), Some(title), Some(body)) =
+            (fields.next(), fields.next(), fields.next(), fields.next(), fields.next())
+        else { continue };
+        let (Ok(id), Ok(source_pid), Ok(created_ticks)) =
+            (id.parse::<u64>(), source_pid.parse::<u64>(), created_ticks.parse::<u64>())
+        else { continue };
+        notifications.push(NotificationInfo {
+            id,
+            source_pid,
+            created_ticks,
+            title: String::from(title),
+            body: String::from(body),
+        });
+    }
+    notifications
+}
+
+pub fn notification_dismiss(id: u64) -> bool {
+    let result = unsafe { syscall3(SYS_NOTIFICATION_DISMISS, id, 0, 0) };
     (result as i64) >= 0
 }
 

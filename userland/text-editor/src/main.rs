@@ -150,6 +150,7 @@ pub extern "C" fn _start() -> ! {
                     // Escape: save.
                     if ferrumgui::write_file(EDIT_PATH, buffer.as_bytes()) {
                         ferrumgui::write_console("[text-editor] saved\n");
+                        let _ = ferrumgui::notification_post("File saved", EDIT_PATH);
                         status = "Saved";
                     } else {
                         ferrumgui::write_console("[text-editor] save failed\n");

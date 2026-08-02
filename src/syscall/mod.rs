@@ -93,6 +93,12 @@ pub enum SyscallNumber {
     ClipboardRead = 53,
     /// Replace the volatile system clipboard with caller-provided bytes.
     ClipboardWrite = 54,
+    /// Post a bounded desktop notification.
+    NotificationPost = 55,
+    /// Read newest-first notification history.
+    NotificationList = 56,
+    /// Dismiss one notification, or all notifications when id=0.
+    NotificationDismiss = 57,
 }
 
 /// Syscall return status.
@@ -140,6 +146,7 @@ pub mod hud;
 pub mod input;
 pub mod kexec;
 pub mod mmap;
+pub mod notification;
 pub mod pkg;
 pub mod process;
 pub mod query;
@@ -643,6 +650,24 @@ pub fn dispatch_with_capabilities(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             clipboard::sys_clipboard_write(args)
+        }
+        x if x == SyscallNumber::NotificationPost as u64 => {
+            if !crate::security::has_capability(held_capabilities, "notification:post") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            notification::sys_notification_post(args)
+        }
+        x if x == SyscallNumber::NotificationList as u64 => {
+            if !crate::security::has_capability(held_capabilities, "notification:read") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            notification::sys_notification_list(args)
+        }
+        x if x == SyscallNumber::NotificationDismiss as u64 => {
+            if !crate::security::has_capability(held_capabilities, "notification:manage") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            notification::sys_notification_dismiss(args)
         }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching

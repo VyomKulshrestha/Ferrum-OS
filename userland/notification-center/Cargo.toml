@@ -1,0 +1,24 @@
+[package]
+name = "ferrumos-notification-center"
+version = "0.0.1"
+edition = "2021"
+authors = ["FerrumOS Contributors"]
+description = "Desktop notification history and controls"
+license = "MIT"
+
+[dependencies]
+linked_list_allocator = "0.10.5"
+ferrumgui = { path = "../libferrumgui" }
+
+[[bin]]
+name = "notification-center"
+path = "src/main.rs"
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 2
+

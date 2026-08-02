@@ -38,6 +38,7 @@ pub const HELIOX_ASSISTANT_PANEL_ELF: &[u8] = include_bytes!("../../userland/hel
 pub const SETTINGS_ELF: &[u8] = include_bytes!("../../userland/settings/target/x86_64-unknown-none/release/settings");
 pub const BROWSER_ELF: &[u8] = include_bytes!("../../userland/browser/target/x86_64-unknown-none/release/browser");
 pub const APP_STORE_ELF: &[u8] = include_bytes!("../../userland/app-store/target/x86_64-unknown-none/release/app-store");
+pub const NOTIFICATION_CENTER_ELF: &[u8] = include_bytes!("../../userland/notification-center/target/x86_64-unknown-none/release/notification-center");
 
 extern crate alloc;
 
@@ -138,6 +139,7 @@ pub fn init() {
             String::from("cap:process:spawn"),
             String::from("cap:clipboard:read"),
             String::from("cap:clipboard:write"),
+            String::from("cap:notification:post"),
         ],
     ));
     state.programs.push(ProgramManifest::new(
@@ -156,6 +158,7 @@ pub fn init() {
             String::from("cap:fs:write"),
             String::from("cap:clipboard:read"),
             String::from("cap:clipboard:write"),
+            String::from("cap:notification:post"),
         ],
     ));
     state.programs.push(ProgramManifest::new(
@@ -206,6 +209,16 @@ pub fn init() {
             String::from("cap:pkg:request"),
         ],
     ));
+    state.programs.push(ProgramManifest::new(
+        "notification-center",
+        "Review and clear desktop notification history",
+        "/bin/notification-center",
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:notification:read"),
+            String::from("cap:notification:manage"),
+        ],
+    ));
 }
 
 pub fn list_programs() -> Vec<ProgramManifest> {
@@ -233,6 +246,7 @@ pub fn launch_embedded_app(name: &str) -> Result<u64, String> {
         "file-manager" => FILE_MANAGER_ELF,
         "settings" => SETTINGS_ELF,
         "browser" => BROWSER_ELF,
+        "notification-center" => NOTIFICATION_CENTER_ELF,
         _ => return Err(alloc::format!("not a launchable desktop app: {}", name)),
     };
     let capabilities = capabilities_for_program(name);

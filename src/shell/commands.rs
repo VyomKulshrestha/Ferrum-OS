@@ -97,6 +97,8 @@ pub fn execute(input: &str) {
         "services" => cmd_services(args),
         "ipc" => cmd_ipc(),
         "clipboard" => cmd_clipboard(args),
+        "notify" => cmd_notify(args),
+        "notifications" => cmd_notifications(args),
         "syscalls" => cmd_syscalls(),
         "programs" => cmd_programs(),
         "users" => cmd_users(),
@@ -160,6 +162,8 @@ fn cmd_help() {
     println!("  services   List/start/stop/restart service registry");
     println!("  ipc        Show IPC broker statistics");
     println!("  clipboard <get|set|clear|status>  Use the shared desktop clipboard");
+    println!("  notify <title> <body>  Post a desktop notification");
+    println!("  notifications [clear]  List or clear notification history");
     println!("  syscalls   Show syscall ABI numbers");
     println!("  programs   List userspace program manifests");
     println!("  users      List userspace process table");
@@ -733,11 +737,47 @@ fn cmd_clipboard(args: &[&str]) {
     }
 }
 
+fn cmd_notify(args: &[&str]) {
+    if require_resource("notification:post").is_err() { return; }
+    if args.len() < 2 {
+        println!("notify: usage: notify <title> <body>");
+        return;
+    }
+    let body = args[1..].join(" ");
+    match crate::notification::post(0, args[0], &body) {
+        Ok(id) => {
+            crate::gui::compositor::request_redraw();
+            println!("notification posted (id {})", id);
+        }
+        Err(err) => println!("notify: {}", err),
+    }
+}
+
+fn cmd_notifications(args: &[&str]) {
+    if args.first() == Some(&"clear") {
+        if require_resource("notification:manage").is_err() { return; }
+        let removed = crate::notification::dismiss(0);
+        crate::gui::compositor::request_redraw();
+        println!("cleared {} notifications", removed);
+        return;
+    }
+    if require_resource("notification:read").is_err() { return; }
+    let entries = crate::notification::list();
+    if entries.is_empty() {
+        println!("(no notifications)");
+        return;
+    }
+    println!("Notifications (newest first):");
+    for entry in entries {
+        println!("  [{}] {} - {} (pid {})", entry.id, entry.title, entry.body, entry.source_pid);
+    }
+}
+
 fn cmd_syscalls() {
     // Keep the long-standing first-line marker stable for serial tooling;
     // the complete range is reported on the next line.
     println!("Syscall ABI:");
-    println!("  range: 0-54");
+    println!("  range: 0-57");
     println!("  0  yield");
     println!("  1  ipc_send");
     println!("  2  ipc_receive");
@@ -769,6 +809,8 @@ fn cmd_syscalls() {
     println!(" 49  package_remove        50  package_rollback");
     println!(" 51  app_launch            52  package_launch");
     println!(" 53  clipboard_read        54  clipboard_write");
+    println!(" 55  notification_post     56  notification_list");
+    println!(" 57  notification_dismiss");
     println!("Capability resources:");
     println!("  1  ipc:send:*");
     println!("  2  service:register");

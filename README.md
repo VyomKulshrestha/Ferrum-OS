@@ -38,7 +38,8 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Userland Apps
 - **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
-- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
+- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store**, **Notification Center** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
+- Desktop notifications: bounded 32-entry history, capability-gated post/read/manage operations, top-right toast rendering, and a Notification Center with clear controls
 - **`libferrumgui`** — shared `no_std` SDK crate (window/input, IPC, trusted app-launcher, and signed-package syscall wrappers plus an RGBA8 `Canvas`) so new apps don't hand-roll pixel math or the raw syscall ABI
 
 Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder.
@@ -263,7 +264,9 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `services start/stop <id>` | Start or stop a service |
 | `ipc` | Show IPC broker statistics |
 | `clipboard get\|set\|clear\|status` | Inspect or update the capability-gated shared clipboard |
-| `syscalls` | Show the complete syscall ABI table (0–54) |
+| `notify <title> <body>` | Post a desktop notification |
+| `notifications [clear]` | List or clear desktop notification history |
+| `syscalls` | Show the complete syscall ABI table (0–57) |
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
@@ -344,6 +347,9 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | 52 | PackageLaunch | Validate, load, and launch an installed signed package |
 | 53 | ClipboardRead | Copy the volatile shared clipboard into a caller buffer |
 | 54 | ClipboardWrite | Replace the bounded volatile shared clipboard |
+| 55 | NotificationPost | Post a bounded notification to the desktop service |
+| 56 | NotificationList | Read newest-first notification history |
+| 57 | NotificationDismiss | Dismiss one notification or clear all history |
 
 ## JSON-RPC Methods (WebSocket, port 8785)
 

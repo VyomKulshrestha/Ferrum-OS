@@ -2,6 +2,7 @@
 // FerrumOS - GUI Compositor
 // ============================================================================
 
+use alloc::string::String;
 use alloc::vec::Vec;
 use spin::Mutex;
 use crate::gui::window::Window;
@@ -129,7 +130,7 @@ pub enum HoverTarget {
 /// Everything the launcher can open: the 3 kernel-drawn built-ins, plus
 /// real installed apps spawned via `crate::process::spawn_elf` (see
 /// `launch_installed_app` below).
-pub const LAUNCHER_ENTRIES: [&str; 9] = [
+pub const LAUNCHER_ENTRIES: [&str; 10] = [
     "Terminal",
     "System Monitor",
     "Heliox Assistant",
@@ -139,6 +140,7 @@ pub const LAUNCHER_ENTRIES: [&str; 9] = [
     "Settings",
     "Browser",
     "App Store",
+    "Notification Center",
 ];
 
 /// Launch one of the real installed apps (the launcher entries beyond the
@@ -175,6 +177,7 @@ fn launch_installed_app(program_name: &str) -> Option<u64> {
         "settings" => crate::userspace::SETTINGS_ELF,
         "browser" => crate::userspace::BROWSER_ELF,
         "app-store" => crate::userspace::APP_STORE_ELF,
+        "notification-center" => crate::userspace::NOTIFICATION_CENTER_ELF,
         _ => return None,
     };
     let caps = crate::userspace::capabilities_for_program(program_name);
@@ -319,6 +322,12 @@ pub fn init() {
     // Nothing to do for MVP init, structures are lazy_static
 }
 
+/// Mark the desktop dirty after an out-of-band service event such as a new
+/// notification. Rendering happens later in the normal compositor pump.
+pub fn request_redraw() {
+    COMPOSITOR.lock().needs_redraw = true;
+}
+
 pub fn spawn_demo_windows() {
     let mut state = COMPOSITOR.lock();
     // Remember what was focused before resetting the demo windows, so a
@@ -441,11 +450,32 @@ pub fn render() {
     // Draw HUD overlay on top of taskbar/windows (but below cursor)
     draw_hud_overlay();
 
+    // Newest notification remains visible until the user clears it from the
+    // Notification Center. The history itself is owned by the broker.
+    draw_notification_toast();
+
     // 4. Mark the cursor as dirty so the main loop redraws
     //    it on top of the new content.
     cursor::mark_dirty();
 
     COMPOSITOR.lock().needs_redraw = false;
+}
+
+fn draw_notification_toast() {
+    let Some(notification) = crate::notification::newest() else { return };
+    let (fb_w, _) = fb_dims();
+    let width = 330u32;
+    let x = fb_w.saturating_sub(width + 18);
+    let y = 70u32;
+    crate::graphics::fill_rect(x, y, width, 66, 0x00202A36);
+    crate::graphics::draw_line(x, y, x + width - 1, y, 0x0000CCAA);
+    crate::graphics::draw_line(x, y + 65, x + width - 1, y + 65, 0x0000CCAA);
+    crate::graphics::draw_line(x, y, x, y + 65, 0x0000CCAA);
+    crate::graphics::draw_line(x + width - 1, y, x + width - 1, y + 65, 0x0000CCAA);
+    let title: String = notification.title.chars().take(36).collect();
+    let body: String = notification.body.chars().take(48).collect();
+    crate::graphics::draw_string(x + 12, y + 12, &title, 0x00FFFFFF, 0x00202A36);
+    crate::graphics::draw_string(x + 12, y + 36, &body, 0x00AAB8C4, 0x00202A36);
 }
 
 /// Helper to hit test overlapping windows, returning window ID and title.
@@ -836,6 +866,7 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                         6 => { launch_installed_app("settings"); }
                         7 => { launch_installed_app("browser"); }
                         8 => { launch_installed_app("app-store"); }
+                        9 => { launch_installed_app("notification-center"); }
                         _ => {}
                     }
                     return;

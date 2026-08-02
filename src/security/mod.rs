@@ -140,6 +140,24 @@ pub fn init() {
             "clipboard:write",
             true,
         ),
+        (
+            "cap:notification:post",
+            "Post Desktop Notifications",
+            "notification:post",
+            true,
+        ),
+        (
+            "cap:notification:read",
+            "Read Desktop Notifications",
+            "notification:read",
+            true,
+        ),
+        (
+            "cap:notification:manage",
+            "Manage Desktop Notifications",
+            "notification:manage",
+            true,
+        ),
     ];
 
     for (name, desc, resource, delegatable) in &default_caps {

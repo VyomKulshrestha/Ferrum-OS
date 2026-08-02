@@ -151,6 +151,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::clipboard::init();
     println!("[  OK  ] Shared clipboard service initialized");
 
+    ferrumos::notification::init();
+    println!("[  OK  ] Desktop notification service initialized");
+
     // ========================================================================
     // Phase 3b: VGA Framebuffer & Graphical Console
     // ========================================================================
