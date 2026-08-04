@@ -48,13 +48,20 @@ const ramProfiles = String(arg("--ram", process.env.WM_RAM_MB || "512"))
   .map((value) => Number(value.trim()))
   .filter((value) => Number.isFinite(value) && value >= 256);
 const maxScenarios = Number(arg("--max-scenarios", "0"));
+const scenarioOffset = Math.max(0, Number(arg("--scenario-offset", "0")));
 const scenariosPerBoot = Math.max(1, Number(arg("--scenarios-per-boot", "250")));
+const runId = String(arg("--run-id", ""))
+  .replace(/[^a-zA-Z0-9_-]/g, "-")
+  .slice(0, 40);
+const rpcTimeoutMs = Math.max(1, Number(arg("--rpc-timeout-ms", "300000")));
+const providerDelayMs = Math.max(0, Number(arg("--provider-delay-ms", "0")));
 const resume = process.argv.includes("--resume");
 const visible = process.argv.includes("--visible");
 const providerUrl = process.env.WM_PROVIDER_URL || "";
 const providerKey = process.env.WM_PROVIDER_KEY || "";
 const providerModel = process.env.WM_PROVIDER_MODEL || "";
 const providerLabel = process.env.WM_PROVIDER_LABEL || (providerUrl ? "openai-compatible" : "replay");
+const chunkedResponses = process.argv.includes("--chunked-responses");
 const toolNames = [
   "ipc_send", "audit_write", "yield_cpu", "camera_capture", "gesture_status",
   "report_status", "capability_check", "read_file", "read_dir", "query_memory",
@@ -93,6 +100,9 @@ const corpus = fs.readFileSync(corpusPath, "utf8")
         ? row.responses
         : row.response !== undefined ? [row.response] : [],
       tags: Array.isArray(row.tags) ? row.tags : [],
+      response_prefetch: row.response_prefetch && typeof row.response_prefetch === "object"
+        ? row.response_prefetch
+        : null,
     };
   })
   .filter((row) => row.prompt);
@@ -186,6 +196,7 @@ const bridge = https.createServer(bridgeOptions, (req, res) => {
   req.on("end", async () => {
     try {
       if (!activeScenario) throw new Error("provider request arrived without an active scenario");
+      if (providerDelayMs > 0) await sleep(providerDelayMs);
       let responseBody;
       if (activeScenario.responses.length > 0) {
         const replay = activeScenario.responses[Math.min(activeStep, activeScenario.responses.length - 1)];
@@ -209,11 +220,18 @@ const bridge = https.createServer(bridgeOptions, (req, res) => {
         request: JSON.parse(requestBody),
         raw_response: responseBody,
       };
-      res.writeHead(200, {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(responseBody),
-      });
-      res.end(responseBody);
+      if (chunkedResponses) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        const midpoint = Math.max(1, Math.floor(responseBody.length / 2));
+        res.write(responseBody.slice(0, midpoint));
+        res.end(responseBody.slice(midpoint));
+      } else {
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(responseBody),
+        });
+        res.end(responseBody);
+      }
     } catch (error) {
       const body = JSON.stringify({ error: String(error?.message || error) });
       res.writeHead(500, {
@@ -255,8 +273,9 @@ async function collectProfile(ramMb, selected, chunkIndex) {
   const monitorPort = await freeTcpPort();
   const wsPort = await freeTcpPort();
   const chunkLabel = String(chunkIndex).padStart(4, "0");
-  const serialLog = path.join(repo, "target", `world-model-hybrid-${ramMb}m-${chunkLabel}-serial.log`);
-  const runDisk = path.join(repo, "target", `world-model-hybrid-${ramMb}m-${chunkLabel}-disk.img`);
+  const runLabel = runId ? `${runId}-` : "";
+  const serialLog = path.join(repo, "target", `world-model-hybrid-${runLabel}${ramMb}m-${chunkLabel}-serial.log`);
+  const runDisk = path.join(repo, "target", `world-model-hybrid-${runLabel}${ramMb}m-${chunkLabel}-disk.img`);
   fs.rmSync(serialLog, { force: true });
   fs.copyFileSync(applianceDisk, runDisk);
   const serialText = () => { try { return fs.readFileSync(serialLog, "utf8"); } catch { return ""; } };
@@ -365,10 +384,11 @@ async function collectProfile(ramMb, selected, chunkIndex) {
       ws.onerror = reject;
     });
 
-    let consecutiveEpisodeFailures = 0;
     for (let scenarioIndex = 0; scenarioIndex < selected.length; scenarioIndex++) {
       const scenario = selected[scenarioIndex];
       const episodeId = `${scenario.id}-${ramMb}m`;
+      const episodeProvider = scenario.response_prefetch?.provider || providerLabel;
+      const episodeProviderModel = scenario.response_prefetch?.model || providerModel || null;
       if (completed.has(episodeId)) continue;
       activeScenario = scenario;
       let episodeTransitions = 0;
@@ -378,8 +398,15 @@ async function collectProfile(ramMb, selected, chunkIndex) {
         activeStep = step;
         latestExchange = null;
         const serialStart = serialText().length;
+        const stepStartedAt = Date.now();
         try {
-          const result = await rpc(ws, `${episodeId}-${step}`, "agent_step", { goal: scenario.prompt });
+          const result = await rpc(
+            ws,
+            `${episodeId}-${step}`,
+            "agent_step",
+            { goal: scenario.prompt },
+            rpcTimeoutMs,
+          );
           const newSerial = serialText().slice(serialStart);
           const transitions = parseTransitionRows(newSerial);
           if ((result.actions || []).length > 0 && transitions.length === 0) {
@@ -395,12 +422,13 @@ async function collectProfile(ramMb, selected, chunkIndex) {
             if (!expectedToolMatch) expectedToolMismatches++;
             appendJson(outPath, {
               source: "hybrid",
+              observation_schema: "ext2-usage-v1",
               episode_id: episodeId,
               step,
               transition_in_step: index,
               ram_mb: ramMb,
-              provider: providerLabel,
-              provider_model: providerModel || null,
+              provider: episodeProvider,
+              provider_model: episodeProviderModel,
               prompt: scenario.prompt,
               expected_tool: scenario.expected_tool,
               actual_tool: actualTool,
@@ -415,7 +443,8 @@ async function collectProfile(ramMb, selected, chunkIndex) {
             episode_id: episodeId,
             step,
             ram_mb: ramMb,
-            provider: providerLabel,
+            provider: episodeProvider,
+            provider_model: episodeProviderModel,
             prompt: scenario.prompt,
             expected_tool: scenario.expected_tool,
             raw_response: rawResponse,
@@ -423,6 +452,7 @@ async function collectProfile(ramMb, selected, chunkIndex) {
             expected_tool_match: !scenario.expected_tool
               || (result.actions || []).some((action) => action.tool === scenario.expected_tool),
             transition_count: transitions.length,
+            duration_ms: Date.now() - stepStartedAt,
             completed: false,
           });
           if (!result.actions || result.actions.length === 0) break;
@@ -432,9 +462,11 @@ async function collectProfile(ramMb, selected, chunkIndex) {
             episode_id: episodeId,
             step,
             ram_mb: ramMb,
-            provider: providerLabel,
+            provider: episodeProvider,
+            provider_model: episodeProviderModel,
             prompt: scenario.prompt,
             error: String(error?.message || error),
+            duration_ms: Date.now() - stepStartedAt,
             completed: false,
           });
           break;
@@ -443,21 +475,22 @@ async function collectProfile(ramMb, selected, chunkIndex) {
       appendJson(tracePath, {
         episode_id: episodeId,
         ram_mb: ramMb,
-        provider: providerLabel,
+        provider: episodeProvider,
+        provider_model: episodeProviderModel,
         transition_count: episodeTransitions,
         failed: episodeFailed,
         completed: !episodeFailed,
       });
       if (!episodeFailed) {
         completed.add(episodeId);
-        consecutiveEpisodeFailures = 0;
       } else {
         failedEpisodes++;
-        consecutiveEpisodeFailures++;
       }
       console.log(`[hybrid] ${episodeId}: ${episodeTransitions} transitions${episodeFailed ? " (failed)" : ""}`);
-      if (consecutiveEpisodeFailures >= 3) {
-        throw new Error("three consecutive episodes failed; stopping this chunk for safe resume");
+      if (episodeFailed) {
+        throw new Error(
+          `episode ${episodeId} failed; stopping this boot because an in-flight RPC cannot be safely reused`,
+        );
       }
     }
   } finally {
@@ -472,7 +505,9 @@ async function collectProfile(ramMb, selected, chunkIndex) {
 
 let exitCode = 0;
 try {
-  const selectedCorpus = maxScenarios > 0 ? corpus.slice(0, maxScenarios) : corpus;
+  const selectedCorpus = maxScenarios > 0
+    ? corpus.slice(scenarioOffset, scenarioOffset + maxScenarios)
+    : corpus.slice(scenarioOffset);
   for (const ramMb of ramProfiles) {
     for (let offset = 0, chunkIndex = 0; offset < selectedCorpus.length; offset += scenariosPerBoot, chunkIndex++) {
       const chunk = selectedCorpus.slice(offset, offset + scenariosPerBoot);
