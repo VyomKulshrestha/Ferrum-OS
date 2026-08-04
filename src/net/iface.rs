@@ -9,6 +9,7 @@
 extern crate alloc;
 
 use alloc::vec;
+use core::sync::atomic::{AtomicU16, Ordering};
 use smoltcp::iface::{Config, Interface, SocketHandle, SocketSet};
 use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
@@ -35,6 +36,7 @@ pub enum SocketType {
 
 const MAX_SOCKETS: usize = 64;
 const FD_BASE: u64 = 100; // FDs start at 100 to avoid collision with stdio
+static NEXT_EPHEMERAL_PORT: AtomicU16 = AtomicU16::new(0);
 
 /// The interface state is split into individual Mutex-wrapped fields so that
 /// Rust's borrow checker allows us to mutably borrow the interface, device,
@@ -127,6 +129,9 @@ pub fn socket_create_tcp() -> Result<u64, &'static str> {
         }
     }
 
+    // The SocketSet owns the RX/TX buffers. If the descriptor table is full,
+    // remove the just-added socket so a failed create cannot leak 32 KiB.
+    sockets.remove(handle);
     Err("no free file descriptors")
 }
 
@@ -144,8 +149,11 @@ pub fn socket_connect(fd: u64, ip_packed: u64, port: u64) -> Result<(), &'static
     let remote_addr = Ipv4Address::new(ip_bytes[0], ip_bytes[1], ip_bytes[2], ip_bytes[3]);
     let remote_port = port as u16;
 
-    // We need a local (ephemeral) port. Pick one based on the FD to avoid collisions.
-    let local_port = 49152 + ((fd - FD_BASE) as u16);
+    // FD slots are deliberately reused after close; deriving a local port
+    // from only the FD immediately reused the same TCP 4-tuple and could make
+    // the next provider request collide with lingering peer/NAT state. Rotate
+    // across the IANA dynamic range before any port can be selected again.
+    let local_port = 49_152u16 + (NEXT_EPHEMERAL_PORT.fetch_add(1, Ordering::Relaxed) % 16_384);
 
     let mut iface = IFACE.lock();
     let iface = iface.as_mut().ok_or("interface not ready")?;
@@ -265,8 +273,12 @@ pub fn socket_close(fd: u64) -> Result<(), &'static str> {
 
     let mut fd_table = FD_TABLE.lock();
     if let Some(entry) = fd_table[idx] {
-        let socket = sockets.get_mut::<tcp::Socket>(entry.handle);
-        socket.close();
+        // `close()` only changes TCP state; leaving the handle in SocketSet
+        // retains both 16 KiB buffers forever. Short-lived provider requests
+        // exhausted the 12 MiB kernel heap after roughly 240 closes. Abort the
+        // dead descriptor and remove its owned buffers immediately.
+        sockets.get_mut::<tcp::Socket>(entry.handle).abort();
+        sockets.remove(entry.handle);
         fd_table[idx] = None;
         Ok(())
     } else {
