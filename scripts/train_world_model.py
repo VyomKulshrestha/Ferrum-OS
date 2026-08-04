@@ -122,6 +122,7 @@ def train_mlp(
     validation=None,
     patience=0,
     seed=0,
+    sample_weights=None,
 ):
     rng = np.random.default_rng(seed)
     n_in, n_out = X.shape[1], Y.shape[1]
@@ -138,6 +139,12 @@ def train_mlp(
     b2 = np.zeros(n_out, dtype=np.float32)
 
     n = X.shape[0]
+    if sample_weights is None:
+        sample_weights = np.ones(n, dtype=np.float32)
+    sample_weights = np.asarray(sample_weights, dtype=np.float32)
+    if sample_weights.shape != (n,) or np.any(sample_weights <= 0):
+        raise ValueError("sample_weights must contain one positive value per training row")
+    sample_weights = sample_weights / float(sample_weights.mean())
     report_every = max(1, epochs // 10)
     best_validation = float("inf")
     best_weights = None
@@ -148,9 +155,9 @@ def train_mlp(
         pred = h @ w2 + b2
 
         err = pred - Y
-        loss = float(np.mean(err ** 2))
+        loss = float(np.sum(sample_weights[:, None] * err ** 2) / (sample_weights.sum() * n_out))
 
-        d_pred = (2.0 / n) * err
+        d_pred = (2.0 / n) * sample_weights[:, None] * err
         grad_w2 = h.T @ d_pred
         grad_b2 = d_pred.sum(axis=0)
         d_h = d_pred @ w2.T
@@ -401,6 +408,11 @@ def main():
     )
     parser.add_argument("--max-rollout-horizon", type=int, default=5)
     parser.add_argument("--metrics-out", default="target/world_model_metrics.json")
+    parser.add_argument(
+        "--no-balance-tools",
+        action="store_true",
+        help="disable inverse-frequency training weights across canonical tools",
+    )
     args = parser.parse_args()
 
     corpus_rows = load_dataset(args.dataset)
@@ -440,6 +452,20 @@ def main():
     print(f"trivial (always predict zero delta) untouched-test MSE: {zero_mse:.6f}")
 
     print(f"training MLP (input={X.shape[1]}, hidden={args.hidden}, output={Y.shape[1]}, epochs={args.epochs})...")
+    training_actions = np.asarray([rows[int(i)]["action"] for i in train_idx], dtype=np.int32)
+    sample_weights = None
+    if not args.no_balance_tools:
+        counts = np.bincount(training_actions, minlength=NUM_TOOLS)
+        sample_weights = np.asarray([
+            1.0 / counts[action] if 0 <= action < NUM_TOOLS and counts[action] > 0 else 1.0
+            for action in training_actions
+        ], dtype=np.float32)
+        sample_weights /= sample_weights.mean()
+        active_counts = counts[counts > 0]
+        print(
+            f"balanced {len(active_counts)} observed tools during fitting "
+            f"(training counts {active_counts.min()}..{active_counts.max()})"
+        )
     w1, b1, w2, b2 = train_mlp(
         X_train,
         Y_train,
@@ -449,6 +475,7 @@ def main():
         validation=(X_validation, Y_validation),
         patience=max(0, args.patience),
         seed=args.seed,
+        sample_weights=sample_weights,
     )
 
     pred_test = predict_mlp(X_test, w1, b1, w2, b2)
@@ -528,6 +555,7 @@ def main():
         "split_seed": args.split_seed,
         "input_size": INPUT_SIZE,
         "hidden_size": args.hidden,
+        "tool_balanced_training": not args.no_balance_tools,
         "min_train_per_tool": args.min_train_per_tool,
         "coverage_mask": f"0x{coverage:x}",
         "covered_tools": [TOOL_NAMES[i] for i in range(NUM_TOOLS) if coverage & (1 << i)],
