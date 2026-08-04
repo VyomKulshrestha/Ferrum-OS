@@ -17,6 +17,7 @@ function row(action, episodeId, step, executed = true) {
     episode_id: episodeId,
     ram_mb: 512,
     source: "audit-test",
+    observation_schema: "ext2-usage-v1",
   };
 }
 
@@ -32,6 +33,7 @@ const passing = auditRows(rows, {
   minEpisodes: TOOL_NAMES.length,
   minMultistepEpisodes: TOOL_NAMES.length,
   minRamProfiles: 1,
+  requireObservationSchema: true,
 });
 assert.equal(passing.passed, true);
 assert.equal(passing.per_tool.length, TOOL_NAMES.length);
@@ -59,7 +61,22 @@ const malformed = auditRows([{ ...row(0, "bad", 0), before: [Number.NaN] }], {
 assert.equal(malformed.passed, false);
 assert.match(malformed.errors[0], /before must contain 128 finite numbers/);
 
+const unspecifiedObservation = auditRows([
+  { ...row(0, "missing-schema", 0), observation_schema: undefined },
+], {
+  requiredTools: 1,
+  minExecutedPerTool: 1,
+  minArgumentVariants: 1,
+  minEpisodes: 1,
+  minMultistepEpisodes: 0,
+  minRamProfiles: 1,
+  requireObservationSchema: true,
+});
+assert.equal(unspecifiedObservation.passed, false);
+assert.match(unspecifiedObservation.errors[0], /observation_schema is required/);
+
 console.log("PASS\tdataset audit accepts balanced, diverse transition coverage");
 console.log("PASS\tdataset audit rejects missing tool coverage");
 console.log("PASS\tdataset audit rejects malformed vectors");
-console.log("3/3 checks passed");
+console.log("PASS\tdataset audit rejects unversioned observation semantics");
+console.log("4/4 checks passed");

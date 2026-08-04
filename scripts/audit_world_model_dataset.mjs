@@ -20,6 +20,7 @@ export const TOOL_NAMES = [
 
 const EMBEDDING_SIZE = 128;
 const ACTION_FEATURE_SIZE = 16;
+const OBSERVATION_SCHEMAS = new Set(["ext2-usage-v1", "legacy-disk-masked-v1"]);
 const ARGUMENTLESS_TOOLS = new Set([
   "yield_cpu", "camera_capture", "gesture_status", "system_info",
   "list_processes", "save_memory", "load_memory", "trigger_kernel_upgrade",
@@ -44,6 +45,7 @@ export function auditRows(rows, thresholds = {}) {
     minEpisodes: thresholds.minEpisodes ?? 100,
     minMultistepEpisodes: thresholds.minMultistepEpisodes ?? 25,
     minRamProfiles: thresholds.minRamProfiles ?? 1,
+    requireObservationSchema: thresholds.requireObservationSchema ?? false,
   };
   const errors = [];
   const perTool = TOOL_NAMES.map((name) => ({
@@ -57,11 +59,21 @@ export function auditRows(rows, thresholds = {}) {
   const episodes = new Map();
   const ramProfiles = new Set();
   const sources = new Map();
+  const observationSchemas = new Map();
   let executedRows = 0;
   let blockedRows = 0;
 
   rows.forEach((row, index) => {
     const prefix = `row ${index + 1}`;
+    const observationSchema = row.observation_schema == null
+      ? "unspecified"
+      : String(row.observation_schema);
+    observationSchemas.set(observationSchema, (observationSchemas.get(observationSchema) || 0) + 1);
+    if (row.observation_schema != null && !OBSERVATION_SCHEMAS.has(observationSchema)) {
+      errors.push(`${prefix}: unknown observation_schema ${observationSchema}`);
+    } else if (limits.requireObservationSchema && row.observation_schema == null) {
+      errors.push(`${prefix}: observation_schema is required`);
+    }
     if (!finiteVector(row.before, EMBEDDING_SIZE)) errors.push(`${prefix}: before must contain 128 finite numbers`);
     if (!finiteVector(row.after, EMBEDDING_SIZE)) errors.push(`${prefix}: after must contain 128 finite numbers`);
     if (!finiteVector(row.action_features, ACTION_FEATURE_SIZE)) errors.push(`${prefix}: action_features must contain 16 finite numbers`);
@@ -127,6 +139,7 @@ export function auditRows(rows, thresholds = {}) {
     multistep_episodes: multiStepEpisodes,
     ram_profiles: [...ramProfiles].sort((a, b) => a - b),
     sources: Object.fromEntries([...sources.entries()].sort()),
+    observation_schemas: Object.fromEntries([...observationSchemas.entries()].sort()),
     thresholds: limits,
     gates,
     errors: errors.slice(0, 100),
@@ -171,6 +184,7 @@ function main() {
     minEpisodes: numberArg("--min-episodes", 100),
     minMultistepEpisodes: numberArg("--min-multistep-episodes", 25),
     minRamProfiles: numberArg("--min-ram-profiles", 1),
+    requireObservationSchema: process.argv.includes("--require-observation-schema"),
   });
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
