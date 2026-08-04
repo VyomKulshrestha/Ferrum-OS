@@ -632,7 +632,38 @@ pub fn http_post_binary(
     parse_http_response(raw)
 }
 
-/// Parse a raw HTTP response string into status code and body.
+fn decode_chunked_body(encoded: &[u8]) -> Result<String, &'static str> {
+    let mut decoded = Vec::new();
+    let mut offset = 0usize;
+    loop {
+        let line_end = encoded[offset..]
+            .windows(2)
+            .position(|pair| pair == b"\r\n")
+            .map(|position| offset + position)
+            .ok_or("malformed chunk size")?;
+        let size_line = core::str::from_utf8(&encoded[offset..line_end])
+            .map_err(|_| "invalid chunk size")?;
+        let size_text = size_line.split(';').next().unwrap_or("").trim();
+        let size = usize::from_str_radix(size_text, 16).map_err(|_| "invalid chunk size")?;
+        offset = line_end + 2;
+        if size == 0 {
+            return String::from_utf8(decoded).map_err(|_| "invalid UTF-8 in chunked body");
+        }
+        let chunk_end = offset.checked_add(size).ok_or("chunk size overflow")?;
+        if chunk_end + 2 > encoded.len() || &encoded[chunk_end..chunk_end + 2] != b"\r\n" {
+            return Err("truncated chunked body");
+        }
+        decoded.extend_from_slice(&encoded[offset..chunk_end]);
+        offset = chunk_end + 2;
+        if offset >= encoded.len() {
+            return Err("missing terminal HTTP chunk");
+        }
+    }
+}
+
+/// Parse a raw HTTP response string into status code and body. HTTP/1.1
+/// providers commonly use chunked transfer encoding even for non-streaming
+/// JSON; decode that framing before the cognitive JSON parser sees the body.
 fn parse_http_response(raw: &str) -> Result<HttpResponse, &'static str> {
     // Find the status line: "HTTP/1.1 200 OK\r\n"
     let status_line_end = raw.find("\r\n").ok_or("malformed HTTP response")?;
@@ -647,8 +678,20 @@ fn parse_http_response(raw: &str) -> Result<HttpResponse, &'static str> {
         .map_err(|_| "invalid status code")?;
 
     // Find the body (after \r\n\r\n)
-    let body_start = raw.find("\r\n\r\n").map(|i| i + 4).unwrap_or(raw.len());
-    let body = String::from(&raw[body_start..]);
+    let header_end = raw.find("\r\n\r\n").ok_or("missing HTTP header terminator")?;
+    let body_start = header_end + 4;
+    let headers = &raw[..header_end];
+    let is_chunked = headers.lines().any(|line| {
+        let mut parts = line.splitn(2, ':');
+        matches!((parts.next(), parts.next()), (Some(name), Some(value))
+            if name.trim().eq_ignore_ascii_case("transfer-encoding")
+                && value.split(',').any(|encoding| encoding.trim().eq_ignore_ascii_case("chunked")))
+    });
+    let body = if is_chunked {
+        decode_chunked_body(&raw.as_bytes()[body_start..])?
+    } else {
+        String::from(&raw[body_start..])
+    };
 
     Ok(HttpResponse {
         status_code,
