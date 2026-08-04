@@ -110,9 +110,20 @@ different_action = [{**fingerprint_rows[0], "action": 4}]
 assert MODULE.dataset_fingerprint(fingerprint_rows) == MODULE.dataset_fingerprint(latent_variant)
 assert MODULE.dataset_fingerprint(fingerprint_rows) != MODULE.dataset_fingerprint(different_action)
 
+candidate_identity = {
+    "rows": 100, "test_rows": 15, "split_mode": "episode", "split_seed": 42,
+    "dataset_fingerprint": MODULE.dataset_fingerprint(fingerprint_rows),
+}
+representation_identity = {**candidate_identity, "accepted": True}
+assert SELECTOR.representation_mismatches(candidate_identity, representation_identity) == []
+assert SELECTOR.representation_mismatches(
+    candidate_identity, {**representation_identity, "dataset_fingerprint": "sha256:stale"}
+) == ["dataset_fingerprint"]
+
 print("PASS\tepisode-aware train/validation/test partitions are disjoint")
 print("PASS\tlearned-tool coverage is derived only from sufficiently sampled training rows")
 print("PASS\toffline rollout clamping matches signed runtime latent bounds")
 print("PASS\tJEPA promotion metrics are invariant to latent scale alone")
 print("PASS\tdataset fingerprints ignore representation latents but bind row identity")
-print("5/5 checks passed")
+print("PASS\tJEPA acceptance reports are bound to their transition dataset and split")
+print("6/6 checks passed")

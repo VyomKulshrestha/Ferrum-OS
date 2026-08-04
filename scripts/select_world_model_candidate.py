@@ -39,6 +39,14 @@ def metric_values(report):
     }
 
 
+def representation_mismatches(candidate, representation):
+    fields = ("rows", "test_rows", "split_mode", "split_seed", "dataset_fingerprint")
+    return [
+        key for key in fields
+        if not candidate.get(key) or candidate.get(key) != representation.get(key)
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline", required=True, help="baseline transition metrics JSON")
@@ -71,6 +79,12 @@ def main():
         sys.exit(f"candidate metrics are not comparable; mismatched: {', '.join(mismatches)}")
     if not representation.get("accepted", False):
         sys.exit("candidate representation failed its predictive or anti-collapse gates")
+    representation_errors = representation_mismatches(candidate, representation)
+    if representation_errors:
+        sys.exit(
+            "candidate representation report does not match its transition evaluation: "
+            + ", ".join(representation_errors)
+        )
 
     try:
         base = metric_values(baseline)

@@ -14,7 +14,9 @@ import sys
 
 import numpy as np
 
-from train_world_model import NUM_TOOLS, ACTION_FEATURE_SIZE, split_indices
+from train_world_model import (
+    NUM_TOOLS, ACTION_FEATURE_SIZE, dataset_fingerprint, split_indices,
+)
 from train_world_model_encoder import extract_raw
 
 RAW_SIZE = 48
@@ -247,7 +249,8 @@ def main():
     with open(args.encoded_dataset, "w", encoding="utf-8") as handle:
         handle.write("\n".join(json.dumps(row) for row in encoded_rows) + "\n")
     report = {
-        "schema_version": 1, "accepted": accepted, "split_mode": split_mode,
+        "schema_version": 2, "accepted": accepted, "split_mode": split_mode,
+        "rows": len(rows), "dataset_fingerprint": dataset_fingerprint(rows),
         "train_rows": len(train_idx), "validation_rows": len(validation_idx), "test_rows": len(test_idx),
         "hidden_size": args.hidden, "seed": args.seed, "split_seed": args.split_seed,
         "tool_balanced_training": not args.no_balance_tools,
