@@ -393,6 +393,7 @@ async function collectProfile(ramMb, selected, chunkIndex) {
       activeScenario = scenario;
       let episodeTransitions = 0;
       let episodeFailed = false;
+      const pendingDatasetRows = [];
 
       for (let step = 0; step < scenario.max_steps; step++) {
         activeStep = step;
@@ -420,7 +421,7 @@ async function collectProfile(ramMb, selected, chunkIndex) {
             const expectedToolMatch = !scenario.expected_tool || actualTool === scenario.expected_tool;
             if (actualTool) observedTools.add(actualTool);
             if (!expectedToolMatch) expectedToolMismatches++;
-            appendJson(outPath, {
+            pendingDatasetRows.push({
               source: "hybrid",
               observation_schema: "ext2-usage-v1",
               episode_id: episodeId,
@@ -482,6 +483,7 @@ async function collectProfile(ramMb, selected, chunkIndex) {
         completed: !episodeFailed,
       });
       if (!episodeFailed) {
+        for (const row of pendingDatasetRows) appendJson(outPath, row);
         completed.add(episodeId);
       } else {
         failedEpisodes++;
