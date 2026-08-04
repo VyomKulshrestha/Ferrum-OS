@@ -54,13 +54,16 @@ def main():
     representation = load(args.representation)
     comparable = {
         key: (baseline.get(key), candidate.get(key))
-        for key in ("rows", "test_rows", "split_mode")
+        for key in ("rows", "test_rows", "split_mode", "dataset_fingerprint")
     }
     comparable["split_seed"] = (
         baseline.get("split_seed", baseline.get("seed")),
         candidate.get("split_seed", candidate.get("seed")),
     )
     mismatches = [key for key, pair in comparable.items() if pair[0] != pair[1]]
+    if not all(comparable["dataset_fingerprint"]):
+        mismatches.append("dataset_fingerprint")
+    mismatches = list(dict.fromkeys(mismatches))
     if mismatches:
         sys.exit(f"candidate metrics are not comparable; mismatched: {', '.join(mismatches)}")
     if not representation.get("accepted", False):

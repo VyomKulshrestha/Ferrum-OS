@@ -18,6 +18,7 @@ Usage:
     python scripts/train_world_model.py [--dataset PATH] [--out PATH] [--hidden N] [--epochs N]
 """
 import argparse
+import hashlib
 import json
 import struct
 import sys
@@ -258,6 +259,36 @@ def coverage_from_training_rows(rows, train_idx, minimum_samples):
         if count >= minimum_samples:
             coverage |= 1 << action_id
     return coverage, counts
+
+
+def dataset_fingerprint(rows):
+    """Hash row identity while deliberately excluding representation latents.
+
+    AE and JEPA replace only indices 51..127.  The ordered episode/action
+    identity, argument features, outcomes, and unchanged OS-state prefix must
+    still be byte-for-byte equivalent before their metrics are comparable.
+    """
+    digest = hashlib.sha256()
+    for row in rows:
+        identity = {
+            "episode_id": row.get("episode_id"),
+            "step": row.get("step"),
+            "transition_in_step": row.get("transition_in_step"),
+            "action": row.get("action"),
+            "action_features": row.get("action_features"),
+            "executed": row.get("executed", True),
+            "success": row.get("success"),
+            "ram_mb": row.get("ram_mb"),
+            "observation_schema": row.get("observation_schema"),
+            "before_prefix": row.get("before", [])[:LATENT_START],
+            "after_prefix": row.get("after", [])[:LATENT_START],
+        }
+        encoded = json.dumps(
+            identity, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+        digest.update(encoded)
+        digest.update(b"\n")
+    return f"sha256:{digest.hexdigest()}"
 
 
 def metric_summary(prediction, target, actions):
@@ -595,6 +626,7 @@ def main():
         "corpus_rows": len(corpus_rows),
         "excluded_unexecuted_rows": excluded_rows,
         "rows": len(rows),
+        "dataset_fingerprint": dataset_fingerprint(rows),
         "train_rows": len(train_idx),
         "validation_rows": len(validation_idx),
         "test_rows": len(test_idx),

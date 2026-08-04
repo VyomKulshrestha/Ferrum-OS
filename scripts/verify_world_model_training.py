@@ -91,8 +91,28 @@ assert abs(
     - scaled_summary["normalized_macro_tool_mse"]
 ) < 1e-7
 
+fingerprint_rows = [{
+    "episode_id": "fingerprint-1",
+    "step": 0,
+    "action": 3,
+    "action_features": [0.0] * MODULE.ACTION_FEATURE_SIZE,
+    "before": [0.25] * MODULE.EMBEDDING_SIZE,
+    "after": [0.5] * MODULE.EMBEDDING_SIZE,
+}]
+latent_variant = [{
+    **fingerprint_rows[0],
+    "before": fingerprint_rows[0]["before"][:MODULE.LATENT_START]
+        + [-0.75] * (MODULE.EMBEDDING_SIZE - MODULE.LATENT_START),
+    "after": fingerprint_rows[0]["after"][:MODULE.LATENT_START]
+        + [0.75] * (MODULE.EMBEDDING_SIZE - MODULE.LATENT_START),
+}]
+different_action = [{**fingerprint_rows[0], "action": 4}]
+assert MODULE.dataset_fingerprint(fingerprint_rows) == MODULE.dataset_fingerprint(latent_variant)
+assert MODULE.dataset_fingerprint(fingerprint_rows) != MODULE.dataset_fingerprint(different_action)
+
 print("PASS\tepisode-aware train/validation/test partitions are disjoint")
 print("PASS\tlearned-tool coverage is derived only from sufficiently sampled training rows")
 print("PASS\toffline rollout clamping matches signed runtime latent bounds")
 print("PASS\tJEPA promotion metrics are invariant to latent scale alone")
-print("4/4 checks passed")
+print("PASS\tdataset fingerprints ignore representation latents but bind row identity")
+print("5/5 checks passed")
