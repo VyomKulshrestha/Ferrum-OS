@@ -161,11 +161,13 @@ async function screendump() {
 
 // Taskbar layout mirrored from src/gui/desktop.rs::compute_taskbar_layout.
 const FB_W = 1024, FB_H = 768;
-const START_BTN_W = 70, EXIT_BTN_W = 70, WINDOW_SLOT_W = 110, SLOT_GAP = 6;
-const GROUP_GAP = 15, DOCK_SIDE_PADDING = 15, DOCK_H = 40, BTN_H = 24, BTN_Y_INSET = 8;
-const MAX_TASKBAR_SLOTS = 4;
+const START_BTN_W = 70, EXIT_BTN_W = 54, WINDOW_SLOT_W = 72, PAGE_BTN_W = 28, CLOCK_W = 80, SLOT_GAP = 4;
+const GROUP_GAP = 10, DOCK_SIDE_PADDING = 10, DOCK_H = 40, BTN_H = 24, BTN_Y_INSET = 8;
+const MAX_TASKBAR_SLOTS = 7;
 const windowsW = MAX_TASKBAR_SLOTS * WINDOW_SLOT_W + (MAX_TASKBAR_SLOTS - 1) * SLOT_GAP;
-const DOCK_W = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windowsW + GROUP_GAP + EXIT_BTN_W;
+const pagingW = PAGE_BTN_W * 2 + SLOT_GAP;
+const controlsW = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windowsW + GROUP_GAP + pagingW + GROUP_GAP + EXIT_BTN_W;
+const DOCK_W = controlsW + SLOT_GAP + CLOCK_W;
 const DOCK_X = Math.floor((FB_W - DOCK_W) / 2);
 const DOCK_Y = FB_H - DOCK_H - 10;
 const startRect = [DOCK_X + DOCK_SIDE_PADDING, DOCK_Y + BTN_Y_INSET, START_BTN_W, BTN_H];

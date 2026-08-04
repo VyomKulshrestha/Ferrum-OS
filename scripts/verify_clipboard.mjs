@@ -83,9 +83,9 @@ try {
   }
 
   // Geometry mirrors desktop.rs at 1024x768 with eleven launcher entries.
-  const dockX = Math.floor((1024 - 680) / 2), dockY = 718;
-  const startX = dockX + 15 + 35, startY = dockY + 20;
-  const launcherX = dockX + 15, launcherY = dockY - (16 + 11 * 28 + 8);
+  const dockX = Math.floor((1024 - 846) / 2), dockY = 718;
+  const startX = dockX + 10 + 35, startY = dockY + 20;
+  const launcherX = dockX + 10, launcherY = dockY - (16 + 11 * 28 + 8);
   async function launchTextEditor() {
     await click(startX, startY);
     await sleep(1500);

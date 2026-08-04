@@ -71,9 +71,9 @@ try {
     await mon("mouse_button 1", 120);
     await mon("mouse_button 0", 250);
   }
-  const dockX = Math.floor((1024 - 658) / 2), dockY = 718;
-  const startX = dockX + 50, startY = dockY + 20;
-  const launcherX = dockX + 15, launcherY = dockY - (16 + 11 * 28 + 8);
+  const dockX = Math.floor((1024 - 846) / 2), dockY = 718;
+  const startX = dockX + 45, startY = dockY + 20;
+  const launcherX = dockX + 10, launcherY = dockY - (16 + 11 * 28 + 8);
   async function launch(index) {
     await click(startX, startY);
     await sleep(1500);

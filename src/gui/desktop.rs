@@ -100,20 +100,19 @@ enum ButtonState {
     Active,
 }
 
-/// How many open windows the taskbar shows a button for. Windows beyond
-/// this are still open (and still show up if brought to front), they just
-/// don't get a taskbar slot - a real limit, not silently dropped: this is
-/// the same tradeoff the old fixed 3-button dock already made (it could
-/// only ever launch 3 specific things), just generalized.
-pub const MAX_TASKBAR_SLOTS: usize = 4;
+/// Number of window buttons visible at once. The compositor exposes the
+/// remaining windows through the adjacent paging buttons, so this is a
+/// presentation limit rather than an accessibility limit.
+pub const MAX_TASKBAR_SLOTS: usize = 7;
 
 const START_BTN_W: u32 = 70;
-const EXIT_BTN_W: u32 = 70;
+const EXIT_BTN_W: u32 = 54;
 const CLOCK_W: u32 = 80;
-const WINDOW_SLOT_W: u32 = 110;
-const SLOT_GAP: u32 = 6;
-const GROUP_GAP: u32 = 15;
-const DOCK_SIDE_PADDING: u32 = 15;
+const WINDOW_SLOT_W: u32 = 72;
+const PAGE_BTN_W: u32 = 28;
+const SLOT_GAP: u32 = 4;
+const GROUP_GAP: u32 = 10;
+const DOCK_SIDE_PADDING: u32 = 10;
 const DOCK_H: u32 = 40;
 const BTN_H: u32 = 24;
 const BTN_Y_INSET: u32 = 8;
@@ -124,6 +123,8 @@ pub struct TaskbarLayout {
     pub dock_w: u32,
     pub dock_h: u32,
     pub start_rect: (u32, u32, u32, u32),
+    pub previous_rect: (u32, u32, u32, u32),
+    pub next_rect: (u32, u32, u32, u32),
     pub exit_rect: (u32, u32, u32, u32),
     pub clock_rect: (u32, u32, u32, u32),
     /// Fixed-size slots, independent of how many windows are actually
@@ -137,12 +138,19 @@ pub struct TaskbarLayout {
 /// hand-duplicated magic numbers.
 pub fn compute_taskbar_layout(fb_w: u32, fb_h: u32) -> TaskbarLayout {
     let windows_w = MAX_TASKBAR_SLOTS as u32 * WINDOW_SLOT_W + (MAX_TASKBAR_SLOTS as u32 - 1) * SLOT_GAP;
-    // Keep the established Start/window/Exit group centered, then extend the
-    // tray to its right for the clock. Existing hit targets do not jump when
-    // the non-interactive tray is added.
-    let controls_w = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windows_w + GROUP_GAP + EXIT_BTN_W;
+    let paging_w = PAGE_BTN_W * 2 + SLOT_GAP;
+    let controls_w = DOCK_SIDE_PADDING * 2
+        + START_BTN_W
+        + GROUP_GAP
+        + windows_w
+        + GROUP_GAP
+        + paging_w
+        + GROUP_GAP
+        + EXIT_BTN_W;
     let dock_w = controls_w + SLOT_GAP + CLOCK_W;
-    let dock_x = fb_w.saturating_sub(controls_w) / 2;
+    // Center the complete dock, including its clock, rather than centering
+    // only the controls and letting the tray drift toward the right edge.
+    let dock_x = fb_w.saturating_sub(dock_w) / 2;
     let dock_y = fb_h.saturating_sub(DOCK_H + 10);
 
     let start_rect = (dock_x + DOCK_SIDE_PADDING, dock_y + BTN_Y_INSET, START_BTN_W, BTN_H);
@@ -154,10 +162,23 @@ pub fn compute_taskbar_layout(fb_w: u32, fb_h: u32) -> TaskbarLayout {
         cx += WINDOW_SLOT_W + SLOT_GAP;
     }
 
-    let exit_rect = (dock_x + controls_w - DOCK_SIDE_PADDING - EXIT_BTN_W, dock_y + BTN_Y_INSET, EXIT_BTN_W, BTN_H);
+    let previous_rect = (cx + GROUP_GAP - SLOT_GAP, dock_y + BTN_Y_INSET, PAGE_BTN_W, BTN_H);
+    let next_rect = (previous_rect.0 + PAGE_BTN_W + SLOT_GAP, dock_y + BTN_Y_INSET, PAGE_BTN_W, BTN_H);
+    let exit_rect = (next_rect.0 + PAGE_BTN_W + GROUP_GAP, dock_y + BTN_Y_INSET, EXIT_BTN_W, BTN_H);
     let clock_rect = (exit_rect.0 + EXIT_BTN_W + SLOT_GAP, dock_y + BTN_Y_INSET, CLOCK_W, BTN_H);
 
-    TaskbarLayout { dock_x, dock_y, dock_w, dock_h: DOCK_H, start_rect, exit_rect, clock_rect, window_rects }
+    TaskbarLayout {
+        dock_x,
+        dock_y,
+        dock_w,
+        dock_h: DOCK_H,
+        start_rect,
+        previous_rect,
+        next_rect,
+        exit_rect,
+        clock_rect,
+        window_rects,
+    }
 }
 
 fn taskbar_clock_text() -> alloc::string::String {
@@ -236,13 +257,13 @@ pub fn render_taskbar(
     let (sx, sy, sw, sh) = layout.start_rect;
     draw_button(sx, sy, sw, sh, "Start", 0x0000FFCC, start_state);
 
-    // One slot per open window (windows beyond MAX_TASKBAR_SLOTS just
-    // don't get a button - see the constant's doc comment). Lock once and
+    // One slot per visible window. Paging keeps every additional window
+    // reachable. Lock once and
     // pull out everything needed - a MutexGuard's drop is tied to the end
     // of its enclosing statement, so nesting a second `.lock()` inside an
     // expression that still holds an outer guard would deadlock this
     // non-reentrant spinlock.
-    let (windows, focused_id) = {
+    let (windows, focused_id, taskbar_offset) = {
         let state = crate::gui::compositor::COMPOSITOR.lock();
         let windows: Vec<(u64, alloc::string::String, bool)> = state
             .windows
@@ -250,11 +271,14 @@ pub fn render_taskbar(
             .map(|w| (w.id, w.title.clone(), w.minimized))
             .collect();
         let focused_id = state.focused_idx.and_then(|i| state.windows.get(i)).map(|w| w.id);
-        (windows, focused_id)
+        let taskbar_offset = state
+            .taskbar_offset
+            .min(windows.len().saturating_sub(MAX_TASKBAR_SLOTS));
+        (windows, focused_id, taskbar_offset)
     };
 
     for (slot, rect) in layout.window_rects.iter().enumerate() {
-        let Some((id, title, minimized)) = windows.get(slot) else { break };
+        let Some((id, title, minimized)) = windows.get(taskbar_offset + slot) else { break };
         let (wx, wy, ww, wh) = *rect;
         let is_hover = hover == HoverTarget::TaskbarWindow(*id);
         let is_pressed = pressed == HoverTarget::TaskbarWindow(*id);
@@ -273,6 +297,27 @@ pub fn render_taskbar(
         let label_color = if *minimized { 0x00777777 } else if is_active || is_hover { 0x00FFFFFF } else { 0x00AAAAAA };
         draw_button(wx, wy, ww, wh, &label, label_color, state);
     }
+
+    let has_previous = taskbar_offset > 0;
+    let has_next = taskbar_offset + MAX_TASKBAR_SLOTS < windows.len();
+    let previous_state = if pressed == HoverTarget::TaskbarPrevious {
+        ButtonState::Pressed
+    } else if hover == HoverTarget::TaskbarPrevious {
+        ButtonState::Hover
+    } else {
+        ButtonState::Idle
+    };
+    let next_state = if pressed == HoverTarget::TaskbarNext {
+        ButtonState::Pressed
+    } else if hover == HoverTarget::TaskbarNext {
+        ButtonState::Hover
+    } else {
+        ButtonState::Idle
+    };
+    let (px, py, pw, ph) = layout.previous_rect;
+    let (nx, ny, nw, nh) = layout.next_rect;
+    draw_button(px, py, pw, ph, "<", if has_previous { 0x00FFFFFF } else { 0x00444444 }, previous_state);
+    draw_button(nx, ny, nw, nh, ">", if has_next { 0x00FFFFFF } else { 0x00444444 }, next_state);
 
     // Exit button.
     let exit_state = if pressed == HoverTarget::ExitButton {

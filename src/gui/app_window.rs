@@ -107,6 +107,10 @@ pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64
     } else {
         state.windows.push(window);
         state.focused_idx = Some(state.windows.len() - 1);
+        state.taskbar_offset = state
+            .windows
+            .len()
+            .saturating_sub(crate::gui::desktop::MAX_TASKBAR_SLOTS);
     }
     state.needs_redraw = true;
     drop(state);
@@ -203,6 +207,9 @@ pub fn close_for_pid(pid: u64) {
         _ => true,
     });
     state.focused_idx = state.windows.iter().rposition(|window| !window.minimized);
+    state.taskbar_offset = state
+        .taskbar_offset
+        .min(state.windows.len().saturating_sub(crate::gui::desktop::MAX_TASKBAR_SLOTS));
     state.needs_redraw = true;
     drop(state);
 

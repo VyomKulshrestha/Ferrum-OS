@@ -213,11 +213,13 @@ async function screendump() {
 // (same tradeoff the Rust code itself documents for why it centralized
 // this into one function instead of duplicating magic numbers).
 const FB_W = 1024, FB_H = 768;
-const START_BTN_W = 70, EXIT_BTN_W = 70, WINDOW_SLOT_W = 110, SLOT_GAP = 6;
-const GROUP_GAP = 15, DOCK_SIDE_PADDING = 15, DOCK_H = 40, BTN_H = 24, BTN_Y_INSET = 8;
-const MAX_TASKBAR_SLOTS = 4;
+const START_BTN_W = 70, EXIT_BTN_W = 54, WINDOW_SLOT_W = 72, PAGE_BTN_W = 28, CLOCK_W = 80, SLOT_GAP = 4;
+const GROUP_GAP = 10, DOCK_SIDE_PADDING = 10, DOCK_H = 40, BTN_H = 24, BTN_Y_INSET = 8;
+const MAX_TASKBAR_SLOTS = 7;
 const windowsW = MAX_TASKBAR_SLOTS * WINDOW_SLOT_W + (MAX_TASKBAR_SLOTS - 1) * SLOT_GAP;
-const DOCK_W = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windowsW + GROUP_GAP + EXIT_BTN_W;
+const pagingW = PAGE_BTN_W * 2 + SLOT_GAP;
+const controlsW = DOCK_SIDE_PADDING * 2 + START_BTN_W + GROUP_GAP + windowsW + GROUP_GAP + pagingW + GROUP_GAP + EXIT_BTN_W;
+const DOCK_W = controlsW + SLOT_GAP + CLOCK_W;
 const DOCK_X = Math.floor((FB_W - DOCK_W) / 2);
 const DOCK_Y = FB_H - DOCK_H - 10;
 const startRect = [DOCK_X + DOCK_SIDE_PADDING, DOCK_Y + BTN_Y_INSET, START_BTN_W, BTN_H];
@@ -229,16 +231,18 @@ const windowSlotRects = [];
     cx += WINDOW_SLOT_W + SLOT_GAP;
   }
 }
-const exitRect = [DOCK_X + DOCK_W - DOCK_SIDE_PADDING - EXIT_BTN_W, DOCK_Y + BTN_Y_INSET, EXIT_BTN_W, BTN_H];
-const clockRect = [exitRect[0] + EXIT_BTN_W + SLOT_GAP, DOCK_Y + BTN_Y_INSET, 80, BTN_H];
+const previousRect = [windowSlotRects.at(-1)[0] + WINDOW_SLOT_W + GROUP_GAP, DOCK_Y + BTN_Y_INSET, PAGE_BTN_W, BTN_H];
+const nextRect = [previousRect[0] + PAGE_BTN_W + SLOT_GAP, DOCK_Y + BTN_Y_INSET, PAGE_BTN_W, BTN_H];
+const exitRect = [nextRect[0] + PAGE_BTN_W + GROUP_GAP, DOCK_Y + BTN_Y_INSET, EXIT_BTN_W, BTN_H];
+const clockRect = [exitRect[0] + EXIT_BTN_W + SLOT_GAP, DOCK_Y + BTN_Y_INSET, CLOCK_W, BTN_H];
 const rectCenter = ([x, y, w, h]) => [x + Math.floor(w / 2), y + Math.floor(h / 2)];
 
 // Launcher popup geometry mirrored from desktop.rs::launcher_rect / launcher_entry_rect.
 const LAUNCHER_ENTRY_H = 28, LAUNCHER_PADDING = 8, LAUNCHER_ENTRY_W = 180;
 // Terminal, System Monitor, Heliox Assistant, Text Editor, Calculator,
-// File Manager, Settings, Browser, App Store
+// File Manager, Settings, Browser, App Store, Notification Center, Task Manager
 // (src/gui/compositor.rs::LAUNCHER_ENTRIES).
-const launcherEntries = 9;
+const launcherEntries = 11;
 const launcherW = LAUNCHER_PADDING * 2 + LAUNCHER_ENTRY_W;
 const launcherH = LAUNCHER_PADDING * 2 + launcherEntries * LAUNCHER_ENTRY_H;
 const launcherX = startRect[0];
@@ -434,6 +438,51 @@ try {
   const termBackAt = ppm.pixelAt(TERM_X + 100, TERM_Y + 200);
   check("launching Terminal from the Start menu reopens it", termBackAt.r === 0x1a && termBackAt.g === 0x1a && termBackAt.b === 0x1a,
     `got (${termBackAt.r},${termBackAt.g},${termBackAt.b})`);
+
+  // --- 7. Overflow: every running app remains reachable ----------------
+  // Fill the desktop beyond the seven visible window slots. Each focused
+  // launch must keep the latest page visible, while the paging controls must
+  // still navigate back and forward without changing window state.
+  const overflowApps = [
+    [3, "[text-editor] window created id="],
+    [4, "[calculator] window created id="],
+    [5, "[file-manager] window created id="],
+    [6, "[settings] window created id="],
+    [7, "[browser] window created id="],
+    [8, "[app-store] window created id="],
+    [9, "[notification-center] window created id="],
+    // Task Manager creates its window before loading the process table; its
+    // stable readiness marker is the completed initial task load.
+    [10, "[task-manager] loaded tasks="],
+  ];
+  for (const [entry, marker] of overflowApps) {
+    const launchOffset = serialText().length;
+    await clickAt(...rectCenter(startRect));
+    await sleep(300);
+    await clickAt(...rectCenter(launcherEntryRect(entry)));
+    await waitForSerial(marker, 25, launchOffset);
+  }
+
+  let pageOffset = serialText().length;
+  await clickAt(...rectCenter(previousRect));
+  const previousPage = await waitForSerial("[desktop] taskbar page offset=3", 5, pageOffset);
+  check("taskbar overflow can navigate to earlier running windows", previousPage.includes("offset=3"));
+
+  pageOffset = serialText().length;
+  await clickAt(...rectCenter(nextRect));
+  const nextPage = await waitForSerial("[desktop] taskbar page offset=4", 5, pageOffset);
+  check("taskbar overflow can return to the newest running windows", nextPage.includes("offset=4"));
+
+  const [lastSlotX, lastSlotY] = rectCenter(windowSlotRects.at(-1));
+  let taskbarActionOffset = serialText().length;
+  await clickAt(lastSlotX, lastSlotY);
+  const minimized = await waitForSerial("title=Task Manager action=minimized", 5, taskbarActionOffset);
+  check("last overflowed app remains directly reachable and minimizes", minimized.includes("title=Task Manager"));
+
+  taskbarActionOffset = serialText().length;
+  await clickAt(lastSlotX, lastSlotY);
+  const restored = await waitForSerial("title=Task Manager action=restored", 5, taskbarActionOffset);
+  check("last overflowed app restores from the same taskbar slot", restored.includes("action=restored"));
 
   const full = serialText().slice(start);
   check("no userspace fault or page fault panic", !/terminating|General Protection|Page Fault/.test(full));

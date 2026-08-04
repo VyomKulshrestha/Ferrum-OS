@@ -119,6 +119,9 @@ pub enum HoverTarget {
     /// fixed Terminal/SysMon/Jarvis buttons - the taskbar now has one
     /// button per actually-open window instead of 3 hardcoded ones).
     TaskbarWindow(u64),
+    /// Scroll the visible taskbar window range without changing window focus.
+    TaskbarPrevious,
+    TaskbarNext,
     /// Close button of the window with this id.
     WindowClose(u64),
     WindowMaximize(u64),
@@ -216,6 +219,9 @@ pub struct CompositorState {
     pub pressed: HoverTarget,
     /// Whether the Start-button launcher popup is open.
     pub launcher_open: bool,
+    /// First window represented by a visible taskbar slot. Kept separate
+    /// from z-order so paging never raises or minimizes a window by itself.
+    pub taskbar_offset: usize,
 }
 
 lazy_static::lazy_static! {
@@ -232,6 +238,7 @@ lazy_static::lazy_static! {
         hover: HoverTarget::None,
         pressed: HoverTarget::None,
         launcher_open: false,
+        taskbar_offset: 0,
     });
 }
 
@@ -295,11 +302,13 @@ pub fn spawn_terminal() {
         state.windows.push(w);
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
+        state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
     } else {
         let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 400, 0x001A1A1A);
         w2.content.extend_from_slice(b"FerrumOS:~$ ");
         state.windows.push(w2);
         state.focused_idx = Some(state.windows.len() - 1);
+        state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
     }
     state.needs_redraw = true;
 }
@@ -311,11 +320,13 @@ pub fn spawn_sys_mon() {
         state.windows.push(w);
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
+        state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
     } else {
         let mut w1 = Window::new(1, crate::gui::window::WindowType::SystemMonitor, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
         w1.content.extend_from_slice(b"CPU Usage: 0%\nMemory: 0MB / 0MB\nTasks: 0 Active\n\n  --- CPU Load History ---");
         state.windows.push(w1);
         state.focused_idx = Some(state.windows.len() - 1);
+        state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
     }
     state.needs_redraw = true;
 }
@@ -357,6 +368,9 @@ pub fn spawn_demo_windows() {
     state.focused_idx = previously_focused_id
         .and_then(|id| state.windows.iter().position(|w| w.id == id))
         .or_else(|| state.windows.iter().position(|w| w.id == 2));
+    state.taskbar_offset = state
+        .taskbar_offset
+        .min(state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS));
     state.needs_redraw = true;
 }
 
@@ -601,7 +615,7 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         }
 
         if desktop::point_in(mx, my, dock_rect) {
-            let target = hit_test_taskbar(mx, my, &state.windows);
+            let target = hit_test_taskbar(mx, my, &state.windows, state.taskbar_offset);
             state.pressed = target;
             state.needs_redraw = true;
             return;
@@ -629,6 +643,7 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         state.windows.push(w);
         let new_idx = state.windows.len() - 1;
         state.focused_idx = Some(new_idx);
+        state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
 
         let win = &state.windows[new_idx];
         let is_close_btn = win.is_close_btn(mx, my);
@@ -643,6 +658,9 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
                     crate::gui::app_window::on_window_closed(w.id);
                 }
             }
+            state.taskbar_offset = state
+                .taskbar_offset
+                .min(state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS));
             state.focused_idx = if !state.windows.is_empty() {
                 Some(state.windows.len() - 1)
             } else {
@@ -729,7 +747,7 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
 
     // Update hover state for visual feedback.
     let new_hover = if desktop::point_in(mx, my, dock_rect) {
-        hit_test_taskbar(mx, my, &state.windows)
+        hit_test_taskbar(mx, my, &state.windows, state.taskbar_offset)
     } else if state.launcher_open {
         match desktop::launcher_entry_at(mx, my) {
             Some(idx) => HoverTarget::LauncherEntry(idx),
@@ -781,7 +799,7 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
 /// `windows` by reference rather than locking `COMPOSITOR` itself so
 /// callers that already hold the lock can pass it straight through
 /// without deadlocking this non-reentrant spinlock.
-fn hit_test_taskbar(mx: u32, my: u32, windows: &[Window]) -> HoverTarget {
+fn hit_test_taskbar(mx: u32, my: u32, windows: &[Window], taskbar_offset: usize) -> HoverTarget {
     let (fb_w, fb_h) = fb_dims();
     let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
 
@@ -791,8 +809,17 @@ fn hit_test_taskbar(mx: u32, my: u32, windows: &[Window]) -> HoverTarget {
     if desktop::point_in(mx, my, layout.exit_rect) {
         return HoverTarget::ExitButton;
     }
+    let taskbar_offset = taskbar_offset.min(windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS));
+    if taskbar_offset > 0 && desktop::point_in(mx, my, layout.previous_rect) {
+        return HoverTarget::TaskbarPrevious;
+    }
+    if taskbar_offset + desktop::MAX_TASKBAR_SLOTS < windows.len()
+        && desktop::point_in(mx, my, layout.next_rect)
+    {
+        return HoverTarget::TaskbarNext;
+    }
     for (slot, rect) in layout.window_rects.iter().enumerate() {
-        let Some(window) = windows.get(slot) else { break };
+        let Some(window) = windows.get(taskbar_offset + slot) else { break };
         if desktop::point_in(mx, my, *rect) {
             return HoverTarget::TaskbarWindow(window.id);
         }
@@ -813,7 +840,7 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                 None => HoverTarget::None,
             }
         } else {
-            hit_test_taskbar(mx, my, &state.windows)
+            hit_test_taskbar(mx, my, &state.windows, state.taskbar_offset)
         };
         let pressed = state.pressed;
         state.pressed = HoverTarget::None;
@@ -832,26 +859,53 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                 }
                 HoverTarget::TaskbarWindow(id) => {
                     if let Some(idx) = state.windows.iter().position(|w| w.id == id) {
+                        let title = state.windows[idx].title.clone();
                         let was_focused = state.focused_idx == Some(idx);
                         let was_minimized = state.windows[idx].minimized;
+                        let action;
                         if was_minimized {
                             // Restore and raise.
                             state.windows[idx].minimized = false;
                             let w = state.windows.remove(idx);
                             state.windows.push(w);
                             state.focused_idx = Some(state.windows.len() - 1);
+                            state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
+                            action = "restored";
                         } else if was_focused {
                             // Clicking the already-active window's taskbar
                             // entry minimizes it, same as every real
                             // taskbar.
                             state.windows[idx].minimized = true;
                             state.focused_idx = state.windows.iter().rposition(|w| !w.minimized);
+                            action = "minimized";
                         } else {
                             let w = state.windows.remove(idx);
                             state.windows.push(w);
                             state.focused_idx = Some(state.windows.len() - 1);
+                            state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
+                            action = "raised";
                         }
+                        crate::serial_println!(
+                            "[desktop] taskbar window id={} title={} action={}",
+                            id,
+                            title,
+                            action
+                        );
                     }
+                    state.needs_redraw = true;
+                    return;
+                }
+                HoverTarget::TaskbarPrevious => {
+                    let max_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
+                    state.taskbar_offset = state.taskbar_offset.min(max_offset).saturating_sub(1);
+                    crate::serial_println!("[desktop] taskbar page offset={}", state.taskbar_offset);
+                    state.needs_redraw = true;
+                    return;
+                }
+                HoverTarget::TaskbarNext => {
+                    let max_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
+                    state.taskbar_offset = state.taskbar_offset.saturating_add(1).min(max_offset);
+                    crate::serial_println!("[desktop] taskbar page offset={}", state.taskbar_offset);
                     state.needs_redraw = true;
                     return;
                 }
@@ -920,6 +974,7 @@ pub fn handle_key_press(ascii: u8) {
             let to_title = window.title.clone();
             state.windows.push(window);
             state.focused_idx = Some(state.windows.len() - 1);
+            state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
             state.launcher_open = false;
             state.needs_redraw = true;
             crate::serial_println!(
