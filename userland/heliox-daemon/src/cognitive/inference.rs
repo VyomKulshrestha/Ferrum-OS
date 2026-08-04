@@ -50,7 +50,6 @@ pub struct TransformerWeights {
     pub rms_ffn_weight: *const f32,
     pub rms_final_weight: *const f32,
     pub q_tokens: QuantizedTensor,
-    pub token_embedding_table: Vec<f32>,
     pub wq: Vec<QuantizedTensor>,
     pub wk: Vec<QuantizedTensor>,
     pub wv: Vec<QuantizedTensor>,
@@ -130,7 +129,14 @@ pub struct Tokenizer {
 }
 
 fn read_file_to_vec(path: &str) -> Result<Vec<u8>, &'static str> {
-    let mut buf = alloc::vec![0u8; 4 * 1024 * 1024];
+    // The shipped 32k-token vocabulary is about 424 KiB.  The old generic
+    // 4 MiB scratch allocation was needlessly large and, after a long-lived
+    // daemon had serviced many requests, could fail solely because no 4 MiB
+    // contiguous heap extent remained.  A bounded 1 MiB tokenizer buffer is
+    // still more than twice the current artifact size; malformed/truncated
+    // files are rejected by Tokenizer::load's existing EOF checks.
+    const MAX_TOKENIZER_BYTES: usize = 1024 * 1024;
+    let mut buf = alloc::vec![0u8; MAX_TOKENIZER_BYTES];
     let bytes_read = unsafe {
         crate::syscall4(
             SYS_READ_FILE,
@@ -310,20 +316,18 @@ fn decode_token_bytes(token_bytes: &[u8]) -> Vec<u8> {
     token_bytes.to_vec()
 }
 
-unsafe fn dequantize(qx: &QuantizedTensor, x: &mut [f32], n: usize, gs: usize) {
-    for i in 0..n {
-        let scale = *qx.s.add(i / gs);
-        let q_val = *qx.q.add(i);
-        x[i] = (q_val as f32) * scale;
-        // `x` is a freshly heap-allocated buffer (e.g. the ~36MB token
-        // embedding table for a real model) - writing to it fault-allocates
-        // one physical frame per page with nothing else scheduled in
-        // between. Yield periodically so the daemon's network stack still
-        // gets serviced during what would otherwise be one long unbroken
-        // compute stretch.
-        if i % 65536 == 0 {
-            crate::syscall3(SYS_YIELD, 0, 0, 0);
-        }
+/// Dequantize one row from a larger quantized tensor.
+///
+/// Token lookup only consumes `dim` values at a time.  Keeping all 32,000
+/// rows expanded as fp32 used about 35 MiB of the daemon's 64 MiB heap for
+/// every request and made later allocations vulnerable to fragmentation.
+/// The row dimensions of supported checkpoints are group-aligned, so scales
+/// can be addressed directly from the row's element offset.
+unsafe fn dequantize_row(qx: &QuantizedTensor, x: &mut [f32], offset: usize, gs: usize) {
+    debug_assert_eq!(offset % gs, 0);
+    for (i, value) in x.iter_mut().enumerate() {
+        let source = offset + i;
+        *value = (*qx.q.add(source) as f32) * *qx.s.add(source / gs);
     }
 }
 
@@ -571,9 +575,11 @@ fn forward(w: &TransformerWeights, s: &mut RunState, token: usize, pos: usize, p
     let head_size = dim / p.n_heads;
     let seq_len = p.seq_len;
 
-    // copy token embedding
+    // Materialize only the token row needed by this forward pass.  Expanding
+    // the full vocabulary here used ~35 MiB and caused 512 MiB soak runs to
+    // exhaust the daemon heap after otherwise unrelated requests.
     let token_offset = token * dim;
-    s.x.copy_from_slice(&w.token_embedding_table[token_offset..token_offset + dim]);
+    unsafe { dequantize_row(&w.q_tokens, &mut s.x, token_offset, gs); }
 
     for l in 0..p.n_layers {
         // attention rmsnorm
@@ -941,12 +947,6 @@ pub fn run_local_inference_with_limit(
     // q_tokens quantized embedding
     let q_tokens = init_quantized_tensor(&mut ptr, vocab_size * dim, gs);
 
-    // dequantize embedding table to float array
-    let mut token_embedding_table = alloc::vec![0.0f32; vocab_size * dim];
-    unsafe {
-        dequantize(&q_tokens, &mut token_embedding_table, vocab_size * dim, gs);
-    }
-
     // wq, wk, wv, wo
     let wq = init_quantized_tensors(&mut ptr, n_layers, dim * dim, gs);
     let wk = init_quantized_tensors(&mut ptr, n_layers, dim * kv_dim, gs);
@@ -970,7 +970,6 @@ pub fn run_local_inference_with_limit(
         rms_ffn_weight,
         rms_final_weight,
         q_tokens,
-        token_embedding_table,
         wq,
         wk,
         wv,
