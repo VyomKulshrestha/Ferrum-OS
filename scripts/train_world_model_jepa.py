@@ -169,6 +169,7 @@ def main():
     parser.add_argument("--patience", type=int, default=12)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--split-seed", type=int, default=42)
+    parser.add_argument("--no-balance-tools", action="store_true")
     args = parser.parse_args()
 
     rows = [row for row in load_rows(args.dataset) if row.get("executed", True)]
@@ -183,9 +184,24 @@ def main():
               "ew2": weights["ew2"].copy(), "eb2": weights["eb2"].copy()}
     optimizer = Adam(weights, args.lr)
     rng = np.random.default_rng(args.seed)
+    train_action_ids = np.argmax(action[train_idx, :NUM_TOOLS], axis=1)
+    action_groups = [train_idx[train_action_ids == action_id] for action_id in range(NUM_TOOLS)]
+    action_groups = [group for group in action_groups if len(group) > 0]
+    max_group = max(len(group) for group in action_groups)
+    if not args.no_balance_tools:
+        print(
+            f"balanced {len(action_groups)} observed tools during JEPA fitting "
+            f"(training counts {min(len(group) for group in action_groups)}..{max_group})"
+        )
     best, best_score, stale = None, float("inf"), 0
     for epoch in range(args.epochs):
-        shuffled = rng.permutation(train_idx)
+        if args.no_balance_tools:
+            shuffled = rng.permutation(train_idx)
+        else:
+            shuffled = rng.permutation(np.concatenate([
+                rng.choice(group, size=max_group, replace=len(group) < max_group)
+                for group in action_groups
+            ]))
         for offset in range(0, len(shuffled), args.batch_size):
             batch = shuffled[offset:offset + args.batch_size]
             batch_step(x[batch], next_x[batch], action[batch], weights, target, optimizer,
@@ -234,6 +250,7 @@ def main():
         "schema_version": 1, "accepted": accepted, "split_mode": split_mode,
         "train_rows": len(train_idx), "validation_rows": len(validation_idx), "test_rows": len(test_idx),
         "hidden_size": args.hidden, "seed": args.seed, "split_seed": args.split_seed,
+        "tool_balanced_training": not args.no_balance_tools,
         "test": test_metrics,
     }
     with open(args.metrics_out, "w", encoding="utf-8") as handle:
