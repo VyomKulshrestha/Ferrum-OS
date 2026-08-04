@@ -3,5 +3,5 @@ name=notes
 version=1.0.0
 description=A simple persistent scratchpad
 capabilities=cap:gui:window,cap:fs:read,cap:fs:write
-binary_sha256=caff73bedfe459f46421d6f657a682180864099c9e8651a0ee3e303c22c28fae
-signing_key=ferrumos-release-1
+binary_sha256=71c09d1e375fe8c0c1e43687732be15902a55b2a7cff268882df8544d003804d
+signing_key=ferrumos-release-2

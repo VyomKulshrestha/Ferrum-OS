@@ -61,9 +61,9 @@ wsl debugfs -w -R "write $tokenizerSrc /heliox/tokenizer.bin" target/heliox-disk
 # above. `pkg install` only ever toggles a small runtime registry file;
 # see src/pkg/mod.rs for the full rationale.
 Write-Host "Staging ferrumpkg packages onto the disk image..." -ForegroundColor Cyan
-$notesElf = "userland/notes/target/x86_64-unknown-none/release/notes"
+$notesElf = "appliance/packages/notes/bin"
 if (-not (Test-Path $notesElf)) {
-    Write-Host "Missing $notesElf - did the userland build succeed?" -ForegroundColor Red
+    Write-Host "Missing immutable signed package binary $notesElf." -ForegroundColor Red
     exit 1
 }
 

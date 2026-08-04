@@ -6,13 +6,13 @@ param(
     [string]$Memory = "4096M"
 )
 
-# Ensure the nightly rustup toolchain takes priority over standalone Rust
-# installations. This machine also has a stable Rust install in Program Files;
-# putting the nightly toolchain bin first keeps cargo's child rustc invocations
-# on the same toolchain that owns the x86_64-unknown-none target.
-$NightlyBin = "$env:USERPROFILE\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\bin"
+# Prefer rustup's shims so rust-toolchain.toml selects the repository's exact
+# dated nightly. Pointing PATH at a floating toolchain directory bypassed that
+# pin and made release ELFs vary with each local rustup update.
 $CargoBin = "$env:USERPROFILE\.cargo\bin"
-$env:Path = "$NightlyBin;$CargoBin;C:\Program Files\LLVM\bin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+$FallbackNightlyBin = "$env:USERPROFILE\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\bin"
+$RustBin = if (Test-Path "$CargoBin\cargo.exe") { $CargoBin } else { $FallbackNightlyBin }
+$env:Path = "$RustBin;C:\Program Files\LLVM\bin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 function Launch-Qemu {
     param(

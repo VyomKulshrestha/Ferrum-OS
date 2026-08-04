@@ -2,6 +2,7 @@
 /target*/
 /userland/**/target/
 *.bin
+!appliance/packages/notes/bin
 *.iso
 *.img
 *.ppm
