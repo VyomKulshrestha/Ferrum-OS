@@ -34,7 +34,19 @@ pub struct Prediction {
     pub proc_count_delta: i32,
 }
 
-const OWN_CONFIG_PATH: &str = "/disk/heliox/config.json";
+fn targets_own_config(path: &str) -> bool {
+    let mut components: alloc::vec::Vec<&str> = alloc::vec::Vec::new();
+    for component in path.split('/') {
+        match component {
+            "" | "." => {}
+            ".." => {
+                components.pop();
+            }
+            value => components.push(value),
+        }
+    }
+    components.as_slice() == ["disk", "heliox", "config.json"]
+}
 
 pub fn predict_next_state(state: &StateEmbedding, action: &ToolCall) -> Prediction {
     // `deletes_own_config` is a fact about the action's *arguments*, not
@@ -44,8 +56,8 @@ pub fn predict_next_state(state: &StateEmbedding, action: &ToolCall) -> Predicti
     // one exact path this daemon's own config lives at.
     let deletes_own_config = action.name == "delete_file"
         && find_tool_arg_string(&action.arguments, "path")
-            .unwrap_or_default()
-            .contains(OWN_CONFIG_PATH);
+            .map(|path| targets_own_config(&path))
+            .unwrap_or(false);
 
     if let Some(delta) = learned::predict_delta(state, action) {
         let mut next = *state;
