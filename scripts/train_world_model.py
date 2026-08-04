@@ -29,6 +29,7 @@ NUM_TOOLS = 41
 ACTION_FEATURE_SIZE = 16
 INPUT_SIZE = EMBEDDING_SIZE + NUM_TOOLS + ACTION_FEATURE_SIZE
 OUTPUT_SIZE = EMBEDDING_SIZE
+LATENT_START = 51
 V2_MAGIC = b"FWM2"
 V2_VERSION = 2
 
@@ -193,6 +194,149 @@ def predict_mlp(X, w1, b1, w2, b2):
     return h @ w2 + b2
 
 
+def split_indices(rows, validation_fraction=0.15, test_fraction=0.15, seed=42):
+    """Return disjoint train/validation/test indices without episode leakage."""
+    if validation_fraction <= 0 or test_fraction <= 0:
+        raise ValueError("validation and test fractions must both be greater than zero")
+    if validation_fraction + test_fraction >= 0.8:
+        raise ValueError("validation + test fractions must leave at least 20% for training")
+    rng = np.random.default_rng(seed)
+    episode_ids = [row.get("episode_id") for row in rows]
+    if all(episode_id is not None for episode_id in episode_ids):
+        unique_episodes = np.array(sorted(set(episode_ids)), dtype=object)
+        if len(unique_episodes) < 3:
+            raise ValueError("episode-aware train/validation/test splitting needs at least 3 episodes")
+        shuffled = rng.permutation(unique_episodes)
+        n_test = max(1, int(len(unique_episodes) * test_fraction))
+        n_validation = max(1, int(len(unique_episodes) * validation_fraction))
+        if n_test + n_validation >= len(unique_episodes):
+            n_validation = 1
+            n_test = 1
+        test_episodes = set(shuffled[:n_test].tolist())
+        validation_episodes = set(shuffled[n_test:n_test + n_validation].tolist())
+        train_idx = np.array([
+            i for i, episode_id in enumerate(episode_ids)
+            if episode_id not in test_episodes and episode_id not in validation_episodes
+        ], dtype=np.int64)
+        validation_idx = np.array([
+            i for i, episode_id in enumerate(episode_ids) if episode_id in validation_episodes
+        ], dtype=np.int64)
+        test_idx = np.array([
+            i for i, episode_id in enumerate(episode_ids) if episode_id in test_episodes
+        ], dtype=np.int64)
+        mode = "episode"
+    else:
+        if len(rows) < 3:
+            raise ValueError("train/validation/test splitting needs at least 3 rows")
+        shuffled = rng.permutation(len(rows))
+        n_test = max(1, int(len(rows) * test_fraction))
+        n_validation = max(1, int(len(rows) * validation_fraction))
+        test_idx = shuffled[:n_test]
+        validation_idx = shuffled[n_test:n_test + n_validation]
+        train_idx = shuffled[n_test + n_validation:]
+        mode = "row"
+    if min(len(train_idx), len(validation_idx), len(test_idx)) == 0:
+        raise ValueError("train/validation/test split produced an empty partition")
+    return train_idx, validation_idx, test_idx, mode
+
+
+def coverage_from_training_rows(rows, train_idx, minimum_samples):
+    counts = np.zeros(NUM_TOOLS, dtype=np.int64)
+    for index in train_idx:
+        action_id = int(rows[int(index)]["action"])
+        if 0 <= action_id < NUM_TOOLS:
+            counts[action_id] += 1
+    coverage = 0
+    for action_id, count in enumerate(counts):
+        if count >= minimum_samples:
+            coverage |= 1 << action_id
+    return coverage, counts
+
+
+def metric_summary(prediction, target, actions):
+    learned_mse = float(np.mean((prediction - target) ** 2))
+    core_mse = float(np.mean((prediction[:, :7] - target[:, :7]) ** 2))
+    changed_dimensions = np.any(np.abs(target) > 1e-7, axis=0)
+    dynamic_mse = (
+        float(np.mean((prediction[:, changed_dimensions] - target[:, changed_dimensions]) ** 2))
+        if changed_dimensions.any() else 0.0
+    )
+    per_action = {}
+    action_mses = []
+    for action_id in sorted(set(actions.tolist())):
+        mask = actions == action_id
+        action_mse = float(np.mean((prediction[mask] - target[mask]) ** 2))
+        core_action_mse = float(np.mean((prediction[mask, :7] - target[mask, :7]) ** 2))
+        name = TOOL_NAMES[action_id] if 0 <= action_id < NUM_TOOLS else str(action_id)
+        per_action[name] = {
+            "samples": int(mask.sum()),
+            "mse": action_mse,
+            "core_mse": core_action_mse,
+        }
+        action_mses.append(action_mse)
+    return {
+        "mse": learned_mse,
+        "core_mse": core_mse,
+        "dynamic_mse": dynamic_mse,
+        "macro_tool_mse": float(np.mean(action_mses)) if action_mses else 0.0,
+        "changed_dimensions": np.flatnonzero(changed_dimensions).tolist(),
+        "per_action": per_action,
+    }
+
+
+def runtime_clamp(states):
+    states[..., :LATENT_START] = np.clip(states[..., :LATENT_START], 0.0, 1.0)
+    states[..., LATENT_START:] = np.clip(states[..., LATENT_START:], -1.0, 1.0)
+    return states
+
+
+def rollout_metrics(rows, test_idx, weights, max_horizon=5):
+    """Open-loop evaluation using subsequent real actions from held-out episodes."""
+    w1, b1, w2, b2 = weights
+    by_episode = {}
+    for index in test_idx:
+        row = rows[int(index)]
+        episode_id = str(row.get("episode_id", f"legacy-{int(index)}"))
+        by_episode.setdefault(episode_id, []).append((int(index), row))
+    for episode_rows in by_episode.values():
+        episode_rows.sort(key=lambda item: (
+            int(item[1].get("step", item[0])),
+            int(item[1].get("transition_in_step", 0)),
+            item[0],
+        ))
+
+    squared_errors = {horizon: [] for horizon in range(1, max_horizon + 1)}
+    core_squared_errors = {horizon: [] for horizon in range(1, max_horizon + 1)}
+    for episode_rows in by_episode.values():
+        for start in range(len(episode_rows)):
+            state = np.asarray(episode_rows[start][1]["before"], dtype=np.float32).copy()
+            for offset in range(max_horizon):
+                position = start + offset
+                if position >= len(episode_rows):
+                    break
+                row = episode_rows[position][1]
+                action_id = int(row["action"])
+                model_input = np.zeros((1, INPUT_SIZE), dtype=np.float32)
+                model_input[0, :EMBEDDING_SIZE] = state
+                model_input[0, EMBEDDING_SIZE + action_id] = 1.0
+                model_input[0, EMBEDDING_SIZE + NUM_TOOLS:] = np.asarray(
+                    row.get("action_features", [0.0] * ACTION_FEATURE_SIZE), dtype=np.float32
+                )
+                state = runtime_clamp(state + predict_mlp(model_input, w1, b1, w2, b2)[0])
+                target = np.asarray(row["after"], dtype=np.float32)
+                horizon = offset + 1
+                squared_errors[horizon].append(float(np.mean((state - target) ** 2)))
+                core_squared_errors[horizon].append(float(np.mean((state[:7] - target[:7]) ** 2)))
+    return {
+        str(horizon): {
+            "samples": len(squared_errors[horizon]),
+            "mse": float(np.mean(squared_errors[horizon])) if squared_errors[horizon] else None,
+            "core_mse": float(np.mean(core_squared_errors[horizon])) if core_squared_errors[horizon] else None,
+        }
+        for horizon in range(1, max_horizon + 1)
+    }
+
+
 def write_weights(path, w1, b1, w2, b2, coverage):
     """
     Flat binary format cognitive/world_model/learned.rs parses directly:
@@ -228,13 +372,28 @@ def main():
     parser.add_argument("--hidden", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=2000)
     parser.add_argument("--lr", type=float, default=0.05)
-    parser.add_argument("--holdout", type=float, default=0.15)
+    parser.add_argument("--validation", type=float, default=0.15)
+    parser.add_argument("--test", type=float, default=0.15)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--patience",
         type=int,
         default=0,
         help="stop after N validation checks without improvement and restore the best checkpoint (0 disables)",
     )
+    parser.add_argument(
+        "--min-train-per-tool",
+        type=int,
+        default=32,
+        help="minimum executed training examples required before learned inference is enabled for a tool",
+    )
+    parser.add_argument(
+        "--require-covered-tools",
+        type=int,
+        default=1,
+        help="fail unless this many tools meet --min-train-per-tool",
+    )
+    parser.add_argument("--max-rollout-horizon", type=int, default=5)
     parser.add_argument("--metrics-out", default="target/world_model_metrics.json")
     args = parser.parse_args()
 
@@ -253,43 +412,26 @@ def main():
 
     X, Y, baseline_delta = build_arrays(rows)
 
-    rng = np.random.default_rng(42)
-    episode_ids = [row.get("episode_id") for row in rows]
-    if all(episode_id is not None for episode_id in episode_ids):
-        unique_episodes = np.array(sorted(set(episode_ids)), dtype=object)
-        shuffled_episodes = rng.permutation(unique_episodes)
-        n_holdout_episodes = max(1, int(len(unique_episodes) * args.holdout))
-        holdout_episodes = set(shuffled_episodes[:n_holdout_episodes].tolist())
-        holdout_idx = np.array(
-            [i for i, episode_id in enumerate(episode_ids) if episode_id in holdout_episodes],
-            dtype=np.int64,
+    try:
+        train_idx, validation_idx, test_idx, split_mode = split_indices(
+            rows, args.validation, args.test, args.seed
         )
-        train_idx = np.array(
-            [i for i, episode_id in enumerate(episode_ids) if episode_id not in holdout_episodes],
-            dtype=np.int64,
-        )
-        print(
-            f"episode-aware split: {len(unique_episodes) - n_holdout_episodes}/"
-            f"{n_holdout_episodes} train/holdout episodes"
-        )
-    else:
-        print("warning: legacy rows lack episode_id; falling back to random row split")
-        idx = rng.permutation(len(rows))
-        n_holdout = max(1, int(len(rows) * args.holdout))
-        holdout_idx, train_idx = idx[:n_holdout], idx[n_holdout:]
-    if len(train_idx) == 0 or len(holdout_idx) == 0:
-        print("error: train/holdout split produced an empty partition", file=sys.stderr)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
         sys.exit(1)
-
     X_train, Y_train = X[train_idx], Y[train_idx]
-    X_holdout, Y_holdout, baseline_holdout = X[holdout_idx], Y[holdout_idx], baseline_delta[holdout_idx]
+    X_validation, Y_validation = X[validation_idx], Y[validation_idx]
+    X_test, Y_test = X[test_idx], Y[test_idx]
+    baseline_test = baseline_delta[test_idx]
+    print(
+        f"{split_mode}-aware train/validation/test split: "
+        f"{len(train_idx)}/{len(validation_idx)}/{len(test_idx)}"
+    )
 
-    print(f"train/holdout split: {len(train_idx)}/{len(holdout_idx)}")
-
-    baseline_mse = float(np.mean((baseline_holdout - Y_holdout) ** 2))
-    zero_mse = float(np.mean(Y_holdout ** 2))
-    print(f"baseline (Phase 1 rule table) holdout MSE: {baseline_mse:.6f}")
-    print(f"trivial (always predict zero delta) holdout MSE: {zero_mse:.6f}")
+    baseline_mse = float(np.mean((baseline_test - Y_test) ** 2))
+    zero_mse = float(np.mean(Y_test ** 2))
+    print(f"baseline (Phase 1 rule table) untouched-test MSE: {baseline_mse:.6f}")
+    print(f"trivial (always predict zero delta) untouched-test MSE: {zero_mse:.6f}")
 
     print(f"training MLP (input={X.shape[1]}, hidden={args.hidden}, output={Y.shape[1]}, epochs={args.epochs})...")
     w1, b1, w2, b2 = train_mlp(
@@ -298,61 +440,93 @@ def main():
         args.hidden,
         args.epochs,
         args.lr,
-        validation=(X_holdout, Y_holdout),
+        validation=(X_validation, Y_validation),
         patience=max(0, args.patience),
+        seed=args.seed,
     )
 
-    pred_holdout = predict_mlp(X_holdout, w1, b1, w2, b2)
-    learned_mse = float(np.mean((pred_holdout - Y_holdout) ** 2))
-    print(f"learned MLP holdout MSE: {learned_mse:.6f}")
+    pred_test = predict_mlp(X_test, w1, b1, w2, b2)
+    test_actions = np.asarray([rows[int(i)]["action"] for i in test_idx], dtype=np.int32)
+    evaluation = metric_summary(pred_test, Y_test, test_actions)
+    learned_mse = evaluation["mse"]
+    core_mse = evaluation["core_mse"]
+    print(f"learned MLP untouched-test MSE: {learned_mse:.6f}")
+    print(f"learned MLP core-feature untouched-test MSE: {core_mse:.6f}")
+    print(f"learned MLP macro-per-tool untouched-test MSE: {evaluation['macro_tool_mse']:.6f}")
+    for name, action_metrics in evaluation["per_action"].items():
+        print(
+            f"  {name:24s} n={action_metrics['samples']:4d} "
+            f"mse={action_metrics['mse']:.6f} core={action_metrics['core_mse']:.6f}"
+        )
 
-    core_mse = float(np.mean((pred_holdout[:, :7] - Y_holdout[:, :7]) ** 2))
-    print(f"learned MLP core-feature holdout MSE: {core_mse:.6f}")
-    per_action = {}
-    holdout_actions = np.asarray([rows[i]["action"] for i in holdout_idx], dtype=np.int32)
-    for action_id in sorted(set(holdout_actions.tolist())):
-        mask = holdout_actions == action_id
-        action_mse = float(np.mean((pred_holdout[mask] - Y_holdout[mask]) ** 2))
-        core_action_mse = float(np.mean((pred_holdout[mask, :7] - Y_holdout[mask, :7]) ** 2))
-        name = TOOL_NAMES[action_id] if 0 <= action_id < NUM_TOOLS else str(action_id)
-        per_action[name] = {
-            "samples": int(mask.sum()),
-            "mse": action_mse,
-            "core_mse": core_action_mse,
-        }
-        print(f"  {name:24s} n={int(mask.sum()):4d} mse={action_mse:.6f} core={core_action_mse:.6f}")
+    rollouts = rollout_metrics(
+        rows,
+        test_idx,
+        (w1, b1, w2, b2),
+        max(1, args.max_rollout_horizon),
+    )
+    for horizon, result in rollouts.items():
+        if result["mse"] is not None:
+            print(
+                f"  rollout H={horizon} n={result['samples']:4d} "
+                f"mse={result['mse']:.6f} core={result['core_mse']:.6f}"
+            )
 
-    if learned_mse < baseline_mse:
-        print(f"PASS: learned model beats the Phase 1 rule table baseline ({learned_mse:.6f} < {baseline_mse:.6f})")
+    acceptance_reference = min(baseline_mse, zero_mse)
+    if learned_mse < acceptance_reference:
+        print(
+            "PASS: learned model beats both the rule-table and zero-delta "
+            f"untouched-test baselines ({learned_mse:.6f} < {acceptance_reference:.6f})"
+        )
     else:
-        print(f"FAIL: learned model does not beat the Phase 1 rule table baseline ({learned_mse:.6f} >= {baseline_mse:.6f})")
+        print(
+            "FAIL: learned model does not beat the strongest untouched-test baseline "
+            f"({learned_mse:.6f} >= {acceptance_reference:.6f})"
+        )
         sys.exit(1)
 
-    coverage = 0
-    for row in rows:
-        action_id = int(row["action"])
-        if 0 <= action_id < NUM_TOOLS:
-            coverage |= 1 << action_id
+    coverage, training_counts = coverage_from_training_rows(
+        rows, train_idx, max(1, args.min_train_per_tool)
+    )
+    covered_count = int(coverage.bit_count())
+    if covered_count < args.require_covered_tools:
+        print(
+            f"FAIL: only {covered_count} tools have at least {args.min_train_per_tool} "
+            f"training rows; required {args.require_covered_tools}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     write_weights(args.out, w1, b1, w2, b2, coverage)
     weight_bytes = w1.nbytes + b1.nbytes + w2.nbytes + b2.nbytes + 32
     print(f"wrote weights to {args.out} ({weight_bytes} bytes, coverage=0x{coverage:x})")
 
     metrics = {
-        "schema_version": 2,
+        "schema_version": 3,
         "corpus_rows": len(corpus_rows),
         "excluded_unexecuted_rows": excluded_rows,
         "rows": len(rows),
         "train_rows": len(train_idx),
-        "holdout_rows": len(holdout_idx),
+        "validation_rows": len(validation_idx),
+        "test_rows": len(test_idx),
+        "split_mode": split_mode,
+        "seed": args.seed,
         "input_size": INPUT_SIZE,
         "hidden_size": args.hidden,
+        "min_train_per_tool": args.min_train_per_tool,
         "coverage_mask": f"0x{coverage:x}",
         "covered_tools": [TOOL_NAMES[i] for i in range(NUM_TOOLS) if coverage & (1 << i)],
+        "training_samples_per_tool": {
+            TOOL_NAMES[i]: int(training_counts[i]) for i in range(NUM_TOOLS)
+        },
         "baseline_mse": baseline_mse,
         "zero_mse": zero_mse,
         "learned_mse": learned_mse,
         "core_feature_mse": core_mse,
-        "per_action": per_action,
+        "dynamic_feature_mse": evaluation["dynamic_mse"],
+        "macro_tool_mse": evaluation["macro_tool_mse"],
+        "changed_dimensions": evaluation["changed_dimensions"],
+        "per_action": evaluation["per_action"],
+        "rollout": rollouts,
     }
     with open(args.metrics_out, "w") as f:
         json.dump(metrics, f, indent=2)
