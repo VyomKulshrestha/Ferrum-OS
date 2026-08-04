@@ -194,6 +194,7 @@ try {
   await runCmd("test-syscall yield");
   await runCmd("test-syscall sleep");
   await runCmd("test-syscall priority");
+  await runCmd("test-syscall frame-recycle");
   await runCmd("syscall 2 0"); // pid=2 (init), syscall 0 = Yield
 
   // --- dashboard (has its own ESC-to-exit input loop, not the normal prompt loop) ---

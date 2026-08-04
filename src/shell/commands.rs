@@ -1677,6 +1677,17 @@ fn cmd_test_syscall(args: &[&str]) {
                 println!("priority {:?} -> index {}", p, p.index());
             }
         }
+        "frame-recycle" => {
+            let before = crate::memory::frame_allocator_stats();
+            let reused_and_scrubbed = crate::memory::verify_frame_recycling();
+            let after = crate::memory::frame_allocator_stats();
+            println!(
+                "frame-recycle: reused_and_scrubbed={} before={:?} after={:?}",
+                reused_and_scrubbed,
+                before,
+                after
+            );
+        }
         _ => println!("test-syscall: unknown subcommand '{}'", args[0]),
     }
 }

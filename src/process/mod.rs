@@ -900,11 +900,17 @@ pub fn drop_by_pid(pid: u64) -> bool {
     // Do that work after releasing the process-table lock so process queries
     // and unrelated spawns are never serialized behind frame reclamation.
     drop(record);
-    crate::serial_println!(
-        "[process-reaper] reaped pid={} user_frames={}",
-        pid,
-        user_frames
-    );
+    if let Some((fresh, recycled)) = crate::memory::frame_allocator_stats() {
+        crate::serial_println!(
+            "[process-reaper] reaped pid={} user_frames={} fresh={} recycled={}",
+            pid,
+            user_frames,
+            fresh,
+            recycled
+        );
+    } else {
+        crate::serial_println!("[process-reaper] reaped pid={} user_frames={}", pid, user_frames);
+    }
     true
 }
 

@@ -305,6 +305,7 @@ const tests = [
   // status is tracked independently for the real WaitPid path.
   ["test-syscall wait", "wait(-1): any_dead=false"],
   ["test-syscall priority", "priority System -> index 3"],
+  ["test-syscall frame-recycle", "frame-recycle: reused_and_scrubbed=true"],
   ["ring3 init", "userspace is alive in ring 3"],
 ];
 

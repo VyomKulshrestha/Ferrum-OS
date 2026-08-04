@@ -18,11 +18,12 @@
 pub mod heap;
 
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use alloc::vec::Vec;
 use spin::Mutex;
 use x86_64::{
     PhysAddr, VirtAddr,
     structures::paging::{
-        FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB,
+        FrameAllocator, OffsetPageTable, PageSize, PageTable, PhysFrame, Size4KiB,
     },
 };
 
@@ -113,7 +114,14 @@ pub fn active_p4_frame() -> PhysFrame {
 /// Returns `None` if the allocator is not installed or the memory map is
 /// exhausted.
 pub fn allocate_frame() -> Option<PhysFrame> {
-    FRAME_ALLOCATOR.lock().as_mut()?.allocate_frame()
+    let frame = FRAME_ALLOCATOR.lock().as_mut()?.allocate_frame()?;
+    zero_frame(frame);
+    Some(frame)
+}
+
+fn zero_frame(frame: PhysFrame) {
+    let address = phys_to_virt(frame.start_address());
+    unsafe { core::ptr::write_bytes(address.as_mut_ptr::<u8>(), 0, Size4KiB::SIZE as usize) };
 }
 
 /// Allocate `count` physically contiguous 4 KiB frames suitable for DMA
@@ -128,31 +136,75 @@ pub fn allocate_contiguous_frames(count: usize) -> Option<PhysFrame> {
     if count == 0 {
         return None;
     }
-    let mut alloc = FRAME_ALLOCATOR.lock();
-    let alloc = alloc.as_mut()?;
+    let mut allocator_guard = FRAME_ALLOCATOR.lock();
+    let alloc = allocator_guard.as_mut()?;
 
-    let first = alloc.allocate_frame()?;
+    // DMA callers require true physical adjacency. Recycled frames are valid
+    // for ordinary pages but may be scattered, so contiguous allocations use
+    // only the still-monotonic fresh side of the allocator.
+    let first = alloc.allocate_fresh_frame()?;
     let first_addr = first.start_address().as_u64();
+    let mut frames = Vec::with_capacity(count);
+    frames.push(first);
 
     for i in 1..count {
-        let frame = alloc.allocate_frame()?;
+        let frame = match alloc.allocate_fresh_frame() {
+            Some(frame) => frame,
+            None => {
+                for allocated in frames {
+                    alloc.recycle(allocated);
+                }
+                return None;
+            }
+        };
         let expected = first_addr + (i as u64) * 4096;
         if frame.start_address().as_u64() != expected {
-            // Non-contiguous; return what we have (frames are leaked since
-            // the bump allocator doesn't support deallocation anyway)
+            frames.push(frame);
+            for allocated in frames {
+                alloc.recycle(allocated);
+            }
             return None;
         }
+        frames.push(frame);
     }
-
+    drop(allocator_guard);
+    for frame in frames {
+        zero_frame(frame);
+    }
     Some(first)
 }
 
-/// Return a previously-allocated frame to the global pool. The current
-/// `BootInfoFrameAllocator` is a bump allocator and ignores returned
-/// frames, but tracking the API keeps the call sites honest until the
-/// allocator learns to recycle.
-pub fn deallocate_frame(_frame: PhysFrame) {
-    // No-op until the frame allocator grows a free list.
+/// Return a previously-allocated frame to the global pool. Duplicate and
+/// foreign returns are ignored, preventing allocator corruption if a cleanup
+/// path is invoked twice or passes a device-owned address by mistake.
+pub fn deallocate_frame(frame: PhysFrame) {
+    if let Some(allocator) = FRAME_ALLOCATOR.lock().as_mut() {
+        allocator.recycle(frame);
+    }
+}
+
+/// `(fresh frames ever handed out, frames currently available for reuse)`.
+pub fn frame_allocator_stats() -> Option<(usize, usize)> {
+    let allocator = FRAME_ALLOCATOR.lock();
+    let allocator = allocator.as_ref()?;
+    Some((allocator.allocated(), allocator.recycled.len()))
+}
+
+/// End-to-end allocator invariant used by the QEMU release verifier: the most
+/// recently returned frame must be reused and scrubbed before it is visible to
+/// its next owner.
+pub fn verify_frame_recycling() -> bool {
+    let Some(first) = allocate_frame() else { return false };
+    let first_addr = first.start_address().as_u64();
+    let first_virt = phys_to_virt(first.start_address());
+    unsafe { first_virt.as_mut_ptr::<u64>().write_volatile(0xF3AA_5A5A_DEAD_BEEF) };
+    deallocate_frame(first);
+    let Some(second) = allocate_frame() else { return false };
+    let second_addr = second.start_address().as_u64();
+    let second_virt = phys_to_virt(second.start_address());
+    let scrubbed = unsafe { second_virt.as_ptr::<u64>().read_volatile() } == 0;
+    deallocate_frame(second);
+    first_addr == second_addr && scrubbed
 }
 
 /// Returns a mutable reference to the active level 4 page table
@@ -177,11 +229,13 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 /// Physical frame allocator that uses the bootloader's memory map
 ///
 /// Iterates over the memory map to find usable physical frames.
-/// This is a simple bump allocator - frames are never freed.
-/// A more sophisticated allocator would be needed for a production kernel.
+/// Fresh frames come from the boot map in order; returned frames are retained
+/// in a LIFO free list and scrubbed by the global allocation wrapper before
+/// reuse.
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
     next: usize,
+    recycled: Vec<PhysFrame>,
 }
 
 impl BootInfoFrameAllocator {
@@ -195,6 +249,7 @@ impl BootInfoFrameAllocator {
         BootInfoFrameAllocator {
             memory_map,
             next: 0,
+            recycled: Vec::new(),
         }
     }
 
@@ -221,13 +276,52 @@ impl BootInfoFrameAllocator {
     pub fn allocated(&self) -> usize {
         self.next
     }
+
+    fn allocate_fresh_frame(&mut self) -> Option<PhysFrame> {
+        let frame = self.usable_frames().nth(self.next);
+        if frame.is_some() {
+            self.next += 1;
+        }
+        frame
+    }
+
+    fn was_allocated(&self, frame: PhysFrame) -> bool {
+        let target = frame.start_address().as_u64();
+        let mut handed_out = self.next;
+        for region in self
+            .memory_map
+            .iter()
+            .filter(|region| region.region_type == MemoryRegionType::Usable)
+        {
+            if handed_out == 0 {
+                return false;
+            }
+            let start = region.range.start_addr();
+            let len = region.range.end_addr().saturating_sub(start);
+            let region_frames = ((len + Size4KiB::SIZE - 1) / Size4KiB::SIZE) as usize;
+            let consumed = handed_out.min(region_frames);
+            let consumed_end = start.saturating_add(consumed as u64 * Size4KiB::SIZE);
+            if target >= start
+                && target < consumed_end
+                && (target - start) % Size4KiB::SIZE == 0
+            {
+                return true;
+            }
+            handed_out -= consumed;
+        }
+        false
+    }
+
+    fn recycle(&mut self, frame: PhysFrame) {
+        if self.was_allocated(frame) && !self.recycled.contains(&frame) {
+            self.recycled.push(frame);
+        }
+    }
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        let frame = self.usable_frames().nth(self.next);
-        self.next += 1;
-        frame
+        self.recycled.pop().or_else(|| self.allocate_fresh_frame())
     }
 }
 

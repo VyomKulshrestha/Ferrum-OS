@@ -277,6 +277,7 @@ try {
     "closing an app window terminates and reaps its ring-3 process",
     editorClosed.includes("[process-reaper] reaped pid=") && editorClosed.includes("after window close"),
   );
+  const firstEditorFresh = Number(editorClosed.match(/\[process-reaper\].*fresh=(\d+)/)?.[1]);
 
   // Relaunch Text Editor as a brand new process and confirm it reads the
   // saved content back from disk - proof the save actually persisted,
@@ -293,7 +294,19 @@ try {
   check("relaunching Text Editor reads the saved text back from disk", !!loadedLine && loadedLine.includes("hi"),
     loadedLine);
 
+  const beforeReloadedEditorClose = serialText().length;
   await closeAppWindow(480);
+  const reloadedEditorClosed = await waitForSerial(
+    "[process-reaper] reaped pid=",
+    8,
+    beforeReloadedEditorClose,
+  );
+  const secondEditorFresh = Number(reloadedEditorClosed.match(/\[process-reaper\].*fresh=(\d+)/)?.[1]);
+  check(
+    "relaunching and reaping the same app reuses physical frames",
+    Number.isFinite(firstEditorFresh) && firstEditorFresh === secondEditorFresh,
+    `first fresh=${firstEditorFresh} second fresh=${secondEditorFresh}`,
+  );
 
   // --- Calculator ---------------------------------------------------------
   const beforeCalculator = serialText().length;
@@ -377,7 +390,17 @@ try {
       "File Manager opens a text file in Text Editor with the selected path",
       associatedOpen.includes("with text-editor") && associatedLoad.includes("loaded: hello"),
     );
+    const beforeAssociatedEditorClose = serialText().length;
     await closeAppWindow(480);
+    await waitForSerial(
+      "[desktop] terminated app pid=",
+      8,
+      beforeAssociatedEditorClose,
+    );
+    // Frame scrubbing is deliberately synchronous with reaping. Wait for the
+    // compositor's complete close transaction before sending a click to the
+    // newly revealed parent window.
+    await sleep(1000);
 
     // The preview's Back button must return to the directory it came from,
     // rather than silently resetting to /disk regardless of navigation.
