@@ -90,9 +90,14 @@ pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
     let mut worst_risk = 0.0f32;
     let mut worst_reason = String::new();
     let mut worst_step = 1u32;
+    // Process growth is additive across repeated actions. Keeping only the
+    // final step's delta lets a multi-step fork pattern evade the horizon.
+    let mut cumulative_proc_delta = 0i32;
 
     for step in 1..=MAX_LOOKAHEAD {
-        let prediction = transition::predict_next_state(&embedding, action);
+        let mut prediction = transition::predict_next_state(&embedding, action);
+        cumulative_proc_delta = cumulative_proc_delta.saturating_add(prediction.proc_count_delta);
+        prediction.proc_count_delta = cumulative_proc_delta;
         let (risk, reason) = safety::risk_score(&prediction);
         if risk > worst_risk {
             worst_risk = risk;
@@ -103,14 +108,14 @@ pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
                 format!("after {} repeated steps: {}", step, reason)
             };
         }
-        if worst_risk > safety::BLOCK_THRESHOLD {
+        if worst_risk >= safety::BLOCK_THRESHOLD {
             break;
         }
         embedding = prediction.embedding;
     }
 
     GateDecision {
-        allowed: worst_risk <= safety::BLOCK_THRESHOLD,
+        allowed: worst_risk < safety::BLOCK_THRESHOLD,
         risk: worst_risk,
         reason: worst_reason,
         lookahead_steps: worst_step,

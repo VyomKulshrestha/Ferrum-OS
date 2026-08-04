@@ -40,7 +40,7 @@ pub fn risk_score(prediction: &Prediction) -> (f32, String) {
         reasons.push(String::from("predicted disk usage > 95%"));
     }
 
-    if (prediction.proc_count_delta.unsigned_abs() as f32) / 64.0 > FORK_BOMB_DELTA_FRACTION {
+    if (prediction.proc_count_delta.unsigned_abs() as f32) / 64.0 >= FORK_BOMB_DELTA_FRACTION {
         risk += 0.7;
         reasons.push(format!(
             "process-count delta of {} looks like a fork-bomb pattern",
