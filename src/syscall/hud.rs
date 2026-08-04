@@ -89,7 +89,7 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     // Render and swap buffers immediately to update screen in headless test modes (where desktop is inactive).
     // To prevent screen shaking (flicker), we ensure double buffering is initialized and active.
     // We also process input events and draw the mouse cursor so that the cursor is visible.
-    if !crate::gui::is_active() {
+    if !crate::gui::is_active() && crate::gui::ambient_desktop_enabled() {
         {
             let mut fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
             if let Some(fb) = fb_guard.as_mut() {
@@ -98,14 +98,19 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
         }
 
         crate::gui::cursor::process_input();
-        crate::gui::compositor::render();
-        crate::gui::cursor::save_and_draw();
-        crate::gui::cursor::CURSOR.lock().dirty = false;
+        // A Power-menu sign-out can disable the ambient surface while the
+        // input queue is being drained. Do not repaint it over the console
+        // that `exit_desktop` just restored.
+        if crate::gui::ambient_desktop_enabled() {
+            crate::gui::compositor::render();
+            crate::gui::cursor::save_and_draw();
+            crate::gui::cursor::CURSOR.lock().dirty = false;
 
-        {
-            let fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
-            if let Some(fb) = fb_guard.as_ref() {
-                fb.swap_buffers();
+            {
+                let fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
+                if let Some(fb) = fb_guard.as_ref() {
+                    fb.swap_buffers();
+                }
             }
         }
     }

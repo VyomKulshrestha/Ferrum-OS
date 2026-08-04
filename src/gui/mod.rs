@@ -13,6 +13,7 @@ pub mod cursor;
 pub mod app_window;
 
 use spin::Mutex;
+use core::sync::atomic::{AtomicBool, Ordering};
 use crate::devices::vga_fb::FRAMEBUFFER;
 use x86_64::instructions::interrupts;
 
@@ -29,6 +30,28 @@ lazy_static::lazy_static! {
 
 /// Global redirect flag for command output redirection to terminal window.
 pub static TERMINAL_REDIRECT: Mutex<bool> = Mutex::new(false);
+
+/// The desktop owns physical keyboard delivery while its scheduled task is
+/// active. Without this boundary every key was duplicated into both the
+/// focused GUI window and the background debug shell.
+static DESKTOP_INPUT_CAPTURED: AtomicBool = AtomicBool::new(false);
+/// Heliox can keep the compositor painted before the dedicated desktop task
+/// is entered. Sign-out disables that ambient surface until `desktop` starts
+/// a new session; otherwise the daemon would immediately repaint over the
+/// restored shell console.
+static AMBIENT_DESKTOP_ENABLED: AtomicBool = AtomicBool::new(true);
+
+pub fn captures_keyboard() -> bool {
+    DESKTOP_INPUT_CAPTURED.load(Ordering::SeqCst)
+}
+
+pub fn claim_keyboard() {
+    DESKTOP_INPUT_CAPTURED.store(true, Ordering::SeqCst);
+}
+
+pub fn ambient_desktop_enabled() -> bool {
+    AMBIENT_DESKTOP_ENABLED.load(Ordering::SeqCst)
+}
 
 pub fn is_terminal_redirect_active() -> bool {
     *TERMINAL_REDIRECT.lock()
@@ -63,7 +86,22 @@ pub fn is_active() -> bool {
 
 pub fn exit_desktop() {
     let mut state = GUI.lock();
+    let was_active = state.active;
     state.active = false;
+    drop(state);
+    DESKTOP_INPUT_CAPTURED.store(false, Ordering::SeqCst);
+    AMBIENT_DESKTOP_ENABLED.store(false, Ordering::SeqCst);
+
+    // The Heliox HUD can present the desktop without the dedicated desktop
+    // task. In that mode there is no loop epilogue to restore the console,
+    // so complete sign-out synchronously here.
+    if !was_active {
+        if let Some(fb) = FRAMEBUFFER.lock().as_mut() {
+            fb.free_back_buffer();
+        }
+        crate::graphics::redraw_console();
+        crate::serial_println!("[gui] Exited ambient Desktop surface");
+    }
 }
 
 /// Initialize the GUI subsystem.
@@ -110,6 +148,7 @@ fn desktop_stack_top() -> u64 {
 /// the shell's own loop resumes fresh later via
 /// `scheduler::enter_kernel_return` once the desktop exits.
 pub fn run_desktop() -> ! {
+    AMBIENT_DESKTOP_ENABLED.store(true, Ordering::SeqCst);
     let stack_top = desktop_stack_top();
     let pid = DESKTOP_TASK_PID.load(core::sync::atomic::Ordering::SeqCst);
     let pid = if pid == 0 {
@@ -144,6 +183,15 @@ extern "C" fn desktop_entry() -> ! {
     {
         let mut state = GUI.lock();
         state.active = true;
+    }
+    DESKTOP_INPUT_CAPTURED.store(true, Ordering::SeqCst);
+    AMBIENT_DESKTOP_ENABLED.store(true, Ordering::SeqCst);
+    {
+        let mut state = compositor::COMPOSITOR.lock();
+        state.launcher_open = false;
+        state.power_menu_open = false;
+        state.session_locked = false;
+        state.pressed = compositor::HoverTarget::None;
     }
 
     // Initialize double buffering
@@ -181,6 +229,13 @@ extern "C" fn desktop_entry() -> ! {
         // 1. Process Input Events (Mouse, Keyboard). This may set
         //    `cursor.dirty` and/or `compositor.needs_redraw`.
         cursor::process_input();
+
+        // A menu action may sign out while draining the input queue. Leave
+        // before periodic work or the scheduler safepoint so sign-out is
+        // deterministic even with many ring-3 apps competing for turns.
+        if !GUI.lock().active {
+            break;
+        }
 
         // 2. Update System Monitor periodically (every 20 ticks = ~400ms).
         let current_ticks = crate::scheduler::total_ticks();

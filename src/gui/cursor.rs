@@ -117,6 +117,9 @@ pub fn process_input() {
                 compositor::handle_mouse_move(new_x, new_y);
             }
             crate::input::InputEventType::MouseButton(0, true) | crate::input::InputEventType::MouseButton(1, true) => {
+                // A real pointer press transfers physical keyboard ownership
+                // from the coexisting debug shell to the visible desktop.
+                crate::gui::claim_keyboard();
                 cursor.left_down = true;
                 compositor::handle_mouse_down(cursor.x, cursor.y);
             }

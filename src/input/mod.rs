@@ -174,10 +174,10 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
     EVENT_QUEUE.lock().push(event);
     DAEMON_EVENT_QUEUE.lock().push(event);
 
-    // Bridge into the shell's keyboard buffer for pressed,
-    // printable keys so that the existing shell input path works
-    // without modification.
-    if pressed && ascii != 0 {
+    // Bridge into the shell only when the desktop does not own keyboard
+    // input. Duplicating one physical key into both queues caused focused
+    // GUI apps (and the privacy lock) to leak input into the hidden shell.
+    if pressed && ascii != 0 && !crate::gui::captures_keyboard() {
         feed_to_shell(ascii);
     }
 }

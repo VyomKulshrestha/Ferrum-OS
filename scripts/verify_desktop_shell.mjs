@@ -4,7 +4,7 @@
 // ============================================================================
 // Proves the desktop reads as a real shell, not a fixed 3-window demo:
 //   1. The debug measurement grid is gone from the background.
-//   2. The taskbar has a Start button, an Exit button, a hardware-RTC clock,
+//   2. The taskbar has a Start button, a Power/session menu, a hardware-RTC clock,
 //      and (separately verified) one entry per open window instead of 3
 //      hardcoded ones.
 //   3. Clicking a window's minimize button hides it (still gone from the
@@ -213,7 +213,7 @@ async function screendump() {
 // (same tradeoff the Rust code itself documents for why it centralized
 // this into one function instead of duplicating magic numbers).
 const FB_W = 1024, FB_H = 768;
-const START_BTN_W = 70, EXIT_BTN_W = 54, WINDOW_SLOT_W = 72, PAGE_BTN_W = 28, CLOCK_W = 80, SLOT_GAP = 4;
+const START_BTN_W = 70, EXIT_BTN_W = 62, WINDOW_SLOT_W = 72, PAGE_BTN_W = 28, CLOCK_W = 80, SLOT_GAP = 4;
 const GROUP_GAP = 10, DOCK_SIDE_PADDING = 10, DOCK_H = 40, BTN_H = 24, BTN_Y_INSET = 8;
 const MAX_TASKBAR_SLOTS = 7;
 const windowsW = MAX_TASKBAR_SLOTS * WINDOW_SLOT_W + (MAX_TASKBAR_SLOTS - 1) * SLOT_GAP;
@@ -248,6 +248,15 @@ const launcherH = LAUNCHER_PADDING * 2 + launcherEntries * LAUNCHER_ENTRY_H;
 const launcherX = startRect[0];
 const launcherY = DOCK_Y - (launcherH + 8);
 const launcherEntryRect = (i) => [launcherX + LAUNCHER_PADDING, launcherY + LAUNCHER_PADDING + i * LAUNCHER_ENTRY_H, launcherW - LAUNCHER_PADDING * 2, LAUNCHER_ENTRY_H - 4];
+
+// Power popup geometry mirrored from desktop.rs::power_rect.
+const POWER_ENTRY_H = 28, POWER_PADDING = 8, POWER_ENTRY_W = 150;
+const powerEntries = 5;
+const powerW = POWER_PADDING * 2 + POWER_ENTRY_W;
+const powerH = POWER_PADDING * 2 + powerEntries * POWER_ENTRY_H;
+const powerX = exitRect[0] + exitRect[2] - powerW;
+const powerY = DOCK_Y - (powerH + 8);
+const powerEntryRect = (i) => [powerX + POWER_PADDING, powerY + POWER_PADDING + i * POWER_ENTRY_H, powerW - POWER_PADDING * 2, POWER_ENTRY_H - 4];
 
 // SystemMonitor's fixed spawn geometry (src/gui/compositor.rs::spawn_demo_windows).
 const SYSMON_X = 100, SYSMON_Y = 100, SYSMON_W = 300, SYSMON_H = 200;
@@ -292,7 +301,7 @@ try {
     `on-old-gridline=(${bgA.r},${bgA.g},${bgA.b}) off-old-gridline=(${bgB.r},${bgB.g},${bgB.b})`
   );
 
-  // --- 2. Taskbar: Start and Exit buttons exist at computed positions --
+  // --- 2. Taskbar: Start and Power buttons exist at computed positions --
   const startBorder = ppm.pixelAt(startRect[0], startRect[1]);
   const exitBorder = ppm.pixelAt(exitRect[0], exitRect[1]);
   const clockBorder = ppm.pixelAt(clockRect[0], clockRect[1]);
@@ -302,7 +311,7 @@ try {
     `got (${startBorder.r},${startBorder.g},${startBorder.b}) at (${startRect[0]},${startRect[1]})`
   );
   check(
-    "Exit button renders at its computed dock position",
+    "Power button renders at its computed dock position",
     exitBorder.r === 0x44 && exitBorder.g === 0x44 && exitBorder.b === 0x44,
     `got (${exitBorder.r},${exitBorder.g},${exitBorder.b}) at (${exitRect[0]},${exitRect[1]})`
   );
@@ -483,6 +492,52 @@ try {
   await clickAt(lastSlotX, lastSlotY);
   const restored = await waitForSerial("title=Task Manager action=restored", 5, taskbarActionOffset);
   check("last overflowed app restores from the same taskbar slot", restored.includes("action=restored"));
+
+  // --- 8. Session/power surface: modal lock, resume, and sign-out -------
+  await clickAt(...rectCenter(exitRect));
+  await sleep(350);
+  ppm = await screendump();
+  const powerBg = ppm.pixelAt(powerX + 2, powerY + 2);
+  check(
+    "clicking Power opens a session menu instead of immediately exiting",
+    powerBg.r === 0x18 && powerBg.g === 0x1c && powerBg.b === 0x28,
+    `got (${powerBg.r},${powerBg.g},${powerBg.b})`
+  );
+
+  let sessionOffset = serialText().length;
+  await clickAt(...rectCenter(powerEntryRect(0)));
+  await waitForSerial("[desktop] privacy lock engaged; no password configured", 5, sessionOffset);
+  await waitForSerial("[desktop] privacy screen rendered", 5, sessionOffset);
+  ppm = await screendump();
+  const lockPanel = ppm.pixelAt(10, 10);
+  check(
+    "Lock hides the complete desktop behind the privacy screen",
+    lockPanel.r === 0x08 && lockPanel.g === 0x12 && lockPanel.b === 0x20,
+    `got (${lockPanel.r},${lockPanel.g},${lockPanel.b})`
+  );
+
+  sessionOffset = serialText().length;
+  await sendKey("alt-tab");
+  await sleep(500);
+  check(
+    "locked session blocks application-switch keyboard input",
+    !serialText().slice(sessionOffset).includes("[desktop] alt-tab")
+  );
+
+  sessionOffset = serialText().length;
+  await sendKey("ret");
+  await waitForSerial("[desktop] privacy lock resumed", 5, sessionOffset);
+  sessionOffset = serialText().length;
+  await sendKey("alt-tab");
+  const resumedInput = await waitForSerial("[desktop] alt-tab", 5, sessionOffset);
+  check("Enter resumes desktop input after the privacy lock", resumedInput.includes("[desktop] alt-tab"));
+
+  await clickAt(...rectCenter(exitRect));
+  await sleep(250);
+  sessionOffset = serialText().length;
+  await clickAt(...rectCenter(powerEntryRect(1)));
+  const signedOut = await waitForSerial("[gui] Exited ambient Desktop surface", 8, sessionOffset);
+  check("Sign out cleanly returns the desktop session to the shell", signedOut.includes("[gui] Exited ambient Desktop surface"));
 
   const full = serialText().slice(start);
   check("no userspace fault or page fault panic", !/terminating|General Protection|Page Fault/.test(full));

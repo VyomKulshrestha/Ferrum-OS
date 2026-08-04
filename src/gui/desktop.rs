@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 use crate::graphics;
 use crate::devices::vga_fb::FRAMEBUFFER;
-use crate::gui::compositor::{HoverTarget, LAUNCHER_ENTRIES};
+use crate::gui::compositor::{HoverTarget, LAUNCHER_ENTRIES, POWER_ENTRIES};
 use spin::Mutex;
 
 pub const COLOR_BACKGROUND: u32 = 0x00101824; // Deep blue-gray, visibly non-black
@@ -167,7 +167,7 @@ enum ButtonState {
 pub const MAX_TASKBAR_SLOTS: usize = 7;
 
 const START_BTN_W: u32 = 70;
-const EXIT_BTN_W: u32 = 54;
+const EXIT_BTN_W: u32 = 62;
 const CLOCK_W: u32 = 80;
 const WINDOW_SLOT_W: u32 = 72;
 const PAGE_BTN_W: u32 = 28;
@@ -380,7 +380,8 @@ pub fn render_taskbar(
     draw_button(px, py, pw, ph, "<", if has_previous { 0x00FFFFFF } else { 0x00444444 }, previous_state);
     draw_button(nx, ny, nw, nh, ">", if has_next { 0x00FFFFFF } else { 0x00444444 }, next_state);
 
-    // Exit button.
+    // Power/session button. Destructive actions live behind a menu instead
+    // of an easy-to-hit one-click exit.
     let exit_state = if pressed == HoverTarget::ExitButton {
         ButtonState::Pressed
     } else if hover == HoverTarget::ExitButton {
@@ -389,7 +390,7 @@ pub fn render_taskbar(
         ButtonState::Idle
     };
     let (ex, ey, ew, eh) = layout.exit_rect;
-    draw_button(ex, ey, ew, eh, "Exit", 0x00FF8888, exit_state);
+    draw_button(ex, ey, ew, eh, "Power", 0x00FFAAAA, exit_state);
 
     // Non-interactive system tray clock sourced from the hardware RTC. The
     // explicit UTC label matches the QEMU boot configuration (`-rtc base=utc`)
@@ -482,4 +483,96 @@ pub fn render_launcher(hover: HoverTarget) {
         }
         graphics::draw_string(ex + 8, ey + 6, name, if is_hover { 0x00FFFFFF } else { 0x00CCCCCC }, bg);
     }
+}
+
+// ============================================================================
+// Power/session popup and privacy lock
+// ============================================================================
+
+const POWER_ENTRY_W: u32 = 150;
+const POWER_ENTRY_H: u32 = 28;
+const POWER_PADDING: u32 = 8;
+
+fn power_rect(fb_w: u32, fb_h: u32) -> (u32, u32, u32, u32) {
+    let layout = compute_taskbar_layout(fb_w, fb_h);
+    let popup_h = POWER_PADDING * 2 + POWER_ENTRIES.len() as u32 * POWER_ENTRY_H;
+    let popup_w = POWER_PADDING * 2 + POWER_ENTRY_W;
+    let popup_x = layout.exit_rect.0 + layout.exit_rect.2 - popup_w;
+    let popup_y = layout.dock_y.saturating_sub(popup_h + 8);
+    (popup_x, popup_y, popup_w, popup_h)
+}
+
+fn power_entry_rect(fb_w: u32, fb_h: u32, index: usize) -> (u32, u32, u32, u32) {
+    let (px, py, pw, _) = power_rect(fb_w, fb_h);
+    (
+        px + POWER_PADDING,
+        py + POWER_PADDING + index as u32 * POWER_ENTRY_H,
+        pw - POWER_PADDING * 2,
+        POWER_ENTRY_H - 4,
+    )
+}
+
+pub fn power_entry_at(mx: u32, my: u32) -> Option<usize> {
+    let (fb_w, fb_h) = {
+        let fb_guard = FRAMEBUFFER.lock();
+        match fb_guard.as_ref() {
+            Some(fb) => (fb.width, fb.height),
+            None => return None,
+        }
+    };
+    (0..POWER_ENTRIES.len())
+        .find(|index| point_in(mx, my, power_entry_rect(fb_w, fb_h, *index)))
+}
+
+pub fn render_power_menu(hover: HoverTarget) {
+    let (fb_w, fb_h) = {
+        let fb_guard = FRAMEBUFFER.lock();
+        match fb_guard.as_ref() {
+            Some(fb) => (fb.width, fb.height),
+            None => return,
+        }
+    };
+    let (px, py, pw, ph) = power_rect(fb_w, fb_h);
+    graphics::fill_rect(px, py, pw, ph, 0x00181C28);
+    let border = accent_color();
+    graphics::draw_line(px, py, px + pw - 1, py, border);
+    graphics::draw_line(px, py + ph - 1, px + pw - 1, py + ph - 1, border);
+    graphics::draw_line(px, py, px, py + ph - 1, border);
+    graphics::draw_line(px + pw - 1, py, px + pw - 1, py + ph - 1, border);
+
+    for (index, name) in POWER_ENTRIES.iter().enumerate() {
+        let (ex, ey, ew, eh) = power_entry_rect(fb_w, fb_h, index);
+        let is_hover = hover == HoverTarget::PowerEntry(index);
+        let bg = if is_hover { 0x00304050 } else { 0x00181C28 };
+        if is_hover {
+            graphics::fill_rect(ex, ey, ew, eh, bg);
+        }
+        let color = if matches!(index, 2 | 3) { 0x00FFAAAA } else if is_hover { 0x00FFFFFF } else { 0x00CCCCCC };
+        graphics::draw_string(ex + 8, ey + 6, name, color, bg);
+    }
+}
+
+/// Paint a modal privacy screen over the complete desktop. FerrumOS does not
+/// yet store account passwords, so the copy deliberately describes Enter as
+/// "resume" rather than pretending this is credential authentication.
+pub fn render_lock_screen() {
+    let (fb_w, fb_h) = {
+        let fb_guard = FRAMEBUFFER.lock();
+        match fb_guard.as_ref() {
+            Some(fb) => (fb.width, fb.height),
+            None => return,
+        }
+    };
+    graphics::fill_rect(0, 0, fb_w, fb_h, 0x00081220);
+    let panel_w = 520u32.min(fb_w.saturating_sub(40));
+    let panel_h = 180u32.min(fb_h.saturating_sub(40));
+    let x = (fb_w - panel_w) / 2;
+    let y = (fb_h - panel_h) / 2;
+    graphics::fill_rect(x, y, panel_w, panel_h, 0x00182030);
+    let accent = accent_color();
+    graphics::draw_line(x, y, x + panel_w - 1, y, accent);
+    graphics::draw_line(x, y + panel_h - 1, x + panel_w - 1, y + panel_h - 1, accent);
+    graphics::draw_string(x + 28, y + 30, "FerrumOS session paused", 0x00FFFFFF, 0x00182030);
+    graphics::draw_string(x + 28, y + 76, "No password is configured for this account.", 0x00AAB8C4, 0x00182030);
+    graphics::draw_string(x + 28, y + 112, "Press Enter to resume", accent, 0x00182030);
 }

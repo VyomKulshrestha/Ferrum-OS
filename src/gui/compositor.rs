@@ -10,6 +10,9 @@ use crate::gui::desktop;
 use crate::gui::cursor;
 use crate::devices::vga_fb::FRAMEBUFFER;
 
+static LOCK_SCREEN_RENDERED: core::sync::atomic::AtomicBool =
+    core::sync::atomic::AtomicBool::new(false);
+
 /// Current framebuffer dimensions, or a sane fallback if it isn't up yet.
 fn fb_dims() -> (u32, u32) {
     let fb_guard = FRAMEBUFFER.lock();
@@ -128,6 +131,8 @@ pub enum HoverTarget {
     WindowMinimize(u64),
     /// An entry in the open launcher popup, by index into `LAUNCHER_ENTRIES`.
     LauncherEntry(usize),
+    /// An entry in the power/session popup, by index into `POWER_ENTRIES`.
+    PowerEntry(usize),
 }
 
 /// Everything the launcher can open: the 3 kernel-drawn built-ins, plus
@@ -146,6 +151,8 @@ pub const LAUNCHER_ENTRIES: [&str; 11] = [
     "Notification Center",
     "Task Manager",
 ];
+
+pub const POWER_ENTRIES: [&str; 5] = ["Lock", "Sign out", "Restart", "Shut down", "Cancel"];
 
 /// Launch one of the real installed apps (the launcher entries beyond the
 /// 3 kernel-drawn built-ins) directly from kernel context. Mirrors what
@@ -219,6 +226,11 @@ pub struct CompositorState {
     pub pressed: HoverTarget,
     /// Whether the Start-button launcher popup is open.
     pub launcher_open: bool,
+    /// Whether the Power-button session popup is open.
+    pub power_menu_open: bool,
+    /// Modal privacy pause. Keyboard and pointer events cannot reach apps
+    /// until Enter resumes the session.
+    pub session_locked: bool,
     /// First window represented by a visible taskbar slot. Kept separate
     /// from z-order so paging never raises or minimizes a window by itself.
     pub taskbar_offset: usize,
@@ -238,6 +250,8 @@ lazy_static::lazy_static! {
         hover: HoverTarget::None,
         pressed: HoverTarget::None,
         launcher_open: false,
+        power_menu_open: false,
+        session_locked: false,
         taskbar_offset: 0,
     });
 }
@@ -451,6 +465,8 @@ pub fn render() {
         window.render(focused, close_hovered, maximize_hovered, minimize_hovered);
     }
     let launcher_open = state.launcher_open;
+    let power_menu_open = state.power_menu_open;
+    let session_locked = state.session_locked;
     drop(state);
 
     // 3. Draw Taskbar (with hover/press state for the
@@ -463,12 +479,25 @@ pub fn render() {
         desktop::render_launcher(hover);
     }
 
+    if power_menu_open {
+        desktop::render_power_menu(hover);
+    }
+
     // Draw HUD overlay on top of taskbar/windows (but below cursor)
     draw_hud_overlay();
 
     // Newest notification remains visible until the user clears it from the
     // Notification Center. The history itself is owned by the broker.
     draw_notification_toast();
+
+    // Modal by design: nothing from the underlying session remains visible
+    // and app input is blocked by every handler below.
+    if session_locked {
+        desktop::render_lock_screen();
+        if !LOCK_SCREEN_RENDERED.swap(true, core::sync::atomic::Ordering::SeqCst) {
+            crate::serial_println!("[desktop] privacy screen rendered");
+        }
+    }
 
     // 4. Mark the cursor as dirty so the main loop redraws
     //    it on top of the new content.
@@ -596,9 +625,25 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
     let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
     let dock_rect = (layout.dock_x, layout.dock_y, layout.dock_w, layout.dock_h);
     let clicked_start = desktop::point_in(mx, my, layout.start_rect) && desktop::point_in(mx, my, dock_rect);
+    let clicked_power = desktop::point_in(mx, my, layout.exit_rect) && desktop::point_in(mx, my, dock_rect);
 
     {
         let mut state = COMPOSITOR.lock();
+
+        if state.session_locked {
+            state.pressed = HoverTarget::None;
+            return;
+        }
+
+        if state.power_menu_open && !clicked_power {
+            if let Some(idx) = desktop::power_entry_at(mx, my) {
+                state.pressed = HoverTarget::PowerEntry(idx);
+                state.needs_redraw = true;
+                return;
+            }
+            state.power_menu_open = false;
+            state.needs_redraw = true;
+        }
 
         // The launcher takes priority over everything below it while
         // open, except for the Start button itself (clicking Start again
@@ -757,6 +802,13 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
 
 pub fn handle_mouse_move(mx: u32, my: u32) {
     let mut state = COMPOSITOR.lock();
+    if state.session_locked {
+        if state.hover != HoverTarget::None {
+            state.hover = HoverTarget::None;
+            state.needs_redraw = true;
+        }
+        return;
+    }
     let (fb_w, fb_h) = fb_dims();
     let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
     let dock_rect = (layout.dock_x, layout.dock_y, layout.dock_w, layout.dock_h);
@@ -764,6 +816,11 @@ pub fn handle_mouse_move(mx: u32, my: u32) {
     // Update hover state for visual feedback.
     let new_hover = if desktop::point_in(mx, my, dock_rect) {
         hit_test_taskbar(mx, my, &state.windows, state.taskbar_offset)
+    } else if state.power_menu_open {
+        match desktop::power_entry_at(mx, my) {
+            Some(idx) => HoverTarget::PowerEntry(idx),
+            None => HoverTarget::None,
+        }
     } else if state.launcher_open {
         match desktop::launcher_entry_at(mx, my) {
             Some(idx) => HoverTarget::LauncherEntry(idx),
@@ -846,11 +903,22 @@ fn hit_test_taskbar(mx: u32, my: u32, windows: &[Window], taskbar_offset: usize)
 pub fn handle_mouse_up(mx: u32, my: u32) {
     let mut state = COMPOSITOR.lock();
 
+    if state.session_locked {
+        state.pressed = HoverTarget::None;
+        state.drag_active = false;
+        return;
+    }
+
     // If we were pressing a taskbar/launcher button, fire its action
     // when the mouse is released over it. This is how every desktop
     // dock (and every menu) works.
     if state.pressed != HoverTarget::None {
-        let released_on = if state.launcher_open {
+        let released_on = if state.power_menu_open {
+            match desktop::power_entry_at(mx, my) {
+                Some(idx) => HoverTarget::PowerEntry(idx),
+                None => HoverTarget::None,
+            }
+        } else if state.launcher_open {
             match desktop::launcher_entry_at(mx, my) {
                 Some(idx) => HoverTarget::LauncherEntry(idx),
                 None => HoverTarget::None,
@@ -865,12 +933,14 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
             match pressed {
                 HoverTarget::StartButton => {
                     state.launcher_open = !state.launcher_open;
+                    state.power_menu_open = false;
                     state.needs_redraw = true;
                     return;
                 }
                 HoverTarget::ExitButton => {
-                    drop(state);
-                    crate::gui::exit_desktop();
+                    state.power_menu_open = !state.power_menu_open;
+                    state.launcher_open = false;
+                    state.needs_redraw = true;
                     return;
                 }
                 HoverTarget::TaskbarWindow(id) => {
@@ -944,6 +1014,36 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                     }
                     return;
                 }
+                HoverTarget::PowerEntry(idx) => {
+                    state.power_menu_open = false;
+                    match idx {
+                        0 => {
+                            LOCK_SCREEN_RENDERED.store(false, core::sync::atomic::Ordering::SeqCst);
+                            state.session_locked = true;
+                            state.hover = HoverTarget::None;
+                            state.needs_redraw = true;
+                            crate::serial_println!("[desktop] privacy lock engaged; no password configured");
+                        }
+                        1 => {
+                            state.session_locked = false;
+                            crate::serial_println!("[desktop] session signed out to shell");
+                            drop(state);
+                            crate::gui::exit_desktop();
+                        }
+                        2 => {
+                            drop(state);
+                            crate::acpi::reboot();
+                        }
+                        3 => {
+                            drop(state);
+                            crate::acpi::shutdown();
+                        }
+                        _ => {
+                            state.needs_redraw = true;
+                        }
+                    }
+                    return;
+                }
                 _ => {}
             }
         }
@@ -979,6 +1079,16 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
 pub fn handle_key_press(ascii: u8) {
     let mut state = COMPOSITOR.lock();
 
+    if state.session_locked {
+        if ascii == b'\n' {
+            state.session_locked = false;
+            LOCK_SCREEN_RENDERED.store(false, core::sync::atomic::Ordering::SeqCst);
+            state.needs_redraw = true;
+            crate::serial_println!("[desktop] privacy lock resumed");
+        }
+        return;
+    }
+
     if ascii == crate::input::KEY_ALT_TAB {
         if state.windows.len() > 1 {
             let current = state.focused_idx.unwrap_or(state.windows.len() - 1);
@@ -992,6 +1102,7 @@ pub fn handle_key_press(ascii: u8) {
             state.focused_idx = Some(state.windows.len() - 1);
             state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
             state.launcher_open = false;
+            state.power_menu_open = false;
             state.needs_redraw = true;
             crate::serial_println!(
                 "[desktop] alt-tab from={} to={} title={}",
