@@ -50,15 +50,14 @@ pub fn predict_next_state(state: &StateEmbedding, action: &ToolCall) -> Predicti
     if let Some(delta) = learned::predict_delta(state, action) {
         let mut next = *state;
         for i in 0..next.len() {
-            // Clamped to [0,1]: every field encoder.rs actually defines
-            // (proc_count, heap_fraction, fs_file_count, disk_usage,
-            // screen_hash, last_error, one-hot slots) lives in that
-            // range by construction - the MLP has no such constraint
-            // built in, so an imperfectly-trained model could otherwise
-            // predict a nonsensical out-of-range value the safety gate's
-            // threshold checks (> 0.95) were never meant to see.
-            next[i] = (next[i] + delta[i]).clamp(0.0, 1.0);
+            next[i] += delta[i];
         }
+        // Core normalized fields and the learned representation have
+        // different domains. In particular, the encoder's latent tail is
+        // signed; clamping all 128 values to [0,1] used to erase its negative
+        // components after the first rollout step, even though training and
+        // real observations retained them.
+        encoder::clamp_predicted(&mut next);
         // Derived from the learned model's own predicted proc_count
         // delta (normalized by encoder.rs's NOMINAL_PROC_CAPACITY=64) -
         // works for *any* action the model has learned an effect for,

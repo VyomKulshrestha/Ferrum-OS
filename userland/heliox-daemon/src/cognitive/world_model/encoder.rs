@@ -89,3 +89,19 @@ pub fn set_proc_count(e: &mut StateEmbedding, v: f32) { e[IDX_PROC_COUNT] = v.cl
 pub fn set_heap_fraction(e: &mut StateEmbedding, v: f32) { e[IDX_HEAP_FRACTION] = v.clamp(0.0, 1.0); }
 pub fn set_fs_file_count(e: &mut StateEmbedding, v: f32) { e[IDX_FS_FILE_COUNT] = v.clamp(0.0, 1.0); }
 pub fn set_disk_usage_fraction(e: &mut StateEmbedding, v: f32) { e[IDX_DISK_USAGE] = v.clamp(0.0, 1.0); }
+
+/// Apply the runtime bounds that correspond to the representation actually
+/// produced by `encode()`. The deterministic prefix contains normalized
+/// scalars, reserved zeros, and one-hot values, so it is bounded to `[0, 1]`.
+/// The learned tail is a signed latent representation; forcing it through the
+/// same clamp destroys negative features after the first imagined step and
+/// makes rollout inference differ from offline training. Keep that tail signed
+/// while bounding it to a generous finite range for numerical stability.
+pub fn clamp_predicted(e: &mut StateEmbedding) {
+    for value in &mut e[..super::encoder_learned::LATENT_START] {
+        *value = value.clamp(0.0, 1.0);
+    }
+    for value in &mut e[super::encoder_learned::LATENT_START..] {
+        *value = value.clamp(-1.0, 1.0);
+    }
+}
