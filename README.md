@@ -98,7 +98,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Chat state (thinking / done / error, with the actual response text) streamed to the Heliox Assistant app over a structured IPC channel; user messages flow back the same way
 - Stays genuinely idle — no autonomous ticking or inference — until the user has completed setup; a missing config file is never treated as an implicit choice
 - JSON-RPC 2.0 surface over its WebSocket server: `ping`, `execute_tool`, `agent_step`, `gesture_event`, `health`, `get_config`, `system_status`, `agent_stats`
-- **World model safety gate**: every public tool path — provider-generated ReAct actions, internal memory/planner actions, and JSON-RPC `execute_tool` calls — passes through one predictive gate before execution. It estimates the action's effect and blocks dangerous predictions (for example, deleting the daemon's own config or filling the disk), alongside rather than instead of the existing Tier 3/4 confirmation gate. Every allowed, failed, or blocked call is recorded to the compact on-disk experience buffer and emitted as a full host-trainable transition. The optional learned transition model consumes deterministic OS state, the canonical tool id, and 16 normalized argument features; provider/model identity is never an input. A v2 weights file records exactly which tools were present during training, so uncovered tools safely use the deterministic rule table instead of an untrained output. The learned state encoder and three-step lookahead remain additive and retain their deterministic safety-critical fields.
+- **World model safety gate**: every public tool path — provider-generated ReAct actions, internal memory/planner actions, and JSON-RPC `execute_tool` calls — passes through one predictive gate before execution. It blocks dangerous predictions (for example, deleting the daemon config, filling the disk, or unsafe kernel upgrades) alongside, not instead of, Tier 3/4 confirmation. Release 0.1.1 packages a hash-verified action-conditioned JEPA encoder and 512-wide transition MLP trained across all 40 learnable actions; kernel upgrade remains deterministic policy only. The model sees OS state, canonical tool id, and 16 normalized argument features, never provider identity. Three-step lookahead retains deterministic safety fields and accumulates repeated process growth.
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
@@ -109,44 +109,48 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 
 ### Hybrid World-Model Training
 
-The hybrid pipeline combines broad deterministic syscall coverage with
-provider-backed ReAct episodes. The provider is used only to propose realistic
-goals and tool calls; FerrumOS records the real before/after state, outcome,
-risk, tool id, and normalized arguments. This keeps the trained world model
-independent of OpenAI, Claude, Gemini, Ollama, or the bundled 15M local language
-model.
+The hybrid pipeline combines controlled coverage, real provider/local-model
+responses, and actual FerrumOS transitions. Language models propose canonical
+tool calls; FerrumOS supplies the before/after state, outcome, risk, and
+arguments. Provider/model identity is provenance only, so the world model is
+independent of OpenAI, Claude, Gemini, Ollama, and the bundled 15M model.
 
 ```powershell
-# Generate 10,000 balanced scenarios spanning all 41 canonical actions.
-# The 37 advertised tools stay provider-driven; four controlled runtime actions
-# receive deterministic replay calls so they cannot be silently under-sampled.
-node scripts/generate_world_model_hybrid_corpus.mjs --count 10000
+# Generate a balanced, varied 12k scenario corpus spanning all 41 actions.
+node scripts/generate_world_model_hybrid_corpus.mjs --count 12000
 
-# Collect resumably through the real Heliox ReAct path.
-$env:WM_PROVIDER_URL = "https://provider.example/v1/chat/completions"
+# Optionally acquire and validate responses before spending QEMU time.
 $env:WM_PROVIDER_KEY = "..."
-$env:WM_PROVIDER_MODEL = "model-name"
-node scripts/collect_world_model_hybrid.mjs --corpus target/world_model_hybrid_corpus.jsonl --ram 512,2048 --resume
+node scripts/prefetch_world_model_responses.mjs --input target/world_model_hybrid_corpus.jsonl --out target/world_model_prefetched.jsonl --provider openai --url "https://provider.example/v1/chat/completions" --model "model-name" --resume
 
-# Preserve the 9,700 real legacy transitions, attach their exact historical
-# arguments, and append the new ReAct episodes.
-node scripts/upgrade_world_model_dataset.mjs --input target/world_model_dataset.jsonl --append target/world_model_hybrid_dataset.jsonl
+# Collect in resumable, episode-atomic boots at both RAM profiles, then audit.
+node scripts/collect_world_model_hybrid.mjs --corpus target/world_model_prefetched.jsonl --ram 512,2048 --resume
+node scripts/reconcile_world_model_dataset.mjs --dataset target/world_model_hybrid_dataset.jsonl
+node scripts/merge_world_model_datasets.mjs --input target/world_model_dataset.jsonl --input target/world_model_hybrid_dataset.jsonl --out target/world_model_dataset_release.jsonl
+node scripts/audit_world_model_dataset.mjs --dataset target/world_model_dataset_release.jsonl --strict
 
-# Train an episode-safe matched encoder/transition pair.
-python scripts/train_world_model_encoder.py --dataset target/world_model_dataset_hybrid.jsonl --encoded-dataset target/world_model_dataset_hybrid_encoded.jsonl --hidden 256 --epochs 3000 --patience 4
-python scripts/train_world_model.py --dataset target/world_model_dataset_hybrid_encoded.jsonl --hidden 256 --epochs 1500 --patience 4
+# Compare JEPA and autoencoder candidates on one fixed episode split.
+python scripts/train_world_model_jepa.py --dataset target/world_model_dataset_release.jsonl --encoded-dataset target/world_model_dataset_jepa.jsonl --hidden 256 --split-seed 42
+python scripts/tune_world_model.py --dataset target/world_model_dataset_jepa.jsonl --hidden 512,768 --seeds 17,42,91 --split-seed 42 --min-train-per-tool 32 --require-covered-tools 40
+python scripts/select_world_model_candidate.py --baseline target/baseline_metrics.json --candidate target/jepa_metrics.json --representation target/jepa_representation_metrics.json --out target/world_model_selection.json --require-candidate
 
-# Deterministic corpus checks plus a real four-scenario QEMU smoke run.
+# Deterministic corpus checks plus real QEMU provider and safety smokes.
 node scripts/verify_world_model_hybrid.mjs
+node scripts/verify_world_model_learned.mjs
 ```
 
-Both trainers split by complete episode when episode ids are available, report
-held-out metrics, and can restore the best validation checkpoint with
-`--patience`. Collection appends each step and its raw provider response
-immediately, so `--resume` can continue a long 10–15k run without discarding
-completed episodes. Blocked or confirmation-only actions remain in the audit
-corpus but are excluded from transition fitting and learned-tool coverage: an
-unchanged state after a refusal is not evidence of what the action would do.
+The accepted corpus contains 13,670 transitions from 3,580 episodes, including
+1,316 multi-step episodes, both 512 MiB and 2 GiB observations, all 41 actions,
+and at least three variants for every argument-bearing tool. Of those, 13,243
+executed, non-policy rows are eligible for fitting; the fixed split is
+9,219/1,934/2,090. Against the autoencoder baseline, the accepted JEPA pair
+reduces normalized held-out error from 3.47% to 2.40% at one step, 4.96% to
+2.34% macro-per-tool, 7.42% to 4.82% at H=3, and 8.63% to 5.39% at H=5. H
+remains 3: H=4 offered no material safety gain beyond the verified disk-H2 and
+process-H3 catches, while H=5 increased raw compounding error. The exact pair,
+hashes, dataset fingerprint, and metrics are versioned in
+`appliance/world-model/manifest.json`; clean builds verify that matched pair,
+and partial local overrides fail closed.
 
 ## Architecture
 

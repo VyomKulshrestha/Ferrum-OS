@@ -500,15 +500,13 @@ prediction looks dangerous.
   daemon's existing tools already use (`SystemQuery`, `ReadDir`,
   `read_screen`'s `ReadTextBuffer`) - no new syscalls, no new
   capabilities.
-- **Encoding** — compresses that snapshot into a fixed-size numeric
-  vector. The safety-critical fields (process count, heap/disk usage,
-  the one-hot action id, and everything the risk rules and rule-based
-  transition read directly) stay hand-crafted and deterministic; the
-  otherwise-unused remainder of the vector is filled by a small learned
-  autoencoder (`cognitive/world_model/encoder_learned.rs`, trained via
-  `scripts/train_world_model_encoder.py` on real collected snapshots)
-  when one is staged, falling back to zero-filled if not - additive,
-  never touching the indices the rest of the gate depends on.
+- **Encoding** — compresses the snapshot into a fixed-size vector. Process
+  count, heap/disk usage, action id, and every deterministic risk input remain
+  hand-crafted. Release 0.1.1 fills the remaining 77 dimensions with an
+  action-conditioned JEPA encoder trained with an EMA target,
+  reconstruction/action auxiliaries, and anti-collapse gates. A deterministic
+  zero tail remains the load-failure fallback, so learned coordinates never
+  replace policy fields.
 - **Action conditioning** — provider output is first normalized into the same
   canonical `ToolCall` used by every other path. The learned transition input is
   the 128-float state, a 41-wide tool one-hot, and 16 bounded argument features
@@ -521,13 +519,15 @@ prediction looks dangerous.
   `create_directory`, `service_start`/`stop`, `trigger_kernel_upgrade`,
   `net_connect`) to its predicted effect on that vector, or - when
   present - a small MLP (`cognitive/world_model/learned.rs`) trained
-  offline on real collected data (`scripts/collect_world_model_dataset.mjs`
-  + `scripts/train_world_model.py`, pure numpy) and loaded at boot the
-  same way the real LLM checkpoint is (a flat `f32` binary read via
-  `SYS_READ_FILE`). The v2 `FWM2` file header includes the argument-feature
+  offline on real collected data (`scripts/collect_world_model_hybrid.mjs`
+  + `scripts/train_world_model.py`, pure numpy) and loaded at boot as a flat
+  `f32` binary via `SYS_READ_FILE`. The accepted release MLP is 512 units
+  wide. The v2 `FWM2` file header includes the argument-feature
   width and a 64-bit trained-tool coverage mask. A tool absent from training
   falls back to the rule table instead of consuming random, untrained one-hot
-  weights. Legacy 169-input checkpoints still load with conservative known-tool
+  weights. The loader rejects non-finite values, impossible shapes, empty or
+  out-of-range coverage, and learned claims over the policy-only kernel
+  upgrade. Legacy 169-input checkpoints still load with conservative known-tool
   coverage. The learned model predicts an embedding *delta*, not the absolute
   next state; whether a config-deleting `delete_file` call gets caught is always
   a direct argument check, independent of which source produced the numeric
@@ -542,8 +542,11 @@ prediction looks dangerous.
   that chain, catching effects that only emerge as they compound (an
   action whose first application looks harmless but whose repetition
   would fill the disk or exhaust the heap). The number of simulated
-  steps it took to reach the reported risk is logged alongside every
-  block.
+  steps it took to reach the reported risk is logged alongside every block.
+  Process deltas accumulate across the chain; QEMU probes prove disk pressure
+  at H=2 and a threshold-equality fork pattern at H=3. Fixed-split held-out
+  results support H=3. H=5 raises raw compounding error, so the release does not
+  trade safety confidence for an unmeasured deeper search.
 - **Experience buffer** — every tool call, allowed or blocked, is
   recorded as a compact fixed-size record to `/disk/heliox/world/exp.bin`
   (front-truncated once capped, the same pattern the audit log uses) -
@@ -560,23 +563,38 @@ prediction looks dangerous.
   under-sampled. The collector records the expected and actual tool separately
   and reports realized coverage rather than assuming prompt balance equals
   action balance.
-  `collect_world_model_hybrid.mjs` runs those goals through `agent_step`, joins
+  `prefetch_world_model_responses.mjs` can acquire strict, resumable batches
+  from any OpenAI/Ollama-compatible endpoint and rejects mismatched tools or
+  missing/out-of-range arguments before QEMU time is spent.
+  `collect_world_model_hybrid.mjs` runs goals through `agent_step`, joins
   raw provider responses to the daemon's real before/action/after rows, appends
-  each episode durably, supports multiple RAM profiles, and resumes completed
-  episodes. Offline replay responses make the same path deterministic in CI.
+  each episode atomically, supports sharded collection and multiple RAM
+  profiles, reconciles interrupted publishes, and resumes complete episodes.
+  Offline replay responses make the same path deterministic in CI.
   `upgrade_world_model_dataset.mjs` preserves the existing 9,700 real syscall
   transitions while reconstructing the exact historical arguments used to
   create them. The encoder and transition trainers split by complete episode,
   preserve metadata, report per-tool/core metrics, and optionally restore the
-  best validation checkpoint with `--patience`. Each row distinguishes result
+  best validation checkpoint with `--patience`. The release corpus contains
+  13,670 transitions, 3,580 episodes, 1,316 multi-step episodes, all 41 actions,
+  and 13,243 executed non-policy fitting rows. Each row distinguishes result
   `success` from whether execution was actually attempted. Blocked and
   confirmation-only rows stay available for policy analysis but are excluded
   from transition fitting and trained-tool coverage, preventing a refusal's
   unchanged state from being learned as a safe action outcome.
-- **Verification** — `verify_world_model_hybrid.mjs` checks 41-action corpus
-  balance and boots a disposable QEMU appliance for four replayed ReAct
-  scenarios covering a successful write, successful read, failed read, and
-  world-model-blocked config deletion.
+- **Selection and packaging** — autoencoder and JEPA candidates use the same
+  episode-disjoint 9,219/1,934/2,090 split and dataset fingerprint.
+  Cross-representation error is normalized against each representation's
+  held-out zero-delta baseline. The accepted JEPA model improves every guarded
+  metric (one-step 2.40%, macro-tool 2.34%, H3 4.82%, H5 5.39%) and is stored as
+  a matched, hash-verified pair under `appliance/world-model/`. Clean builds
+  package those assets; local overrides must supply both files.
+- **Verification** — permanent suites cover corpus schema/coverage/diversity,
+  split leakage, JEPA rejection and promotion, weight integrity, protected-path
+  aliases, disk/process lookahead, provider chunking, a 300-request socket soak,
+  real local inference, and a four-outcome ReAct smoke. Learned predictions are
+  advisory; deterministic policy and confirmation gates remain independent and
+  fail closed.
 
 ### Permission Tiers
 
