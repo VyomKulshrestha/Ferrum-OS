@@ -41,6 +41,8 @@ pub static HUD_ENABLED: AtomicBool = AtomicBool::new(true);
 /// runs exactly once regardless of how many times `sys_hud_update` fires -
 /// heliox-daemon's ambient loop calls this every ~30-50ms.
 static ASSISTANT_PANEL_LAUNCH_CHECKED: AtomicBool = AtomicBool::new(false);
+static LAST_MONITOR_UPDATE: core::sync::atomic::AtomicU64 =
+    core::sync::atomic::AtomicU64::new(0);
 
 pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     // Deliberately not done at raw kernel boot (main.rs, before the
@@ -90,6 +92,12 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     // To prevent screen shaking (flicker), we ensure double buffering is initialized and active.
     // We also process input events and draw the mouse cursor so that the cursor is visible.
     if !crate::gui::is_active() && crate::gui::ambient_desktop_enabled() {
+        let now = crate::scheduler::total_ticks();
+        let last = LAST_MONITOR_UPDATE.load(core::sync::atomic::Ordering::Relaxed);
+        if now.saturating_sub(last) >= 20 {
+            LAST_MONITOR_UPDATE.store(now, core::sync::atomic::Ordering::Relaxed);
+            crate::gui::compositor::update_system_monitor();
+        }
         {
             let mut fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
             if let Some(fb) = fb_guard.as_mut() {

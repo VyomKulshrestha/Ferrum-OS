@@ -257,8 +257,10 @@ lazy_static::lazy_static! {
 }
 
 lazy_static::lazy_static! {
-    pub static ref CPU_HISTORY: Mutex<[u8; 20]> = Mutex::new([0; 20]);
+pub static ref CPU_HISTORY: Mutex<[u8; 20]> = Mutex::new([0; 20]);
 }
+
+static MONITOR_SAMPLE: Mutex<(u64, u64, u8)> = Mutex::new((0, 0, 0));
 
 struct TerminalWriterHelper<'a> {
     content: &'a mut Vec<u8>,
@@ -271,22 +273,42 @@ impl<'a> core::fmt::Write for TerminalWriterHelper<'a> {
     }
 }
 
-pub fn update_system_monitor() {
-    let mut state = COMPOSITOR.lock();
-
-    // 1. Get memory usage and task counts
+fn system_monitor_snapshot() -> (u8, usize, usize, usize) {
     let (used, _) = crate::memory::heap::heap_stats();
     let total = crate::memory::heap::HEAP_SIZE;
+    let tasks = crate::scheduler::list_tasks();
+    let task_ticks = tasks.iter().map(|task| task.ticks).sum::<u64>();
+    let wall_ticks = crate::scheduler::total_ticks();
+    let mut sample = MONITOR_SAMPLE.lock();
+    let elapsed = wall_ticks.saturating_sub(sample.0);
+    let busy = task_ticks.saturating_sub(sample.1);
+    let cpu_load = if elapsed > 0 {
+        ((busy.saturating_mul(100) / elapsed).min(100)) as u8
+    } else {
+        sample.2
+    };
+    *sample = (wall_ticks, task_ticks, cpu_load);
+    (cpu_load, used, total, tasks.len())
+}
+
+pub fn update_system_monitor() {
+    // Gather heap/scheduler state before taking the compositor lock. Process
+    // lifecycle paths sometimes take those subsystem locks before touching
+    // windows; preserving that order prevents monitor refresh deadlocks.
+    let (cpu_load, used, total, tasks_count) = system_monitor_snapshot();
     let mem_mb = used / (1024 * 1024);
     let total_mb = total / (1024 * 1024);
-    let tasks_count = crate::scheduler::list_tasks().len();
+    static LIVE_MONITOR_LOGGED: spin::Once = spin::Once::new();
+    LIVE_MONITOR_LOGGED.call_once(|| {
+        crate::serial_println!(
+            "[desktop] system monitor live cpu={} memory={}/{}MB tasks={}",
+            cpu_load,
+            mem_mb,
+            total_mb,
+            tasks_count
+        );
+    });
 
-    // Estimate CPU usage based on active tasks and system ticks
-    let ticks = crate::scheduler::total_ticks();
-    let rand_val = (ticks % 7) as u8;
-    let cpu_load = ((tasks_count * 2) as u8 + rand_val + 2).min(100);
-
-    // 2. Update CPU history
     {
         let mut history = CPU_HISTORY.lock();
         for i in 0..19 {
@@ -295,14 +317,14 @@ pub fn update_system_monitor() {
         history[19] = cpu_load;
     }
 
-    // 3. Format window contents
+    let mut state = COMPOSITOR.lock();
     if let Some(win) = state.windows.iter_mut().find(|w| w.id == 1) {
         win.content.clear();
         use core::fmt::Write;
         let mut writer = TerminalWriterHelper { content: &mut win.content };
         let _ = write!(
             &mut writer,
-            "CPU Usage: {}%\nMemory: {}MB / {}MB\nTasks: {} Active\n\n  --- CPU Load History ---",
+            "CPU Usage: {}%\nMemory: {}MB / {}MB\nTasks: {} Active\n\nLive scheduler and heap telemetry",
             cpu_load, mem_mb, total_mb, tasks_count
         );
         state.needs_redraw = true;
@@ -356,6 +378,7 @@ pub fn request_redraw() {
 }
 
 pub fn spawn_demo_windows() {
+    let (cpu_load, used, total, tasks_count) = system_monitor_snapshot();
     let mut state = COMPOSITOR.lock();
     // Remember what was focused before resetting the demo windows, so a
     // pre-existing app window that had focus keeps it (matched by id,
@@ -369,7 +392,16 @@ pub fn spawn_demo_windows() {
     state.windows.retain(|w| matches!(w.win_type, crate::gui::window::WindowType::App(_)));
 
     let mut w1 = Window::new(1, crate::gui::window::WindowType::SystemMonitor, "SYSTEM MONITOR", 100, 100, 300, 200, 0x001E1E1E);
-    w1.content.extend_from_slice(b"CPU Usage: 14%\nMemory: 256MB / 4096MB\nTasks: 5 Active\n\n[Graph Placeholder]");
+    w1.content.extend_from_slice(
+        alloc::format!(
+            "CPU Usage: {}%\nMemory: {}MB / {}MB\nTasks: {} Active\n\nLive scheduler and heap telemetry",
+            cpu_load,
+            used / (1024 * 1024),
+            total / (1024 * 1024),
+            tasks_count
+        )
+        .as_bytes(),
+    );
 
     let mut w2 = Window::new(2, crate::gui::window::WindowType::Terminal, "TERMINAL", 450, 150, 400, 400, 0x001A1A1A);
     w2.content.extend_from_slice(b"FerrumOS:~$ ");

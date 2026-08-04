@@ -365,6 +365,10 @@ try {
     `got (${farPoint.r},${farPoint.g},${farPoint.b}) at (700,400)`
   );
   check(
+    "System Monitor receives live scheduler and heap telemetry on the ambient desktop",
+    /\[desktop\] system monitor live cpu=\d+ memory=\d+\/\d+MB tasks=\d+/.test(serialText())
+  );
+  check(
     "hardware RTC clock renders in the taskbar tray",
     clockBorder.r === 0x44 && clockBorder.g === 0x44 && clockBorder.b === 0x44,
     `got (${clockBorder.r},${clockBorder.g},${clockBorder.b}) at (${clockRect[0]},${clockRect[1]})`
