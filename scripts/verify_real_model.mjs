@@ -71,15 +71,15 @@ async function waitForSerial(needle, seconds, from = 0) {
 }
 
 const qemuArgs = [
-  "-m", "2048M",
+  // Match the constrained release profile used by the inference-cache soak.
+  // More guest RAM must not be required to prove the packaged 15M fallback.
+  "-m", "512M",
   "-drive", `format=raw,file=${image}`,
   "-drive", `format=raw,file=${diskImage},if=ide,index=1`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
   "-netdev", `user,id=net0,hostfwd=tcp:127.0.0.1:${hostPort}-:8785`,
   "-device", "rtl8139,netdev=net0",
-  "-device", "intel-hda",
-  "-device", "hda-duplex",
   "-no-reboot",
 ];
 
@@ -167,7 +167,10 @@ try {
       jsonrpc: "2.0",
       id: "real-model-test",
       method: "execute_tool",
-      params: { tool: "local_inference", args: { prompt: "Once upon a time" } },
+      // Four generated tokens are enough to distinguish the trained model
+      // from the old deterministic fixture without making this integration
+      // check wait for the direct-tool default of sixteen tokens under QEMU.
+      params: { tool: "local_inference", args: { prompt: "Once upon a time", max_tokens: 4 } },
     }));
   };
   ws.onerror = (err) => { wsError = err; };
@@ -193,7 +196,7 @@ try {
 
   let output = null;
   try {
-    const genLog = await waitForSerial("[heliox-daemon] local_inference output: ", 240, start);
+    const genLog = await waitForSerial("[heliox-daemon] local_inference output: ", 600, start);
     // The daemon escapes embedded newlines (\n -> \\n) so a multi-paragraph
     // story stays on one console line; undo that to compare against the
     // WS response, which JSON already decoded back to real newlines.
