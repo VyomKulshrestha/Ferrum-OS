@@ -64,6 +64,16 @@ fn read_f32_slice(buf: &[u8], offset: usize, count: usize) -> Vec<f32> {
     out
 }
 
+fn expected_weight_bytes(input_size: usize, hidden_size: usize, output_size: usize) -> Option<usize> {
+    input_size
+        .checked_mul(hidden_size)?
+        .checked_add(hidden_size)?
+        .checked_add(hidden_size.checked_mul(output_size)?)?
+        .checked_add(output_size)?
+        .checked_mul(core::mem::size_of::<f32>())?
+        .checked_add(12)
+}
+
 /// Same flat-binary format as learned.rs's transition weights: header
 /// (3 x u32 LE: input_size, hidden_size, output_size) then f32 LE arrays
 /// w1/b1/w2/b2 - written by scripts/train_world_model_encoder.py's
@@ -89,10 +99,10 @@ pub fn try_load() -> bool {
     let hidden_size = read_u32_le(&buf, 4) as usize;
     let output_size = read_u32_le(&buf, 8) as usize;
 
-    let expected_len = 12 + (input_size * hidden_size + hidden_size + hidden_size * output_size + output_size) * 4;
-    if input_size != RAW_INPUT_SIZE || output_size != LATENT_SIZE || expected_len != len {
+    let expected_len = expected_weight_bytes(input_size, hidden_size, output_size);
+    if input_size != RAW_INPUT_SIZE || hidden_size == 0 || output_size != LATENT_SIZE || expected_len != Some(len) {
         let msg = alloc::format!(
-            "[heliox-daemon] [world-model] learned encoder weights file has unexpected shape (input={} hidden={} output={} expected_bytes={} actual_bytes={}), ignoring\n",
+            "[heliox-daemon] [world-model] learned encoder weights file has invalid metadata (input={} hidden={} output={} expected_bytes={:?} actual_bytes={}), ignoring\n",
             input_size, hidden_size, output_size, expected_len, len
         );
         unsafe { crate::syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64) };
@@ -107,6 +117,12 @@ pub fn try_load() -> bool {
     let w2 = read_f32_slice(&buf, offset, hidden_size * output_size);
     offset += w2.len() * 4;
     let b2 = read_f32_slice(&buf, offset, output_size);
+
+    if !w1.iter().chain(&b1).chain(&w2).chain(&b2).all(|value| value.is_finite()) {
+        let msg = b"[heliox-daemon] [world-model] learned encoder contains non-finite weights, ignoring\n";
+        unsafe { crate::syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64) };
+        return false;
+    }
 
     *MODEL.lock() = Some(Mlp { input_size, hidden_size, output_size, w1, b1, w2, b2 });
 
@@ -138,6 +154,9 @@ pub fn encode_latent(raw: &[f32; RAW_INPUT_SIZE]) -> Option<[f32; LATENT_SIZE]> 
         }
         hidden[h] = sum.max(0.0);
     }
+    if !hidden.iter().all(|value| value.is_finite()) {
+        return None;
+    }
 
     let mut latent = [0f32; LATENT_SIZE];
     for o in 0..model.output_size {
@@ -146,6 +165,9 @@ pub fn encode_latent(raw: &[f32; RAW_INPUT_SIZE]) -> Option<[f32; LATENT_SIZE]> 
             sum += hidden[h] * model.w2[h * model.output_size + o];
         }
         latent[o] = sum;
+    }
+    if !latent.iter().all(|value| value.is_finite()) {
+        return None;
     }
     Some(latent)
 }

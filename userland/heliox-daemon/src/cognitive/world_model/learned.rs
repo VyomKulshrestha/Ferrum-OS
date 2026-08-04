@@ -34,6 +34,7 @@ const HYBRID_INPUT_SIZE: usize = LEGACY_INPUT_SIZE + action_features::ACTION_FEA
 const MAX_FILE_SIZE: usize = 2 * 1024 * 1024; // generous - actual weights are a few hundred KB at most
 const V2_MAGIC: u32 = u32::from_le_bytes(*b"FWM2");
 const V2_VERSION: u32 = 2;
+const POLICY_ONLY_COVERAGE: u64 = 1u64 << 28; // trigger_kernel_upgrade
 
 // The legacy corpus trained only this 13-tool rotation. Its file format has
 // no coverage metadata, so unseen actions must fall back to deterministic
@@ -69,6 +70,21 @@ fn read_f32_slice(buf: &[u8], offset: usize, count: usize) -> Vec<f32> {
         out.push(f32::from_le_bytes([buf[o], buf[o + 1], buf[o + 2], buf[o + 3]]));
     }
     out
+}
+
+fn expected_weight_bytes(
+    header_len: usize,
+    input_size: usize,
+    hidden_size: usize,
+    output_size: usize,
+) -> Option<usize> {
+    input_size
+        .checked_mul(hidden_size)?
+        .checked_add(hidden_size)?
+        .checked_add(hidden_size.checked_mul(output_size)?)?
+        .checked_add(output_size)?
+        .checked_mul(core::mem::size_of::<f32>())?
+        .checked_add(header_len)
 }
 
 /// Loads the learned weights file if present. Called once at daemon
@@ -124,15 +140,20 @@ pub fn try_load() -> bool {
         };
 
     let expected_input = LEGACY_INPUT_SIZE + action_feature_size;
-    let expected_len = header_len + (input_size * hidden_size + hidden_size + hidden_size * output_size + output_size) * 4;
+    let expected_len = expected_weight_bytes(header_len, input_size, hidden_size, output_size);
+    let valid_coverage_mask = (1u64 << NUM_TOOLS) - 1;
     if input_size != expected_input
+        || hidden_size == 0
         || (action_feature_size != 0 && action_feature_size != action_features::ACTION_FEATURE_SIZE)
         || output_size != EMBEDDING_SIZE
-        || expected_len != len
+        || expected_len != Some(len)
+        || coverage == 0
+        || coverage & !valid_coverage_mask != 0
+        || coverage & POLICY_ONLY_COVERAGE != 0
     {
         let msg = alloc::format!(
-            "[heliox-daemon] [world-model] learned model weights file has unexpected shape (input={} hidden={} output={} expected_bytes={} actual_bytes={}), ignoring\n",
-            input_size, hidden_size, output_size, expected_len, len
+            "[heliox-daemon] [world-model] learned model weights file has invalid metadata (input={} hidden={} output={} expected_bytes={:?} actual_bytes={} coverage=0x{:x}), ignoring\n",
+            input_size, hidden_size, output_size, expected_len, len, coverage
         );
         unsafe { crate::syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64) };
         return false;
@@ -146,6 +167,12 @@ pub fn try_load() -> bool {
     let w2 = read_f32_slice(&buf, offset, hidden_size * output_size);
     offset += w2.len() * 4;
     let b2 = read_f32_slice(&buf, offset, output_size);
+
+    if !w1.iter().chain(&b1).chain(&w2).chain(&b2).all(|value| value.is_finite()) {
+        let msg = b"[heliox-daemon] [world-model] learned model contains non-finite weights, ignoring\n";
+        unsafe { crate::syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64) };
+        return false;
+    }
 
     *MODEL.lock() = Some(Mlp {
         input_size,
@@ -213,6 +240,12 @@ pub fn predict_delta(state: &StateEmbedding, action: &ToolCall) -> Option<[f32; 
             sum += hidden[h] * model.w2[h * model.output_size + o];
         }
         delta[o] = sum;
+    }
+    // Finite weights can still overflow during a hostile or corrupted
+    // multiply-accumulate. Never let NaN/Inf reach safety comparisons;
+    // None selects the deterministic transition table at the call site.
+    if !delta.iter().all(|value| value.is_finite()) {
+        return None;
     }
     Some(delta)
 }
