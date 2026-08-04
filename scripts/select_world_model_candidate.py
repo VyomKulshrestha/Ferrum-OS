@@ -3,9 +3,10 @@
 
 JEPA is a candidate, not an automatic upgrade. This gate requires the baseline
 and candidate transition models to use the same split and rejects a candidate
-that regresses any critical one-step or rollout metric beyond tolerance. It
-writes an auditable decision; copying the selected weight pair remains an
-explicit release step.
+that regresses any critical one-step or rollout metric beyond tolerance. Since
+AE and JEPA coordinates have different scale, every cross-representation error
+is first normalized by the same held-out split's zero-delta baseline. It writes
+an auditable decision; copying the selected weight pair remains explicit.
 """
 import argparse
 import json
@@ -19,13 +20,22 @@ def load(path):
 
 
 def metric_values(report):
+    if int(report.get("schema_version", 0)) < 4:
+        raise ValueError(
+            "transition metrics predate scale-normalized representation comparison; retrain with schema v4"
+        )
     rollout = report.get("rollout", {})
     return {
-        "one_step_mse": float(report["learned_mse"]),
-        "core_feature_mse": float(report["core_feature_mse"]),
-        "macro_tool_mse": float(report["macro_tool_mse"]),
-        "rollout_h3_mse": float(rollout["3"]["mse"]),
-        "rollout_h5_mse": float(rollout["5"]["mse"]),
+        # AE and JEPA latent coordinates have different variance.  Raw MSE
+        # across those spaces is meaningless: a representation could appear
+        # better merely by shrinking every coordinate.  Normalize each error
+        # by the same split's zero-delta error before cross-representation
+        # comparison.  Core features are normalized for one consistent rule.
+        "one_step_relative_error": float(report["normalized_mse"]),
+        "core_feature_relative_error": float(report["normalized_core_mse"]),
+        "macro_tool_relative_error": float(report["normalized_macro_tool_mse"]),
+        "rollout_h3_relative_error": float(rollout["3"]["normalized_mse"]),
+        "rollout_h5_relative_error": float(rollout["5"]["normalized_mse"]),
     }
 
 
@@ -56,15 +66,19 @@ def main():
     if not representation.get("accepted", False):
         sys.exit("candidate representation failed its predictive or anti-collapse gates")
 
-    base = metric_values(baseline)
-    trial = metric_values(candidate)
+    try:
+        base = metric_values(baseline)
+        trial = metric_values(candidate)
+    except (KeyError, TypeError, ValueError) as error:
+        sys.exit(f"candidate metrics are not scale-comparable: {error}")
     ratios = {name: trial[name] / max(base[name], 1e-12) for name in base}
     max_allowed = 1.0 + max(0.0, args.max_regression)
     regressions = [name for name, ratio in ratios.items() if ratio > max_allowed]
     geometric_ratio = math.exp(sum(math.log(max(ratio, 1e-12)) for ratio in ratios.values()) / len(ratios))
     selected = "candidate" if not regressions and geometric_ratio < 1.0 else "baseline"
     decision = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "comparison_space": "error relative to held-out zero-delta baseline",
         "selected": selected,
         "comparable_split": comparable,
         "max_regression": args.max_regression,

@@ -262,7 +262,9 @@ def coverage_from_training_rows(rows, train_idx, minimum_samples):
 
 def metric_summary(prediction, target, actions):
     learned_mse = float(np.mean((prediction - target) ** 2))
+    zero_mse = float(np.mean(target ** 2))
     core_mse = float(np.mean((prediction[:, :7] - target[:, :7]) ** 2))
+    core_zero_mse = float(np.mean(target[:, :7] ** 2))
     changed_dimensions = np.any(np.abs(target) > 1e-7, axis=0)
     dynamic_mse = (
         float(np.mean((prediction[:, changed_dimensions] - target[:, changed_dimensions]) ** 2))
@@ -270,22 +272,37 @@ def metric_summary(prediction, target, actions):
     )
     per_action = {}
     action_mses = []
+    normalized_action_mses = []
     for action_id in sorted(set(actions.tolist())):
         mask = actions == action_id
         action_mse = float(np.mean((prediction[mask] - target[mask]) ** 2))
+        action_zero_mse = float(np.mean(target[mask] ** 2))
         core_action_mse = float(np.mean((prediction[mask, :7] - target[mask, :7]) ** 2))
+        core_action_zero_mse = float(np.mean(target[mask, :7] ** 2))
         name = TOOL_NAMES[action_id] if 0 <= action_id < NUM_TOOLS else str(action_id)
         per_action[name] = {
             "samples": int(mask.sum()),
             "mse": action_mse,
+            "zero_mse": action_zero_mse,
+            "normalized_mse": action_mse / max(action_zero_mse, 1e-12),
             "core_mse": core_action_mse,
+            "core_zero_mse": core_action_zero_mse,
+            "normalized_core_mse": core_action_mse / max(core_action_zero_mse, 1e-12),
         }
         action_mses.append(action_mse)
+        normalized_action_mses.append(action_mse / max(action_zero_mse, 1e-12))
     return {
         "mse": learned_mse,
+        "zero_mse": zero_mse,
+        "normalized_mse": learned_mse / max(zero_mse, 1e-12),
         "core_mse": core_mse,
+        "core_zero_mse": core_zero_mse,
+        "normalized_core_mse": core_mse / max(core_zero_mse, 1e-12),
         "dynamic_mse": dynamic_mse,
         "macro_tool_mse": float(np.mean(action_mses)) if action_mses else 0.0,
+        "normalized_macro_tool_mse": (
+            float(np.mean(normalized_action_mses)) if normalized_action_mses else 0.0
+        ),
         "changed_dimensions": np.flatnonzero(changed_dimensions).tolist(),
         "per_action": per_action,
     }
@@ -314,9 +331,12 @@ def rollout_metrics(rows, test_idx, weights, max_horizon=5):
 
     squared_errors = {horizon: [] for horizon in range(1, max_horizon + 1)}
     core_squared_errors = {horizon: [] for horizon in range(1, max_horizon + 1)}
+    zero_squared_errors = {horizon: [] for horizon in range(1, max_horizon + 1)}
+    core_zero_squared_errors = {horizon: [] for horizon in range(1, max_horizon + 1)}
     for episode_rows in by_episode.values():
         for start in range(len(episode_rows)):
             state = np.asarray(episode_rows[start][1]["before"], dtype=np.float32).copy()
+            zero_state = state.copy()
             for offset in range(max_horizon):
                 position = start + offset
                 if position >= len(episode_rows):
@@ -334,11 +354,33 @@ def rollout_metrics(rows, test_idx, weights, max_horizon=5):
                 horizon = offset + 1
                 squared_errors[horizon].append(float(np.mean((state - target) ** 2)))
                 core_squared_errors[horizon].append(float(np.mean((state[:7] - target[:7]) ** 2)))
+                zero_squared_errors[horizon].append(float(np.mean((zero_state - target) ** 2)))
+                core_zero_squared_errors[horizon].append(
+                    float(np.mean((zero_state[:7] - target[:7]) ** 2))
+                )
     return {
         str(horizon): {
             "samples": len(squared_errors[horizon]),
             "mse": float(np.mean(squared_errors[horizon])) if squared_errors[horizon] else None,
+            "zero_mse": (
+                float(np.mean(zero_squared_errors[horizon]))
+                if zero_squared_errors[horizon] else None
+            ),
+            "normalized_mse": (
+                float(np.mean(squared_errors[horizon]))
+                / max(float(np.mean(zero_squared_errors[horizon])), 1e-12)
+                if squared_errors[horizon] else None
+            ),
             "core_mse": float(np.mean(core_squared_errors[horizon])) if core_squared_errors[horizon] else None,
+            "core_zero_mse": (
+                float(np.mean(core_zero_squared_errors[horizon]))
+                if core_zero_squared_errors[horizon] else None
+            ),
+            "normalized_core_mse": (
+                float(np.mean(core_squared_errors[horizon]))
+                / max(float(np.mean(core_zero_squared_errors[horizon])), 1e-12)
+                if core_squared_errors[horizon] else None
+            ),
         }
         for horizon in range(1, max_horizon + 1)
     }
@@ -487,8 +529,13 @@ def main():
     learned_mse = evaluation["mse"]
     core_mse = evaluation["core_mse"]
     print(f"learned MLP untouched-test MSE: {learned_mse:.6f}")
+    print(f"learned MLP relative-to-zero untouched-test error: {evaluation['normalized_mse']:.6f}")
     print(f"learned MLP core-feature untouched-test MSE: {core_mse:.6f}")
     print(f"learned MLP macro-per-tool untouched-test MSE: {evaluation['macro_tool_mse']:.6f}")
+    print(
+        "learned MLP normalized macro-per-tool untouched-test error: "
+        f"{evaluation['normalized_macro_tool_mse']:.6f}"
+    )
     for name, action_metrics in evaluation["per_action"].items():
         print(
             f"  {name:24s} n={action_metrics['samples']:4d} "
@@ -511,7 +558,8 @@ def main():
         if result["mse"] is not None:
             print(
                 f"  rollout H={horizon} n={result['samples']:4d} "
-                f"mse={result['mse']:.6f} core={result['core_mse']:.6f}"
+                f"mse={result['mse']:.6f} relative={result['normalized_mse']:.6f} "
+                f"core={result['core_mse']:.6f}"
             )
 
     acceptance_reference = min(baseline_mse, zero_mse)
@@ -543,7 +591,7 @@ def main():
     print(f"wrote weights to {args.out} ({weight_bytes} bytes, coverage=0x{coverage:x})")
 
     metrics = {
-        "schema_version": 3,
+        "schema_version": 4,
         "corpus_rows": len(corpus_rows),
         "excluded_unexecuted_rows": excluded_rows,
         "rows": len(rows),
@@ -565,9 +613,13 @@ def main():
         "baseline_mse": baseline_mse,
         "zero_mse": zero_mse,
         "learned_mse": learned_mse,
+        "normalized_mse": evaluation["normalized_mse"],
         "core_feature_mse": core_mse,
+        "core_zero_mse": evaluation["core_zero_mse"],
+        "normalized_core_mse": evaluation["normalized_core_mse"],
         "dynamic_feature_mse": evaluation["dynamic_mse"],
         "macro_tool_mse": evaluation["macro_tool_mse"],
+        "normalized_macro_tool_mse": evaluation["normalized_macro_tool_mse"],
         "changed_dimensions": evaluation["changed_dimensions"],
         "per_action": evaluation["per_action"],
         "rollout": rollouts,
