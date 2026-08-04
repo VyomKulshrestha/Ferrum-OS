@@ -111,6 +111,7 @@ if (!resume) {
 const completed = new Set();
 const observedTools = new Set();
 let expectedToolMismatches = 0;
+let failedEpisodes = 0;
 if (resume && fs.existsSync(tracePath)) {
   for (const line of fs.readFileSync(tracePath, "utf8").split(/\r?\n/)) {
     if (!line.trim()) continue;
@@ -364,6 +365,7 @@ async function collectProfile(ramMb, selected, chunkIndex) {
       ws.onerror = reject;
     });
 
+    let consecutiveEpisodeFailures = 0;
     for (let scenarioIndex = 0; scenarioIndex < selected.length; scenarioIndex++) {
       const scenario = selected[scenarioIndex];
       const episodeId = `${scenario.id}-${ramMb}m`;
@@ -380,6 +382,9 @@ async function collectProfile(ramMb, selected, chunkIndex) {
           const result = await rpc(ws, `${episodeId}-${step}`, "agent_step", { goal: scenario.prompt });
           const newSerial = serialText().slice(serialStart);
           const transitions = parseTransitionRows(newSerial);
+          if ((result.actions || []).length > 0 && transitions.length === 0) {
+            throw new Error("agent returned actions without an emitted world-model transition");
+          }
           const rawResponse = latestExchange?.raw_response || "";
           for (let index = 0; index < transitions.length; index++) {
             const actualTool = result.actions?.[index]?.tool
@@ -443,8 +448,17 @@ async function collectProfile(ramMb, selected, chunkIndex) {
         failed: episodeFailed,
         completed: !episodeFailed,
       });
-      if (!episodeFailed) completed.add(episodeId);
+      if (!episodeFailed) {
+        completed.add(episodeId);
+        consecutiveEpisodeFailures = 0;
+      } else {
+        failedEpisodes++;
+        consecutiveEpisodeFailures++;
+      }
       console.log(`[hybrid] ${episodeId}: ${episodeTransitions} transitions${episodeFailed ? " (failed)" : ""}`);
+      if (consecutiveEpisodeFailures >= 3) {
+        throw new Error("three consecutive episodes failed; stopping this chunk for safe resume");
+      }
     }
   } finally {
     activeScenario = null;
@@ -479,6 +493,8 @@ try {
 
 console.log(
   `[hybrid] observed ${observedTools.size}/${toolNames.length} canonical actions; `
-  + `${expectedToolMismatches} transition(s) differed from the scenario's expected tool`,
+  + `${expectedToolMismatches} transition(s) differed from the scenario's expected tool; `
+  + `${failedEpisodes} episode(s) failed`,
 );
+if (failedEpisodes > 0 || expectedToolMismatches > 0) exitCode = 1;
 process.exit(exitCode);
