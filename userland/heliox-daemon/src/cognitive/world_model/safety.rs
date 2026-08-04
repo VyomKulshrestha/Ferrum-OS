@@ -54,7 +54,11 @@ pub fn risk_score(prediction: &Prediction) -> (f32, String) {
     }
 
     if encoder::heap_fraction(&prediction.embedding) > 0.95 {
-        risk += 0.6;
+        // Must independently cross BLOCK_THRESHOLD: the deterministic
+        // trigger_kernel_upgrade transition deliberately forces heap usage
+        // to 1.0 so an unsafe raw-kexec path cannot slip through merely
+        // because no other risk rule happened to fire on that action.
+        risk += 0.8;
         reasons.push(String::from("predicted heap usage > 95%"));
     }
 
