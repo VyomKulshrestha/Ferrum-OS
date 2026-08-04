@@ -16,6 +16,7 @@ import numpy as np
 
 from train_world_model import (
     NUM_TOOLS, ACTION_FEATURE_SIZE, dataset_fingerprint, split_indices,
+    transition_eligible,
 )
 from train_world_model_encoder import extract_raw
 
@@ -174,7 +175,7 @@ def main():
     parser.add_argument("--no-balance-tools", action="store_true")
     args = parser.parse_args()
 
-    rows = [row for row in load_rows(args.dataset) if row.get("executed", True)]
+    rows = [row for row in load_rows(args.dataset) if transition_eligible(row)]
     if len(rows) < 100:
         sys.exit("JEPA requires at least 100 executed transitions")
     x, next_x, action = arrays(rows)
@@ -249,7 +250,7 @@ def main():
         sys.exit("JEPA candidate rejected by anti-collapse or predictive acceptance gates")
     write_encoder(args.out, weights)
     encoded_rows = []
-    for row in load_rows(args.dataset):
+    for row in rows:
         before = list(row["before"])
         after = list(row["after"])
         before_z, _, _ = encode(extract_raw(before).reshape(1, -1), weights)

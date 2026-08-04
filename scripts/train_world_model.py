@@ -33,6 +33,7 @@ OUTPUT_SIZE = EMBEDDING_SIZE
 LATENT_START = 51
 V2_MAGIC = b"FWM2"
 V2_VERSION = 2
+POLICY_ONLY_ACTIONS = frozenset({28})  # trigger_kernel_upgrade
 
 # Mirrors cognitive/world_model/transition.rs's rule table, for the
 # specific fields it actually touches (encoder.rs's IDX_PROC_COUNT=0,
@@ -259,6 +260,15 @@ def coverage_from_training_rows(rows, train_idx, minimum_samples):
         if count >= minimum_samples:
             coverage |= 1 << action_id
     return coverage, counts
+
+
+def transition_eligible(row):
+    """Only real, non-quarantined actions may influence learned weights."""
+    try:
+        action_id = int(row.get("action", -1))
+    except (TypeError, ValueError):
+        return False
+    return row.get("executed", True) and action_id not in POLICY_ONLY_ACTIONS
 
 
 def dataset_fingerprint(rows):
@@ -489,12 +499,20 @@ def main():
     args = parser.parse_args()
 
     corpus_rows = load_dataset(args.dataset)
-    rows = [row for row in corpus_rows if row.get("executed", True)]
-    excluded_rows = len(corpus_rows) - len(rows)
-    if excluded_rows:
+    excluded_unexecuted = sum(not row.get("executed", True) for row in corpus_rows)
+    excluded_policy = sum(
+        row.get("executed", True) and int(row.get("action", -1)) in POLICY_ONLY_ACTIONS
+        for row in corpus_rows
+    )
+    rows = [row for row in corpus_rows if transition_eligible(row)]
+    if excluded_unexecuted:
         print(
-            f"excluded {excluded_rows} blocked/confirmation-only rows from transition fitting "
+            f"excluded {excluded_unexecuted} blocked/confirmation-only rows from transition fitting "
             "(retained in the source corpus for policy analysis)"
+        )
+    if excluded_policy:
+        print(
+            f"excluded {excluded_policy} executed historical policy-only rows from transition fitting"
         )
     if len(rows) < 20:
         print(f"error: only {len(rows)} examples in {args.dataset} - collect more with scripts/collect_world_model_dataset.mjs first", file=sys.stderr)
@@ -624,7 +642,8 @@ def main():
     metrics = {
         "schema_version": 4,
         "corpus_rows": len(corpus_rows),
-        "excluded_unexecuted_rows": excluded_rows,
+        "excluded_unexecuted_rows": excluded_unexecuted,
+        "excluded_policy_rows": excluded_policy,
         "rows": len(rows),
         "dataset_fingerprint": dataset_fingerprint(rows),
         "train_rows": len(train_idx),

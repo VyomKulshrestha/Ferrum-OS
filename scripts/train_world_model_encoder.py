@@ -38,7 +38,7 @@ import struct
 import sys
 
 import numpy as np
-from train_world_model import split_indices
+from train_world_model import split_indices, transition_eligible
 
 EMBEDDING_SIZE = 128
 NUM_TOOLS = 41
@@ -290,11 +290,15 @@ def main():
     )
     args = parser.parse_args()
 
-    rows = load_dataset(args.dataset)
+    corpus_rows = load_dataset(args.dataset)
+    rows = [row for row in corpus_rows if transition_eligible(row)]
     if len(rows) < 20:
         print(f"error: only {len(rows)} examples in {args.dataset}", file=sys.stderr)
         sys.exit(1)
-    print(f"loaded {len(rows)} examples ({len(rows) * 2} before/after snapshots) from {args.dataset}")
+    print(
+        f"loaded {len(rows)} transition-eligible examples "
+        f"({len(rows) * 2} before/after snapshots) from {args.dataset}"
+    )
 
     X = build_raw_matrix(rows)
 

@@ -47,6 +47,9 @@ for episode in {row["episode_id"] for row in rows}:
 coverage, counts = MODULE.coverage_from_training_rows(rows, train, minimum_samples=3)
 for action_id, count in enumerate(counts):
     assert bool(coverage & (1 << action_id)) == (count >= 3)
+assert MODULE.transition_eligible({"action": 0, "executed": True})
+assert not MODULE.transition_eligible({"action": 0, "executed": False})
+assert not MODULE.transition_eligible({"action": 28, "executed": True})
 
 states = np.zeros((2, MODULE.EMBEDDING_SIZE), dtype=np.float32)
 states[:, :MODULE.LATENT_START] = [-0.5]
@@ -122,8 +125,9 @@ assert SELECTOR.representation_mismatches(
 
 print("PASS\tepisode-aware train/validation/test partitions are disjoint")
 print("PASS\tlearned-tool coverage is derived only from sufficiently sampled training rows")
+print("PASS\tpolicy-only kernel upgrades can never enter learned weights")
 print("PASS\toffline rollout clamping matches signed runtime latent bounds")
 print("PASS\tJEPA promotion metrics are invariant to latent scale alone")
 print("PASS\tdataset fingerprints ignore representation latents but bind row identity")
 print("PASS\tJEPA acceptance reports are bound to their transition dataset and split")
-print("6/6 checks passed")
+print("7/7 checks passed")
