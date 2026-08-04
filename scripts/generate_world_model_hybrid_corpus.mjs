@@ -52,7 +52,7 @@ const controlledResponses = {
   service_stop: (i) => ({ tool: "service_stop", args: { service_id: 1 + (i % 8) } }),
   exec_process: (i) => ({ tool: "exec_process", args: { path: i % 3 === 0 ? `/disk/missing_bin_${i % 29}` : "/disk/pkgs-available/notes/bin" } }),
   delete_file: (i) => ({ tool: "delete_file", args: { path: i % 11 === 0 ? "/disk/heliox/config.json" : `/disk/wm_pool_${i % 64}.txt` } }),
-  local_inference: (i) => ({ tool: "local_inference", args: { prompt: `hybrid check ${i}` } }),
+  local_inference: (i) => ({ tool: "local_inference", args: { prompt: `hybrid check ${i}`, max_tokens: 1 } }),
   trigger_kernel_upgrade: () => ({ tool: "trigger_kernel_upgrade", args: {} }),
   hud_update: (i) => ({
     tool: "hud_update",

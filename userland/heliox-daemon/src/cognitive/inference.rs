@@ -728,6 +728,18 @@ fn try_read_header(path: &str) -> Option<[u8; 256]> {
 }
 
 pub fn run_local_inference(prompt: &str, provider: &str) -> Result<String, &'static str> {
+    run_local_inference_with_limit(prompt, provider, 64)
+}
+
+/// Run the embedded model with an explicit generated-token budget. Direct
+/// tool calls use this to request a short probe without forcing the tiny
+/// on-device model to fill its entire context window; autonomous provider
+/// inference retains the normal 64-token response budget above.
+pub fn run_local_inference_with_limit(
+    prompt: &str,
+    provider: &str,
+    max_new_tokens: usize,
+) -> Result<String, &'static str> {
     // 1. Detect if AVX2 is supported
     let avx2_supported = crate::cognitive::inference::detect_avx2();
 
@@ -965,8 +977,12 @@ pub fn run_local_inference(prompt: &str, provider: &str) -> Result<String, &'sta
     }
 
     let mut prev_token = token;
-    // Generate text
-    while pos < seq_len {
+    // Generate text within the caller's bounded response budget.
+    let generation_end = core::cmp::min(
+        seq_len,
+        pos.saturating_add(max_new_tokens.clamp(1, 64)),
+    );
+    while pos < generation_end {
         forward(&weights, &mut state, token, pos, &config, gs, avx2_supported);
         
         let next_token = sample_argmax(&state.logits);

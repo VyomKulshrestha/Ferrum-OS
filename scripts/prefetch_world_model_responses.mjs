@@ -22,7 +22,7 @@ const ARGUMENT_GUIDE = {
   save_memory: {}, load_memory: {}, set_goal: { goal: "string" }, sleep: { ms: "number" },
   service_start: { service_id: "number" }, service_stop: { service_id: "number" },
   exec_process: { path: "string" }, delete_file: { path: "string" },
-  local_inference: { prompt: "string" }, trigger_kernel_upgrade: {},
+  local_inference: { prompt: "string", max_tokens: "number 1-64" }, trigger_kernel_upgrade: {},
   hud_update: { flags: "number", point_x: "number", point_y: "number", suggestion: "string" },
   hit_test: { x: "number", y: "number" }, read_screen: {},
   add_subtask: { description: "string", depends_on: "string" },

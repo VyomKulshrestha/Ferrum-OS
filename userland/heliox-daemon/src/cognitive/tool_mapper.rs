@@ -1163,7 +1163,14 @@ fn execute_local_inference(args: &[(String, JsonValue)]) -> ToolResult {
     // the daemon's Config through this call chain. Request the best-tier
     // model unconditionally; `run_local_inference` gracefully falls back to
     // the Standard-tier model if the High-tier checkpoint isn't on disk.
-    match crate::cognitive::inference::run_local_inference(&prompt, "local-1.1B") {
+    let max_tokens = find_arg_number(args, "max_tokens")
+        .unwrap_or(16.0)
+        .clamp(1.0, 64.0) as usize;
+    match crate::cognitive::inference::run_local_inference_with_limit(
+        &prompt,
+        "local-1.1B",
+        max_tokens,
+    ) {
         Ok(res) => ToolResult {
             tool_name: String::from("local_inference"),
             success: true,
