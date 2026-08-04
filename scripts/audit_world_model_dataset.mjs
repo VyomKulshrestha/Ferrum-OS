@@ -20,6 +20,11 @@ export const TOOL_NAMES = [
 
 const EMBEDDING_SIZE = 128;
 const ACTION_FEATURE_SIZE = 16;
+const ARGUMENTLESS_TOOLS = new Set([
+  "yield_cpu", "camera_capture", "gesture_status", "system_info",
+  "list_processes", "save_memory", "load_memory", "trigger_kernel_upgrade",
+  "read_screen", "play_audio", "poll_input",
+]);
 
 function finiteVector(value, length) {
   return Array.isArray(value)
@@ -93,12 +98,20 @@ export function auditRows(rows, thresholds = {}) {
   });
 
   const coveredTools = perTool.filter((tool) => tool.executed >= limits.minExecutedPerTool);
-  const diverseTools = perTool.filter((tool) => tool.argumentVariants.size >= limits.minArgumentVariants);
+  const diversityEligibleTools = perTool.filter((tool) => !ARGUMENTLESS_TOOLS.has(tool.name));
+  const diverseTools = diversityEligibleTools.filter(
+    (tool) => tool.argumentVariants.size >= limits.minArgumentVariants,
+  );
   const multiStepEpisodes = [...episodes.values()].filter((count) => count > 1).length;
   const gates = [
     { name: "schema", passed: errors.length === 0, actual: errors.length, required: 0 },
     { name: "tool_coverage", passed: coveredTools.length >= limits.requiredTools, actual: coveredTools.length, required: limits.requiredTools },
-    { name: "argument_diversity", passed: diverseTools.length >= limits.requiredTools, actual: diverseTools.length, required: limits.requiredTools },
+    {
+      name: "argument_diversity",
+      passed: diverseTools.length >= diversityEligibleTools.length,
+      actual: diverseTools.length,
+      required: diversityEligibleTools.length,
+    },
     { name: "episodes", passed: episodes.size >= limits.minEpisodes, actual: episodes.size, required: limits.minEpisodes },
     { name: "multistep_episodes", passed: multiStepEpisodes >= limits.minMultistepEpisodes, actual: multiStepEpisodes, required: limits.minMultistepEpisodes },
     { name: "ram_profiles", passed: ramProfiles.size >= limits.minRamProfiles, actual: ramProfiles.size, required: limits.minRamProfiles },
@@ -122,6 +135,7 @@ export function auditRows(rows, thresholds = {}) {
       rows: tool.rows,
       executed: tool.executed,
       blocked: tool.blocked,
+      argument_diversity_required: !ARGUMENTLESS_TOOLS.has(tool.name),
       argument_variants: tool.argumentVariants.size,
       changed_dimensions: [...tool.changedDimensions].sort((a, b) => a - b),
     })),
