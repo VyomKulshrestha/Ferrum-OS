@@ -1,18 +1,20 @@
 // ============================================================================
 // FerrumOS - World Model Phase 1 Verification
 // ============================================================================
-// Drives heliox-daemon's *real* ReAct loop (not the execute_tool JSON-RPC
-// method, which calls tool_mapper::execute directly and would bypass the
-// world model gate entirely) through a host mock HTTPS "cloud" server -
+// Drives heliox-daemon's *real* provider ReAct loop through a host mock HTTPS
+// "cloud" server. JSON-RPC execute_tool is gated too, but exercising the
+// provider path here prevents that separate entry point from hiding a
+// response-parsing or orchestration regression.
 // same pattern verify_appliance.mjs already established - whose response
 // embeds a controlled tool-call JSON, so act() deterministically
 // dispatches a tool of this test's choosing without depending on a real
 // LLM's actual tool-selection behavior.
 //
-// First 3 requests: a benign write_file to a distinct scratch path each
-// time. Requests after that: delete_file targeting the daemon's own
-// config.json - the exact case model.md's Layer 5 rule set exists to
-// catch. Asserts: exp.bin genuinely grows from the benign calls, the
+// One response contains three benign writes followed by a delete targeting
+// the daemon's own config.json. Keeping the sequence in one provider turn
+// makes the test independent of ambient/autonomous tick scheduling while
+// still exercising the same production dispatcher for every call. Asserts:
+// exp.bin genuinely grows from the benign calls, the
 // safety gate blocks the delete (logged) *before* it ever reaches
 // tool_mapper::execute, and config.json is still present afterward.
 import { spawn } from "node:child_process";
@@ -90,29 +92,31 @@ const options = {
 };
 const mockServer = https.createServer(options, (req, res) => {
   requestCount++;
-  const toolCall = requestCount <= 3
-    ? { tool: "write_file", args: { path: `/disk/wm_test_${requestCount}.txt`, content: "hello" } }
-    : { tool: "delete_file", args: { path: "/disk/heliox/config.json" } };
-  console.log(`[mock server] request #${requestCount} -> ${toolCall.tool}`);
+  const toolCalls = [
+    ...[1, 2, 3].map((index) => ({
+      function: {
+        name: "write_file",
+        arguments: JSON.stringify({ path: `/disk/wm_test_${index}.txt`, content: "hello" }),
+      },
+    })),
+    {
+      function: {
+        name: "delete_file",
+        arguments: JSON.stringify({ path: "/disk/heliox/config.json" }),
+      },
+    },
+  ];
+  console.log(`[mock server] request #${requestCount} -> 3 writes + protected delete`);
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {
-    // Explicit Content-Length, not chunked transfer encoding - discovered
-    // while building this test that the daemon's bare-metal HTTP client
-    // (userland/heliox-daemon/src/network.rs's parse_http_response) takes
-    // everything after the header/body separator as the body verbatim,
-    // with no chunked-transfer-encoding support at all. Node's res.end()
-    // defaults to chunked unless Content-Length is set explicitly, which
-    // silently corrupted every previous run of this test (the "body"
-    // started with a stray hex chunk-size line the JSON parser
-    // misinterpreted as a bare number, never reaching the real content).
-    // A real fix for the daemon's client is out of scope for this
-    // world-model phase - noted as a follow-up, worked around here.
-    const payload = JSON.stringify({ response: JSON.stringify(toolCall) });
-    res.writeHead(200, {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(payload),
+    // Deliberately omit Content-Length so Node sends a chunked response.
+    // The production HTTP parser supports it and this provider-path test
+    // ensures that support remains integrated with tool dispatch.
+    const payload = JSON.stringify({
+      choices: [{ message: { content: "", tool_calls: toolCalls } }],
     });
+    res.writeHead(200, { "Content-Type": "application/json" });
     res.end(payload);
   });
 });
@@ -202,7 +206,7 @@ try {
   await waitForSerial("[heliox-daemon] active provider: cloud", 25, start);
   check("daemon configured with cloud provider pointed at the mock server", true);
 
-  // 1. The first 3 requests drive benign write_file calls - confirm the
+  // 1. The first three calls drive benign write_file actions - confirm the
   // world model does NOT block them and the experience buffer genuinely
   // records them (Layer 2 collecting real training data from real agent use).
   await waitForSerial("action=write_file", 20, start);
@@ -210,7 +214,7 @@ try {
   check("a write_file tuple was recorded before any block occurred", beforeFirstBlock.includes("action=write_file"));
   check("no benign write_file call was blocked", !beforeFirstBlock.includes("BLOCKED"));
 
-  // 2. Requests 4+ switch to delete_file targeting the daemon's own
+  // 2. The final call switches to delete_file targeting the daemon's own
   // config.json - the exact failure mode Layer 5's rule set exists to
   // catch. Confirm it's blocked and logged *before* ever reaching
   // tool_mapper::execute (the real DeleteFile syscall only ever fires
