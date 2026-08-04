@@ -861,11 +861,23 @@ pub fn register(mut process: Process) -> u64 {
 
 /// Drop a process by pid and free its address space.
 pub fn drop_by_pid(pid: u64) -> bool {
-    let mut procs = PROCESSES.lock();
-    let Some(index) = procs.iter().position(|r| r.process.pid == pid) else {
-        return false;
+    let record = {
+        let mut procs = PROCESSES.lock();
+        let Some(index) = procs.iter().position(|r| r.process.pid == pid) else {
+            return false;
+        };
+        procs.remove(index)
     };
-    procs.remove(index);
+    let user_frames = record.process.user_frame_count();
+    // AddressSpace::drop can return thousands of frames for a large app.
+    // Do that work after releasing the process-table lock so process queries
+    // and unrelated spawns are never serialized behind frame reclamation.
+    drop(record);
+    crate::serial_println!(
+        "[process-reaper] reaped pid={} user_frames={}",
+        pid,
+        user_frames
+    );
     true
 }
 

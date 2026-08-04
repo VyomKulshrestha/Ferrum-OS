@@ -33,6 +33,11 @@ pub fn sys_process_kill(args: [u64; 6]) -> SyscallResult {
 
     if crate::scheduler::kill(target) {
         crate::gui::app_window::close_for_pid(target);
+        // The caller is a different, live privileged process, so no CPU can
+        // still be executing on the target's stack in this single-core
+        // scheduler. Reclaim its address space and scheduler context now
+        // instead of waiting for an unrelated shell trampoline or waitpid.
+        crate::process::reap_dead();
         crate::serial_println!("[task-manager] killed pid={} name={}", target, task.name);
         SyscallResult::ok(target)
     } else {

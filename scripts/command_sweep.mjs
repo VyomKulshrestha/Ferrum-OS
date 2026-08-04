@@ -300,7 +300,10 @@ const tests = [
   ["scheduler", "Scheduler State:"],
   ["test-syscall yield", "yield: ran=false"],
   ["test-syscall sleep", "sleep(2): ran=false"],
-  ["test-syscall wait", "wait(-1): any_dead=true"],
+  // `kill` now performs safe immediate reclamation from its live shell
+  // context, so the scheduler must not retain a Dead zombie. Child exit
+  // status is tracked independently for the real WaitPid path.
+  ["test-syscall wait", "wait(-1): any_dead=false"],
   ["test-syscall priority", "priority System -> index 3"],
   ["ring3 init", "userspace is alive in ring 3"],
 ];

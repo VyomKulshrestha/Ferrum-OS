@@ -103,6 +103,7 @@ try {
   const killed = await waitForSerial("name=calculator", 8, offset);
   check("Task Manager terminates selected normal app", killed.includes("[task-manager] killed pid="));
   check("terminated app is removed from scheduler run queues", killed.includes("ProcessKilled: Task marked dead"));
+  check("terminated app address space and kernel stack are reaped immediately", killed.includes("[process-reaper] reaped pid="));
   check("terminated app window and input queue are removed", killed.includes("[app-window] closed pid=") && killed.includes("windows=1"));
   check("Task Manager remains alive after ending target", killed.includes("[task-manager] ended pid="));
   check("no userspace fault during task termination", !killed.includes("USERSPACE FAULT") && !killed.includes("PAGE FAULT"));

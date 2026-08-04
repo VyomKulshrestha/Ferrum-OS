@@ -1811,10 +1811,26 @@ fn cmd_kill(args: &[&str]) {
         return;
     }
     if let Ok(id) = args[0].parse::<u64>() {
-        if crate::scheduler::kill(id) {
-            println!("Killed task {}", id);
-        } else {
+        let Some(task) = crate::scheduler::list_tasks()
+            .into_iter()
+            .find(|task| task.id == id)
+        else {
             println!("kill: no task with PID {}", id);
+            return;
+        };
+        if id == 0
+            || task.is_bookkeeping_stub
+            || task.capabilities.iter().any(|capability| {
+                capability == "cap:system:all" || capability == "cap:quota:exempt"
+            })
+        {
+            println!("kill: PID {} is a protected system task", id);
+            return;
+        }
+        if crate::scheduler::kill(id) {
+            crate::gui::app_window::close_for_pid(id);
+            crate::process::reap_dead();
+            println!("Killed task {}", id);
         }
     } else {
         println!("kill: invalid PID");
