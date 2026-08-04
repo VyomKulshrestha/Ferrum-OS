@@ -234,6 +234,17 @@ def main():
         and test_metrics["action_sensitivity"] >= 1e-6
     )
     print(json.dumps(test_metrics, indent=2))
+    report = {
+        "schema_version": 2, "accepted": accepted, "split_mode": split_mode,
+        "rows": len(rows), "dataset_fingerprint": dataset_fingerprint(rows),
+        "train_rows": len(train_idx), "validation_rows": len(validation_idx), "test_rows": len(test_idx),
+        "hidden_size": args.hidden, "seed": args.seed, "split_seed": args.split_seed,
+        "tool_balanced_training": not args.no_balance_tools,
+        "test": test_metrics,
+    }
+    with open(args.metrics_out, "w", encoding="utf-8") as handle:
+        json.dump(report, handle, indent=2)
+        handle.write("\n")
     if not accepted:
         sys.exit("JEPA candidate rejected by anti-collapse or predictive acceptance gates")
     write_encoder(args.out, weights)
@@ -248,17 +259,6 @@ def main():
         encoded_rows.append({**row, "before": before, "after": after, "representation": "action_jepa_v1"})
     with open(args.encoded_dataset, "w", encoding="utf-8") as handle:
         handle.write("\n".join(json.dumps(row) for row in encoded_rows) + "\n")
-    report = {
-        "schema_version": 2, "accepted": accepted, "split_mode": split_mode,
-        "rows": len(rows), "dataset_fingerprint": dataset_fingerprint(rows),
-        "train_rows": len(train_idx), "validation_rows": len(validation_idx), "test_rows": len(test_idx),
-        "hidden_size": args.hidden, "seed": args.seed, "split_seed": args.split_seed,
-        "tool_balanced_training": not args.no_balance_tools,
-        "test": test_metrics,
-    }
-    with open(args.metrics_out, "w", encoding="utf-8") as handle:
-        json.dump(report, handle, indent=2)
-        handle.write("\n")
     print(f"wrote accepted JEPA encoder to {args.out} and {len(encoded_rows)} encoded rows")
 
 
