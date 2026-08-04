@@ -48,6 +48,7 @@ const ramProfiles = String(arg("--ram", process.env.WM_RAM_MB || "512"))
   .map((value) => Number(value.trim()))
   .filter((value) => Number.isFinite(value) && value >= 256);
 const maxScenarios = Number(arg("--max-scenarios", "0"));
+const scenariosPerBoot = Math.max(1, Number(arg("--scenarios-per-boot", "250")));
 const resume = process.argv.includes("--resume");
 const visible = process.argv.includes("--visible");
 const providerUrl = process.env.WM_PROVIDER_URL || "";
@@ -249,11 +250,12 @@ const keyMap = new Map(Object.entries({
   ",": "comma", ":": "shift-semicolon",
 }));
 
-async function collectProfile(ramMb) {
+async function collectProfile(ramMb, selected, chunkIndex) {
   const monitorPort = await freeTcpPort();
   const wsPort = await freeTcpPort();
-  const serialLog = path.join(repo, "target", `world-model-hybrid-${ramMb}m-serial.log`);
-  const runDisk = path.join(repo, "target", `world-model-hybrid-${ramMb}m-disk.img`);
+  const chunkLabel = String(chunkIndex).padStart(4, "0");
+  const serialLog = path.join(repo, "target", `world-model-hybrid-${ramMb}m-${chunkLabel}-serial.log`);
+  const runDisk = path.join(repo, "target", `world-model-hybrid-${ramMb}m-${chunkLabel}-disk.img`);
   fs.rmSync(serialLog, { force: true });
   fs.copyFileSync(applianceDisk, runDisk);
   const serialText = () => { try { return fs.readFileSync(serialLog, "utf8"); } catch { return ""; } };
@@ -278,7 +280,7 @@ async function collectProfile(ramMb) {
   ];
   if (!visible) qemuArgs.push("-display", "none");
 
-  console.log(`[hybrid] booting ${ramMb} MB profile`);
+  console.log(`[hybrid] booting ${ramMb} MB profile chunk ${chunkIndex + 1} (${selected.length} scenarios)`);
   const requestedAccel = arg("--accel", "auto");
   let activeAccel = requestedAccel === "tcg" ? "tcg" : "whpx";
   const launch = (accel) => spawn(
@@ -351,7 +353,7 @@ async function collectProfile(ramMb) {
     await sendKey("ret");
     await waitForSerial(
       "[heliox-daemon] sent HELIOX_READY IPC announce",
-      activeAccel === "tcg" ? 120 : 40,
+      activeAccel === "tcg" ? 150 : 90,
       bootStart,
     );
     await sleep(1000);
@@ -362,8 +364,6 @@ async function collectProfile(ramMb) {
       ws.onerror = reject;
     });
 
-    let selected = corpus;
-    if (maxScenarios > 0) selected = selected.slice(0, maxScenarios);
     for (let scenarioIndex = 0; scenarioIndex < selected.length; scenarioIndex++) {
       const scenario = selected[scenarioIndex];
       const episodeId = `${scenario.id}-${ramMb}m`;
@@ -458,7 +458,18 @@ async function collectProfile(ramMb) {
 
 let exitCode = 0;
 try {
-  for (const ramMb of ramProfiles) await collectProfile(ramMb);
+  const selectedCorpus = maxScenarios > 0 ? corpus.slice(0, maxScenarios) : corpus;
+  for (const ramMb of ramProfiles) {
+    for (let offset = 0, chunkIndex = 0; offset < selectedCorpus.length; offset += scenariosPerBoot, chunkIndex++) {
+      const chunk = selectedCorpus.slice(offset, offset + scenariosPerBoot);
+      const remaining = chunk.filter((scenario) => !completed.has(`${scenario.id}-${ramMb}m`));
+      if (remaining.length === 0) {
+        console.log(`[hybrid] skipping completed ${ramMb} MB chunk ${chunkIndex + 1}`);
+        continue;
+      }
+      await collectProfile(ramMb, remaining, chunkIndex);
+    }
+  }
 } catch (error) {
   console.error(`[hybrid] collection failed: ${error?.stack || error}`);
   exitCode = 1;
