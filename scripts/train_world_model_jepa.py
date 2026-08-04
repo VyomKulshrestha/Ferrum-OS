@@ -168,6 +168,7 @@ def main():
     parser.add_argument("--test", type=float, default=0.15)
     parser.add_argument("--patience", type=int, default=12)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--split-seed", type=int, default=42)
     args = parser.parse_args()
 
     rows = [row for row in load_rows(args.dataset) if row.get("executed", True)]
@@ -175,7 +176,7 @@ def main():
         sys.exit("JEPA requires at least 100 executed transitions")
     x, next_x, action = arrays(rows)
     train_idx, validation_idx, test_idx, split_mode = split_indices(
-        rows, args.validation, args.test, args.seed
+        rows, args.validation, args.test, args.split_seed
     )
     weights = init_weights(args.hidden, args.seed)
     target = {"ew1": weights["ew1"].copy(), "eb1": weights["eb1"].copy(),
@@ -232,7 +233,8 @@ def main():
     report = {
         "schema_version": 1, "accepted": accepted, "split_mode": split_mode,
         "train_rows": len(train_idx), "validation_rows": len(validation_idx), "test_rows": len(test_idx),
-        "hidden_size": args.hidden, "test": test_metrics,
+        "hidden_size": args.hidden, "seed": args.seed, "split_seed": args.split_seed,
+        "test": test_metrics,
     }
     with open(args.metrics_out, "w", encoding="utf-8") as handle:
         json.dump(report, handle, indent=2)

@@ -276,6 +276,7 @@ def main():
     parser.add_argument("--validation", type=float, default=0.15)
     parser.add_argument("--test", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--split-seed", type=int, default=42)
     parser.add_argument("--metrics-out")
     parser.add_argument(
         "--load-weights",
@@ -298,7 +299,7 @@ def main():
     X = build_raw_matrix(rows)
 
     train_rows, validation_rows, test_rows, split_mode = split_indices(
-        rows, args.validation, args.test, args.seed
+        rows, args.validation, args.test, args.split_seed
     )
     expand = lambda indices: np.array(
         [snapshot for row_index in indices for snapshot in (2 * int(row_index), 2 * int(row_index) + 1)],
@@ -373,6 +374,7 @@ def main():
         "schema_version": 1,
         "split_mode": split_mode,
         "seed": args.seed,
+        "split_seed": args.split_seed,
         "train_rows": int(len(train_rows)),
         "validation_rows": int(len(validation_rows)),
         "test_rows": int(len(test_rows)),
