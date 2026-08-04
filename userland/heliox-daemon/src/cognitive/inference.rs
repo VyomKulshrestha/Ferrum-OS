@@ -7,11 +7,27 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
+use spin::Mutex;
 
 const SYS_READ_FILE: u64 = 15;
 const SYS_WRITE: u64 = 34;
 const FD_CONSOLE: u64 = 1;
 const SYS_YIELD: u64 = 0;
+
+#[derive(Clone, Copy)]
+struct CachedModelMapping {
+    model_key: u8,
+    total_file_size: usize,
+    vaddr: u64,
+}
+
+// A daemon process has one stable address space for its lifetime. Keep the
+// read-only checkpoint mapping alive and reuse it across direct local-model
+// calls instead of remapping and re-reading thousands of disk pages every
+// time. The per-request RunState remains fresh, so KV cache and generated
+// tokens never leak between requests.
+static MODEL_MAPPING_CACHE: Mutex<[Option<CachedModelMapping>; 2]> =
+    Mutex::new([None, None]);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Config {
@@ -838,16 +854,32 @@ pub fn run_local_inference_with_limit(
 
     let total_file_size = 256 + weight_size;
 
-    // 3. mmap the model file using SYS_MMAP
+    // 3. Reuse a process-lifetime read-only mapping when available. Repeated
+    // local-inference actions are common in world-model data collection and
+    // previously re-paged the full checkpoint for every call.
     const SYS_MMAP: u64 = 41;
-    let vaddr = unsafe {
-        crate::syscall4(
-            SYS_MMAP,
-            model_path.as_ptr() as u64,
-            model_path.len() as u64,
-            total_file_size as u64,
-            0,
-        )
+    let model_key = if model_path == HIGH_TIER_MODEL_PATH { 1u8 } else { 0u8 };
+    let cached = MODEL_MAPPING_CACHE
+        .lock()
+        .iter()
+        .flatten()
+        .find(|entry| entry.model_key == model_key && entry.total_file_size == total_file_size)
+        .copied();
+    let (vaddr, needs_prefault) = if let Some(entry) = cached {
+        let msg = "[heliox-daemon] reused local model mapping\n";
+        unsafe { crate::syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64); }
+        (entry.vaddr, false)
+    } else {
+        let mapped = unsafe {
+            crate::syscall4(
+                SYS_MMAP,
+                model_path.as_ptr() as u64,
+                model_path.len() as u64,
+                total_file_size as u64,
+                0,
+            )
+        };
+        (mapped, true)
     };
 
     if (vaddr as i64) < 0 {
@@ -875,13 +907,22 @@ pub fn run_local_inference_with_limit(
     let file_base = vaddr as *const u8;
     let mut warm_off = 0usize;
     let mut pages_touched: u32 = 0;
-    while warm_off < total_file_size {
-        unsafe { core::ptr::read_volatile(file_base.add(warm_off)) };
-        warm_off += PAGE_SIZE;
-        pages_touched += 1;
-        if pages_touched % 64 == 0 {
-            unsafe { crate::syscall3(SYS_YIELD, 0, 0, 0) };
+    if needs_prefault {
+        while warm_off < total_file_size {
+            unsafe { core::ptr::read_volatile(file_base.add(warm_off)) };
+            warm_off += PAGE_SIZE;
+            pages_touched += 1;
+            if pages_touched % 64 == 0 {
+                unsafe { crate::syscall3(SYS_YIELD, 0, 0, 0) };
+            }
         }
+        let mut cache = MODEL_MAPPING_CACHE.lock();
+        let slot = cache.iter().position(|entry| {
+            entry.is_none() || entry.as_ref().is_some_and(|value| value.model_key == model_key)
+        }).unwrap_or(0);
+        cache[slot] = Some(CachedModelMapping { model_key, total_file_size, vaddr });
+        let msg = "[heliox-daemon] prefaulted and cached local model mapping\n";
+        unsafe { crate::syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64); }
     }
 
     // Skip the 256-byte header
