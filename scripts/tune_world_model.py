@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--metrics-out", default="target/world_model_tuning_metrics.json")
     parser.add_argument("--hidden", default="128,256,384")
     parser.add_argument("--seeds", default="17,42,91")
+    parser.add_argument("--split-seed", type=int, default=42)
     parser.add_argument("--epochs", type=int, default=800)
     parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument("--patience", type=int, default=8)
@@ -38,6 +39,7 @@ def main():
                 sys.executable, str(trainer), "--dataset", args.dataset,
                 "--out", str(weights), "--metrics-out", str(metrics_path),
                 "--hidden", str(hidden), "--seed", str(seed),
+                "--split-seed", str(args.split_seed),
                 "--epochs", str(args.epochs), "--lr", str(args.lr),
                 "--patience", str(args.patience), "--max-rollout-horizon", "5",
                 "--min-train-per-tool", str(args.min_train_per_tool),
@@ -64,6 +66,7 @@ def main():
     report = {
         "schema_version": 1,
         "selection_rule": "validation macro_tool_mse + core_mse + H3 rollout_mse",
+        "split_seed": args.split_seed,
         "selected": {key: best[key] for key in ("hidden", "seed", "score", "metrics")},
         "candidates": [
             {key: value for key, value in candidate.items() if key != "metrics"}

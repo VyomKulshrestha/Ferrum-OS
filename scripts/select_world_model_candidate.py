@@ -44,8 +44,12 @@ def main():
     representation = load(args.representation)
     comparable = {
         key: (baseline.get(key), candidate.get(key))
-        for key in ("rows", "test_rows", "split_mode", "seed")
+        for key in ("rows", "test_rows", "split_mode")
     }
+    comparable["split_seed"] = (
+        baseline.get("split_seed", baseline.get("seed")),
+        candidate.get("split_seed", candidate.get("seed")),
+    )
     mismatches = [key for key, pair in comparable.items() if pair[0] != pair[1]]
     if mismatches:
         sys.exit(f"candidate metrics are not comparable; mismatched: {', '.join(mismatches)}")

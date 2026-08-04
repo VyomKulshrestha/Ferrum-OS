@@ -376,6 +376,12 @@ def main():
     parser.add_argument("--test", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
+        "--split-seed",
+        type=int,
+        default=42,
+        help="fixed data-partition seed, independent of weight-initialization --seed",
+    )
+    parser.add_argument(
         "--patience",
         type=int,
         default=0,
@@ -414,7 +420,7 @@ def main():
 
     try:
         train_idx, validation_idx, test_idx, split_mode = split_indices(
-            rows, args.validation, args.test, args.seed
+            rows, args.validation, args.test, args.split_seed
         )
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
@@ -519,6 +525,7 @@ def main():
         "test_rows": len(test_idx),
         "split_mode": split_mode,
         "seed": args.seed,
+        "split_seed": args.split_seed,
         "input_size": INPUT_SIZE,
         "hidden_size": args.hidden,
         "min_train_per_tool": args.min_train_per_tool,
