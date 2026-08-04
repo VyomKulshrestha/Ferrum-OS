@@ -23,6 +23,7 @@ const SYS_EXIT: u64 = 30;
 const SYS_GETPID: u64 = 31;
 const SYS_SLEEP: u64 = 32;
 const SYS_WAITPID: u64 = 33;
+const SYS_WAIT: u64 = 13;
 const SYS_WRITE: u64 = 34;
 const SYS_KEXEC: u64 = 38;
 const SYS_LAUNCH_CONTEXT: u64 = 59;
@@ -500,6 +501,26 @@ pub extern "C" fn _start() -> ! {
             write("[pointer-test] ERROR invalid range accepted\n");
         }
         unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+    } else if test_mode == b'6' {
+        if pid == 2 {
+            write("[wait-test] spawning child for legacy wait-any\n");
+            let child_pid = unsafe {
+                syscall3(
+                    SYS_EXEC,
+                    "/bin/quota-test".as_ptr() as u64,
+                    "/bin/quota-test".len() as u64,
+                    0,
+                )
+            };
+            if (child_pid as i64) < 0 {
+                write_num("[wait-test] child spawn failed: ", child_pid as i64, "\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            }
+            write_num("[wait-test] child pid=", child_pid as i64, "\n");
+            let status = unsafe { syscall3(SYS_WAIT, 0, 0, 0) };
+            write_num("[wait-test] legacy wait resumed with status=", status as i64, "\n");
+            unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+        }
     } else {
         // D1 app-window framework smoke test: spawned independently of
         // heliox-daemon, gated by a flag file so it never runs on a normal

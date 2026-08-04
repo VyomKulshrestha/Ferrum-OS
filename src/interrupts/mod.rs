@@ -838,8 +838,18 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
             }
             frame.rax = 0;
             return;
-        } else if syscall_no == SyscallNumber::WaitPid as u64 {
-            match crate::scheduler::waitpid_current(arg0) {
+        } else if syscall_no == SyscallNumber::WaitPid as u64
+            || syscall_no == SyscallNumber::Wait as u64
+        {
+            // Syscall 13 is the original wait-any ABI. Keep it as a real
+            // compatibility alias for WaitPid(-1), not a success-returning
+            // stub that lets a parent race ahead of a live child.
+            let target = if syscall_no == SyscallNumber::Wait as u64 {
+                u64::MAX
+            } else {
+                arg0
+            };
+            match crate::scheduler::waitpid_current(target) {
                 Ok(Some(code)) => {
                     frame.rax = code as u64;
                 }

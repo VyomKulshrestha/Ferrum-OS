@@ -24,6 +24,8 @@ pub enum SyscallNumber {
     Accept = 10,
     Recv = 11,
     Send = 12,
+    /// Wait for any child. Compatibility alias for WaitPid(u64::MAX),
+    /// handled directly by the interrupt layer because it may context-switch.
     Wait = 13,
     Connect = 14,
     ReadFile = 15,
@@ -465,7 +467,6 @@ pub fn dispatch_with_capabilities(
             }
             socket::sys_send(args[0], args[1], args[2])
         }
-        x if x == SyscallNumber::Wait as u64 => SyscallResult::ok(0),
         x if x == SyscallNumber::Connect as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
