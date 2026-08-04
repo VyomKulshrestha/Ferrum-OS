@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import http from "node:http";
-import { parseProviderResponse, requestBatch, validateBatch } from "./prefetch_world_model_responses.mjs";
+import { parseProviderResponse, requestBatch, validateArguments, validateBatch } from "./prefetch_world_model_responses.mjs";
 
 const tasks = [
   { id: "one", step: 0, goal: "read config", expected_tool: "read_file" },
@@ -18,6 +18,18 @@ assert.deepEqual(validateBatch(tasks, parsed), modelOutput.responses.map(({ tool
 assert.throws(
   () => validateBatch(tasks, [{ ...modelOutput.responses[0], tool: "delete_file" }, modelOutput.responses[1]]),
   /expected read_file/,
+);
+assert.deepEqual(
+  validateBatch(
+    [{ id: "later", step: 2, goal: "read", expected_tool: "read_file" }],
+    [{ id: "later", step: 0, tool: "read_file", args: { path: "/disk/a" } }],
+  ),
+  [{ tool: "read_file", args: { path: "/disk/a" } }],
+);
+assert.throws(() => validateArguments("write_file", { path: "/disk/a" }), /missing required field content/);
+assert.throws(
+  () => validateArguments("local_inference", { prompt: "test", max_tokens: 128 }),
+  /integer from 1 to 64/,
 );
 
 const server = http.createServer((request, response) => {
@@ -52,5 +64,7 @@ try {
 
 console.log("PASS\tprefetch parses strict batched JSON responses");
 console.log("PASS\tprefetch rejects target-tool mismatches");
+console.log("PASS\tprefetch rejects missing, empty, or out-of-range arguments");
+console.log("PASS\tsingle-item retries tolerate harmless local-model step resets");
 console.log("PASS\tprefetch works through an Ollama-compatible HTTP endpoint");
-console.log("3/3 checks passed");
+console.log("5/5 checks passed");
