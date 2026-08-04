@@ -75,7 +75,10 @@ const toolNames = [
 ];
 
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const applianceDisk = path.join(repo, "target", "heliox-disk.img");
+const applianceDisk = path.resolve(arg(
+  "--appliance-disk",
+  path.join(repo, "target", "heliox-disk.img"),
+));
 let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
 if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
   qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
