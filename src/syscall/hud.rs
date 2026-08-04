@@ -5,8 +5,8 @@
 extern crate alloc;
 
 use super::{SyscallResult, SyscallStatus};
-use spin::Mutex;
 use core::sync::atomic::AtomicBool;
+use spin::Mutex;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -17,7 +17,7 @@ pub struct HudState {
     pub point_x: u16,             // target x (screen coords)
     pub point_y: u16,             // target y (screen coords)
     pub landmark_count: u8,       // number of landmarks
-    pub landmarks: [[u16; 2]; 8],  // landmark coordinates
+    pub landmarks: [[u16; 2]; 8], // landmark coordinates
     pub suggestion_len: u8,       // suggestion text length
     pub suggestion: [u8; 128],    // suggestion text buffer
 }
@@ -69,19 +69,23 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
     };
-    
+
     {
         let mut state = HUD_STATE.lock();
         unsafe {
-            core::ptr::copy_nonoverlapping(bytes.as_ptr(), &mut *state as *mut HudState as *mut u8, size);
+            core::ptr::copy_nonoverlapping(
+                bytes.as_ptr(),
+                &mut *state as *mut HudState as *mut u8,
+                size,
+            );
         }
     }
-    
+
     // Set needs_redraw to animate the HUD waveform/overlay.
     // The main GUI loop will perform the redraw and buffer swap on the next frame tick,
     // which prevents CPU thrashing and screen shaking.
     crate::gui::compositor::COMPOSITOR.lock().needs_redraw = true;
-    
+
     // Render and swap buffers immediately to update screen in headless test modes (where desktop is inactive).
     // To prevent screen shaking (flicker), we ensure double buffering is initialized and active.
     // We also process input events and draw the mouse cursor so that the cursor is visible.
@@ -92,12 +96,12 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
                 fb.init_back_buffer();
             }
         }
-        
+
         crate::gui::cursor::process_input();
         crate::gui::compositor::render();
         crate::gui::cursor::save_and_draw();
         crate::gui::cursor::CURSOR.lock().dirty = false;
-        
+
         {
             let fb_guard = crate::devices::vga_fb::FRAMEBUFFER.lock();
             if let Some(fb) = fb_guard.as_ref() {
@@ -105,7 +109,7 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
             }
         }
     }
-    
+
     SyscallResult::ok(size as u64)
 }
 
@@ -114,32 +118,46 @@ pub fn sys_hit_test(args: [u64; 6]) -> SyscallResult {
     let y = args[1] as u32;
     let label_buf = args[2];
     let label_len = args[3] as usize;
-    
+
     {
         let state = crate::gui::compositor::COMPOSITOR.lock();
-        crate::serial_println!("HUD: sys_hit_test({}, {}) - windows count: {}", x, y, state.windows.len());
+        crate::serial_println!(
+            "HUD: sys_hit_test({}, {}) - windows count: {}",
+            x,
+            y,
+            state.windows.len()
+        );
         for w in &state.windows {
-            crate::serial_println!("  win ID={}: title={}, x={}, y={}, w={}, h={}", w.id, w.title, w.x, w.y, w.width, w.height);
+            crate::serial_println!(
+                "  win ID={}: title={}, x={}, y={}, w={}, h={}",
+                w.id,
+                w.title,
+                w.x,
+                w.y,
+                w.width,
+                w.height
+            );
         }
     }
-    
+
     let (window_id, label) = crate::gui::compositor::hit_test_exclude(x, y, true);
-    
+
     // Copy the label string to userspace
     let _copy_len = if label_buf != 0 && label_len > 0 {
         let label_bytes = label.as_bytes();
         let copy_len = core::cmp::min(label_bytes.len(), label_len);
-        let end = label_buf.saturating_add(copy_len as u64);
-        if end >= 0x0000_7FFF_FFFF_FFFF {
+        if copy_len > 0 && !super::fs::valid_user_range(label_buf, copy_len) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
-        unsafe {
-            core::ptr::copy_nonoverlapping(label_bytes.as_ptr(), label_buf as *mut u8, copy_len);
+        if copy_len > 0
+            && unsafe { super::fs::copy_to_user(label_buf, label_bytes, copy_len) } != copy_len
+        {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
         copy_len
     } else {
         0
     };
-    
+
     SyscallResult::ok(window_id)
 }

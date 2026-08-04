@@ -70,11 +70,7 @@ pub fn sys_poll_window_input(args: [u64; 6]) -> SyscallResult {
     let out_ptr = args[1];
     let out_len = args[2] as usize;
 
-    if out_ptr == 0 || out_len < 20 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-    let end = out_ptr.saturating_add(20);
-    if end >= 0x0000_7FFF_FFFF_FFFF {
+    if out_len < 20 || !super::fs::valid_user_range(out_ptr, 20) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -85,16 +81,12 @@ pub fn sys_poll_window_input(args: [u64; 6]) -> SyscallResult {
 
     match crate::gui::app_window::poll_input(window_id, pid) {
         Some(ev) => {
-            let out = out_ptr as *mut u32;
-            // SAFETY: out_ptr/out_len were validated above and the dispatch
-            // layer only reaches here for a live ring-3 caller's own
-            // user-half pointer.
-            unsafe {
-                core::ptr::write_volatile(out, ev.tag);
-                core::ptr::write_volatile(out.add(1), ev.a);
-                core::ptr::write_volatile(out.add(2), ev.b);
-                core::ptr::write_volatile(out.add(3), ev.c);
-                core::ptr::write_volatile(out.add(4), ev.d);
+            let mut bytes = [0u8; 20];
+            for (index, value) in [ev.tag, ev.a, ev.b, ev.c, ev.d].iter().enumerate() {
+                bytes[index * 4..index * 4 + 4].copy_from_slice(&value.to_le_bytes());
+            }
+            if unsafe { super::fs::copy_to_user(out_ptr, &bytes, bytes.len()) } != bytes.len() {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
             SyscallResult::ok(1)
         }

@@ -18,26 +18,6 @@ use super::{SyscallResult, SyscallStatus};
 /// syscall; longer streams should be submitted in chunks.
 const MAX_AUDIO_BUF: usize = 4 * 1024 * 1024;
 
-/// Copy bytes from a kernel buffer into a userspace buffer.
-///
-/// Returns the number of bytes actually copied (capped at `max_len`).
-///
-/// # Safety
-/// The caller must ensure `dst` points to writable user memory of at
-/// least `max_len` bytes.
-unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
-    let to_copy = src.len().min(max_len);
-    if to_copy > 0 && dst != 0 {
-        let end = dst.saturating_add(to_copy as u64);
-        if end >= 0x0000_7FFF_FFFF_FFFF {
-            return 0;
-        }
-        // SAFETY: caller guarantees the destination is valid and writable.
-        core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
-    }
-    to_copy
-}
-
 /// `sys_play_audio` — Submit raw PCM data for playback.
 ///
 /// # Arguments (via `args`)
@@ -50,27 +30,12 @@ unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
 /// `0` on success, or an appropriate `SyscallStatus` error.
 #[allow(dead_code)]
 pub fn sys_play_audio(args: [u64; 6]) -> SyscallResult {
-    let data_ptr = args[0];
-    let data_len = args[1] as usize;
-
-    if data_ptr == 0 || data_len == 0 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-    if data_len > MAX_AUDIO_BUF {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-    let end = data_ptr.saturating_add(data_len as u64);
-    if end >= 0x0000_7FFF_FFFF_FFFF {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-
-    // SAFETY: we are in kernel context where the user address space is
-    // identity-mapped. data_ptr is validated non-null above.
-    let data = unsafe {
-        core::slice::from_raw_parts(data_ptr as *const u8, data_len)
+    let data = match unsafe { super::fs::read_user_bytes(args[0], args[1], MAX_AUDIO_BUF) } {
+        Some(data) => data,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
-    match crate::audio::play(data) {
+    match crate::audio::play(&data) {
         Ok(()) => SyscallResult::ok(0),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
@@ -134,6 +99,9 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
     if buf_len > MAX_AUDIO_BUF {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
+    if !super::fs::valid_user_range(buf_ptr, buf_len) {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
     if duration_ms == 0 {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
@@ -148,7 +116,11 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
             let target_len = s.accum.len();
             let mut copied = s.copied_bytes;
             let mut last_lpib = s.last_lpib;
-            let done = match crate::devices::hda::poll_recording_once(&mut s.accum, &mut copied, &mut last_lpib) {
+            let done = match crate::devices::hda::poll_recording_once(
+                &mut s.accum,
+                &mut copied,
+                &mut last_lpib,
+            ) {
                 Ok(d) => d,
                 Err(_) => {
                     *session = None;
@@ -166,10 +138,12 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
                 let n = s.copied_bytes.min(target_len);
                 *session = None;
                 drop(session);
-                // SAFETY: user_ptr/user_len were validated when the capture
-                // started; they are immutable for the life of this session.
-                let out = unsafe { copy_to_user(user_ptr, &accum[..n], user_len) };
-                SyscallResult::ok(out as u64)
+                let out = unsafe { super::fs::copy_to_user(user_ptr, &accum[..n], user_len) };
+                if out == n {
+                    SyscallResult::ok(out as u64)
+                } else {
+                    SyscallResult::err(SyscallStatus::InvalidArgument)
+                }
             } else {
                 SyscallResult::err(SyscallStatus::Blocked)
             }

@@ -5,9 +5,14 @@
 // network stack via the interface manager in `net::iface`.
 // ============================================================================
 
+use crate::net::iface;
 use crate::syscall::SyscallResult;
 use crate::syscall::SyscallStatus;
-use crate::net::iface;
+
+/// Bound one network copy to a practical TCP chunk. This prevents an
+/// untrusted caller from forcing a multi-gigabyte kernel allocation even when
+/// the claimed user range is otherwise valid.
+const MAX_SOCKET_IO: usize = 1024 * 1024;
 
 /// Create a new socket. Returns a kernel file descriptor.
 /// args: domain (AF_INET=2), type (SOCK_STREAM=1, SOCK_DGRAM=2), protocol (0)
@@ -76,16 +81,28 @@ pub fn sys_recv(fd: u64, buf_ptr: u64, len: u64) -> SyscallResult {
     // Poll the interface to process any incoming packets
     iface::poll();
 
-    if buf_ptr == 0 || len == 0 {
+    let requested = match usize::try_from(len) {
+        Ok(value) if value > 0 && value <= MAX_SOCKET_IO => value,
+        _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+    if !super::fs::valid_user_range(buf_ptr, requested) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    // Safety: we trust the kernel-side caller for now. In a real OS we would
-    // validate that buf_ptr falls within the calling process's address space.
-    let buf = unsafe { core::slice::from_raw_parts_mut(buf_ptr as *mut u8, len as usize) };
+    // Receive into kernel-owned memory first. The smoltcp lock and caller's
+    // address space are never held at the same time, and no device path gets a
+    // mutable pointer into ring-3 memory.
+    let mut data = alloc::vec![0u8; requested];
 
-    match iface::socket_recv(fd, buf) {
-        Ok(n) => SyscallResult::ok(n as u64),
+    match iface::socket_recv(fd, &mut data) {
+        Ok(n) => {
+            let copied = unsafe { super::fs::copy_to_user(buf_ptr, &data[..n], requested) };
+            if copied == n {
+                SyscallResult::ok(n as u64)
+            } else {
+                SyscallResult::err(SyscallStatus::InvalidArgument)
+            }
+        }
         Err("blocked") => SyscallResult::err(SyscallStatus::Blocked),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
@@ -98,14 +115,12 @@ pub fn sys_send(fd: u64, buf_ptr: u64, len: u64) -> SyscallResult {
     // Poll before sending to ensure connection state is current
     iface::poll();
 
-    if buf_ptr == 0 || len == 0 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
+    let data = match unsafe { super::fs::read_user_bytes(buf_ptr, len, MAX_SOCKET_IO) } {
+        Some(data) => data,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
 
-    // Safety: same trust model as sys_recv
-    let data = unsafe { core::slice::from_raw_parts(buf_ptr as *const u8, len as usize) };
-
-    match iface::socket_send(fd, data) {
+    match iface::socket_send(fd, &data) {
         Ok(n) => {
             // Poll again to flush the TX buffer out through the NIC
             iface::poll();

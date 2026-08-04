@@ -21,7 +21,8 @@ const MAX_CATALOG_BYTES: usize = 32 * 1024;
 pub fn sys_package_list(args: [u64; 6]) -> SyscallResult {
     let out_ptr = args[0];
     let out_len = args[1] as usize;
-    if out_ptr == 0 || out_len == 0 || out_len > MAX_CATALOG_BYTES {
+    if out_len == 0 || out_len > MAX_CATALOG_BYTES || !super::fs::valid_user_range(out_ptr, out_len)
+    {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -40,7 +41,11 @@ pub fn sys_package_list(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     let copied = unsafe { super::fs::copy_to_user(out_ptr, output.as_bytes(), out_len) };
-    SyscallResult::ok(copied as u64)
+    if copied == output.len() {
+        SyscallResult::ok(copied as u64)
+    } else {
+        SyscallResult::err(SyscallStatus::InvalidArgument)
+    }
 }
 
 pub fn sys_package_install(args: [u64; 6]) -> SyscallResult {

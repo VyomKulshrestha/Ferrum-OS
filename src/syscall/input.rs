@@ -83,57 +83,62 @@ pub fn sys_inject_mouse(args: [u64; 6]) -> SyscallResult {
 ///
 /// Returns the number of events written.
 pub fn sys_poll_input(args: [u64; 6]) -> SyscallResult {
-    let buf_ptr = args[0] as usize;
+    let buf_ptr = args[0];
     let buf_len = args[1] as usize;
 
-    if buf_ptr == 0 || buf_len < 16 {
+    if buf_len < 16 {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
     // Maximum events that fit in the buffer
-    let max_events = buf_len / 16;
-    let mut count: usize = 0;
+    // The producer queue is fixed at 256 entries. Capping here avoids both
+    // pointless range walks and oversized kernel allocations when a caller
+    // advertises a huge buffer.
+    let max_events = (buf_len / 16).min(256);
+    let writable_len = max_events * 16;
+    if !super::fs::valid_user_range(buf_ptr, writable_len) {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    let mut bytes = alloc::vec::Vec::with_capacity(writable_len);
 
-    // Drain events from the input queue
-    let mut queue = crate::input::DAEMON_EVENT_QUEUE.lock();
-    while count < max_events {
-        if let Some(event) = queue.pop() {
-            let offset = buf_ptr + count * 16;
-            let out = offset as *mut u32;
+    // Drain into kernel-owned memory, then release the queue before crossing
+    // into the process registry/user-copy path. This avoids nested locks and
+    // lets hardware producers resume immediately.
+    {
+        let mut queue = crate::input::DAEMON_EVENT_QUEUE.lock();
+        while bytes.len() / 16 < max_events {
+            if let Some(event) = queue.pop() {
+                // Serialize the event
+                let (tag, p1, p2) = match event.event_type {
+                    crate::input::InputEventType::KeyPress(ascii) => (0u32, ascii as u32, 0u32),
+                    crate::input::InputEventType::KeyRelease(ascii) => (1u32, ascii as u32, 0u32),
+                    crate::input::InputEventType::MouseMove(dx, dy) => {
+                        (2u32, dx as u16 as u32, dy as u16 as u32)
+                    }
+                    crate::input::InputEventType::MouseButton(btn, pressed) => {
+                        (3u32, btn as u32, pressed as u32)
+                    }
+                    crate::input::InputEventType::GestureEvent(gesture_id) => {
+                        (4u32, gesture_id as u32, 0u32)
+                    }
+                };
 
-            // Serialize the event
-            let (tag, p1, p2) = match event.event_type {
-                crate::input::InputEventType::KeyPress(ascii) => {
-                    (0u32, ascii as u32, 0u32)
+                let mut encoded = [0u8; 16];
+                for (index, value) in [tag, p1, p2, event.timestamp as u32].iter().enumerate() {
+                    encoded[index * 4..index * 4 + 4].copy_from_slice(&value.to_le_bytes());
                 }
-                crate::input::InputEventType::KeyRelease(ascii) => {
-                    (1u32, ascii as u32, 0u32)
-                }
-                crate::input::InputEventType::MouseMove(dx, dy) => {
-                    (2u32, dx as u16 as u32, dy as u16 as u32)
-                }
-                crate::input::InputEventType::MouseButton(btn, pressed) => {
-                    (3u32, btn as u32, pressed as u32)
-                }
-                crate::input::InputEventType::GestureEvent(gesture_id) => {
-                    (4u32, gesture_id as u32, 0u32)
-                }
-            };
-
-            // Safety: buf_ptr is in the process's address space, validated
-            // by the syscall dispatcher. We write 16 bytes per event.
-            unsafe {
-                core::ptr::write_volatile(out, tag);
-                core::ptr::write_volatile(out.add(1), p1);
-                core::ptr::write_volatile(out.add(2), p2);
-                core::ptr::write_volatile(out.add(3), event.timestamp as u32);
+                bytes.extend_from_slice(&encoded);
+            } else {
+                break;
             }
-
-            count += 1;
-        } else {
-            break;
         }
     }
 
-    SyscallResult::ok(count as u64)
+    if !bytes.is_empty()
+        && unsafe { super::fs::copy_to_user(buf_ptr, &bytes, bytes.len()) } != bytes.len()
+    {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+
+    SyscallResult::ok((bytes.len() / 16) as u64)
 }

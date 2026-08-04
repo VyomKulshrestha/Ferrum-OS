@@ -11,8 +11,8 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 use super::{SyscallResult, SyscallStatus};
+use alloc::string::String;
 
 /// Maximum text-buffer serialisation size (64 KB).
 const MAX_TEXT_BUF: usize = 64 * 1024;
@@ -54,9 +54,16 @@ pub fn sys_read_text_buffer(args: [u64; 6]) -> SyscallResult {
     let mut output = String::new();
     for row in text_buf.iter() {
         // Convert u8 array to string, replacing non-printable with space
-        let line: String = row.iter().map(|&b| {
-            if b >= 0x20 && b <= 0x7E { b as char } else { ' ' }
-        }).collect();
+        let line: String = row
+            .iter()
+            .map(|&b| {
+                if b >= 0x20 && b <= 0x7E {
+                    b as char
+                } else {
+                    ' '
+                }
+            })
+            .collect();
         let trimmed = line.trim_end();
         output.push_str(trimmed);
         output.push('\n');
@@ -66,11 +73,10 @@ pub fn sys_read_text_buffer(args: [u64; 6]) -> SyscallResult {
     let to_copy = bytes.len().min(buf_len).min(MAX_TEXT_BUF);
 
     if to_copy > 0 {
-        let end = buf_ptr.saturating_add(to_copy as u64);
-        if end < 0x0000_7FFF_FFFF_FFFF {
-            unsafe {
-                core::ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr as *mut u8, to_copy);
-            }
+        if !super::fs::valid_user_range(buf_ptr, to_copy)
+            || unsafe { super::fs::copy_to_user(buf_ptr, bytes, to_copy) } != to_copy
+        {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
     }
 
@@ -114,11 +120,10 @@ pub fn sys_read_framebuffer_info(args: [u64; 6]) -> SyscallResult {
     let to_copy = bytes.len().min(buf_len);
 
     if to_copy > 0 {
-        let end = buf_ptr.saturating_add(to_copy as u64);
-        if end < 0x0000_7FFF_FFFF_FFFF {
-            unsafe {
-                core::ptr::copy_nonoverlapping(bytes.as_ptr(), buf_ptr as *mut u8, to_copy);
-            }
+        if !super::fs::valid_user_range(buf_ptr, to_copy)
+            || unsafe { super::fs::copy_to_user(buf_ptr, bytes, to_copy) } != to_copy
+        {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
     }
 

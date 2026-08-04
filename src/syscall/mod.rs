@@ -137,8 +137,8 @@ impl SyscallResult {
 
 extern crate alloc;
 
-pub mod audio;
 pub mod app;
+pub mod audio;
 pub mod camera;
 pub mod clipboard;
 pub mod fs;
@@ -332,9 +332,16 @@ pub fn dispatch_with_capabilities(
             let payload = if payload_len == 0 {
                 alloc::vec::Vec::new()
             } else {
-                let slice =
-                    unsafe { core::slice::from_raw_parts(args[2] as *const u8, payload_len) };
-                slice.to_vec()
+                match unsafe {
+                    crate::syscall::fs::read_user_bytes(
+                        args[2],
+                        args[3],
+                        crate::ipc::MAX_PAYLOAD_BYTES,
+                    )
+                } {
+                    Some(payload) => payload,
+                    None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+                }
             };
 
             let message = match crate::ipc::Message::new(
@@ -356,6 +363,13 @@ pub fn dispatch_with_capabilities(
             }
         }
         x if x == SyscallNumber::IpcReceive as u64 => {
+            let buf_ptr = args[0];
+            let buf_len = args[1] as usize;
+            if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
+                || (buf_len > 0 && !crate::syscall::fs::valid_user_range(buf_ptr, buf_len))
+            {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
             let service_name = if args[2] == 0 || args[3] == 0 {
                 String::from("runtime.ipc")
             } else {
@@ -367,9 +381,6 @@ pub fn dispatch_with_capabilities(
 
             match crate::ipc::receive_for_service(&service_name) {
                 Ok(message) => {
-                    let buf_ptr = args[0];
-                    let buf_len = args[1] as usize;
-
                     if buf_ptr == 0 || buf_len == 0 {
                         // User just wants to consume/drop the message or check if there is one
                         return SyscallResult::ok(message.payload().len() as u64);
@@ -377,16 +388,11 @@ pub fn dispatch_with_capabilities(
 
                     let to_copy = message.payload().len().min(buf_len);
                     if to_copy > 0 {
-                        let end = buf_ptr.saturating_add(to_copy as u64);
-                        if end >= 0x0000_7FFF_FFFF_FFFF {
+                        if unsafe {
+                            crate::syscall::fs::copy_to_user(buf_ptr, message.payload(), to_copy)
+                        } != to_copy
+                        {
                             return SyscallResult::err(SyscallStatus::InvalidArgument);
-                        }
-                        unsafe {
-                            core::ptr::copy_nonoverlapping(
-                                message.payload().as_ptr(),
-                                buf_ptr as *mut u8,
-                                to_copy,
-                            );
                         }
                     }
 
@@ -561,22 +567,20 @@ pub fn dispatch_with_capabilities(
             }
             let buf_ptr = args[0];
             let buf_len = args[1] as usize;
-            if buf_ptr == 0 || buf_len == 0 {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            }
-            let end = buf_ptr.saturating_add(buf_len as u64);
-            if end >= 0x0000_7FFF_FFFF_FFFF {
+            const MAX_RANDOM_BYTES: usize = 1024 * 1024;
+            if buf_len == 0
+                || buf_len > MAX_RANDOM_BYTES
+                || !crate::syscall::fs::valid_user_range(buf_ptr, buf_len)
+            {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
             let mut temp_buf = alloc::vec![0u8; buf_len];
             match crate::security::rand::get_random(&mut temp_buf) {
                 Ok(()) => {
-                    unsafe {
-                        core::ptr::copy_nonoverlapping(
-                            temp_buf.as_ptr(),
-                            buf_ptr as *mut u8,
-                            buf_len,
-                        );
+                    if unsafe { crate::syscall::fs::copy_to_user(buf_ptr, &temp_buf, buf_len) }
+                        != buf_len
+                    {
+                        return SyscallResult::err(SyscallStatus::InvalidArgument);
                     }
                     SyscallResult::ok(buf_len as u64)
                 }

@@ -286,6 +286,44 @@ fn pt_flags(ph: &crate::elf::ProgramHeader) -> PageTableFlags {
 }
 
 impl AddressSpace {
+    /// Return true only when every byte in `[start, start + len)` belongs to
+    /// this process and is backed by one or more recorded user mappings.
+    ///
+    /// Merely checking that a pointer is in the lower canonical half is not
+    /// enough: FerrumOS maps kernel text/data there too, while ring-3 owns only
+    /// `USER_P4_INDEX`. Syscall copy helpers use this before dereferencing a
+    /// caller-provided pointer so a malicious app cannot make the kernel read
+    /// or overwrite kernel memory, or fault on an unmapped user address.
+    fn contains_user_range(&self, start: u64, len: usize) -> bool {
+        if len == 0 || !in_user_region(start, len as u64) {
+            return false;
+        }
+        let Some(end) = start.checked_add(len as u64) else {
+            return false;
+        };
+
+        // ELF segments and mmap regions can overlap or meet at a page
+        // boundary. Walk the union rather than requiring one bookkeeping
+        // entry to cover the whole buffer.
+        let mut cursor = start;
+        while cursor < end {
+            let next = self
+                .user_mappings
+                .iter()
+                .filter_map(|(base, size)| {
+                    let mapping_start = base.as_u64();
+                    let mapping_end = mapping_start.checked_add(*size)?;
+                    (mapping_start <= cursor && cursor < mapping_end).then_some(mapping_end)
+                })
+                .max();
+            let Some(next) = next else {
+                return false;
+            };
+            cursor = next.min(end);
+        }
+        true
+    }
+
     /// Allocate a fresh L4 frame and seed it with the kernel's live
     /// entries. Any P4 slot the kernel currently uses (text, stack,
     /// heap, device pages, ... ) is mirrored so the kernel stays
@@ -860,6 +898,19 @@ pub fn list() -> Vec<(u64, String, usize)> {
             (record.process.pid, record.process.name.clone(), frames)
         })
         .collect()
+}
+
+/// Validate a caller-owned buffer against the current process's real address
+/// space mappings. This is the single process-registry side of the syscall
+/// user-copy boundary; `syscall::fs` additionally applies operation-specific
+/// size limits before any dereference occurs.
+pub fn user_range_is_mapped(pid: u64, start: u64, len: usize) -> bool {
+    PROCESSES
+        .lock()
+        .iter()
+        .find(|record| record.process.pid == pid)
+        .and_then(|record| record.process.space.as_ref())
+        .is_some_and(|space| space.contains_user_range(start, len))
 }
 
 /// Look up the user stack top of a registered process by pid.

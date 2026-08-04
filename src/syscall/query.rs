@@ -18,14 +18,14 @@
 // ============================================================================
 
 extern crate alloc;
-use alloc::string::String;
-use alloc::format;
 use super::{SyscallResult, SyscallStatus};
+use alloc::format;
+use alloc::string::String;
 
 /// Execute a system query and write the result as JSON into the user buffer.
 pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
     let query_type = args[0];
-    let buf_ptr = args[1] as usize;
+    let buf_ptr = args[1];
     let buf_len = args[2] as usize;
 
     if buf_ptr == 0 || buf_len == 0 {
@@ -43,16 +43,12 @@ pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
     let bytes = json.as_bytes();
     let copy_len = core::cmp::min(bytes.len(), buf_len);
 
-    // Safety: buf_ptr is in the calling process's address space.
-    // The syscall dispatcher validates this before calling us.
-    let dest = buf_ptr as *mut u8;
     if copy_len > 0 {
-        let end = buf_ptr.saturating_add(copy_len);
-        if end >= 0x0000_7FFF_FFFF_FFFF {
+        if !super::fs::valid_user_range(buf_ptr, copy_len) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
-        unsafe {
-            core::ptr::copy_nonoverlapping(bytes.as_ptr(), dest, copy_len);
+        if unsafe { super::fs::copy_to_user(buf_ptr, bytes, copy_len) } != copy_len {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
     }
 

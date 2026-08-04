@@ -26,12 +26,8 @@ const MAX_DATA_LEN: usize = 4 * 1024 * 1024;
 /// address space is accessible (identity-mapped or via phys_to_virt).
 pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
     let len = len as usize;
-    if len == 0 || len > MAX_PATH_LEN || ptr == 0 {
+    if len == 0 || len > MAX_PATH_LEN || !valid_user_range(ptr, len) {
         return None;
-    }
-    let end = ptr.saturating_add(len as u64);
-    if end >= 0x0000_7FFF_FFFF_FFFF {
-        return None; // Prevent accessing kernel space
     }
     let slice = core::slice::from_raw_parts(ptr as *const u8, len);
     core::str::from_utf8(slice).ok().map(String::from)
@@ -45,15 +41,21 @@ pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
 /// address space is accessible (identity-mapped or via phys_to_virt).
 pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::vec::Vec<u8>> {
     let len = len as usize;
-    if len == 0 || len > cap || ptr == 0 {
+    if len == 0 || len > cap || !valid_user_range(ptr, len) {
         return None;
-    }
-    let end = ptr.saturating_add(len as u64);
-    if end >= 0x0000_7FFF_FFFF_FFFF {
-        return None; // Prevent accessing kernel space
     }
     let slice = core::slice::from_raw_parts(ptr as *const u8, len);
     Some(alloc::vec::Vec::from(slice))
+}
+
+/// True only for a non-empty range backed by the currently running ring-3
+/// process. Kernel-half and unmapped-but-canonical pointers are both denied.
+pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
+    if ptr == 0 || len == 0 {
+        return false;
+    }
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    pid != 0 && crate::process::user_range_is_mapped(pid, ptr, len)
 }
 
 /// Copy bytes from a kernel buffer into a userspace buffer.
@@ -63,10 +65,9 @@ pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::v
 /// least `max_len` bytes.
 pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
-    if to_copy > 0 && dst != 0 {
-        let end = dst.saturating_add(to_copy as u64);
-        if end >= 0x0000_7FFF_FFFF_FFFF {
-            return 0; // Prevent writing to kernel space
+    if to_copy > 0 {
+        if !valid_user_range(dst, to_copy) {
+            return 0;
         }
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
     }
@@ -137,7 +138,7 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
-    if buf_ptr == 0 || buf_len == 0 || buf_len > MAX_DATA_LEN {
+    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -145,7 +146,11 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
     match crate::fs::read_file_offset(&path, 0, &mut temp_buf) {
         Ok(bytes_read) => {
             let copied = unsafe { copy_to_user(buf_ptr, &temp_buf[..bytes_read], bytes_read) };
-            SyscallResult::ok(copied as u64)
+            if copied == bytes_read {
+                SyscallResult::ok(copied as u64)
+            } else {
+                SyscallResult::err(SyscallStatus::InvalidArgument)
+            }
         }
         Err(e) => {
             crate::println!("[kernel-read] read {} failed: {}", path, e);
@@ -209,7 +214,7 @@ pub fn sys_read_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallResu
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
-    if buf_ptr == 0 || buf_len == 0 || buf_len > MAX_DATA_LEN {
+    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -227,7 +232,11 @@ pub fn sys_read_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallResu
             }
             let bytes = output.as_bytes();
             let copied = unsafe { copy_to_user(buf_ptr, bytes, buf_len) };
-            SyscallResult::ok(copied as u64)
+            if copied == bytes.len().min(buf_len) {
+                SyscallResult::ok(copied as u64)
+            } else {
+                SyscallResult::err(SyscallStatus::InvalidArgument)
+            }
         }
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }

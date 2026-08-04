@@ -18,6 +18,7 @@ const SYS_EXEC: u64 = 18;
 const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
 const SYS_INJECT_KEY: u64 = 26;
+const SYS_SYSTEM_QUERY: u64 = 29;
 const SYS_EXIT: u64 = 30;
 const SYS_GETPID: u64 = 31;
 const SYS_SLEEP: u64 = 32;
@@ -465,6 +466,32 @@ pub extern "C" fn _start() -> ! {
                 unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
             }
         }
+    } else if test_mode == b'5' {
+        // Adversarial syscall-pointer regression. All three addresses are
+        // canonical, but none belongs to a mapped userspace buffer owned by
+        // this process: one targets the kernel's low mapping, one is an
+        // unmapped hole inside the user P4 slot, and one crosses its ceiling.
+        // The kernel must reject each without dereferencing it or faulting.
+        write("[pointer-test] starting adversarial user-pointer checks\n");
+        let kernel_low = unsafe { syscall3(SYS_WRITE, FD_CONSOLE, 0x10_0000, 4) };
+        let user_hole = unsafe {
+            syscall4(SYS_SYSTEM_QUERY, 0, 0x80_4000_0000, 64, 0)
+        };
+        let crossing_end = unsafe {
+            syscall4(
+                SYS_READ_FILE,
+                "/tmp/init_test".as_ptr() as u64,
+                "/tmp/init_test".len() as u64,
+                0x100_0000_0000 - 8,
+                16,
+            )
+        };
+        if (kernel_low as i64) < 0 && (user_hole as i64) < 0 && (crossing_end as i64) < 0 {
+            write("[pointer-test] all invalid ranges denied\n");
+        } else {
+            write("[pointer-test] ERROR invalid range accepted\n");
+        }
+        unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
     } else {
         // D1 app-window framework smoke test: spawned independently of
         // heliox-daemon, gated by a flag file so it never runs on a normal

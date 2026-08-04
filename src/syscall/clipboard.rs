@@ -16,12 +16,11 @@ pub fn sys_clipboard_read(args: [u64; 6]) -> SyscallResult {
     let snapshot = crate::clipboard::snapshot();
     let to_copy = snapshot.bytes.len().min(out_len);
     if to_copy > 0 {
-        let end = out_ptr.saturating_add(to_copy as u64);
-        if end >= 0x0000_7FFF_FFFF_FFFF {
+        if !super::fs::valid_user_range(out_ptr, to_copy) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
-        unsafe {
-            core::ptr::copy_nonoverlapping(snapshot.bytes.as_ptr(), out_ptr as *mut u8, to_copy);
+        if unsafe { super::fs::copy_to_user(out_ptr, &snapshot.bytes, to_copy) } != to_copy {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
     }
     SyscallResult::ok(to_copy as u64)

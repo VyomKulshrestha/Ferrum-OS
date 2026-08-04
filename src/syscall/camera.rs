@@ -58,16 +58,6 @@ pub fn sys_read_camera_frame(args: [u64; 6]) -> SyscallResult {
     let buf_ptr = args[0];
     let buf_len = args[1] as usize;
 
-    // Validate user pointer is in the user-half of the address space.
-    if buf_ptr == 0 || buf_ptr >= 0x0000_7FFF_FFFF_FFFF {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-
-    let end = buf_ptr.saturating_add(buf_len as u64);
-    if end >= 0x0000_7FFF_FFFF_FFFF {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-
     // Check camera availability.
     if !camera_available() {
         return SyscallResult::ok(0);
@@ -84,16 +74,13 @@ pub fn sys_read_camera_frame(args: [u64; 6]) -> SyscallResult {
     if buf_len < frame_size {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
+    if !super::fs::valid_user_range(buf_ptr, frame_size) {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
 
-    // Copy frame data to userspace buffer.
-    // Safety: buf_ptr was validated to be in user-half; frame is a valid
-    // kernel slice from the camera double-buffer.
-    unsafe {
-        core::ptr::copy_nonoverlapping(
-            frame.as_ptr(),
-            buf_ptr as *mut u8,
-            frame_size,
-        );
+    let copied = unsafe { super::fs::copy_to_user(buf_ptr, frame, frame_size) };
+    if copied != frame_size {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
     SyscallResult::ok(frame_size as u64)
@@ -113,10 +100,6 @@ pub fn sys_camera_info(args: [u64; 6]) -> SyscallResult {
     let buf_ptr = args[0];
     let buf_len = args[1] as usize;
 
-    if buf_ptr == 0 || buf_ptr >= 0x0000_7FFF_FFFF_FFFF {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-
     let available = camera_available();
     let w = source_width();
     let h = source_height();
@@ -135,17 +118,11 @@ pub fn sys_camera_info(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::ok(0);
     }
 
-    let end = buf_ptr.saturating_add(to_copy as u64);
-    if end >= 0x0000_7FFF_FFFF_FFFF {
+    if !super::fs::valid_user_range(buf_ptr, to_copy) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
-
-    unsafe {
-        core::ptr::copy_nonoverlapping(
-            json.as_ptr(),
-            buf_ptr as *mut u8,
-            to_copy,
-        );
+    if unsafe { super::fs::copy_to_user(buf_ptr, json, to_copy) } != to_copy {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
     SyscallResult::ok(to_copy as u64)
