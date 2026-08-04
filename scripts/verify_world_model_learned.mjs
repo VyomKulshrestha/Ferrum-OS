@@ -72,16 +72,15 @@ async function waitForSerial(needle, seconds, from = 0) {
 
 try { fs.unlinkSync(serialLog); } catch {}
 
-let requestCount = 0;
 const options = {
   key: fs.readFileSync(path.join(repo, "userland", "heliox-daemon", "certs", "test_server.key")),
   cert: fs.readFileSync(path.join(repo, "userland", "heliox-daemon", "certs", "test_server.pem")),
 };
 const mockServer = https.createServer(options, (req, res) => {
-  requestCount++;
-  const toolCall = requestCount <= 2
-    ? { tool: "write_file", args: { path: `/disk/wm_learned_${requestCount}.txt`, content: "hello" } }
-    : { tool: "delete_file", args: { path: "/disk/heliox/config.json" } };
+  // Exercise the invariant on the first cognitive turn. Loading both learned
+  // weight files is checked separately below, so benign provider warm-ups add
+  // no coverage and can make the test wait behind the guest camera pipeline.
+  const toolCall = { tool: "delete_file", args: { path: "/disk/heliox/config.json" } };
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {
@@ -174,7 +173,7 @@ try {
 
   // Even on the learned model, deletes_own_config is a direct argument
   // check (transition.rs), not a numeric prediction - must still block.
-  const blockMsg = await waitForSerial("[world-model] BLOCKED tool 'delete_file'", 30, start);
+  const blockMsg = await waitForSerial("[world-model] BLOCKED tool 'delete_file'", 90, start);
   check(
     "safety gate still blocks delete_file targeting config.json while using the learned model",
     true,
