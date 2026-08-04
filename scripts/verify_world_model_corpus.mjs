@@ -10,7 +10,7 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const output = path.join(repo, "target", "world_model_controlled_corpus_verify.jsonl");
 execFileSync(process.execPath, [
   path.join(repo, "scripts", "generate_world_model_hybrid_corpus.mjs"),
-  "--count", "410", "--seed", "99", "--mode", "controlled", "--out", output,
+  "--count", "410", "--offset", "2000", "--seed", "99", "--mode", "controlled", "--out", output,
 ], { stdio: "pipe" });
 const rows = fs.readFileSync(output, "utf8").split(/\r?\n/).filter(Boolean).map(JSON.parse);
 assert.equal(rows.length, 410);
@@ -21,6 +21,16 @@ for (const row of rows) {
   assert.ok(row.responses.every((response) => response.tool === row.expected_tool));
 }
 assert.ok(Object.values(counts).every((count) => count === 10));
+assert.equal(rows[0].id, "hybrid-002000");
+assert.equal(rows.at(-1).id, "hybrid-002409");
+
+for (const tool of ["read_dir", "mouse_click", "browse_url"]) {
+  const signatures = new Set(rows
+    .flatMap((row) => row.responses)
+    .filter((response) => response.tool === tool)
+    .map((response) => JSON.stringify(response.args)));
+  assert.ok(signatures.size >= 3, `${tool} only produced ${signatures.size} argument variants`);
+}
 
 const filePaths = rows
   .flatMap((row) => row.responses)
@@ -33,4 +43,5 @@ assert.ok(new Set(filePaths).size <= 64);
 console.log("PASS\tcontrolled corpus balances all 41 canonical actions");
 console.log("PASS\tevery multi-step scenario has a validated replay response per step");
 console.log("PASS\tfilesystem mutations use a bounded 64-path pool");
-console.log("3/3 checks passed");
+console.log("PASS\toffset IDs and argument-bearing tools produce distinct supplemental data");
+console.log("4/4 checks passed");

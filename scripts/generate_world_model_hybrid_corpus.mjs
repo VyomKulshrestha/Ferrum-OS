@@ -13,6 +13,7 @@ function arg(name, fallback) {
 }
 const count = Math.max(41, Number(arg("--count", "5000")));
 const seed = Number(arg("--seed", "42")) >>> 0;
+const offset = Math.max(0, Number(arg("--offset", "0")));
 const outPath = path.resolve(arg("--out", path.join(repo, "target", "world_model_hybrid_corpus.jsonl")));
 const mode = arg("--mode", "hybrid");
 if (!["controlled", "hybrid", "live"].includes(mode)) {
@@ -33,7 +34,10 @@ const controlledResponses = {
   report_status: (i) => ({ tool: "report_status", args: { status: `hybrid status ${i}` } }),
   capability_check: (i) => ({ tool: "capability_check", args: { capability_id: 1 + (i % 8) } }),
   read_file: (i) => ({ tool: "read_file", args: { path: i % 3 === 0 ? `/disk/missing_${i % 31}.txt` : "/disk/heliox/config.json" } }),
-  read_dir: (i) => ({ tool: "read_dir", args: { path: i % 2 ? "/disk" : "/disk/heliox" } }),
+  read_dir: (i) => ({
+    tool: "read_dir",
+    args: { path: ["/disk", "/disk/heliox", "/disk/pkgs-available"][i % 3] },
+  }),
   query_memory: (i) => ({ tool: "query_memory", args: { query: `hybrid topic ${i % 17}`, top_k: 1 + (i % 5) } }),
   get_config: (i) => ({ tool: "get_config", args: { key: ["provider", "model_name", "tick_interval"][i % 3] } }),
   system_info: () => ({ tool: "system_info", args: {} }),
@@ -67,7 +71,16 @@ const controlledResponses = {
   keyboard_type: (i) => ({ tool: "keyboard_type", args: { text: `hybrid-${i}` } }),
   mouse_click: (i) => ({ tool: "mouse_click", args: { button: i % 3 } }),
   mouse_move: (i) => ({ tool: "mouse_move", args: { dx: -20 + (i % 41), dy: 20 - (i % 41) } }),
-  browse_url: (i) => ({ tool: "browse_url", args: { url: `http://10.0.2.2/hybrid/${i % 17}` } }),
+  browse_url: (i) => ({
+    tool: "browse_url",
+    args: {
+      url: [
+        `http://10.0.2.2/a/${i % 17}`,
+        `http://10.0.2.2/hybrid/${i % 17}`,
+        `http://10.0.2.2/long/hybrid/path/${i % 17}`,
+      ][i % 3],
+    },
+  }),
   poll_input: () => ({ tool: "poll_input", args: {} }),
 };
 
@@ -132,6 +145,7 @@ const random = () => {
 const rows = [];
 let blockOrder = [];
 for (let i = 0; i < count; i++) {
+  const corpusIndex = offset + i;
   const slot = i % specs.length;
   // Shuffle each complete 41-tool block while preserving exact balance.
   if (slot === 0) {
@@ -143,8 +157,8 @@ for (let i = 0; i < count; i++) {
   }
   const [tool, makePrompt] = specs[blockOrder[slot]];
   const row = {
-    id: `hybrid-${String(i).padStart(6, "0")}`,
-    prompt: makePrompt(i),
+    id: `hybrid-${String(corpusIndex).padStart(6, "0")}`,
+    prompt: makePrompt(corpusIndex),
     expected_tool: tool,
     max_steps: i % 5 === 0 ? 3 : 1,
     tags: [
@@ -159,7 +173,10 @@ for (let i = 0; i < count; i++) {
   const controlled = mode === "controlled"
     || (mode === "hybrid" && ["local_inference", "trigger_kernel_upgrade", "hud_update", "hit_test"].includes(tool));
   if (controlled) {
-    row.responses = Array.from({ length: row.max_steps }, (_, step) => controlledResponses[tool](i * 3 + step));
+    row.responses = Array.from(
+      { length: row.max_steps },
+      (_, step) => controlledResponses[tool](corpusIndex + step),
+    );
   }
   rows.push(row);
 }
