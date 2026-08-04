@@ -1463,11 +1463,13 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         let free_blocks = inner.superblock.free_blocks_count;
         let used_blocks = total_blocks - free_blocks;
         let used_bytes = used_blocks as usize * self.block_size as usize;
+        let total_bytes = total_blocks as usize * self.block_size as usize;
 
         Ok(FsUsage {
             files: used_inodes as usize,
             directories: 0,
             bytes: used_bytes,
+            total_bytes,
         })
     }
 

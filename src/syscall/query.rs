@@ -12,6 +12,7 @@
 //       1 = process list (pid, name, state, ticks)
 //       2 = memory stats (heap used, heap free, heap total)
 //       3 = device list (name, class, state, driver)
+//       4 = persistent filesystem usage (used and total bytes)
 //     args[1] = buf_ptr — pointer to user buffer for JSON output
 //     args[2] = buf_len — size of buffer in bytes
 //   Returns: number of bytes written on success
@@ -37,6 +38,7 @@ pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
         1 => query_process_list(),
         2 => query_memory_stats(),
         3 => query_device_list(),
+        4 => query_disk_usage(),
         _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
@@ -120,6 +122,20 @@ fn query_memory_stats() -> String {
         "{{\"heap_used\":{},\"heap_free\":{},\"heap_total\":{}}}",
         used, free, total
     )
+}
+
+/// Query type 4: Persistent filesystem usage. Report an explicit availability
+/// bit so callers never mistake a missing `/disk` mount for an empty disk.
+fn query_disk_usage() -> String {
+    match crate::fs::usage_for("/disk") {
+        Ok(usage) => format!(
+            "{{\"available\":true,\"used_bytes\":{},\"total_bytes\":{}}}",
+            usage.bytes, usage.total_bytes
+        ),
+        Err(_) => String::from(
+            "{\"available\":false,\"used_bytes\":0,\"total_bytes\":0}",
+        ),
+    }
 }
 
 /// Query type 3: Device list.

@@ -41,6 +41,10 @@ pub struct FsUsage {
     pub files: usize,
     pub directories: usize,
     pub bytes: usize,
+    /// Total addressable bytes when the backing filesystem has a fixed
+    /// capacity. RamFS reports zero because its limit is governed by the
+    /// heap rather than an on-disk superblock.
+    pub total_bytes: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -221,6 +225,7 @@ impl vfs::Filesystem for RamFs {
             files: 0,
             directories: 0,
             bytes: 0,
+            total_bytes: 0,
         };
         accumulate_usage(&root_guard, &mut usage);
         Ok(usage)
@@ -371,6 +376,14 @@ pub fn stat(path: &str) -> Result<FsStat, String> {
 
 pub fn usage() -> Result<FsUsage, String> {
     let (fs, _) = vfs::resolve("/")?;
+    fs.usage()
+}
+
+/// Return usage for the filesystem that owns `path`. Unlike `usage()`, this
+/// lets system telemetry query the persistent `/disk` mount instead of the
+/// volatile root RamFS.
+pub fn usage_for(path: &str) -> Result<FsUsage, String> {
+    let (fs, _) = vfs::resolve(path)?;
     fs.usage()
 }
 

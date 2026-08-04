@@ -4,11 +4,9 @@
 // Samples a snapshot of live OS state through syscalls the daemon already
 // calls elsewhere - SystemQuery (29, query types 0/2) for process/heap
 // stats exactly as config.rs's detect_tier() and tool_mapper.rs's
-// execute_system_info() already call it, ReadDir (17) exactly as
-// execute_read_dir() already calls it, and screen_vision::capture_screen()
-// (which itself wraps ReadTextBuffer, 20). No new syscalls, no new
-// capabilities - this is the same 41-action surface the daemon already has,
-// called on its own schedule instead of only when the LLM asks for it.
+// execute_system_info() already call it, persistent filesystem usage through
+// SystemQuery type 4, ReadDir (17) for the observable file count, and
+// screen_vision::capture_screen() (which itself wraps ReadTextBuffer, 20).
 // ============================================================================
 
 extern crate alloc;
@@ -25,12 +23,9 @@ pub struct OsSnapshot {
     pub heap_used: u64,
     pub heap_total: u64,
     pub fs_file_count: u32,
-    /// A heuristic estimate (fs_file_count vs. a nominal small-appliance
-    /// capacity), *not* a real disk-usage reading - no syscall exposes
-    /// actual disk capacity/usage to userspace today. Real grounding
-    /// would need a new query type; deferred rather than faked as more
-    /// precise than it is. Documented here so Layer 5's risk rule that
-    /// consumes this knows exactly how much to trust it.
+    /// Fraction of allocated blocks on the persistent filesystem. Falls back
+    /// to zero when no persistent mount is available; it never substitutes a
+    /// file-count heuristic for real capacity telemetry.
     pub disk_usage_fraction: f32,
     pub screen_text: String,
     pub last_action_name: String,
@@ -71,6 +66,22 @@ fn query_heap() -> (u64, u64) {
     (used, total)
 }
 
+fn query_disk_usage_fraction() -> f32 {
+    let mut buf = [0u8; 256];
+    let n = unsafe { syscall4(SYS_SYSTEM_QUERY, 4, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
+    if n <= 0 {
+        return 0.0;
+    }
+    let text = core::str::from_utf8(&buf[..n as usize]).unwrap_or("{}");
+    let used = extract_u64(text, "used_bytes").unwrap_or(0);
+    let total = extract_u64(text, "total_bytes").unwrap_or(0);
+    if total == 0 {
+        0.0
+    } else {
+        (used as f32 / total as f32).clamp(0.0, 1.0)
+    }
+}
+
 fn query_fs_file_count(path: &str) -> u32 {
     let mut buf = alloc::vec![0u8; 8 * 1024];
     let n = unsafe {
@@ -91,8 +102,6 @@ fn query_fs_file_count(path: &str) -> u32 {
     text.lines().filter(|l| l.starts_with("f ")).count() as u32
 }
 
-const NOMINAL_FILE_CAPACITY: f32 = 64.0;
-
 pub fn capture_snapshot(tick: u64, last_action_name: &str, last_action_failed: bool) -> OsSnapshot {
     let proc_count = query_active_tasks();
     let (heap_used, heap_total) = query_heap();
@@ -107,7 +116,7 @@ pub fn capture_snapshot(tick: u64, last_action_name: &str, last_action_failed: b
         heap_used,
         heap_total,
         fs_file_count,
-        disk_usage_fraction: (fs_file_count as f32 / NOMINAL_FILE_CAPACITY).min(1.0),
+        disk_usage_fraction: query_disk_usage_fraction(),
         screen_text,
         last_action_name: String::from(last_action_name),
         last_action_failed,
