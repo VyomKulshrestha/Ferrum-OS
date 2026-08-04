@@ -44,6 +44,26 @@ assert.equal(
   "blocked_policy",
 );
 
+const precisionRows = rows.map((item) => ({
+  ...item,
+  action_features: item.action_features.slice(),
+}));
+const mouseRows = precisionRows.filter((item) => item.action === 37);
+mouseRows[0].action_features[8] = Math.fround(0.5);
+mouseRows[1].action_features[8] = Math.fround(0.50005);
+const thirdMouse = row(37, "mouse-precision", 2);
+thirdMouse.action_features[8] = Math.fround(0.5001);
+precisionRows.push(thirdMouse);
+const precisionAudit = auditRows(precisionRows, {
+  requiredTools: TOOL_NAMES.length,
+  minExecutedPerTool: 2,
+  minArgumentVariants: 2,
+  minEpisodes: TOOL_NAMES.length,
+  minMultistepEpisodes: TOOL_NAMES.length,
+  minRamProfiles: 1,
+});
+assert.equal(precisionAudit.per_tool.find((tool) => tool.name === "mouse_click").argument_variants, 3);
+
 const executedUpgrade = rows.map((item) => item.action === 28 ? { ...item, executed: true } : item);
 const unsafePolicyEvidence = auditRows(executedUpgrade, {
   requiredTools: TOOL_NAMES.length,
@@ -98,4 +118,5 @@ console.log("PASS\tdataset audit rejects missing tool coverage");
 console.log("PASS\tdataset audit rejects malformed vectors");
 console.log("PASS\tdataset audit rejects unversioned observation semantics");
 console.log("PASS\tkernel upgrade coverage requires blocked policy evidence, not execution");
-console.log("5/5 checks passed");
+console.log("PASS\tfloat32-scale numeric arguments remain distinct in diversity evidence");
+console.log("6/6 checks passed");

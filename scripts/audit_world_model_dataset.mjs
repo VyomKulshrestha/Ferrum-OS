@@ -38,7 +38,11 @@ function finiteVector(value, length) {
 }
 
 function featureSignature(features) {
-  return features.map((value) => Number(value).toFixed(4)).join(",");
+  // Canonical numeric features are float32 and intentionally preserve small
+  // discrete values (for example mouse buttons encode as 0.50000, 0.50005,
+  // and 0.50010). Four decimals collapsed valid actions that the model sees
+  // as distinct. Six remains deterministic while retaining that signal.
+  return features.map((value) => Number(value).toFixed(6)).join(",");
 }
 
 export function auditRows(rows, thresholds = {}) {
