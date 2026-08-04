@@ -446,8 +446,11 @@ def main():
     )
 
     pred_test = predict_mlp(X_test, w1, b1, w2, b2)
+    pred_validation = predict_mlp(X_validation, w1, b1, w2, b2)
     test_actions = np.asarray([rows[int(i)]["action"] for i in test_idx], dtype=np.int32)
+    validation_actions = np.asarray([rows[int(i)]["action"] for i in validation_idx], dtype=np.int32)
     evaluation = metric_summary(pred_test, Y_test, test_actions)
+    validation_evaluation = metric_summary(pred_validation, Y_validation, validation_actions)
     learned_mse = evaluation["mse"]
     core_mse = evaluation["core_mse"]
     print(f"learned MLP untouched-test MSE: {learned_mse:.6f}")
@@ -462,6 +465,12 @@ def main():
     rollouts = rollout_metrics(
         rows,
         test_idx,
+        (w1, b1, w2, b2),
+        max(1, args.max_rollout_horizon),
+    )
+    validation_rollouts = rollout_metrics(
+        rows,
+        validation_idx,
         (w1, b1, w2, b2),
         max(1, args.max_rollout_horizon),
     )
@@ -527,6 +536,8 @@ def main():
         "changed_dimensions": evaluation["changed_dimensions"],
         "per_action": evaluation["per_action"],
         "rollout": rollouts,
+        "validation": validation_evaluation,
+        "validation_rollout": validation_rollouts,
     }
     with open(args.metrics_out, "w") as f:
         json.dump(metrics, f, indent=2)
