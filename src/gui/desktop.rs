@@ -8,11 +8,66 @@ use alloc::vec::Vec;
 use crate::graphics;
 use crate::devices::vga_fb::FRAMEBUFFER;
 use crate::gui::compositor::{HoverTarget, LAUNCHER_ENTRIES};
+use spin::Mutex;
 
 pub const COLOR_BACKGROUND: u32 = 0x00101824; // Deep blue-gray, visibly non-black
+const PREFERENCES_PATH: &str = "/disk/desktop.conf";
+
+#[derive(Clone, Copy)]
+struct DesktopPreferences {
+    theme: u8,
+    accent: u8,
+}
+
+static PREFERENCES: Mutex<DesktopPreferences> = Mutex::new(DesktopPreferences { theme: 0, accent: 0 });
+
+fn parse_preference(raw: &str, key: &str) -> Option<u8> {
+    raw.lines()
+        .find_map(|line| line.strip_prefix(key))
+        .and_then(|value| value.parse::<u8>().ok())
+}
+
+pub fn apply_preferences(theme: u8, accent: u8) -> bool {
+    if theme > 2 || accent > 2 {
+        return false;
+    }
+    *PREFERENCES.lock() = DesktopPreferences { theme, accent };
+    crate::gui::compositor::request_redraw();
+    crate::serial_println!("[desktop] preferences applied theme={} accent={}", theme, accent);
+    true
+}
+
+pub fn save_preferences(theme: u8, accent: u8) -> bool {
+    if theme > 2 || accent > 2 {
+        return false;
+    }
+    let content = alloc::format!("theme={}\naccent={}\n", theme, accent);
+    if crate::fs::create_file(PREFERENCES_PATH, &content).is_err() {
+        return false;
+    }
+    crate::logging::audit::log_event(
+        crate::logging::audit::AuditEvent::FileAccess,
+        "desktop preferences updated",
+    );
+    apply_preferences(theme, accent)
+}
+
+fn accent_color() -> u32 {
+    match PREFERENCES.lock().accent {
+        1 => 0x004488FF,
+        2 => 0x00FFAA22,
+        _ => 0x0000FFCC,
+    }
+}
 
 pub fn init() {
-    // Nothing to initialize for MVP
+    if let Ok(raw) = crate::fs::read_file(PREFERENCES_PATH) {
+        let theme = parse_preference(&raw, "theme=").unwrap_or(0);
+        let accent = parse_preference(&raw, "accent=").unwrap_or(0);
+        if apply_preferences(theme, accent) {
+            crate::serial_println!("[desktop] preferences loaded from disk");
+        }
+    }
 }
 
 /// True if `(x, y)` falls inside `rect = (rx, ry, rw, rh)`.
@@ -22,21 +77,27 @@ pub fn point_in(x: u32, y: u32, rect: (u32, u32, u32, u32)) -> bool {
 }
 
 pub fn render_background() {
+    let theme = PREFERENCES.lock().theme;
     let fb_guard = FRAMEBUFFER.lock();
     if let Some(fb) = fb_guard.as_ref() {
         // Solid background - no debug grid. A desktop wallpaper reads as a
         // dev console when it has a visible measurement grid painted over
         // it; a plain gradient reads as a real desktop instead.
-        fb.clear(COLOR_BACKGROUND);
+        let (base_r, base_g, base_b, top_r, top_g, top_b) = match theme {
+            1 => (0x07u32, 0x14u32, 0x26u32, 0x10u32, 0x28u32, 0x50u32),
+            2 => (0x00u32, 0x00u32, 0x00u32, 0x18u32, 0x18u32, 0x18u32),
+            _ => (0x10u32, 0x18u32, 0x24u32, 0x20u32, 0x30u32, 0x48u32),
+        };
+        fb.clear((base_r << 16) | (base_g << 8) | base_b);
 
         // A soft horizontal gradient along the top 60 pixels gives the
         // desktop some depth and reads as a status bar / menu strip
         // instead of a flat void.
         for y in 0..60 {
             let t = y as f32 / 60.0;
-            let r = (0x10 as f32 + (0x20 - 0x10) as f32 * (1.0 - t)) as u32;
-            let g = (0x18 as f32 + (0x30 - 0x18) as f32 * (1.0 - t)) as u32;
-            let b = (0x24 as f32 + (0x48 - 0x24) as f32 * (1.0 - t)) as u32;
+            let r = (base_r as f32 + (top_r - base_r) as f32 * (1.0 - t)) as u32;
+            let g = (base_g as f32 + (top_g - base_g) as f32 * (1.0 - t)) as u32;
+            let b = (base_b as f32 + (top_b - base_b) as f32 * (1.0 - t)) as u32;
             let color = (r << 16) | (g << 8) | b;
             for x in 0..fb.width {
                 fb.set_pixel(x, y, color);
@@ -48,9 +109,9 @@ pub fn render_background() {
         // "measurement overlay" look.
         for y in 60..fb.height {
             let t = ((y - 60) as f32 / (fb.height - 60).max(1) as f32).min(1.0);
-            let r = (0x10 as f32 * (1.0 - t * 0.3)) as u32;
-            let g = (0x18 as f32 * (1.0 - t * 0.3)) as u32;
-            let b = (0x24 as f32 * (1.0 - t * 0.2)) as u32;
+            let r = (base_r as f32 * (1.0 - t * 0.3)) as u32;
+            let g = (base_g as f32 * (1.0 - t * 0.3)) as u32;
+            let b = (base_b as f32 * (1.0 - t * 0.2)) as u32;
             let color = (r << 16) | (g << 8) | b;
             for x in (0..fb.width).step_by(4) {
                 fb.set_pixel(x, y, color);
@@ -74,9 +135,9 @@ pub fn render_background() {
 fn draw_button(x: u32, y: u32, w: u32, h: u32, label: &str, label_color: u32, state: ButtonState) {
     let (bg, border) = match state {
         ButtonState::Idle => (0x00222222u32, 0x00444444u32),
-        ButtonState::Hover => (0x00304050u32, 0x0000FFCCu32),
+        ButtonState::Hover => (0x00304050u32, accent_color()),
         ButtonState::Pressed => (0x00445878u32, 0x00FFFFFFu32),
-        ButtonState::Active => (0x00253550u32, 0x0000FFCCu32),
+        ButtonState::Active => (0x00253550u32, accent_color()),
     };
     graphics::fill_rect(x, y, w, h, bg);
     graphics::draw_line(x, y, x + w - 1, y, border);
@@ -235,7 +296,7 @@ pub fn render_taskbar(
             }
         }
 
-        let neon_cyan = 0x0000FFCC;
+        let neon_cyan = accent_color();
         for x in layout.dock_x..layout.dock_x + layout.dock_w {
             fb.set_pixel(x, layout.dock_y, neon_cyan);
             fb.set_pixel(x, layout.dock_y + layout.dock_h - 1, neon_cyan);
@@ -255,7 +316,7 @@ pub fn render_taskbar(
         ButtonState::Idle
     };
     let (sx, sy, sw, sh) = layout.start_rect;
-    draw_button(sx, sy, sw, sh, "Start", 0x0000FFCC, start_state);
+    draw_button(sx, sy, sw, sh, "Start", accent_color(), start_state);
 
     // One slot per visible window. Paging keeps every additional window
     // reachable. Lock once and

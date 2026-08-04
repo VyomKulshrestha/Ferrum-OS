@@ -193,9 +193,13 @@ pub fn init() {
     ));
     state.programs.push(ProgramManifest::new(
         "settings",
-        "View hardware tier and the Heliox agent's active configuration",
+        "View system state and persist desktop preferences",
         "/bin/settings",
-        vec![String::from("cap:gui:window"), String::from("cap:fs:read")],
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:fs:read"),
+            String::from("cap:desktop:configure"),
+        ],
     ));
     state.programs.push(ProgramManifest::new(
         "browser",

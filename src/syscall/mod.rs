@@ -103,6 +103,8 @@ pub enum SyscallNumber {
     ProcessKill = 58,
     /// Read the calling process's pid-scoped startup metadata.
     LaunchContext = 59,
+    /// Apply validated desktop theme/accent preferences for the live session.
+    DesktopPreferences = 60,
 }
 
 /// Syscall return status.
@@ -684,6 +686,19 @@ pub fn dispatch_with_capabilities(
             process::sys_process_kill(args)
         }
         x if x == SyscallNumber::LaunchContext as u64 => process::sys_launch_context(args),
+        x if x == SyscallNumber::DesktopPreferences as u64 => {
+            if !crate::security::has_capability(held_capabilities, "desktop:configure") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            if args[0] <= 2
+                && args[1] <= 2
+                && crate::gui::desktop::save_preferences(args[0] as u8, args[1] as u8)
+            {
+                SyscallResult::ok(0)
+            } else {
+                SyscallResult::err(SyscallStatus::InvalidArgument)
+            }
+        }
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching
         // this dispatcher means a kernel-context caller invoked them,

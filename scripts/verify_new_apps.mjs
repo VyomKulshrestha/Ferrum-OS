@@ -84,7 +84,8 @@ const whpxArgs = [
 if (!visible) whpxArgs.push("-display", "none");
 
 console.log("[test] starting QEMU for new-apps verification...");
-let qemuProcess = spawn(qemu, whpxArgs, { windowsHide: !visible });
+let activeQemuArgs = whpxArgs;
+let qemuProcess = spawn(qemu, activeQemuArgs, { windowsHide: !visible });
 await sleep(2500);
 if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
   console.log("WHPX unsupported or failed, falling back to TCG...");
@@ -94,11 +95,12 @@ if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
     "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
     "-serial", `file:${serialLog}`, "-vga", "std", "-no-reboot"];
   if (!visible) tcgArgs.push("-display", "none");
-  qemuProcess = spawn(qemu, tcgArgs, { windowsHide: !visible });
+  activeQemuArgs = tcgArgs;
+  qemuProcess = spawn(qemu, activeQemuArgs, { windowsHide: !visible });
   await sleep(1500);
 }
 
-const monitor = await connectMonitor();
+let monitor = await connectMonitor();
 monitor.setEncoding("ascii");
 await sleep(500);
 
@@ -154,6 +156,20 @@ async function openLauncherEntry(index) {
   await sleep(1800);
 }
 
+async function openLauncherEntryAndWait(index, marker, seconds = 15) {
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const attemptStart = serialText().length;
+    await openLauncherEntry(index);
+    try {
+      return await waitForSerial(marker, seconds, attemptStart);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 // New app windows always spawn at this fixed position (src/gui/app_window.rs).
 const APP_X = 150, APP_Y = 150;
 const CHROME_TOP = 22;
@@ -177,8 +193,7 @@ try {
   await sleep(1500);
 
   // --- Settings (launcher index 6) -----------------------------------------
-  await openLauncherEntry(6);
-  await waitForSerial("[settings] alive in ring 3", 10, start);
+  await openLauncherEntryAndWait(6, "[settings] alive in ring 3");
   await waitForSerial("[settings] window created id=", 5, start);
   check("Settings launched as a real new process", true);
 
@@ -192,15 +207,40 @@ try {
   await waitForSerial("[settings] refreshed", 5, beforeRefresh);
   check("clicking Settings' Refresh button re-reads live hardware/config state", true);
 
+  const initialPreferences = serialText().match(/\[settings\] loaded preferences theme=(\d) accent=(\d)/);
+  const initialTheme = initialPreferences ? Number(initialPreferences[1]) : 0;
+  const initialAccent = initialPreferences ? Number(initialPreferences[2]) : 0;
+  const expectedTheme = (initialTheme + 1) % 3;
+  const preferenceStart = serialText().length;
+  await clickAt(APP_X + 12 + Math.floor(185 / 2), APP_Y + CHROME_TOP + 238 + 13);
+  await waitForSerial(
+    `[settings] preferences saved theme=${expectedTheme} accent=${initialAccent}`,
+    8,
+    preferenceStart,
+  );
+  await waitForSerial(
+    `[desktop] preferences applied theme=${expectedTheme} accent=${initialAccent}`,
+    8,
+    preferenceStart,
+  );
+  check("Settings applies a desktop theme change to the live compositor", true);
+
+  const persistenceStart = serialText().length;
+  await clickAt(settingsRefreshX, settingsRefreshY);
+  await waitForSerial(
+    `[settings] loaded preferences theme=${expectedTheme} accent=${initialAccent}`,
+    8,
+    persistenceStart,
+  );
+  check("Settings reloads the saved desktop preference from disk", true);
+
   // --- Browser (launcher index 7) ------------------------------------------
-  await openLauncherEntry(7);
-  await waitForSerial("[browser] alive in ring 3", 10, start);
+  await openLauncherEntryAndWait(7, "[browser] alive in ring 3");
   await waitForSerial("[browser] window created id=", 5, start);
   check("Browser launched as a real new process", true);
 
   // --- App Store (launcher index 8) ----------------------------------------
-  await openLauncherEntry(8);
-  await waitForSerial("[app-store] alive in ring 3", 10, start);
+  await openLauncherEntryAndWait(8, "[app-store] alive in ring 3");
   await waitForSerial("[app-store] window created id=", 5, start);
   check("App Store launched as a real new process", true);
 
@@ -224,8 +264,7 @@ try {
   // package lifecycle while Settings, Browser, Heliox, and the first App
   // Store remain scheduled in the background.
   const packageStoreStart = serialText().length;
-  await openLauncherEntry(8);
-  await waitForSerial("[app-store] window created id=", 10, packageStoreStart);
+  await openLauncherEntryAndWait(8, "[app-store] window created id=", 20);
 
   const tabY = APP_Y + CHROME_TOP + 14;
   await clickAt(APP_X + 175, tabY);
@@ -267,7 +306,26 @@ try {
   await waitForSerial("[notes] alive in ring 3", 10, actionStart);
   check("App Store launches the installed signed package in real ring 3", true);
 
-  const full = serialText().slice(start);
+  const firstBootLog = serialText().slice(start);
+  monitor.destroy();
+  if (qemuProcess.exitCode === null) {
+    const stopped = new Promise((resolve) => qemuProcess.once("exit", resolve));
+    qemuProcess.kill("SIGKILL");
+    await Promise.race([stopped, sleep(5000)]);
+  }
+  qemuProcess = spawn(qemu, activeQemuArgs, { windowsHide: !visible });
+  await sleep(2500);
+  monitor = await connectMonitor();
+  monitor.setEncoding("ascii");
+  // A new QEMU process truncates `-serial file:` rather than appending to the
+  // old process's handle, so the reboot evidence begins at offset zero.
+  const rebooted = await waitForSerial("[desktop] preferences loaded from disk", 45, 0);
+  check(
+    "desktop preferences survive a full OS reboot",
+    rebooted.includes(`[desktop] preferences applied theme=${expectedTheme} accent=${initialAccent}`),
+  );
+
+  const full = firstBootLog + serialText();
   check("no userspace fault or page fault panic", !/terminating|General Protection|Page Fault/.test(full));
 } catch (err) {
   check("verification", false, err && err.message ? err.message.split("\n")[0] : String(err));

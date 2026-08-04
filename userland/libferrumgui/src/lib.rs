@@ -49,6 +49,7 @@ pub const SYS_NOTIFICATION_LIST: u64 = 56;
 pub const SYS_NOTIFICATION_DISMISS: u64 = 57;
 pub const SYS_PROCESS_KILL: u64 = 58;
 pub const SYS_LAUNCH_CONTEXT: u64 = 59;
+pub const SYS_DESKTOP_PREFERENCES: u64 = 60;
 
 /// File descriptor for the console (mirrored to serial).
 pub const FD_CONSOLE: u64 = 2;
@@ -308,6 +309,11 @@ pub fn launch_context(max_len: usize) -> Option<String> {
     }
     buffer.truncate(result as usize);
     String::from_utf8(buffer).ok()
+}
+
+pub fn apply_desktop_preferences(theme: u8, accent: u8) -> bool {
+    let result = unsafe { syscall3(SYS_DESKTOP_PREFERENCES, theme as u64, accent as u64, 0) };
+    (result as i64) >= 0
 }
 
 // ============================================================================

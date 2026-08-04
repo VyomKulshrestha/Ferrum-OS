@@ -777,7 +777,7 @@ fn cmd_syscalls() {
     // Keep the long-standing first-line marker stable for serial tooling;
     // the complete range is reported on the next line.
     println!("Syscall ABI:");
-    println!("  range: 0-59");
+    println!("  range: 0-60");
     println!("  0  yield");
     println!("  1  ipc_send");
     println!("  2  ipc_receive");
@@ -813,6 +813,7 @@ fn cmd_syscalls() {
     println!(" 57  notification_dismiss");
     println!(" 58  process_kill");
     println!(" 59  launch_context");
+    println!(" 60  desktop_preferences");
     println!("Capability resources:");
     println!("  1  ipc:send:*");
     println!("  2  service:register");

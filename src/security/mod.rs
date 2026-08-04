@@ -57,6 +57,12 @@ pub fn init() {
         ),
         ("cap:pkg:request", "Package Manager Requests", "pkg:request", true),
         ("cap:app:launch", "Trusted App Launcher Requests", "app:launch", true),
+        (
+            "cap:desktop:configure",
+            "Desktop Preference Configuration",
+            "desktop:configure",
+            true,
+        ),
         ("cap:process:spawn", "Process Spawn", "process:spawn", true),
         ("cap:process:kill", "Process Kill", "process:kill:*", false),
         ("cap:net:listen", "Network Listen", "net:listen:*", false),
