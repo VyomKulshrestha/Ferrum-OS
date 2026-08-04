@@ -652,11 +652,12 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
 
         if is_close_btn {
             let closed = state.windows.pop(); // Since we just pushed it to the end, pop removes it!
-            if let Some(w) = closed {
-                crate::serial_println!("[desktop] closed window id={} title={}", w.id, w.title);
-                if let crate::gui::window::WindowType::App(_) = w.win_type {
-                    crate::gui::app_window::on_window_closed(w.id);
-                }
+            let closed_app = closed.as_ref().and_then(|window| match window.win_type {
+                crate::gui::window::WindowType::App(pid) => Some((window.id, pid)),
+                _ => None,
+            });
+            if let Some(window) = closed.as_ref() {
+                crate::serial_println!("[desktop] closed window id={} title={}", window.id, window.title);
             }
             state.taskbar_offset = state
                 .taskbar_offset
@@ -668,6 +669,21 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
             };
             state.pressed = HoverTarget::None;
             state.needs_redraw = true;
+            // Scheduler/process reclamation can drop address spaces and lock
+            // the compositor again while removing any sibling windows. Do it
+            // only after releasing the compositor lock held by this handler.
+            drop(state);
+            if let Some((window_id, pid)) = closed_app {
+                crate::gui::app_window::on_window_closed(window_id);
+                let terminated = crate::scheduler::kill(pid);
+                crate::gui::app_window::close_for_pid(pid);
+                crate::process::reap_dead();
+                if terminated {
+                    crate::serial_println!("[desktop] terminated app pid={} after window close", pid);
+                } else {
+                    crate::serial_println!("[desktop] closed stale app windows pid={}", pid);
+                }
+            }
             return;
         }
 

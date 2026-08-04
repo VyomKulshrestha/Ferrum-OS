@@ -270,7 +270,13 @@ try {
   await waitForSerial("[text-editor] saved", 5, escOffset);
   check("Text Editor saves on Escape", true);
 
+  const beforeEditorClose = serialText().length;
   await closeAppWindow(480);
+  const editorClosed = await waitForSerial("[desktop] terminated app pid=", 8, beforeEditorClose);
+  check(
+    "closing an app window terminates and reaps its ring-3 process",
+    editorClosed.includes("[process-reaper] reaped pid=") && editorClosed.includes("after window close"),
+  );
 
   // Relaunch Text Editor as a brand new process and confirm it reads the
   // saved content back from disk - proof the save actually persisted,
