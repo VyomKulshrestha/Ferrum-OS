@@ -6,7 +6,8 @@
 // WebSocket JSON-RPC server on port 8785, asserts that:
 //   1. SSE context switches under preemption are safe (uncorrupted),
 //   2. Local offline inference execution over GGUF Q4 GEMV works,
-//   3. sys_kexec has an unbypassable confirmation gate and jumps to the payload.
+//   3. public self-evolution requests are quarantined by the world model
+//      before either the daemon or physical kexec confirmation can be reached.
 // ============================================================================
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -226,42 +227,19 @@ try {
     if (wsError) throw wsError;
     await sleep(200);
   }
-  if (!upgradeResponse) throw new Error("Timeout waiting for upgrade confirmation request");
-
-  const confirmationMatch = upgradeResponse.output.match(/Awaiting confirmation \(id=(\d+)\)/);
-  if (!confirmationMatch) {
-    throw new Error(`upgrade did not return a confirmation ID: ${upgradeResponse.output}`);
-  }
-
-  // Resolve the daemon-owned logical gate through the documented kernel-shell
-  // bridge, then retry the tool. Kexec itself still has a distinct physical
-  // confirmation gate in the kernel; both approvals must succeed.
-  const confirmationId = confirmationMatch[1];
-  let startKexec = serialText().length;
-  await sendText(`heliox confirm ${confirmationId}`);
-  await sendKey("ret");
-  await waitForSerial(`confirmation gate resolved: ${confirmationId}`, 10, startKexec);
-  // The shell acknowledgement means the IPC message is queued. Let the
-  // independently scheduled daemon reach its next poll before retrying; this
-  // intentionally verifies cross-process delivery instead of a same-stack
-  // shortcut.
-  await sleep(3000);
-  ws.send(JSON.stringify({
-    jsonrpc: "2.0",
-    id: "test-upgrade-confirmed",
-    method: "execute_tool",
-    params: { tool: "trigger_kernel_upgrade", args: {} }
-  }));
-
-  console.log("Waiting for physical kexec confirmation gate prompt...");
-  await waitForSerial("Operator confirmation required. Press 'y' to approve", 15, startKexec);
-  console.log("Sending physical 'y' key to confirm kexec...");
-  await sendKey("y");
-
-  // Wait for relocation and jump
-  await waitForSerial("Relocated payload to 0x900000. Disabling interrupts and jumping", 10, startKexec);
-  await waitForSerial("KEXEC", 10, startKexec);
-  check("kexec confirmation gate, relocation trampoline, and jump to payload successful", true);
+  if (!upgradeResponse) throw new Error("Timeout waiting for quarantined upgrade response");
+  check(
+    "public kernel-upgrade request is quarantined by the world-model gate",
+    upgradeResponse.success === false
+      && /Blocked by world-model safety gate/i.test(upgradeResponse.output),
+    upgradeResponse.output,
+  );
+  await waitForSerial("action=trigger_kernel_upgrade", 10, start);
+  const afterUpgrade = serialText().slice(start);
+  check(
+    "quarantined upgrade is recorded as policy evidence without reaching kexec",
+    !/Operator confirmation required|Relocated payload|KEXEC/.test(afterUpgrade),
+  );
 
 } catch (err) {
   check("verification", false, err && err.message ? err.message.split("\n")[0] : String(err));
