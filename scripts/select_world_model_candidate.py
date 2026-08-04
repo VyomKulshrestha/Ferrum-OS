@@ -54,7 +54,10 @@ def main():
     representation = load(args.representation)
     comparable = {
         key: (baseline.get(key), candidate.get(key))
-        for key in ("rows", "test_rows", "split_mode", "dataset_fingerprint")
+        for key in (
+            "rows", "train_rows", "validation_rows", "test_rows",
+            "split_mode", "dataset_fingerprint",
+        )
     }
     comparable["split_seed"] = (
         baseline.get("split_seed", baseline.get("seed")),
