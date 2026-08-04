@@ -145,10 +145,13 @@ const launcherEntryRect = (i) => [launcherX + LAUNCHER_PADDING, launcherY + LAUN
 async function openLauncherEntry(index) {
   const [sx, sy] = rectCenter(startRect);
   await clickAt(sx, sy);
-  await sleep(250);
+  // Desktop input is pumped by the scheduled Heliox HUD update path. Under
+  // the full background-app load, a 250 ms click-to-menu delay races that
+  // pump and can send the entry click before the launcher is actually open.
+  await sleep(1500);
   const [ex, ey] = rectCenter(launcherEntryRect(index));
   await clickAt(ex, ey);
-  await sleep(700);
+  await sleep(1800);
 }
 
 // New app windows always spawn at this fixed position (src/gui/app_window.rs).
