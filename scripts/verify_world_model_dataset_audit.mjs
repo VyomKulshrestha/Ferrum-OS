@@ -23,8 +23,9 @@ function row(action, episodeId, step, executed = true) {
 
 const rows = [];
 for (let action = 0; action < TOOL_NAMES.length; action++) {
-  rows.push(row(action, `episode-${action}`, 0));
-  rows.push(row(action, `episode-${action}`, 1));
+  const policyOnly = TOOL_NAMES[action] === "trigger_kernel_upgrade";
+  rows.push(row(action, `episode-${action}`, 0, !policyOnly));
+  rows.push(row(action, `episode-${action}`, 1, !policyOnly));
 }
 const passing = auditRows(rows, {
   requiredTools: TOOL_NAMES.length,
@@ -38,6 +39,23 @@ const passing = auditRows(rows, {
 assert.equal(passing.passed, true);
 assert.equal(passing.per_tool.length, TOOL_NAMES.length);
 assert.equal(passing.multistep_episodes, TOOL_NAMES.length);
+assert.equal(
+  passing.per_tool.find((tool) => tool.name === "trigger_kernel_upgrade").coverage_mode,
+  "blocked_policy",
+);
+
+const executedUpgrade = rows.map((item) => item.action === 28 ? { ...item, executed: true } : item);
+const unsafePolicyEvidence = auditRows(executedUpgrade, {
+  requiredTools: TOOL_NAMES.length,
+  minExecutedPerTool: 2,
+  minPolicyRows: 2,
+  minArgumentVariants: 2,
+  minEpisodes: TOOL_NAMES.length,
+  minMultistepEpisodes: TOOL_NAMES.length,
+  minRamProfiles: 1,
+});
+assert.equal(unsafePolicyEvidence.passed, false);
+assert.equal(unsafePolicyEvidence.gates.find((gate) => gate.name === "tool_coverage").actual, 40);
 
 const missingTool = auditRows(rows.filter((item) => item.action !== 40), {
   requiredTools: TOOL_NAMES.length,
@@ -79,4 +97,5 @@ console.log("PASS\tdataset audit accepts balanced, diverse transition coverage")
 console.log("PASS\tdataset audit rejects missing tool coverage");
 console.log("PASS\tdataset audit rejects malformed vectors");
 console.log("PASS\tdataset audit rejects unversioned observation semantics");
-console.log("4/4 checks passed");
+console.log("PASS\tkernel upgrade coverage requires blocked policy evidence, not execution");
+console.log("5/5 checks passed");

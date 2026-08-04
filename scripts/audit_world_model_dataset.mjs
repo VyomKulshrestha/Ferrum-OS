@@ -26,6 +26,10 @@ const ARGUMENTLESS_TOOLS = new Set([
   "list_processes", "save_memory", "load_memory", "trigger_kernel_upgrade",
   "read_screen", "play_audio", "poll_input",
 ]);
+// Raw kexec is deliberately quarantined by the deterministic safety rule.  It
+// must be represented by blocked policy evidence, never by forcing unsafe
+// executions merely to satisfy a numeric training quota.
+const POLICY_ONLY_TOOLS = new Set(["trigger_kernel_upgrade"]);
 
 function finiteVector(value, length) {
   return Array.isArray(value)
@@ -41,6 +45,7 @@ export function auditRows(rows, thresholds = {}) {
   const limits = {
     requiredTools: thresholds.requiredTools ?? TOOL_NAMES.length,
     minExecutedPerTool: thresholds.minExecutedPerTool ?? 32,
+    minPolicyRows: thresholds.minPolicyRows ?? 2,
     minArgumentVariants: thresholds.minArgumentVariants ?? 3,
     minEpisodes: thresholds.minEpisodes ?? 100,
     minMultistepEpisodes: thresholds.minMultistepEpisodes ?? 25,
@@ -109,7 +114,11 @@ export function auditRows(rows, thresholds = {}) {
     sources.set(source, (sources.get(source) || 0) + 1);
   });
 
-  const coveredTools = perTool.filter((tool) => tool.executed >= limits.minExecutedPerTool);
+  const coveredTools = perTool.filter((tool) => (
+    POLICY_ONLY_TOOLS.has(tool.name)
+      ? tool.blocked >= limits.minPolicyRows
+      : tool.executed >= limits.minExecutedPerTool
+  ));
   const diversityEligibleTools = perTool.filter((tool) => !ARGUMENTLESS_TOOLS.has(tool.name));
   const diverseTools = diversityEligibleTools.filter(
     (tool) => tool.argumentVariants.size >= limits.minArgumentVariants,
@@ -148,6 +157,8 @@ export function auditRows(rows, thresholds = {}) {
       rows: tool.rows,
       executed: tool.executed,
       blocked: tool.blocked,
+      coverage_mode: POLICY_ONLY_TOOLS.has(tool.name) ? "blocked_policy" : "executed_transition",
+      coverage_count: POLICY_ONLY_TOOLS.has(tool.name) ? tool.blocked : tool.executed,
       argument_diversity_required: !ARGUMENTLESS_TOOLS.has(tool.name),
       argument_variants: tool.argumentVariants.size,
       changed_dimensions: [...tool.changedDimensions].sort((a, b) => a - b),
@@ -180,6 +191,7 @@ function main() {
   const report = auditRows(rows, {
     requiredTools: numberArg("--required-tools", TOOL_NAMES.length),
     minExecutedPerTool: numberArg("--min-executed-per-tool", 32),
+    minPolicyRows: numberArg("--min-policy-rows", 2),
     minArgumentVariants: numberArg("--min-argument-variants", 3),
     minEpisodes: numberArg("--min-episodes", 100),
     minMultistepEpisodes: numberArg("--min-multistep-episodes", 25),
