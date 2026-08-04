@@ -241,6 +241,30 @@ pub fn tcp_close(fd: u64) -> Result<(), &'static str> {
     }
 }
 
+/// Owns a short-lived client socket and closes it on every return path,
+/// including connect/send/receive/parser errors. HTTP requests previously
+/// leaked one kernel descriptor apiece and exhausted the socket table during
+/// long-running agent or world-model collection sessions.
+struct SocketGuard {
+    fd: u64,
+}
+
+impl SocketGuard {
+    fn open() -> Result<Self, &'static str> {
+        Ok(Self { fd: tcp_socket()? })
+    }
+
+    fn fd(&self) -> u64 {
+        self.fd
+    }
+}
+
+impl Drop for SocketGuard {
+    fn drop(&mut self) {
+        let _ = tcp_close(self.fd);
+    }
+}
+
 /// Send data through a TCP socket. Returns bytes sent.
 pub fn tcp_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
     let sent = unsafe { syscall3(SYS_SEND, fd, data.as_ptr() as u64, data.len() as u64) };
@@ -354,7 +378,8 @@ pub struct HttpResponse {
 /// Returns the response status code and body.
 pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'static str> {
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
-    let fd = tcp_socket()?;
+    let socket_guard = SocketGuard::open()?;
+    let fd = socket_guard.fd();
     tcp_connect(fd, ip, port)?;
 
     let request = format!(
@@ -423,7 +448,8 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &s
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
     // 2. Create a TCP socket
-    let fd = tcp_socket()?;
+    let socket_guard = SocketGuard::open()?;
+    let fd = socket_guard.fd();
 
     // 3. Connect to the remote server
     tcp_connect(fd, ip, port)?;
@@ -513,7 +539,8 @@ pub fn http_post_binary(
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
     // 2. Create a TCP socket
-    let fd = tcp_socket()?;
+    let socket_guard = SocketGuard::open()?;
+    let fd = socket_guard.fd();
 
     // 3. Connect to the remote server
     tcp_connect(fd, ip, port)?;
@@ -714,7 +741,8 @@ pub fn http_post_tls(
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
     // 2. TCP socket
-    let fd = tcp_socket()?;
+    let socket_guard = SocketGuard::open()?;
+    let fd = socket_guard.fd();
 
     // 3. Connect
     tcp_connect(fd, ip, port)?;
