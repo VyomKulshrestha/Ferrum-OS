@@ -15,15 +15,43 @@ const count = Math.max(41, Number(arg("--count", "5000")));
 const seed = Number(arg("--seed", "42")) >>> 0;
 const outPath = path.resolve(arg("--out", path.join(repo, "target", "world_model_hybrid_corpus.jsonl")));
 const mode = arg("--mode", "hybrid");
-if (!["hybrid", "live"].includes(mode)) {
-  throw new Error(`unsupported --mode ${mode}; expected hybrid or live`);
+if (!["controlled", "hybrid", "live"].includes(mode)) {
+  throw new Error(`unsupported --mode ${mode}; expected controlled, hybrid, or live`);
 }
 
-// These controlled bridge/runtime actions are executable and part of the
-// world-model's 41-action state space, but intentionally not advertised in the
-// 37-tool LLM prompt. Hybrid mode replays only these four canonical calls so
-// coverage does not depend on a provider inventing an undocumented tool name.
+// Every action has a bounded canonical response for provider-independent bulk
+// collection. Hybrid mode still reserves the four runtime-only actions (which
+// are not advertised in the 37-tool LLM prompt) for controlled replay; live
+// actions can be filled by prefetch_world_model_responses.mjs. Controlled mode
+// replays all 41 actions and is the reliable coverage backbone.
 const controlledResponses = {
+  ipc_send: (i) => ({ tool: "ipc_send", args: { target_pid: 1 + (i % 4), message: `hybrid-${i}` } }),
+  audit_write: (i) => ({ tool: "audit_write", args: { message: `hybrid audit ${i}` } }),
+  yield_cpu: () => ({ tool: "yield_cpu", args: {} }),
+  camera_capture: () => ({ tool: "camera_capture", args: {} }),
+  gesture_status: () => ({ tool: "gesture_status", args: {} }),
+  report_status: (i) => ({ tool: "report_status", args: { status: `hybrid status ${i}` } }),
+  capability_check: (i) => ({ tool: "capability_check", args: { capability_id: 1 + (i % 8) } }),
+  read_file: (i) => ({ tool: "read_file", args: { path: i % 3 === 0 ? `/disk/missing_${i % 31}.txt` : "/disk/heliox/config.json" } }),
+  read_dir: (i) => ({ tool: "read_dir", args: { path: i % 2 ? "/disk" : "/disk/heliox" } }),
+  query_memory: (i) => ({ tool: "query_memory", args: { query: `hybrid topic ${i % 17}`, top_k: 1 + (i % 5) } }),
+  get_config: (i) => ({ tool: "get_config", args: { key: ["provider", "model_name", "tick_interval"][i % 3] } }),
+  system_info: () => ({ tool: "system_info", args: {} }),
+  list_processes: () => ({ tool: "list_processes", args: {} }),
+  net_connect: (i) => ({ tool: "net_connect", args: { host: "10.0.2.2", port: [9, 53, 80, 443, 8785][i % 5] } }),
+  net_send: (i) => ({ tool: "net_send", args: { fd: 3 + (i % 4), data: `hybrid-${i}` } }),
+  net_recv: (i) => ({ tool: "net_recv", args: { fd: 3 + (i % 4) } }),
+  http_get: (i) => ({ tool: "http_get", args: { host: "10.0.2.2", port: 80, path: `/hybrid/${i % 17}` } }),
+  write_file: (i) => ({ tool: "write_file", args: { path: `/disk/wm_pool_${i % 64}.txt`, content: "x".repeat(16 + (i % 16) * 128) } }),
+  create_directory: (i) => ({ tool: "create_directory", args: { path: `/disk/wm_dir_${i % 32}` } }),
+  save_memory: () => ({ tool: "save_memory", args: {} }),
+  load_memory: () => ({ tool: "load_memory", args: {} }),
+  set_goal: (i) => ({ tool: "set_goal", args: { goal: `inspect hybrid scenario ${i}` } }),
+  sleep: (i) => ({ tool: "sleep", args: { ms: 1 + (i % 5) } }),
+  service_start: (i) => ({ tool: "service_start", args: { service_id: 1 + (i % 8) } }),
+  service_stop: (i) => ({ tool: "service_stop", args: { service_id: 1 + (i % 8) } }),
+  exec_process: (i) => ({ tool: "exec_process", args: { path: i % 3 === 0 ? `/disk/missing_bin_${i % 29}` : "/disk/pkgs-available/notes/bin" } }),
+  delete_file: (i) => ({ tool: "delete_file", args: { path: i % 11 === 0 ? "/disk/heliox/config.json" : `/disk/wm_pool_${i % 64}.txt` } }),
   local_inference: (i) => ({ tool: "local_inference", args: { prompt: `hybrid check ${i}` } }),
   trigger_kernel_upgrade: () => ({ tool: "trigger_kernel_upgrade", args: {} }),
   hud_update: (i) => ({
@@ -31,6 +59,16 @@ const controlledResponses = {
     args: { flags: 0, point_x: i % 640, point_y: i % 480, suggestion: `hybrid ${i}` },
   }),
   hit_test: (i) => ({ tool: "hit_test", args: { x: i % 640, y: i % 480 } }),
+  read_screen: () => ({ tool: "read_screen", args: {} }),
+  add_subtask: (i) => ({ tool: "add_subtask", args: { description: `hybrid subtask ${i}`, depends_on: "" } }),
+  record_audio: (i) => ({ tool: "record_audio", args: { duration_ms: 1 + (i % 5) } }),
+  play_audio: () => ({ tool: "play_audio", args: {} }),
+  set_volume: (i) => ({ tool: "set_volume", args: { level: i % 128 } }),
+  keyboard_type: (i) => ({ tool: "keyboard_type", args: { text: `hybrid-${i}` } }),
+  mouse_click: (i) => ({ tool: "mouse_click", args: { button: i % 3 } }),
+  mouse_move: (i) => ({ tool: "mouse_move", args: { dx: -20 + (i % 41), dy: 20 - (i % 41) } }),
+  browse_url: (i) => ({ tool: "browse_url", args: { url: `http://10.0.2.2/hybrid/${i % 17}` } }),
+  poll_input: () => ({ tool: "poll_input", args: {} }),
 };
 
 const specs = [
@@ -53,8 +91,8 @@ const specs = [
   ["net_send", (i) => `Send the text hybrid-${i} on the currently open network connection.`],
   ["net_recv", () => "Receive any currently available bytes from the open network connection."],
   ["http_get", () => "Request the root path from host 10.0.2.2 and report the HTTP result."],
-  ["write_file", (i) => `Write ${16 + (i % 16) * 128} x characters to /disk/hybrid_${i}.txt.`],
-  ["create_directory", (i) => `Create directory /disk/hybrid_dir_${i % 23} and report if it already exists.`],
+  ["write_file", (i) => `Write ${16 + (i % 16) * 128} x characters to /disk/wm_pool_${i % 64}.txt.`],
+  ["create_directory", (i) => `Create directory /disk/wm_dir_${i % 32} and report if it already exists.`],
   ["save_memory", () => "Persist the current Heliox memory store."],
   ["load_memory", () => "Load the persisted Heliox memory store."],
   ["set_goal", (i) => `Set the active goal to inspect hybrid scenario ${i}.`],
@@ -66,7 +104,7 @@ const specs = [
     : "Execute /disk/pkgs-available/notes/bin and report the result."],
   ["delete_file", (i) => i % 11 === 0
     ? "Attempt to delete /disk/heliox/config.json."
-    : `Delete /disk/hybrid_${Math.max(0, i - 41)}.txt if it exists.`],
+    : `Delete /disk/wm_pool_${i % 64}.txt if it exists.`],
   ["local_inference", (i) => `Run local inference on the short prompt: hybrid check ${i}.`],
   ["trigger_kernel_upgrade", () => "Evaluate and attempt the kernel-upgrade action using a nonexistent image."],
   ["hud_update", (i) => `Update the HUD status text to hybrid ${i}.`],
@@ -113,11 +151,15 @@ for (let i = 0; i < count; i++) {
       "generated",
       tool,
       i % 5 === 0 ? "multi-step" : "single-step",
-      mode === "hybrid" && controlledResponses[tool] ? "controlled-replay" : "live-provider",
+      mode === "controlled" || (mode === "hybrid" && ["local_inference", "trigger_kernel_upgrade", "hud_update", "hit_test"].includes(tool))
+        ? "controlled-replay"
+        : "live-provider",
     ],
   };
-  if (mode === "hybrid" && controlledResponses[tool]) {
-    row.responses = [controlledResponses[tool](i)];
+  const controlled = mode === "controlled"
+    || (mode === "hybrid" && ["local_inference", "trigger_kernel_upgrade", "hud_update", "hit_test"].includes(tool));
+  if (controlled) {
+    row.responses = Array.from({ length: row.max_steps }, (_, step) => controlledResponses[tool](i * 3 + step));
   }
   rows.push(row);
 }
