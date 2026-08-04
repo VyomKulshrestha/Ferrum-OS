@@ -18,7 +18,8 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
-const diskImage = path.join(repo, "target", "heliox-disk.img");
+const applianceDisk = path.join(repo, "target", "heliox-disk.img");
+const diskImage = path.join(repo, "target", "new-apps-verify-disk.img");
 let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
 if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
   qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
@@ -32,7 +33,15 @@ const serialLog = path.join(repo, "target", "new-apps-verify-serial.log");
 // booted, corrupting every offset computed afterward.
 fs.rmSync(serialLog, { force: true });
 const visible = process.argv.includes("--visible");
-if (!fs.existsSync(diskImage)) throw new Error(`appliance disk not found: ${diskImage}`);
+if (!fs.existsSync(applianceDisk)) throw new Error(`appliance disk not found: ${applianceDisk}`);
+// Package lifecycle checks are intentionally mutating. Always run them on a
+// disposable copy so repeated verification cannot change the release image or
+// inherit the previous run's installed-package state.
+fs.rmSync(diskImage, { force: true });
+fs.copyFileSync(applianceDisk, diskImage);
+process.once("exit", () => {
+  try { fs.rmSync(diskImage, { force: true }); } catch { /* QEMU cleanup is best-effort on abnormal exit. */ }
+});
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -151,6 +160,14 @@ try {
   await waitForSerial("FerrumOS:~$", 45, start);
   check("boot reaches shell prompt", true);
 
+  // The source appliance may legitimately contain notes (for example after a
+  // manual package test). Normalize only this disposable disk before entering
+  // ring 3, so the first App Store action is deterministically an install.
+  const normalizeStart = serialText().length;
+  await sendText("pkg remove notes");
+  await sendKey("ret");
+  await waitForSerial("FerrumOS:~$", 8, normalizeStart);
+
   await sendText("ring3 init");
   await sendKey("ret");
   await waitForSerial("[heliox-daemon] userspace agent daemon is alive in ring 3", 15, start);
@@ -253,7 +270,12 @@ try {
   check("verification", false, err && err.message ? err.message.split("\n")[0] : String(err));
 } finally {
   monitor.destroy();
-  qemuProcess.kill("SIGKILL");
+  if (qemuProcess.exitCode === null) {
+    const stopped = new Promise((resolve) => qemuProcess.once("exit", resolve));
+    qemuProcess.kill("SIGKILL");
+    await Promise.race([stopped, sleep(5000)]);
+  }
+  fs.rmSync(diskImage, { force: true });
 }
 
 console.log("\n" + results.join("\n"));
