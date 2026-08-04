@@ -28,6 +28,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { reconcileWorldModelDataset } from "./lib/world_model_reconcile.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -119,6 +120,14 @@ fs.mkdirSync(path.dirname(tracePath), { recursive: true });
 if (!resume) {
   fs.rmSync(outPath, { force: true });
   fs.rmSync(tracePath, { force: true });
+} else if (fs.existsSync(outPath) && fs.existsSync(tracePath)) {
+  const reconciliation = reconcileWorldModelDataset(outPath, tracePath);
+  if (reconciliation.dropped_orphan_rows) {
+    console.log(
+      `[hybrid] resume reconciliation dropped ${reconciliation.dropped_orphan_rows} orphan row(s) `
+      + `from ${reconciliation.recovered_episodes} recovered episode(s)`,
+    );
+  }
 }
 
 const completed = new Set();
