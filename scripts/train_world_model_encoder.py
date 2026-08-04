@@ -38,6 +38,7 @@ import struct
 import sys
 
 import numpy as np
+from train_world_model import split_indices
 
 EMBEDDING_SIZE = 128
 NUM_TOOLS = 41
@@ -272,7 +273,10 @@ def main():
     parser.add_argument("--hidden", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=3000)
     parser.add_argument("--lr", type=float, default=0.05)
-    parser.add_argument("--holdout", type=float, default=0.15)
+    parser.add_argument("--validation", type=float, default=0.15)
+    parser.add_argument("--test", type=float, default=0.15)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--metrics-out")
     parser.add_argument(
         "--load-weights",
         help="reuse an existing encoder and only validate/re-encode the dataset",
@@ -293,61 +297,97 @@ def main():
 
     X = build_raw_matrix(rows)
 
-    rng = np.random.default_rng(42)
-    episode_ids = [row.get("episode_id") for row in rows]
-    if all(episode_id is not None for episode_id in episode_ids):
-        unique_episodes = np.array(sorted(set(episode_ids)), dtype=object)
-        shuffled_episodes = rng.permutation(unique_episodes)
-        n_holdout_episodes = max(1, int(len(unique_episodes) * args.holdout))
-        holdout_episodes = set(shuffled_episodes[:n_holdout_episodes].tolist())
-        holdout_rows = [i for i, episode_id in enumerate(episode_ids) if episode_id in holdout_episodes]
-        train_rows = [i for i, episode_id in enumerate(episode_ids) if episode_id not in holdout_episodes]
-        holdout_idx = np.array([j for i in holdout_rows for j in (2 * i, 2 * i + 1)], dtype=np.int64)
-        train_idx = np.array([j for i in train_rows for j in (2 * i, 2 * i + 1)], dtype=np.int64)
-        print(
-            f"episode-aware split: {len(unique_episodes) - n_holdout_episodes}/"
-            f"{n_holdout_episodes} train/holdout episodes"
-        )
-    else:
-        print("warning: legacy rows lack episode_id; splitting by complete transition pairs")
-        row_idx = rng.permutation(len(rows))
-        n_holdout_rows = max(1, int(len(rows) * args.holdout))
-        holdout_rows, train_rows = row_idx[:n_holdout_rows], row_idx[n_holdout_rows:]
-        holdout_idx = np.array([j for i in holdout_rows for j in (2 * i, 2 * i + 1)], dtype=np.int64)
-        train_idx = np.array([j for i in train_rows for j in (2 * i, 2 * i + 1)], dtype=np.int64)
-    if len(train_idx) == 0 or len(holdout_idx) == 0:
-        print("error: train/holdout split produced an empty partition", file=sys.stderr)
-        sys.exit(1)
-    X_train, X_holdout = X[train_idx], X[holdout_idx]
+    train_rows, validation_rows, test_rows, split_mode = split_indices(
+        rows, args.validation, args.test, args.seed
+    )
+    expand = lambda indices: np.array(
+        [snapshot for row_index in indices for snapshot in (2 * int(row_index), 2 * int(row_index) + 1)],
+        dtype=np.int64,
+    )
+    train_idx = expand(train_rows)
+    validation_idx = expand(validation_rows)
+    test_idx = expand(test_rows)
+    X_train, X_validation, X_test = X[train_idx], X[validation_idx], X[test_idx]
 
-    print(f"train/holdout split: {len(train_idx)}/{len(holdout_idx)}")
-    zero_mse = float(np.mean(X_holdout ** 2))
-    print(f"trivial (always predict zero) holdout MSE: {zero_mse:.6f}")
+    print(
+        f"{split_mode}-aware train/validation/test snapshot split: "
+        f"{len(train_idx)}/{len(validation_idx)}/{len(test_idx)}"
+    )
+    zero_mse = float(np.mean(X_test ** 2))
+    print(f"trivial (always predict zero) untouched test MSE: {zero_mse:.6f}")
 
     if args.load_weights:
         enc_w1, enc_b1, enc_w2, enc_b2 = read_encoder_weights(args.load_weights)
+        decoder = None
         print(
             f"loaded existing encoder {enc_w1.shape[0]}->{enc_w1.shape[1]}->{enc_w2.shape[1]} "
             f"from {args.load_weights}"
         )
     else:
         print(f"training autoencoder (input={RAW_INPUT_SIZE}, hidden={args.hidden}, latent={LATENT_SIZE}, epochs={args.epochs})...")
-        (enc_w1, enc_b1, enc_w2, enc_b2), _decoder = train_autoencoder(
+        (enc_w1, enc_b1, enc_w2, enc_b2), decoder = train_autoencoder(
             X_train,
             args.hidden,
             LATENT_SIZE,
             args.epochs,
             args.lr,
-            validation=X_holdout,
+            validation=X_validation,
             patience=max(0, args.patience),
+            seed=args.seed,
         )
 
-    latent_holdout = encode(X_holdout, enc_w1, enc_b1, enc_w2, enc_b2)
-    print(f"holdout latent code stats: mean={latent_holdout.mean():.4f} std={latent_holdout.std():.4f}")
-    if latent_holdout.std() < 1e-4:
+    latent_test = encode(X_test, enc_w1, enc_b1, enc_w2, enc_b2)
+    latent_centered = latent_test - latent_test.mean(axis=0, keepdims=True)
+    singular_values = np.linalg.svd(latent_centered, compute_uv=False)
+    variance = singular_values ** 2
+    probabilities = variance / max(float(variance.sum()), 1e-12)
+    effective_rank = float(np.exp(-np.sum(probabilities * np.log(probabilities + 1e-12))))
+    latent_std = float(latent_test.std())
+    print(
+        f"untouched test latent stats: mean={latent_test.mean():.4f} "
+        f"std={latent_std:.4f} effective_rank={effective_rank:.3f}"
+    )
+    if latent_std < 1e-4 or effective_rank < 2.0:
         print("FAIL: learned latent code collapsed to a near-constant output", file=sys.stderr)
         sys.exit(1)
     print("PASS: learned encoder produces a non-degenerate latent code")
+
+    reconstruction_mse = None
+    if decoder is not None:
+        test_recon = reconstruct(
+            X_test,
+            enc_w1,
+            enc_b1,
+            enc_w2,
+            enc_b2,
+            *decoder,
+        )
+        reconstruction_mse = float(np.mean((test_recon - X_test) ** 2))
+        print(f"untouched test reconstruction MSE: {reconstruction_mse:.6f}")
+        if reconstruction_mse >= zero_mse:
+            print("FAIL: autoencoder does not beat the zero reconstruction baseline", file=sys.stderr)
+            sys.exit(1)
+        print("PASS: autoencoder beats the untouched-test zero baseline")
+
+    metrics = {
+        "schema_version": 1,
+        "split_mode": split_mode,
+        "seed": args.seed,
+        "train_rows": int(len(train_rows)),
+        "validation_rows": int(len(validation_rows)),
+        "test_rows": int(len(test_rows)),
+        "test": {
+            "zero_mse": zero_mse,
+            "reconstruction_mse": reconstruction_mse,
+            "latent_std": latent_std,
+            "effective_rank": effective_rank,
+        },
+    }
+    if args.metrics_out:
+        with open(args.metrics_out, "w") as f:
+            json.dump(metrics, f, indent=2)
+            f.write("\n")
+        print(f"wrote test metrics to {args.metrics_out}")
 
     write_encoder_weights(args.out, enc_w1, enc_b1, enc_w2, enc_b2)
     print(f"wrote encoder weights to {args.out}")
