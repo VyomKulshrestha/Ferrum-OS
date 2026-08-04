@@ -128,6 +128,18 @@ pub struct Tokenizer {
     pub sorted_vocab: Vec<(Vec<u8>, usize)>,
 }
 
+struct CachedTokenizer {
+    vocab_size: usize,
+    tokenizer: Tokenizer,
+}
+
+// Parsing the 32k vocabulary allocates both the source vocabulary and a
+// sorted lookup copy. Repeating that work on every local-inference request
+// fragmented the long-lived daemon heap until even the 1 MiB read buffer
+// could no longer be allocated. The appliance has one tokenizer artifact,
+// so retain its parsed, immutable form for the process lifetime.
+static TOKENIZER_CACHE: Mutex<Option<CachedTokenizer>> = Mutex::new(None);
+
 fn read_file_to_vec(path: &str) -> Result<Vec<u8>, &'static str> {
     // The shipped 32k-token vocabulary is about 424 KiB.  The old generic
     // 4 MiB scratch allocation was needlessly large and, after a long-lived
@@ -980,9 +992,21 @@ pub fn run_local_inference_with_limit(
         wcls,
     };
 
-    // Load Tokenizer
+    // Load the tokenizer once, then keep the guard while inference reads it.
+    // This also serializes local-model calls, which share a single long-lived
+    // address space and should not compete for large RunState allocations.
     let tokenizer_path = "/disk/heliox/tokenizer.bin";
-    let tokenizer = Tokenizer::load(tokenizer_path, vocab_size)?;
+    let mut tokenizer_cache = TOKENIZER_CACHE.lock();
+    if tokenizer_cache.as_ref().is_none_or(|entry| entry.vocab_size != vocab_size) {
+        let tokenizer = Tokenizer::load(tokenizer_path, vocab_size)?;
+        *tokenizer_cache = Some(CachedTokenizer { vocab_size, tokenizer });
+        let msg = "[heliox-daemon] parsed and cached local tokenizer\n";
+        unsafe { crate::syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64); }
+    } else {
+        let msg = "[heliox-daemon] reused local tokenizer\n";
+        unsafe { crate::syscall3(SYS_WRITE, FD_CONSOLE, msg.as_ptr() as u64, msg.len() as u64); }
+    }
+    let tokenizer = &tokenizer_cache.as_ref().ok_or("Tokenizer cache unavailable")?.tokenizer;
 
     // Allocate RunState
     let mut state = RunState::new(&config, gs);
