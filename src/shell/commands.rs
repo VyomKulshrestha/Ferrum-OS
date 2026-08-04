@@ -481,7 +481,7 @@ fn cmd_net(args: &[&str]) {
         // Wait up to ~10 seconds
         for _ in 0..1000 {
             crate::net::iface::poll();
-            if let Ok(true) = crate::net::iface::socket_is_active(fd) {
+            if let Ok(true) = crate::net::iface::socket_is_connected(fd) {
                 active = true;
                 break;
             }

@@ -61,15 +61,16 @@ pub fn sys_listen(fd: u64, _backlog: u64) -> SyscallResult {
     }
 }
 
-/// Accept an incoming connection (stub — smoltcp handles this differently).
+/// Accept an incoming connection once the TCP handshake is established.
 pub fn sys_accept(fd: u64) -> SyscallResult {
-    // In smoltcp, a listening socket automatically transitions to established
-    // when a SYN arrives. For now, we poll and check if the socket is active.
+    // smoltcp transitions the listening socket itself into Established. Until
+    // that state is reached, yield through the normal blocked-syscall retry
+    // path instead of falsely reporting a connection while still listening.
     iface::poll();
 
-    match iface::socket_is_active(fd) {
+    match iface::socket_is_connected(fd) {
         Ok(true) => SyscallResult::ok(fd), // Return same FD (smoltcp model)
-        Ok(false) => SyscallResult::err(SyscallStatus::NotImplemented), // No connection yet
+        Ok(false) => SyscallResult::err(SyscallStatus::Blocked),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }

@@ -285,6 +285,17 @@ pub fn socket_is_active(fd: u64) -> Result<bool, &'static str> {
     Ok(socket.is_active())
 }
 
+/// True only after the TCP handshake has produced a usable connection.
+/// `tcp::Socket::is_active()` also returns true in LISTEN/SYN states, so it
+/// must not be used to implement accept-style readiness.
+pub fn socket_is_connected(fd: u64) -> Result<bool, &'static str> {
+    let entry = lookup_fd(fd)?;
+    let mut sockets = SOCKETS.lock();
+    let sockets = sockets.as_mut().ok_or("socket set not initialized")?;
+    let socket = sockets.get::<tcp::Socket>(entry.handle);
+    Ok(matches!(socket.state(), tcp::State::Established))
+}
+
 // ---- Polling ---------------------------------------------------------------
 
 /// Poll the smoltcp interface. Should be called periodically (e.g. from
