@@ -18,15 +18,15 @@ systems. The AI brain runs natively as a freestanding userspace process
 ### Kernel & Core
 - Bootloader integration through `bootloader`
 - GDT, IDT, CPU exception handlers, PIC timer and hardware IRQs
-- Page-table setup, boot-info frame allocation, and a 12 MiB kernel heap (increased to support VBE double-buffering)
+- Page-table setup, boot-info frame allocation with scrubbed frame recycling, and a 12 MiB kernel heap (increased to support VBE double-buffering)
 - Preemptive task scheduler with per-task context switching and priority queues
-- Interactive shell with 48 documented commands including `dashboard`
-- SMP initialization, ACPI shutdown/reboot
+- Interactive shell with a documented, exhaustively audited command catalog including `dashboard`
+- ACPI table discovery, AP-trampoline staging, emulator power-off ports, and 8042 reboot (full AP bring-up and AML `_S5` power-off are not implemented yet)
 - Real userspace execution: ELF loader, Ring-3 entry, per-process address spaces, on-demand page-fault lazy allocation, and file-backed memory mapping (`mmap`)
 
 ### Graphical Desktop Environment (GUI)
 - Custom Compositor and Window Manager
-- Interactive Desktop Taskbar with a Start-menu launcher, one entry per open window, and a working Exit button
+- Interactive desktop taskbar with a Start-menu launcher, paged entries that keep every open window reachable, and a Power menu for lock, sign out, restart, and shut down
 - Movable, focusable GUI windows with close, minimize, and maximize buttons and interactive titles
 - **Generic app-window framework**: any userland process can call `CreateWindow`/`PresentWindow`/`PollWindowInput` to own a real window backed by its own RGBA8 canvas and a per-window input queue — every window on the desktop, including the AI assistant panel, is a real userland app, not a kernel-hardcoded window type
 - The launcher spawns real new ELF processes on demand (`crate::process::spawn_elf`), not just a fixed set of kernel-drawn windows
@@ -38,12 +38,13 @@ systems. The AI brain runs natively as a freestanding userspace process
 
 ### Userland Apps
 - **Heliox Assistant** — the AI agent's chat panel: setup wizard, message history, and live thinking/error/done state, all driven over a structured IPC protocol with the agent daemon (see Agent Daemon below)
-- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store**, **Notification Center**, **Task Manager** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, and read-only file previews
+- **Text Editor**, **Calculator**, **File Manager**, **Settings**, **Browser**, **App Store**, **Notification Center**, **Task Manager** — installed apps built on the generic app-window framework, all launchable from the desktop's Start menu or the App Store; File Manager includes Back/Forward history, Up, Refresh, path/status bars, directory navigation, previews, and document associations that launch Text Editor with the selected path
 - Desktop notifications: bounded 32-entry history, capability-gated post/read/manage operations, top-right toast rendering, and a Notification Center with clear controls
 - Keyboard task switching: PS/2 and USB HID normalize Alt+Tab into one compositor-only action that raises/restores the previous window without leaking the shortcut into the focused app
+- Settings persists validated theme/accent preferences to `/disk/desktop.conf` and applies them to the live desktop; System Monitor renders live task, heap, uptime, and CPU-sampling telemetry
 - **`libferrumgui`** — shared `no_std` SDK crate (window/input, IPC, trusted app-launcher, and signed-package syscall wrappers plus an RGBA8 `Canvas`) so new apps don't hand-roll pixel math or the raw syscall ABI
 
-Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder.
+Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. Closing an app's main window terminates and reaps its Ring-3 process. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder. The privacy lock deliberately resumes with Enter because account passwords are not implemented; it does not pretend to authenticate a user.
 
 ### Package Manager (`ferrumpkg`)
 - Real `pkg list|verify|install|remove|run|status|rollback` shell command — Ed25519-signed manifests bind package identity, version, requested capabilities, and the ELF's SHA-256 digest to a kernel trust root before install or launch; privileged capabilities require `pkg install <name> --confirm`
@@ -55,6 +56,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Real, persistent user accounts (`useradd`, `login`, `whoami`, `accounts`) with a username, uid, capability profile, and home directory, stored at `/disk/accounts.txt`
 - Logging in as a different account genuinely swaps the shell's held capabilities — a non-root `user` account can spawn processes and open GUI windows but is denied admin-only actions (reading the audit log, bypassing confirmation gates, quota exemption), not just cosmetically relabeled
 - Three profiles: `root` (full access), `user` (a real usable desktop account), `guest` (read-only)
+- Current accounts are authorization profiles, not credential authentication: no password hashing, login challenge, or per-file uid/mode enforcement exists yet
 
 ### Filesystem
 - Volatile in-memory RAM filesystem with VFS mount table
@@ -76,6 +78,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 ### Networking
 - RTL8139 PCI NIC driver with real TCP/IP via smoltcp
 - Socket syscalls: `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv`
+- `accept` blocks until the TCP state machine reaches `Established`; a listening or half-open socket is never reported as an accepted connection
 - HTTP/1.1 client (GET + POST) with 32KB response buffer
 - WebSocket client (RFC 6455) for streaming LLM responses
 
@@ -99,7 +102,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
-- 41 canonical executable agent operations backed by the 47-syscall kernel ABI
+- 41 canonical executable agent operations backed by the 61-syscall kernel ABI
   (37 are advertised directly to the model; local inference, kernel upgrade,
   HUD update, and hit testing remain controlled runtime/bridge actions)
 - Config-driven setup via `/disk/heliox/config.json`
@@ -236,7 +239,7 @@ node scripts\verify_all_audits.mjs
 The consolidated runner executes `command_sweep.mjs` and
 `audit_all_commands.mjs`, stops on the first failure, and returns a non-zero
 exit code for automation. Feature-specific end-to-end verifiers remain
-available as `scripts\verify_*.mjs`. The v0.1.1 release baseline is 97/97
+available as `scripts\verify_*.mjs`. The v0.1.1 release baseline is 98/98
 command-sweep cases and 65/65 exhaustive catalog cases, with every command
 returning its expected prompt and no unknown-command or kernel-fault signature.
 
@@ -267,7 +270,7 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `clipboard get\|set\|clear\|status` | Inspect or update the capability-gated shared clipboard |
 | `notify <title> <body>` | Post a desktop notification |
 | `notifications [clear]` | List or clear desktop notification history |
-| `syscalls` | Show the complete syscall ABI table (0–58) |
+| `syscalls` | Show the complete syscall ABI table (0–60) |
 | `programs` | List userspace program manifests |
 | `users` | List launched userspace processes |
 | `run <program>` | Launch a manifest-backed userspace process |
@@ -303,10 +306,10 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | 7 | Socket | Create a TCP socket |
 | 8 | Bind | Bind a socket to an address |
 | 9 | Listen | Listen on a socket |
-| 10 | Accept | Accept a connection |
+| 10 | Accept | Wait for and accept an established connection |
 | 11 | Recv | Receive data from a socket |
 | 12 | Send | Send data through a socket |
-| 13 | Wait | Wait (stub) |
+| 13 | Wait | Block until any child exits (compatibility alias for `WaitPid(any)`) |
 | 14 | Connect | Connect to a remote host |
 | 15 | ReadFile | Read a file from the VFS |
 | 16 | WriteFile | Write/create a file in the VFS |
@@ -352,6 +355,8 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | 56 | NotificationList | Read newest-first notification history |
 | 57 | NotificationDismiss | Dismiss one notification or clear all history |
 | 58 | ProcessKill | Terminate a non-critical task through the privileged task broker |
+| 59 | LaunchContext | Read pid-scoped startup metadata such as an associated document path |
+| 60 | DesktopPreferences | Validate and apply desktop theme/accent preferences |
 
 ## JSON-RPC Methods (WebSocket, port 8785)
 
@@ -359,17 +364,22 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 |---|---|
 | `ping` | Liveness check, returns `"pong"` |
 | `execute_tool` | Run a public agent operation by name with args |
+| `agent_step` | Run one provider-backed ReAct cycle for a supplied goal and return its actions |
 | `gesture_event` | Report a gesture/HUD input event |
 | `health` | Whether the daemon is configured yet, and which provider is active |
 | `get_config` | Current runtime configuration (excludes the API key) |
 | `system_status` | Live tick count, current goal, and hardware info |
 | `agent_stats` | Telemetry ring-buffer summary: event count and the last event |
 
-## Public Agent Operations (39 total)
+## Canonical Agent Operations (41 total)
+
+The provider prompt advertises 37 operations. `local_inference`,
+`trigger_kernel_upgrade`, `hud_update`, and `hit_test` are controlled
+runtime/bridge actions but use the same canonical dispatch and world-model gate.
 
 | Tier | Tools |
 |------|-------|
-| **0 — Observe** | `system_info`, `list_processes`, `query_memory`, `get_config`, `add_subtask`, `camera_capture`, `gesture_status` |
+| **0 — Observe** | `system_info`, `list_processes`, `query_memory`, `get_config`, `add_subtask`, `camera_capture`, `gesture_status`, `hud_update`, `hit_test` |
 | **1 — Safe** | `ipc_send`, `audit_write`, `yield_cpu`, `report_status`, `capability_check`, `read_file`, `read_dir`, `sleep`, `read_screen`, `set_volume`, `poll_input`, `local_inference` |
 | **2 — Network** | `net_connect`, `net_send`, `net_recv`, `http_get`, `load_memory`, `set_goal`, `record_audio`, `browse_url` |
 | **3 — Modify** | `write_file`, `create_directory`, `save_memory`, `service_start`, `service_stop`, `play_audio`, `keyboard_type`, `mouse_click`, `mouse_move` |
@@ -411,10 +421,31 @@ For the on-device model, set `"provider": "local"` (auto-sizes to your hardware 
 ## Design Rules
 
 - Keep the kernel deterministic — no AI inference in kernel space.
-- Every agent action goes through a real syscall — no stubs.
+- Every kernel or hardware effect crosses a real syscall; planning and memory logic remain isolated in Ring 3.
 - Capability-checked boundaries between kernel and agent.
 - Use Rust safety by default; keep unsafe blocks small and documented.
 - Hardware first — if you want an agentic OS, you need drivers.
+
+## Release Scope and Known Limits
+
+FerrumOS v0.1.1 is a bootable x86_64 research OS and QEMU appliance, not a
+drop-in Windows replacement. Its release acceptance target is the documented
+QEMU/Bochs device profile and the included Ring-3 desktop/apps, services,
+Heliox paths, and world-model safety gate. Current boundaries are explicit:
+
+- Camera syscalls are backed by the deterministic synthetic YUYV generator;
+  there is no UVC hardware driver yet.
+- SMP currently discovers processor topology and stages an AP trampoline, but
+  does not send INIT/SIPI or schedule work on application processors.
+- Shut down uses QEMU/Bochs/VirtualBox power ports; ACPI AML `_S5` evaluation is
+  not implemented. Reboot uses the 8042 reset pulse.
+- Accounts switch real capability profiles but do not authenticate passwords,
+  and ext2 uid/mode ownership is not enforced.
+- Maximized Ring-3 windows retain their fixed canvas size and pad the extra
+  area; there is no application resize event or dynamic canvas negotiation.
+- Driver coverage targets the enumerated emulator/selected device set above;
+  broad PC hardware compatibility, installer/update UX, accessibility, and
+  production credential management remain future release work.
 
 ## Contributing
 

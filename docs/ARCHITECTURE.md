@@ -6,13 +6,15 @@
    kernel space. The kernel owns scheduling, memory, interrupts, and drivers.
 2. **Agent lives in userspace** — the AI brain (`heliox-daemon`) runs as a
    freestanding Ring-3 process with syscall-only access to hardware.
-3. **Every action is a syscall** — the agent cannot bypass the kernel. All 37
-   agent tools translate to real kernel syscalls, out of 59 syscalls total
-   (IDs 0–58) — the rest back GUI/app-window, signed packages, audio, and other non-agent
-   userland surfaces.
+3. **Every kernel effect crosses a syscall** — the agent cannot bypass the
+   kernel. Its internal planning/memory operations remain in Ring 3; hardware,
+   process, filesystem, service, and network effects use the 61-syscall ABI
+   (IDs 0–60). The remaining calls back GUI/app-window, signed packages, audio,
+   and other non-agent userland surfaces.
 4. **Capability-gated** — default deny. Services receive only the capabilities
    required for their task.
-5. **Hardware first** — an agentic OS needs real drivers, not stubs.
+5. **Hardware claims are scoped** — real drivers and emulator-backed fallbacks
+   are named separately; synthetic devices are never presented as physical hardware.
 
 ## System Layers
 
@@ -63,7 +65,9 @@ and can evolve without destabilizing the kernel.
 
 ### Memory
 
-- Boot-info frame allocator for physical pages
+- Boot-info frame allocator for physical pages; returned user frames enter a
+  validated LIFO free list and are zeroed before reuse so process churn does not
+  leak data or consume fresh memory forever
 - 4-level page tables with mapper
 - Kernel heap: 12 MiB, bump allocator with linked-list fallback
 - DMA: `allocate_contiguous_frames(n)` for NIC TX/RX and HDA BDL buffers
@@ -80,9 +84,11 @@ and can evolve without destabilizing the kernel.
 
 ### Syscall Dispatch
 
-59 syscalls (IDs 0–58) dispatched via `int 0x80`:
+61 syscalls (IDs 0–60) dispatched via `int 0x80`:
 
-- Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32), WaitPid(33)
+- Process: Yield(0), Exec(18), Wait(13), Exit(30), GetPid(31), Sleep(32),
+  WaitPid(33), LaunchContext(59). `Wait` is a blocking wait-any compatibility
+  alias through the same scheduler lifecycle path as `WaitPid(u64::MAX)`.
 - Task control: ProcessKill(58) — privileged termination of non-critical tasks; self, init, and quota-exempt system agents are protected
 - IPC: Send(1), Receive(2)
 - Services: Start(3), Stop(4)
@@ -102,6 +108,8 @@ and can evolve without destabilizing the kernel.
 - Notifications: NotificationPost(55), NotificationList(56),
   NotificationDismiss(57) — a 32-entry broker with separate post/read/manage
   authority and caller-owned serialization buffers
+- Desktop preferences: DesktopPreferences(60) — a narrow, capability-gated
+  validator for live theme/accent changes
 
 ## Graphical Desktop Environment (GUI)
 
@@ -113,7 +121,22 @@ The OS features a fully integrated windowing system and compositor:
 - Interactive title bars (drag-to-move) with close, minimize, and maximize buttons, all computed from shared rect helpers on `Window` (`close_btn_rect`/`maximize_btn_rect`/`minimize_btn_rect` in `src/gui/window.rs`) so rendering and hit-testing can't drift apart
 - Minimized windows are skipped by rendering and hit-testing but keep a taskbar entry; maximize snaps a window to the desktop content area and remembers its prior geometry to restore
 - Alt+Tab is normalized by both PS/2 and USB HID drivers into an internal compositor token. The switch executes under the existing compositor lock, restores a minimized target, raises it atomically, and consumes the token before application input dispatch.
-- Desktop taskbar with a Start-menu launcher, a dynamic per-window button (one slot per open window, up to `MAX_TASKBAR_SLOTS`), a working Exit button, and a non-interactive UTC clock sourced from the CMOS RTC (`security::time::read_rtc_time`) — all positions computed once by `desktop::compute_taskbar_layout()` and shared between rendering and every click/hover hit-test. Window placement supports minimize, maximize/restore, and left/right/top edge dragging; snapped windows retain their pre-drag floating rectangle for deterministic restoration.
+- Desktop taskbar with a Start-menu launcher, seven visible per-window slots,
+  previous/next paging that keeps every running app reachable, a Power/session
+  popup (`Lock`, `Sign out`, `Restart`, `Shut down`, `Cancel`), and a UTC clock
+  sourced from the CMOS RTC (`security::time::read_rtc_time`). All positions are
+  computed by `desktop::compute_taskbar_layout()` and shared between rendering
+  and click/hover hit-testing. Window placement supports minimize,
+  maximize/restore, and left/right/top edge dragging; snapped windows retain
+  their pre-drag floating rectangle for deterministic restoration.
+- Lock is a privacy surface, not credential authentication: the account registry
+  has no password field, the screen states that limitation, and Enter resumes.
+  Sign out tears down the desktop/ambient surface and hands input back to the
+  shell. Restart and shut down flush audit state before entering hardware paths.
+- System Monitor samples scheduler task-tick deltas against PIT wall ticks and
+  renders live CPU activity, task count, heap use, and uptime. The ambient
+  Heliox compositor pump refreshes the same telemetry outside the compositor
+  lock, avoiding a renderer/metrics lock inversion.
 - App Store: two discovery surfaces for built-in apps and the verified local signed-package cache, with capability-aware install, confirmed remove, rollback, and launch controls
 - Notification service: ring-3 apps post bounded title/body records into a kernel-owned history; the compositor renders a toast from a cloned snapshot and Notification Center lists or clears records through separately gated syscalls, so it never shares an application lock or address space with the renderer
 - Task Manager: reads the live `SystemQuery(29)` process list and holds the non-delegatable `cap:process:kill` token only because the trusted launcher assigns its compiled-in manifest directly. `ProcessKill(58)` rejects self/critical targets, marks the scheduler task dead, drains run queues, and removes that PID's windows/input queues before redraw.
@@ -125,15 +148,27 @@ Beyond the three kernel-drawn window types (`Normal`, `SystemMonitor`, `Terminal
 - `PollWindowInput(window_id)` drains a per-window input queue (keyboard + mouse-down, capped at 64 events) fed by `compositor::handle_key_press`/`handle_mouse_down` whenever an `App` window is focused.
 - The keyboard paths normalize PS/2 and USB Ctrl+C/Ctrl+V into the same control-byte ABI. Text Editor uses the clipboard SDK wrappers to copy its full buffer or paste at the cursor, so content crosses process boundaries without granting either process access to the other's memory.
 - Gated behind the `gui:window:*` capability (`cap:gui:window`), following the same capability-registry pattern as every other resource-gated syscall.
-- App windows persist across `desktop` re-entry and keep focus across it (`spawn_demo_windows()` only resets the kernel-drawn demo set) — closing one via its `[X]` cleans up its input queue (`app_window::on_window_closed`).
+- App windows persist across `desktop` re-entry and keep focus across it
+  (`spawn_demo_windows()` only resets the kernel-drawn demo set). Closing an
+  app's main window marks its Ring-3 process dead, removes all owned windows and
+  input queues, unmaps its user pages, returns its frames, and removes its
+  pid-scoped launch context; secondary-window close only removes that window.
 
 ### App Launcher & Installed Apps
 The Start-menu launcher (`src/gui/desktop.rs` popup, `src/gui/compositor.rs::LAUNCHER_ENTRIES`) can spawn real new processes, not just the kernel-drawn built-ins:
 - `crate::process::spawn_elf(name, elf_bytes, granted_caps)` (`src/process/mod.rs`) loads an ELF and registers it as a Ready scheduler task directly from kernel context — the same load/register logic `sys_exec` uses for a ring-3 caller, but with capabilities taken straight from the program's `crate::userspace` manifest instead of delegated from a caller. It only registers the task and returns; it never itself enters ring 3, so it's safe to call from the compositor's own render loop.
-- Installed apps (`userland/heliox-assistant-panel/`, `userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`, `userland/settings/`, `userland/browser/`, `userland/app-store/`, `userland/notification-center/`, `userland/task-manager/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (window/input, IPC, clipboard, notifications, system query, task control, trusted-launcher, and signed-package syscall wrappers; an `InputEvent`; and an RGBA8 `Canvas`) — registered in the same `crate::userspace` manifest table as `init`/`heliox-daemon`. The Heliox Assistant panel exchanges structured state with `heliox-daemon`; Browser uses raw socket syscalls; App Store uses the narrow `cap:app:launch` and `cap:pkg:request` broker APIs described below.
+- Installed apps (`userland/heliox-assistant-panel/`, `userland/text-editor/`, `userland/calculator/`, `userland/file-manager/`, `userland/settings/`, `userland/browser/`, `userland/app-store/`, `userland/notification-center/`, `userland/task-manager/`) are ordinary ELF binaries built on `userland/libferrumgui/` — a shared `no_std` SDK (window/input, IPC, clipboard, notifications, system query, task control, launch-context, desktop-preference, trusted-launcher, and signed-package syscall wrappers; an `InputEvent`; and an RGBA8 `Canvas`) — registered in the same `crate::userspace` manifest table as `init`/`heliox-daemon`. The Heliox Assistant panel exchanges structured state with `heliox-daemon`; Browser uses raw socket syscalls; App Store uses the narrow `cap:app:launch` and `cap:pkg:request` broker APIs described below. File Manager launches associated documents through that broker with a kernel-owned, pid-scoped context copied by Text Editor; no app receives another process's pointer. Settings persists validated theme/accent choices to `/disk/desktop.conf` and applies them through `DesktopPreferences(60)`.
 
 Ordinary `Exec` delegates only capabilities the parent holds. App Store therefore does not receive every target app's filesystem/network authority and does not use raw `Exec`: `AppLaunch(51)` accepts only a compiled-in desktop-app name and launches it with that trusted program's manifest, while `PackageLaunch(52)` atomically validates/loads an installed signed package and launches it with its signed, allow-listed capabilities. Both broker calls are separately capability-gated; a GUI-only ring-3 probe is denied access to them.
-- Each app owns a fixed-size heap (`#[global_allocator]` over a static array) sized comfortably above its own canvas buffer (`canvas_w * canvas_h * 4` bytes) — undersizing this causes a silent allocation failure and process exit on the very first frame, with no panic message, since apps don't need argv (there's no mechanism for it) and instead operate on fixed paths (Text Editor) or read-only browsing (File Manager). File Manager owns its path and Back/Forward history in Ring 3 and exposes Back, Forward, Up, and Refresh controls; file previews retain their parent directory so Back never resets unrelated browsing state.
+- Each app owns a fixed-size heap (`#[global_allocator]` over a static array)
+  sized comfortably above its own canvas buffer (`canvas_w * canvas_h * 4`
+  bytes); undersizing causes allocation failure and process exit on the first
+  frame. The process ABI has no general argv array. Narrow startup metadata is
+  copied through `LaunchContext(59)`, currently used for associated documents;
+  otherwise apps use their own state/default paths. File Manager owns its path
+  and Back/Forward history in Ring 3 and exposes Back, Forward, Up, Refresh, and
+  associated Open controls; file previews retain their parent directory so Back
+  never resets unrelated browsing state.
 
 ### Package Manager (`src/pkg/mod.rs`)
 
@@ -221,6 +256,11 @@ for compiled-in programs.
 
 ### Event Routing
 - Unified `InputEvent` queue bridging PS/2 hardware, USB HID, and syscall injections
+- Before the desktop receives a pointer click, keyboard events remain owned by
+  the debug shell; the first desktop click transfers keyboard ownership to the
+  compositor and drains stale shell keystrokes. Sign out reverses ownership.
+  This prevents the background Heliox desktop pump and foreground shell from
+  consuming the same physical key event.
 - Console, serial, and userspace `SYS_WRITE` output is emitted in bounded
   chunks with hardware interrupts serviceable between chunks. Long log lines
   therefore cannot starve the PS/2 keyboard IRQ while Heliox or an audit is
@@ -349,6 +389,9 @@ redraws) with no `present()` failure logged and no fault/panic.
 - Full TCP state machine with connection tracking
 - Socket handle table (16 slots)
 - Periodic polling in timer IRQ handler
+- `Accept(10)` and `net serve` report success only when smoltcp says the socket
+  is in `Established`; Listen/SYN states remain blocked rather than producing a
+  false accepted connection.
 
 ### HTTP Client
 
@@ -592,6 +635,11 @@ creates an account and its home directory (`/disk/home/<name>/`); `login
 which resolves to a real capability set via
 `accounts::capabilities_for_profile` - not merely a display-name change.
 
+There is intentionally no password/credential field yet. `login` selects a
+stored authorization profile but does not prove identity, and the desktop lock
+is correspondingly labeled as a privacy resume screen rather than an
+authentication boundary.
+
 The `user` profile is a genuinely usable middle ground between `root` and
 `guest`: `cap:fs:read`, `cap:fs:write`, `cap:process:spawn`,
 `cap:gui:window`, `cap:ipc:send`, `cap:net:connect`, `cap:audio:play`,
@@ -684,13 +732,18 @@ back. If manually editing this file, restart the daemon (`services stop heliox-d
 
 The release harness has two layers:
 
-- `node scripts/verify_all_audits.mjs` runs the 86-case shell command sweep and
+- `node scripts/verify_all_audits.mjs` runs the 98-case shell command sweep and
   the independent 65-case exhaustive command catalog sequentially, failing on
   the first non-zero child result.
-- The 38 feature-specific `scripts/verify_*.mjs` files are run individually
+- The 48 feature-specific `scripts/verify_*.mjs` files are available individually
   for isolated QEMU evidence across Ring-3, scheduling, GUI apps, networking,
   storage, accounts, Heliox, real/synthetic inference, voice/fusion, and both
   rule-based and learned world-model safety paths.
+
+The current release baseline also includes focused verifiers for desktop power
+actions, live System Monitor telemetry, legacy wait-any behavior, physical-frame
+recycling/scrubbing, established-only TCP accept, document associations,
+persistent desktop preferences, taskbar paging, and close-to-reap lifecycle.
 
 The dashboard/shell coexistence checks require a scheduler-trace boot image:
 
@@ -704,6 +757,26 @@ node scripts\verify_shell_coexistence.mjs
 Rebuild the normal image with `.\build.ps1 build` afterward; scheduler tracing
 is intentionally disabled in release builds because synchronous per-switch
 serial output increases interrupt latency.
+
+## Release Scope and Known Limits
+
+The supported v0.1.1 product is the documented x86_64 QEMU appliance and its
+included Ring-3 environment, not general Windows compatibility:
+
+- Camera frames come from `camera_synth`; UVC enumeration/streaming is absent.
+- SMP loads an AP trampoline and reports ACPI topology but does not send
+  INIT/SIPI or schedule work on application processors. Lock ownership still
+  uses a placeholder core id.
+- Shutdown uses common QEMU/Bochs/VirtualBox ports instead of evaluating ACPI
+  AML `_S5`; reboot uses the 8042 reset pulse.
+- Accounts are capability profiles without passwords, and ext2 uid/mode fields
+  are not enforced against the current account.
+- Ring-3 app canvases are fixed at creation. Maximizing pads the unchanged
+  canvas; no resize event or dynamic reallocation protocol exists.
+- VirtIO-GPU remains 2D/full-frame and optional, networking assumes the
+  documented QEMU profile, and broad physical-PC driver compatibility,
+  accessibility, installer/update UX, and production secret storage are not
+  release claims.
 
 ## Source Tree
 
