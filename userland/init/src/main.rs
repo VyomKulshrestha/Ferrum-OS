@@ -25,6 +25,7 @@ const SYS_SLEEP: u64 = 32;
 const SYS_WAITPID: u64 = 33;
 const SYS_WRITE: u64 = 34;
 const SYS_KEXEC: u64 = 38;
+const SYS_LAUNCH_CONTEXT: u64 = 59;
 
 /// File descriptor for the console (mirrored to serial).
 const FD_CONSOLE: u64 = 2;
@@ -477,6 +478,9 @@ pub extern "C" fn _start() -> ! {
         let user_hole = unsafe {
             syscall4(SYS_SYSTEM_QUERY, 0, 0x80_4000_0000, 64, 0)
         };
+        let launch_context_hole = unsafe {
+            syscall3(SYS_LAUNCH_CONTEXT, 0x80_4000_0000, 64, 0)
+        };
         let crossing_end = unsafe {
             syscall4(
                 SYS_READ_FILE,
@@ -486,7 +490,11 @@ pub extern "C" fn _start() -> ! {
                 16,
             )
         };
-        if (kernel_low as i64) < 0 && (user_hole as i64) < 0 && (crossing_end as i64) < 0 {
+        if (kernel_low as i64) < 0
+            && (user_hole as i64) < 0
+            && (launch_context_hole as i64) < 0
+            && (crossing_end as i64) < 0
+        {
             write("[pointer-test] all invalid ranges denied\n");
         } else {
             write("[pointer-test] ERROR invalid range accepted\n");

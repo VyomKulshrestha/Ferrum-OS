@@ -358,6 +358,21 @@ try {
     await waitForSerial("[file-manager] previewing /disk/fm_test.txt", 5, beforePreview);
     check("clicking fm_test.txt opens its preview", true);
 
+    const beforeAssociatedOpen = serialText().length;
+    await clickAt(APP_X + CHROME_SIDE + 358, APP_Y + CHROME_TOP + 37);
+    const associatedOpen = await waitForSerial(
+      "[file-manager] opened /disk/fm_test.txt with text-editor pid=",
+      10,
+      beforeAssociatedOpen,
+    );
+    await waitForSerial("[text-editor] document path=/disk/fm_test.txt", 10, beforeAssociatedOpen);
+    const associatedLoad = await waitForSerial("[text-editor] loaded: hello", 10, beforeAssociatedOpen);
+    check(
+      "File Manager opens a text file in Text Editor with the selected path",
+      associatedOpen.includes("with text-editor") && associatedLoad.includes("loaded: hello"),
+    );
+    await closeAppWindow(480);
+
     // The preview's Back button must return to the directory it came from,
     // rather than silently resetting to /disk regardless of navigation.
     const beforeBack = serialText().length;

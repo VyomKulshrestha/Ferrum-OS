@@ -48,6 +48,7 @@ pub const SYS_NOTIFICATION_POST: u64 = 55;
 pub const SYS_NOTIFICATION_LIST: u64 = 56;
 pub const SYS_NOTIFICATION_DISMISS: u64 = 57;
 pub const SYS_PROCESS_KILL: u64 = 58;
+pub const SYS_LAUNCH_CONTEXT: u64 = 59;
 
 /// File descriptor for the console (mirrored to serial).
 pub const FD_CONSOLE: u64 = 2;
@@ -290,6 +291,25 @@ pub fn exec(path: &str) -> Option<u64> {
     if (res as i64) >= 0 { Some(res) } else { None }
 }
 
+/// Read this process's immutable startup metadata. Desktop launchers use this
+/// for document paths without sharing a racy global "next argument" slot.
+pub fn launch_context(max_len: usize) -> Option<String> {
+    let mut buffer = alloc::vec![0u8; max_len];
+    let result = unsafe {
+        syscall3(
+            SYS_LAUNCH_CONTEXT,
+            buffer.as_mut_ptr() as u64,
+            buffer.len() as u64,
+            0,
+        )
+    };
+    if (result as i64) <= 0 || result as usize > buffer.len() {
+        return None;
+    }
+    buffer.truncate(result as usize);
+    String::from_utf8(buffer).ok()
+}
+
 // ============================================================================
 // Signed package manager
 // ============================================================================
@@ -374,7 +394,22 @@ pub fn package_rollback(confirmed: bool) -> Option<u64> {
 /// Ask the trusted launcher broker to start a compiled-in desktop app with
 /// that app's own manifest capabilities (not App Store's capability set).
 pub fn launch_app(name: &str) -> Option<u64> {
-    let result = unsafe { syscall3(SYS_APP_LAUNCH, name.as_ptr() as u64, name.len() as u64, 0) };
+    let result = unsafe { syscall4(SYS_APP_LAUNCH, name.as_ptr() as u64, name.len() as u64, 0, 0) };
+    if (result as i64) >= 0 { Some(result) } else { None }
+}
+
+/// Ask the trusted app broker to launch a compiled-in app with bounded,
+/// pid-scoped startup metadata such as a document path.
+pub fn launch_app_with_context(name: &str, context: &str) -> Option<u64> {
+    let result = unsafe {
+        syscall4(
+            SYS_APP_LAUNCH,
+            name.as_ptr() as u64,
+            name.len() as u64,
+            context.as_ptr() as u64,
+            context.len() as u64,
+        )
+    };
     if (result as i64) >= 0 { Some(result) } else { None }
 }
 

@@ -1,11 +1,9 @@
 // ============================================================================
 // FerrumOS - File Manager (D3 core app)
 // ============================================================================
-// Browses the ext2 /disk filesystem and previews file contents in its own
-// window. Deliberately read-only and doesn't launch text-editor on a file:
-// there's no argv mechanism in this OS for a spawned process to learn
-// "which file", so opening a file here means reading and displaying it
-// directly rather than handing off to another app.
+// Browses the ext2 /disk filesystem, previews file contents, and opens known
+// document types through the trusted app-launch broker. The selected path is
+// carried as pid-scoped launch metadata rather than mutable global state.
 #![no_std]
 #![no_main]
 
@@ -42,6 +40,7 @@ const BACK_RECT: (u32, u32, u32, u32) = (8, PATH_BAR_H + 3, 64, 24);
 const FORWARD_RECT: (u32, u32, u32, u32) = (78, PATH_BAR_H + 3, 80, 24);
 const UP_RECT: (u32, u32, u32, u32) = (164, PATH_BAR_H + 3, 48, 24);
 const REFRESH_RECT: (u32, u32, u32, u32) = (218, PATH_BAR_H + 3, 80, 24);
+const OPEN_RECT: (u32, u32, u32, u32) = (304, PATH_BAR_H + 3, 108, 24);
 
 enum View {
     List {
@@ -61,6 +60,7 @@ enum ToolbarAction {
     Forward,
     Up,
     Refresh,
+    Open,
 }
 
 fn list_dir(path: &str) -> View {
@@ -102,8 +102,20 @@ fn toolbar_action_at(x: u32, y: u32) -> Option<ToolbarAction> {
         Some(ToolbarAction::Up)
     } else if point_in(x, y, REFRESH_RECT) {
         Some(ToolbarAction::Refresh)
+    } else if point_in(x, y, OPEN_RECT) {
+        Some(ToolbarAction::Open)
     } else {
         None
+    }
+}
+
+fn associated_app(path: &str) -> Option<&'static str> {
+    let extension = path.rsplit('.').next()?;
+    match extension {
+        "txt" | "md" | "json" | "log" | "toml" | "rs" | "yaml" | "yml" | "csv" => {
+            Some("text-editor")
+        }
+        _ => None,
     }
 }
 
@@ -158,6 +170,7 @@ fn redraw(canvas: &mut Canvas, view: &View, can_go_back: bool, can_go_forward: b
             draw_toolbar_button(canvas, FORWARD_RECT, "Forward", can_go_forward);
             draw_toolbar_button(canvas, UP_RECT, "Up", can_go_up);
             draw_toolbar_button(canvas, REFRESH_RECT, "Refresh", true);
+            draw_toolbar_button(canvas, OPEN_RECT, "Open", false);
 
             let mut y = CONTENT_TOP + 2;
             for entry in entries {
@@ -193,6 +206,7 @@ fn redraw(canvas: &mut Canvas, view: &View, can_go_back: bool, can_go_forward: b
             draw_toolbar_button(canvas, FORWARD_RECT, "Forward", can_go_forward);
             draw_toolbar_button(canvas, UP_RECT, "Up", true);
             draw_toolbar_button(canvas, REFRESH_RECT, "Refresh", true);
+            draw_toolbar_button(canvas, OPEN_RECT, "Open", associated_app(path).is_some());
 
             let max_chars = ((CANVAS_W - MARGIN * 2) / ferrumgui::font::FONT_WIDTH) as usize;
             let mut y = CONTENT_TOP + MARGIN;
@@ -324,6 +338,30 @@ pub extern "C" fn _start() -> ! {
                                 path, parent_path, ..
                             } => preview_file(path.clone(), parent_path.clone()),
                         };
+                    }
+                    ToolbarAction::Open => {
+                        if let View::Preview { path, .. } = &view {
+                            if let Some(app) = associated_app(path) {
+                                match ferrumgui::launch_app_with_context(app, path) {
+                                    Some(pid) => {
+                                        ferrumgui::write_console("[file-manager] opened ");
+                                        ferrumgui::write_console(path);
+                                        ferrumgui::write_console(" with ");
+                                        ferrumgui::write_console(app);
+                                        ferrumgui::write_console(" pid=");
+                                        ferrumgui::write_int(pid as i64);
+                                        ferrumgui::write_console("\n");
+                                    }
+                                    None => ferrumgui::write_console(
+                                        "[file-manager] associated app launch failed\n",
+                                    ),
+                                }
+                            } else {
+                                ferrumgui::write_console(
+                                    "[file-manager] no associated app for preview\n",
+                                );
+                            }
+                        }
                     }
                 }
                 dirty = true;

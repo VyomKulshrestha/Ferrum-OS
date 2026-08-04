@@ -805,6 +805,32 @@ struct ProcessRecord {
 
 static PROCESSES: Mutex<Vec<ProcessRecord>> = Mutex::new(Vec::new());
 static NEXT_PID: Mutex<u64> = Mutex::new(1);
+/// Bounded startup metadata keyed by target pid. Keeping it per-process avoids
+/// the global "next launch" slot race where two launchers could swap document
+/// paths before either child first runs.
+static LAUNCH_CONTEXTS: Mutex<Vec<(u64, String)>> = Mutex::new(Vec::new());
+
+pub const MAX_LAUNCH_CONTEXT_BYTES: usize = 1024;
+
+pub fn set_launch_context(pid: u64, context: &str) -> Result<(), &'static str> {
+    if context.len() > MAX_LAUNCH_CONTEXT_BYTES || context.as_bytes().contains(&0) {
+        return Err("invalid launch context");
+    }
+    let mut contexts = LAUNCH_CONTEXTS.lock();
+    contexts.retain(|(owner, _)| *owner != pid);
+    if !context.is_empty() {
+        contexts.push((pid, String::from(context)));
+    }
+    Ok(())
+}
+
+pub fn launch_context(pid: u64) -> Option<String> {
+    LAUNCH_CONTEXTS
+        .lock()
+        .iter()
+        .find(|(owner, _)| *owner == pid)
+        .map(|(_, context)| context.clone())
+}
 
 /// Create a process record with a freshly-allocated address space
 /// and a dedicated kernel stack. The user stack and PT_LOAD
@@ -869,6 +895,7 @@ pub fn drop_by_pid(pid: u64) -> bool {
         procs.remove(index)
     };
     let user_frames = record.process.user_frame_count();
+    LAUNCH_CONTEXTS.lock().retain(|(owner, _)| *owner != pid);
     // AddressSpace::drop can return thousands of frames for a large app.
     // Do that work after releasing the process-table lock so process queries
     // and unrelated spawns are never serialized behind frame reclamation.
@@ -978,6 +1005,17 @@ pub fn take_for_entry(pid: u64) -> Option<(VirtAddr, VirtAddr, u64, PhysFrame)> 
 /// into ring 3, so it's safe to call from a kernel-context loop (like the
 /// compositor's render loop) without abandoning the caller's stack.
 pub fn spawn_elf(name: &str, elf_bytes: &[u8], granted_caps: &[String]) -> Result<u64, &'static str> {
+    spawn_elf_with_context(name, elf_bytes, granted_caps, None)
+}
+
+/// Spawn an ELF with immutable, pid-scoped startup metadata installed before
+/// the scheduler can first run the child.
+pub fn spawn_elf_with_context(
+    name: &str,
+    elf_bytes: &[u8],
+    granted_caps: &[String],
+    launch_context: Option<&str>,
+) -> Result<u64, &'static str> {
     if elf_bytes.len() < 4 {
         return Err("elf too small");
     }
@@ -993,6 +1031,12 @@ pub fn spawn_elf(name: &str, elf_bytes: &[u8], granted_caps: &[String]) -> Resul
         .unwrap_or(0);
 
     register(new_process);
+    if let Some(context) = launch_context {
+        if let Err(error) = set_launch_context(pid, context) {
+            drop_by_pid(pid);
+            return Err(error);
+        }
+    }
     crate::scheduler::register_user(pid, name, crate::scheduler::Priority::Normal, kernel_rsp, cr3, granted_caps);
 
     let user_rsp = pid_user_stack(pid).map(|v| v.as_u64()).unwrap_or(0);

@@ -170,12 +170,15 @@ pub fn init() {
     ));
     state.programs.push(ProgramManifest::new(
         "file-manager",
-        "Browse the filesystem and preview file contents",
+        "Browse the filesystem and open documents with associated apps",
         "/bin/file-manager",
-        // Read-only: there's no argv mechanism to tell a spawned
-        // text-editor which file to open, so file-manager previews
-        // content in its own window instead of launching another process.
-        vec![String::from("cap:gui:window"), String::from("cap:fs:read")],
+        // App launch is brokered: File Manager selects the target and startup
+        // document, while Text Editor receives its own manifest authority.
+        vec![
+            String::from("cap:gui:window"),
+            String::from("cap:fs:read"),
+            String::from("cap:app:launch"),
+        ],
     ));
     state.programs.push(ProgramManifest::new(
         "heliox-assistant-panel",
@@ -249,6 +252,13 @@ pub fn capabilities_for_program(name: &str) -> Vec<String> {
 /// app's filesystem/network permissions would violate least privilege, while
 /// ordinary `Exec` correctly delegates only authority the caller itself holds.
 pub fn launch_embedded_app(name: &str) -> Result<u64, String> {
+    launch_embedded_app_with_context(name, None)
+}
+
+/// Launch a trusted app with pid-scoped startup metadata (for example the
+/// document selected in File Manager). The target receives its own manifest
+/// capabilities; the caller never has to impersonate or delegate them.
+pub fn launch_embedded_app_with_context(name: &str, launch_context: Option<&str>) -> Result<u64, String> {
     let elf = match name {
         "heliox-assistant-panel" => HELIOX_ASSISTANT_PANEL_ELF,
         "text-editor" => TEXT_EDITOR_ELF,
@@ -261,7 +271,7 @@ pub fn launch_embedded_app(name: &str) -> Result<u64, String> {
         _ => return Err(alloc::format!("not a launchable desktop app: {}", name)),
     };
     let capabilities = capabilities_for_program(name);
-    crate::process::spawn_elf(name, elf, &capabilities).map_err(String::from)
+    crate::process::spawn_elf_with_context(name, elf, &capabilities, launch_context).map_err(String::from)
 }
 
 /// Registers (or updates) a manifest entry at runtime, so a package

@@ -1,11 +1,9 @@
 // ============================================================================
 // FerrumOS - Text Editor (D3 core app)
 // ============================================================================
-// Reads/edits/saves a plain text file in a real GUI window on the D1
-// app-window framework. Deliberately edits a single fixed path rather than
-// prompting for a filename - there is no argv mechanism for a spawned
-// process in this OS to receive "which file", so File Manager previews
-// content in its own window instead of launching this with a target file.
+// Reads/edits/saves a plain text file in a real GUI window. File Manager can
+// supply a document through the pid-scoped launch-context ABI; direct launcher
+// starts retain the familiar scratch document default.
 //
 // Controls: type to insert, Backspace to delete, Enter for a newline,
 // Ctrl+C to copy all text, Ctrl+V to paste, Escape to save.
@@ -30,6 +28,7 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 static mut HEAP: [u8; 4 * 1024 * 1024] = [0; 4 * 1024 * 1024];
 
 const EDIT_PATH: &str = "/disk/scratch.txt";
+const MAX_PATH_LEN: usize = 1024;
 const MAX_FILE_LEN: usize = 64 * 1024;
 const CANVAS_W: u32 = 480;
 const CANVAS_H: u32 = 320;
@@ -91,7 +90,14 @@ pub extern "C" fn _start() -> ! {
         ferrumgui::write_console("[text-editor] package path denied as expected\n");
     }
 
-    let mut buffer = match ferrumgui::read_file(EDIT_PATH, MAX_FILE_LEN) {
+    let edit_path = ferrumgui::launch_context(MAX_PATH_LEN)
+        .filter(|path| path.starts_with("/disk/") && !path.split('/').any(|part| part == "." || part == ".."))
+        .unwrap_or_else(|| String::from(EDIT_PATH));
+    ferrumgui::write_console("[text-editor] document path=");
+    ferrumgui::write_console(&edit_path);
+    ferrumgui::write_console("\n");
+
+    let mut buffer = match ferrumgui::read_file(&edit_path, MAX_FILE_LEN) {
         Some(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
         None => String::new(),
     };
@@ -148,9 +154,9 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x1B => {
                     // Escape: save.
-                    if ferrumgui::write_file(EDIT_PATH, buffer.as_bytes()) {
+                    if ferrumgui::write_file(&edit_path, buffer.as_bytes()) {
                         ferrumgui::write_console("[text-editor] saved\n");
-                        let _ = ferrumgui::notification_post("File saved", EDIT_PATH);
+                        let _ = ferrumgui::notification_post("File saved", &edit_path);
                         status = "Saved";
                     } else {
                         ferrumgui::write_console("[text-editor] save failed\n");

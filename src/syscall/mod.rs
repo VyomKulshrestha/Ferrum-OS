@@ -101,6 +101,8 @@ pub enum SyscallNumber {
     NotificationDismiss = 57,
     /// Terminate a non-critical task through the privileged task broker.
     ProcessKill = 58,
+    /// Read the calling process's pid-scoped startup metadata.
+    LaunchContext = 59,
 }
 
 /// Syscall return status.
@@ -681,6 +683,7 @@ pub fn dispatch_with_capabilities(
             }
             process::sys_process_kill(args)
         }
+        x if x == SyscallNumber::LaunchContext as u64 => process::sys_launch_context(args),
         // Exit, Sleep and WaitPid must context-switch away from the caller, so
         // they are handled directly in the interrupt layer. Reaching
         // this dispatcher means a kernel-context caller invoked them,

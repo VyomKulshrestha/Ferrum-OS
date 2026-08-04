@@ -13,6 +13,29 @@ extern crate alloc;
 
 use super::{SyscallResult, SyscallStatus};
 
+/// Copy the calling process's immutable startup metadata into its own buffer.
+/// Empty metadata returns zero. The context remains readable for the process's
+/// lifetime so libraries can query size/contents without consume-on-read races.
+pub fn sys_launch_context(args: [u64; 6]) -> SyscallResult {
+    let capacity = args[1] as usize;
+    if capacity == 0
+        || capacity > crate::process::MAX_LAUNCH_CONTEXT_BYTES
+        || !super::fs::valid_user_range(args[0], capacity)
+    {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    let Some(context) = crate::process::launch_context(pid) else {
+        return SyscallResult::ok(0);
+    };
+    if context.len() > capacity
+        || unsafe { super::fs::copy_to_user(args[0], context.as_bytes(), capacity) } != context.len()
+    {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    SyscallResult::ok(context.len() as u64)
+}
+
 /// Terminate a non-critical task selected by a privileged task manager.
 /// The caller cannot kill itself, PID 0, init, or quota-exempt system agents.
 pub fn sys_process_kill(args: [u64; 6]) -> SyscallResult {
