@@ -3,6 +3,7 @@
 /userland/**/target/
 *.bin
 !appliance/packages/notes/bin
+!appliance/world-model/*.bin
 *.iso
 *.img
 *.ppm

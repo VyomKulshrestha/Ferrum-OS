@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "release": "0.1.1",
+  "representation": {
+    "kind": "action-conditioned-jepa",
+    "hidden_size": 256,
+    "latent_size": 77,
+    "ema_target": true
+  },
+  "transition": {
+    "hidden_size": 512,
+    "seed": 17,
+    "split_seed": 42,
+    "lookahead_horizon": 3
+  },
+  "dataset": {
+    "corpus_rows": 13670,
+    "eligible_rows": 13243,
+    "episodes": 3580,
+    "multi_step_episodes": 1316,
+    "train_rows": 9219,
+    "validation_rows": 1934,
+    "test_rows": 2090,
+    "ram_profiles_mb": [512, 2048],
+    "canonical_actions": 41,
+    "learned_actions": 40,
+    "fingerprint": "sha256:fc3f9ec944aa4ae7a249c83ad923dc730f958b589b3eec408e6fce97a447b7a7"
+  },
+  "held_out_normalized_error": {
+    "one_step": 0.024047054310016885,
+    "core_features": 0.04335925933620331,
+    "macro_tool": 0.023397640269048458,
+    "rollout_h3": 0.04816391869491306,
+    "rollout_h5": 0.05390337018665615
+  },
+  "promotion": {
+    "geometric_error_ratio_vs_autoencoder": 0.6260385839550041,
+    "regressions_beyond_tolerance": []
+  },
+  "files": {
+    "encoder": {
+      "path": "model_encoder.bin",
+      "bytes": 129344,
+      "sha256": "58c32b58326008a4886ea6960f49471b5eaf21ff696512c12f558e1a52be835b"
+    },
+    "transition": {
+      "path": "model_learned.bin",
+      "bytes": 643616,
+      "sha256": "ca1aa788a95a4b504714b9bd1a35a82e204c82f39881aeb0a9a19ad506b19e2e"
+    }
+  }
+}

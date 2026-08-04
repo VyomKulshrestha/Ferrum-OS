@@ -99,34 +99,74 @@ wsl debugfs -w -R "write $notesManifest /pkgs-available/notes/manifest.txt" targ
 wsl debugfs -w -R "write $notesSignature /pkgs-available/notes/manifest.sig" target/heliox-disk.img
 wsl debugfs -w -R "write $notesElf /pkgs-available/notes/bin" target/heliox-disk.img
 
-# 6. Stage the world model's Phase 2 learned transition weights, if
-# trained (scripts/train_world_model.py). Entirely optional - a missing
-# file here just means heliox-daemon keeps using Phase 1's rule table
-# (cognitive/world_model/learned.rs's try_load() no-ops on a missing
-# file), so this never blocks appliance packaging the way the real LLM
-# checkpoint above does.
-$learnedWeights = "target/world_model_learned.bin"
-$encoderWeights = "target/world_model_encoder.bin"
-if ((Test-Path $learnedWeights) -or (Test-Path $encoderWeights)) {
-    wsl debugfs -w -R "mkdir /heliox/world" target/heliox-disk.img
+# 6. Stage a matched world-model pair. A locally trained target/ pair is an
+# explicit development override; clean checkouts use the versioned release
+# assets. Never mix one local component with one release component because
+# their latent coordinate systems must match exactly.
+$targetLearnedWeights = "target/world_model_learned.bin"
+$targetEncoderWeights = "target/world_model_encoder.bin"
+$releaseWorldModelDir = "appliance/world-model"
+$releaseManifestPath = Join-Path $releaseWorldModelDir "manifest.json"
+$hasTargetLearned = Test-Path $targetLearnedWeights
+$hasTargetEncoder = Test-Path $targetEncoderWeights
+if ($hasTargetLearned -xor $hasTargetEncoder) {
+    Write-Host "Refusing to package a partial target/ world-model pair." -ForegroundColor Red
+    exit 1
 }
 
-if (Test-Path $learnedWeights) {
-    Write-Host "Staging learned world-model weights onto the disk image..." -ForegroundColor Cyan
-    wsl debugfs -w -R "write $learnedWeights /heliox/world/model_learned.bin" target/heliox-disk.img
+if ($hasTargetLearned) {
+    $learnedWeights = $targetLearnedWeights
+    $encoderWeights = $targetEncoderWeights
+    Write-Host "Using matched locally trained world-model override from target/." -ForegroundColor Cyan
 } else {
-    Write-Host "No trained world-model weights found at $learnedWeights - heliox-daemon will use the Phase 1 rule table (run scripts/collect_world_model_dataset.mjs + scripts/train_world_model.py to train one)." -ForegroundColor Yellow
+    if (-not (Test-Path $releaseManifestPath)) {
+        Write-Host "Versioned world-model manifest is missing: $releaseManifestPath" -ForegroundColor Red
+        exit 1
+    }
+    $releaseManifest = Get-Content -Raw $releaseManifestPath | ConvertFrom-Json
+    # debugfs runs inside WSL and requires slash-separated paths even though
+    # the manifest is resolved by PowerShell on Windows.
+    $learnedWeights = (Join-Path $releaseWorldModelDir $releaseManifest.files.transition.path) -replace '\\', '/'
+    $encoderWeights = (Join-Path $releaseWorldModelDir $releaseManifest.files.encoder.path) -replace '\\', '/'
+    foreach ($asset in @(
+        @{ Path = $learnedWeights; Hash = $releaseManifest.files.transition.sha256 },
+        @{ Path = $encoderWeights; Hash = $releaseManifest.files.encoder.sha256 }
+    )) {
+        if (-not (Test-Path $asset.Path)) {
+            Write-Host "Versioned world-model asset is missing: $($asset.Path)" -ForegroundColor Red
+            exit 1
+        }
+        $actualHash = (Get-FileHash -Algorithm SHA256 $asset.Path).Hash.ToLowerInvariant()
+        if ($actualHash -ne $asset.Hash) {
+            Write-Host "World-model asset digest mismatch: $($asset.Path)" -ForegroundColor Red
+            exit 1
+        }
+    }
+    Write-Host "Using verified versioned JEPA world-model release assets." -ForegroundColor Cyan
+}
+
+wsl debugfs -w -R "mkdir /heliox/world" target/heliox-disk.img
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to create /heliox/world in the appliance image." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Staging learned world-model weights onto the disk image..." -ForegroundColor Cyan
+wsl debugfs -w -R "write $learnedWeights /heliox/world/model_learned.bin" target/heliox-disk.img
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to stage learned world-model weights." -ForegroundColor Red
+    exit 1
 }
 
 # 7. Stage the world model's learned encoder weights, if trained
 # (scripts/train_world_model_encoder.py). Same optional pattern as the
 # transition weights above - a missing file just leaves the embedding's
 # tail slots at zero (encoder_learned.rs's try_load() no-ops).
-if (Test-Path $encoderWeights) {
-    Write-Host "Staging learned world-model encoder onto the disk image..." -ForegroundColor Cyan
-    wsl debugfs -w -R "write $encoderWeights /heliox/world/model_encoder.bin" target/heliox-disk.img
-} else {
-    Write-Host "No trained world-model encoder found at $encoderWeights - heliox-daemon will leave the embedding's latent slots at zero (run scripts/train_world_model_encoder.py to train one)." -ForegroundColor Yellow
+Write-Host "Staging learned world-model encoder onto the disk image..." -ForegroundColor Cyan
+wsl debugfs -w -R "write $encoderWeights /heliox/world/model_encoder.bin" target/heliox-disk.img
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to stage learned world-model encoder." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "Disk image target/heliox-disk.img successfully created and packaged!" -ForegroundColor Green
