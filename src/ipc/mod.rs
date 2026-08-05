@@ -212,16 +212,32 @@ pub fn task_owns_service(pid: u64, service: &str) -> bool {
 /// Resolve a mailbox to its live task owner. Executable names are the default
 /// service names; stable Heliox aliases preserve the existing wire contract.
 pub fn service_owner_pid(service: &str) -> Option<u64> {
-    crate::scheduler::list_tasks()
+    let matches_service = |name: &str| {
+        service == name
+            || (name == "agentd" && service == "runtime.agentd")
+            || (name == "heliox-daemon" && service == "heliox")
+            || (name == "heliox-assistant-panel" && service == "assistant")
+    };
+
+    if let Some(owner) = crate::scheduler::list_tasks()
         .into_iter()
         .find(|task| {
             task.state != crate::scheduler::TaskState::Dead
-                && (service == task.name
-                    || (task.name == "agentd" && service == "runtime.agentd")
-                    || (task.name == "heliox-daemon" && service == "heliox")
-                    || (task.name == "heliox-assistant-panel" && service == "assistant"))
+                && matches_service(&task.name)
         })
         .map(|task| task.id)
+    {
+        return Some(owner);
+    }
+
+    // Boot services are valid IPC owners as soon as their ring-3 image is
+    // registered, even before the operator dispatches init. This permits a
+    // bounded control message to be queued during boot without reopening
+    // arbitrary/unknown service names.
+    crate::process::list()
+        .into_iter()
+        .find(|(_, name, _)| matches_service(name))
+        .map(|(pid, _, _)| pid)
 }
 
 /// Return IPC queue counters.

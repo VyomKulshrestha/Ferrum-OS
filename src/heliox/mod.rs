@@ -850,21 +850,23 @@ pub fn submit_request(
         _ => {}
     }
 
-    // The userspace daemon owns execution-time tool confirmations. Numeric
-    // IDs are therefore forwarded over the same capability-checked IPC broker
-    // it polls for CONFIRM/DENY control messages. Non-numeric plan IDs remain
-    // valid for the kernel-side planner registry and are not misrouted.
-    let daemon_confirmation = if method_name == "confirm" {
-        input
+    // The userspace daemon owns live goals and execution-time confirmations.
+    // Forward both over its capability-checked control mailbox. Numeric
+    // confirmation IDs target the daemon; non-numeric plan IDs remain valid
+    // for the kernel-side planner registry and are not misrouted.
+    let daemon_control = match method_name {
+        "voice_event" if !input.trim().is_empty() => {
+            Some(alloc::format!("GOAL:{}", input.trim()))
+        }
+        "confirm" => input
             .parse::<u32>()
             .ok()
-            .map(|confirmation_id| alloc::format!("CONFIRM:{}", confirmation_id))
-    } else {
-        None
+            .map(|confirmation_id| alloc::format!("CONFIRM:{}", confirmation_id)),
+        _ => None,
     };
     drop(state);
 
-    if let Some(payload) = daemon_confirmation {
+    if let Some(payload) = daemon_control {
         let message = crate::ipc::Message::new(
             0,
             crate::ipc::Endpoint::new("heliox", "control"),
