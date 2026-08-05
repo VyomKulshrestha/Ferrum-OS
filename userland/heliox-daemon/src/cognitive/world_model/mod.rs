@@ -67,6 +67,29 @@ pub struct GateDecision {
     /// the action alone was risky; >1 means it only became risky once
     /// repeated, the case MAX_LOOKAHEAD=1 (Phase 1) could never catch.
     pub lookahead_steps: u32,
+    /// Concrete safer next move for the planner/user. This is advisory only:
+    /// it never executes another action and therefore cannot bypass either
+    /// the capability system or the confirmation gate.
+    pub suggestion: String,
+}
+
+fn safer_alternative(action: &ToolCall, risk: f32, reason: &str) -> String {
+    if risk < safety::BLOCK_THRESHOLD {
+        return String::from("Prediction is within policy; continue through capability and confirmation checks");
+    }
+    if reason.contains("config.json") {
+        return String::from("Read the current config, write a validated replacement to a separate file, and request explicit approval before swapping it");
+    }
+    if reason.contains("disk usage") {
+        return String::from("Inspect disk usage and ask the user to select non-protected temporary data for cleanup before retrying");
+    }
+    if reason.contains("process-count") {
+        return String::from("List running processes and launch at most one bounded child or service after verifying capacity");
+    }
+    if action.name == "trigger_kernel_upgrade" || reason.contains("heap usage") {
+        return String::from("Keep the current kernel, verify a signed staged image, then request physical operator approval for a maintenance-window upgrade");
+    }
+    String::from("Inspect the affected resource with a read-only tool and revise the action or arguments before retrying")
 }
 
 /// Ties Layers 1/3/4/5/6 together for a single proposed action: encode
@@ -114,11 +137,13 @@ pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
         embedding = prediction.embedding;
     }
 
+    let suggestion = safer_alternative(action, worst_risk, &worst_reason);
     GateDecision {
         allowed: worst_risk < safety::BLOCK_THRESHOLD,
         risk: worst_risk,
         reason: worst_reason,
         lookahead_steps: worst_step,
+        suggestion,
     }
 }
 

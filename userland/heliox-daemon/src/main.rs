@@ -860,6 +860,34 @@ pub extern "C" fn _start() -> ! {
                                             }
                                         } else if !bridge_authorized {
                                             send_rpc_error(conn.fd, &id_str, -32003, "bridge pairing required");
+                                        } else if method == "world_model_preview" {
+                                            if let Some(params) = parsed.get("params") {
+                                                if let Some(tool_name) = params.get("tool").and_then(|tool| tool.as_str()) {
+                                                    let arguments = match params.get("args") {
+                                                        Some(cognitive::json::JsonValue::Object(pairs)) => pairs.clone(),
+                                                        _ => Vec::new(),
+                                                    };
+                                                    let call = cognitive::json::ToolCall {
+                                                        name: String::from(tool_name),
+                                                        arguments,
+                                                    };
+                                                    let advice = orchestrator.preview_world_model_action(&call);
+                                                    let response = alloc::format!(
+                                                        "{{\"jsonrpc\":\"2.0\",\"result\":{{\"allowed\":{},\"risk\":{:.4},\"lookahead_steps\":{},\"reason\":{},\"suggestion\":{}}},\"id\":{}}}",
+                                                        advice.allowed,
+                                                        advice.risk,
+                                                        advice.lookahead_steps,
+                                                        escape_json_string(&advice.reason),
+                                                        escape_json_string(&advice.suggestion),
+                                                        id_str
+                                                    );
+                                                    let _ = network::ws_send_text_server(conn.fd, &response);
+                                                } else {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, "missing tool");
+                                                }
+                                            } else {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "missing params");
+                                            }
                                         } else if method == "execute_tool" {
                                             if let Some(params) = parsed.get("params") {
                                                 if let Some(tool_name) = params.get("tool").and_then(|t| t.as_str()) {
@@ -1136,7 +1164,10 @@ pub extern "C" fn _start() -> ! {
             hud_state.landmarks[i] = [lx, ly];
         }
 
-        let sug_str = if orchestrator.paused {
+        let world_model_suggestion = orchestrator.world_model_suggestion();
+        let sug_str = if !world_model_suggestion.is_empty() {
+            world_model_suggestion
+        } else if orchestrator.paused {
             alloc::string::String::from("Agent paused (OpenPalm to resume)")
         } else {
             let cur_goal = orchestrator.current_goal();

@@ -145,6 +145,7 @@ pub struct Orchestrator {
     // summary string, not machine-stable enough to feed an encoder).
     wm_last_action_name: String,
     wm_last_action_failed: bool,
+    wm_last_suggestion: String,
 }
 
 impl Orchestrator {
@@ -178,10 +179,30 @@ impl Orchestrator {
         self.planner.set_goal(goal);
         self.verifier.reset();
         self.reflector.reset();
+        self.wm_last_suggestion.clear();
         self.emit_telemetry(
             TelemetryEventKind::TickStart,
             format!("New goal set: {}", goal),
         );
+    }
+
+    /// Read-only simulation for a paired external model that wants to inspect
+    /// risk before requesting execution. It does not append experience data,
+    /// alter planner state, or invoke a syscall-producing tool.
+    pub fn preview_world_model_action(
+        &self,
+        tc: &super::json::ToolCall,
+    ) -> super::world_model::GateDecision {
+        let snapshot = super::world_model::observation::capture_snapshot(
+            self.tick_count,
+            &self.wm_last_action_name,
+            self.wm_last_action_failed,
+        );
+        super::world_model::evaluate_action(&snapshot, tc)
+    }
+
+    pub fn world_model_suggestion(&self) -> String {
+        self.wm_last_suggestion.clone()
     }
 
     /// Execute a public JSON-RPC tool through the same predictive gate and
@@ -273,6 +294,7 @@ impl Orchestrator {
             paused: false,
             wm_last_action_name: String::new(),
             wm_last_action_failed: false,
+            wm_last_suggestion: String::new(),
         }
     }
 
@@ -855,10 +877,16 @@ impl Orchestrator {
         );
         let decision = world_model::evaluate_action(&state_before, tc);
 
+        if decision.allowed {
+            self.wm_last_suggestion.clear();
+        } else {
+            self.wm_last_suggestion = decision.suggestion.clone();
+        }
+
         let result = if !decision.allowed {
             let msg = format!(
-                "[heliox-daemon] [world-model] BLOCKED tool '{}': risk={:.2} lookahead_steps={} ({})\n",
-                tc.name, decision.risk, decision.lookahead_steps, decision.reason
+                "[heliox-daemon] [world-model] BLOCKED tool '{}': risk={:.2} lookahead_steps={} ({}) suggestion={}\n",
+                tc.name, decision.risk, decision.lookahead_steps, decision.reason, decision.suggestion
             );
             unsafe {
                 syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
@@ -866,7 +894,11 @@ impl Orchestrator {
             tool_mapper::ToolResult {
                 tool_name: tc.name.clone(),
                 success: false,
-                output: format!("Blocked by world-model safety gate: {}", decision.reason),
+                output: format!(
+                    "Blocked by world-model safety gate: {}. Suggested alternative: {}",
+                    decision.reason,
+                    decision.suggestion
+                ),
             }
         } else {
             self.execute_action(tc)

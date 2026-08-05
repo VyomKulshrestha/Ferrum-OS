@@ -231,6 +231,7 @@ try {
   const blockLine = blockMsg.split("\n").reverse().find((l) => l.includes("BLOCKED tool 'delete_file'"));
   check("safety gate blocks delete_file targeting the daemon's own config.json", true, blockLine || "");
   check("blocked action's logged reason cites config.json", /config\.json/i.test(blockLine || ""));
+  check("blocked action includes a concrete safer alternative for replanning", /suggestion=Read the current config/i.test(blockLine || ""));
 
   // A blocked action still gets recorded as an experience tuple (Layer 2
   // records predicted-and-refused actions too, not just allowed ones -
