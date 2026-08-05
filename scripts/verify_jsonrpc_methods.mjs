@@ -193,7 +193,7 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
       );
       const status2 = await rpc(ws, "t-status-2", "system_status", {});
       check(
-        "system_status's tick_count strictly advances between two calls (real counter, not a stub)",
+        "system_status tick_count is monotonic while the exclusive lease may pause planning",
         status2.result && status2.result.tick_count >= status1.result.tick_count,
         `first=${status1.result.tick_count} second=${status2.result.tick_count}`
       );
