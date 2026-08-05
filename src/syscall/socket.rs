@@ -70,7 +70,7 @@ pub fn sys_listen(caller_pid: u64, fd: u64, _backlog: u64) -> SyscallResult {
 }
 
 /// Accept an incoming connection once the TCP handshake is established.
-pub fn sys_accept(caller_pid: u64, fd: u64) -> SyscallResult {
+pub fn sys_accept(caller_pid: u64, fd: u64, nonblocking: bool) -> SyscallResult {
     // smoltcp transitions the listening socket itself into Established. Until
     // that state is reached, yield through the normal blocked-syscall retry
     // path instead of falsely reporting a connection while still listening.
@@ -78,6 +78,7 @@ pub fn sys_accept(caller_pid: u64, fd: u64) -> SyscallResult {
 
     match iface::socket_is_connected(caller_pid, fd) {
         Ok(true) => SyscallResult::ok(fd), // Return same FD (smoltcp model)
+        Ok(false) if nonblocking => SyscallResult::ok(0),
         Ok(false) => SyscallResult::err(SyscallStatus::Blocked),
         Err(error) => iface_error(error),
     }

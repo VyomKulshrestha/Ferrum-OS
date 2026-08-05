@@ -714,20 +714,11 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        if bridge_authorized && bridge_exclusive {
-            // The paired model owns planning while the exclusive lease is
-            // active. Keep consuming IPC/confirmation control, but do not let
-            // the built-in provider race it with independent actions.
-            orchestrator.poll_control();
-        } else {
-            orchestrator.tick();
-        }
-        
         if !bridge_connected {
             if let Some(fd) = server_fd {
                 // Check for connection
-                let res = unsafe { syscall3(SYS_ACCEPT, fd, 0, 0) };
-                if (res as i64) >= 0 {
+                let res = unsafe { syscall3(SYS_ACCEPT, fd | (1 << 63), 0, 0) };
+                if res != 0 && (res as i64) >= 0 {
                     match network::ws_accept(fd) {
                         Ok(conn) => {
                             let print_msg = "[heliox-daemon] bridge client connected, handshake successful!\n";
@@ -769,7 +760,12 @@ pub extern "C" fn _start() -> ! {
         // while bounding ordinary bridge latency instead of monopolizing the
         // daemon's single cooperative event loop with continuous 1 s reads.
         // Offset the first sample so clients can pair immediately after boot.
-        if orchestrator.config.stt_host != "unconfigured" && loop_count % 10 == 5 {
+        let spatial_fusion_due = loop_count == 0
+            && LATEST_GESTURE.load(core::sync::atomic::Ordering::SeqCst)
+                == cognitive::gesture::GestureType::Pointing as u8;
+        if orchestrator.config.stt_host != "unconfigured"
+            && (loop_count % 10 == 5 || spatial_fusion_due)
+        {
             if let Ok(buf) = cognitive::voice::record_audio(250) {
                 let has_voice = cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold);
                 if has_voice {
@@ -1172,6 +1168,19 @@ pub extern "C" fn _start() -> ! {
                     }
                 }
             }
+        }
+
+        // Plan only after every input source for this iteration has had a
+        // chance to update the observation. In particular, a stable gesture
+        // must not start provider inference before configured voice sampling,
+        // IPC confirmation, or an external controller frame is serviced.
+        if bridge_authorized && bridge_exclusive {
+            // The paired model owns planning while the exclusive lease is
+            // active. Keep consuming IPC/confirmation control, but do not let
+            // the built-in provider race it with independent actions.
+            orchestrator.poll_control();
+        } else {
+            orchestrator.tick();
         }
 
         let mut hud_state = cognitive::fusion::HudState {

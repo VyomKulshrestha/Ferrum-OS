@@ -500,7 +500,14 @@ fn dispatch_with_context(
             if !crate::security::has_capability(held_capabilities, "net:listen:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            socket::sys_accept(caller_pid, args[0])
+            // As with Recv below, reserve the high FD bit as a stable
+            // non-blocking flag without expanding the userspace ABI.
+            const NONBLOCK_FD: u64 = 1 << 63;
+            socket::sys_accept(
+                caller_pid,
+                args[0] & !NONBLOCK_FD,
+                args[0] & NONBLOCK_FD != 0,
+            )
         }
         x if x == SyscallNumber::Recv as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*")
