@@ -540,24 +540,25 @@ prediction looks dangerous.
   critical/missing-path flags). Provider name, model size, and response style
   are audit metadata only and never become model inputs.
 - **Transition prediction** — two interchangeable sources behind the
-  same `predict_next_state` call: a hand-coded rule table mapping each
-  higher-consequence tool (`write_file`, `delete_file`, `exec_process`,
-  `create_directory`, `service_start`/`stop`, `trigger_kernel_upgrade`,
-  `net_connect`) to its predicted effect on that vector, or - when
-  present - a small MLP (`cognitive/world_model/learned.rs`) trained
-  offline on real collected data (`scripts/collect_world_model_hybrid.mjs`
-  + `scripts/train_world_model.py`, pure numpy) and loaded at boot as a flat
-  `f32` binary via `SYS_READ_FILE`. The accepted release MLP is 512 units
-  wide. The v2 `FWM2` file header includes the argument-feature
-  width and a 64-bit trained-tool coverage mask. A tool absent from training
-  falls back to the rule table instead of consuming random, untrained one-hot
-  weights. The loader rejects non-finite values, impossible shapes, empty or
-  out-of-range coverage, and learned claims over the policy-only kernel
-  upgrade. Legacy 169-input checkpoints still load with conservative known-tool
-  coverage. The learned model predicts an embedding *delta*, not the absolute
-  next state; whether a config-deleting `delete_file` call gets caught is always
-  a direct argument check, independent of which source produced the numeric
-  prediction.
+  same `predict_next_state` compatibility call for non-safety consumers. They
+  are not interchangeable at the gate: the hand-coded table and, when present,
+  the learned MLP run as independent rollouts and the higher risk wins. The
+  table maps higher-consequence tools (`write_file`, `delete_file`,
+  `exec_process`, `create_directory`, `service_start`/`stop`,
+  `trigger_kernel_upgrade`, `net_connect`) to effects on the state vector.
+  Write growth uses proposed content bytes and the appliance's 8,192 4 KiB
+  ext2 blocks instead of the former fixed 2% estimate. The MLP
+  (`cognitive/world_model/learned.rs`) is trained offline on real collected data
+  (`scripts/collect_world_model_hybrid.mjs` + `scripts/train_world_model.py`,
+  pure numpy) and loaded at boot as a flat `f32` binary via `SYS_READ_FILE`.
+  The accepted release MLP is 512 units wide. The v2 `FWM2` header includes
+  argument-feature width and a 64-bit trained-tool coverage mask. An uncovered
+  tool falls back to the rule table for compatibility; safety evaluation keeps
+  the rule branch active even for covered tools. The loader rejects non-finite
+  values, impossible shapes, empty or out-of-range coverage, and learned claims
+  over the policy-only kernel upgrade. The learned model predicts an embedding
+  *delta*, not absolute next state; config deletion remains a direct canonical
+  path check independent of numeric prediction.
 - **Risk scoring** — flags specific predicted outcomes (disk nearly
   full, the daemon's own config file about to be deleted, heap nearly
   exhausted) and blocks the real syscall if the combined score crosses
@@ -617,12 +618,25 @@ prediction looks dangerous.
   metric (one-step 1.68%, macro-tool 1.71%, H3 3.87%, H5 4.03%) and is stored as
   a matched, hash-verified pair under `appliance/world-model/`. Clean builds
   package those assets; local overrides must supply both files.
+- **Registered safety baseline** - a fixed 500-episode paired protocol runs
+  rules only, JEPA only, and rules + JEPA over identical cases: 250 safe and
+  250 dangerous, stratified across direct harm, compound exhaustion, prompt
+  injection, and rule-table edge cases. The combined arm records TP/FN/FP/TN
+  of 198/52/41/209 (FNR 20.8%, FPR 16.4%, balanced accuracy 81.4%), versus
+  147/103/21/229 for rules alone. It adds 51 dangerous catches, loses no rule
+  catches, and adds 20 safe blocks. The fixture comes from the untouched QEMU
+  split and is hash-bound in `appliance/world-model/manifest.json`; it is an
+  offline counterfactual decision test, not 500 live destructive executions.
+  The formal threat model and limitations are in
+  `docs/research/WORLD_MODEL_RESEARCH.md`.
 - **Verification** — permanent suites cover corpus schema/coverage/diversity,
   split leakage, JEPA rejection and promotion, weight integrity, protected-path
   aliases, disk/process lookahead, provider chunking, a 300-request socket soak,
-  real local inference, and a four-outcome ReAct smoke. Learned predictions are
-  advisory; deterministic policy and confirmation gates remain independent and
-  fail closed.
+  real local inference, a four-outcome ReAct smoke, adversarial false-safe
+  weights, and byte-for-byte reproduction of the registered JSON/CSV/Markdown
+  safety artifacts. Learned predictions may block daemon dispatch but never
+  grant execution authority; deterministic policy, kernel capabilities, and
+  confirmation remain independent and fail closed.
 
 ### Permission Tiers
 

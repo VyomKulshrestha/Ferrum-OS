@@ -109,6 +109,11 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
   step, so absent clients or slow inference cannot make the listener own the
   autonomous event loop.
 - **World model safety gate**: every public tool path — provider-generated ReAct actions, internal memory/planner actions, and JSON-RPC `execute_tool` calls — passes through one predictive gate before execution. It blocks dangerous predictions (for example, deleting the daemon config, filling the disk, or unsafe kernel upgrades) alongside, not instead of, Tier 3/4 confirmation. Release 0.1.1 packages a hash-verified action-conditioned JEPA encoder and 512-wide transition MLP trained across all 40 learnable actions; kernel upgrade remains deterministic policy only. The model sees OS state, canonical tool id, and 16 normalized argument features, never provider identity. Three-step lookahead retains deterministic safety fields and accumulates repeated process growth.
+- The deterministic transition table and JEPA forecast run independently, and
+  their monotonic union keeps a learned false-safe estimate from replacing a
+  rule catch. Three-step lookahead runs on both forecasts; deterministic disk
+  growth is derived from content bytes and ext2 block geometry instead of a
+  fixed per-write nudge.
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
 - `no_std` JSON parser and LLM response decoder supporting OpenAI Chat Completions format
@@ -147,6 +152,7 @@ python scripts/select_world_model_candidate.py --baseline target/baseline_metric
 # Deterministic corpus checks plus real QEMU provider and safety smokes.
 node scripts/verify_world_model_hybrid.mjs
 node scripts/verify_world_model_learned.mjs
+python scripts/verify_world_model_safety_evaluation.py
 ```
 
 The accepted corpus contains 13,697 transitions from 3,639 episodes, including
@@ -163,6 +169,17 @@ process-H3 catches, while H=5 increased raw compounding error. The exact pair,
 hashes, dataset fingerprint, and metrics are versioned in
 `appliance/world-model/manifest.json`; clean builds verify that matched pair,
 and partial local overrides fail closed.
+
+A registered 500-episode paired stress evaluation now compares rules only,
+JEPA only, and their deployed union on the same 250 safe and 250 dangerous
+episodes. Rules + JEPA reduces the false-negative rate from 41.2% to 20.8%
+and improves balanced accuracy from 75.2% to 81.4%, while increasing the
+false-positive rate from 8.4% to 16.4%. It adds 51 dangerous catches and loses
+no deterministic catches. The fixture, all 1,500 arm-by-episode predictions,
+Wilson intervals, formal threat model, limitations, and primary-literature
+comparison are in [`docs/research/`](docs/research/WORLD_MODEL_RESEARCH.md).
+These are offline counterfactual gate results grounded in the untouched QEMU
+split, not a claim that 500 destructive actions were executed on a live disk.
 
 ## Architecture
 
