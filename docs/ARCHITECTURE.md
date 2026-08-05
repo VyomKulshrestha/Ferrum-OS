@@ -390,8 +390,10 @@ redraws) with no `present()` failure logged and no fault/panic.
 - Socket handle table (16 slots)
 - Periodic polling in timer IRQ handler
 - `Accept(10)` and `net serve` report success only when smoltcp says the socket
-  is in `Established`; Listen/SYN states remain blocked rather than producing a
-  false accepted connection.
+  is in `Established`; Listen/SYN states never produce a false accepted
+  connection. The high descriptor bit requests a non-blocking probe (zero means
+  no client yet), which Heliox uses so an absent controller cannot suspend its
+  autonomous audio/camera/planner loop.
 
 ### HTTP Client
 
@@ -443,7 +445,15 @@ redraws) with no `present()` failure logged and no fault/panic.
 
 ### Ambient Intelligence & Multi-Provider Support
 
-The agent daemon continuously buffers 1-second chunks of audio from the Intel HDA hardware. When voice activity is detected, it transcribes the audio and generates a new `GOAL:`, bridging the physical world with the ReAct loop. It also periodically screenshots the desktop to proactively solve GUI errors. A stable Pointing gesture is retained for an 8.2-second multimodal association window (8,200 ticks at the 1 kHz PIT), allowing a later phrase such as "open this" to resolve through `HitTest` to the pointed window after audio capture and transcription complete.
+The agent daemon samples 250 ms audio windows every ten loop iterations. When
+voice activity is detected, it records the 3-second command, transcribes it,
+and generates a new `GOAL:`, bridging the physical world with the ReAct loop.
+It also periodically screenshots the desktop to proactively solve GUI errors.
+A stable Pointing gesture triggers an immediate VAD sample and is retained for
+an 8.2-second multimodal association window (8,200 ticks at the 1 kHz PIT),
+allowing a phrase such as "open this" to resolve through `HitTest` to the
+pointed window. Camera, audio, IPC, and controller frames are ingested before
+the planner runs, so inference cannot race ahead with a partial observation.
 
 The `network.rs` client is dynamically driven by the daemon's runtime configuration, supporting two payload schemas:
 1. **Ollama Format:** Flat `{"model", "prompt"}` JSON.
@@ -455,13 +465,29 @@ Until a configuration file actually exists on disk, the daemon stays idle: no ti
 
 ### JSON-RPC Interface
 
-The daemon exposes a JSON-RPC 2.0 surface over its WebSocket server (port 8785): `ping`, `execute_tool` (runs a public agent operation), `gesture_event`, `health` (configured state + active provider), `get_config` (live config fields, excluding the API key), `system_status` (tick count, current goal, hardware info), and `agent_stats` (telemetry ring-buffer summary). All are backed by real orchestrator/config state rather than stubs — `system_status`'s tick count strictly advances between calls, and `agent_stats` correctly reports an empty buffer while the daemon is idle/unconfigured.
+The daemon exposes JSON-RPC 2.0 over WebSocket port 8785: `ping`, `pair`,
+`set_control_mode`, `execute_tool`, `agent_step`, `world_model_preview`,
+`gesture_event`, `health`, `get_config`, `system_status`, and `agent_stats`.
+The boot-scoped pairing token is printed only on the physical console. Before
+pairing, privileged calls fail closed. A paired client defaults to an exclusive
+lease, pausing built-in planning so two controllers cannot race; cooperative
+mode leaves native planning active and is used for controlled data collection.
+Configuration output excludes the API key. Tick counts are monotonic and may
+remain stable while an exclusive lease intentionally pauses planning.
 
 ### Chat IPC with the Heliox Assistant App
 
 The daemon and the Heliox Assistant app-window (`userland/heliox-assistant-panel/`) exchange state over two IPC channels rather than one hardcoded telemetry string:
 - `CHAT:{role}:{state}:{content}` — sent by the daemon to the `"assistant"` IPC service on every think/act cycle, with `state` one of `thinking`, `error`, or `done`, and `content` the actual human-readable response text once done. The app parses this into a real chat history.
 - `GOAL:{text}` — sent by the app to the `"heliox"` service when the user submits a chat message, reusing the same mechanism the setup wizard uses for `CONFIG_UPDATED` reloads.
+
+The kernel binds receive authority to the owning live task (including the
+stable `heliox`, `assistant`, and `runtime.agentd` aliases) and accepts bounded
+boot control for registered ring-3 services before their first dispatch.
+Unknown targets are rejected. Each service has its own queue quota, so an
+absent or stalled assistant cannot fill the broker and block model control.
+Shell `voice_event` requests are forwarded as `GOAL:` messages and therefore
+survive the init/daemon startup boundary.
 
 ### Components
 
@@ -576,17 +602,19 @@ prediction looks dangerous.
   create them. The encoder and transition trainers split by complete episode,
   preserve metadata, report per-tool/core metrics, and optionally restore the
   best validation checkpoint with `--patience`. The release corpus contains
-  13,670 transitions, 3,580 episodes, 1,316 multi-step episodes, all 41 actions,
-  and 13,243 executed non-policy fitting rows. Each row distinguishes result
+  13,697 transitions, 3,639 episodes, 1,300 multi-step episodes, all 41 actions,
+  and 13,270 executed non-policy fitting rows. The release includes 128 freshly
+  collected successful `ipc_send` transitions replacing episode-atomic rows
+  recorded against the retired syscall ABI. Each row distinguishes result
   `success` from whether execution was actually attempted. Blocked and
   confirmation-only rows stay available for policy analysis but are excluded
   from transition fitting and trained-tool coverage, preventing a refusal's
   unchanged state from being learned as a safe action outcome.
 - **Selection and packaging** — autoencoder and JEPA candidates use the same
-  episode-disjoint 9,219/1,934/2,090 split and dataset fingerprint.
+  episode-disjoint 9,104/2,197/1,969 split and dataset fingerprint.
   Cross-representation error is normalized against each representation's
   held-out zero-delta baseline. The accepted JEPA model improves every guarded
-  metric (one-step 2.40%, macro-tool 2.34%, H3 4.82%, H5 5.39%) and is stored as
+  metric (one-step 1.68%, macro-tool 1.71%, H3 3.87%, H5 4.03%) and is stored as
   a matched, hash-verified pair under `appliance/world-model/`. Clean builds
   package those assets; local overrides must supply both files.
 - **Verification** — permanent suites cover corpus schema/coverage/diversity,
@@ -694,6 +722,10 @@ recorded in the kernel audit log. Accessible via the `log` shell command.
 
 Kernel-side confirmation gates are enforced for destructive Tier-4 operations (specifically `DeleteFile`, syscall 22):
 - **Syscall Suspension & Sleep Timeout**: When a gated syscall is called by a process lacking `cap:confirmation:bypass`, the calling process is placed into a `Blocked` state and given a 5-second default-deny sleep timeout.
+- **Modal idle handoff**: The blocked requester parks on the scheduler's
+  dedicated idle stack until a PIT deadline or physical key IRQ wakes it. This
+  avoids depending on a previously parked kernel UI task to hand control back
+  to the only deadline-bearing ring-3 task.
 - **Instruction Pointer Rewinding (RIP-2)**: The saved user context frame's `rip` is decremented by 2 bytes. Because the `int 0x80` assembly instruction is exactly 2 bytes (`CD 80`), rewinding the instruction pointer causes the process to re-execute the system call immediately upon waking.
 - **Physical vs. Injected Key Filter**: Gates can only be approved by typing `y` (or denied with `n`) on a physical serial console or keyboard. Synthetic keystrokes injected by the agent via `sys_inject_key` are filtered using the `INJECTING_AGENT_KEY` atomic boolean, preventing the agent from autonomously bypassing its own security gates.
 - **Retry-and-Cache State**: When resumed, the process re-executes `int 0x80` and references the cached `confirmation_approved` or `confirmation_denied` fields on the task context to either complete the operation or return `-2` (`PermissionDenied`) without prompting again.
@@ -753,7 +785,7 @@ The release harness has two layers:
 - `node scripts/verify_all_audits.mjs` runs the 98-case shell command sweep and
   the independent 65-case exhaustive command catalog sequentially, failing on
   the first non-zero child result.
-- The 48 feature-specific `scripts/verify_*.mjs` files are available individually
+- The 71 `scripts/verify_*.mjs` verification scripts are available individually
   for isolated QEMU evidence across Ring-3, scheduling, GUI apps, networking,
   storage, accounts, Heliox, real/synthetic inference, voice/fusion, and both
   rule-based and learned world-model safety paths.

@@ -73,7 +73,9 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation)
 - Resource Quotas: Syscall rate limiting, continuous CPU execution limits, and memory mapping bounds check (default 8 MiB)
 - Modular service manager with typed service manifests
-- IPC broker with capability-checked message delivery
+- IPC broker with capability-checked send/receive, live or preloaded service
+  ownership, process-owned receive mailboxes, and bounded per-service
+  backpressure so one absent or stalled consumer cannot starve Heliox
 
 ### Networking
 - RTL8139 PCI NIC driver with real TCP/IP via smoltcp
@@ -97,7 +99,15 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Ambient Background Logic: Actively records voice from mic and performs anomaly screen vision checks
 - Chat state (thinking / done / error, with the actual response text) streamed to the Heliox Assistant app over a structured IPC channel; user messages flow back the same way
 - Stays genuinely idle — no autonomous ticking or inference — until the user has completed setup; a missing config file is never treated as an implicit choice
-- JSON-RPC 2.0 surface over its WebSocket server: `ping`, `execute_tool`, `agent_step`, `gesture_event`, `health`, `get_config`, `system_status`, `agent_stats`
+- Boot-scoped console-token pairing for external models. Paired clients choose
+  an `exclusive` lease (built-in planning pauses) or `cooperative` control;
+  unpaired clients cannot execute tools or inspect privileged agent state.
+- JSON-RPC 2.0 surface over a non-blocking WebSocket listener: `ping`, `pair`,
+  `set_control_mode`, `execute_tool`, `agent_step`, `world_model_preview`,
+  `gesture_event`, `health`, `get_config`, `system_status`, and `agent_stats`.
+  Camera, audio, IPC, and controller input are ingested before each planning
+  step, so absent clients or slow inference cannot make the listener own the
+  autonomous event loop.
 - **World model safety gate**: every public tool path — provider-generated ReAct actions, internal memory/planner actions, and JSON-RPC `execute_tool` calls — passes through one predictive gate before execution. It blocks dangerous predictions (for example, deleting the daemon config, filling the disk, or unsafe kernel upgrades) alongside, not instead of, Tier 3/4 confirmation. Release 0.1.1 packages a hash-verified action-conditioned JEPA encoder and 512-wide transition MLP trained across all 40 learnable actions; kernel upgrade remains deterministic policy only. The model sees OS state, canonical tool id, and 16 normalized argument features, never provider identity. Three-step lookahead retains deterministic safety fields and accumulates repeated process growth.
 - Hierarchical planner with dependency-ordered task decomposition
 - TF-IDF vector store with cosine similarity for persistent memory
@@ -139,13 +149,15 @@ node scripts/verify_world_model_hybrid.mjs
 node scripts/verify_world_model_learned.mjs
 ```
 
-The accepted corpus contains 13,670 transitions from 3,580 episodes, including
-1,316 multi-step episodes, both 512 MiB and 2 GiB observations, all 41 actions,
-and at least three variants for every argument-bearing tool. Of those, 13,243
+The accepted corpus contains 13,697 transitions from 3,639 episodes, including
+1,300 multi-step episodes, both 512 MiB and 2 GiB observations, all 41 actions,
+and at least three variants for every argument-bearing tool. Of those, 13,270
 executed, non-policy rows are eligible for fitting; the fixed split is
-9,219/1,934/2,090. Against the autoencoder baseline, the accepted JEPA pair
-reduces normalized held-out error from 3.47% to 2.40% at one step, 4.96% to
-2.34% macro-per-tool, 7.42% to 4.82% at H=3, and 8.63% to 5.39% at H=5. H
+9,104/2,197/1,969. A corrective collection replaced stale pre-ABI-fix
+`ipc_send` episodes with 128 successful live transitions. Against the matched
+autoencoder baseline, the accepted JEPA pair reduces normalized held-out error
+from 2.30% to 1.68% at one step, 2.96% to 1.71% macro-per-tool, 6.45% to 3.87%
+at H=3, and 6.70% to 4.03% at H=5. H
 remains 3: H=4 offered no material safety gain beyond the verified disk-H2 and
 process-H3 catches, while H=5 increased raw compounding error. The exact pair,
 hashes, dataset fingerprint, and metrics are versioned in
@@ -367,8 +379,11 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | Method | Description |
 |---|---|
 | `ping` | Liveness check, returns `"pong"` |
+| `pair` | Authorize the connection with the boot-scoped physical-console token and choose `exclusive` or `cooperative` control |
+| `set_control_mode` | Switch an already paired connection between exclusive and cooperative planning |
 | `execute_tool` | Run a public agent operation by name with args |
 | `agent_step` | Run one provider-backed ReAct cycle for a supplied goal and return its actions |
+| `world_model_preview` | Predict risk, lookahead depth, reason, and safer suggestion without executing the action |
 | `gesture_event` | Report a gesture/HUD input event |
 | `health` | Whether the daemon is configured yet, and which provider is active |
 | `get_config` | Current runtime configuration (excludes the API key) |
