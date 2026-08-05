@@ -712,7 +712,15 @@ impl Orchestrator {
             if result.output.contains("Awaiting confirmation") {
                 self.emit_telemetry(TelemetryEventKind::ConfirmationQueued, format!("Tool {} requires confirmation", tc.name));
             } else {
-                let snippet = if result.output.len() > 64 { format!("{}...", &result.output[..64]) } else { result.output.clone() };
+                let snippet = if result.output.len() > 64 {
+                    let mut end = 64;
+                    while end > 0 && !result.output.is_char_boundary(end) {
+                        end -= 1;
+                    }
+                    format!("{}...", &result.output[..end])
+                } else {
+                    result.output.clone()
+                };
                 self.emit_telemetry(TelemetryEventKind::ActComplete, format!("Tool {}: {} ({})", tc.name, if result.success { "success" } else { "failed" }, snippet));
             }
 
@@ -748,8 +756,11 @@ impl Orchestrator {
                 let search_results = self.memory.search(&query, top_k, None);
                 let mut output = String::from("Memory search results:\n");
                 for doc in &search_results {
-                    output.push_str(&format!("- [{}] {}\n", doc.category.as_str(),
-                        if doc.content.len() > 200 { &doc.content[..200] } else { &doc.content }));
+                    let mut end = core::cmp::min(doc.content.len(), 200);
+                    while end > 0 && !doc.content.is_char_boundary(end) {
+                        end -= 1;
+                    }
+                    output.push_str(&format!("- [{}] {}\n", doc.category.as_str(), &doc.content[..end]));
                 }
                 tool_mapper::ToolResult {
                     tool_name: String::from("query_memory"),

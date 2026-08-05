@@ -26,7 +26,7 @@ if (!["controlled", "hybrid", "live"].includes(mode)) {
 // actions can be filled by prefetch_world_model_responses.mjs. Controlled mode
 // replays all 41 actions and is the reliable coverage backbone.
 const controlledResponses = {
-  ipc_send: (i) => ({ tool: "ipc_send", args: { target_pid: 1 + (i % 4), message: `hybrid-${i}` } }),
+  ipc_send: (i) => ({ tool: "ipc_send", args: { target_service: "heliox", message: `hybrid-${i}` } }),
   audit_write: (i) => ({ tool: "audit_write", args: { message: `hybrid audit ${i}` } }),
   yield_cpu: () => ({ tool: "yield_cpu", args: {} }),
   camera_capture: () => ({ tool: "camera_capture", args: {} }),

@@ -463,12 +463,16 @@ fn dispatch_with_context(
             }
         }
         x if x == SyscallNumber::AuditWrite as u64 => {
-            if !crate::security::has_capability(held_capabilities, "ipc:send:*") {
+            if !crate::security::has_capability(held_capabilities, "audit:write") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
+            let message = match unsafe { fs::read_user_str(args[0], args[1]) } {
+                Some(message) if !message.trim().is_empty() && message.len() <= 1024 => message,
+                _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
+            };
             crate::logging::audit::log_event(
-                crate::logging::audit::AuditEvent::FileAccess,
-                "userspace audit_write syscall",
+                crate::logging::audit::AuditEvent::UserAudit,
+                &message,
             );
             SyscallResult::ok(0)
         }

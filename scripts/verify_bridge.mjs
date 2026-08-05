@@ -353,6 +353,47 @@ try {
       && executeLog.includes("executed=1"),
   );
 
+  async function executeTool(id, tool, args, expectedResponses = responses.length + 1) {
+    client.write(makeFrame(JSON.stringify({ method: "execute_tool", params: { tool, args }, id })));
+    const toolDeadline = Date.now() + 60000;
+    while (responses.length < expectedResponses && Date.now() < toolDeadline) await sleep(50);
+    return responses.find((response) => response.id === id);
+  }
+
+  const auditStart = serialText().length;
+  const auditResponse = await executeTool(120, "audit_write", { message: "bridge audit event" });
+  check("audit_write appends the caller-provided event", auditResponse?.result?.success === true);
+  await waitForSerial("[AUDIT] UserAudit: bridge audit event", 15, auditStart);
+  check("audit_write reaches the kernel audit trail", true);
+
+  const statusStart = serialText().length;
+  const statusResponse = await executeTool(121, "report_status", { status: "bridge-ready" });
+  check("report_status succeeds through the audit syscall", statusResponse?.result?.success === true);
+  await waitForSerial("HELIOX_STATUS:bridge-ready", 15, statusStart);
+  check("report_status records the supplied status", true);
+
+  const ipcResponse = await executeTool(122, "ipc_send", {
+    target_service: "heliox",
+    message: "STATUS:bridge-ipc",
+  });
+  check(
+    "ipc_send uses the service mailbox ABI and returns a message id",
+    ipcResponse?.result?.success === true && /message_id=[1-9]/.test(ipcResponse?.result?.output || ""),
+  );
+
+  const capabilityResponse = await executeTool(123, "capability_check", { capability_id: 1 });
+  check(
+    "capability_check reports held authority without inverting success",
+    capabilityResponse?.result?.success === true && /held=true/.test(capabilityResponse?.result?.output || ""),
+  );
+
+  const sleepStart = Date.now();
+  const sleepResponse = await executeTool(124, "sleep", { ms: 25 });
+  check(
+    "sleep uses the scheduler blocking syscall",
+    sleepResponse?.result?.success === true && Date.now() - sleepStart >= 20,
+  );
+
   // Send gesture_event request
   console.log("[test] sending gesture_event...");
   const gestureStart = serialText().length;
@@ -366,17 +407,17 @@ try {
 
   // Wait for gesture response
   deadline = Date.now() + 5000;
-  while (responses.length < 10 && Date.now() < deadline) {
+  while (responses.length < 15 && Date.now() < deadline) {
     await sleep(50);
   }
 
   check(
     "received capability-gated gesture response from daemon",
-    responses.length >= 10
-      && responses[9].id === 108
-      && responses[9].result
-      && responses[9].result.success === false
-      && /Awaiting confirmation/.test(responses[9].result.output || ""),
+    responses.length >= 15
+      && responses[14].id === 108
+      && responses[14].result
+      && responses[14].result.success === false
+      && /Awaiting confirmation/.test(responses[14].result.output || ""),
   );
 
   // Gesture-originated OS effects must use exactly the same world-model and

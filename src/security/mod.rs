@@ -77,6 +77,7 @@ pub fn init() {
             false,
         ),
         ("cap:audit:read", "Audit Log Read", "audit:read", false),
+        ("cap:audit:write", "Append Audit Events", "audit:write", true),
         (
             "cap:memory:alloc",
             "Memory Allocation",

@@ -25,6 +25,7 @@ pub enum AuditEvent {
     ProcessSpawned,
     ProcessKilled,
     FileAccess,
+    UserAudit,
     PermissionDenied,
 }
 

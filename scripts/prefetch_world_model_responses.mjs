@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { TOOL_NAMES } from "./audit_world_model_dataset.mjs";
 
 const ARGUMENT_GUIDE = {
-  ipc_send: { target_pid: "number", message: "string" },
+  ipc_send: { target_service: "string", message: "string" },
   audit_write: { message: "string" },
   yield_cpu: {}, camera_capture: {}, gesture_status: {},
   report_status: { status: "string" }, capability_check: { capability_id: "number" },
@@ -85,8 +85,8 @@ export function validateArguments(tool, args) {
   if ("top_k" in args && (!Number.isInteger(args.top_k) || args.top_k < 1 || args.top_k > 100)) {
     throw new Error(`${tool}.top_k must be an integer from 1 to 100`);
   }
-  if ("level" in args && (args.level < 0 || args.level > 100)) {
-    throw new Error(`${tool}.level must be from 0 to 100`);
+  if ("level" in args && (args.level < 0 || args.level > 127)) {
+    throw new Error(`${tool}.level must be from 0 to 127`);
   }
   for (const name of [
     "target_pid", "capability_id", "fd", "ms", "service_id", "flags",

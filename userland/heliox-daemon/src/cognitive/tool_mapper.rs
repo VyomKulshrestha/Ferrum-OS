@@ -1,5 +1,5 @@
 // ============================================================================
-// Heliox-Daemon - Tool-to-Syscall Mapper (27 tools, 5-tier permissions)
+// Heliox-Daemon - Tool-to-Syscall Mapper (41 tools, 5-tier permissions)
 // ============================================================================
 // Maps LLM tool call names to FerrumOS kernel syscalls. Each tool has a
 // permission tier that determines whether it can execute immediately or
@@ -42,6 +42,7 @@ const SYS_EXEC: u64 = 18;
 const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
 const SYS_SYSTEM_QUERY: u64 = 29;
+const SYS_SLEEP: u64 = 32;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -121,12 +122,23 @@ pub struct ToolResult {
     pub output: String,
 }
 
+fn truncate_utf8(value: &str, max_bytes: usize) -> &str {
+    if value.len() <= max_bytes {
+        return value;
+    }
+    let mut end = max_bytes;
+    while end > 0 && !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    &value[..end]
+}
+
 // ---- Tool Registry ---------------------------------------------------------
 
 pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 
 1. `ipc_send` - Send an IPC message to a kernel service.
-   Arguments: {"target_pid": <number>, "message": "<string>"}
+   Arguments: {"target_service": "<service name>", "message": "<string>"}
 
 2. `audit_write` - Write an entry to the kernel audit log.
    Arguments: {"message": "<string>"}
@@ -339,15 +351,28 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
 // ---- Tool Implementations --------------------------------------------------
 
 fn execute_ipc_send(args: &[(String, JsonValue)]) -> ToolResult {
-    let target_pid = find_arg_number(args, "target_pid").unwrap_or(0.0) as u64;
+    let target_service = find_arg_string(args, "target_service").unwrap_or_default();
     let message = find_arg_string(args, "message").unwrap_or_default();
+    if target_service.is_empty() || message.is_empty() {
+        return ToolResult {
+            tool_name: String::from("ipc_send"),
+            success: false,
+            output: String::from("Both 'target_service' and 'message' are required"),
+        };
+    }
     let result = unsafe {
-        syscall3(SYS_IPC_SEND, target_pid, message.as_ptr() as u64, message.len() as u64)
+        syscall4(
+            SYS_IPC_SEND,
+            target_service.as_ptr() as u64,
+            target_service.len() as u64,
+            message.as_ptr() as u64,
+            message.len() as u64,
+        )
     };
     ToolResult {
         tool_name: String::from("ipc_send"),
-        success: result == 0,
-        output: format!("IPC sent to PID {} ({} bytes), result={}", target_pid, message.len(), result),
+        success: (result as i64) > 0,
+        output: format!("IPC sent to service '{}' ({} bytes), message_id={}", target_service, message.len(), result as i64),
     }
 }
 
@@ -376,7 +401,7 @@ fn execute_report_status(args: &[(String, JsonValue)]) -> ToolResult {
     let status = find_arg_string(args, "status").unwrap_or_default();
     let msg = format!("HELIOX_STATUS:{}", status);
     let result = unsafe {
-        syscall3(SYS_IPC_SEND, 0, msg.as_ptr() as u64, msg.len() as u64)
+        syscall3(SYS_AUDIT_WRITE, msg.as_ptr() as u64, msg.len() as u64, 0)
     };
     ToolResult {
         tool_name: String::from("report_status"),
@@ -390,8 +415,8 @@ fn execute_capability_check(args: &[(String, JsonValue)]) -> ToolResult {
     let result = unsafe { syscall3(SYS_CAPABILITY_CHECK, cap_id, 0, 0) };
     ToolResult {
         tool_name: String::from("capability_check"),
-        success: result == 0,
-        output: format!("Capability {} check result={}", cap_id, result),
+        success: result <= 1,
+        output: format!("Capability {} held={}", cap_id, result == 1),
     }
 }
 
@@ -420,7 +445,7 @@ fn execute_read_file(args: &[(String, JsonValue)]) -> ToolResult {
     } else {
         let content = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("<binary>");
         // Truncate for output
-        let preview = if content.len() > 512 { &content[..512] } else { content };
+        let preview = truncate_utf8(content, 512);
         ToolResult {
             tool_name: String::from("read_file"),
             success: true,
@@ -610,7 +635,7 @@ fn execute_net_recv(args: &[(String, JsonValue)]) -> ToolResult {
         }
     } else {
         let data = core::str::from_utf8(&buf[..result as usize]).unwrap_or("<binary>");
-        let preview = if data.len() > 512 { &data[..512] } else { data };
+        let preview = truncate_utf8(data, 512);
         ToolResult {
             tool_name: String::from("net_recv"),
             success: true,
@@ -798,15 +823,11 @@ fn execute_add_subtask() -> ToolResult {
 
 fn execute_sleep(args: &[(String, JsonValue)]) -> ToolResult {
     let ms = find_arg_number(args, "ms").unwrap_or(100.0) as u64;
-    // Use hlt loop for approximate sleep
-    let iterations = ms / 10;
-    for _ in 0..iterations {
-        unsafe { crate::syscall3(0, 0, 0, 0); } // SYS_YIELD
-    }
+    let result = unsafe { syscall3(SYS_SLEEP, ms, 0, 0) };
     ToolResult {
         tool_name: String::from("sleep"),
-        success: true,
-        output: format!("Slept for ~{} ms", ms),
+        success: result == 0,
+        output: format!("Slept for {} ms", ms),
     }
 }
 
@@ -816,7 +837,7 @@ fn execute_service_lifecycle(syscall: u64, args: &[(String, JsonValue)]) -> Tool
     let result = unsafe { syscall3(syscall, service_id, 0, 0) };
     ToolResult {
         tool_name: String::from(name),
-        success: result == 0,
+        success: (result as i64) >= 0,
         output: format!("{} service_id={}, result={}", name, service_id, result),
     }
 }
@@ -895,7 +916,7 @@ fn format_args_summary(args: &[(String, JsonValue)]) -> String {
         s.push('=');
         match v {
             JsonValue::Str(sv) => {
-                let preview = if sv.len() > 32 { &sv[..32] } else { sv.as_str() };
+                let preview = truncate_utf8(sv, 32);
                 s.push_str(preview);
             }
             JsonValue::Number(n) => s.push_str(&format!("{}", n)),
@@ -948,12 +969,23 @@ fn execute_play_audio() -> ToolResult {
 }
 
 fn execute_set_volume(args: &[(String, JsonValue)]) -> ToolResult {
-    let level = find_arg_number(args, "level").unwrap_or(64.0) as u8;
-    crate::cognitive::voice::set_volume(level);
+    let requested = find_arg_number(args, "level").unwrap_or(64.0);
+    if !(0.0..=127.0).contains(&requested) {
+        return ToolResult {
+            tool_name: String::from("set_volume"),
+            success: false,
+            output: String::from("Volume must be from 0 to 127"),
+        };
+    }
+    let level = requested as u8;
+    let result = crate::cognitive::voice::set_volume(level);
     ToolResult {
         tool_name: String::from("set_volume"),
-        success: true,
-        output: format!("Volume set to {}/127", level),
+        success: result.is_ok(),
+        output: match result {
+            Ok(()) => format!("Volume set to {}/127", level),
+            Err(error) => format!("Volume change failed: {}", error),
+        },
     }
 }
 
@@ -974,8 +1006,15 @@ fn execute_keyboard_type(args: &[(String, JsonValue)]) -> ToolResult {
 
     let mut typed = 0u32;
     for ch in text.bytes() {
-        unsafe {
-            crate::syscall4(SYS_INJECT_KEY, ch as u64, 0, 0, 0);
+        let result = unsafe {
+            crate::syscall4(SYS_INJECT_KEY, ch as u64, 0, 0, 0)
+        };
+        if (result as i64) < 0 {
+            return ToolResult {
+                tool_name: String::from("keyboard_type"),
+                success: false,
+                output: format!("Keyboard injection failed after {} characters: {}", typed, result as i64),
+            };
         }
         typed += 1;
     }
@@ -998,9 +1037,7 @@ fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
     }
 
     // event_type=1 (click), button_id, 0
-    unsafe {
-        crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0);
-    }
+    let result = unsafe { crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0) };
 
     let name = match button {
         0 => "left",
@@ -1009,24 +1046,37 @@ fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
     };
     ToolResult {
         tool_name: String::from("mouse_click"),
-        success: true,
-        output: format!("Clicked {} mouse button", name),
+        success: (result as i64) >= 0,
+        output: if (result as i64) >= 0 {
+            format!("Clicked {} mouse button", name)
+        } else {
+            format!("Mouse click failed: {}", result as i64)
+        },
     }
 }
 
 fn execute_mouse_move(args: &[(String, JsonValue)]) -> ToolResult {
     let dx = find_arg_number(args, "dx").unwrap_or(0.0) as i64;
     let dy = find_arg_number(args, "dy").unwrap_or(0.0) as i64;
+    if dx < i16::MIN as i64 || dx > i16::MAX as i64 || dy < i16::MIN as i64 || dy > i16::MAX as i64 {
+        return ToolResult {
+            tool_name: String::from("mouse_move"),
+            success: false,
+            output: String::from("Mouse delta must fit a signed 16-bit value"),
+        };
+    }
 
     // event_type=0 (move), dx, dy
-    unsafe {
-        crate::syscall4(SYS_INJECT_MOUSE, 0, dx as u64, dy as u64, 0);
-    }
+    let result = unsafe { crate::syscall4(SYS_INJECT_MOUSE, 0, dx as u64, dy as u64, 0) };
 
     ToolResult {
         tool_name: String::from("mouse_move"),
-        success: true,
-        output: format!("Mouse moved by ({}, {})", dx, dy),
+        success: (result as i64) >= 0,
+        output: if (result as i64) >= 0 {
+            format!("Mouse moved by ({}, {})", dx, dy)
+        } else {
+            format!("Mouse move failed: {}", result as i64)
+        },
     }
 }
 
@@ -1053,7 +1103,11 @@ fn execute_browse_url(args: &[(String, JsonValue)]) -> ToolResult {
             }
             // Truncate to 4KB to avoid overwhelming the LLM context
             let text = if result.text.len() > 4096 {
-                &result.text[..4096]
+                let mut end = 4096;
+                while end > 0 && !result.text.is_char_boundary(end) {
+                    end -= 1;
+                }
+                &result.text[..end]
             } else {
                 &result.text
             };
@@ -1070,7 +1124,7 @@ fn execute_browse_url(args: &[(String, JsonValue)]) -> ToolResult {
             }
             ToolResult {
                 tool_name: String::from("browse_url"),
-                success: true,
+                success: (200..400).contains(&result.status_code),
                 output,
             }
         }
@@ -1087,6 +1141,14 @@ fn execute_poll_input() -> ToolResult {
     let events_read = unsafe {
         crate::syscall4(SYS_POLL_INPUT, buf.as_mut_ptr() as u64, buf.len() as u64, 0, 0)
     };
+
+    if (events_read as i64) < 0 {
+        return ToolResult {
+            tool_name: String::from("poll_input"),
+            success: false,
+            output: format!("Input polling failed: {}", events_read as i64),
+        };
+    }
 
     if events_read == 0 {
         return ToolResult {
@@ -1224,6 +1286,13 @@ fn execute_hit_test(args: &[(String, JsonValue)]) -> ToolResult {
             label_buf.len() as u64,
         )
     };
+    if (window_id as i64) < 0 {
+        return ToolResult {
+            tool_name: String::from("hit_test"),
+            success: false,
+            output: alloc::format!("Hit test failed: {}", window_id as i64),
+        };
+    }
     
     let mut label_len = 0;
     for &b in &label_buf {

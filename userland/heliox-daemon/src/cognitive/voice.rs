@@ -132,8 +132,8 @@ fn isqrt(n: u64) -> u64 {
 ///
 /// Returns an `AudioBuffer` containing raw PCM data (48kHz, 16-bit, stereo).
 pub fn record_audio(duration_ms: u32) -> Result<AudioBuffer, &'static str> {
-    if duration_ms == 0 || duration_ms > 30_000 {
-        return Err("Duration must be 1-30000 ms");
+    if duration_ms == 0 || duration_ms > 20_000 {
+        return Err("Duration must be 1-20000 ms");
     }
 
     // Calculate buffer size: 48000 Hz * 2 bytes * 2 channels = 192000 bytes/sec
@@ -190,11 +190,12 @@ pub fn play_audio(data: &[u8]) -> Result<(), &'static str> {
 }
 
 /// Set the audio output volume (0 = mute, 127 = max).
-pub fn set_volume(level: u8) {
+pub fn set_volume(level: u8) -> Result<(), &'static str> {
     let clamped = if level > 127 { 127 } else { level };
-    unsafe {
-        crate::syscall4(SYS_SET_VOLUME, clamped as u64, 0, 0, 0);
-    }
+    let result = unsafe {
+        crate::syscall4(SYS_SET_VOLUME, clamped as u64, 0, 0, 0)
+    };
+    if (result as i64) >= 0 { Ok(()) } else { Err("SetVolume syscall failed") }
 }
 
 // ============================================================================

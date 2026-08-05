@@ -124,6 +124,7 @@ pub fn init() {
         vec![
             String::from("cap:ipc:send"),
             String::from("cap:ipc:receive"),
+            String::from("cap:audit:write"),
             String::from("cap:net:connect"),
             String::from("cap:net:listen"),
             String::from("cap:fs:read"),

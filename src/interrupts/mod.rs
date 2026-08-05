@@ -838,11 +838,15 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
         } else if syscall_no == SyscallNumber::Sleep as u64 {
             // arg0 = milliseconds.
             let ticks = arg0.div_ceil(PIT_TICK_MS).max(1);
+            // The scheduler snapshots this frame before switching away, so
+            // write the eventual return value first. Otherwise a woken task
+            // resumes with the syscall number (32) still in rax and callers
+            // incorrectly observe a failed sleep.
+            frame.rax = 0;
             if crate::scheduler::sleep_current(ticks) {
                 save_user_context(current_pid, frame);
                 unsafe { resume_after_death() }
             }
-            frame.rax = 0;
             return;
         } else if syscall_no == SyscallNumber::WaitPid as u64
             || syscall_no == SyscallNumber::Wait as u64
