@@ -246,7 +246,7 @@ const tests = [
   ["users", "agent-bridge"],
   ["syscall 103 5 1", "syscall result: Ok value=1"],
   ["syscall 103 1", "syscall result: InvalidArgument value=0"],
-  ["syscall 103 2", "syscall result: Ok value=0"],
+  ["syscall 103 2", "syscall result: PermissionDenied value=0"],
   ["syscall 103 3 7", "syscall result: PermissionDenied value=0"],
   ["agent status", "Agent Runtime Boundary:"],
   ["agent start", "agentd started"],
