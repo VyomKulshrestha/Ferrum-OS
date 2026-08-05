@@ -556,6 +556,7 @@ pub extern "C" fn _start() -> ! {
     };
     let mut bridge_connected = false;
     let mut bridge_authorized = false;
+    let mut bridge_exclusive = false;
     let mut ws_conn: Option<network::WsConnection> = None;
 
     let mut last_detailed = cognitive::gesture::DetailedGesture {
@@ -710,7 +711,14 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        orchestrator.tick();
+        if bridge_authorized && bridge_exclusive {
+            // The paired model owns planning while the exclusive lease is
+            // active. Keep consuming IPC/confirmation control, but do not let
+            // the built-in provider race it with independent actions.
+            orchestrator.poll_control();
+        } else {
+            orchestrator.tick();
+        }
         
         if !bridge_connected {
             if let Some(fd) = server_fd {
@@ -726,6 +734,7 @@ pub extern "C" fn _start() -> ! {
                             ws_conn = Some(conn);
                             bridge_connected = true;
                             bridge_authorized = false;
+                            bridge_exclusive = false;
                         }
                         Err(e) => {
                             let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
@@ -845,13 +854,23 @@ pub extern "C" fn _start() -> ! {
                                                 .and_then(|params| params.get("token"))
                                                 .and_then(|token| token.as_str())
                                                 .unwrap_or("");
+                                            let control_mode = parsed.get("params")
+                                                .and_then(|params| params.get("control_mode"))
+                                                .and_then(|mode| mode.as_str())
+                                                .unwrap_or("exclusive");
+                                            if control_mode != "exclusive" && control_mode != "cooperative" {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "control_mode must be exclusive or cooperative");
+                                                continue;
+                                            }
                                             if bridge_token.as_ref()
                                                 .map(|expected| bridge_token_matches(expected, supplied))
                                                 .unwrap_or(false)
                                             {
                                                 bridge_authorized = true;
+                                                bridge_exclusive = control_mode == "exclusive";
                                                 let response = alloc::format!(
-                                                    "{{\"jsonrpc\":\"2.0\",\"result\":{{\"authorized\":true}},\"id\":{}}}",
+                                                    "{{\"jsonrpc\":\"2.0\",\"result\":{{\"authorized\":true,\"control_mode\":{}}},\"id\":{}}}",
+                                                    escape_json_string(control_mode),
                                                     id_str
                                                 );
                                                 let _ = network::ws_send_text_server(conn.fd, &response);
@@ -860,6 +879,22 @@ pub extern "C" fn _start() -> ! {
                                             }
                                         } else if !bridge_authorized {
                                             send_rpc_error(conn.fd, &id_str, -32003, "bridge pairing required");
+                                        } else if method == "set_control_mode" {
+                                            let control_mode = parsed.get("params")
+                                                .and_then(|params| params.get("control_mode"))
+                                                .and_then(|mode| mode.as_str())
+                                                .unwrap_or("");
+                                            if control_mode == "exclusive" || control_mode == "cooperative" {
+                                                bridge_exclusive = control_mode == "exclusive";
+                                                let response = alloc::format!(
+                                                    "{{\"jsonrpc\":\"2.0\",\"result\":{{\"control_mode\":{}}},\"id\":{}}}",
+                                                    escape_json_string(control_mode),
+                                                    id_str
+                                                );
+                                                let _ = network::ws_send_text_server(conn.fd, &response);
+                                            } else {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "control_mode must be exclusive or cooperative");
+                                            }
                                         } else if method == "world_model_preview" {
                                             if let Some(params) = parsed.get("params") {
                                                 if let Some(tool_name) = params.get("tool").and_then(|tool| tool.as_str()) {
@@ -1089,6 +1124,7 @@ pub extern "C" fn _start() -> ! {
                             }
                             bridge_connected = false;
                             bridge_authorized = false;
+                            bridge_exclusive = false;
                             ws_conn = None;
                             if let Some(fd) = server_fd {
                                 let _ = network::tcp_close(fd);
@@ -1115,6 +1151,7 @@ pub extern "C" fn _start() -> ! {
                         }
                         bridge_connected = false;
                         bridge_authorized = false;
+                        bridge_exclusive = false;
                         ws_conn = None;
                         if let Some(fd) = server_fd {
                             let _ = network::tcp_close(fd);

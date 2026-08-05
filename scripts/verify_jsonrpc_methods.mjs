@@ -145,8 +145,9 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
     });
     check(`[${label}] connected to JSON-RPC WebSocket`, true);
     const pairingToken = await waitForPairingToken(serialText);
-    assertPaired(await rpc(ws, `pair-${label}`, "pair", { token: pairingToken }));
+    const paired = assertPaired(await rpc(ws, `pair-${label}`, "pair", { token: pairingToken }));
     check(`[${label}] paired using the boot-scoped console token`, true);
+    check(`[${label}] external controller receives the safe exclusive lease by default`, paired.result.control_mode === "exclusive");
 
     return { ws, monitor, qemuProcess, waitForSerial, start };
   } catch (err) {
@@ -253,6 +254,15 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
         "health reports configured=true once a real provider is active",
         health.result && health.result.configured === true && health.result.provider.startsWith("local"),
         JSON.stringify(health.result)
+      );
+
+      const exclusiveBefore = await rpc(ws, "t-exclusive-before", "system_status", {});
+      await sleep(750);
+      const exclusiveAfter = await rpc(ws, "t-exclusive-after", "system_status", {});
+      check(
+        "exclusive model lease pauses the built-in planner so two controllers cannot race",
+        exclusiveAfter.result?.tick_count === exclusiveBefore.result?.tick_count,
+        `before=${exclusiveBefore.result?.tick_count} after=${exclusiveAfter.result?.tick_count}`
       );
 
       const full = fs.readFileSync(path.join(repo, "target", `jsonrpc-verify-${label}-serial.log`), "utf8");
