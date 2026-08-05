@@ -28,6 +28,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { waitForPairingToken } from "./lib/heliox_pairing.mjs";
 import { reconcileWorldModelDataset } from "./lib/world_model_reconcile.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -395,6 +396,8 @@ async function collectProfile(ramMb, selected, chunkIndex) {
       ws.onopen = resolve;
       ws.onerror = reject;
     });
+    const pairingToken = await waitForPairingToken(serialText);
+    await rpc(ws, `pair-${ramMb}-${chunkIndex}`, "pair", { token: pairingToken }, 30_000);
 
     for (let scenarioIndex = 0; scenarioIndex < selected.length; scenarioIndex++) {
       const scenario = selected[scenarioIndex];

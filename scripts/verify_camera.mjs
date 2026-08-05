@@ -7,6 +7,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -241,27 +242,19 @@ try {
   }
   check("received pong from daemon", responses.length >= 1 && responses[0].result === "pong" && responses[0].id === 100);
 
+  const pairingToken = await waitForPairingToken(serialText);
+  client.write(makeFrame(JSON.stringify({
+    method: "pair", params: { token: pairingToken }, id: 101,
+  })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 2 && Date.now() < deadline) await sleep(50);
+  check("bridge connection paired", responses[1]?.result?.authorized === true);
+
   // Query gesture_status tool
   client.write(makeFrame(JSON.stringify({
     method: "execute_tool",
     params: {
       tool: "gesture_status",
-      args: {}
-    },
-    id: 101
-  })));
-  deadline = Date.now() + 5000;
-  while (responses.length < 2 && Date.now() < deadline) {
-    await sleep(50);
-  }
-  check("gesture_status tool execution succeeded", responses.length >= 2 && responses[1].id === 101 && responses[1].result && responses[1].result.success === true);
-  check("gesture_status reported OpenPalm", responses.length >= 2 && responses[1].result.output.includes("OpenPalm"));
-
-  // Query camera_capture tool
-  client.write(makeFrame(JSON.stringify({
-    method: "execute_tool",
-    params: {
-      tool: "camera_capture",
       args: {}
     },
     id: 102
@@ -270,8 +263,24 @@ try {
   while (responses.length < 3 && Date.now() < deadline) {
     await sleep(50);
   }
-  check("camera_capture tool execution succeeded", responses.length >= 3 && responses[2].id === 102 && responses[2].result && responses[2].result.success === true);
-  check("camera_capture reported OpenPalm", responses.length >= 3 && responses[2].result.output.includes("OpenPalm"));
+  check("gesture_status tool execution succeeded", responses.length >= 3 && responses[2].id === 102 && responses[2].result && responses[2].result.success === true);
+  check("gesture_status reported OpenPalm", responses.length >= 3 && responses[2].result.output.includes("OpenPalm"));
+
+  // Query camera_capture tool
+  client.write(makeFrame(JSON.stringify({
+    method: "execute_tool",
+    params: {
+      tool: "camera_capture",
+      args: {}
+    },
+    id: 103
+  })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 4 && Date.now() < deadline) {
+    await sleep(50);
+  }
+  check("camera_capture tool execution succeeded", responses.length >= 4 && responses[3].id === 103 && responses[3].result && responses[3].result.success === true);
+  check("camera_capture reported OpenPalm", responses.length >= 4 && responses[3].result.output.includes("OpenPalm"));
 
   // Close connection
   client.end();

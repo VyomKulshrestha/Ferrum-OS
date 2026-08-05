@@ -9,6 +9,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { assertPaired, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
@@ -68,6 +69,10 @@ async function connectMonitor() {
 }
 
 function rpc(ws, id, tool, args) {
+  return rpcMethod(ws, id, "execute_tool", { tool, args });
+}
+
+function rpcMethod(ws, id, method, params) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error(`timed out waiting for ${id}`)), 90_000);
     const handler = (event) => {
@@ -81,7 +86,7 @@ function rpc(ws, id, tool, args) {
       } catch {}
     };
     ws.addEventListener("message", handler);
-    ws.send(JSON.stringify({ jsonrpc: "2.0", id, method: "execute_tool", params: { tool, args } }));
+    ws.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
   });
 }
 
@@ -137,6 +142,8 @@ try {
   await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 60, start);
   ws = new WebSocket(`ws://127.0.0.1:${hostPort}`);
   await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+  const pairingToken = await waitForPairingToken(serialText);
+  assertPaired(await rpcMethod(ws, "pair", "pair", { token: pairingToken }));
 
   const plain = await rpc(ws, "plain", "browse_url", { url: `http://10.0.2.2:${httpPort}/page` });
   check("HTTP page is fetched and reduced to text", plain.result?.success === true && /native http works/.test(plain.result.output), plain.result?.output || "");

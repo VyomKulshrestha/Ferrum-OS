@@ -7,6 +7,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -259,6 +260,53 @@ try {
   
   check("received pong from daemon", responses.length >= 1 && responses[0].result === "pong" && responses[0].id === 100);
 
+  // Privileged methods must fail closed before pairing.
+  client.write(makeFrame(JSON.stringify({
+    method: "execute_tool", params: { tool: "yield_cpu", args: {} }, id: 101,
+  })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 2 && Date.now() < deadline) await sleep(50);
+  check(
+    "unpaired client cannot invoke privileged tools",
+    responses[1]?.id === 101 && responses[1]?.error?.code === -32003,
+  );
+
+  client.write(makeFrame(JSON.stringify({
+    method: "pair", params: { token: "00000000000000000000000000000000" }, id: 102,
+  })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 3 && Date.now() < deadline) await sleep(50);
+  check(
+    "incorrect pairing token is rejected",
+    responses[2]?.id === 102 && responses[2]?.error?.code === -32003,
+  );
+
+  const pairingToken = await waitForPairingToken(serialText);
+  client.write(makeFrame(JSON.stringify({
+    method: "pair", params: { token: pairingToken }, id: 103,
+  })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 4 && Date.now() < deadline) await sleep(50);
+  check(
+    "physical-console pairing token authorizes this connection",
+    responses[3]?.id === 103 && responses[3]?.result?.authorized === true,
+  );
+
+  client.write(makeFrame(JSON.stringify({ method: "does_not_exist", id: 104 })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 5 && Date.now() < deadline) await sleep(50);
+  check("unknown JSON-RPC method returns -32601", responses[4]?.error?.code === -32601);
+
+  client.write(makeFrame(JSON.stringify({ method: "execute_tool", params: {}, id: 105 })));
+  deadline = Date.now() + 5000;
+  while (responses.length < 6 && Date.now() < deadline) await sleep(50);
+  check("invalid tool parameters return -32602", responses[5]?.error?.code === -32602);
+
+  client.write(makeFrame("{"));
+  deadline = Date.now() + 5000;
+  while (responses.length < 7 && Date.now() < deadline) await sleep(50);
+  check("malformed JSON returns a parse error", responses[6]?.error?.code === -32700);
+
   // Send execute_tool request
   console.log("[test] sending execute_tool...");
   const executeStart = serialText().length;
@@ -268,19 +316,19 @@ try {
       tool: "yield_cpu",
       args: {}
     },
-    id: 101
+    id: 106
   })));
 
   // Wait for execute_tool response
   // The world-model path captures two live snapshots around execution. Allow
   // the same slow-TCG/host-load variance as the boot waits.
   deadline = Date.now() + 60000;
-  while (responses.length < 2 && Date.now() < deadline) {
+  while (responses.length < 8 && Date.now() < deadline) {
     await sleep(50);
   }
 
-  check("received execute_tool response from daemon", responses.length >= 2 && responses[1].id === 101);
-  check("execute_tool result was successful", responses.length >= 2 && responses[1].result && responses[1].result.success === true);
+  check("received execute_tool response from daemon", responses.length >= 8 && responses[7].id === 106);
+  check("execute_tool result was successful", responses.length >= 8 && responses[7].result && responses[7].result.success === true);
   const executeLog = await waitForSerial("[world-model-dataset-v2]", 15, executeStart);
   check(
     "public execute_tool passes through the world-model recorder",
@@ -297,22 +345,22 @@ try {
     params: {
       gesture: "circle_clockwise"
     },
-    id: 102
+    id: 107
   })));
 
   // Wait for gesture response
   deadline = Date.now() + 5000;
-  while (responses.length < 3 && Date.now() < deadline) {
+  while (responses.length < 9 && Date.now() < deadline) {
     await sleep(50);
   }
 
   check(
     "received capability-gated gesture response from daemon",
-    responses.length >= 3
-      && responses[2].id === 102
-      && responses[2].result
-      && responses[2].result.success === false
-      && /Awaiting confirmation/.test(responses[2].result.output || ""),
+    responses.length >= 9
+      && responses[8].id === 107
+      && responses[8].result
+      && responses[8].result.success === false
+      && /Awaiting confirmation/.test(responses[8].result.output || ""),
   );
 
   // Gesture-originated OS effects must use exactly the same world-model and

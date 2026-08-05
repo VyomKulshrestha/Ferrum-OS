@@ -13,6 +13,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { assertPaired, rpcCall, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -159,20 +160,15 @@ try {
 
   console.log("[test] connecting to daemon WebSocket, requesting local_inference...");
   const ws = new WebSocket(`ws://127.0.0.1:${hostPort}`);
+  await new Promise((resolve, reject) => {
+    ws.addEventListener("open", resolve, { once: true });
+    ws.addEventListener("error", reject, { once: true });
+  });
+  const pairingToken = await waitForPairingToken(serialText);
+  assertPaired(await rpcCall(ws, "pair-real-model", "pair", { token: pairingToken }));
   let response = null;
   let wsError = null;
 
-  ws.onopen = () => {
-    ws.send(JSON.stringify({
-      jsonrpc: "2.0",
-      id: "real-model-test",
-      method: "execute_tool",
-      // Four generated tokens are enough to distinguish the trained model
-      // from the old deterministic fixture without making this integration
-      // check wait for the direct-tool default of sixteen tokens under QEMU.
-      params: { tool: "local_inference", args: { prompt: "Once upon a time", max_tokens: 4 } },
-    }));
-  };
   ws.onerror = (err) => { wsError = err; };
   ws.onmessage = (event) => {
     console.log("[test] WS message:", event.data);
@@ -181,6 +177,15 @@ try {
       if (data.id === "real-model-test") response = data.result;
     } catch { /* ignore parse errors from unrelated frames */ }
   };
+  ws.send(JSON.stringify({
+    jsonrpc: "2.0",
+    id: "real-model-test",
+    method: "execute_tool",
+    // Four generated tokens are enough to distinguish the trained model
+    // from the old deterministic fixture without making this integration
+    // check wait for the direct-tool default of sixteen tokens under QEMU.
+    params: { tool: "local_inference", args: { prompt: "Once upon a time", max_tokens: 4 } },
+  }));
 
   // The real model is loaded lazily on the first inference request (not at
   // HELIOX_READY) and mmap's its ~16MB checkpoint page-by-page from the

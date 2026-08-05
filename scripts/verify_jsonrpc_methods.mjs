@@ -18,6 +18,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { assertPaired, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -143,6 +144,9 @@ async function runScenario(label, port, hostfwdPort, preRing3Init) {
       ws.onerror = reject;
     });
     check(`[${label}] connected to JSON-RPC WebSocket`, true);
+    const pairingToken = await waitForPairingToken(serialText);
+    assertPaired(await rpc(ws, `pair-${label}`, "pair", { token: pairingToken }));
+    check(`[${label}] paired using the boot-scoped console token`, true);
 
     return { ws, monitor, qemuProcess, waitForSerial, start };
   } catch (err) {

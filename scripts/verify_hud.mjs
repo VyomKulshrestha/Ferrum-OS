@@ -7,6 +7,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -218,6 +219,14 @@ try {
 
     client.on("error", reject);
   });
+
+  const pairingToken = await waitForPairingToken(serialText);
+  client.write(makeFrame(JSON.stringify({
+    method: "pair", params: { token: pairingToken }, id: 300,
+  })));
+  let pairDeadline = Date.now() + 5000;
+  while (responses.length < 1 && Date.now() < pairDeadline) await sleep(50);
+  if (!responses[0]?.result?.authorized) throw new Error("bridge pairing failed");
 
   console.log("[test] sending hud_update execute_tool request...");
   // Pushes visible HUD state with suggestion bubble "Hello HUD Verification"

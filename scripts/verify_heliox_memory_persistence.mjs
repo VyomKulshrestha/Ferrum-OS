@@ -7,6 +7,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { assertPaired, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
@@ -118,6 +119,8 @@ async function boot(label, configure) {
   await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 60, start);
   const ws = new WebSocket(`ws://127.0.0.1:${hostPort}`);
   await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+  const pairingToken = await waitForPairingToken(serialText);
+  assertPaired(await rpc(ws, `pair-${label}`, "pair", { token: pairingToken }));
   return { child, monitor, ws, serialText, waitForSerial, start };
 }
 

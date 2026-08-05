@@ -15,6 +15,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { assertPaired, rpcCall, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -155,27 +156,19 @@ try {
   // Connect to the WebSocket port 8785
   console.log(`Connecting to daemon WebSocket on host port ${hostPort}...`);
   const ws = new WebSocket(`ws://127.0.0.1:${hostPort}`);
+  await new Promise((resolve, reject) => {
+    ws.addEventListener("open", resolve, { once: true });
+    ws.addEventListener("error", reject, { once: true });
+  });
+  const pairingToken = await waitForPairingToken(serialText);
+  assertPaired(await rpcCall(ws, "pair-offline", "pair", { token: pairingToken }));
   
   let wsOpen = false;
   let wsError = null;
   let localInferenceResponse = null;
   let upgradeResponse = null;
 
-  ws.onopen = () => {
-    wsOpen = true;
-    console.log("WebSocket connected. Sending local_inference request...");
-    ws.send(JSON.stringify({
-      jsonrpc: "2.0",
-      id: "test-inference",
-      method: "execute_tool",
-      params: {
-        tool: "local_inference",
-        args: {
-          prompt: "hello"
-        }
-      }
-    }));
-  };
+  wsOpen = true;
 
   ws.onerror = (err) => {
     wsError = err;
@@ -205,6 +198,13 @@ try {
       console.error("Error parsing WS message:", e);
     }
   };
+  console.log("WebSocket paired. Sending local_inference request...");
+  ws.send(JSON.stringify({
+    jsonrpc: "2.0",
+    id: "test-inference",
+    method: "execute_tool",
+    params: { tool: "local_inference", args: { prompt: "hello" } },
+  }));
 
   // Wait for WS local inference response
   const wsDeadline = Date.now() + 10_000;

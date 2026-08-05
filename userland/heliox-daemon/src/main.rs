@@ -400,6 +400,44 @@ fn escape_json_string(s: &str) -> String {
     res
 }
 
+fn generate_bridge_pairing_token() -> Result<String, &'static str> {
+    let mut bytes = [0u8; 16];
+    custom_getrandom(&mut bytes).map_err(|_| "cryptographic random syscall failed")?;
+    let mut token = String::with_capacity(bytes.len() * 2);
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for byte in bytes {
+        token.push(HEX[(byte >> 4) as usize] as char);
+        token.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    Ok(token)
+}
+
+/// Length-oblivious token comparison. The pairing token is short-lived and
+/// random, but avoiding an early-exit comparison also removes a cheap remote
+/// timing oracle from the privileged control plane.
+fn bridge_token_matches(expected: &str, supplied: &str) -> bool {
+    let mut difference = expected.len() ^ supplied.len();
+    let max_len = core::cmp::max(expected.len(), supplied.len());
+    let expected_bytes = expected.as_bytes();
+    let supplied_bytes = supplied.as_bytes();
+    for index in 0..max_len {
+        let left = expected_bytes.get(index).copied().unwrap_or(0);
+        let right = supplied_bytes.get(index).copied().unwrap_or(0);
+        difference |= (left ^ right) as usize;
+    }
+    difference == 0
+}
+
+fn send_rpc_error(fd: u64, id: &str, code: i64, message: &str) {
+    let response = alloc::format!(
+        "{{\"jsonrpc\":\"2.0\",\"error\":{{\"code\":{},\"message\":{}}},\"id\":{}}}",
+        code,
+        escape_json_string(message),
+        id
+    );
+    let _ = network::ws_send_text_server(fd, &response);
+}
+
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     // Write startup log
@@ -427,6 +465,32 @@ pub extern "C" fn _start() -> ! {
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
+
+    // The network bridge delegates the daemon's powerful native syscall
+    // authority to an external model/client. Require a fresh physical-console
+    // pairing secret on every daemon boot before exposing any state or action.
+    let bridge_token = match generate_bridge_pairing_token() {
+        Ok(token) => {
+            let message = alloc::format!(
+                "[heliox-daemon] bridge pairing token: {}\n",
+                token
+            );
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, message.as_ptr() as u64, message.len() as u64);
+            }
+            Some(token)
+        }
+        Err(error) => {
+            let message = alloc::format!(
+                "[heliox-daemon] bridge disabled: {}\n",
+                error
+            );
+            unsafe {
+                syscall3(SYS_WRITE, FD_CONSOLE, message.as_ptr() as u64, message.len() as u64);
+            }
+            None
+        }
+    };
 
     // Check for world-model data collection trigger
     check_and_trigger_world_model_collect(&mut orchestrator);
@@ -477,7 +541,8 @@ pub extern "C" fn _start() -> ! {
     let mut tracker = cognitive::gesture::GestureTracker::new();
 
     // Initialize server socket
-    let mut server_fd = match init_server_socket() {
+    let mut server_fd = match bridge_token.as_ref() {
+        Some(_) => match init_server_socket() {
         Ok(fd) => Some(fd),
         Err(e) => {
             let err_msg = alloc::format!("[heliox-daemon] warning: failed to init server socket (offline mode): {}\n", e);
@@ -486,8 +551,11 @@ pub extern "C" fn _start() -> ! {
             }
             None
         }
+        },
+        None => None,
     };
     let mut bridge_connected = false;
+    let mut bridge_authorized = false;
     let mut ws_conn: Option<network::WsConnection> = None;
 
     let mut last_detailed = cognitive::gesture::DetailedGesture {
@@ -657,6 +725,7 @@ pub extern "C" fn _start() -> ! {
                             }
                             ws_conn = Some(conn);
                             bridge_connected = true;
+                            bridge_authorized = false;
                         }
                         Err(e) => {
                             let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
@@ -767,6 +836,26 @@ pub extern "C" fn _start() -> ! {
                                         if method == "ping" {
                                             let pong_json = alloc::format!("{{\"jsonrpc\":\"2.0\",\"result\":\"pong\",\"id\":{}}}", id_str);
                                             let _ = network::ws_send_text_server(conn.fd, &pong_json);
+                                        } else if method == "pair" {
+                                            let supplied = parsed.get("params")
+                                                .and_then(|params| params.get("token"))
+                                                .and_then(|token| token.as_str())
+                                                .unwrap_or("");
+                                            if bridge_token.as_ref()
+                                                .map(|expected| bridge_token_matches(expected, supplied))
+                                                .unwrap_or(false)
+                                            {
+                                                bridge_authorized = true;
+                                                let response = alloc::format!(
+                                                    "{{\"jsonrpc\":\"2.0\",\"result\":{{\"authorized\":true}},\"id\":{}}}",
+                                                    id_str
+                                                );
+                                                let _ = network::ws_send_text_server(conn.fd, &response);
+                                            } else {
+                                                send_rpc_error(conn.fd, &id_str, -32003, "pairing denied");
+                                            }
+                                        } else if !bridge_authorized {
+                                            send_rpc_error(conn.fd, &id_str, -32003, "bridge pairing required");
                                         } else if method == "execute_tool" {
                                             if let Some(params) = parsed.get("params") {
                                                 if let Some(tool_name) = params.get("tool").and_then(|t| t.as_str()) {
@@ -794,7 +883,11 @@ pub extern "C" fn _start() -> ! {
                                                         id_str
                                                     );
                                                     let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                } else {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, "missing tool");
                                                 }
+                                            } else {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "missing params");
                                             }
                                         } else if method == "agent_step" {
                                             let goal = parsed.get("params")
@@ -867,8 +960,14 @@ pub extern "C" fn _start() -> ! {
                                                             id_str
                                                         );
                                                         let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                                    } else {
+                                                        send_rpc_error(conn.fd, &id_str, -32602, "unsupported gesture");
                                                     }
+                                                } else {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, "missing gesture");
                                                 }
+                                            } else {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "missing params");
                                             }
                                         } else if method == "health" {
                                             // Distinct from `ping`: reports whether the agent has
@@ -938,6 +1037,8 @@ pub extern "C" fn _start() -> ! {
                                                 id_str
                                             );
                                             let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                        } else {
+                                            send_rpc_error(conn.fd, &id_str, -32601, "method not found");
                                         }
                                     }
                                     Err(_) => {
@@ -945,6 +1046,7 @@ pub extern "C" fn _start() -> ! {
                                         unsafe {
                                             syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
                                         }
+                                        send_rpc_error(conn.fd, "null", -32700, "parse error");
                                     }
                                 }
                             }
@@ -954,6 +1056,7 @@ pub extern "C" fn _start() -> ! {
                                 syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
                             }
                             bridge_connected = false;
+                            bridge_authorized = false;
                             ws_conn = None;
                             if let Some(fd) = server_fd {
                                 let _ = network::tcp_close(fd);
@@ -979,6 +1082,7 @@ pub extern "C" fn _start() -> ! {
                             syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
                         }
                         bridge_connected = false;
+                        bridge_authorized = false;
                         ws_conn = None;
                         if let Some(fd) = server_fd {
                             let _ = network::tcp_close(fd);
