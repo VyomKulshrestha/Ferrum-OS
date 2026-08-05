@@ -478,55 +478,88 @@ impl Orchestrator {
             self.pending_gesture = None;
         }
 
+        // Retrieval must be anchored in the user's current goal too. On a
+        // fresh goal `last_observation` can be empty (or still describe the
+        // previous goal), which previously left durable memories unused until
+        // after the first action.
+        let goal = self.planner.current_goal();
+        let mut retrieval_query = goal.clone();
         if !self.last_observation.is_empty() {
-            let results = self.memory.search(&self.last_observation, 3, None);
-            let results_len = results.len();
-            if results_len > 0 {
-                let mut ctx = String::new();
-                for doc in &results {
-                    ctx.push_str("- [");
-                    ctx.push_str(doc.category.as_str());
-                    ctx.push_str("] ");
-                    let content = if doc.content.len() > 200 {
-                        &doc.content[..200]
-                    } else {
-                        &doc.content
-                    };
-                    ctx.push_str(content);
-                    ctx.push('\n');
-                }
-                // Drop results so we can borrow self mutably again
-                drop(results);
-                self.planner.set_memory_context(&ctx);
-                self.emit_telemetry(TelemetryEventKind::ObserveComplete, format!("RAG search found {} memories", results_len));
+            if !retrieval_query.is_empty() {
+                retrieval_query.push('\n');
             }
+            retrieval_query.push_str(&self.last_observation);
+        }
+        if !retrieval_query.is_empty() {
+            let results = self.memory.search(&retrieval_query, 3, None);
+            let results_len = results.len();
+            let mut ctx = String::new();
+            for doc in &results {
+                ctx.push_str("- [");
+                ctx.push_str(doc.category.as_str());
+                ctx.push_str("] ");
+                let content = if doc.content.len() > 200 {
+                    let mut end = 200;
+                    while end > 0 && !doc.content.is_char_boundary(end) {
+                        end -= 1;
+                    }
+                    &doc.content[..end]
+                } else {
+                    &doc.content
+                };
+                ctx.push_str(content);
+                ctx.push('\n');
+            }
+            // Drop references into the memory store before mutating planner.
+            drop(results);
+            self.planner.set_memory_context(&ctx);
+            if results_len > 0 {
+                self.emit_telemetry(
+                    TelemetryEventKind::ObserveComplete,
+                    format!("RAG search found {} memories", results_len),
+                );
+            }
+        } else {
+            self.planner.set_memory_context("");
         }
 
         let lessons = self.reflector.lessons_context();
-        if !lessons.is_empty() {
-            self.planner.set_lessons_context(&lessons);
+        self.planner.set_lessons_context(&lessons);
+
+        // Build one coherent observation so pending confirmations do not
+        // overwrite failure context. The world model already captures screen
+        // text around actions; include the same live OS view in every actual
+        // reasoning prompt rather than only in the rare idle-anomaly branch.
+        let mut observation = self.last_observation.clone();
+        if let Ok(capture) = super::screen_vision::capture_screen() {
+            let screen = capture.full_text();
+            if !screen.trim().is_empty() {
+                const MAX_SCREEN_CONTEXT_BYTES: usize = 4096;
+                let mut start = screen.len().saturating_sub(MAX_SCREEN_CONTEXT_BYTES);
+                while start < screen.len() && !screen.is_char_boundary(start) {
+                    start += 1;
+                }
+                if !observation.is_empty() {
+                    observation.push_str("\n\n");
+                }
+                observation.push_str("[CURRENT SCREEN]\n");
+                observation.push_str(&screen[start..]);
+            }
         }
 
         if self.reflector.failure_count() > 0 {
-            let failures_ctx = self.reflector.recent_failures_context(3);
-            let mut obs = self.last_observation.clone();
-            obs.push_str(&failures_ctx);
-            self.planner.set_observation(&obs);
-        } else {
-            self.planner.set_observation(&self.last_observation);
+            observation.push_str(&self.reflector.recent_failures_context(3));
         }
 
         let pending = self.confirmation_gate.format_pending();
         if pending.contains('[') {
-            let mut obs = self.last_observation.clone();
-            obs.push_str("\n\n");
-            obs.push_str(&pending);
-            self.planner.set_observation(&obs);
+            observation.push_str("\n\n");
+            observation.push_str(&pending);
         }
+        self.planner.set_observation(&observation);
 
         // Multi-agent domain routing: classify the current goal and
         // append a domain-specific prompt suffix to focus the LLM.
-        let goal = self.planner.current_goal();
         let classification = self.router.classify(&goal);
         let domain_hint = self.router.domain_prompt(classification.domain);
         self.planner.set_domain_hint(domain_hint);

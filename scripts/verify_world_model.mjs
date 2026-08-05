@@ -86,6 +86,7 @@ try { fs.unlinkSync(serialLog); } catch {}
 // act() dispatches, by request count, instead of relying on real LLM
 // tool-selection (the tiny on-device model isn't tool-call-tuned at all).
 let requestCount = 0;
+let lastRequestBody = "";
 const options = {
   key: fs.readFileSync(path.join(repo, "userland", "heliox-daemon", "certs", "test_server.key")),
   cert: fs.readFileSync(path.join(repo, "userland", "heliox-daemon", "certs", "test_server.pem")),
@@ -110,6 +111,7 @@ const mockServer = https.createServer(options, (req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {
+    lastRequestBody = body;
     // Deliberately omit Content-Length so Node sends a chunked response.
     // The production HTTP parser supports it and this provider-path test
     // ensures that support remains integrated with tool dispatch.
@@ -210,6 +212,10 @@ try {
   // world model does NOT block them and the experience buffer genuinely
   // records them (Layer 2 collecting real training data from real agent use).
   await waitForSerial("action=write_file", 20, start);
+  check(
+    "provider prompt includes the live screen observation",
+    lastRequestBody.includes("[CURRENT SCREEN]"),
+  );
   const beforeFirstBlock = serialText().slice(start, serialText().indexOf("BLOCKED", start) === -1 ? undefined : serialText().indexOf("BLOCKED", start));
   check("a write_file tuple was recorded before any block occurred", beforeFirstBlock.includes("action=write_file"));
   check("no benign write_file call was blocked", !beforeFirstBlock.includes("BLOCKED"));
