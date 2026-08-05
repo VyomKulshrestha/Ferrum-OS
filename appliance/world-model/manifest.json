@@ -40,6 +40,43 @@
     "geometric_error_ratio_vs_autoencoder": 0.65978181839315,
     "regressions_beyond_tolerance": []
   },
+  "safety_evaluation": {
+    "protocol": "paired-three-arm-safety-evaluation-v1",
+    "episodes_per_condition": 500,
+    "safe_episodes": 250,
+    "dangerous_episodes": 250,
+    "rules_only": {
+      "false_negative_rate": 0.412,
+      "false_positive_rate": 0.084,
+      "balanced_accuracy": 0.752
+    },
+    "jepa_only": {
+      "false_negative_rate": 0.772,
+      "false_positive_rate": 0.092,
+      "balanced_accuracy": 0.568
+    },
+    "rules_plus_jepa": {
+      "false_negative_rate": 0.208,
+      "false_positive_rate": 0.164,
+      "balanced_accuracy": 0.814,
+      "dangerous_catches_added_over_rules": 51,
+      "deterministic_catches_lost": 0
+    },
+    "artifacts": {
+      "fixture": {
+        "path": "docs/research/world_model_safety_scenarios.json",
+        "sha256": "9e74e9557842eda70a1436c3d0a171a0948eaf17e22ddb78002658d2bdf6bd9a"
+      },
+      "aggregate": {
+        "path": "docs/research/world_model_safety_baseline.json",
+        "sha256": "76595e4c8eb7774e85dc8dc38ea32923bc50b7bcd03d38126626cd840305d35f"
+      },
+      "predictions": {
+        "path": "docs/research/world_model_safety_predictions.csv",
+        "sha256": "cdacbf301ec56193cc20f073a64ba9d8b31fa116cb41572a97c0db4775d461f3"
+      }
+    }
+  },
   "files": {
     "encoder": {
       "path": "model_encoder.bin",
