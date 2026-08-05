@@ -11,6 +11,8 @@
 *.log
 *.pdb
 *.exe
+__pycache__/
+*.py[cod]
 !.cargo/
 !.cargo/config.toml
 # src/smp/mod.rs embeds this via include_bytes! - a tiny (230 byte), static,
