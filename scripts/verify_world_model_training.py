@@ -94,6 +94,22 @@ assert abs(
     - scaled_summary["normalized_macro_tool_mse"]
 ) < 1e-7
 
+# A legitimately no-op action can have an almost-zero per-tool baseline.
+# Macro normalization must weight tools equally without averaging an
+# unbounded error/baseline ratio for that one action.
+mixed_actions = np.array([0, 1], dtype=np.int32)
+mixed_target = np.vstack([
+    np.zeros((1, MODULE.EMBEDDING_SIZE), dtype=np.float32),
+    np.ones((1, MODULE.EMBEDDING_SIZE), dtype=np.float32),
+])
+mixed_prediction = np.vstack([
+    np.full((1, MODULE.EMBEDDING_SIZE), 0.01, dtype=np.float32),
+    np.full((1, MODULE.EMBEDDING_SIZE), 0.5, dtype=np.float32),
+])
+mixed_summary = MODULE.metric_summary(mixed_prediction, mixed_target, mixed_actions)
+assert mixed_summary["per_action"][MODULE.TOOL_NAMES[0]]["normalized_mse"] > 1e6
+assert mixed_summary["normalized_macro_tool_mse"] < 1.0
+
 fingerprint_rows = [{
     "episode_id": "fingerprint-1",
     "step": 0,
@@ -128,6 +144,7 @@ print("PASS\tlearned-tool coverage is derived only from sufficiently sampled tra
 print("PASS\tpolicy-only kernel upgrades can never enter learned weights")
 print("PASS\toffline rollout clamping matches signed runtime latent bounds")
 print("PASS\tJEPA promotion metrics are invariant to latent scale alone")
+print("PASS\tmacro tool normalization remains finite for legitimate no-op actions")
 print("PASS\tdataset fingerprints ignore representation latents but bind row identity")
 print("PASS\tJEPA acceptance reports are bound to their transition dataset and split")
-print("7/7 checks passed")
+print("8/8 checks passed")

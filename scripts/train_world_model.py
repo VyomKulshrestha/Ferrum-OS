@@ -313,7 +313,7 @@ def metric_summary(prediction, target, actions):
     )
     per_action = {}
     action_mses = []
-    normalized_action_mses = []
+    action_zero_mses = []
     for action_id in sorted(set(actions.tolist())):
         mask = actions == action_id
         action_mse = float(np.mean((prediction[mask] - target[mask]) ** 2))
@@ -331,7 +331,7 @@ def metric_summary(prediction, target, actions):
             "normalized_core_mse": core_action_mse / max(core_action_zero_mse, 1e-12),
         }
         action_mses.append(action_mse)
-        normalized_action_mses.append(action_mse / max(action_zero_mse, 1e-12))
+        action_zero_mses.append(action_zero_mse)
     return {
         "mse": learned_mse,
         "zero_mse": zero_mse,
@@ -342,7 +342,8 @@ def metric_summary(prediction, target, actions):
         "dynamic_mse": dynamic_mse,
         "macro_tool_mse": float(np.mean(action_mses)) if action_mses else 0.0,
         "normalized_macro_tool_mse": (
-            float(np.mean(normalized_action_mses)) if normalized_action_mses else 0.0
+            float(np.mean(action_mses)) / max(float(np.mean(action_zero_mses)), 1e-12)
+            if action_mses else 0.0
         ),
         "changed_dimensions": np.flatnonzero(changed_dimensions).tolist(),
         "per_action": per_action,

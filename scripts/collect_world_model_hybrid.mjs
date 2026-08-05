@@ -397,7 +397,17 @@ async function collectProfile(ramMb, selected, chunkIndex) {
       ws.onerror = reject;
     });
     const pairingToken = await waitForPairingToken(serialText);
-    await rpc(ws, `pair-${ramMb}-${chunkIndex}`, "pair", { token: pairingToken }, 30_000);
+    // Collection deliberately uses cooperative mode: the autonomous provider
+    // cadence is set effectively idle above, while IPC/audio/screen servicing
+    // must keep running between controlled agent_step calls so observations
+    // describe a live OS rather than an artificially frozen daemon.
+    await rpc(
+      ws,
+      `pair-${ramMb}-${chunkIndex}`,
+      "pair",
+      { token: pairingToken, control_mode: "cooperative" },
+      30_000,
+    );
 
     for (let scenarioIndex = 0; scenarioIndex < selected.length; scenarioIndex++) {
       const scenario = selected[scenarioIndex];

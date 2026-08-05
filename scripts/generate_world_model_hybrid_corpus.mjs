@@ -11,7 +11,7 @@ function arg(name, fallback) {
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
 }
-const count = Math.max(41, Number(arg("--count", "5000")));
+const requestedTool = String(arg("--only-tool", ""));
 const seed = Number(arg("--seed", "42")) >>> 0;
 const offset = Math.max(0, Number(arg("--offset", "0")));
 const outPath = path.resolve(arg("--out", path.join(repo, "target", "world_model_hybrid_corpus.jsonl")));
@@ -26,7 +26,10 @@ if (!["controlled", "hybrid", "live"].includes(mode)) {
 // actions can be filled by prefetch_world_model_responses.mjs. Controlled mode
 // replays all 41 actions and is the reliable coverage backbone.
 const controlledResponses = {
-  ipc_send: (i) => ({ tool: "ipc_send", args: { target_service: "heliox", message: `hybrid-${i}` } }),
+  ipc_send: (i) => ({
+    tool: "ipc_send",
+    args: { target_service: "heliox", message: `hybrid-${i}-${"x".repeat(i % 17)}` },
+  }),
   audit_write: (i) => ({ tool: "audit_write", args: { message: `hybrid audit ${i}` } }),
   yield_cpu: () => ({ tool: "yield_cpu", args: {} }),
   camera_capture: () => ({ tool: "camera_capture", args: {} }),
@@ -85,7 +88,7 @@ const controlledResponses = {
 };
 
 const specs = [
-  ["ipc_send", (i) => `Send a short IPC status message numbered ${i} to the gui service.`],
+  ["ipc_send", (i) => `Send a short IPC status message numbered ${i} to the heliox service.`],
   ["audit_write", (i) => `Write audit event hybrid-${i} with informational severity.`],
   ["yield_cpu", () => "Yield the CPU once so another runnable task can proceed."],
   ["camera_capture", () => "Capture one camera frame and report whether a camera is available."],
@@ -134,6 +137,14 @@ const specs = [
   ["poll_input", () => "Poll once for pending user input without blocking."],
 ];
 
+const activeSpecs = requestedTool
+  ? specs.filter(([tool]) => tool === requestedTool)
+  : specs;
+if (activeSpecs.length === 0) {
+  throw new Error(`unknown --only-tool ${requestedTool}`);
+}
+const count = Math.max(activeSpecs.length, Number(arg("--count", "5000")));
+
 let state = seed || 1;
 const random = () => {
   state ^= state << 13;
@@ -146,25 +157,25 @@ const rows = [];
 let blockOrder = [];
 for (let i = 0; i < count; i++) {
   const corpusIndex = offset + i;
-  const slot = i % specs.length;
+  const slot = i % activeSpecs.length;
   // Shuffle each complete 41-tool block while preserving exact balance.
   if (slot === 0) {
-    blockOrder = Array.from({ length: specs.length }, (_, index) => index);
+    blockOrder = Array.from({ length: activeSpecs.length }, (_, index) => index);
     for (let j = blockOrder.length - 1; j > 0; j--) {
       const k = Math.floor(random() * (j + 1));
       [blockOrder[j], blockOrder[k]] = [blockOrder[k], blockOrder[j]];
     }
   }
-  const [tool, makePrompt] = specs[blockOrder[slot]];
+  const [tool, makePrompt] = activeSpecs[blockOrder[slot]];
   const row = {
     id: `hybrid-${String(corpusIndex).padStart(6, "0")}`,
     prompt: makePrompt(corpusIndex),
     expected_tool: tool,
-    max_steps: i % 5 === 0 ? 3 : 1,
+    max_steps: requestedTool ? 1 : (i % 5 === 0 ? 3 : 1),
     tags: [
       "generated",
       tool,
-      i % 5 === 0 ? "multi-step" : "single-step",
+      !requestedTool && i % 5 === 0 ? "multi-step" : "single-step",
       mode === "controlled" || (mode === "hybrid" && ["local_inference", "trigger_kernel_upgrade", "hud_update", "hit_test"].includes(tool))
         ? "controlled-replay"
         : "live-provider",
@@ -185,6 +196,6 @@ fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
 const controlledCount = rows.filter((row) => Array.isArray(row.responses)).length;
 console.log(
-  `wrote ${rows.length} balanced hybrid scenarios across ${specs.length} actions `
+  `wrote ${rows.length} balanced hybrid scenarios across ${activeSpecs.length} actions `
   + `(${controlledCount} controlled replay, ${rows.length - controlledCount} live provider) to ${outPath}`,
 );
