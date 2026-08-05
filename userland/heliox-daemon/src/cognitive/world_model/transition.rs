@@ -98,10 +98,19 @@ fn rule_based_delta(state: &StateEmbedding, action: &ToolCall) -> (StateEmbeddin
 
     match action.name.as_str() {
         "write_file" => {
-            // A write grows disk usage and (usually) the file count by
-            // one small nudge each - Phase 1 has no way to know the
-            // actual byte size being written ahead of time.
-            let disk = encoder::disk_usage_fraction(&next) + 0.02;
+            // The release appliance uses 8,192 4 KiB ext2 blocks. Estimate
+            // allocation from the proposed content instead of the former 2%
+            // constant, which treated a one-block write as 164 blocks and
+            // produced avoidable false positives near the safety threshold.
+            const EXT2_BLOCK_BYTES: usize = 4096;
+            const NOMINAL_EXT2_BLOCKS: f32 = 8192.0;
+            let content_bytes = find_tool_arg_string(&action.arguments, "content")
+                .map(|content| content.len())
+                .unwrap_or(0);
+            let blocks = content_bytes.saturating_add(EXT2_BLOCK_BYTES - 1)
+                / EXT2_BLOCK_BYTES;
+            let disk_delta = blocks.max(1) as f32 / NOMINAL_EXT2_BLOCKS;
+            let disk = encoder::disk_usage_fraction(&next) + disk_delta;
             encoder::set_disk_usage_fraction(&mut next, disk);
             let files = encoder::fs_file_count(&next) + 0.01;
             encoder::set_fs_file_count(&mut next, files);

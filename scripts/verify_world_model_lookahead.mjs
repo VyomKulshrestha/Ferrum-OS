@@ -39,20 +39,20 @@ function diskStats() {
 
 try {
   fs.copyFileSync(baseDisk, lookaheadDisk);
-  // Ground the disposable image near 91.5% regardless of future appliance
-  // asset size.  H=1 then predicts ~93.5% (safe), while H=2 predicts ~95.5%
-  // (must block).  ext2 indirect blocks add a small amount which is checked
-  // after injection instead of being guessed.
+  // Put the image exactly two one-block writes beyond safety: H=1 remains at
+  // or below 95%, while H=2 crosses it. This tracks the size-aware rule-table
+  // estimate instead of the former fixed +2%-per-write approximation.
   const before = diskStats();
   const used = before.total - before.free;
-  const targetUsed = Math.ceil(before.total * 0.915);
+  // Leave four blocks for the large fixture file's indirect-block metadata.
+  const targetUsed = Math.floor(before.total * 0.95) - 6;
   assert.ok(targetUsed > used, "packaged disk is already too full for a step-two-only lookahead fixture");
   fs.writeFileSync(fillFile, Buffer.alloc((targetUsed - used) * before.size, 0x5a));
   debugfs("unlink /heliox/world/model_learned.bin");
   debugfs("write target/world-model-lookahead-fill.bin /lookahead-fill.bin");
   const afterFill = diskStats();
   const usedFraction = (afterFill.total - afterFill.free) / afterFill.total;
-  assert.ok(usedFraction > 0.91 && usedFraction < 0.93, `unexpected fixture usage ${usedFraction}`);
+  assert.ok(usedFraction > 0.949 && usedFraction <= 0.95, `unexpected fixture usage ${usedFraction}`);
   fs.writeFileSync(corpus, `${JSON.stringify({
     id: "disk-lookahead-step-two",
     prompt: "Write a small file near the disk capacity threshold.",
