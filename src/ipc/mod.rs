@@ -181,6 +181,24 @@ pub fn receive_for_service(service: &str) -> Result<Message, IpcError> {
     })
 }
 
+/// Return whether a ring-3 task owns the named mailbox.  IPC receive is
+/// intentionally stricter than send: knowing a service name must never be
+/// enough to consume another process's messages.  Ordinary programs own a
+/// mailbox matching their executable name; the two historical Heliox
+/// channels retain their stable public names.
+pub fn task_owns_service(pid: u64, service: &str) -> bool {
+    let Some(task) = crate::scheduler::list_tasks()
+        .into_iter()
+        .find(|task| task.id == pid)
+    else {
+        return false;
+    };
+
+    service == task.name
+        || (task.name == "heliox-daemon" && service == "heliox")
+        || (task.name == "heliox-assistant-panel" && service == "assistant")
+}
+
 /// Return IPC queue counters.
 pub fn stats() -> IpcStats {
     x86_64::instructions::interrupts::without_interrupts(|| {

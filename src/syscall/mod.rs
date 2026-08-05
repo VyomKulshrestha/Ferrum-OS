@@ -384,6 +384,9 @@ fn dispatch_with_context(
             }
         }
         x if x == SyscallNumber::IpcReceive as u64 => {
+            if !crate::security::has_capability(held_capabilities, "ipc:receive:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             let buf_ptr = args[0];
             let buf_len = args[1] as usize;
             if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
@@ -392,13 +395,21 @@ fn dispatch_with_context(
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
             let service_name = if args[2] == 0 || args[3] == 0 {
-                String::from("runtime.ipc")
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
             } else {
                 match unsafe { crate::syscall::fs::read_user_str(args[2], args[3]) } {
                     Some(s) => s,
                     None => return SyscallResult::err(SyscallStatus::InvalidArgument),
                 }
             };
+
+            if !crate::ipc::task_owns_service(caller_pid, &service_name) {
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::PermissionDenied,
+                    "IPC receive denied for mailbox owned by another process",
+                );
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
 
             match crate::ipc::receive_for_service(&service_name) {
                 Ok(message) => {

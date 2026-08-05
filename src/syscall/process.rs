@@ -100,6 +100,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         || path.contains("quota-test")
         || path.contains("huge-test")
         || path.contains("socket-owner-test")
+        || path.contains("ipc-owner-test")
     {
         crate::userspace::INIT_ELF
     } else if path == "/bin/gui-smoke-test" || path == "gui-smoke-test" {
@@ -198,6 +199,12 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
             alloc::vec![
                 alloc::string::String::from("cap:fs:read"),
                 alloc::string::String::from("cap:net:connect"),
+            ]
+        } else if name == "ipc-owner-test" {
+            alloc::vec![
+                alloc::string::String::from("cap:fs:read"),
+                alloc::string::String::from("cap:ipc:send"),
+                alloc::string::String::from("cap:ipc:receive"),
             ]
         } else {
             crate::userspace::capabilities_for_program(name)

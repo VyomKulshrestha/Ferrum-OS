@@ -12,6 +12,8 @@ use core::panic::PanicInfo;
 
 // Stable syscall numbers — must match `src/syscall/mod.rs::SyscallNumber`.
 const SYS_YIELD: u64 = 0;
+const SYS_IPC_SEND: u64 = 1;
+const SYS_IPC_RECEIVE: u64 = 2;
 const SYS_SOCKET: u64 = 7;
 const SYS_READ_FILE: u64 = 15;
 const SYS_WRITE_FILE: u64 = 16;
@@ -618,6 +620,66 @@ pub extern "C" fn _start() -> ! {
             } else {
                 write_num("[socket-test] ERROR guessed close=", guessed_close as i64, "\n");
                 write_num("[socket-test] ERROR own fd=", own_fd as i64, "\n");
+            }
+            unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+        }
+    } else if test_mode == b'8' {
+        if pid == 2 {
+            write("[ipc-test] starting mailbox capability and ownership checks\n");
+            let payload = "private-assistant-message";
+            let sent = unsafe {
+                syscall4(
+                    SYS_IPC_SEND,
+                    "assistant".as_ptr() as u64,
+                    "assistant".len() as u64,
+                    payload.as_ptr() as u64,
+                    payload.len() as u64,
+                )
+            };
+            if (sent as i64) < 0 {
+                write_num("[ipc-test] ERROR seed send=", sent as i64, "\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            }
+            let child_pid = unsafe {
+                syscall3(
+                    SYS_EXEC,
+                    "/bin/ipc-owner-test".as_ptr() as u64,
+                    "/bin/ipc-owner-test".len() as u64,
+                    0,
+                )
+            };
+            loop {
+                let status = unsafe { syscall3(SYS_WAITPID, child_pid, 0, 0) };
+                if (status as i64) >= 0 { break; }
+                sleep(20);
+            }
+            write("[ipc-test] all checks complete\n");
+            unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+        } else {
+            let mut buf = [0u8; 64];
+            let foreign = unsafe {
+                syscall4(
+                    SYS_IPC_RECEIVE,
+                    buf.as_mut_ptr() as u64,
+                    buf.len() as u64,
+                    "assistant".as_ptr() as u64,
+                    "assistant".len() as u64,
+                )
+            };
+            let own = unsafe {
+                syscall4(
+                    SYS_IPC_RECEIVE,
+                    buf.as_mut_ptr() as u64,
+                    buf.len() as u64,
+                    "ipc-owner-test".as_ptr() as u64,
+                    "ipc-owner-test".len() as u64,
+                )
+            };
+            if (foreign as i64) == -2 && own == 0 {
+                write("[ipc-test] cross-process mailbox isolation confirmed\n");
+            } else {
+                write_num("[ipc-test] ERROR foreign receive=", foreign as i64, "\n");
+                write_num("[ipc-test] ERROR own receive=", own as i64, "\n");
             }
             unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
         }

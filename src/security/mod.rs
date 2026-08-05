@@ -85,6 +85,12 @@ pub fn init() {
         ),
         ("cap:ipc:send", "IPC Send", "ipc:send:*", true),
         (
+            "cap:ipc:receive",
+            "Owned IPC Mailbox Receive",
+            "ipc:receive:*",
+            true,
+        ),
+        (
             "cap:agent:control",
             "Agent Runtime Control",
             "agent:*",

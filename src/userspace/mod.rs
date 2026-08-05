@@ -123,6 +123,7 @@ pub fn init() {
         "/bin/heliox-daemon",
         vec![
             String::from("cap:ipc:send"),
+            String::from("cap:ipc:receive"),
             String::from("cap:net:connect"),
             String::from("cap:net:listen"),
             String::from("cap:fs:read"),
@@ -193,6 +194,7 @@ pub fn init() {
             String::from("cap:fs:read"),
             String::from("cap:fs:write"),
             String::from("cap:ipc:send"),
+            String::from("cap:ipc:receive"),
         ],
     ));
     state.programs.push(ProgramManifest::new(
