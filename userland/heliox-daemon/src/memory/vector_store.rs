@@ -15,6 +15,25 @@ use libm::sqrtf;
 use crate::{syscall4, SYS_READ_FILE, SYS_WRITE_FILE};
 use crate::cognitive::json::{self, JsonValue};
 
+/// The Ext2 writer currently supports the inode's twelve direct blocks. Keep
+/// the durable memory well below that ceiling and prefer recent context over a
+/// persistence failure after a long autonomous session.
+const MAX_DOCUMENTS: usize = 24;
+const MAX_DOCUMENT_ID_BYTES: usize = 128;
+const MAX_DOCUMENT_CONTENT_BYTES: usize = 768;
+const MAX_MEMORY_FILE_BYTES: usize = 44 * 1024;
+
+fn truncate_utf8(value: &str, max_bytes: usize) -> String {
+    if value.len() <= max_bytes {
+        return String::from(value);
+    }
+    let mut end = max_bytes;
+    while end > 0 && !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    String::from(&value[..end])
+}
+
 /// Memory categories for filtered RAG retrieval.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MemoryCategory {
@@ -107,7 +126,18 @@ impl VectorStore {
 
     /// Adds a document with auto-computed TF-IDF embedding.
     pub fn add(&mut self, id: String, content: String, category: MemoryCategory) {
+        let id = truncate_utf8(&id, MAX_DOCUMENT_ID_BYTES);
+        let content = truncate_utf8(&content, MAX_DOCUMENT_CONTENT_BYTES);
         let embedding = self.embed(&content);
+        if let Some(existing) = self.documents.iter_mut().find(|doc| doc.id == id) {
+            existing.content = content;
+            existing.category = category;
+            existing.embedding = embedding;
+            return;
+        }
+        if self.documents.len() >= MAX_DOCUMENTS {
+            self.documents.remove(0);
+        }
         self.documents.push(Document {
             id,
             content,
@@ -118,6 +148,17 @@ impl VectorStore {
 
     /// Adds a document with a pre-computed embedding (for backward compat).
     pub fn add_with_embedding(&mut self, id: String, content: String, category: MemoryCategory, embedding: Vec<f32>) {
+        let id = truncate_utf8(&id, MAX_DOCUMENT_ID_BYTES);
+        let content = truncate_utf8(&content, MAX_DOCUMENT_CONTENT_BYTES);
+        if let Some(existing) = self.documents.iter_mut().find(|doc| doc.id == id) {
+            existing.content = content;
+            existing.category = category;
+            existing.embedding = embedding;
+            return;
+        }
+        if self.documents.len() >= MAX_DOCUMENTS {
+            self.documents.remove(0);
+        }
         self.documents.push(Document {
             id,
             content,
@@ -345,6 +386,13 @@ impl VectorStore {
         }
         json.push_str("]\n");
 
+        if json.len() > MAX_MEMORY_FILE_BYTES {
+            return Err(format!(
+                "Memory snapshot is {} bytes; durable limit is {} bytes",
+                json.len(), MAX_MEMORY_FILE_BYTES
+            ));
+        }
+
         let ret = unsafe {
             syscall4(
                 SYS_WRITE_FILE,
@@ -390,8 +438,14 @@ impl VectorStore {
             self.documents.clear();
             for item in arr {
                 if let Some(_obj) = item.as_object() {
-                    let id = item.get("id").and_then(|v| v.as_str()).unwrap_or("").into();
-                    let content: String = item.get("content").and_then(|v| v.as_str()).unwrap_or("").into();
+                    let id = truncate_utf8(
+                        item.get("id").and_then(|v| v.as_str()).unwrap_or(""),
+                        MAX_DOCUMENT_ID_BYTES,
+                    );
+                    let content = truncate_utf8(
+                        item.get("content").and_then(|v| v.as_str()).unwrap_or(""),
+                        MAX_DOCUMENT_CONTENT_BYTES,
+                    );
                     let category = item.get("category")
                         .and_then(|v| v.as_str())
                         .map(MemoryCategory::from_str)
@@ -417,6 +471,9 @@ impl VectorStore {
                         category,
                         embedding,
                     });
+                    if self.documents.len() > MAX_DOCUMENTS {
+                        self.documents.remove(0);
+                    }
                 }
             }
         }

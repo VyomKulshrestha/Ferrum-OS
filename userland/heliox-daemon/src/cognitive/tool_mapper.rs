@@ -177,7 +177,7 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
     Arguments: {"path": "<string>"}
 
 18. `save_memory` - Persist the vector memory to disk (REQUIRES CONFIRMATION).
-    Arguments: {}
+    Arguments: {"content": "<optional context>", "id": "<optional stable id>", "category": "<optional interaction|tool_result|lesson|preference|system_state>"}
 
 19. `load_memory` - Load the vector memory from disk.
     Arguments: {}

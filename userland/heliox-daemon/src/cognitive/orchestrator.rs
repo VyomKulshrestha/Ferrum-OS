@@ -236,12 +236,29 @@ impl Orchestrator {
         // The goal will be set dynamically via IPC or ambient vision
         // planner.set_goal("Explore the system and ensure everything is functioning.");
 
+        // Durable memory is part of the agent runtime, not an opt-in tool call.
+        // Previous builds periodically saved memory.json but always started
+        // with an empty VectorStore, so a daemon restart silently forgot the
+        // context it had just persisted unless the model happened to call
+        // load_memory itself. Load it before the first observation instead.
+        let mut memory = VectorStore::new();
+        let memory_loaded = memory.load("/disk/heliox/memory.json").is_ok();
+        if memory_loaded {
+            let msg = format!(
+                "[heliox-daemon] restored {} durable memories\n",
+                memory.document_count()
+            );
+            unsafe {
+                syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
+            }
+        }
+
         Self {
             planner,
             verifier: Verifier::new(),
             reflector: Reflector::new(),
             confirmation_gate: ConfirmationGate::new(config.confirmation_timeout),
-            memory: VectorStore::new(),
+            memory,
             tick_count: 0,
             last_observation: String::new(),
             last_fused_goal: String::new(),
@@ -686,12 +703,29 @@ impl Orchestrator {
                 }
             }
             "save_memory" => {
+                // `content` is optional so existing callers can still use
+                // this as a plain checkpoint operation. Supplying it makes
+                // deliberate user/provider context durable without inventing
+                // another action outside the canonical world-model surface.
+                if let Some(content) = super::json::find_tool_arg_string(&tc.arguments, "content") {
+                    if !content.trim().is_empty() {
+                        let id = super::json::find_tool_arg_string(&tc.arguments, "id")
+                            .unwrap_or_else(|| format!("memory-{}", self.tick_count));
+                        let category = super::json::find_tool_arg_string(&tc.arguments, "category")
+                            .map(|value| MemoryCategory::from_str(&value))
+                            .unwrap_or(MemoryCategory::Interaction);
+                        self.memory.add(id, content, category);
+                    }
+                }
                 let save_result = self.memory.save("/disk/heliox/memory.json");
                 tool_mapper::ToolResult {
                     tool_name: String::from("save_memory"),
                     success: save_result.is_ok(),
                     output: match save_result {
-                        Ok(()) => String::from("Memory saved to /disk/heliox/memory.json"),
+                        Ok(()) => format!(
+                            "Memory saved to /disk/heliox/memory.json ({} documents)",
+                            self.memory.document_count()
+                        ),
                         Err(e) => format!("Save failed: {}", e),
                     },
                 }
