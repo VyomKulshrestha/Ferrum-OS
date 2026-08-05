@@ -65,7 +65,10 @@ pub fn init() {
         ),
         ("cap:process:spawn", "Process Spawn", "process:spawn", true),
         ("cap:process:kill", "Process Kill", "process:kill:*", false),
-        ("cap:net:listen", "Network Listen", "net:listen:*", false),
+        // Listening is delegatable only to a child that explicitly requests
+        // the token and whose parent already holds it. Ordinary apps do not,
+        // while init can grant it to the compiled-in Heliox service.
+        ("cap:net:listen", "Network Listen", "net:listen:*", true),
         ("cap:net:connect", "Network Connect", "net:connect:*", true),
         (
             "cap:service:register",
@@ -93,6 +96,24 @@ pub fn init() {
             "cap:input:inject",
             "Input Injection",
             "input:inject:*",
+            true,
+        ),
+        (
+            "cap:input:read",
+            "Raw Input Observation",
+            "input:read:*",
+            true,
+        ),
+        (
+            "cap:screen:read",
+            "Screen Observation",
+            "screen:read:*",
+            true,
+        ),
+        (
+            "cap:system:observe",
+            "System State Observation",
+            "system:observe",
             true,
         ),
         (

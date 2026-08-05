@@ -27,6 +27,10 @@ pub struct SocketEntry {
     pub handle: SocketHandle,
     pub socket_type: SocketType,
     pub in_use: bool,
+    /// PID that created this descriptor. Socket handles are process-local
+    /// authority and must never be usable by another ring-3 task that guesses
+    /// the small numeric FD.
+    pub owner_pid: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,7 +103,7 @@ pub fn init() {
 // ---- Socket Operations (called from syscall/socket.rs) ---------------------
 
 /// Create a new TCP socket and return its kernel FD.
-pub fn socket_create_tcp() -> Result<u64, &'static str> {
+pub fn socket_create_tcp(owner_pid: u64) -> Result<u64, &'static str> {
     if !is_initialized() {
         return Err("network interface not initialized");
     }
@@ -124,6 +128,7 @@ pub fn socket_create_tcp() -> Result<u64, &'static str> {
                 handle,
                 socket_type: SocketType::Tcp,
                 in_use: true,
+                owner_pid,
             });
             return Ok(FD_BASE + i as u64);
         }
@@ -137,12 +142,12 @@ pub fn socket_create_tcp() -> Result<u64, &'static str> {
 
 /// Connect a TCP socket to a remote address.
 /// `fd`: kernel FD, `ip_packed`: IPv4 as u32 (network byte order), `port`: destination port
-pub fn socket_connect(fd: u64, ip_packed: u64, port: u64) -> Result<(), &'static str> {
+pub fn socket_connect(owner_pid: u64, fd: u64, ip_packed: u64, port: u64) -> Result<(), &'static str> {
     if !is_initialized() {
         return Err("network interface not initialized");
     }
 
-    let entry = lookup_fd(fd)?;
+    let entry = lookup_fd(owner_pid, fd)?;
     let handle = entry.handle;
 
     let ip_bytes = (ip_packed as u32).to_be_bytes();
@@ -174,12 +179,12 @@ pub fn socket_connect(fd: u64, ip_packed: u64, port: u64) -> Result<(), &'static
 }
 
 /// Bind a TCP socket to a local port and start listening.
-pub fn socket_bind(fd: u64, port: u64) -> Result<(), &'static str> {
+pub fn socket_bind(owner_pid: u64, fd: u64, port: u64) -> Result<(), &'static str> {
     if !is_initialized() {
         return Err("network interface not initialized");
     }
 
-    let entry = lookup_fd(fd)?;
+    let entry = lookup_fd(owner_pid, fd)?;
     let handle = entry.handle;
 
     let mut sockets = SOCKETS.lock();
@@ -194,12 +199,12 @@ pub fn socket_bind(fd: u64, port: u64) -> Result<(), &'static str> {
 }
 
 /// Send data through a TCP socket. Returns bytes written.
-pub fn socket_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
+pub fn socket_send(owner_pid: u64, fd: u64, data: &[u8]) -> Result<usize, &'static str> {
     if !is_initialized() {
         return Err("network interface not initialized");
     }
 
-    let entry = lookup_fd(fd)?;
+    let entry = lookup_fd(owner_pid, fd)?;
     let handle = entry.handle;
 
     let mut sockets = SOCKETS.lock();
@@ -230,12 +235,12 @@ pub fn socket_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
 }
 
 /// Receive data from a TCP socket. Returns bytes read.
-pub fn socket_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
+pub fn socket_recv(owner_pid: u64, fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
     if !is_initialized() {
         return Err("network interface not initialized");
     }
 
-    let entry = lookup_fd(fd)?;
+    let entry = lookup_fd(owner_pid, fd)?;
     let handle = entry.handle;
 
     let mut sockets = SOCKETS.lock();
@@ -265,7 +270,7 @@ pub fn socket_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
 }
 
 /// Close a socket and free its FD.
-pub fn socket_close(fd: u64) -> Result<(), &'static str> {
+pub fn socket_close(owner_pid: u64, fd: u64) -> Result<(), &'static str> {
     let idx = fd_to_index(fd)?;
 
     let mut sockets = SOCKETS.lock();
@@ -273,6 +278,9 @@ pub fn socket_close(fd: u64) -> Result<(), &'static str> {
 
     let mut fd_table = FD_TABLE.lock();
     if let Some(entry) = fd_table[idx] {
+        if entry.owner_pid != owner_pid {
+            return Err("permission denied");
+        }
         // `close()` only changes TCP state; leaving the handle in SocketSet
         // retains both 16 KiB buffers forever. Short-lived provider requests
         // exhausted the 12 MiB kernel heap after roughly 240 closes. Abort the
@@ -286,9 +294,36 @@ pub fn socket_close(fd: u64) -> Result<(), &'static str> {
     }
 }
 
+/// Reclaim every socket owned by a process that has exited or been killed.
+/// This uses the same SOCKETS -> FD_TABLE lock order as `socket_close` and is
+/// intentionally owner-bypassing because the caller is the kernel reaper.
+pub fn close_sockets_for_owner(owner_pid: u64) -> usize {
+    if !is_initialized() {
+        return 0;
+    }
+
+    let mut sockets = SOCKETS.lock();
+    let Some(sockets) = sockets.as_mut() else {
+        return 0;
+    };
+    let mut fd_table = FD_TABLE.lock();
+    let mut closed = 0;
+    for slot in fd_table.iter_mut() {
+        if let Some(entry) = *slot {
+            if entry.owner_pid == owner_pid {
+                sockets.get_mut::<tcp::Socket>(entry.handle).abort();
+                sockets.remove(entry.handle);
+                *slot = None;
+                closed += 1;
+            }
+        }
+    }
+    closed
+}
+
 /// Check if a TCP socket is connected and ready.
-pub fn socket_is_active(fd: u64) -> Result<bool, &'static str> {
-    let entry = lookup_fd(fd)?;
+pub fn socket_is_active(owner_pid: u64, fd: u64) -> Result<bool, &'static str> {
+    let entry = lookup_fd(owner_pid, fd)?;
 
     let mut sockets = SOCKETS.lock();
     let sockets = sockets.as_mut().ok_or("socket set not initialized")?;
@@ -300,8 +335,8 @@ pub fn socket_is_active(fd: u64) -> Result<bool, &'static str> {
 /// True only after the TCP handshake has produced a usable connection.
 /// `tcp::Socket::is_active()` also returns true in LISTEN/SYN states, so it
 /// must not be used to implement accept-style readiness.
-pub fn socket_is_connected(fd: u64) -> Result<bool, &'static str> {
-    let entry = lookup_fd(fd)?;
+pub fn socket_is_connected(owner_pid: u64, fd: u64) -> Result<bool, &'static str> {
+    let entry = lookup_fd(owner_pid, fd)?;
     let mut sockets = SOCKETS.lock();
     let sockets = sockets.as_mut().ok_or("socket set not initialized")?;
     let socket = sockets.get::<tcp::Socket>(entry.handle);
@@ -338,8 +373,12 @@ fn fd_to_index(fd: u64) -> Result<usize, &'static str> {
     Ok((fd - FD_BASE) as usize)
 }
 
-fn lookup_fd(fd: u64) -> Result<SocketEntry, &'static str> {
+fn lookup_fd(owner_pid: u64, fd: u64) -> Result<SocketEntry, &'static str> {
     let idx = fd_to_index(fd)?;
     let fd_table = FD_TABLE.lock();
-    fd_table[idx].ok_or("file descriptor not in use")
+    let entry = fd_table[idx].ok_or("file descriptor not in use")?;
+    if entry.owner_pid != owner_pid {
+        return Err("permission denied");
+    }
+    Ok(entry)
 }

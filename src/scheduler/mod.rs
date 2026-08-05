@@ -1190,6 +1190,12 @@ pub static BOOT_CR3: AtomicU64 = AtomicU64::new(0);
 /// reaper consumes them. Entries are (pid, parent_pid, code).
 static EXIT_CODES: Mutex<Vec<(u64, u64, u32)>> = Mutex::new(Vec::new());
 
+/// Children whose blocked parent already received the exit status directly
+/// in its saved syscall frame. They cannot be dropped from `record_exit`
+/// because that function still executes on the exiting child's kernel stack;
+/// the next ring-3 syscall is the first universally safe reclamation point.
+static DEFERRED_REAPS: Mutex<Vec<u64>> = Mutex::new(Vec::new());
+
 /// Packed (pid << 32 | code) of the most recent exit, displayed by
 /// the kernel return trampoline. `u64::MAX` means "none pending".
 static LAST_EXIT: AtomicU64 = AtomicU64::new(u64::MAX);
@@ -1210,13 +1216,17 @@ pub fn record_exit(pid: u64, code: u32) {
     }
     LAST_EXIT.store((pid << 32) | code as u64, Ordering::SeqCst);
 
-    // Wake waiting parent if active
-    wake_waiting_parent(pid, parent_id, code);
+    // Wake waiting parent if active. A blocked wait consumes the exit status
+    // immediately through the restored RAX, so do not leave a second waitable
+    // zombie record behind.
+    if wake_waiting_parent(pid, parent_id, code) {
+        codes.retain(|(child, _, _)| *child != pid);
+    }
 }
 
-fn wake_waiting_parent(child_pid: u64, parent_pid: u64, code: u32) {
+fn wake_waiting_parent(child_pid: u64, parent_pid: u64, code: u32) -> bool {
     if parent_pid == 0 {
-        return;
+        return false;
     }
     let mut sched = SCHEDULER.lock();
     let mut parent_idx = None;
@@ -1241,9 +1251,41 @@ fn wake_waiting_parent(child_pid: u64, parent_pid: u64, code: u32) {
         if !sched.run_queues[pri].contains(&pid) {
             sched.run_queues[pri].push_back(pid);
         }
+        let mut deferred = DEFERRED_REAPS.lock();
+        if !deferred.contains(&child_pid) {
+            deferred.push(child_pid);
+        }
+        true
     } else {
         crate::serial_println!("[WAKE_PARENT] Parent pid={} not found or not Blocked waiting for child_pid={}", parent_pid, child_pid);
+        false
     }
+}
+
+/// Reclaim children whose exit status was delivered through the blocked-wait
+/// fast path. Must be called only after switching away from the dead task.
+pub fn reap_deferred(current_pid: u64) {
+    let pending = {
+        let mut deferred = DEFERRED_REAPS.lock();
+        let mut ready = Vec::new();
+        let mut keep = Vec::new();
+        for pid in deferred.drain(..) {
+            if pid == current_pid {
+                keep.push(pid);
+            } else {
+                ready.push(pid);
+            }
+        }
+        *deferred = keep;
+        ready
+    };
+    if pending.is_empty() {
+        return;
+    }
+    for pid in pending {
+        crate::process::drop_by_pid(pid);
+    }
+    cleanup_dead_tasks();
 }
 
 /// Exit code of `pid` if it has finished.
@@ -1578,4 +1620,3 @@ pub fn check_and_enforce_quotas(pid: u64) -> bool {
     }
     false
 }
-

@@ -12,12 +12,15 @@ use core::panic::PanicInfo;
 
 // Stable syscall numbers — must match `src/syscall/mod.rs::SyscallNumber`.
 const SYS_YIELD: u64 = 0;
+const SYS_SOCKET: u64 = 7;
 const SYS_READ_FILE: u64 = 15;
 const SYS_WRITE_FILE: u64 = 16;
+const SYS_READ_TEXT_BUFFER: u64 = 20;
 const SYS_EXEC: u64 = 18;
 const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
 const SYS_INJECT_KEY: u64 = 26;
+const SYS_POLL_INPUT: u64 = 28;
 const SYS_SYSTEM_QUERY: u64 = 29;
 const SYS_EXIT: u64 = 30;
 const SYS_GETPID: u64 = 31;
@@ -25,6 +28,7 @@ const SYS_SLEEP: u64 = 32;
 const SYS_WAITPID: u64 = 33;
 const SYS_WAIT: u64 = 13;
 const SYS_WRITE: u64 = 34;
+const SYS_CLOSE: u64 = 35;
 const SYS_KEXEC: u64 = 38;
 const SYS_LAUNCH_CONTEXT: u64 = 59;
 
@@ -519,6 +523,102 @@ pub extern "C" fn _start() -> ! {
             write_num("[wait-test] child pid=", child_pid as i64, "\n");
             let status = unsafe { syscall3(SYS_WAIT, 0, 0, 0) };
             write_num("[wait-test] legacy wait resumed with status=", status as i64, "\n");
+            unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+        }
+    } else if test_mode == b'7' {
+        if pid == 2 {
+            write("[socket-test] starting capability and ownership checks\n");
+            let parent_fd = unsafe { syscall3(SYS_SOCKET, 2, 1, 0) };
+            write_num("[socket-test] parent fd=", parent_fd as i64, "\n");
+            if (parent_fd as i64) < 0 {
+                write("[socket-test] ERROR parent could not create socket\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            }
+
+            // quota-test intentionally receives only cap:fs:read.
+            let no_cap_pid = unsafe {
+                syscall3(
+                    SYS_EXEC,
+                    "/bin/quota-test".as_ptr() as u64,
+                    "/bin/quota-test".len() as u64,
+                    0,
+                )
+            };
+            loop {
+                let status = unsafe { syscall3(SYS_WAITPID, no_cap_pid, 0, 0) };
+                if (status as i64) >= 0 { break; }
+                sleep(20);
+            }
+
+            // This child holds cap:net:connect but must still be unable to
+            // close the parent's descriptor. It deliberately leaks its own
+            // descriptor so the kernel reaper's owner cleanup is exercised.
+            let owner_test_pid = unsafe {
+                syscall3(
+                    SYS_EXEC,
+                    "/bin/socket-owner-test".as_ptr() as u64,
+                    "/bin/socket-owner-test".len() as u64,
+                    0,
+                )
+            };
+            loop {
+                let status = unsafe { syscall3(SYS_WAITPID, owner_test_pid, 0, 0) };
+                if (status as i64) >= 0 { break; }
+                sleep(20);
+            }
+
+            let parent_close = unsafe { syscall3(SYS_CLOSE, parent_fd, 0, 0) };
+            write_num("[socket-test] parent close result=", parent_close as i64, "\n");
+            if parent_close == 0 {
+                write("[socket-test] all checks complete\n");
+                unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
+            } else {
+                write("[socket-test] ERROR parent descriptor was lost\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            }
+        } else {
+            let guessed_close = unsafe { syscall3(SYS_CLOSE, 100, 0, 0) };
+            let own_fd = unsafe { syscall3(SYS_SOCKET, 2, 1, 0) };
+            let mut observation = [0u8; 64];
+            let screen_read = unsafe {
+                syscall3(
+                    SYS_READ_TEXT_BUFFER,
+                    observation.as_mut_ptr() as u64,
+                    observation.len() as u64,
+                    0,
+                )
+            };
+            let input_read = unsafe {
+                syscall3(
+                    SYS_POLL_INPUT,
+                    observation.as_mut_ptr() as u64,
+                    observation.len() as u64,
+                    0,
+                )
+            };
+            let system_read = unsafe {
+                syscall4(
+                    SYS_SYSTEM_QUERY,
+                    0,
+                    observation.as_mut_ptr() as u64,
+                    observation.len() as u64,
+                    0,
+                )
+            };
+            if (own_fd as i64) == -2
+                && (guessed_close as i64) == -2
+                && (screen_read as i64) == -2
+                && (input_read as i64) == -2
+                && (system_read as i64) == -2
+            {
+                write("[socket-test] capability denial confirmed\n");
+            } else if (own_fd as i64) >= 100 && (guessed_close as i64) == -2 {
+                write("[socket-test] cross-process fd isolation confirmed\n");
+                // Do not close own_fd: process teardown must reclaim it.
+            } else {
+                write_num("[socket-test] ERROR guessed close=", guessed_close as i64, "\n");
+                write_num("[socket-test] ERROR own fd=", own_fd as i64, "\n");
+            }
             unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
         }
     } else {

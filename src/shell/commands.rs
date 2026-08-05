@@ -458,7 +458,8 @@ fn cmd_net(args: &[&str]) {
 
         println!("net serve: starting TCP server on port {}...", port);
 
-        let fd = match crate::net::iface::socket_create_tcp() {
+        let owner_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+        let fd = match crate::net::iface::socket_create_tcp(owner_pid) {
             Ok(fd) => fd,
             Err(e) => {
                 println!("net serve: failed to create TCP socket: {}", e);
@@ -466,9 +467,9 @@ fn cmd_net(args: &[&str]) {
             }
         };
 
-        if let Err(e) = crate::net::iface::socket_bind(fd, port as u64) {
+        if let Err(e) = crate::net::iface::socket_bind(owner_pid, fd, port as u64) {
             println!("net serve: failed to bind: {}", e);
-            let _ = crate::net::iface::socket_close(fd);
+            let _ = crate::net::iface::socket_close(owner_pid, fd);
             return;
         }
 
@@ -481,7 +482,7 @@ fn cmd_net(args: &[&str]) {
         // Wait up to ~10 seconds
         for _ in 0..1000 {
             crate::net::iface::poll();
-            if let Ok(true) = crate::net::iface::socket_is_connected(fd) {
+            if let Ok(true) = crate::net::iface::socket_is_connected(owner_pid, fd) {
                 active = true;
                 break;
             }
@@ -493,7 +494,7 @@ fn cmd_net(args: &[&str]) {
 
         if !active {
             println!("net serve: timeout waiting for connection");
-            let _ = crate::net::iface::socket_close(fd);
+            let _ = crate::net::iface::socket_close(owner_pid, fd);
             return;
         }
 
@@ -504,13 +505,13 @@ fn cmd_net(args: &[&str]) {
         // Wait up to ~10 seconds for data
         for _ in 0..1000 {
             crate::net::iface::poll();
-            match crate::net::iface::socket_recv(fd, &mut buf) {
+            match crate::net::iface::socket_recv(owner_pid, fd, &mut buf) {
                 Ok(n) if n > 0 => {
                     let text = core::str::from_utf8(&buf[..n]).unwrap_or("<invalid utf-8>");
                     println!("net serve: received {} bytes: {}", n, text);
 
                     // Echo the data back
-                    match crate::net::iface::socket_send(fd, &buf[..n]) {
+                    match crate::net::iface::socket_send(owner_pid, fd, &buf[..n]) {
                         Ok(sent) => {
                             println!("net serve: echoed {} bytes back to client", sent);
                             echoed = true;
@@ -536,7 +537,7 @@ fn cmd_net(args: &[&str]) {
             }
         }
 
-        let _ = crate::net::iface::socket_close(fd);
+        let _ = crate::net::iface::socket_close(owner_pid, fd);
         if echoed {
             println!("net serve: server finished successfully");
         } else {

@@ -896,20 +896,27 @@ pub fn drop_by_pid(pid: u64) -> bool {
     };
     let user_frames = record.process.user_frame_count();
     LAUNCH_CONTEXTS.lock().retain(|(owner, _)| *owner != pid);
+    let closed_sockets = crate::net::iface::close_sockets_for_owner(pid);
     // AddressSpace::drop can return thousands of frames for a large app.
     // Do that work after releasing the process-table lock so process queries
     // and unrelated spawns are never serialized behind frame reclamation.
     drop(record);
     if let Some((fresh, recycled)) = crate::memory::frame_allocator_stats() {
         crate::serial_println!(
-            "[process-reaper] reaped pid={} user_frames={} fresh={} recycled={}",
+            "[process-reaper] reaped pid={} user_frames={} sockets={} fresh={} recycled={}",
             pid,
             user_frames,
+            closed_sockets,
             fresh,
             recycled
         );
     } else {
-        crate::serial_println!("[process-reaper] reaped pid={} user_frames={}", pid, user_frames);
+        crate::serial_println!(
+            "[process-reaper] reaped pid={} user_frames={} sockets={}",
+            pid,
+            user_frames,
+            closed_sockets
+        );
     }
     true
 }

@@ -124,11 +124,15 @@ pub fn init() {
         vec![
             String::from("cap:ipc:send"),
             String::from("cap:net:connect"),
+            String::from("cap:net:listen"),
             String::from("cap:fs:read"),
             String::from("cap:fs:write"),
             String::from("cap:audio:play"),
             String::from("cap:audio:record"),
             String::from("cap:input:inject"),
+            String::from("cap:input:read"),
+            String::from("cap:screen:read"),
+            String::from("cap:system:observe"),
             String::from("cap:camera:read"),
             String::from("cap:quota:exempt"),
             String::from("cap:confirmation:bypass"),
@@ -199,6 +203,7 @@ pub fn init() {
             String::from("cap:gui:window"),
             String::from("cap:fs:read"),
             String::from("cap:desktop:configure"),
+            String::from("cap:system:observe"),
         ],
     ));
     state.programs.push(ProgramManifest::new(

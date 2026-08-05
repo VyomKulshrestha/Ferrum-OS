@@ -815,6 +815,12 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
         use crate::syscall::SyscallNumber;
         let args = [arg0, arg1, arg2, arg3, frame.r8, frame.r9];
 
+        // A child that woke this task from blocked waitpid could not be freed
+        // while the kernel was still running on the child's own stack. We are
+        // now on a different, live task's syscall stack, so reclaim it before
+        // handling the next operation (including a parent that exits next).
+        crate::scheduler::reap_deferred(current_pid);
+
         // Lifecycle syscalls context-switch away and are handled
         // here; everything else goes through the dispatcher.
         if syscall_no == SyscallNumber::Exit as u64 {

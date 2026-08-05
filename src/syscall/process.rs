@@ -99,6 +99,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         || path == "init"
         || path.contains("quota-test")
         || path.contains("huge-test")
+        || path.contains("socket-owner-test")
     {
         crate::userspace::INIT_ELF
     } else if path == "/bin/gui-smoke-test" || path == "gui-smoke-test" {
@@ -193,6 +194,11 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         // exemption), otherwise the probes cannot exercise their limits.
         if name == "quota-test" || name == "huge-test" {
             alloc::vec![alloc::string::String::from("cap:fs:read")]
+        } else if name == "socket-owner-test" {
+            alloc::vec![
+                alloc::string::String::from("cap:fs:read"),
+                alloc::string::String::from("cap:net:connect"),
+            ]
         } else {
             crate::userspace::capabilities_for_program(name)
         }

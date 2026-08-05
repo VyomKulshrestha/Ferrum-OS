@@ -197,7 +197,8 @@ impl CapabilityResource {
 
 pub fn dispatch(number: u64, args: [u64; 6]) -> SyscallResult {
     let held_capabilities = alloc::vec![String::from("cap:system:all")];
-    dispatch_with_capabilities(number, args, &held_capabilities)
+    let caller_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    dispatch_with_context(number, args, &held_capabilities, caller_pid)
 }
 
 pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallResult {
@@ -302,7 +303,7 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     // registry and that must not block their syscalls.
     let _ = crate::userspace::record_syscall(pid);
 
-    let res = dispatch_with_capabilities(number, args, &held_capabilities);
+    let res = dispatch_with_context(number, args, &held_capabilities, pid);
     if res.status == SyscallStatus::Blocked {
         let mut sched = crate::scheduler::SCHEDULER.lock();
         if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
@@ -316,6 +317,16 @@ pub fn dispatch_with_capabilities(
     number: u64,
     args: [u64; 6],
     held_capabilities: &[String],
+) -> SyscallResult {
+    let caller_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    dispatch_with_context(number, args, held_capabilities, caller_pid)
+}
+
+fn dispatch_with_context(
+    number: u64,
+    args: [u64; 6],
+    held_capabilities: &[String],
+    caller_pid: u64,
 ) -> SyscallResult {
     match number {
         x if x == SyscallNumber::Yield as u64 => SyscallResult::ok(0),
@@ -351,7 +362,7 @@ pub fn dispatch_with_capabilities(
             };
 
             let message = match crate::ipc::Message::new(
-                0, // 0 for userspace/unknown pid for now since pid isn't passed down easily
+                caller_pid,
                 crate::ipc::Endpoint::new(&target_service, "default"),
                 crate::ipc::MessageKind::Event,
                 "ipc:send:*",
@@ -447,31 +458,52 @@ pub fn dispatch_with_capabilities(
             SyscallResult::ok(0)
         }
         x if x == SyscallNumber::Socket as u64 => {
-            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*")
+                && !crate::security::has_capability(held_capabilities, "net:listen:*")
+            {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            socket::sys_socket(args[0], args[1], args[2])
+            socket::sys_socket(caller_pid, args[0], args[1], args[2])
         }
-        x if x == SyscallNumber::Bind as u64 => socket::sys_bind(args[0], args[1]),
-        x if x == SyscallNumber::Listen as u64 => socket::sys_listen(args[0], args[1]),
-        x if x == SyscallNumber::Accept as u64 => socket::sys_accept(args[0]),
-        x if x == SyscallNumber::Recv as u64 => {
-            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+        x if x == SyscallNumber::Bind as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:listen:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            socket::sys_recv(args[0], args[1], args[2])
+            socket::sys_bind(caller_pid, args[0], args[1])
+        }
+        x if x == SyscallNumber::Listen as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:listen:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            socket::sys_listen(caller_pid, args[0], args[1])
+        }
+        x if x == SyscallNumber::Accept as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:listen:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            socket::sys_accept(caller_pid, args[0])
+        }
+        x if x == SyscallNumber::Recv as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*")
+                && !crate::security::has_capability(held_capabilities, "net:listen:*")
+            {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            socket::sys_recv(caller_pid, args[0], args[1], args[2])
         }
         x if x == SyscallNumber::Send as u64 => {
-            if !crate::security::has_capability(held_capabilities, "net:connect:*") {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*")
+                && !crate::security::has_capability(held_capabilities, "net:listen:*")
+            {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            socket::sys_send(args[0], args[1], args[2])
+            socket::sys_send(caller_pid, args[0], args[1], args[2])
         }
         x if x == SyscallNumber::Connect as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            socket::sys_connect(args[0], args[1], args[2])
+            socket::sys_connect(caller_pid, args[0], args[1], args[2])
         }
         x if x == SyscallNumber::ReadFile as u64 => fs::sys_read_file(args, held_capabilities),
         x if x == SyscallNumber::WriteFile as u64 => fs::sys_write_file(args, held_capabilities),
@@ -487,9 +519,17 @@ pub fn dispatch_with_capabilities(
             process::sys_exec(args)
         }
         x if x == SyscallNumber::ReadFramebufferInfo as u64 => {
+            if !crate::security::has_capability(held_capabilities, "screen:read:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             graphics::sys_read_framebuffer_info(args)
         }
-        x if x == SyscallNumber::ReadTextBuffer as u64 => graphics::sys_read_text_buffer(args),
+        x if x == SyscallNumber::ReadTextBuffer as u64 => {
+            if !crate::security::has_capability(held_capabilities, "screen:read:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            graphics::sys_read_text_buffer(args)
+        }
         x if x == SyscallNumber::CreateDir as u64 => fs::sys_create_dir(args, held_capabilities),
         x if x == SyscallNumber::DeleteFile as u64 => fs::sys_delete_file(args, held_capabilities),
         x if x == SyscallNumber::PlayAudio as u64 => {
@@ -522,8 +562,18 @@ pub fn dispatch_with_capabilities(
             }
             input::sys_inject_mouse(args)
         }
-        x if x == SyscallNumber::PollInput as u64 => input::sys_poll_input(args),
-        x if x == SyscallNumber::SystemQuery as u64 => query::sys_system_query(args),
+        x if x == SyscallNumber::PollInput as u64 => {
+            if !crate::security::has_capability(held_capabilities, "input:read:*") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            input::sys_poll_input(args)
+        }
+        x if x == SyscallNumber::SystemQuery as u64 => {
+            if !crate::security::has_capability(held_capabilities, "system:observe") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            query::sys_system_query(args)
+        }
         x if x == SyscallNumber::GetPid as u64 => {
             let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
             SyscallResult::ok(pid)
@@ -532,7 +582,14 @@ pub fn dispatch_with_capabilities(
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
         x if x == SyscallNumber::Write as u64 => sys_write_console(args),
-        x if x == SyscallNumber::Close as u64 => socket::sys_close(args[0]),
+        x if x == SyscallNumber::Close as u64 => {
+            if !crate::security::has_capability(held_capabilities, "net:connect:*")
+                && !crate::security::has_capability(held_capabilities, "net:listen:*")
+            {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            socket::sys_close(caller_pid, args[0])
+        }
         x if x == SyscallNumber::ReadCameraFrame as u64 => {
             if !crate::security::has_capability(held_capabilities, "camera:read:*") {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
