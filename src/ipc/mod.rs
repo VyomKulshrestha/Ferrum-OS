@@ -20,8 +20,8 @@ use spin::Mutex;
 /// guarded by capabilities, not by copying through the kernel message path.
 /// Bumped from the original 256 bytes to fit a real chat-style agent
 /// response (e.g. a generated story) in one message instead of chunking -
-/// at the 64-message queue cap (below) that's a 256KB worst case, negligible
-/// against the kernel's multi-MB heap.
+/// Per-service and broker-wide quotas below keep copied payload memory bounded
+/// while preserving fair progress between independent mailboxes.
 pub const MAX_PAYLOAD_BYTES: usize = 4096;
 
 /// Stable service endpoint identifier.
@@ -96,6 +96,7 @@ pub enum IpcError {
     PermissionDenied,
     QueueFull,
     NoMessage,
+    NoService,
 }
 
 /// Validate message send permission against the caller's held capabilities.
@@ -111,7 +112,10 @@ pub fn authorize_message(message: &Message, held_capabilities: &[String]) -> Res
     }
 }
 
-const MAX_QUEUED_MESSAGES: usize = 64;
+/// Broker-wide memory bound. Per-service quotas below ensure one stalled
+/// consumer cannot monopolize this capacity and starve unrelated agents.
+const MAX_QUEUED_MESSAGES: usize = 256;
+const MAX_QUEUED_MESSAGES_PER_SERVICE: usize = 16;
 
 struct IpcBroker {
     queue: VecDeque<Message>,
@@ -150,10 +154,25 @@ pub fn send(message: Message, held_capabilities: &[String]) -> Result<u64, IpcEr
         return Err(IpcError::PermissionDenied);
     }
 
+    // A mailbox belongs to a live ring-3 task. Rejecting unknown targets
+    // prevents absent/crashed services from filling the broker and applying
+    // global backpressure to unrelated control channels.
+    if service_owner_pid(&message.target.service).is_none() {
+        return Err(IpcError::NoService);
+    }
+
     let id = message.id;
 
     x86_64::instructions::interrupts::without_interrupts(|| {
         let mut broker = BROKER.lock();
+        let service_depth = broker
+            .queue
+            .iter()
+            .filter(|queued| queued.target.service == message.target.service)
+            .count();
+        if service_depth >= MAX_QUEUED_MESSAGES_PER_SERVICE {
+            return Err(IpcError::QueueFull);
+        }
         if broker.queue.len() >= MAX_QUEUED_MESSAGES {
             return Err(IpcError::QueueFull);
         }
@@ -187,16 +206,21 @@ pub fn receive_for_service(service: &str) -> Result<Message, IpcError> {
 /// mailbox matching their executable name; the two historical Heliox
 /// channels retain their stable public names.
 pub fn task_owns_service(pid: u64, service: &str) -> bool {
-    let Some(task) = crate::scheduler::list_tasks()
-        .into_iter()
-        .find(|task| task.id == pid)
-    else {
-        return false;
-    };
+    service_owner_pid(service) == Some(pid)
+}
 
-    service == task.name
-        || (task.name == "heliox-daemon" && service == "heliox")
-        || (task.name == "heliox-assistant-panel" && service == "assistant")
+/// Resolve a mailbox to its live task owner. Executable names are the default
+/// service names; stable Heliox aliases preserve the existing wire contract.
+pub fn service_owner_pid(service: &str) -> Option<u64> {
+    crate::scheduler::list_tasks()
+        .into_iter()
+        .find(|task| {
+            task.state != crate::scheduler::TaskState::Dead
+                && (service == task.name
+                    || (task.name == "heliox-daemon" && service == "heliox")
+                    || (task.name == "heliox-assistant-panel" && service == "assistant"))
+        })
+        .map(|task| task.id)
 }
 
 /// Return IPC queue counters.

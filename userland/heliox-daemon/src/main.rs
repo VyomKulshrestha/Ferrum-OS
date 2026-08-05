@@ -502,7 +502,10 @@ pub extern "C" fn _start() -> ! {
     }
     
     // Send a message via IPC to the kernel to announce readiness
-    let svc = "gui";
+    // Queue readiness on the daemon's live control mailbox. The retired
+    // kernel-hardcoded `gui` endpoint had no owner and could accumulate
+    // forever when no assistant panel was running.
+    let svc = "heliox";
     let msg = b"HELIOX_READY";
     unsafe {
         syscall4(SYS_IPC_SEND, svc.as_ptr() as u64, svc.len() as u64, msg.as_ptr() as u64, msg.len() as u64);

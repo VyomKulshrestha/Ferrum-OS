@@ -626,20 +626,6 @@ pub extern "C" fn _start() -> ! {
     } else if test_mode == b'8' {
         if pid == 2 {
             write("[ipc-test] starting mailbox capability and ownership checks\n");
-            let payload = "private-assistant-message";
-            let sent = unsafe {
-                syscall4(
-                    SYS_IPC_SEND,
-                    "assistant".as_ptr() as u64,
-                    "assistant".len() as u64,
-                    payload.as_ptr() as u64,
-                    payload.len() as u64,
-                )
-            };
-            if (sent as i64) < 0 {
-                write_num("[ipc-test] ERROR seed send=", sent as i64, "\n");
-                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
-            }
             let child_pid = unsafe {
                 syscall3(
                     SYS_EXEC,
@@ -648,6 +634,52 @@ pub extern "C" fn _start() -> ! {
                     0,
                 )
             };
+            // The child pauses briefly before receiving, giving the parent a
+            // deterministic opportunity to seed its owned mailbox.
+            sleep(20);
+            let payload = "private-child-message";
+            let mut sent = 0;
+            for _ in 0..16 {
+                sent = unsafe {
+                    syscall4(
+                        SYS_IPC_SEND,
+                        "ipc-owner-test".as_ptr() as u64,
+                        "ipc-owner-test".len() as u64,
+                        payload.as_ptr() as u64,
+                        payload.len() as u64,
+                    )
+                };
+                if (sent as i64) < 0 { break; }
+            }
+            let saturated = unsafe {
+                syscall4(
+                    SYS_IPC_SEND,
+                    "ipc-owner-test".as_ptr() as u64,
+                    "ipc-owner-test".len() as u64,
+                    payload.as_ptr() as u64,
+                    payload.len() as u64,
+                )
+            };
+            let fair_payload = "fair";
+            let fair_send = unsafe {
+                syscall4(
+                    SYS_IPC_SEND,
+                    "init".as_ptr() as u64,
+                    "init".len() as u64,
+                    fair_payload.as_ptr() as u64,
+                    fair_payload.len() as u64,
+                )
+            };
+            if (sent as i64) < 0
+                || (saturated as i64) != -3
+                || (fair_send as i64) < 0
+            {
+                write_num("[ipc-test] ERROR seed send=", sent as i64, "\n");
+                write_num("[ipc-test] ERROR saturated send=", saturated as i64, "\n");
+                write_num("[ipc-test] ERROR fair send=", fair_send as i64, "\n");
+                unsafe { syscall3(SYS_EXIT, 1, 0, 0); }
+            }
+            write("[ipc-test] per-service backpressure preserves unrelated mailboxes\n");
             loop {
                 let status = unsafe { syscall3(SYS_WAITPID, child_pid, 0, 0) };
                 if (status as i64) >= 0 { break; }
@@ -656,14 +688,15 @@ pub extern "C" fn _start() -> ! {
             write("[ipc-test] all checks complete\n");
             unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
         } else {
+            sleep(100);
             let mut buf = [0u8; 64];
             let foreign = unsafe {
                 syscall4(
                     SYS_IPC_RECEIVE,
                     buf.as_mut_ptr() as u64,
                     buf.len() as u64,
-                    "assistant".as_ptr() as u64,
-                    "assistant".len() as u64,
+                    "init".as_ptr() as u64,
+                    "init".len() as u64,
                 )
             };
             let own = unsafe {
@@ -675,11 +708,21 @@ pub extern "C" fn _start() -> ! {
                     "ipc-owner-test".len() as u64,
                 )
             };
-            if (foreign as i64) == -2 && own == 0 {
+            let missing_target = unsafe {
+                syscall4(
+                    SYS_IPC_SEND,
+                    "missing-service".as_ptr() as u64,
+                    "missing-service".len() as u64,
+                    "x".as_ptr() as u64,
+                    1,
+                )
+            };
+            if (foreign as i64) == -2 && own == 21 && (missing_target as i64) == -3 {
                 write("[ipc-test] cross-process mailbox isolation confirmed\n");
             } else {
                 write_num("[ipc-test] ERROR foreign receive=", foreign as i64, "\n");
                 write_num("[ipc-test] ERROR own receive=", own as i64, "\n");
+                write_num("[ipc-test] ERROR missing target=", missing_target as i64, "\n");
             }
             unsafe { syscall3(SYS_EXIT, 0, 0, 0); }
         }

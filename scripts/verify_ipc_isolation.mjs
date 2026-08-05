@@ -94,8 +94,10 @@ try {
 
   await waitForSerial("[ipc-test] cross-process mailbox isolation confirmed", 30, start);
   check("IPC-capable process cannot consume another process mailbox", true);
+  await waitForSerial("[ipc-test] per-service backpressure preserves unrelated mailboxes", 30, start);
+  check("stalled service cannot starve an unrelated mailbox", true);
   await waitForSerial("[ipc-test] all checks complete", 30, start);
-  check("authorized process can access only its own empty mailbox", true);
+  check("authorized process receives only its own seeded mailbox", true);
   await waitForSerial("FerrumOS:~$", 45, start);
   const log = serialText().slice(start);
   check("foreign receive is audited and denied", log.includes("IPC receive denied for mailbox owned by another process"));
