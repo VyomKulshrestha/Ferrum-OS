@@ -877,6 +877,7 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
         let res = crate::syscall::dispatch_for_process(current_pid, syscall_no, args);
         if res.status == crate::syscall::SyscallStatus::Blocked {
             save_user_context(current_pid, frame);
+            let mut confirmation_wait = false;
             {
                 let mut sched = crate::scheduler::SCHEDULER.lock();
                 if let Some(idx) = sched.tasks.iter().position(|t| t.id == current_pid) {
@@ -902,6 +903,8 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
                     let already_genuinely_blocked =
                         task.state == crate::scheduler::TaskState::Blocked
                             && task.wake_at != u64::MAX;
+                    confirmation_wait = already_genuinely_blocked
+                        && task.blocked_on_confirmation;
                     if !already_genuinely_blocked {
                         task.state = crate::scheduler::TaskState::Ready;
                         task.time_remaining = crate::scheduler::TIME_SLICE_TICKS;
@@ -915,6 +918,15 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
                 }
             }
             crate::scheduler::CURRENT_PID.store(0, core::sync::atomic::Ordering::SeqCst);
+            if confirmation_wait {
+                // Confirmation is a modal security boundary. Park on the
+                // scheduler's dedicated idle stack until the PIT deadline or
+                // a physical y/n interrupt wakes the requester. Resuming a
+                // previously parked kernel UI task here can otherwise leave
+                // the only deadline-bearing ring-3 task without a reliable
+                // handoff back from that kernel task's safepoint.
+                unsafe { crate::scheduler::enter_idle() }
+            }
             unsafe { resume_after_death() }
         }
 
