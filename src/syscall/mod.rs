@@ -119,6 +119,10 @@ pub enum SyscallStatus {
     InvalidArgument = -3,
     NotImplemented = -4,
     Blocked = -5,
+    /// Non-blocking operation made no progress. Unlike `Blocked`, the
+    /// interrupt layer returns this status to userspace immediately instead
+    /// of rewinding and parking the task on the syscall instruction.
+    WouldBlock = -6,
 }
 
 /// Raw syscall result.
@@ -489,7 +493,18 @@ fn dispatch_with_context(
             {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            socket::sys_recv(caller_pid, args[0], args[1], args[2])
+            // The stable three-argument userspace wrapper leaves r10
+            // unspecified, so a non-blocking flag cannot safely live in
+            // args[3]. Reserve the high FD bit instead; real descriptors are
+            // bounded to the tiny kernel table and can never collide.
+            const NONBLOCK_FD: u64 = 1 << 63;
+            socket::sys_recv(
+                caller_pid,
+                args[0] & !NONBLOCK_FD,
+                args[1],
+                args[2],
+                args[0] & NONBLOCK_FD != 0,
+            )
         }
         x if x == SyscallNumber::Send as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*")

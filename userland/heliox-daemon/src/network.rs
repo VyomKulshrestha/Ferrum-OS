@@ -291,6 +291,27 @@ pub fn tcp_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
     }
 }
 
+/// Poll a socket without parking the whole cooperative daemon task. The
+/// kernel returns -6 when no bytes are ready; connection EOF remains Ok(0).
+pub fn tcp_recv_nonblocking(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
+    let received = unsafe {
+        syscall3(
+            SYS_RECV,
+            fd | (1 << 63),
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    let received_i = received as i64;
+    if received_i >= 0 {
+        Ok(received_i as usize)
+    } else if received_i == -6 {
+        Err("blocked")
+    } else {
+        Err("sys_recv failed")
+    }
+}
+
 /// Read the latest camera frame into the provided buffer. Returns frame size.
 pub fn read_camera_frame(buf: &mut [u8]) -> Result<usize, &'static str> {
     let size = unsafe { syscall3(SYS_READ_CAMERA_FRAME, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
@@ -1419,7 +1440,12 @@ pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
 fn ws_read_exact(fd: u64, buf: &mut [u8], allow_no_data: bool) -> Result<(), &'static str> {
     let mut offset = 0;
     while offset < buf.len() {
-        match tcp_recv(fd, &mut buf[offset..]) {
+        let receive = if offset == 0 && allow_no_data {
+            tcp_recv_nonblocking(fd, &mut buf[offset..])
+        } else {
+            tcp_recv(fd, &mut buf[offset..])
+        };
+        match receive {
             Ok(0) => {
                 return Err("ws: connection closed");
             }

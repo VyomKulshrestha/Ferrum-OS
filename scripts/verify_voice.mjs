@@ -16,6 +16,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
+import { assertPaired, rpcCall, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(scriptDir, "..");
@@ -26,6 +27,7 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 }
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || await freeTcpPort());
 const sttPort = Number(process.env.FERRUMOS_STT_PORT || await freeTcpPort());
+const hostPort = Number(process.env.FERRUMOS_HOST_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "voice-verify-serial.log");
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
 // rather than truncates, and this script's own waitForSerial(needle, s, 0)
@@ -78,7 +80,7 @@ const qemuArgs = [
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
-  "-netdev", "user,id=net0",
+  "-netdev", `user,id=net0,hostfwd=tcp:127.0.0.1:${hostPort}-:8785`,
   "-device", "rtl8139,netdev=net0",
   "-audiodev", "none,id=hda0",
   "-device", "intel-hda",
@@ -183,6 +185,16 @@ try {
   await sendText("ring3 init");
   await sendKey("ret");
 
+  await waitForSerial("[heliox-daemon] sent HELIOX_READY IPC announce", 30, start);
+  const ws = new WebSocket(`ws://127.0.0.1:${hostPort}`);
+  await new Promise((resolve, reject) => {
+    ws.addEventListener("open", resolve, { once: true });
+    ws.addEventListener("error", reject, { once: true });
+  });
+  const pairingToken = await waitForPairingToken(serialText);
+  assertPaired(await rpcCall(ws, "pair-voice", "pair", { token: pairingToken }));
+  check("external model remains paired while ambient hearing is enabled", true);
+
   // Step 1: Daemon spawns and registers voice activity due to vad_threshold=0
   await waitForSerial("[heliox-daemon] voice activity detected, recording command...", 30, start);
   check("daemon starts and detects voice activity (VAD=0)", true);
@@ -200,6 +212,10 @@ try {
   // Step 4: Verify the queued voice event updated the goal via IPC
   await waitForSerial("New goal set via IPC: hello world", 30, start);
   check("queued shell command voice event updates goal on the daemon via IPC", true);
+
+  const pong = await rpcCall(ws, "voice-ping", "ping", {});
+  check("bridge remains responsive after the full audio/STT cycle", pong.result === "pong");
+  ws.close();
 
   // Step 5: Verify no userspace page fault or panic
   const full = serialText().slice(start);

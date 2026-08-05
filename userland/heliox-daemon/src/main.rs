@@ -752,9 +752,13 @@ pub extern "C" fn _start() -> ! {
         let mut waveform = [0u8; 64];
         let mut is_listening = false;
 
-        if !bridge_connected && orchestrator.config.stt_host != "unconfigured" {
-            // Ambient Voice Command Listener (1-second buffer)
-            if let Ok(buf) = cognitive::voice::record_audio(1000) {
+        // Ambient hearing remains active while an external model is paired.
+        // Sample for 250 ms every ten event-loop iterations: enough for VAD's 200 ms floor,
+        // while bounding ordinary bridge latency instead of monopolizing the
+        // daemon's single cooperative event loop with continuous 1 s reads.
+        // Offset the first sample so clients can pair immediately after boot.
+        if orchestrator.config.stt_host != "unconfigured" && loop_count % 10 == 5 {
+            if let Ok(buf) = cognitive::voice::record_audio(250) {
                 let has_voice = cognitive::voice::detect_voice_activity(&buf, orchestrator.config.vad_threshold);
                 if has_voice {
                     is_listening = true;

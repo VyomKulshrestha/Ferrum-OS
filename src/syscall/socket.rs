@@ -86,7 +86,13 @@ pub fn sys_accept(caller_pid: u64, fd: u64) -> SyscallResult {
 /// Receive data from a socket.
 /// args: fd, buf_ptr (userspace pointer), len (buffer size)
 /// Returns number of bytes read.
-pub fn sys_recv(caller_pid: u64, fd: u64, buf_ptr: u64, len: u64) -> SyscallResult {
+pub fn sys_recv(
+    caller_pid: u64,
+    fd: u64,
+    buf_ptr: u64,
+    len: u64,
+    nonblocking: bool,
+) -> SyscallResult {
     // Poll the interface to process any incoming packets
     iface::poll();
 
@@ -112,6 +118,7 @@ pub fn sys_recv(caller_pid: u64, fd: u64, buf_ptr: u64, len: u64) -> SyscallResu
                 SyscallResult::err(SyscallStatus::InvalidArgument)
             }
         }
+        Err("blocked") if nonblocking => SyscallResult::err(SyscallStatus::WouldBlock),
         Err("blocked") => SyscallResult::err(SyscallStatus::Blocked),
         Err(error) => iface_error(error),
     }
