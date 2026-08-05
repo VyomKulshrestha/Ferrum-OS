@@ -48,41 +48,48 @@ fn targets_own_config(path: &str) -> bool {
     components.as_slice() == ["disk", "heliox", "config.json"]
 }
 
-pub fn predict_next_state(state: &StateEmbedding, action: &ToolCall) -> Prediction {
+fn deletes_own_config(action: &ToolCall) -> bool {
     // `deletes_own_config` is a fact about the action's *arguments*, not
     // a numeric prediction - always checked directly regardless of which
     // embedding-delta source is used below, so a config.json deletion
     // stays caught even before a learned model has ever seen the
     // one exact path this daemon's own config lives at.
-    let deletes_own_config = action.name == "delete_file"
+    action.name == "delete_file"
         && find_tool_arg_string(&action.arguments, "path")
             .map(|path| targets_own_config(&path))
-            .unwrap_or(false);
+            .unwrap_or(false)
+}
 
-    if let Some(delta) = learned::predict_delta(state, action) {
-        let mut next = *state;
-        for i in 0..next.len() {
-            next[i] += delta[i];
-        }
-        // Core normalized fields and the learned representation have
-        // different domains. In particular, the encoder's latent tail is
-        // signed; clamping all 128 values to [0,1] used to erase its negative
-        // components after the first rollout step, even though training and
-        // real observations retained them.
-        encoder::clamp_predicted(&mut next);
-        // Derived from the learned model's own predicted proc_count
-        // delta (normalized by encoder.rs's NOMINAL_PROC_CAPACITY=64) -
-        // works for *any* action the model has learned an effect for,
-        // not just the three the rule table hardcodes below. Manual
-        // round-half-away-from-zero: f32::round() needs std, unavailable
-        // in this no_std crate.
-        let raw = delta[0] * 64.0;
-        let proc_count_delta = if raw >= 0.0 { (raw + 0.5) as i32 } else { (raw - 0.5) as i32 };
-        return Prediction { embedding: next, deletes_own_config, proc_count_delta };
+/// Learned transition only. `None` means the model is absent, the action was
+/// outside its trained coverage, or inference failed closed to deterministic
+/// evaluation. Keeping this separate lets the safety gate evaluate the learned
+/// and rule-table estimates independently instead of allowing one to replace
+/// the other.
+pub fn predict_next_state_learned(state: &StateEmbedding, action: &ToolCall) -> Option<Prediction> {
+    let delta = learned::predict_delta(state, action)?;
+    let mut next = *state;
+    for i in 0..next.len() {
+        next[i] += delta[i];
     }
+    encoder::clamp_predicted(&mut next);
+    // Manual round-half-away-from-zero: f32::round() needs std, unavailable
+    // in this no_std crate.
+    let raw = delta[0] * 64.0;
+    let proc_count_delta = if raw >= 0.0 { (raw + 0.5) as i32 } else { (raw - 0.5) as i32 };
+    Some(Prediction { embedding: next, deletes_own_config: deletes_own_config(action), proc_count_delta })
+}
 
+/// Deterministic transition estimate, always available even when learned
+/// weights are loaded. The safety gate treats it as an independent baseline.
+pub fn predict_next_state_rules(state: &StateEmbedding, action: &ToolCall) -> Prediction {
     let (next, proc_count_delta) = rule_based_delta(state, action);
-    Prediction { embedding: next, deletes_own_config, proc_count_delta }
+    Prediction { embedding: next, deletes_own_config: deletes_own_config(action), proc_count_delta }
+}
+
+/// Compatibility predictor for non-safety callers that require one next state.
+pub fn predict_next_state(state: &StateEmbedding, action: &ToolCall) -> Prediction {
+    predict_next_state_learned(state, action)
+        .unwrap_or_else(|| predict_next_state_rules(state, action))
 }
 
 fn rule_based_delta(state: &StateEmbedding, action: &ToolCall) -> (StateEmbedding, i32) {

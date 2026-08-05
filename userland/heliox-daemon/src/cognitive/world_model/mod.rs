@@ -31,6 +31,7 @@ use alloc::string::String;
 use alloc::vec;
 use super::json::{JsonValue, ToolCall};
 use observation::OsSnapshot;
+use transition::Prediction;
 
 /// Tool names in a fixed, stable order - used both for the encoder's
 /// one-hot `last_action_id` feature and the experience buffer's compact
@@ -109,19 +110,38 @@ fn safer_alternative(action: &ToolCall, risk: f32, reason: &str) -> String {
 /// every step (not just the first) since args could differ per real
 /// call, even though this simulation reuses one fixed action throughout.
 pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
-    let mut embedding = encoder::encode(state);
+    let initial_embedding = encoder::encode(state);
+    let mut learned_embedding = initial_embedding;
+    let mut rule_embedding = initial_embedding;
     let mut worst_risk = 0.0f32;
     let mut worst_reason = String::new();
     let mut worst_step = 1u32;
-    // Process growth is additive across repeated actions. Keeping only the
-    // final step's delta lets a multi-step fork pattern evade the horizon.
-    let mut cumulative_proc_delta = 0i32;
+    let mut learned_proc_delta = 0i32;
+    let mut rule_proc_delta = 0i32;
 
     for step in 1..=MAX_LOOKAHEAD {
-        let mut prediction = transition::predict_next_state(&embedding, action);
-        cumulative_proc_delta = cumulative_proc_delta.saturating_add(prediction.proc_count_delta);
-        prediction.proc_count_delta = cumulative_proc_delta;
-        let (risk, reason) = safety::risk_score(&prediction);
+        let mut rule_prediction = transition::predict_next_state_rules(&rule_embedding, action);
+        rule_proc_delta = rule_proc_delta.saturating_add(rule_prediction.proc_count_delta);
+        rule_prediction.proc_count_delta = rule_proc_delta;
+        let (rule_risk, rule_reason) = safety::risk_score(&rule_prediction);
+
+        let learned = transition::predict_next_state_learned(&learned_embedding, action);
+        let (learned_risk, learned_reason) = if let Some(ref prediction) = learned {
+            learned_proc_delta = learned_proc_delta.saturating_add(prediction.proc_count_delta);
+            let scored = Prediction {
+                embedding: prediction.embedding,
+                deletes_own_config: prediction.deletes_own_config,
+                proc_count_delta: learned_proc_delta,
+            };
+            safety::risk_score(&scored)
+        } else {
+            (0.0, String::new())
+        };
+        let (risk, reason) = if learned_risk > rule_risk {
+            (learned_risk, learned_reason)
+        } else {
+            (rule_risk, rule_reason)
+        };
         if risk > worst_risk {
             worst_risk = risk;
             worst_step = step;
@@ -134,7 +154,10 @@ pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
         if worst_risk >= safety::BLOCK_THRESHOLD {
             break;
         }
-        embedding = prediction.embedding;
+        rule_embedding = rule_prediction.embedding;
+        if let Some(prediction) = learned {
+            learned_embedding = prediction.embedding;
+        }
     }
 
     let suggestion = safer_alternative(action, worst_risk, &worst_reason);
