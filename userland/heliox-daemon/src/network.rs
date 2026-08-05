@@ -313,19 +313,21 @@ pub fn camera_info(buf: &mut [u8]) -> Result<usize, &'static str> {
     }
 }
 
-// ---- DNS Resolution (Hardcoded for bare-metal) -----------------------------
+// ---- DNS Resolution ---------------------------------------------------------
 
-/// Known host IP addresses. Since we have no DNS resolver on bare metal,
-/// we hardcode the addresses of common LLM API endpoints.
-/// In QEMU user-mode networking, the host machine is at 10.0.2.2.
+/// Resolve a hostname to IPv4. QEMU aliases and literal addresses stay on the
+/// allocation-free fast path; ordinary hostnames use a real DNS-over-TCP query
+/// to QEMU user networking's resolver at 10.0.2.3. DNS-over-TCP deliberately
+/// reuses the existing capability-gated TCP syscall surface instead of adding
+/// a special host-side resolver API or a new kernel ABI.
 pub fn resolve_host(host: &str) -> Option<[u8; 4]> {
     match host {
         // QEMU host gateway — used for local Ollama / LLM servers
         "host" | "localhost" | "10.0.2.2" => Some([10, 0, 2, 2]),
         // QEMU DNS server
         "dns" | "10.0.2.3" => Some([10, 0, 2, 3]),
-        // Allow raw dotted-quad IPs
-        _ => parse_ipv4(host),
+        // Allow raw dotted-quad IPs, then use DNS for an ordinary hostname.
+        _ => parse_ipv4(host).or_else(|| dns_resolve_ipv4(host)),
     }
 }
 
@@ -366,6 +368,178 @@ fn parse_ipv4(s: &str) -> Option<[u8; 4]> {
     }
 }
 
+fn valid_dns_name(host: &str) -> bool {
+    if host.is_empty() || host.len() > 253 || host.starts_with('.') || host.ends_with('.') {
+        return false;
+    }
+    host.split('.').all(|label| {
+        !label.is_empty()
+            && label.len() <= 63
+            && !label.starts_with('-')
+            && !label.ends_with('-')
+            && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    })
+}
+
+fn dns_send_all(fd: u64, data: &[u8]) -> Result<(), &'static str> {
+    let mut sent = 0usize;
+    let mut retries = 0u32;
+    while sent < data.len() {
+        match tcp_send(fd, &data[sent..]) {
+            Ok(0) => return Err("DNS socket closed while sending"),
+            Ok(count) => {
+                sent += count;
+                retries = 0;
+            }
+            Err("blocked") => {
+                retries += 1;
+                if retries > 500 {
+                    return Err("DNS send timed out");
+                }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
+fn dns_recv_exact(fd: u64, out: &mut [u8]) -> Result<(), &'static str> {
+    let mut received = 0usize;
+    let mut retries = 0u32;
+    while received < out.len() {
+        match tcp_recv(fd, &mut out[received..]) {
+            Ok(0) => return Err("DNS socket closed before response completed"),
+            Ok(count) => {
+                received += count;
+                retries = 0;
+            }
+            Err("blocked") => {
+                retries += 1;
+                if retries > 1000 {
+                    return Err("DNS receive timed out");
+                }
+                unsafe { crate::syscall3(0, 0, 0, 0); }
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
+fn skip_dns_name(packet: &[u8], mut offset: usize) -> Option<usize> {
+    let start = offset;
+    let mut consumed = 0usize;
+    let mut labels = 0usize;
+    loop {
+        let len = *packet.get(offset)?;
+        if len & 0xC0 == 0xC0 {
+            packet.get(offset + 1)?;
+            return Some(start + consumed + 2);
+        }
+        offset += 1;
+        consumed += 1;
+        if len == 0 {
+            return Some(start + consumed);
+        }
+        if len > 63 {
+            return None;
+        }
+        offset = offset.checked_add(len as usize)?;
+        consumed = consumed.checked_add(len as usize)?;
+        if offset > packet.len() {
+            return None;
+        }
+        labels += 1;
+        if labels > 127 {
+            return None;
+        }
+    }
+}
+
+fn parse_dns_ipv4(packet: &[u8], expected_id: u16) -> Option<[u8; 4]> {
+    if packet.len() < 12 || u16::from_be_bytes([packet[0], packet[1]]) != expected_id {
+        return None;
+    }
+    let flags = u16::from_be_bytes([packet[2], packet[3]]);
+    if flags & 0x8000 == 0 || flags & 0x000F != 0 || flags & 0x0200 != 0 {
+        return None;
+    }
+    let questions = u16::from_be_bytes([packet[4], packet[5]]) as usize;
+    let answers = u16::from_be_bytes([packet[6], packet[7]]) as usize;
+    let mut offset = 12usize;
+    for _ in 0..questions {
+        offset = skip_dns_name(packet, offset)?;
+        offset = offset.checked_add(4)?;
+        if offset > packet.len() {
+            return None;
+        }
+    }
+    for _ in 0..answers {
+        offset = skip_dns_name(packet, offset)?;
+        if offset.checked_add(10)? > packet.len() {
+            return None;
+        }
+        let record_type = u16::from_be_bytes([packet[offset], packet[offset + 1]]);
+        let class = u16::from_be_bytes([packet[offset + 2], packet[offset + 3]]);
+        let data_len = u16::from_be_bytes([packet[offset + 8], packet[offset + 9]]) as usize;
+        offset += 10;
+        let end = offset.checked_add(data_len)?;
+        if end > packet.len() {
+            return None;
+        }
+        if record_type == 1 && class == 1 && data_len == 4 {
+            return Some([packet[offset], packet[offset + 1], packet[offset + 2], packet[offset + 3]]);
+        }
+        offset = end;
+    }
+    None
+}
+
+fn dns_resolve_ipv4(host: &str) -> Option<[u8; 4]> {
+    if !valid_dns_name(host) {
+        return None;
+    }
+
+    let mut hash = 0x811Cu16;
+    for byte in host.bytes() {
+        hash = hash.rotate_left(5) ^ byte as u16;
+    }
+    let transaction_id = hash ^ 0x484Cu16;
+    let mut query = Vec::with_capacity(host.len() + 20);
+    query.extend_from_slice(&transaction_id.to_be_bytes());
+    query.extend_from_slice(&[0x01, 0x00]); // recursion desired
+    query.extend_from_slice(&1u16.to_be_bytes()); // one question
+    query.extend_from_slice(&0u16.to_be_bytes());
+    query.extend_from_slice(&0u16.to_be_bytes());
+    query.extend_from_slice(&0u16.to_be_bytes());
+    for label in host.split('.') {
+        query.push(label.len() as u8);
+        query.extend_from_slice(label.as_bytes());
+    }
+    query.push(0);
+    query.extend_from_slice(&1u16.to_be_bytes()); // A
+    query.extend_from_slice(&1u16.to_be_bytes()); // IN
+
+    let socket_guard = SocketGuard::open().ok()?;
+    let fd = socket_guard.fd();
+    tcp_connect(fd, [10, 0, 2, 3], 53).ok()?;
+    let mut framed = Vec::with_capacity(query.len() + 2);
+    framed.extend_from_slice(&(query.len() as u16).to_be_bytes());
+    framed.extend_from_slice(&query);
+    dns_send_all(fd, &framed).ok()?;
+
+    let mut length = [0u8; 2];
+    dns_recv_exact(fd, &mut length).ok()?;
+    let response_len = u16::from_be_bytes(length) as usize;
+    if response_len < 12 || response_len > 4096 {
+        return None;
+    }
+    let mut response = alloc::vec![0u8; response_len];
+    dns_recv_exact(fd, &mut response).ok()?;
+    parse_dns_ipv4(&response, transaction_id)
+}
+
 // ---- HTTP Client -----------------------------------------------------------
 
 /// Result of an HTTP request.
@@ -374,9 +548,27 @@ pub struct HttpResponse {
     pub body: String,
 }
 
+fn validate_http_target(host: &str, port: u16, path: &str) -> Result<(), &'static str> {
+    let known_alias = matches!(host, "host" | "localhost" | "dns");
+    if port == 0
+        || (!known_alias && parse_ipv4(host).is_none() && !valid_dns_name(host))
+        || !path.starts_with('/')
+        || path.len() > 4096
+        || path.bytes().any(|byte| byte == b'\r' || byte == b'\n')
+    {
+        return Err("invalid HTTP target");
+    }
+    Ok(())
+}
+
+fn valid_header_value(value: &str) -> bool {
+    value.len() <= 8192 && !value.bytes().any(|byte| byte == b'\r' || byte == b'\n')
+}
+
 /// Perform an HTTP GET request to the given host:port/path.
 /// Returns the response status code and body.
 pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'static str> {
+    validate_http_target(host, port, path)?;
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
     let socket_guard = SocketGuard::open()?;
     let fd = socket_guard.fd();
@@ -444,6 +636,10 @@ pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'sta
 /// Perform an HTTP POST request to the given host:port/path with a JSON body.
 /// This is a minimal bare-metal HTTP/1.1 client — no TLS, no chunked encoding.
 pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &str) -> Result<HttpResponse, &'static str> {
+    validate_http_target(host, port, path)?;
+    if !valid_header_value(api_key) {
+        return Err("invalid API key header value");
+    }
     // 1. Resolve the host
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
@@ -535,6 +731,10 @@ pub fn http_post_binary(
     content_type: &str,
     api_key: &str,
 ) -> Result<HttpResponse, &'static str> {
+    validate_http_target(host, port, path)?;
+    if !valid_header_value(content_type) || !valid_header_value(api_key) {
+        return Err("invalid HTTP header value");
+    }
     // 1. Resolve the host
     let ip = resolve_host(host).ok_or("DNS resolution failed")?;
 
@@ -758,6 +958,10 @@ pub fn query_llm(
     }
 }
 
+pub fn http_get_tls(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'static str> {
+    http_tls_request(host, port, path, "GET", &[], "", "")
+}
+
 pub fn http_post_tls(
     host: &str,
     port: u16,
@@ -765,6 +969,33 @@ pub fn http_post_tls(
     json_body: &str,
     api_key: &str,
 ) -> Result<HttpResponse, &'static str> {
+    http_tls_request(
+        host,
+        port,
+        path,
+        "POST",
+        json_body.as_bytes(),
+        "application/json",
+        api_key,
+    )
+}
+
+fn http_tls_request(
+    host: &str,
+    port: u16,
+    path: &str,
+    method: &str,
+    body: &[u8],
+    content_type: &str,
+    api_key: &str,
+) -> Result<HttpResponse, &'static str> {
+    validate_http_target(host, port, path)?;
+    if !matches!(method, "GET" | "POST")
+        || !valid_header_value(content_type)
+        || !valid_header_value(api_key)
+    {
+        return Err("invalid TLS HTTP request");
+    }
     // 0. Self-check cap:net:tls before opening an encrypted channel. TLS is
     // parsed entirely in userspace (the kernel just sees opaque bytes over a
     // plain socket), so there is no kernel-side syscall to gate on; this
@@ -825,19 +1056,29 @@ pub fn http_post_tls(
         })?;
 
     // 9. Send the request
-    let content_length = json_body.len();
     let auth_header = if !api_key.is_empty() {
         format!("Authorization: Bearer {}\r\n", api_key)
     } else {
         String::new()
     };
-    
+    let entity_headers = if body.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "Content-Type: {}\r\nContent-Length: {}\r\n",
+            content_type,
+            body.len()
+        )
+    };
     let request = format!(
-        "POST {} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\nConnection: close\r\n\r\n{}",
-        path, host, auth_header, content_length, json_body
+        "{} {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: Heliox/0.1\r\n{}{}Connection: close\r\n\r\n",
+        method, path, host, entity_headers, auth_header
     );
 
     tls.write_all(request.as_bytes()).map_err(|_| "TLS write failed")?;
+    if !body.is_empty() {
+        tls.write_all(body).map_err(|_| "TLS body write failed")?;
+    }
     tls.flush().map_err(|_| "TLS flush failed")?;
 
     // 10. Receive the response

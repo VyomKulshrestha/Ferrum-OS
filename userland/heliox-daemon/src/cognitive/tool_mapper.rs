@@ -224,8 +224,8 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES CONFIRMATION).
     Arguments: {"dx": <number>, "dy": <number>}
 
-34. `browse_url` - Fetch a URL and extract clean text content from the page.
-    Arguments: {"url": "<http://...>"}
+34. `browse_url` - Fetch an HTTP or HTTPS URL and extract clean text content from the page.
+    Arguments: {"url": "<http://... or https://...>"}
 
 35. `poll_input` - Poll pending input events (keyboard/mouse) from the event queue.
     Arguments: {}
@@ -572,11 +572,14 @@ fn execute_net_connect(args: &[(String, JsonValue)]) -> ToolResult {
             success: true,
             output: format!("Connected to {}:{} (fd={})", host, port, fd),
         },
-        Err(e) => ToolResult {
-            tool_name: String::from("net_connect"),
-            success: false,
-            output: format!("Connect failed: {}", e),
-        },
+        Err(e) => {
+            let _ = crate::network::tcp_close(fd);
+            ToolResult {
+                tool_name: String::from("net_connect"),
+                success: false,
+                output: format!("Connect failed: {}", e),
+            }
+        }
     }
 }
 
@@ -620,64 +623,33 @@ fn execute_http_get(args: &[(String, JsonValue)]) -> ToolResult {
     let host = find_arg_string(args, "host").unwrap_or_default();
     let port = find_arg_number(args, "port").unwrap_or(80.0) as u16;
     let path = find_arg_string(args, "path").unwrap_or(String::from("/"));
-
-    // Build and send HTTP GET request
-    let request = format!(
-        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
-        path, host
-    );
-
-    let ip = match crate::network::resolve_host(&host) {
-        Some(ip) => ip,
-        None => {
-            return ToolResult {
-                tool_name: String::from("http_get"),
-                success: false,
-                output: format!("Failed to resolve host: {}", host),
-            };
-        }
-    };
-
-    let fd = match crate::network::tcp_socket() {
-        Ok(fd) => fd,
-        Err(e) => {
-            return ToolResult {
-                tool_name: String::from("http_get"),
-                success: false,
-                output: format!("Socket creation failed: {}", e),
-            };
-        }
-    };
-
-    if let Err(e) = crate::network::tcp_connect(fd, ip, port) {
-        return ToolResult {
-            tool_name: String::from("http_get"),
-            success: false,
-            output: format!("Connect failed: {}", e),
-        };
-    }
-
-    unsafe { syscall3(SYS_SEND, fd, request.as_ptr() as u64, request.len() as u64) };
-
-    let mut buf = alloc::vec![0u8; 8192];
-    let result = unsafe {
-        syscall3(SYS_RECV, fd, buf.as_mut_ptr() as u64, buf.len() as u64)
-    };
-
-    if (result as i64) <= 0 {
-        ToolResult {
-            tool_name: String::from("http_get"),
-            success: false,
-            output: format!("No response from {}:{}{}", host, port, path),
-        }
+    let response = if port == 443 {
+        crate::network::http_get_tls(&host, port, &path)
     } else {
-        let response = core::str::from_utf8(&buf[..result as usize]).unwrap_or("<binary>");
-        let preview = if response.len() > 512 { &response[..512] } else { response };
-        ToolResult {
-            tool_name: String::from("http_get"),
-            success: true,
-            output: format!("HTTP response ({} bytes): {}", result, preview),
+        crate::network::http_get(&host, port, &path)
+    };
+    match response {
+        Ok(response) => {
+            let mut end = core::cmp::min(response.body.len(), 512);
+            while end > 0 && !response.body.is_char_boundary(end) {
+                end -= 1;
+            }
+            ToolResult {
+                tool_name: String::from("http_get"),
+                success: (200..400).contains(&response.status_code),
+                output: format!(
+                    "HTTP {} response ({} bytes): {}",
+                    response.status_code,
+                    response.body.len(),
+                    &response.body[..end]
+                ),
+            }
         }
+        Err(error) => ToolResult {
+            tool_name: String::from("http_get"),
+            success: false,
+            output: format!("HTTP GET failed for {}:{}{}: {}", host, port, path, error),
+        },
     }
 }
 
@@ -1075,6 +1047,7 @@ fn execute_browse_url(args: &[(String, JsonValue)]) -> ToolResult {
     match crate::cognitive::web_agent::browse(&url) {
         Ok(result) => {
             let mut output = String::new();
+            output.push_str(&format!("HTTP status: {}\n", result.status_code));
             if let Some(ref title) = result.title {
                 output.push_str(&format!("Title: {}\n\n", title));
             }

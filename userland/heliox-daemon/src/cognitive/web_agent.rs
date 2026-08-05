@@ -226,16 +226,16 @@ fn extract_href(tag: &str) -> Option<String> {
     None
 }
 
-/// Parse a URL into (host, port, path) components.
-/// Only supports http:// scheme.
-fn parse_url(url: &str) -> Result<(String, u16, String), &'static str> {
+/// Parse a URL into (host, port, path, TLS) components.
+fn parse_url(url: &str) -> Result<(String, u16, String, bool), &'static str> {
     let url = url.trim();
-
-    if !url.starts_with("http://") {
-        return Err("only http:// URLs are supported");
-    }
-
-    let without_scheme = &url[7..]; // skip "http://"
+    let (without_scheme, tls, default_port) = if let Some(rest) = url.strip_prefix("https://") {
+        (rest, true, 443u16)
+    } else if let Some(rest) = url.strip_prefix("http://") {
+        (rest, false, 80u16)
+    } else {
+        return Err("URL must start with http:// or https://");
+    };
 
     // Split host+port from path
     let (host_port, path) = match find_substr(without_scheme, "/") {
@@ -251,14 +251,18 @@ fn parse_url(url: &str) -> Result<(String, u16, String), &'static str> {
             let port = parse_u16(port_str).ok_or("invalid port number")?;
             (String::from(host), port)
         }
-        None => (String::from(host_port), 80u16),
+        None => (String::from(host_port), default_port),
     };
 
     if host.is_empty() {
         return Err("empty host");
     }
 
-    Ok((host, port, path))
+    if path.bytes().any(|byte| byte == b'\r' || byte == b'\n') {
+        return Err("invalid URL path");
+    }
+
+    Ok((host, port, path, tls))
 }
 
 /// Parse a string to u16 without std.
@@ -282,14 +286,18 @@ fn parse_u16(s: &str) -> Option<u16> {
 /// Parse the URL to extract host, port (default 80), and path.
 /// Returns (status_code, body_text).
 pub fn fetch_url(url: &str) -> Result<(u16, String), &'static str> {
-    let (host, port, path) = parse_url(url)?;
+    let (host, port, path, tls) = parse_url(url)?;
 
     // Verify the host can be resolved before calling http_get
     if crate::network::resolve_host(&host).is_none() {
         return Err("cannot resolve host");
     }
 
-    let response = crate::network::http_get(&host, port, &path)?;
+    let response = if tls {
+        crate::network::http_get_tls(&host, port, &path)?
+    } else {
+        crate::network::http_get(&host, port, &path)?
+    };
 
     Ok((response.status_code, response.body))
 }
