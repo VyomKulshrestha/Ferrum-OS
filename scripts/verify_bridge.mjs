@@ -291,6 +291,7 @@ try {
 
   // Send gesture_event request
   console.log("[test] sending gesture_event...");
+  const gestureStart = serialText().length;
   client.write(makeFrame(JSON.stringify({
     method: "gesture_event",
     params: {
@@ -305,11 +306,32 @@ try {
     await sleep(50);
   }
 
-  check("received gesture response from daemon", responses.length >= 3 && responses[2].id === 102 && responses[2].result === "ok");
+  check(
+    "received capability-gated gesture response from daemon",
+    responses.length >= 3
+      && responses[2].id === 102
+      && responses[2].result
+      && responses[2].result.success === false
+      && /Awaiting confirmation/.test(responses[2].result.output || ""),
+  );
 
-  // Wait for the guest to log the gesture event mapping
-  await waitForSerial("[heliox-daemon] gesture circle_clockwise mapped: injecting 'g'", 15, start);
-  check("daemon mapped gesture and logged key injection", true);
+  // Gesture-originated OS effects must use exactly the same world-model and
+  // confirmation path as provider/public tool calls; no direct injected key.
+  const gestureLog = await waitForSerial(
+    "gesture circle_clockwise mapped through gated keyboard_type",
+    30,
+    gestureStart,
+  );
+  check("daemon routes gesture input through the canonical dispatcher", true);
+  check(
+    "gesture key injection remains pending without operator approval",
+    gestureLog.includes("Awaiting confirmation"),
+  );
+  const gestureDataset = await waitForSerial("[world-model-dataset-v2]", 30, gestureStart);
+  check(
+    "gesture-originated keyboard action is recorded but not executed",
+    gestureDataset.includes("action=36") && gestureDataset.includes("executed=0"),
+  );
 
   // Close connection
   client.end();

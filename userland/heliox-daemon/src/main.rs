@@ -591,34 +591,48 @@ pub extern "C" fn _start() -> ! {
                                 orchestrator.set_paused(false);
                             }
                             cognitive::gesture::GestureType::Pointing => {
-                                let direct_msg = "[heliox-daemon] gesture Pointing -> direct: mouse click\n";
+                                let call = cognitive::json::ToolCall {
+                                    name: String::from("mouse_click"),
+                                    arguments: alloc::vec![
+                                        (String::from("button"), cognitive::json::JsonValue::Number(0.0)),
+                                    ],
+                                };
+                                let result = orchestrator.execute_tool_with_world_model(&call);
+                                let direct_msg = alloc::format!(
+                                    "[heliox-daemon] gesture Pointing -> gated mouse_click: {}\n",
+                                    result.output
+                                );
                                 unsafe {
                                     syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
-                                }
-                                unsafe {
-                                    syscall3(27, 1, 0, 0); // InjectMouse: click, button=0
                                 }
                             }
                             cognitive::gesture::GestureType::Peace => {
-                                let direct_msg = "[heliox-daemon] gesture Peace -> direct: help command\n";
+                                let call = cognitive::json::ToolCall {
+                                    name: String::from("keyboard_type"),
+                                    arguments: alloc::vec![
+                                        (String::from("text"), cognitive::json::JsonValue::Str(String::from("help\n"))),
+                                    ],
+                                };
+                                let result = orchestrator.execute_tool_with_world_model(&call);
+                                let direct_msg = alloc::format!(
+                                    "[heliox-daemon] gesture Peace -> gated keyboard_type: {}\n",
+                                    result.output
+                                );
                                 unsafe {
                                     syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
-                                }
-                                for &b in b"help\n" {
-                                    unsafe {
-                                        syscall3(26, b as u64, 0, 0);
-                                    }
                                 }
                             }
                             cognitive::gesture::GestureType::ThumbsUp => {
-                                let direct_msg = "[heliox-daemon] gesture ThumbsUp -> direct: confirm/approve\n";
+                                // A probabilistic camera gesture is useful
+                                // intent context, but it must not synthesize a
+                                // physical 'y' and approve destructive kernel
+                                // authority. The orchestrator already receives
+                                // the gesture above and can explain the pending
+                                // action; approval remains an explicit shell or
+                                // hardware-key operation.
+                                let direct_msg = "[heliox-daemon] gesture ThumbsUp observed; explicit confirmation still required\n";
                                 unsafe {
                                     syscall3(SYS_WRITE, FD_CONSOLE, direct_msg.as_ptr() as u64, direct_msg.len() as u64);
-                                }
-                                for &b in b"y\n" {
-                                    unsafe {
-                                        syscall3(26, b as u64, 0, 0);
-                                    }
                                 }
                             }
                             _ => {}
@@ -831,15 +845,27 @@ pub extern "C" fn _start() -> ! {
                                             if let Some(params) = parsed.get("params") {
                                                 if let Some(gesture) = params.get("gesture").and_then(|g| g.as_str()) {
                                                     if gesture == "circle_clockwise" {
-                                                        let print_msg = "[heliox-daemon] gesture circle_clockwise mapped: injecting 'g'\n";
+                                                        let tool_call = cognitive::json::ToolCall {
+                                                            name: String::from("keyboard_type"),
+                                                            arguments: alloc::vec![
+                                                                (String::from("text"), cognitive::json::JsonValue::Str(String::from("g"))),
+                                                            ],
+                                                        };
+                                                        let tool_result = orchestrator
+                                                            .execute_tool_with_world_model(&tool_call);
+                                                        let print_msg = alloc::format!(
+                                                            "[heliox-daemon] gesture circle_clockwise mapped through gated keyboard_type: {}\n",
+                                                            tool_result.output
+                                                        );
                                                         unsafe {
                                                             syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
                                                         }
-                                                        const SYS_INJECT_KEY: u64 = 26;
-                                                        unsafe {
-                                                            syscall3(SYS_INJECT_KEY, b'g' as u64, 0, 0);
-                                                        }
-                                                        let res_json = alloc::format!("{{\"jsonrpc\":\"2.0\",\"result\":\"ok\",\"id\":{}}}", id_str);
+                                                        let res_json = alloc::format!(
+                                                            "{{\"jsonrpc\":\"2.0\",\"result\":{{\"success\":{},\"output\":{}}},\"id\":{}}}",
+                                                            tool_result.success,
+                                                            escape_json_string(&tool_result.output),
+                                                            id_str
+                                                        );
                                                         let _ = network::ws_send_text_server(conn.fd, &res_json);
                                                     }
                                                 }
