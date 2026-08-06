@@ -142,7 +142,12 @@ JEPA was proposed as a non-generative predictive architecture that operates in
 representation space rather than reconstructing every input detail
 ([LeCun, 2022](https://openreview.net/forum?id=BZ5a1r-kVsf)). I-JEPA later
 demonstrated the same central design choice empirically for semantic image
-representations ([Assran et al., 2023](https://arxiv.org/abs/2301.08243)).
+representations ([Assran et al., 2023](https://arxiv.org/abs/2301.08243)), and
+V-JEPA extended feature-only prediction to temporal visual representations
+without pixel reconstruction or pretrained encoders
+([Bardes et al., 2024](https://arxiv.org/abs/2404.08471)). These vision results
+motivate the representation-space objective; they are not evidence that an OS
+transition model inherits visual-semantic performance.
 
 FerrumOS adapts that idea to action-conditioned OS transitions: a context
 encoder maps observed state to a compact latent; a predictor receives that
@@ -164,11 +169,15 @@ changes safety decisions.
 
 | Work | Evaluation or mechanism | Layer | Difference from FerrumOS |
 |---|---|---|---|
+| [LeCun's JEPA proposal](https://openreview.net/forum?id=BZ5a1r-kVsf) | Hierarchical joint-embedding predictive world-model architecture | Representation/world model | Supplies the non-generative design argument; FerrumOS evaluates a concrete action-conditioned OS instantiation |
+| [I-JEPA](https://arxiv.org/abs/2301.08243) and [V-JEPA](https://arxiv.org/abs/2404.08471) | Masked feature prediction for image and video representations | Perceptual representation | Establish representation-space prediction in vision; neither evaluates state-changing OS actions or runtime safety |
 | [SafetyBench](https://arxiv.org/abs/2309.07045) | 11,435 bilingual multiple-choice questions across seven LLM-safety categories | Model knowledge/output | FerrumOS evaluates concrete state-changing OS actions, not safety knowledge in generated text |
 | [Constitutional AI](https://arxiv.org/abs/2212.08073) | Supervised self-critique plus reinforcement learning from AI feedback | Model training/alignment | Complementary: a constitution shapes model behavior; FerrumOS mediates actions from any provider at runtime |
+| [WebArena](https://arxiv.org/abs/2307.13854) | Reproducible long-horizon tasks on functional websites | Agent/application environment | Measures task success in a web environment; FerrumOS measures pre-execution safety decisions across OS capabilities |
 | [Agent-SafetyBench](https://arxiv.org/abs/2412.14470) | 2,000 cases in 349 tool-interaction environments | Agent/application | Broader behavioral taxonomy; FerrumOS adds an OS action gate and kernel capability backstop |
 | [ST-WebAgentBench](https://arxiv.org/abs/2410.06703) | Policy compliance and risk ratio in WebArena-derived tasks | Web application | Web policy evaluation does not mediate filesystem, process, audio, device, or kernel-transition syscalls |
 | [SafeDreamer](https://arxiv.org/abs/2307.07176) | World-model planning with constrained-RL/Lagrangian objectives in Safety-Gymnasium | Learned control policy | Closest world-model safety analogy, but FerrumOS filters discrete canonical OS actions without training the provider policy |
+| [Responsible Robotic Manipulation](https://arxiv.org/abs/2411.18289) | A world model generates risky manipulation scenarios and a mental model reflects on consequences | Physical-agent safety | Shares consequence prediction before action, but FerrumOS combines a numeric latent gate with deterministic OS policy and kernel enforcement |
 
 The literature comparison does not claim metric equivalence: question accuracy,
 policy-compliant task completion, RL cost, and OS gate FPR/FNR measure different
@@ -201,4 +210,6 @@ deterministic predicates, and capability-gated execution in an agentic OS.
   attached to the JEPA predictor. False-positive reduction and abstention should
   be evaluated on validation data before changing the release threshold.
 
-Machine-readable references are in [`references.bib`](references.bib).
+Machine-readable references are in [`references.bib`](references.bib). Direct
+primary-source access for the six core paper references was rechecked on
+2026-08-06 and is recorded in [`LITERATURE_ACCESS.md`](LITERATURE_ACCESS.md).
