@@ -35,8 +35,9 @@ contracts live in `scripts/train_world_model.py` and
 - 3,997 transitions came from provider/replay hybrid episodes routed through
   Heliox's production world-model gate and real tool implementations.
 - Recorded RAM profiles are 512 MiB and 2,048 MiB.
-- The corpus covers all 41 canonical actions; `trigger_kernel_upgrade` is
-  policy-only and excluded from learned fitting.
+- All 41 canonical actions were observed under both memory profiles. Forty are
+  represented in learned fitting; `trigger_kernel_upgrade` is policy-only and
+  excluded from learned fitting.
 
 "Synthetic" describes how the next action was selected, not the transition:
 state snapshots and action effects were observed from an executing QEMU guest.

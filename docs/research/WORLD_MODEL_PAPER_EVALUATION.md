@@ -43,13 +43,13 @@ Split mode: **episode**; episode overlap: **0**.
 
 ## Training-seed sensitivity
 
-| Seed | One-step error | H=3 error | Combined FNR | Combined FPR | Combined balanced accuracy |
+| Seed | One-step normalized error | H=3 normalized error | Combined FNR | Combined FPR | Combined balanced accuracy |
 |---:|---:|---:|---:|---:|---:|
-| 17 | 0.0168 | 0.0387 | 0.208 | 0.164 | 0.814 |
-| 42 | 0.0185 | 0.0411 | 0.376 | 0.100 | 0.762 |
-| 91 | 0.0163 | 0.0399 | 0.336 | 0.100 | 0.782 |
+| 17 | 1.68% | 3.87% | 20.8% | 16.4% | 81.4% |
+| 42 | 1.85% | 4.11% | 37.6% | 10.0% | 76.2% |
+| 91 | 1.63% | 3.99% | 33.6% | 10.0% | 78.2% |
 
-Across seeds, combined balanced accuracy is 0.786 (sample SD 0.026); FNR ranges from 0.208 to 0.376.
+Across seeds, combined balanced accuracy is 78.6% (sample SD 2.6 percentage points); FNR ranges from 20.8% to 37.6%.
 
 ## Validation calibration and untouched safe replay
 

@@ -13,6 +13,8 @@ RESEARCH = ROOT / "docs/research"
 REPORT = RESEARCH / "world_model_paper_evaluation.json"
 PREDICTIONS = RESEARCH / "world_model_paper_predictions.csv"
 SUMMARY = RESEARCH / "WORLD_MODEL_PAPER_EVALUATION.md"
+FULL_SEED_SUMMARY = RESEARCH / "WORLD_MODEL_FULL_SEED_EVALUATION.md"
+DATASET_CARD = RESEARCH / "WORLD_MODEL_DATASET_CARD.md"
 CONFIG = RESEARCH / "world_model_training_config.json"
 
 
@@ -87,6 +89,24 @@ assert config["transition_training"]["selected_output_sha256"] == sha256(artifac
 summary = SUMMARY.read_text(encoding="utf-8")
 for text in ("13,697", "episode overlap: **0**", "rules_plus_mean_delta", "Lookahead ablation"):
     assert text in summary
+assert "| 17 | 1.68% | 3.87% | 20.8% | 16.4% | 81.4% |" in summary
+assert "| 17 | 0.0168 | 0.0387" not in summary
+
+full_seed_summary = FULL_SEED_SUMMARY.read_text(encoding="utf-8")
+for row in (
+    "| 17 | 1.54% | 15.47% | 28.4% | 10.4% | 80.6% |",
+    "| 42 | 1.85% | 4.11% | 37.6% | 10.0% | 76.2% |",
+    "| 91 | 1.67% | 13.16% | 25.2% | 13.6% | 80.6% |",
+    "| 123 | 1.63% | 6.06% | 18.8% | 16.4% | 82.4% |",
+    "| 2026 | 1.57% | 27.04% | 25.2% | 16.8% | 79.0% |",
+):
+    assert row in full_seed_summary
+assert "| 17 | 0.0154 | 0.1547" not in full_seed_summary
+assert "larger values expose seed sensitivity plus compounding rollout error" in full_seed_summary
+
+dataset_card = DATASET_CARD.read_text(encoding="utf-8")
+assert "All 41 canonical actions were observed under both memory profiles" in dataset_card
+assert "Forty are\n  represented in learned fitting" in dataset_card
 
 print("PASS\tall 13,697 corpus rows are accounted for")
 print("PASS\tepisode-disjoint split has zero cross-partition overlap")
@@ -94,4 +114,6 @@ print("PASS\t10 learned/rule baseline rows reproduce from per-episode prediction
 print("PASS\tH=1..5 and three transition seeds are reported")
 print("PASS\tuntouched-QEMU safe replay and calibration ablation are present")
 print("PASS\tencoder and selected transition reproduce byte-for-byte under the recorded configuration")
-print("6/6 checks passed")
+print("PASS\thuman-readable evidence uses explicit normalized-error percentages")
+print("PASS\tobserved action coverage is separated from learned fitting coverage")
+print("8/8 checks passed")

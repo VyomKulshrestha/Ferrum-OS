@@ -572,19 +572,21 @@ def markdown(report: dict) -> str:
         "",
         "## Training-seed sensitivity",
         "",
-        "| Seed | One-step error | H=3 error | Combined FNR | Combined FPR | Combined balanced accuracy |",
+        "| Seed | One-step normalized error | H=3 normalized error | Combined FNR | Combined FPR | Combined balanced accuracy |",
         "|---:|---:|---:|---:|---:|---:|",
         *[
-            f"| {seed} | {row['one_step_normalized_error']:.4f} | "
-            f"{row['rollout_h3_normalized_error']:.4f} | "
-            f"{1-row['safety']['recall']:.3f} | {1-row['safety']['specificity']:.3f} | "
-            f"{row['safety']['balanced_accuracy']:.3f} |"
+            f"| {seed} | {100 * row['one_step_normalized_error']:.2f}% | "
+            f"{100 * row['rollout_h3_normalized_error']:.2f}% | "
+            f"{100 * (1-row['safety']['recall']):.1f}% | "
+            f"{100 * (1-row['safety']['specificity']):.1f}% | "
+            f"{100 * row['safety']['balanced_accuracy']:.1f}% |"
             for seed, row in report.get("training_seed_sensitivity", {}).items()
         ],
         "",
-        f"Across seeds, combined balanced accuracy is {seed_balanced.get('mean', 0):.3f} "
-        f"(sample SD {seed_balanced.get('sample_standard_deviation', 0):.3f}); "
-        f"FNR ranges from {seed_fnr.get('min', 0):.3f} to {seed_fnr.get('max', 0):.3f}.",
+        f"Across seeds, combined balanced accuracy is {100 * seed_balanced.get('mean', 0):.1f}% "
+        f"(sample SD {100 * seed_balanced.get('sample_standard_deviation', 0):.1f} percentage points); "
+        f"FNR ranges from {100 * seed_fnr.get('min', 0):.1f}% to "
+        f"{100 * seed_fnr.get('max', 0):.1f}%.",
         "",
         "## Validation calibration and untouched safe replay",
         "",

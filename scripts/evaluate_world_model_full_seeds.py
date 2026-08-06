@@ -165,25 +165,50 @@ def markdown(report: dict) -> str:
         "Every row independently trains the JEPA representation and transition MLP. The authored",
         "500-episode safety fixture is fixed and is never used for checkpoint selection.",
         "",
-        "| Seed | Transition error | H=3 error | FNR | FPR | Balanced accuracy | AUROC | AUPRC |",
+        "| Seed | Transition normalized error | H=3 normalized error | FNR | FPR | Balanced accuracy | AUROC | AUPRC |",
         "|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in report["runs"]:
         lines.append(
-            f"| {row['seed']} | {row['transition']['normalized_mse']:.4f} | "
-            f"{row['transition']['rollout_h3_normalized_mse']:.4f} | "
-            f"{row['safety']['false_negative_rate']:.3f} | {row['safety']['false_positive_rate']:.3f} | "
-            f"{row['safety']['balanced_accuracy']:.3f} | {row['safety']['auroc']:.3f} | "
+            f"| {row['seed']} | {100 * row['transition']['normalized_mse']:.2f}% | "
+            f"{100 * row['transition']['rollout_h3_normalized_mse']:.2f}% | "
+            f"{100 * row['safety']['false_negative_rate']:.1f}% | "
+            f"{100 * row['safety']['false_positive_rate']:.1f}% | "
+            f"{100 * row['safety']['balanced_accuracy']:.1f}% | {row['safety']['auroc']:.3f} | "
             f"{row['safety']['average_precision']:.3f} |"
         )
-    lines.extend(["", "## Aggregate", ""])
+    lines.extend([
+        "",
+        "The selected fixed-encoder checkpoint's 3.87% H=3 error is not one of these",
+        "end-to-end runs. Each row above retrains both the representation and transition",
+        "model; the larger values expose seed sensitivity plus compounding rollout error",
+        "instead of reusing the selected seed-42 representation.",
+        "",
+        "## Aggregate",
+        "",
+    ])
+    percent_metrics = {
+        "transition_normalized_mse",
+        "transition_rollout_h3_normalized_mse",
+        "combined_false_negative_rate",
+        "combined_false_positive_rate",
+        "combined_balanced_accuracy",
+    }
     for name, values in report["aggregate"].items():
         lower, upper = values["confidence_interval_95_t"]
-        lines.append(
-            f"- `{name}`: mean {values['mean']:.4f}, sample SD "
-            f"{values['sample_standard_deviation']:.4f}, 95% t interval [{lower:.4f}, {upper:.4f}], "
-            f"range [{values['min']:.4f}, {values['max']:.4f}]."
-        )
+        if name in percent_metrics:
+            lines.append(
+                f"- `{name}`: mean {100 * values['mean']:.2f}%, sample SD "
+                f"{100 * values['sample_standard_deviation']:.2f} percentage points, "
+                f"95% t interval [{100 * lower:.2f}%, {100 * upper:.2f}%], "
+                f"range [{100 * values['min']:.2f}%, {100 * values['max']:.2f}%]."
+            )
+        else:
+            lines.append(
+                f"- `{name}`: mean {values['mean']:.4f}, sample SD "
+                f"{values['sample_standard_deviation']:.4f}, 95% t interval [{lower:.4f}, {upper:.4f}], "
+                f"range [{values['min']:.4f}, {values['max']:.4f}]."
+            )
     lines.extend([
         "",
         "The interval is across complete training runs on one fixed authored fixture. It does not",
