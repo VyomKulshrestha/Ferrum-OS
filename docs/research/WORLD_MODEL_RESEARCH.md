@@ -165,9 +165,14 @@ The mean-delta condition differs from JEPA on only three correctness outcomes:
 JEPA is uniquely correct twice and the mean model once. The 0.2 percentage-
 point balanced-accuracy difference therefore does not establish a material
 safety advantage over this simple baseline. JEPA's stronger evidence remains
-its lower transition error relative to the matched autoencoder; the safety
-benchmark shows that a much simpler learned transition captures nearly all of
-the measured gate benefit.
+its finer-grained transition forecast: its H=3 state-delta rollout error is
+3.87%, compared with 6.45% for the per-action mean baseline. That distinction
+matters for planning, counterfactual analysis, and trajectory-sensitive
+safeguards even though the two models are nearly tied after this fixture's
+binary safety threshold. This is a reason to retain JEPA as a research path,
+not evidence of a material safety or deployment advantage; the benchmark shows
+that a much simpler learned transition captures nearly all of the measured gate
+benefit.
 
 The fixed checkpoint is also not representative of initialization variance.
 With the encoder held fixed, full 2,000-epoch transition runs at seeds 17, 42,
@@ -187,11 +192,11 @@ reported and the safety fixture is not used for checkpoint selection. The
 wide intervals describe training-run uncertainty on one authored fixture, not
 deployment-population uncertainty.
 
-The two results labelled with seed 17 must not be conflated. The 81.4%
-balanced-accuracy result holds the representation at seed 42 and re-trains only
-the transition model with seed 17. The full-pipeline seed-17 result initializes
-and trains every learned component with seed 17 and reaches 80.6% balanced
-accuracy, 28.4% FNR, and 10.4% FPR.
+The two results labelled with seed 17 must not be conflated: full-pipeline seed
+17 retrains the action encoder and transition model from scratch, whereas the
+81.4% release checkpoint retains the action encoder from representation seed 42
+and varies only transition seed 17. The full-pipeline seed-17 result reaches
+80.6% balanced accuracy, 28.4% FNR, and 10.4% FPR.
 
 The safety horizon ablation also changes the interpretation of H=3. H=2 has the
 highest balanced accuracy on this fixture (84.8% versus 81.4% at H=3), while
