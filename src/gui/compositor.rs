@@ -633,11 +633,18 @@ pub fn draw_hud_overlay() {
     let len = state.suggestion_len as usize;
     if len > 0 && len <= 128 {
         if let Ok(text) = core::str::from_utf8(&state.suggestion[..len]) {
-            let text_width = (text.len() as u32) * 8;
-            let bubble_w = text_width + 20;
-            let bubble_h = 32;
-            let bubble_x = (1024 - bubble_w) / 2;
-            let bubble_y = 80;
+            let (fb_w, fb_h) = fb_dims();
+            let max_text_bytes = (fb_w.saturating_sub(20) / 8) as usize;
+            let mut display_len = core::cmp::min(text.len(), max_text_bytes);
+            while display_len > 0 && !text.is_char_boundary(display_len) {
+                display_len -= 1;
+            }
+            let display_text = &text[..display_len];
+            let text_width = (display_text.chars().count() as u32).saturating_mul(8);
+            let bubble_w = text_width.saturating_add(20).min(fb_w);
+            let bubble_h = 32.min(fb_h);
+            let bubble_x = fb_w.saturating_sub(bubble_w) / 2;
+            let bubble_y = 80.min(fb_h.saturating_sub(bubble_h));
             
             crate::graphics::fill_rect_alpha(bubble_x, bubble_y, bubble_w, bubble_h, 0x001A1A2E, 160);
             
@@ -647,7 +654,13 @@ pub fn draw_hud_overlay() {
             crate::graphics::fill_rect_alpha(bubble_x, bubble_y, 1, bubble_h, 0x004E4FEB, 180);
             crate::graphics::fill_rect_alpha(bubble_x + bubble_w - 1, bubble_y, 1, bubble_h, 0x004E4FEB, 180);
             
-            crate::graphics::draw_string(bubble_x + 10, bubble_y + 8, text, 0x0000FFFF, 0x001A1A2E);
+            crate::graphics::draw_string(
+                bubble_x.saturating_add(10),
+                bubble_y.saturating_add(8),
+                display_text,
+                0x0000FFFF,
+                0x001A1A2E,
+            );
         }
     }
 }
