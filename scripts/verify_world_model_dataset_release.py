@@ -57,12 +57,16 @@ def verify(release_dir: Path) -> list[str]:
         raise ValueError("manifest does not contain a valid reserved Zenodo DOI")
     if publication.get("doi_url") != f"https://doi.org/{doi}":
         raise ValueError("manifest DOI URL does not match the reserved DOI")
-    if "pending" not in str(publication.get("status", "")).lower():
-        raise ValueError("manifest does not preserve the pre-publication status boundary")
+    if publication.get("status") != "publication-ready; DOI assigned to exact release":
+        raise ValueError("manifest publication status is not lifecycle-stable")
+    if publication.get("registration_policy") != (
+        "Zenodo manages DOI registration when the record is published"
+    ):
+        raise ValueError("manifest does not state the DOI registration policy")
     for documentation in ("README.md", "DATA_CARD.md"):
         if doi not in (release_dir / documentation).read_text(encoding="utf-8"):
             raise ValueError(f"{documentation} does not cite the reserved DOI")
-    checks.append("reserved DOI consistency")
+    checks.append("DOI and publication-lifecycle consistency")
 
     if sha256(archive) != manifest["archive"]["sha256"]:
         raise ValueError("archive checksum does not match manifest")

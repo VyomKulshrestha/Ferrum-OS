@@ -262,11 +262,11 @@ Creator: Vyom Kulshrestha (Independent Researcher, India)
 
 Repository: https://github.com/VyomKulshrestha/Ferrum-OS
 
-Reserved dataset DOI: https://doi.org/{doi}
+Dataset DOI: https://doi.org/{doi}
 
-The DOI is reserved for this exact archive and will be registered when its Zenodo
-record is published. Until then, the identifier resolves only according to Zenodo's
-draft lifecycle; the package must not be described as publicly archived.
+This DOI is assigned to this exact archive. Zenodo manages DOI registration when the
+record is published. Verify that the landing page resolves and that downloaded file
+checksums match this package before describing the release as independently retrievable.
 """
 
 
@@ -362,7 +362,8 @@ def build_release(dataset: Path, out_dir: Path, doi: str = DATASET_DOI) -> dict:
         "publication": {
             "doi": doi,
             "doi_url": f"https://doi.org/{doi}",
-            "status": "DOI reserved; Zenodo publication and DOI registration pending",
+            "status": "publication-ready; DOI assigned to exact release",
+            "registration_policy": "Zenodo manages DOI registration when the record is published",
         },
     }
     write_json(out_dir / "schema.json", build_schema(inspection["fields"]))
