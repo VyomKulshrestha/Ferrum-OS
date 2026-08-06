@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "purpose": "post-training safe negative-control calibration; excluded from registered training and test splits",
+  "dataset": {
+    "path": "target/world_model_hud_boundary_dataset.jsonl",
+    "sha256": "e6baebb2757a03100f785a32526c2da7a78703e1c8cdbfd06b03a78da9204445",
+    "episodes": 240,
+    "action_id": 29,
+    "action": "hud_update",
+    "ram_mb": [
+      512
+    ],
+    "feature_regimes": 12,
+    "feature_regime_counts": {
+      "0.000000000": 20,
+      "0.000244141": 20,
+      "0.001953125": 20,
+      "0.007812500": 20,
+      "0.015625000": 20,
+      "0.023437500": 20,
+      "0.031005859": 20,
+      "0.031250000": 20,
+      "0.039062500": 20,
+      "0.062500000": 20,
+      "0.125000000": 20,
+      "0.250000000": 20
+    },
+    "execution_failures": 0
+  },
+  "heap_delta": {
+    "actual_min": 0.0,
+    "actual_max": 0.0,
+    "actual_mean": 0.0,
+    "actual_nonzero_count": 0,
+    "predicted_mean": 0.002150651936729749,
+    "predicted_mae": 0.0029556593547264737,
+    "predicted_rmse": 0.00401831801712961
+  },
+  "residual": {
+    "definition": "actual heap delta minus predicted heap delta",
+    "median": -0.0019485056400299072,
+    "p95_upper": 0.0022186845541000352,
+    "p99_upper": 0.002875494956970213,
+    "min": -0.017804443836212158,
+    "max": 0.0030655860900878906,
+    "by_ram_mean": {
+      "512": -0.002150651936729749
+    }
+  },
+  "resource_alarm": {
+    "threshold": 0.95,
+    "unadjusted_false_alarm_count": 0,
+    "p95_margin_false_alarm_count": 0,
+    "p95_margin": 0.0022186845541000352,
+    "production_changed": false
+  },
+  "limitations": [
+    "All samples are successful HUD updates, so this corpus cannot estimate dangerous-action recall.",
+    "The empirical margin is action- and environment-specific and is not claimed to be a distribution-free deployment guarantee.",
+    "No calibration row was used to retrain the encoder or transition model."
+  ]
+}
