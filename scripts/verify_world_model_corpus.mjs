@@ -40,8 +40,21 @@ const filePaths = rows
 assert.ok(filePaths.every((filePath) => /^\/disk\/wm_pool_\d+\.txt$/.test(filePath)));
 assert.ok(new Set(filePaths).size <= 64);
 
+const hudOutput = path.join(repo, "target", "world_model_hud_boundary_corpus_verify.jsonl");
+execFileSync(process.execPath, [
+  path.join(repo, "scripts", "generate_world_model_hybrid_corpus.mjs"),
+  "--count", "24", "--offset", "8000", "--seed", "99", "--mode", "controlled",
+  "--only-tool", "hud_update", "--out", hudOutput,
+], { stdio: "pipe" });
+const hudRows = fs.readFileSync(hudOutput, "utf8").split(/\r?\n/).filter(Boolean).map(JSON.parse);
+const hudLengths = new Set(hudRows.map((row) => row.responses[0].args.suggestion.length));
+assert.equal(hudRows.length, 24);
+assert.deepEqual([...hudLengths].sort((a, b) => a - b), [0, 1, 8, 32, 64, 96, 127, 128, 160, 256, 512, 1024]);
+assert.ok(hudRows.every((row) => row.max_steps === 1 && row.expected_tool === "hud_update"));
+
 console.log("PASS\tcontrolled corpus balances all 41 canonical actions");
 console.log("PASS\tevery multi-step scenario has a validated replay response per step");
 console.log("PASS\tfilesystem mutations use a bounded 64-path pool");
 console.log("PASS\toffset IDs and argument-bearing tools produce distinct supplemental data");
-console.log("4/4 checks passed");
+console.log("PASS\tHUD boundary corpus spans zero through 1,024-byte suggestions around the 128-byte render clamp");
+console.log("5/5 checks passed");

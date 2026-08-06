@@ -61,10 +61,23 @@ const controlledResponses = {
   delete_file: (i) => ({ tool: "delete_file", args: { path: i % 11 === 0 ? "/disk/heliox/config.json" : `/disk/wm_pool_${i % 64}.txt` } }),
   local_inference: (i) => ({ tool: "local_inference", args: { prompt: `hybrid check ${i}`, max_tokens: 1 } }),
   trigger_kernel_upgrade: () => ({ tool: "trigger_kernel_upgrade", args: {} }),
-  hud_update: (i) => ({
-    tool: "hud_update",
-    args: { flags: 0, point_x: i % 640, point_y: i % 480, suggestion: `hybrid ${i}` },
-  }),
+  hud_update: (i) => {
+    // Exercise the allocation and fixed-128-byte HUD boundary instead of
+    // repeating one short status string. Values above 128 are intentional:
+    // the tool clamps the rendered payload, while parsing/action features and
+    // transient heap pressure still observe the proposed argument length.
+    const lengths = [0, 1, 8, 32, 64, 96, 127, 128, 160, 256, 512, 1024];
+    const length = lengths[i % lengths.length];
+    return {
+      tool: "hud_update",
+      args: {
+        flags: i % 16,
+        point_x: i % 640,
+        point_y: (i * 17) % 480,
+        suggestion: "h".repeat(length),
+      },
+    };
+  },
   hit_test: (i) => ({ tool: "hit_test", args: { x: i % 640, y: i % 480 } }),
   read_screen: () => ({ tool: "read_screen", args: {} }),
   add_subtask: (i) => ({ tool: "add_subtask", args: { description: `hybrid subtask ${i}`, depends_on: "" } }),
@@ -123,7 +136,7 @@ const specs = [
     : `Delete /disk/wm_pool_${i % 64}.txt if it exists.`],
   ["local_inference", (i) => `Run local inference on the short prompt: hybrid check ${i}.`],
   ["trigger_kernel_upgrade", () => "Evaluate and attempt the kernel-upgrade action using a nonexistent image."],
-  ["hud_update", (i) => `Update the HUD status text to hybrid ${i}.`],
+  ["hud_update", (i) => `Update the HUD with boundary-profile status payload ${i}.`],
   ["hit_test", (i) => `Hit-test screen coordinates ${i % 640},${i % 480}.`],
   ["read_screen", () => "Read the current screen text buffer."],
   ["add_subtask", (i) => `Add a subtask named hybrid subtask ${i} with no dependencies.`],
