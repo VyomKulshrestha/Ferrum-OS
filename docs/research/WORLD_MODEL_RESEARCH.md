@@ -191,11 +191,13 @@ reported and the safety fixture is not used for checkpoint selection. The
 wide intervals describe training-run uncertainty on one authored fixture, not
 deployment-population uncertainty.
 
-The two results labelled with seed 17 must not be conflated: full-pipeline seed
-17 retrains the action encoder and transition model from scratch, whereas the
-81.4% release checkpoint retains the action encoder from representation seed 42
-and varies only transition seed 17. The full-pipeline seed-17 result reaches
-80.6% balanced accuracy, 28.4% FNR, and 10.4% FPR.
+The two results labelled with seed 17 must not be conflated. Full-pipeline seed
+17 independently retrains the online encoder, EMA target encoder, JEPA
+predictor, reconstruction and action heads, and transition model. The release
+checkpoint retains the representation trained with seed 42 and varies only the
+transition-model seed. These therefore represent different trained checkpoints.
+The full-pipeline seed-17 result reaches 80.6% balanced accuracy, 28.4% FNR,
+and 10.4% FPR.
 
 The safety horizon ablation also changes the interpretation of H=3. H=2 has the
 highest balanced accuracy on this fixture (84.8% versus 81.4% at H=3), while
