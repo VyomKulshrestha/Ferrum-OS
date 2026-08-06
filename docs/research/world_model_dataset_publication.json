@@ -1,0 +1,37 @@
+{
+  "schema_version": "ferrumos-world-model-dataset-publication-v1",
+  "verified_at_utc": "2026-08-06T20:50:18Z",
+  "verified_on_local_date": "2026-08-07",
+  "record": {
+    "status": "published",
+    "access_right": "open",
+    "title": "FerrumOS World-Model Safety Dataset v1.0.0",
+    "version": "1.0.0",
+    "resource_type": "Dataset",
+    "publication_date": "2026-08-07",
+    "url": "https://zenodo.org/records/21829193",
+    "version_doi": "10.5281/zenodo.21829193",
+    "all_versions_doi": "10.5281/zenodo.21829192",
+    "file_count": 10
+  },
+  "verification": {
+    "public_files_downloaded": 10,
+    "byte_identical_to_local_release": 10,
+    "release_verifier_passed": 11,
+    "release_verifier_total": 11,
+    "source_dataset_sha256": "ae7498c7d93b4e35f8bf0a9ac595ca2bacc1ec694b1806c47a33741d911d491f",
+    "archive_sha256": "310f5192d3d777c5a6420498a7074e48035f3e408d3c089cbc98eed79bfe6fb7"
+  },
+  "public_file_md5": {
+    "credential_scan_report.json": "c52443e005215087f4e43df67820cb0f",
+    "DATA_CARD.md": "e753aae9067a9c0f9916cbd333f68214",
+    "episode_split_audit.json": "d1304d363eb8fec232f1379cc807fa41",
+    "ferrumos-world-model-dataset-v1.0.0.jsonl.gz": "7578b9be94925414549d2c431f40891c",
+    "LICENSE": "82d379a07df4e3980b69acf6698f1f03",
+    "MANIFEST.json": "5f2508524ca12ba98c77b9eaf3f03be5",
+    "README.md": "7adaef32bb97ce01d8bbe4d3d745269e",
+    "schema.json": "b6f5e5c305e9fef48c8dd4e0ed09a3a0",
+    "SHA256SUMS": "28f63572cfea081f3718ce10c103ff2e",
+    "verify_release.py": "f6bc87bdb6cb607be70991af6a167b68"
+  }
+}
