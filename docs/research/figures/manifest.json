@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/generate_world_model_figures.py",
+  "sources": {
+    "docs/research/world_model_safety_baseline.json": "76595e4c8eb7774e85dc8dc38ea32923bc50b7bcd03d38126626cd840305d35f",
+    "appliance/world-model/manifest.json": "acb08efd7c877082ebd2b32b4df2e88efefe128ebb3e2177040de26b0f8aab46"
+  },
+  "figures": [
+    {
+      "path": "docs/research/figures/figure_1_three_arm_comparison.png",
+      "sha256": "3cd3b11348f7f4d6ae95c6827ccfccaa1ffcebb46438ec13913c326044649b01",
+      "bytes": 203592
+    },
+    {
+      "path": "docs/research/figures/figure_1_three_arm_comparison.svg",
+      "sha256": "b7e6f64f596d832187ce2e570c21ed418fcaf0be56e7047e2b9bd4e61687d0d2",
+      "bytes": 92530
+    },
+    {
+      "path": "docs/research/figures/figure_1_three_arm_comparison.pdf",
+      "sha256": "add0f2c4ece496057fbd0e3cc6e03526f8822816130c7d2765d322ba38af8434",
+      "bytes": 30983
+    },
+    {
+      "path": "docs/research/figures/figure_2_jepa_architecture.png",
+      "sha256": "166c597b07db9f400fd6d336a24c1f493110ff56291c7f6d37de1ae52d4dda2b",
+      "bytes": 393852
+    },
+    {
+      "path": "docs/research/figures/figure_2_jepa_architecture.svg",
+      "sha256": "112a362a36fdf853a062c1a6fed8421ebfa6c2c1e0110323185a822202df8f10",
+      "bytes": 118011
+    },
+    {
+      "path": "docs/research/figures/figure_2_jepa_architecture.pdf",
+      "sha256": "eb6cd73bc36edd27a69b91ca0312eee4cdfe1f5174f25a774788e6712a93c96e",
+      "bytes": 37086
+    }
+  ]
+}
