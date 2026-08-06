@@ -32,6 +32,23 @@
     "sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab",
     "md5": "6764707ae8192a073917269dc87ade77"
   },
+  "arxiv_preflight": {
+    "status": "ready_for_submission",
+    "filename": "FerrumOS_WorldModel_Technical_Report_arXiv.pdf",
+    "location_policy": "Downloads folder; not committed to the repository",
+    "source_sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab",
+    "sha256": "e2491e866ade4dd205fa45e0a53616c3b5b8c1419fedb74e916a31ad0af3e7e4",
+    "page_count": 14,
+    "numbered_figures": 2,
+    "normalization": "Ghostscript 10.07.1 pdfwrite font-embedding pass; visible content and pagination unchanged",
+    "all_fonts_embedded": true,
+    "type3_fonts_present": false,
+    "normalized_text_identical_to_published_pdf": true,
+    "doi_links_preserved": true,
+    "visual_qa_complete": true,
+    "primary_category": "cs.OS",
+    "secondary_category": "cs.CR"
+  },
   "verification": {
     "doi_resolves_to_public_record": true,
     "doi_resolution_final_http_status": 200,
