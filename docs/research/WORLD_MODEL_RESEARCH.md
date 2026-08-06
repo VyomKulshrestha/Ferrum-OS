@@ -162,17 +162,16 @@ on the fixed 500-episode fixture are:
 | Rules + validation-calibrated JEPA | 209 | 41 | 41 | 209 | 16.4% | 16.4% | 83.6% |
 
 The mean-delta condition differs from JEPA on only three correctness outcomes:
-JEPA is uniquely correct twice and the mean model once. The 0.2 percentage-
-point balanced-accuracy difference therefore does not establish a material
-safety advantage over this simple baseline. JEPA's stronger evidence remains
-its finer-grained transition forecast: its H=3 state-delta rollout error is
-3.87%, compared with 6.45% for the per-action mean baseline. That distinction
-matters for planning, counterfactual analysis, and trajectory-sensitive
-safeguards even though the two models are nearly tied after this fixture's
-binary safety threshold. This is a reason to retain JEPA as a research path,
-not evidence of a material safety or deployment advantage; the benchmark shows
-that a much simpler learned transition captures nearly all of the measured gate
-benefit.
+JEPA is uniquely correct twice and the mean model once. Although the selected
+JEPA checkpoint and the per-action mean baseline produce nearly identical
+binary safety outcomes on the authored fixture, this parity does not imply
+equivalent transition modelling. JEPA reduces H=3 rollout error from 6.45% for
+the matched autoencoder to 3.87%, indicating stronger prediction of fine-
+grained state trajectories. Such representations may be valuable for
+downstream tasks requiring context-dependent or multi-variable forecasts rather
+than only thresholded safety decisions. However, the present study does not
+establish that JEPA outperforms the per-action mean model on those downstream
+tasks; that question requires direct evaluation.
 
 The fixed checkpoint is also not representative of initialization variance.
 With the encoder held fixed, full 2,000-epoch transition runs at seeds 17, 42,

@@ -15,6 +15,7 @@ PREDICTIONS = RESEARCH / "world_model_paper_predictions.csv"
 SUMMARY = RESEARCH / "WORLD_MODEL_PAPER_EVALUATION.md"
 FULL_SEED_SUMMARY = RESEARCH / "WORLD_MODEL_FULL_SEED_EVALUATION.md"
 DATASET_CARD = RESEARCH / "WORLD_MODEL_DATASET_CARD.md"
+RESEARCH_SUMMARY = RESEARCH / "WORLD_MODEL_RESEARCH.md"
 CONFIG = RESEARCH / "world_model_training_config.json"
 
 
@@ -108,6 +109,11 @@ dataset_card = DATASET_CARD.read_text(encoding="utf-8")
 assert "All 41 canonical actions were observed under both memory profiles" in dataset_card
 assert "Forty are\n  represented in learned fitting" in dataset_card
 
+research_summary = " ".join(RESEARCH_SUMMARY.read_text(encoding="utf-8").split())
+assert "6.45% for the matched autoencoder to 3.87%" in research_summary
+assert "6.45% for the per-action mean" not in research_summary
+assert "does not establish that JEPA outperforms the per-action mean model" in research_summary
+
 print("PASS\tall 13,697 corpus rows are accounted for")
 print("PASS\tepisode-disjoint split has zero cross-partition overlap")
 print("PASS\t10 learned/rule baseline rows reproduce from per-episode predictions")
@@ -116,4 +122,5 @@ print("PASS\tuntouched-QEMU safe replay and calibration ablation are present")
 print("PASS\tencoder and selected transition reproduce byte-for-byte under the recorded configuration")
 print("PASS\thuman-readable evidence uses explicit normalized-error percentages")
 print("PASS\tobserved action coverage is separated from learned fitting coverage")
-print("8/8 checks passed")
+print("PASS\tJEPA rollout error is attributed to the matched autoencoder, not the mean model")
+print("9/9 checks passed")
