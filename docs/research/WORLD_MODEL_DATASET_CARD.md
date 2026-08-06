@@ -97,13 +97,16 @@ python scripts/verify_world_model_dataset_release.py target/world-model-dataset-
 The generated directory contains exactly ten files: the deterministic gzip
 archive, `README.md`, this card as `DATA_CARD.md`, `LICENSE`, `MANIFEST.json`,
 `SHA256SUMS`, `schema.json`, `episode_split_audit.json`,
-`credential_scan_report.json`, and the standalone `verify_release.py`. After
-external archival, download the assets again and run the same verifier before
-adding a DOI to the paper. A DOI must never be inserted before the archive exists.
+`credential_scan_report.json`, and the standalone `verify_release.py`. Zenodo DOI
+`10.5281/zenodo.21829193` is reserved for this exact archive. The record is not
+public and the DOI is not registered until the Zenodo draft is published. After
+publication, download the assets again and run the same verifier before describing
+the dataset as publicly archived.
 
 ## Licence and citation
 
 The dataset is released under the explicit terms in `LICENSE` in the archival
-package (sourced from `WORLD_MODEL_DATASET_LICENSE.md` in the repository). Until
-a DOI-bearing archive is created, cite the FerrumOS repository, dataset release name
-`ferrumos-world-model-dataset-v1.0.0`, exact archive SHA-256, and evidence commit.
+package (sourced from `WORLD_MODEL_DATASET_LICENSE.md` in the repository). Cite the
+reserved dataset DOI as `https://doi.org/10.5281/zenodo.21829193`, together with the
+release name `ferrumos-world-model-dataset-v1.0.0`, exact archive SHA-256, and
+evidence commit. Until publication, label the DOI as reserved rather than registered.

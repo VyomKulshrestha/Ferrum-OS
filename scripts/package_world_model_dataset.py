@@ -31,6 +31,7 @@ DATA_CARD = ROOT / "docs" / "research" / "WORLD_MODEL_DATASET_CARD.md"
 DATASET_LICENSE = ROOT / "docs" / "research" / "WORLD_MODEL_DATASET_LICENSE.md"
 RELEASE_VERIFIER = ROOT / "scripts" / "verify_world_model_dataset_release.py"
 RELEASE_VERSION = "1.0.0"
+DATASET_DOI = "10.5281/zenodo.21829193"
 ARCHIVE_NAME = "ferrumos-world-model-dataset-v1.0.0.jsonl.gz"
 RELEASE_FILES = (
     ARCHIVE_NAME,
@@ -60,6 +61,7 @@ SECRET_PATTERNS = {
     "bearer_token": re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]{24,}=*", re.IGNORECASE),
 }
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+DOI_PATTERN = re.compile(r"^10\.5281/zenodo\.\d+$")
 
 
 def sha256(path: Path) -> str:
@@ -143,6 +145,17 @@ def write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def normalize_doi(value: str) -> str:
+    doi = value.strip()
+    for prefix in ("https://doi.org/", "http://doi.org/", "doi:"):
+        if doi.lower().startswith(prefix):
+            doi = doi[len(prefix):].strip()
+            break
+    if not DOI_PATTERN.fullmatch(doi):
+        raise ValueError(f"invalid Zenodo DOI: {value!r}")
+    return doi
+
+
 def build_schema(fields: list[str]) -> dict[str, Any]:
     number_array = {"type": "array", "items": {"type": "number"}}
     properties: dict[str, Any] = {
@@ -211,6 +224,7 @@ def build_schema(fields: list[str]) -> dict[str, Any]:
 
 def build_readme(manifest: dict[str, Any]) -> str:
     split = manifest["split"]
+    doi = manifest["publication"]["doi"]
     return f"""# FerrumOS World-Model Safety Dataset v{RELEASE_VERSION}
 
 This archival package contains the deterministic FerrumOS OS-level action-transition
@@ -248,19 +262,22 @@ Creator: Vyom Kulshrestha (Independent Researcher, India)
 
 Repository: https://github.com/VyomKulshrestha/Ferrum-OS
 
-The DOI is intentionally unset in this pre-publication package. Insert the DOI only
-after it has been reserved by the archival service, then regenerate and reverify the
-package before publication.
+Reserved dataset DOI: https://doi.org/{doi}
+
+The DOI is reserved for this exact archive and will be registered when its Zenodo
+record is published. Until then, the identifier resolves only according to Zenodo's
+draft lifecycle; the package must not be described as publicly archived.
 """
 
 
-def build_release(dataset: Path, out_dir: Path) -> dict:
+def build_release(dataset: Path, out_dir: Path, doi: str = DATASET_DOI) -> dict:
     if not dataset.is_file():
         raise FileNotFoundError(dataset)
     for required in (DATA_CARD, DATASET_LICENSE, RELEASE_VERIFIER):
         if not required.is_file():
             raise FileNotFoundError(required)
 
+    doi = normalize_doi(doi)
     rows = load_dataset(dataset)
     eligible = [row for row in rows if transition_eligible(row)]
     train, validation, test, split_mode = split_indices(eligible, 0.15, 0.15, 42)
@@ -343,8 +360,9 @@ def build_release(dataset: Path, out_dir: Path) -> dict:
         },
         "artifacts": list(RELEASE_FILES),
         "publication": {
-            "doi": None,
-            "status": "release package ready; DOI must be filled only after external archival",
+            "doi": doi,
+            "doi_url": f"https://doi.org/{doi}",
+            "status": "DOI reserved; Zenodo publication and DOI registration pending",
         },
     }
     write_json(out_dir / "schema.json", build_schema(inspection["fields"]))
@@ -379,8 +397,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
+    parser.add_argument(
+        "--doi",
+        default=DATASET_DOI,
+        help="Reserved Zenodo DOI for this exact release (default: %(default)s)",
+    )
     args = parser.parse_args()
-    manifest = build_release(args.dataset.resolve(), args.out_dir.resolve())
+    manifest = build_release(args.dataset.resolve(), args.out_dir.resolve(), args.doi)
     print(json.dumps({
         "release_dir": str(args.out_dir.resolve()),
         "source_sha256": manifest["source"]["sha256"],

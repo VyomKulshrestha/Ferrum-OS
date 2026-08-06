@@ -674,9 +674,11 @@ prediction looks dangerous.
   creates the exact ten-file archival package: a deterministic compressed archive,
   `README.md`, data card, MIT licence, manifest, `SHA256SUMS`, standalone schema,
   split audit, credential scan, and dependency-free verifier.
-  `verify_world_model_dataset_release.py` enforces that contract and reopens the corpus.
-  External release attachment, download re-verification, and DOI minting require an
-  authorized publication account and are not represented as completed locally.
+  `verify_world_model_dataset_release.py` enforces that contract, validates reserved
+  DOI `10.5281/zenodo.21829193` across the manifest and documentation, and reopens the
+  corpus. The DOI is reserved, but external publication, registration, and download
+  re-verification still require the authorized Zenodo account and are not represented
+  as completed locally.
 - **False-negative anatomy** - all 52 combined-arm misses are reproduced from
   the registered episode and prediction files and checked against the shipped
   weights. They separate into 21 unmodeled protected-asset deletions, 20

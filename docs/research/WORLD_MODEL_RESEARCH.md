@@ -256,8 +256,9 @@ metrics but no promotable artifact.
 The exact 13,697-row JSONL now has a deterministic compressed release package,
 source and archive SHA-256 values, explicit MIT dataset licence, data card,
 episode-split validation, credential scan, and independent package verifier.
-External release attachment, download re-verification, and DOI minting require
-an authorized repository account and are not claimed as local results.
+Zenodo DOI `10.5281/zenodo.21829193` is reserved for the exact package. External
+publication, DOI registration, and post-publication download re-verification require
+the authorized Zenodo account and are not claimed as local results.
 
 FerrumOS also emits privacy-bounded natural-use telemetry without prompts,
 arguments, paths, provider/model identity, screen/audio, or output content.

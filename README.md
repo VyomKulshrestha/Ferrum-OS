@@ -214,8 +214,10 @@ fault. See
 The exact 13,697-row corpus can be packaged deterministically with
 `scripts/package_world_model_dataset.py`; the exact ten-file archival package includes
 `MANIFEST.json`, `SHA256SUMS`, an MIT dataset licence, a data card, standalone schema,
-split/credential audit reports, and a dependency-free verifier. A DOI
-and independent human/natural-use results are intentionally not claimed: the repo
+split/credential audit reports, and a dependency-free verifier. Zenodo DOI
+[`10.5281/zenodo.21829193`](https://doi.org/10.5281/zenodo.21829193) is reserved for
+this exact archive; public publication and DOI registration are still pending.
+Independent human/natural-use results are intentionally not claimed: the repo
 provides privacy-bounded telemetry plus a blinded two-annotator/adjudication workflow,
 but publication and real annotators remain external submission steps.
 

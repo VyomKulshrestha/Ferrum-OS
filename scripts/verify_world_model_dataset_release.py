@@ -8,6 +8,7 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
+import re
 import tempfile
 
 
@@ -23,6 +24,7 @@ REQUIRED_FILES = {
     "credential_scan_report.json",
     "verify_release.py",
 }
+DOI_PATTERN = re.compile(r"^10\.5281/zenodo\.\d+$")
 
 
 def sha256(path: Path) -> str:
@@ -48,6 +50,19 @@ def verify(release_dir: Path) -> list[str]:
     if set(manifest["artifacts"]) != REQUIRED_FILES:
         raise ValueError("manifest artifact list does not match the release contract")
     checks.append("manifest artifact contract")
+
+    publication = manifest.get("publication", {})
+    doi = publication.get("doi", "")
+    if not isinstance(doi, str) or not DOI_PATTERN.fullmatch(doi):
+        raise ValueError("manifest does not contain a valid reserved Zenodo DOI")
+    if publication.get("doi_url") != f"https://doi.org/{doi}":
+        raise ValueError("manifest DOI URL does not match the reserved DOI")
+    if "pending" not in str(publication.get("status", "")).lower():
+        raise ValueError("manifest does not preserve the pre-publication status boundary")
+    for documentation in ("README.md", "DATA_CARD.md"):
+        if doi not in (release_dir / documentation).read_text(encoding="utf-8"):
+            raise ValueError(f"{documentation} does not cite the reserved DOI")
+    checks.append("reserved DOI consistency")
 
     if sha256(archive) != manifest["archive"]["sha256"]:
         raise ValueError("archive checksum does not match manifest")
