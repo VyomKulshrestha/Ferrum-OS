@@ -369,6 +369,44 @@ fn check_and_trigger_world_model_collect(orchestrator: &mut cognitive::orchestra
     orchestrator.run_data_collection(count);
 }
 
+/// Runs the in-guest world-model benchmark before the ambient loop starts.
+/// The trigger file contains the number of preview-only actions per horizon.
+fn check_and_trigger_world_model_benchmark(orchestrator: &mut cognitive::orchestrator::Orchestrator) {
+    let test_file = "/tmp/world_model_benchmark";
+    let mut buf = [0u8; 32];
+    let res = unsafe {
+        syscall4(
+            SYS_READ_FILE,
+            test_file.as_ptr() as u64,
+            test_file.len() as u64,
+            buf.as_mut_ptr() as u64,
+            buf.len() as u64,
+        )
+    };
+    if (res as i64) <= 0 {
+        return;
+    }
+    unsafe {
+        syscall3(SYS_DELETE_FILE, test_file.as_ptr() as u64, test_file.len() as u64, 0);
+    }
+    let iterations = core::str::from_utf8(&buf[..res as usize])
+        .unwrap_or("0")
+        .trim()
+        .parse::<u32>()
+        .unwrap_or(0);
+    if iterations == 0 {
+        return;
+    }
+    let marker = alloc::format!(
+        "[heliox-daemon] running world-model in-guest benchmark ({} previews per horizon)...\n",
+        iterations,
+    );
+    unsafe {
+        syscall3(SYS_WRITE, FD_CONSOLE, marker.as_ptr() as u64, marker.len() as u64);
+    }
+    orchestrator.run_world_model_benchmark(iterations);
+}
+
 const SYS_ACCEPT: u64 = 10;
 
 fn init_server_socket() -> Result<u64, &'static str> {
@@ -494,6 +532,7 @@ pub extern "C" fn _start() -> ! {
 
     // Check for world-model data collection trigger
     check_and_trigger_world_model_collect(&mut orchestrator);
+    check_and_trigger_world_model_benchmark(&mut orchestrator);
 
     // Print active provider
     let provider_msg = alloc::format!("[heliox-daemon] active provider: {}\n", orchestrator.config.provider);
@@ -1241,9 +1280,15 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        // Sleep to cooperatively yield CPU time
+        // Keep the bridge responsive under a burst of outstanding JSON-RPC
+        // requests. The loop consumes one complete WebSocket frame at a time;
+        // the old unconditional 100 ms sleep imposed an avoidable 10 req/s
+        // ceiling even when inference itself was ready. A connected client
+        // gets a 10 ms cooperative cadence while the idle daemon retains its
+        // low-CPU 100 ms cadence.
+        let sleep_ticks = if bridge_connected { 10 } else { 100 };
         unsafe {
-            syscall3(SYS_SLEEP, 100, 0, 0);
+            syscall3(SYS_SLEEP, sleep_ticks, 0, 0);
         }
     }
 }

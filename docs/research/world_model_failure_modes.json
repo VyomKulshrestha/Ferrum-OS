@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "environment": "FerrumOS disposable QEMU guests except collapsed_jepa_trial (host trainer rejection)",
+  "result": "pass",
+  "cases": [
+    {
+      "id": "valid_learned_artifacts",
+      "injection": "none",
+      "command": "node scripts/verify_world_model_learned.mjs",
+      "passed": true,
+      "exit_code": 0,
+      "checks": [
+        "boot reaches shell prompt",
+        "learned transition model loads from the staged weights file at boot\t[heliox-daemon] [world-model] loaded learned transition model (input=185 hidden=512 output=128 arg_features=16 coverage=0x1ffefffffff)",
+        "learned encoder loads from the staged weights file at boot\t[heliox-daemon] [world-model] loaded learned encoder (input=48 hidden=256 output=77)",
+        "safety gate still blocks delete_file targeting config.json while using the learned model\t[heliox-daemon] [world-model] BLOCKED tool 'delete_file': risk=0.90 lookahead_steps=1 (would delete the daemon's own config.json) suggestion=Read the current config, write a validated replacement to a separate file, and request explicit approval before swapping it",
+        "block message reports the lookahead step count (Layer 6.2 wired in)",
+        "no userspace fault or page fault panic"
+      ]
+    },
+    {
+      "id": "missing_artifacts",
+      "injection": "remove encoder and transition",
+      "command": "node scripts/verify_world_model_missing_weights.mjs",
+      "passed": true,
+      "exit_code": 0,
+      "checks": [
+        "missing encoder and transition do not prevent daemon startup",
+        "deterministic fallback blocks a dangerous self-delete"
+      ]
+    },
+    {
+      "id": "nonfinite_artifacts",
+      "injection": "valid-shape NaN encoder and transition",
+      "command": "node scripts/verify_world_model_weight_integrity.mjs",
+      "passed": true,
+      "exit_code": 0,
+      "checks": [
+        "non-finite transition weights are rejected before activation",
+        "non-finite encoder weights are rejected before activation",
+        "deterministic fallback still blocks the dangerous action"
+      ]
+    },
+    {
+      "id": "forbidden_coverage_metadata",
+      "injection": "transition claims policy-only kernel-upgrade coverage",
+      "command": "node scripts/verify_world_model_policy_weights.mjs",
+      "passed": true,
+      "exit_code": 0,
+      "checks": [
+        "learned files cannot claim policy-only kernel-upgrade coverage",
+        "deterministic upgrade quarantine remains active after rejection"
+      ]
+    },
+    {
+      "id": "collapsed_jepa_trial",
+      "injection": "constant-state representation",
+      "command": "python scripts/verify_world_model_jepa_rejection.py",
+      "passed": true,
+      "exit_code": 0,
+      "checks": [
+        "rejected JEPA trial persists its held-out metrics",
+        "rejection report remains bound to the source dataset",
+        "rejected JEPA trial emits no encoder or encoded corpus"
+      ]
+    }
+  ],
+  "safety_contract": [
+    "A valid learned model loads and is exercised in the guest.",
+    "Missing, non-finite, or forbidden-coverage learned artifacts cannot disable deterministic safety checks.",
+    "A collapsed JEPA training run preserves metrics but emits no promotable artifacts."
+  ]
+}

@@ -241,6 +241,8 @@ impl Orchestrator {
         // Load config from disk, fallback to defaults
         let config = Config::load("/disk/heliox/config.json");
 
+        let world_model_load_start_tick = crate::cognitive::fusion::get_uptime_ticks();
+        let world_model_load_start_tsc = unsafe { core::arch::x86_64::_rdtsc() };
         // World model Phase 2: load a learned transition model if one
         // was trained and staged onto this appliance disk
         // (scripts/train_world_model.py). Purely optional - a boot with
@@ -252,6 +254,25 @@ impl Orchestrator {
         // encoder weights just leaves the embedding's tail slots at
         // zero, exactly as Phase 1's encoder always left them.
         super::world_model::encoder_learned::try_load();
+        let world_model_load_cycles = unsafe { core::arch::x86_64::_rdtsc() }
+            .saturating_sub(world_model_load_start_tsc);
+        let world_model_load_ticks = crate::cognitive::fusion::get_uptime_ticks()
+            .saturating_sub(world_model_load_start_tick);
+        let world_model_load_marker = format!(
+            "[heliox-daemon] [world-model-load-v1] cycles={} ticks={} encoder_loaded={} transition_loaded={}\n",
+            world_model_load_cycles,
+            world_model_load_ticks,
+            if super::world_model::encoder_learned::is_loaded() { 1 } else { 0 },
+            if super::world_model::learned::is_loaded() { 1 } else { 0 },
+        );
+        unsafe {
+            syscall3(
+                34,
+                1,
+                world_model_load_marker.as_ptr() as u64,
+                world_model_load_marker.len() as u64,
+            );
+        }
 
         let mut planner = Planner::new();
         // The goal will be set dynamically via IPC or ambient vision
@@ -881,12 +902,15 @@ impl Orchestrator {
         use super::world_model::{self, encoder, experience, observation};
         use experience::ExperienceTuple;
 
+        let total_started_cycles = unsafe { core::arch::x86_64::_rdtsc() };
         let state_before = observation::capture_snapshot(
             self.tick_count,
             &self.wm_last_action_name,
             self.wm_last_action_failed,
         );
         let decision = world_model::evaluate_action(&state_before, tc);
+        let gate_finished_cycles = unsafe { core::arch::x86_64::_rdtsc() };
+        let gate_cycles = gate_finished_cycles.saturating_sub(total_started_cycles);
 
         if decision.allowed {
             self.wm_last_suggestion.clear();
@@ -985,6 +1009,42 @@ impl Orchestrator {
         self.wm_last_action_name = tc.name.clone();
         self.wm_last_action_failed = !result.success;
 
+        // Privacy-bounded natural-use telemetry. It deliberately excludes
+        // prompts, arguments, paths, model/provider identity, and output text;
+        // the host-side research collector can measure gate load and operator
+        // friction without recording user content. TSC cycles are reported as
+        // raw guest measurements and converted to time only by a separately
+        // calibrated in-guest benchmark.
+        let confirmation = if !decision.allowed {
+            "gate_blocked"
+        } else if result.output.contains("Awaiting confirmation") {
+            "awaiting"
+        } else if result.output.contains("Action denied by operator") {
+            "denied"
+        } else if result.output.contains("Confirmation request expired") {
+            "expired"
+        } else {
+            "not_pending"
+        };
+        let total_cycles = unsafe { core::arch::x86_64::_rdtsc() }
+            .saturating_sub(total_started_cycles);
+        let telemetry = format!(
+            "[heliox-daemon] [world-model-telemetry-v1] tick={} action={} allowed={} risk={:.4} lookahead={} gate_cycles={} total_cycles={} executed={} success={} confirmation={}\n",
+            self.tick_count,
+            tc.name,
+            if decision.allowed { 1 } else { 0 },
+            decision.risk,
+            decision.lookahead_steps,
+            gate_cycles,
+            total_cycles,
+            if execution_attempted { 1 } else { 0 },
+            if result.success { 1 } else { 0 },
+            confirmation,
+        );
+        unsafe {
+            syscall3(34, 1, telemetry.as_ptr() as u64, telemetry.len() as u64);
+        }
+
         result
     }
 
@@ -1004,6 +1064,105 @@ impl Orchestrator {
         let msg = format!("[heliox-daemon] [world-model] data collection complete: {} actions\n", count);
         unsafe {
             syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
+        }
+    }
+
+    /// Measures the real in-guest capture + encoder + transition + safety path
+    /// at H=1..5. The proposed actions are never dispatched. A PIT-based TSC
+    /// calibration converts per-call cycle samples to microseconds on this
+    /// specific guest run; both values are retained because virtualized TSC
+    /// frequency is host/accelerator dependent.
+    pub fn run_world_model_benchmark(&mut self, iterations: u32) {
+        use super::world_model::{self, observation};
+
+        let iterations = iterations.clamp(20, 2_000);
+        let memory_before = observation::capture_snapshot(
+            self.tick_count,
+            &self.wm_last_action_name,
+            self.wm_last_action_failed,
+        );
+        // Warm file-backed weights, allocator paths, and the observation
+        // syscalls before any horizon is measured. Without this, H=1 alone
+        // pays the initial page/cache cost and cannot be compared fairly.
+        for index in 0..64u32 {
+            let action = world_model::synthetic_action(index);
+            let state = observation::capture_snapshot(
+                self.tick_count.saturating_add(index as u64),
+                &self.wm_last_action_name,
+                self.wm_last_action_failed,
+            );
+            let _ = world_model::evaluate_action_with_horizon(&state, &action, 5);
+        }
+        for horizon in 1..=5u32 {
+            let mut cycle_samples = alloc::vec::Vec::with_capacity(iterations as usize);
+            let mut tick_samples = alloc::vec::Vec::with_capacity(iterations as usize);
+            let mut blocked = 0u32;
+            let batch_start_tick = crate::cognitive::fusion::get_uptime_ticks();
+            for index in 0..iterations {
+                let action = world_model::synthetic_action(index);
+                let started_tick = crate::cognitive::fusion::get_uptime_ticks();
+                let started = unsafe { core::arch::x86_64::_rdtsc() };
+                let state = observation::capture_snapshot(
+                    self.tick_count.saturating_add(index as u64),
+                    &self.wm_last_action_name,
+                    self.wm_last_action_failed,
+                );
+                let decision = world_model::evaluate_action_with_horizon(&state, &action, horizon);
+                let elapsed = unsafe { core::arch::x86_64::_rdtsc() }.saturating_sub(started);
+                let elapsed_ticks = crate::cognitive::fusion::get_uptime_ticks()
+                    .saturating_sub(started_tick);
+                cycle_samples.push(elapsed);
+                tick_samples.push(elapsed_ticks);
+                if !decision.allowed {
+                    blocked = blocked.saturating_add(1);
+                }
+            }
+            let batch_end_tick = crate::cognitive::fusion::get_uptime_ticks();
+            cycle_samples.sort_unstable();
+            tick_samples.sort_unstable();
+            let middle = cycle_samples.len() / 2;
+            let p95_index = (cycle_samples.len().saturating_sub(1) * 95) / 100;
+            let median_cycles = cycle_samples[middle];
+            let p95_cycles = cycle_samples[p95_index];
+            let max_cycles = cycle_samples.last().copied().unwrap_or(0);
+            let median_us = tick_samples[middle].saturating_mul(1_000);
+            let p95_us = tick_samples[p95_index].saturating_mul(1_000);
+            let max_us = tick_samples.last().copied().unwrap_or(0).saturating_mul(1_000);
+            let batch_ticks = batch_end_tick.saturating_sub(batch_start_tick);
+            let mean_us = batch_ticks.saturating_mul(1_000) / iterations as u64;
+            let marker = format!(
+                "[heliox-daemon] [world-model-benchmark-v2] horizon={} iterations={} batch_ticks={} mean_us={} median_us={} p95_us={} max_us={} median_cycles={} p95_cycles={} max_cycles={} blocked={}\n",
+                horizon,
+                iterations,
+                batch_ticks,
+                mean_us,
+                median_us,
+                p95_us,
+                max_us,
+                median_cycles,
+                p95_cycles,
+                max_cycles,
+                blocked,
+            );
+            unsafe {
+                syscall3(34, 1, marker.as_ptr() as u64, marker.len() as u64);
+            }
+        }
+        let memory_after = observation::capture_snapshot(
+            self.tick_count,
+            &self.wm_last_action_name,
+            self.wm_last_action_failed,
+        );
+        let memory_marker = format!(
+            "[heliox-daemon] [world-model-benchmark-memory-v1] heap_before={} heap_after={} heap_delta={} encoder_file_bytes=129344 transition_file_bytes=643616 runtime_parameters=193229 encoder_loaded={} transition_loaded={}\n",
+            memory_before.heap_used,
+            memory_after.heap_used,
+            memory_after.heap_used.saturating_sub(memory_before.heap_used),
+            if world_model::encoder_learned::is_loaded() { 1 } else { 0 },
+            if world_model::learned::is_loaded() { 1 } else { 0 },
+        );
+        unsafe {
+            syscall3(34, 1, memory_marker.as_ptr() as u64, memory_marker.len() as u64);
         }
     }
 

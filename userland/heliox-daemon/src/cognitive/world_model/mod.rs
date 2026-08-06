@@ -110,6 +110,17 @@ fn safer_alternative(action: &ToolCall, risk: f32, reason: &str) -> String {
 /// every step (not just the first) since args could differ per real
 /// call, even though this simulation reuses one fixed action throughout.
 pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
+    evaluate_action_with_horizon(state, action, MAX_LOOKAHEAD)
+}
+
+/// Research/benchmark entry point for measuring the deployed implementation at
+/// a bounded horizon without changing the release default. Production calls
+/// continue to use `evaluate_action` and `MAX_LOOKAHEAD`.
+pub fn evaluate_action_with_horizon(
+    state: &OsSnapshot,
+    action: &ToolCall,
+    max_lookahead: u32,
+) -> GateDecision {
     let initial_embedding = encoder::encode(state);
     let mut learned_embedding = initial_embedding;
     let mut rule_embedding = initial_embedding;
@@ -119,7 +130,7 @@ pub fn evaluate_action(state: &OsSnapshot, action: &ToolCall) -> GateDecision {
     let mut learned_proc_delta = 0i32;
     let mut rule_proc_delta = 0i32;
 
-    for step in 1..=MAX_LOOKAHEAD {
+    for step in 1..=max_lookahead.clamp(1, 5) {
         let mut rule_prediction = transition::predict_next_state_rules(&rule_embedding, action);
         rule_proc_delta = rule_proc_delta.saturating_add(rule_prediction.proc_count_delta);
         rule_prediction.proc_count_delta = rule_proc_delta;

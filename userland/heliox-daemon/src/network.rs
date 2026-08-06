@@ -278,6 +278,33 @@ pub fn tcp_send(fd: u64, data: &[u8]) -> Result<usize, &'static str> {
     }
 }
 
+/// Send an entire protocol record. `SYS_SEND` is allowed to make partial
+/// progress, especially when many JSON-RPC responses fill the guest TX queue;
+/// treating any positive return as completion truncated WebSocket frames and
+/// left otherwise valid concurrent requests without responses.
+fn tcp_send_all(fd: u64, data: &[u8]) -> Result<(), &'static str> {
+    let mut offset = 0usize;
+    let mut blocked_retries = 0u32;
+    while offset < data.len() {
+        match tcp_send(fd, &data[offset..]) {
+            Ok(0) => return Err("connection closed while sending"),
+            Ok(sent) => {
+                offset = offset.saturating_add(sent);
+                blocked_retries = 0;
+            }
+            Err("blocked") => {
+                blocked_retries = blocked_retries.saturating_add(1);
+                if blocked_retries > 4_096 {
+                    return Err("send remained blocked");
+                }
+                unsafe { syscall3(0, 0, 0, 0); } // cooperative yield
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
 /// Receive data from a TCP socket into the provided buffer. Returns bytes read.
 pub fn tcp_recv(fd: u64, buf: &mut [u8]) -> Result<usize, &'static str> {
     let received = unsafe { syscall3(SYS_RECV, fd, buf.as_mut_ptr() as u64, buf.len() as u64) };
@@ -1304,8 +1331,7 @@ fn ws_send_frame(fd: u64, opcode: u8, payload: &[u8]) -> Result<(), &'static str
         frame.push(byte ^ mask_key[i % 4]);
     }
 
-    tcp_send(fd, &frame)?;
-    Ok(())
+    tcp_send_all(fd, &frame)
 }
 
 /// Build and send a single WebSocket frame from the server (NO masking).
@@ -1333,8 +1359,7 @@ pub fn ws_send_frame_server(fd: u64, opcode: u8, payload: &[u8]) -> Result<(), &
     // Unmasked payload
     frame.extend_from_slice(payload);
 
-    tcp_send(fd, &frame)?;
-    Ok(())
+    tcp_send_all(fd, &frame)
 }
 
 /// Send a text message from the server over a WebSocket connection (no masking).
