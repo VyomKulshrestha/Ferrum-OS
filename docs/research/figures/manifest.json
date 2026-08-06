@@ -3,7 +3,8 @@
   "generator": "scripts/generate_world_model_figures.py",
   "sources": {
     "docs/research/world_model_safety_baseline.json": "76595e4c8eb7774e85dc8dc38ea32923bc50b7bcd03d38126626cd840305d35f",
-    "appliance/world-model/manifest.json": "acb08efd7c877082ebd2b32b4df2e88efefe128ebb3e2177040de26b0f8aab46"
+    "appliance/world-model/manifest.json": "acb08efd7c877082ebd2b32b4df2e88efefe128ebb3e2177040de26b0f8aab46",
+    "docs/research/world_model_paper_evaluation.json": "503f171239d2d4df530156f86e86cac717ec6355d101c23ef8c2c3e9b6d1568e"
   },
   "figures": [
     {
@@ -35,6 +36,36 @@
       "path": "docs/research/figures/figure_2_jepa_architecture.pdf",
       "sha256": "221be2241c2ba8573418451035dd74c00ec159c751c6b6734965dfc0cef96407",
       "bytes": 37124
+    },
+    {
+      "path": "docs/research/figures/figure_3_stronger_baselines.png",
+      "sha256": "abab8ca2686baefb8569b5584ca8e4866000682bc758232828581a5735845c1d",
+      "bytes": 241010
+    },
+    {
+      "path": "docs/research/figures/figure_3_stronger_baselines.svg",
+      "sha256": "f4ea2baac361ea7f5638be7eb17d46a7e7fff953abd75958e8244ff0fd023f26",
+      "bytes": 95296
+    },
+    {
+      "path": "docs/research/figures/figure_3_stronger_baselines.pdf",
+      "sha256": "c3df182c9b500307cecdaf4ad9cb567d0fc7ec4440a2b296e231feb5914ff7e3",
+      "bytes": 29259
+    },
+    {
+      "path": "docs/research/figures/figure_4_horizon_and_seed_sensitivity.png",
+      "sha256": "adc7e7708dcbaa2aca6e93e2d761ee0e828d1fa2b99f6c0e195a8ac830bc9756",
+      "bytes": 126447
+    },
+    {
+      "path": "docs/research/figures/figure_4_horizon_and_seed_sensitivity.svg",
+      "sha256": "dd4df181038032fe769b7e5b32441bff28a332a91c0551793991f5743feaa9cf",
+      "bytes": 69652
+    },
+    {
+      "path": "docs/research/figures/figure_4_horizon_and_seed_sensitivity.pdf",
+      "sha256": "c0b1ef7884f84ef00e820080df478a656eada034c62308d2ea7eb23a8e901d64",
+      "bytes": 24260
     }
   ]
 }

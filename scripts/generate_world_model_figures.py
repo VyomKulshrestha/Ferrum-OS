@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the two publication figures for the FerrumOS world-model paper."""
+"""Generate publication figures for the FerrumOS world-model paper."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE = ROOT / "docs/research/world_model_safety_baseline.json"
 DEFAULT_MANIFEST = ROOT / "appliance/world-model/manifest.json"
+DEFAULT_PAPER_EVIDENCE = ROOT / "docs/research/world_model_paper_evaluation.json"
 DEFAULT_OUT = ROOT / "docs/research/figures"
 
 ARM_ORDER = ("rules_only", "jepa_only", "rules_plus_jepa")
@@ -255,10 +256,102 @@ def figure_two(manifest: dict, output_dir: Path) -> list[Path]:
     return save_figure(fig, output_dir / "figure_2_jepa_architecture")
 
 
+def figure_three(evidence: dict, output_dir: Path) -> list[Path]:
+    names = (
+        "rules_only",
+        "rules_plus_autoencoder",
+        "rules_plus_mean_delta",
+        "rules_plus_jepa",
+        "rules_plus_validation_calibrated_jepa",
+    )
+    labels = ("Rules", "Rules + AE", "Rules + mean", "Rules + JEPA", "Calibrated\nRules + JEPA")
+    rows = [evidence["baselines"][name] for name in names]
+    balanced = np.asarray([row["balanced_accuracy"] for row in rows]) * 100
+    fnr = np.asarray([1 - row["recall"] for row in rows]) * 100
+    fpr = np.asarray([1 - row["specificity"] for row in rows]) * 100
+
+    fig, (ax_accuracy, ax_errors) = plt.subplots(1, 2, figsize=(8.4, 3.65))
+    x = np.arange(len(names))
+    bars = ax_accuracy.bar(x, balanced, color=("#6B7280", "#56B4E9", "#009E73", "#0072B2", "#CC79A7"))
+    ax_accuracy.bar_label(bars, labels=[f"{value:.1f}%" for value in balanced], padding=3, fontsize=7.4)
+    ax_accuracy.set_xticks(x, labels, rotation=18, ha="right")
+    ax_accuracy.set_ylim(70, 87)
+    ax_accuracy.set_ylabel("Balanced accuracy (%)")
+    ax_accuracy.grid(axis="y", color="#D1D5DB", linewidth=0.6, alpha=0.8)
+    ax_accuracy.set_axisbelow(True)
+    ax_accuracy.set_title("a  Stronger transition baselines", loc="left", fontweight="bold")
+
+    ax_errors.plot(x, fnr, marker="o", color="#D55E00", label="False-negative rate")
+    ax_errors.plot(x, fpr, marker="s", color="#0072B2", label="False-positive rate")
+    for index, value in enumerate(fnr):
+        ax_errors.annotate(f"{value:.1f}", (index, value), xytext=(0, 6), textcoords="offset points", ha="center", fontsize=7)
+    for index, value in enumerate(fpr):
+        ax_errors.annotate(f"{value:.1f}", (index, value), xytext=(0, -11), textcoords="offset points", ha="center", fontsize=7)
+    ax_errors.set_xticks(x, labels, rotation=18, ha="right")
+    ax_errors.set_ylim(0, 45)
+    ax_errors.set_ylabel("Rate (%)")
+    ax_errors.grid(axis="y", color="#D1D5DB", linewidth=0.6, alpha=0.8)
+    ax_errors.set_axisbelow(True)
+    ax_errors.legend(frameon=False, fontsize=8)
+    ax_errors.set_title("b  Safety and availability tradeoff", loc="left", fontweight="bold")
+    fig.suptitle("JEPA is competitive, but the simple mean-delta baseline is close",
+                 x=0.07, ha="left", y=1.01, fontsize=11, fontweight="bold")
+    fig.text(0.07, -0.04,
+             "All learned conditions use the same 500 authored stress episodes; calibration uses transition validation residuals only.",
+             fontsize=7.5, color="#4B5563")
+    fig.tight_layout(w_pad=2.2)
+    return save_figure(fig, output_dir / "figure_3_stronger_baselines")
+
+
+def figure_four(evidence: dict, output_dir: Path) -> list[Path]:
+    horizons = sorted(int(value) for value in evidence["horizon_ablation"])
+    rows = [evidence["horizon_ablation"][str(value)]["rules_plus_jepa"] for value in horizons]
+    fnr = np.asarray([1 - row["recall"] for row in rows]) * 100
+    fpr = np.asarray([1 - row["specificity"] for row in rows]) * 100
+    balanced = np.asarray([row["balanced_accuracy"] for row in rows]) * 100
+
+    seeds = sorted(evidence["training_seed_sensitivity"], key=int)
+    seed_rows = [evidence["training_seed_sensitivity"][seed]["safety"] for seed in seeds]
+    seed_fnr = np.asarray([1 - row["recall"] for row in seed_rows]) * 100
+    seed_fpr = np.asarray([1 - row["specificity"] for row in seed_rows]) * 100
+    seed_balanced = np.asarray([row["balanced_accuracy"] for row in seed_rows]) * 100
+
+    fig, (ax_horizon, ax_seed) = plt.subplots(1, 2, figsize=(8.2, 3.55))
+    ax_horizon.plot(horizons, balanced, marker="o", color="#009E73", label="Balanced accuracy")
+    ax_horizon.plot(horizons, fnr, marker="s", color="#D55E00", label="FNR")
+    ax_horizon.plot(horizons, fpr, marker="^", color="#0072B2", label="FPR")
+    ax_horizon.set_xticks(horizons)
+    ax_horizon.set_xlabel("Lookahead horizon H")
+    ax_horizon.set_ylabel("Rate (%)")
+    ax_horizon.set_ylim(0, 90)
+    ax_horizon.grid(color="#D1D5DB", linewidth=0.6, alpha=0.8)
+    ax_horizon.set_axisbelow(True)
+    ax_horizon.legend(frameon=False, fontsize=8)
+    ax_horizon.set_title("a  Horizon sensitivity", loc="left", fontweight="bold")
+
+    x = np.arange(len(seeds))
+    width = 0.24
+    ax_seed.bar(x - width, seed_balanced, width, color="#009E73", label="Balanced accuracy")
+    ax_seed.bar(x, seed_fnr, width, color="#D55E00", label="FNR")
+    ax_seed.bar(x + width, seed_fpr, width, color="#0072B2", label="FPR")
+    ax_seed.set_xticks(x, [f"Seed {seed}" for seed in seeds])
+    ax_seed.set_ylabel("Rate (%)")
+    ax_seed.set_ylim(0, 90)
+    ax_seed.grid(axis="y", color="#D1D5DB", linewidth=0.6, alpha=0.8)
+    ax_seed.set_axisbelow(True)
+    ax_seed.legend(frameon=False, fontsize=7.4)
+    ax_seed.set_title("b  Transition initialization sensitivity", loc="left", fontweight="bold")
+    fig.suptitle("The safety result depends on H and transition initialization",
+                 x=0.07, ha="left", y=1.01, fontsize=11, fontweight="bold")
+    fig.tight_layout(w_pad=2.2)
+    return save_figure(fig, output_dir / "figure_4_horizon_and_seed_sensitivity")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--paper-evidence", type=Path, default=DEFAULT_PAPER_EVIDENCE)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -266,13 +359,20 @@ def main() -> None:
 
     baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    outputs = figure_one(baseline, args.out_dir) + figure_two(manifest, args.out_dir)
+    evidence = json.loads(args.paper_evidence.read_text(encoding="utf-8"))
+    outputs = (
+        figure_one(baseline, args.out_dir)
+        + figure_two(manifest, args.out_dir)
+        + figure_three(evidence, args.out_dir)
+        + figure_four(evidence, args.out_dir)
+    )
     record = {
         "schema_version": 1,
         "generator": "scripts/generate_world_model_figures.py",
         "sources": {
             args.baseline.relative_to(ROOT).as_posix(): sha256(args.baseline),
             args.manifest.relative_to(ROOT).as_posix(): sha256(args.manifest),
+            args.paper_evidence.relative_to(ROOT).as_posix(): sha256(args.paper_evidence),
         },
         "figures": [
             {"path": artifact_path(path), "sha256": sha256(path),
