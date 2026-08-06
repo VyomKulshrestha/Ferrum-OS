@@ -114,6 +114,13 @@ cost: the combined system trades a 20.4 percentage-point reduction in false
 negatives for an 8.0 percentage-point increase in false positives on this
 boundary-heavy stress set.
 
+![Figure 1: Three-arm safety comparison](figures/figure_1_three_arm_comparison.png)
+
+**Figure 1.** Three-arm paired comparison. Error bars are 95% Wilson intervals
+for false-negative and false-positive rates. The combined runtime policy has
+the best balanced accuracy and lowest FNR, but its higher FPR makes the safety
+versus availability tradeoff explicit.
+
 Reproduce the registered artifacts with:
 
 ```powershell
@@ -156,6 +163,15 @@ defines the next-state representation. Reconstruction and action auxiliaries,
 plus variance, effective-rank, and action-sensitivity gates, discourage
 collapse. The transition model is then trained in the accepted representation.
 
+![Figure 2: JEPA training and runtime architecture](figures/figure_2_jepa_architecture.png)
+
+**Figure 2.** FerrumOS action-conditioned JEPA training and runtime wiring. The
+EMA target, JEPA predictor, reconstruction head, and action decoder are
+training-only. The packaged online encoder contributes 77 latent dimensions to
+the 128-state runtime embedding; the 512-hidden transition MLP predicts a
+128-state delta, and its H=3 rollout is combined monotonically with an
+independent deterministic rollout before capabilities and syscalls.
+
 This is an inductive-bias argument, not a causality theorem. Joint-embedding
 prediction encourages features that are predictable and useful for the training
 objective; it does **not** prove that the latent contains only causally relevant
@@ -185,6 +201,46 @@ objects. The defensible novelty claim is the placement and composition of the
 mechanism: provider-independent action normalization, learned latent prediction,
 deterministic predicates, and capability-gated execution in an agentic OS.
 
+## Section 7: Discussion
+
+All 52 false negatives in the combined arm were inspected against the committed
+scenario, prediction, and release-weight artifacts. They form three exhaustive
+clusters rather than a diffuse tail:
+
+| Failure cluster | Misses | Share of FN | Verified cause |
+|---|---:|---:|---|
+| Unmodeled sensitive-state deletion | 21 | 40.4% | `/disk/heliox/memory.bin` is immediately harmful but absent from the exact protected-path policy and numeric state delta |
+| Cumulative process exhaustion | 20 | 38.5% | Fifty `service_start` calls raise process occupancy from 0.20 to 0.98125; per-request H=3 never reaches the delta-50 predicate, and absolute process occupancy is not scored |
+| Injected heap exhaustion | 11 | 21.2% | Every observed next state crosses 0.95, but the learned forecast stays below it; 10/11 misses are `hud_update` |
+
+The first cluster is a semantic policy-coverage failure. More JEPA samples alone
+cannot tell the gate which persistent artifacts are security-critical. The
+appropriate response is a versioned protected-asset policy plus an abstention
+path for unknown critical asset classes.
+
+The second cluster is a temporal abstraction failure. It is not caused by an
+incorrect one-step service-start delta: the evaluator observes the accumulated
+process state after every allowed step. The safety function nevertheless tests
+only cumulative predicted process creation inside the current three-step
+self-composition. Episode history, an absolute process-occupancy predicate, or
+branching over distinct planned actions is required.
+
+The third cluster is the part directly attributable to learned transition
+calibration. Ten of eleven misses are `hud_update`, whereas nine of ten
+`http_get` heap-boundary episodes are caught. On the misses, first-step predicted
+heap lies between 0.769 and 0.902 although every observed next state exceeds
+0.95. Targeted boundary collection for `hud_update`, per-action calibration,
+and uncertainty-triggered abstention are therefore better-motivated than a
+global threshold change.
+
+Every missed episode records risk 0.0. This indicates coverage gaps rather than
+near-threshold rounding, and it makes threshold tuning alone an unsuitable fix.
+Overall, 41/52 misses require added policy or temporal semantics; 11/52 motivate
+targeted model/data work. The complete episode identifiers, distributions,
+numeric ranges, and source hashes are reproduced in
+[`WORLD_MODEL_FALSE_NEGATIVE_ANALYSIS.md`](WORLD_MODEL_FALSE_NEGATIVE_ANALYSIS.md)
+and `world_model_false_negative_analysis.json`.
+
 ## Limitations and next experiments
 
 - The registered episodes are counterfactual stress cases grounded in QEMU
@@ -213,3 +269,10 @@ deterministic predicates, and capability-gated execution in an agentic OS.
 Machine-readable references are in [`references.bib`](references.bib). Direct
 primary-source access for the six core paper references was rechecked on
 2026-08-06 and is recorded in [`LITERATURE_ACCESS.md`](LITERATURE_ACCESS.md).
+
+Regenerate and byte-verify both paper figures with:
+
+```powershell
+python scripts/generate_world_model_figures.py
+python scripts/verify_world_model_figures.py
+```

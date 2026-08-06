@@ -180,6 +180,12 @@ Wilson intervals, formal threat model, limitations, and primary-literature
 comparison are in [`docs/research/`](docs/research/WORLD_MODEL_RESEARCH.md).
 These are offline counterfactual gate results grounded in the untouched QEMU
 split, not a claim that 500 destructive actions were executed on a live disk.
+The complete 52-FN audit finds three exhaustive clusters: 21 unmodeled
+persistent-state deletions, 20 long-horizon process accumulations, and 11
+action-specific heap underpredictions. Publication-ready, reproducible
+[comparison](docs/research/figures/figure_1_three_arm_comparison.svg) and
+[architecture](docs/research/figures/figure_2_jepa_architecture.svg) figures are
+generated directly from the registered baseline and appliance manifest.
 
 ## Architecture
 

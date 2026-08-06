@@ -27,8 +27,14 @@ for key, url in required.items():
 
 assert "metric-equivalent" in access
 assert "not evidence that an OS transition model inherits" in normalized_paper
+assert "## Section 7: Discussion" in paper
+for count in ("21", "20", "11"):
+    assert f"| {count} |" in paper
+for figure in ("figure_1_three_arm_comparison.png", "figure_2_jepa_architecture.png"):
+    assert figure in paper
 
 print("PASS\tsix requested primary references are present in BibTeX")
 print("PASS\trelated work cites every primary record")
 print("PASS\taccess and non-equivalence qualifications are explicit")
-print("3/3 checks passed")
+print("PASS\tSection 7 carries the exhaustive 52-FN analysis and both figures")
+print("4/4 checks passed")

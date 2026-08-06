@@ -629,6 +629,17 @@ prediction looks dangerous.
   offline counterfactual decision test, not 500 live destructive executions.
   The formal threat model and limitations are in
   `docs/research/WORLD_MODEL_RESEARCH.md`.
+- **False-negative anatomy** - all 52 combined-arm misses are reproduced from
+  the registered episode and prediction files and checked against the shipped
+  weights. They separate into 21 unmodeled protected-asset deletions, 20
+  process-exhaustion sequences beyond the per-request temporal abstraction,
+  and 11 learned heap underpredictions (10 on `hud_update`). This distinction
+  prevents model capacity or additional samples from being presented as a fix
+  for policy and episode-history gaps.
+- **Paper figures** - Figure 1 reads the registered confusion metrics and Wilson
+  intervals; Figure 2 reads the packaged encoder/transition dimensions and H
+  from the appliance manifest. PNG, SVG, and PDF forms, their hashes, and the
+  generator are committed under `docs/research/figures/`.
 - **Verification** — permanent suites cover corpus schema/coverage/diversity,
   split leakage, JEPA rejection and promotion, weight integrity, protected-path
   aliases, disk/process lookahead, provider chunking, a 300-request socket soak,
