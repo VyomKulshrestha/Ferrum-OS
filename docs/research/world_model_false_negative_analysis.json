@@ -144,8 +144,8 @@
       },
       "missed_observed_next_heap_fraction": {
         "minimum": 0.9513020813465118,
-        "maximum": 1.0750031881034374,
-        "mean": 1.0637576329437168
+        "maximum": 1.0,
+        "mean": 0.9955729164860465
       },
       "resource_threshold": 0.95,
       "risk_distribution": {

@@ -166,7 +166,8 @@ def analyze(fixture_path: Path, predictions_path: Path,
         predicted, _ = prediction
         missed_initial.append(float(state[1]))
         missed_predicted.append(float(predicted[1]))
-        missed_actual.append(float(state[1]) + float(case["steps"][0]["core_delta"][1]))
+        observed_heap = float(state[1]) + float(case["steps"][0]["core_delta"][1])
+        missed_actual.append(min(1.0, max(0.0, observed_heap)))
     heap_cluster = {
         "hazard": "injected_heap_exhaustion",
         "count": len(heap),
