@@ -632,16 +632,37 @@ prediction looks dangerous.
 - **Paper evidence expansion** - the registered three-arm result is now
   accompanied by no-model controls, a per-action mean-delta transition, the
   matched autoencoder transition, an action-conditioning ablation, H=1..5
-  safety metrics, and three independently initialized 512-wide transition
-  runs. On the fixed seed-17 checkpoint, rules+JEPA reaches 81.4% balanced
-  accuracy; rules+mean-delta reaches 81.2%, and the three JEPA transition seeds
-  average 78.6% (range 76.2%--81.4%). The close mean-delta result prevents the
+  safety metrics, three fixed-encoder transition runs, and five complete
+  independently initialized JEPA-to-transition pipelines. The 81.4% result is
+  specifically the representation-seed-42/fixed-encoder transition-seed-17 run;
+  it is not the full-pipeline seed-17 run, which reaches 80.6% balanced accuracy,
+  28.4% FNR, and 10.4% FPR. Rules+mean-delta reaches 81.2%. The complete pipelines
+  average 79.76% balanced accuracy (95% t interval
+  76.87%--82.65%), 27.04% FNR, and 13.44% FPR. The close mean-delta result prevents the
   representation-error improvement from being misreported as a large safety
   advantage. A 1,969-row untouched QEMU negative-control replay measures 216
   learned-branch confirmations (109.7 per 1,000 safe actions). A validation-
   only one-sided residual calibration ablation catches 209/250 dangerous stress
   episodes instead of 198/250, but raises that safe-action alert rate to 134.6
   per 1,000 and is therefore not enabled in the release runtime.
+- **Boundary calibration and runtime evidence** - 240 post-training QEMU
+  `hud_update` episodes cover 12 argument-size regimes and are excluded from
+  training and the registered test split. Every action succeeds, actual normalized
+  heap delta is zero, and neither the deployed forecast nor a reported p95 residual
+  margin triggers a false resource alarm. In the real ring-3 daemon, 100 previews
+  per H=1..5 measure 1.35--1.59 ms mean and 2 ms p95 using the 1 kHz guest PIT;
+  both learned files load in 30 ms and 500 measured previews add zero heap bytes.
+  Ninety-six outstanding JSON-RPC previews return 96 correlated deterministic
+  responses without execution. Missing, non-finite, forbidden-coverage, and
+  collapsed-training artifacts retain deterministic safety or emit no promotable
+  model.
+- **Natural-use and adjudication boundary** - canonical dispatch emits a
+  `world-model-telemetry-v1` record without prompts, arguments, paths, provider/model
+  identity, screen/audio, or output text. The host collector reports operational
+  volume and friction only. Decision-blinded sheets, a written hazard rubric,
+  uncertainty, Cohen's kappa, disagreement export, post-lock unblinding, and
+  adjudicated confusion metrics are implemented; no independent-human or
+  natural-prevalence result is claimed until actual annotators and elapsed use exist.
 - **Training provenance** - `docs/research/world_model_training_config.json`
   records the optimizer, losses, learning rates, epochs, batch size, seeds,
   selection criteria, parameter counts, hardware, hashes, and exact commands.
@@ -649,6 +670,12 @@ prediction looks dangerous.
   both packaged binaries byte-for-byte. The corpus accounting explicitly
   separates 373 non-executed rows and 54 policy-only rows from the 13,270
   episode-disjoint fitting transitions.
+- **Dataset publication package** - `scripts/package_world_model_dataset.py`
+  creates a deterministic compressed archive with exact source/archive hashes,
+  an explicit MIT data licence, a data card, split audit, credential scan, and
+  `SHA256SUMS`; `verify_world_model_dataset_release.py` reopens and verifies it.
+  External release attachment, download re-verification, and DOI minting require an
+  authorized publication account and are not represented as completed locally.
 - **False-negative anatomy** - all 52 combined-arm misses are reproduced from
   the registered episode and prediction files and checked against the shipped
   weights. They separate into 21 unmodeled protected-asset deletions, 20

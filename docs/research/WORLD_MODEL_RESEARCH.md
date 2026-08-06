@@ -173,6 +173,22 @@ Model selection uses validation transition metrics, never the safety-test
 labels. These runs make checkpoint sensitivity a first-class result rather than
 reporting only the best observed safety score.
 
+A stronger follow-up independently trains the entire encoder-to-transition
+pipeline at seeds 17, 42, 91, 123, and 2026. This varies the online encoder,
+EMA target, JEPA predictor, reconstruction/action heads, and transition MLP.
+Across those five complete runs, combined balanced accuracy is 79.76% mean
+(sample SD 2.33 points; 95% t interval 76.87%--82.65%), FNR is 27.04% mean
+(18.53%--35.55%), and FPR is 13.44% mean (9.46%--17.42%). All seeds are
+reported and the safety fixture is not used for checkpoint selection. The
+wide intervals describe training-run uncertainty on one authored fixture, not
+deployment-population uncertainty.
+
+The two results labelled with seed 17 must not be conflated. The 81.4%
+balanced-accuracy result holds the representation at seed 42 and re-trains only
+the transition model with seed 17. The full-pipeline seed-17 result initializes
+and trains every learned component with seed 17 and reaches 80.6% balanced
+accuracy, 28.4% FNR, and 10.4% FPR.
+
 The safety horizon ablation also changes the interpretation of H=3. H=2 has the
 highest balanced accuracy on this fixture (84.8% versus 81.4% at H=3), while
 H=5 has the lowest FNR (16.8%) at the same 16.4% FPR as H=3. H=3 remains the
@@ -197,6 +213,50 @@ bootstrap interval, and reference latency are in
 ```powershell
 python scripts/verify_world_model_paper_evaluation.py
 ```
+
+## Boundary calibration, runtime, and failure evidence
+
+A post-training QEMU negative-control corpus contains 240 successful
+`hud_update` episodes across 12 normalized argument-size regimes, including the
+128-byte render boundary. It remains outside training and the registered test
+split. All measured heap deltas are zero; transition heap-delta MAE is 0.00296,
+and the deployed resource predicate raises zero false alarms. A reported p95
+upper-residual margin also raises zero alarms on this set, but is analysis only:
+one safe action class cannot establish dangerous-action recall or justify a
+production calibration guarantee.
+
+The real ring-3 gate was then measured after 64 warmup previews, with 100
+preview-only actions at each horizon. Mean PIT time is 1.35, 1.44, 1.45, 1.53,
+and 1.59 ms for H=1 through H=5; p95 is 2 ms throughout at 1 ms resolution.
+Both learned artifacts load in 30 ms and 500 measured previews add zero heap
+bytes. Virtual TSC cycles are retained without wall-time conversion because the
+WHPX virtual TSC did not agree reliably with the guest PIT.
+
+A single paired WebSocket submitted 96 outstanding previews across six action
+classes. All 96 responses were correlated by ID, duplicate requests were
+deterministic, no execution record was added, and the guest remained fault-free.
+The daemon serializes inference; this tests framing and state isolation, not
+parallel neural execution. Failure injection separately verifies valid, missing,
+non-finite, forbidden policy-coverage, and collapsed-training cases. Invalid or
+absent learned artifacts retain deterministic safety; rejected training emits
+metrics but no promotable artifact.
+
+## Dataset and independent-label status
+
+The exact 13,697-row JSONL now has a deterministic compressed release package,
+source and archive SHA-256 values, explicit MIT dataset licence, data card,
+episode-split validation, credential scan, and independent package verifier.
+External release attachment, download re-verification, and DOI minting require
+an authorized repository account and are not claimed as local results.
+
+FerrumOS also emits privacy-bounded natural-use telemetry without prompts,
+arguments, paths, provider/model identity, screen/audio, or output content.
+The committed protocol targets seven days, 20 task families, 1,000 proposed
+actions, and 100 destructive/resource-changing proposals where safe. A written
+rubric and decision-blinded two-annotator workflow compute uncertainty,
+agreement, Cohen's kappa, disagreements, post-lock adjudication, and confusion
+metrics. Until actual independent annotators and elapsed natural use exist,
+these are protocols and tools, not claimed study outcomes.
 
 ## Why a JEPA representation
 

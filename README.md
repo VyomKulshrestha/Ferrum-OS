@@ -193,13 +193,30 @@ action-specific heap underpredictions. Publication-ready, reproducible
 generated directly from the registered baseline and appliance manifest.
 The expanded paper evidence adds always-allow/block controls, an action-mean
 transition baseline, the matched autoencoder safety baseline, an action-
-conditioning ablation, H=1..5 safety results, three full transition seeds,
+conditioning ablation, H=1..5 safety results, five full JEPA-to-transition pipelines,
 validation-only residual calibration, AUROC/AUPRC, bootstrap intervals, and an
-untouched 1,969-row QEMU safe-traffic replay. The fixed seed-17 combined result
-is 81.4% balanced accuracy, but the three-seed mean is 78.6% and the simple
-rules+mean-delta baseline reaches 81.2%; these limits are part of the research
-claim, not hidden. See
+untouched 1,969-row QEMU safe-traffic replay. The 81.4% combined result is the
+fixed-encoder transition seed-17 condition: it uses representation seed 42 and
+re-trains only the transition model with seed 17. The independently trained
+full-pipeline seed-17 condition instead reaches 80.6% balanced accuracy, 28.4%
+FNR, and 10.4% FPR. Across all five complete pipelines, balanced accuracy averages
+79.76% (95% t interval 76.87%--82.65%); the simple rules+mean-delta baseline reaches
+81.2%. These limits are part of the research claim, not hidden.
+A post-training 240-episode QEMU HUD boundary study spans 12 argument-size regimes,
+records zero observed heap delta and zero false resource alarms, and remains outside
+the registered split. The release gate's real ring-3 mean preview cost is 1.35 ms at
+H=1 and 1.59 ms at H=5 (p95 2 ms at 1 ms PIT resolution), with 30 ms model loading
+and zero heap growth across 500 measured previews. A 96-request concurrent preview
+burst returns 96/96 correlated, deterministic responses without dispatch or guest
+fault. See
 [`WORLD_MODEL_PAPER_EVALUATION.md`](docs/research/WORLD_MODEL_PAPER_EVALUATION.md).
+
+The exact 13,697-row corpus can be packaged deterministically with
+`scripts/package_world_model_dataset.py`; the package includes SHA-256 manifests,
+an MIT dataset licence, a data card, split/credential checks, and a verifier. A DOI
+and independent human/natural-use results are intentionally not claimed: the repo
+provides privacy-bounded telemetry plus a blinded two-annotator/adjudication workflow,
+but publication and real annotators remain external submission steps.
 
 ## Architecture
 

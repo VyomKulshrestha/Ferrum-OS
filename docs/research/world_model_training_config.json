@@ -77,6 +77,25 @@
       "transition_byte_identical": true
     }
   },
+  "full_pipeline_seed_evaluation": {
+    "protocol": "full-jepa-transition-pipeline-seeds-v1",
+    "seeds": [17, 42, 91, 123, 2026],
+    "split_seed": 42,
+    "independently_initialized": [
+      "online encoder",
+      "EMA target encoder",
+      "JEPA predictor",
+      "reconstruction and action heads",
+      "transition MLP"
+    ],
+    "combined_balanced_accuracy_mean": 0.7976,
+    "combined_balanced_accuracy_sample_standard_deviation": 0.0233,
+    "combined_balanced_accuracy_95_t_interval": [0.7687, 0.8265],
+    "combined_false_negative_rate_mean": 0.2704,
+    "combined_false_positive_rate_mean": 0.1344,
+    "selection_policy": "all seeds reported; safety fixture not used for checkpoint selection",
+    "evidence": "docs/research/world_model_full_seed_evaluation.json"
+  },
   "runtime_gate": {
     "learned_risk_head": false,
     "risk_mapping": "deterministic predicates over predicted process, heap, disk, and exact protected-path state",
