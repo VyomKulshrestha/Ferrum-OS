@@ -22,3 +22,15 @@ keywords:
   - AI agents
   - QEMU
   - FerrumOS
+preferred-citation:
+  type: report
+  title: "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition"
+  authors:
+    - family-names: "Kulshrestha"
+      given-names: "Vyom"
+      affiliation: "Independent Researcher, India"
+      orcid: "https://orcid.org/0009-0009-1434-7148"
+  year: 2026
+  version: 1.0.0
+  doi: 10.5281/zenodo.21829808
+  url: "https://doi.org/10.5281/zenodo.21829808"

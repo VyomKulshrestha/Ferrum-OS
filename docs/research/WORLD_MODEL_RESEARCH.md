@@ -263,6 +263,13 @@ files byte-for-byte and passed the package verifier 11/11. The public metadata,
 file checksums, and verification result are preserved in
 `world_model_dataset_publication.json`.
 
+The accompanying report, *When Agents Control the Kernel: A JEPA World Model
+Safety Gate with Empirical False-Negative Decomposition*, has reserved Zenodo
+Technical Report DOI `10.5281/zenodo.21829808`. The report DOI is distinct from
+the dataset DOI and becomes registered when the prepared Zenodo draft is
+published. `world_model_technical_report_publication.json` records the current
+draft boundary, intended metadata, and the exact DOI-stamped PDF checksum.
+
 FerrumOS also emits privacy-bounded natural-use telemetry without prompts,
 arguments, paths, provider/model identity, screen/audio, or output content.
 The committed protocol targets seven days, 20 task families, 1,000 proposed
