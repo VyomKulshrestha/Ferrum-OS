@@ -13,8 +13,8 @@
     },
     {
       "path": "docs/research/figures/figure_1_three_arm_comparison.svg",
-      "sha256": "b7e6f64f596d832187ce2e570c21ed418fcaf0be56e7047e2b9bd4e61687d0d2",
-      "bytes": 92530
+      "sha256": "f424e65b9f19a85ff03f684e27d2e177c15bfa318587a0cc0c59e52c0faf23ff",
+      "bytes": 90942
     },
     {
       "path": "docs/research/figures/figure_1_three_arm_comparison.pdf",
@@ -23,18 +23,18 @@
     },
     {
       "path": "docs/research/figures/figure_2_jepa_architecture.png",
-      "sha256": "166c597b07db9f400fd6d336a24c1f493110ff56291c7f6d37de1ae52d4dda2b",
-      "bytes": 393852
+      "sha256": "861f28885586165c9df60fd878c6d208a282a74422c22e10bfed5d8eec8d827a",
+      "bytes": 402760
     },
     {
       "path": "docs/research/figures/figure_2_jepa_architecture.svg",
-      "sha256": "112a362a36fdf853a062c1a6fed8421ebfa6c2c1e0110323185a822202df8f10",
-      "bytes": 118011
+      "sha256": "34237af90cf0d0313de4e2ddce214b7f2f2c7f6aa409f5ee12c916384e122267",
+      "bytes": 117455
     },
     {
       "path": "docs/research/figures/figure_2_jepa_architecture.pdf",
-      "sha256": "eb6cd73bc36edd27a69b91ca0312eee4cdfe1f5174f25a774788e6712a93c96e",
-      "bytes": 37086
+      "sha256": "221be2241c2ba8573418451035dd74c00ec159c751c6b6734965dfc0cef96407",
+      "bytes": 37124
     }
   ]
 }

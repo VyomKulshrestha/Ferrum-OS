@@ -68,6 +68,12 @@ def save_figure(fig, stem: Path) -> list[Path]:
             metadata = {"Software": "FerrumOS reproducible paper figure generator"}
         fig.savefig(path, dpi=300, bbox_inches="tight", pad_inches=0.08,
                     metadata=metadata)
+        if suffix == "svg":
+            svg = path.read_text(encoding="utf-8")
+            path.write_text(
+                "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
+                encoding="utf-8",
+            )
         outputs.append(path)
     plt.close(fig)
     return outputs
@@ -170,7 +176,7 @@ def figure_two(manifest: dict, output_dir: Path) -> list[Path]:
 
     ax.text(0.02, 0.965, "a  JEPA representation training", fontsize=11,
             fontweight="bold", transform=ax.transAxes)
-    ax.text(0.02, 0.925, "Training-only modules are dashed; only the online encoder is packaged.",
+    ax.text(0.02, 0.925, "Training-only modules are dashed; from panel a, only the online encoder is packaged.",
             fontsize=8, color="#4B5563", transform=ax.transAxes)
 
     add_box(ax, 0.02, 0.70, 0.105, 0.105, "OS state $x_t$\n48 raw features", "#E5E7EB")
@@ -180,8 +186,10 @@ def figure_two(manifest: dict, output_dir: Path) -> list[Path]:
     add_box(ax, 0.365, 0.535, 0.095, 0.105,
             "Action $a_t$\n41 tool + 16 args", "#FEF3C7")
     add_box(ax, 0.515, 0.63, 0.16, 0.13,
-            f"JEPA predictor $P_\\phi$\n({latent} + 57) → {encoder_hidden}\nReLU → {latent}", "#FFEDD5")
-    add_box(ax, 0.73, 0.65, 0.105, 0.09, f"Predicted\n$\\hat z_{{t+1}}$ ({latent})", "#FED7AA")
+            f"JEPA predictor $P_\\phi$\n({latent} + 57) → {encoder_hidden}\nReLU → {latent}", "#FFEDD5",
+            linestyle="--")
+    add_box(ax, 0.73, 0.65, 0.105, 0.09, f"Predicted\n$\\hat z_{{t+1}}$ ({latent})", "#FED7AA",
+            linestyle="--")
 
     add_box(ax, 0.02, 0.42, 0.105, 0.105, "Next state\n$x_{t+1}$ (48)", "#E5E7EB")
     add_box(ax, 0.17, 0.42, 0.15, 0.105,
@@ -190,7 +198,7 @@ def figure_two(manifest: dict, output_dir: Path) -> list[Path]:
     add_box(ax, 0.73, 0.45, 0.105, 0.09, f"Target\n$z_{{t+1}}$ ({latent})", "#DDD6FE",
             linestyle="--")
     add_box(ax, 0.875, 0.545, 0.105, 0.10,
-            "JEPA loss\n$\\|\\hat z-z\\|^2$", "#FCE7F3")
+            "JEPA loss\n$\\|\\hat z-z\\|^2$", "#FCE7F3", linestyle="--")
 
     add_box(ax, 0.515, 0.37, 0.16, 0.07,
             "Training auxiliaries\nreconstruct $x_t$; decode $a_t$", "#F3F4F6",
@@ -226,7 +234,7 @@ def figure_two(manifest: dict, output_dir: Path) -> list[Path]:
     add_box(ax, 0.525, 0.10, 0.11, 0.12,
             f"Learned rollout\nH = {horizon}", "#FED7AA")
     add_box(ax, 0.525, 0.255, 0.11, 0.07,
-            "Rule rollout\nH = 3", "#E5E7EB")
+            f"Rule rollout\nH = {horizon}", "#E5E7EB")
     add_box(ax, 0.68, 0.11, 0.12, 0.105,
             "Monotonic union\nmax risk", "#FCE7F3")
     add_box(ax, 0.845, 0.10, 0.135, 0.12,
