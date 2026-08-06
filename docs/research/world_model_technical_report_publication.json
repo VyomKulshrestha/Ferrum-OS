@@ -1,6 +1,6 @@
 {
   "schema_version": "ferrumos-world-model-technical-report-publication-v1",
-  "verified_at_utc": "2026-08-06T22:12:03Z",
+  "verified_at_utc": "2026-08-06T22:15:58Z",
   "record": {
     "status": "published",
     "access_right": "open",
@@ -41,6 +41,6 @@
     "public_file_count": 1,
     "public_file_byte_identical_to_local_pdf": true,
     "citation_pagination": "1-14",
-    "dataset_relation": "saved in Zenodo metadata correction draft; public republish pending"
+    "dataset_relation": "publicly verified: isSupplementedBy 10.5281/zenodo.21829193 (DOI, Dataset)"
   }
 }
