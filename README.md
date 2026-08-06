@@ -144,22 +144,27 @@ node scripts/reconcile_world_model_dataset.mjs --dataset target/world_model_hybr
 node scripts/merge_world_model_datasets.mjs --input target/world_model_dataset.jsonl --input target/world_model_hybrid_dataset.jsonl --out target/world_model_dataset_release.jsonl
 node scripts/audit_world_model_dataset.mjs --dataset target/world_model_dataset_release.jsonl --strict
 
-# Compare JEPA and autoencoder candidates on one fixed episode split.
-python scripts/train_world_model_jepa.py --dataset target/world_model_dataset_release.jsonl --encoded-dataset target/world_model_dataset_jepa.jsonl --hidden 256 --split-seed 42
-python scripts/tune_world_model.py --dataset target/world_model_dataset_jepa.jsonl --hidden 512,768 --seeds 17,42,91 --split-seed 42 --min-train-per-tool 32 --require-covered-tools 40
+# Reproduce the selected JEPA representation and transition checkpoint on one
+# fixed episode split. The explicit settings are also hash-bound in
+# docs/research/world_model_training_config.json.
+python scripts/train_world_model_jepa.py --dataset target/world_model_dataset_release_repaired2.jsonl --out target/world_model_encoder_jepa_repaired.bin --encoded-dataset target/world_model_dataset_jepa_repaired.jsonl --metrics-out target/world_model_jepa_repaired_metrics.json --hidden 256 --epochs 300 --batch-size 256 --lr 0.001 --ema 0.99 --reconstruction-weight 0.25 --action-weight 0.1 --patience 12 --seed 42 --split-seed 42
+python scripts/train_world_model.py --dataset target/world_model_dataset_jepa_repaired.jsonl --out target/world_model_learned.bin --metrics-out target/world_model_transition_metrics.json --hidden 512 --epochs 2000 --lr 0.05 --seed 17 --split-seed 42 --max-rollout-horizon 5 --min-train-per-tool 32 --require-covered-tools 40
 python scripts/select_world_model_candidate.py --baseline target/baseline_metrics.json --candidate target/jepa_metrics.json --representation target/jepa_representation_metrics.json --out target/world_model_selection.json --require-candidate
 
 # Deterministic corpus checks plus real QEMU provider and safety smokes.
 node scripts/verify_world_model_hybrid.mjs
 node scripts/verify_world_model_learned.mjs
 python scripts/verify_world_model_safety_evaluation.py
+python scripts/verify_world_model_paper_evaluation.py
 ```
 
 The accepted corpus contains 13,697 transitions from 3,639 episodes, including
 1,300 multi-step episodes, both 512 MiB and 2 GiB observations, all 41 actions,
-and at least three variants for every argument-bearing tool. Of those, 13,270
-executed, non-policy rows are eligible for fitting; the fixed split is
-9,104/2,197/1,969. A corrective collection replaced stale pre-ABI-fix
+and at least three variants for every argument-bearing tool. Exactly 373 rows
+record actions whose execution was not attempted and 54 executed historical
+kernel-upgrade rows are policy-only; the remaining 13,270 rows are eligible for
+fitting. The episode-disjoint 9,104/2,197/1,969 split has zero episode overlap.
+A corrective collection replaced stale pre-ABI-fix
 `ipc_send` episodes with 128 successful live transitions. Against the matched
 autoencoder baseline, the accepted JEPA pair reduces normalized held-out error
 from 2.30% to 1.68% at one step, 2.96% to 1.71% macro-per-tool, 6.45% to 3.87%
@@ -186,6 +191,15 @@ action-specific heap underpredictions. Publication-ready, reproducible
 [comparison](docs/research/figures/figure_1_three_arm_comparison.svg) and
 [architecture](docs/research/figures/figure_2_jepa_architecture.svg) figures are
 generated directly from the registered baseline and appliance manifest.
+The expanded paper evidence adds always-allow/block controls, an action-mean
+transition baseline, the matched autoencoder safety baseline, an action-
+conditioning ablation, H=1..5 safety results, three full transition seeds,
+validation-only residual calibration, AUROC/AUPRC, bootstrap intervals, and an
+untouched 1,969-row QEMU safe-traffic replay. The fixed seed-17 combined result
+is 81.4% balanced accuracy, but the three-seed mean is 78.6% and the simple
+rules+mean-delta baseline reaches 81.2%; these limits are part of the research
+claim, not hidden. See
+[`WORLD_MODEL_PAPER_EVALUATION.md`](docs/research/WORLD_MODEL_PAPER_EVALUATION.md).
 
 ## Architecture
 

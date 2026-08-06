@@ -91,9 +91,11 @@ The registered protocol evaluates the same 500 episodes under three conditions:
    exact-path or policy-only credit.
 3. **Rules + JEPA:** monotonic union used by the runtime.
 
-The set contains 250 independently labeled safe episodes and 250 dangerous
-episodes, with 125 episodes in each threat category. Initial states and empirical
-resource deltas come from the 1,969-row untouched episode-level QEMU test split.
+The set contains 250 safe episodes and 250 dangerous episodes labeled by a
+versioned, authored scenario oracle before model inference, with 125 episodes
+in each threat category. These are not independent human annotations. Initial
+states and empirical resource deltas come from the 1,969-row untouched
+episode-level QEMU test split.
 The harmful counterfactuals are evaluated offline; the experiment does not claim
 that 500 destructive actions were executed against a live disk. The fixture,
 per-episode predictions, aggregate JSON, and generated report are committed next
@@ -131,11 +133,69 @@ To regenerate the fixture from the full release dataset:
 
 ```powershell
 python scripts/evaluate_world_model_safety.py `
-  --dataset target/world_model_dataset_release_repaired.jsonl `
+  --dataset target/world_model_dataset_release_repaired2.jsonl `
   --fixture-out docs/research/world_model_safety_scenarios.json `
   --json-out docs/research/world_model_safety_baseline.json `
   --csv-out docs/research/world_model_safety_predictions.csv `
   --markdown-out docs/research/WORLD_MODEL_SAFETY_BASELINE.md
+```
+
+## Expanded paper evaluation
+
+The paper evidence package adds controls that materially narrow the claim. It
+compares always-allow and always-block decisions, the rule table, a per-action
+mean transition learned from the training partition, the matched autoencoder
+transition, the JEPA transition, an action-conditioning ablation, and a
+validation-only residual-calibration ablation. The principal combined results
+on the fixed 500-episode fixture are:
+
+| Combined condition | TP | FN | FP | TN | FNR | FPR | Balanced accuracy |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Rules only | 147 | 103 | 21 | 229 | 41.2% | 8.4% | 75.2% |
+| Rules + autoencoder | 189 | 61 | 41 | 209 | 24.4% | 16.4% | 79.6% |
+| Rules + per-action mean delta | 198 | 52 | 42 | 208 | 20.8% | 16.8% | 81.2% |
+| Rules + JEPA (seed 17) | 198 | 52 | 41 | 209 | 20.8% | 16.4% | 81.4% |
+| Rules + validation-calibrated JEPA | 209 | 41 | 41 | 209 | 16.4% | 16.4% | 83.6% |
+
+The mean-delta condition differs from JEPA on only three correctness outcomes:
+JEPA is uniquely correct twice and the mean model once. The 0.2 percentage-
+point balanced-accuracy difference therefore does not establish a material
+safety advantage over this simple baseline. JEPA's stronger evidence remains
+its lower transition error relative to the matched autoencoder; the safety
+benchmark shows that a much simpler learned transition captures nearly all of
+the measured gate benefit.
+
+The fixed checkpoint is also not representative of initialization variance.
+With the encoder held fixed, full 2,000-epoch transition runs at seeds 17, 42,
+and 91 produce a mean combined balanced accuracy of 78.6% (sample SD 2.6
+percentage points, range 76.2%--81.4%) and mean FNR 30.7% (range 20.8%--37.6%).
+Model selection uses validation transition metrics, never the safety-test
+labels. These runs make checkpoint sensitivity a first-class result rather than
+reporting only the best observed safety score.
+
+The safety horizon ablation also changes the interpretation of H=3. H=2 has the
+highest balanced accuracy on this fixture (84.8% versus 81.4% at H=3), while
+H=5 has the lowest FNR (16.8%) at the same 16.4% FPR as H=3. H=3 remains the
+release setting because it is the minimum verified horizon for the deterministic
+process-delta pattern, not because the paper establishes it as a global optimum.
+
+Finally, an untouched 1,969-row episode-disjoint QEMU negative-control replay
+contains no observed resource-threshold crossing or protected-config deletion.
+Rules block 0 rows; the learned branch blocks 216 (109.7 alerts per 1,000 safe
+actions). The validation-only one-sided residual calibration improves the
+stress FNR but increases this alert rate to 134.6 per 1,000. This replay measures
+false alarms only; it is not a natural-prevalence dangerous-action benchmark.
+Prevalence tables in the machine-readable report are sensitivity projections,
+not observed deployment rates.
+
+The complete deterministic report, per-episode predictions, dataset-accounting
+ledger, training-seed statistics, AUROC/AUPRC, calibration diagnostics, paired
+bootstrap interval, and reference latency are in
+[`WORLD_MODEL_PAPER_EVALUATION.md`](WORLD_MODEL_PAPER_EVALUATION.md) and
+`world_model_paper_evaluation.json`. Verify them with:
+
+```powershell
+python scripts/verify_world_model_paper_evaluation.py
 ```
 
 ## Why a JEPA representation
@@ -248,8 +308,10 @@ and `world_model_false_negative_analysis.json`.
   remains useful external validation, but it is no longer required to reproduce
   the decision-level baseline.
 - The stress set uses one registered seed and authored oracle rules. Independent
-  review of labels, additional seeds, confidence calibration, and a held-out
-  natural-traffic prevalence study are needed before generalizing the rates.
+  human review of labels and a held-out natural-traffic prevalence study remain
+  needed before generalizing the rates. Three transition initializations and a
+  validation-residual calibration ablation are now reported, but the JEPA
+  representation itself is held fixed across those runs.
 - Runtime lookahead repeats one proposed action to H=3. It does not branch over
   distinct plans, and it does not carry a 50-action cumulative process history.
 - The combined gate still misses 52/250 dangerous episodes and blocks 41/250

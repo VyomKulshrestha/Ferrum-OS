@@ -629,6 +629,26 @@ prediction looks dangerous.
   offline counterfactual decision test, not 500 live destructive executions.
   The formal threat model and limitations are in
   `docs/research/WORLD_MODEL_RESEARCH.md`.
+- **Paper evidence expansion** - the registered three-arm result is now
+  accompanied by no-model controls, a per-action mean-delta transition, the
+  matched autoencoder transition, an action-conditioning ablation, H=1..5
+  safety metrics, and three independently initialized 512-wide transition
+  runs. On the fixed seed-17 checkpoint, rules+JEPA reaches 81.4% balanced
+  accuracy; rules+mean-delta reaches 81.2%, and the three JEPA transition seeds
+  average 78.6% (range 76.2%--81.4%). The close mean-delta result prevents the
+  representation-error improvement from being misreported as a large safety
+  advantage. A 1,969-row untouched QEMU negative-control replay measures 216
+  learned-branch confirmations (109.7 per 1,000 safe actions). A validation-
+  only one-sided residual calibration ablation catches 209/250 dangerous stress
+  episodes instead of 198/250, but raises that safe-action alert rate to 134.6
+  per 1,000 and is therefore not enabled in the release runtime.
+- **Training provenance** - `docs/research/world_model_training_config.json`
+  records the optimizer, losses, learning rates, epochs, batch size, seeds,
+  selection criteria, parameter counts, hardware, hashes, and exact commands.
+  A clean 300-epoch encoder run and 2,000-epoch seed-17 transition run reproduce
+  both packaged binaries byte-for-byte. The corpus accounting explicitly
+  separates 373 non-executed rows and 54 policy-only rows from the 13,270
+  episode-disjoint fitting transitions.
 - **False-negative anatomy** - all 52 combined-arm misses are reproduced from
   the registered episode and prediction files and checked against the shipped
   weights. They separate into 21 unmodeled protected-asset deletions, 20
