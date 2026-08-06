@@ -221,11 +221,12 @@ DOI is [`10.5281/zenodo.21829192`](https://doi.org/10.5281/zenodo.21829192). A f
 public download matched all ten local release files byte-for-byte and passed the
 standalone release verifier 11/11. The machine-readable publication check is in
 [`world_model_dataset_publication.json`](docs/research/world_model_dataset_publication.json).
-The accompanying technical report has reserved Zenodo DOI
-[`10.5281/zenodo.21829808`](https://doi.org/10.5281/zenodo.21829808). This is a
-separate publication identifier from the dataset DOI above; Zenodo will register
-and resolve the report DOI when the prepared Technical Report draft is published.
-The report's machine-readable publication state is tracked in
+The accompanying technical report is published open access at Zenodo under version
+DOI [`10.5281/zenodo.21829808`](https://doi.org/10.5281/zenodo.21829808); all
+versions resolve through DOI
+[`10.5281/zenodo.21829807`](https://doi.org/10.5281/zenodo.21829807). This is a
+separate publication identifier from the dataset DOI above. The public record serves
+the DOI-stamped 14-page PDF, and its machine-readable publication state is tracked in
 [`world_model_technical_report_publication.json`](docs/research/world_model_technical_report_publication.json).
 Independent human/natural-use results are intentionally not claimed: the repo
 provides privacy-bounded telemetry plus a blinded two-annotator/adjudication workflow,

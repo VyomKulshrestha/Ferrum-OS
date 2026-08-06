@@ -1,7 +1,9 @@
 {
   "schema_version": "ferrumos-world-model-technical-report-publication-v1",
+  "verified_at_utc": "2026-08-06T22:12:03Z",
   "record": {
-    "status": "reserved_draft",
+    "status": "published",
+    "access_right": "open",
     "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
     "subtitle": "A Study of Hybrid Runtime Screening, Strong Baselines, and Failure Modes in FerrumOS",
     "version": "1.0.0",
@@ -9,9 +11,9 @@
     "publication_date": "2026-08-07",
     "publisher": "Zenodo",
     "license": "CC-BY-4.0",
-    "reserved_doi": "10.5281/zenodo.21829808",
-    "expected_record_url": "https://zenodo.org/records/21829808",
-    "registration_boundary": "The DOI is reserved but is not registered or publicly resolvable until the author publishes the Zenodo draft."
+    "url": "https://zenodo.org/records/21829808",
+    "version_doi": "10.5281/zenodo.21829808",
+    "all_versions_doi": "10.5281/zenodo.21829807"
   },
   "author": {
     "name": "Vyom Kulshrestha",
@@ -27,6 +29,18 @@
     "filename": "FerrumOS_WorldModel_Technical_Report_v1.0.0.pdf",
     "location_policy": "Downloads folder; not committed to the repository",
     "page_count": 14,
-    "sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab"
+    "sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab",
+    "md5": "6764707ae8192a073917269dc87ade77"
+  },
+  "verification": {
+    "doi_resolves_to_public_record": true,
+    "doi_resolution_final_http_status": 200,
+    "api_status": "published",
+    "api_state": "done",
+    "submitted": true,
+    "public_file_count": 1,
+    "public_file_byte_identical_to_local_pdf": true,
+    "citation_pagination": "1-14",
+    "dataset_relation": "saved in Zenodo metadata correction draft; public republish pending"
   }
 }
