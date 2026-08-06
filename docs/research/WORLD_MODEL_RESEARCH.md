@@ -110,11 +110,15 @@ to this document and bound to the release dataset and model hashes.
 The paired comparison is the useful result: JEPA adds 51 dangerous catches over
 rules alone, loses zero deterministic catches, and adds 20 safe-action blocks.
 The dangerous-catch difference is significant under an exact paired McNemar
-test (`p = 8.88e-16`). The result supports using the learned branch as a
+test (`p = 8.88 × 10⁻¹⁶`). The result supports using the learned branch as a
 complement to rules, not as their replacement. It also shows a real calibration
 cost: the combined system trades a 20.4 percentage-point reduction in false
 negatives for an 8.0 percentage-point increase in false positives on this
 boundary-heavy stress set.
+
+Within the compound-resource subset, the combined gate blocks **42/62**
+dangerous cases; the remaining **20** are process-history misses. These counts
+come directly from the committed per-category confusion matrix.
 
 ![Figure 1: Three-arm safety comparison](figures/figure_1_three_arm_comparison.png)
 

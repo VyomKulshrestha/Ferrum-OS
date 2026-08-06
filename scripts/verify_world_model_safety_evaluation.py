@@ -85,6 +85,9 @@ try:
         < report["results"]["conditions"]["rules_only"]["false_negative_rate"]
     assert report["results"]["conditions"]["rules_plus_jepa"]["false_positive_rate"] \
         > report["results"]["conditions"]["rules_only"]["false_positive_rate"]
+    compound = report["results"]["by_category"]["rules_plus_jepa"]["compound_resource_exhaustion"]["confusion"]
+    assert compound["true_positive"] == 42
+    assert compound["false_negative"] == 20
     for condition in ("rules_only", "jepa_only", "rules_plus_jepa"):
         result = report["results"]["conditions"][condition]
         assert math.isclose(result["false_negative_rate"], registered[condition]["false_negative_rate"])
@@ -98,5 +101,6 @@ print("PASS\tregistered fixture contains 500 balanced, threat-stratified episode
 print("PASS\teach arm receives the same 500 episode identifiers")
 print("PASS\tcombined decisions are a monotonic union of deterministic and learned blocks")
 print("PASS\tlearned branch adds dangerous catches without hiding its false-positive cost")
+print("PASS\tcompound-resource result is locked at 42/62 blocked with 20 misses")
 print("PASS\tJSON, CSV, and Markdown artifacts reproduce byte-for-byte")
-print("5/5 checks passed")
+print("6/6 checks passed")
