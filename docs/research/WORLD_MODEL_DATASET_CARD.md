@@ -94,15 +94,16 @@ python scripts/package_world_model_dataset.py
 python scripts/verify_world_model_dataset_release.py target/world-model-dataset-release
 ```
 
-The generated directory includes the deterministic gzip archive, a JSON
-manifest containing source/archive SHA-256 values and split statistics, this
-card, the explicit dataset licence, and `SHA256SUMS.txt`. After external
-archival, download the assets again and run the same verifier before adding a
-DOI to the paper. A DOI must never be inserted before the archive exists.
+The generated directory contains exactly ten files: the deterministic gzip
+archive, `README.md`, this card as `DATA_CARD.md`, `LICENSE`, `MANIFEST.json`,
+`SHA256SUMS`, `schema.json`, `episode_split_audit.json`,
+`credential_scan_report.json`, and the standalone `verify_release.py`. After
+external archival, download the assets again and run the same verifier before
+adding a DOI to the paper. A DOI must never be inserted before the archive exists.
 
 ## Licence and citation
 
-The dataset is released under the explicit terms in
-`WORLD_MODEL_DATASET_LICENSE.md` (MIT). Until a DOI-bearing archive is created,
-cite the FerrumOS repository, dataset release name
-`ferrumos-world-model-dataset-v1`, exact archive SHA-256, and evidence commit.
+The dataset is released under the explicit terms in `LICENSE` in the archival
+package (sourced from `WORLD_MODEL_DATASET_LICENSE.md` in the repository). Until
+a DOI-bearing archive is created, cite the FerrumOS repository, dataset release name
+`ferrumos-world-model-dataset-v1.0.0`, exact archive SHA-256, and evidence commit.

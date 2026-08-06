@@ -671,9 +671,10 @@ prediction looks dangerous.
   separates 373 non-executed rows and 54 policy-only rows from the 13,270
   episode-disjoint fitting transitions.
 - **Dataset publication package** - `scripts/package_world_model_dataset.py`
-  creates a deterministic compressed archive with exact source/archive hashes,
-  an explicit MIT data licence, a data card, split audit, credential scan, and
-  `SHA256SUMS`; `verify_world_model_dataset_release.py` reopens and verifies it.
+  creates the exact ten-file archival package: a deterministic compressed archive,
+  `README.md`, data card, MIT licence, manifest, `SHA256SUMS`, standalone schema,
+  split audit, credential scan, and dependency-free verifier.
+  `verify_world_model_dataset_release.py` enforces that contract and reopens the corpus.
   External release attachment, download re-verification, and DOI minting require an
   authorized publication account and are not represented as completed locally.
 - **False-negative anatomy** - all 52 combined-arm misses are reproduced from

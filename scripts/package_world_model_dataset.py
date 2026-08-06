@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Build a deterministic, auditable FerrumOS world-model dataset release.
-
-The release directory is intentionally generated outside Git.  It contains the
-exact training JSONL as a reproducible gzip stream, a machine-readable manifest,
-the data card, the explicit dataset licence, and a SHA256SUMS file suitable for
-a GitHub or DOI-bearing archive release.
-"""
+"""Build the deterministic ten-file FerrumOS dataset archival package."""
 
 from __future__ import annotations
 
@@ -13,14 +7,11 @@ import argparse
 import gzip
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 from typing import Any, Iterable
-
-import numpy as np
 
 from train_world_model import (
     ACTION_FEATURE_SIZE,
@@ -38,6 +29,28 @@ DEFAULT_DATASET = ROOT / "target" / "world_model_dataset_release_repaired2.jsonl
 DEFAULT_OUT = ROOT / "target" / "world-model-dataset-release"
 DATA_CARD = ROOT / "docs" / "research" / "WORLD_MODEL_DATASET_CARD.md"
 DATASET_LICENSE = ROOT / "docs" / "research" / "WORLD_MODEL_DATASET_LICENSE.md"
+RELEASE_VERIFIER = ROOT / "scripts" / "verify_world_model_dataset_release.py"
+RELEASE_VERSION = "1.0.0"
+ARCHIVE_NAME = "ferrumos-world-model-dataset-v1.0.0.jsonl.gz"
+RELEASE_FILES = (
+    ARCHIVE_NAME,
+    "README.md",
+    "DATA_CARD.md",
+    "LICENSE",
+    "MANIFEST.json",
+    "SHA256SUMS",
+    "schema.json",
+    "episode_split_audit.json",
+    "credential_scan_report.json",
+    "verify_release.py",
+)
+LEGACY_RELEASE_FILES = (
+    "ferrumos-world-model-dataset-v1.jsonl.gz",
+    "WORLD_MODEL_DATASET_CARD.md",
+    "WORLD_MODEL_DATASET_LICENSE.md",
+    "dataset_manifest.json",
+    "SHA256SUMS.txt",
+)
 
 SECRET_PATTERNS = {
     "private_key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
@@ -126,10 +139,125 @@ def deterministic_gzip(source: Path, destination: Path) -> None:
             shutil.copyfileobj(src, zipped, length=1024 * 1024)
 
 
+def write_json(path: Path, value: Any) -> None:
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def build_schema(fields: list[str]) -> dict[str, Any]:
+    number_array = {"type": "array", "items": {"type": "number"}}
+    properties: dict[str, Any] = {
+        "source": {"type": "string"},
+        "episode_id": {"type": "string"},
+        "step": {"type": "integer", "minimum": 0},
+        "ram_mb": {"type": "integer", "minimum": 0},
+        "schema_version": {"type": "integer", "minimum": 1},
+        "tick": {"type": "integer", "minimum": 0},
+        "action": {"type": "integer", "minimum": 0, "maximum": len(TOOL_NAMES) - 1},
+        "reward": {"type": "number"},
+        "before": {**number_array, "minItems": EMBEDDING_SIZE, "maxItems": EMBEDDING_SIZE},
+        "after": {**number_array, "minItems": EMBEDDING_SIZE, "maxItems": EMBEDDING_SIZE},
+        "executed": {"type": "boolean"},
+        "action_features": {
+            **number_array,
+            "minItems": ACTION_FEATURE_SIZE,
+            "maxItems": ACTION_FEATURE_SIZE,
+        },
+        "observation_schema": {"type": "string"},
+        "masked_features": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "actual_tool": {"type": "string"},
+        "expected_tool": {"type": "string"},
+        "expected_tool_match": {"type": "boolean"},
+        "model_response": {"type": "string"},
+        "prompt": {"type": "string"},
+        "provider": {"type": "string"},
+        "provider_model": {"type": ["string", "null"]},
+        "risk": {"type": "number"},
+        "success": {"type": "boolean"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "transition_in_step": {"type": "integer", "minimum": 0},
+    }
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "urn:ferrumos:world-model-dataset:transition:v1.0.0",
+        "title": "FerrumOS World-Model Safety Dataset transition",
+        "description": "Schema for one JSONL transition record in release v1.0.0.",
+        "type": "object",
+        "required": [
+            "source",
+            "episode_id",
+            "step",
+            "ram_mb",
+            "schema_version",
+            "tick",
+            "action",
+            "reward",
+            "before",
+            "after",
+            "executed",
+            "action_features",
+            "observation_schema",
+            "masked_features",
+        ],
+        "properties": {field: properties[field] for field in fields},
+        "additionalProperties": False,
+        "x-ferrumos": {
+            "release_version": RELEASE_VERSION,
+            "state_embedding_size": EMBEDDING_SIZE,
+            "action_feature_size": ACTION_FEATURE_SIZE,
+            "canonical_actions": TOOL_NAMES,
+        },
+    }
+
+
+def build_readme(manifest: dict[str, Any]) -> str:
+    split = manifest["split"]
+    return f"""# FerrumOS World-Model Safety Dataset v{RELEASE_VERSION}
+
+This archival package contains the deterministic FerrumOS OS-level action-transition
+dataset used by the accompanying world-model safety study. It contains
+{manifest['source']['rows']:,} accounted transitions from {manifest['source']['episodes']:,}
+episodes; {manifest['source']['eligible_rows']:,} executed, transition-eligible rows are
+partitioned episode-disjointly into {split['train_rows']:,}/{split['validation_rows']:,}/
+{split['test_rows']:,} train/validation/test rows.
+
+## Contents
+
+- `{ARCHIVE_NAME}` - deterministic gzip-compressed JSONL corpus
+- `DATA_CARD.md` - provenance, uses, limitations, and privacy notes
+- `LICENSE` - MIT licence for this dataset release
+- `MANIFEST.json` - hashes, counts, schema constants, and release provenance
+- `SHA256SUMS` - SHA-256 checksums for every other file in this package
+- `schema.json` - JSON Schema for individual transition records
+- `episode_split_audit.json` - episode-disjoint split evidence
+- `credential_scan_report.json` - automated secret and identifier scan evidence
+- `verify_release.py` - dependency-free package integrity verifier
+
+## Verify
+
+```text
+python verify_release.py
+```
+
+The verifier checks the exact ten-file contract, all declared checksums, lossless
+decompression, row dimensions and counts, split isolation, credential-scan status,
+and the MIT licence declaration.
+
+## Citation and DOI
+
+Creator: Vyom Kulshrestha (Independent Researcher, India)
+
+Repository: https://github.com/VyomKulshrestha/Ferrum-OS
+
+The DOI is intentionally unset in this pre-publication package. Insert the DOI only
+after it has been reserved by the archival service, then regenerate and reverify the
+package before publication.
+"""
+
+
 def build_release(dataset: Path, out_dir: Path) -> dict:
     if not dataset.is_file():
         raise FileNotFoundError(dataset)
-    for required in (DATA_CARD, DATASET_LICENSE):
+    for required in (DATA_CARD, DATASET_LICENSE, RELEASE_VERIFIER):
         if not required.is_file():
             raise FileNotFoundError(required)
 
@@ -153,14 +281,21 @@ def build_release(dataset: Path, out_dir: Path) -> dict:
 
     inspection = inspect_rows(rows)
     out_dir.mkdir(parents=True, exist_ok=True)
-    archive = out_dir / "ferrumos-world-model-dataset-v1.jsonl.gz"
+    for legacy_name in LEGACY_RELEASE_FILES:
+        legacy_path = out_dir / legacy_name
+        if legacy_path.is_file():
+            legacy_path.unlink()
+
+    archive = out_dir / ARCHIVE_NAME
     deterministic_gzip(dataset, archive)
-    shutil.copy2(DATA_CARD, out_dir / DATA_CARD.name)
-    shutil.copy2(DATASET_LICENSE, out_dir / DATASET_LICENSE.name)
+    shutil.copy2(DATA_CARD, out_dir / "DATA_CARD.md")
+    shutil.copy2(DATASET_LICENSE, out_dir / "LICENSE")
+    shutil.copy2(RELEASE_VERIFIER, out_dir / "verify_release.py")
 
     manifest = {
         "schema_version": 1,
-        "release_name": "ferrumos-world-model-dataset-v1",
+        "release_name": "ferrumos-world-model-dataset-v1.0.0",
+        "release_version": RELEASE_VERSION,
         "provenance_commit": git_head(),
         "source": {
             "file_name": dataset.name,
@@ -191,24 +326,52 @@ def build_release(dataset: Path, out_dir: Path) -> dict:
             "train_rows": len(train),
             "validation_rows": len(validation),
             "test_rows": len(test),
+            "accounted_rows": len(rows),
+            "eligible_rows": len(eligible),
+            "excluded_rows": len(rows) - len(eligible),
+            "accounted_episodes": len(episodes),
+            "eligible_episodes": len(eligible_episodes),
+            "train_episodes": len(train_episodes),
+            "validation_episodes": len(validation_episodes),
+            "test_episodes": len(test_episodes),
             "episode_overlap": overlap,
         },
         "content_inspection": inspection,
         "licence": {
             "identifier": "MIT",
-            "file": DATASET_LICENSE.name,
+            "file": "LICENSE",
         },
+        "artifacts": list(RELEASE_FILES),
         "publication": {
             "doi": None,
             "status": "release package ready; DOI must be filled only after external archival",
         },
     }
-    manifest_path = out_dir / "dataset_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    write_json(out_dir / "schema.json", build_schema(inspection["fields"]))
+    write_json(
+        out_dir / "episode_split_audit.json",
+        {
+            "release_version": RELEASE_VERSION,
+            "status": "passed",
+            **manifest["split"],
+        },
+    )
+    write_json(
+        out_dir / "credential_scan_report.json",
+        {
+            "release_version": RELEASE_VERSION,
+            "status": "passed",
+            "scope": {"rows": len(rows), "episodes": len(episodes)},
+            **inspection,
+        },
+    )
+    (out_dir / "README.md").write_text(build_readme(manifest), encoding="utf-8")
+    manifest_path = out_dir / "MANIFEST.json"
+    write_json(manifest_path, manifest)
 
-    checksummed = [archive, out_dir / DATA_CARD.name, out_dir / DATASET_LICENSE.name, manifest_path]
+    checksummed = [out_dir / name for name in RELEASE_FILES if name != "SHA256SUMS"]
     sums = "".join(f"{sha256(path)}  {path.name}\n" for path in sorted(checksummed))
-    (out_dir / "SHA256SUMS.txt").write_text(sums, encoding="ascii")
+    (out_dir / "SHA256SUMS").write_text(sums, encoding="ascii")
     return manifest
 
 
