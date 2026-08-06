@@ -1,0 +1,1451 @@
+{
+  "schema_version": 1,
+  "protocol": "world-model-paper-evidence-v1",
+  "interpretation": "offline counterfactual stress evaluation grounded in QEMU observations",
+  "artifacts": {
+    "dataset": {
+      "path": "target\\world_model_dataset_release_repaired2.jsonl",
+      "sha256": "ae7498c7d93b4e35f8bf0a9ac595ca2bacc1ec694b1806c47a33741d911d491f"
+    },
+    "fixture": {
+      "path": "docs\\research\\world_model_safety_scenarios.json",
+      "sha256": "9e74e9557842eda70a1436c3d0a171a0948eaf17e22ddb78002658d2bdf6bd9a"
+    },
+    "encoder": {
+      "path": "appliance\\world-model\\model_encoder.bin",
+      "sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3"
+    },
+    "transition": {
+      "path": "appliance\\world-model\\model_learned.bin",
+      "sha256": "bd80ccb2be57e2ffeb52d03431e18b88d80db015b5b7d84d4921f054c5c9193d"
+    },
+    "ae_encoder": {
+      "path": "target\\world_model_encoder_ae_repaired.bin",
+      "sha256": "3d64d3cb6b2b40ac9fc8f58d50c0185a9456bcdfa92abb232bcadae9f722fa0d"
+    },
+    "ae_transition": {
+      "path": "target\\world_model_learned_ae_repaired.bin",
+      "sha256": "170c1261ac7c08c384d6be0be8ab813793d73c1198a767a6f7c72313a00850fc"
+    }
+  },
+  "dataset_accounting": {
+    "stages": [
+      {
+        "stage": "accepted corpus",
+        "rows": 13697
+      },
+      {
+        "stage": "excluded: execution not attempted",
+        "rows": 373
+      },
+      {
+        "stage": "excluded: policy-only kernel upgrade",
+        "rows": 54
+      },
+      {
+        "stage": "eligible executed transitions",
+        "rows": 13270
+      }
+    ],
+    "accounting_identity": true,
+    "all_episodes": 3639,
+    "eligible_episodes": 3486,
+    "split_mode": "episode",
+    "split_seed": 42,
+    "partitions": {
+      "train": {
+        "rows": 9104,
+        "episodes": 2442,
+        "episode_id_sha256": "191efa8f77fbbb17f6b617ff92e2205db7f65a2e740d7a377560951c3ae6c2c5",
+        "actions_present": 40,
+        "action_counts": {
+          "add_subtask": 50,
+          "audit_write": 69,
+          "browse_url": 71,
+          "camera_capture": 75,
+          "capability_check": 91,
+          "create_directory": 549,
+          "delete_file": 556,
+          "exec_process": 546,
+          "gesture_status": 78,
+          "get_config": 71,
+          "hit_test": 65,
+          "http_get": 73,
+          "hud_update": 71,
+          "ipc_send": 92,
+          "keyboard_type": 561,
+          "list_processes": 71,
+          "load_memory": 63,
+          "local_inference": 80,
+          "mouse_click": 557,
+          "mouse_move": 557,
+          "net_connect": 541,
+          "net_recv": 69,
+          "net_send": 60,
+          "play_audio": 556,
+          "poll_input": 69,
+          "query_memory": 68,
+          "read_dir": 62,
+          "read_file": 563,
+          "read_screen": 67,
+          "record_audio": 62,
+          "report_status": 52,
+          "save_memory": 553,
+          "service_start": 553,
+          "service_stop": 561,
+          "set_goal": 65,
+          "set_volume": 65,
+          "sleep": 94,
+          "system_info": 70,
+          "write_file": 554,
+          "yield_cpu": 74
+        }
+      },
+      "validation": {
+        "rows": 2197,
+        "episodes": 522,
+        "episode_id_sha256": "fff901e2cdbfa22a1db12111a15cf3dc530df063810eee9f552d94cc04b39fdd",
+        "actions_present": 40,
+        "action_counts": {
+          "add_subtask": 18,
+          "audit_write": 10,
+          "browse_url": 19,
+          "camera_capture": 11,
+          "capability_check": 9,
+          "create_directory": 144,
+          "delete_file": 135,
+          "exec_process": 138,
+          "gesture_status": 16,
+          "get_config": 6,
+          "hit_test": 13,
+          "http_get": 9,
+          "hud_update": 6,
+          "ipc_send": 17,
+          "keyboard_type": 149,
+          "list_processes": 19,
+          "load_memory": 26,
+          "local_inference": 14,
+          "mouse_click": 138,
+          "mouse_move": 140,
+          "net_connect": 154,
+          "net_recv": 6,
+          "net_send": 15,
+          "play_audio": 134,
+          "poll_input": 9,
+          "query_memory": 10,
+          "read_dir": 13,
+          "read_file": 140,
+          "read_screen": 13,
+          "record_audio": 10,
+          "report_status": 14,
+          "save_memory": 138,
+          "service_start": 143,
+          "service_stop": 139,
+          "set_goal": 20,
+          "set_volume": 13,
+          "sleep": 15,
+          "system_info": 13,
+          "write_file": 144,
+          "yield_cpu": 17
+        }
+      },
+      "test": {
+        "rows": 1969,
+        "episodes": 522,
+        "episode_id_sha256": "1989749326efa9c32e3d0028b3a93246d87a0f9bd0dc840053be5ff187258ddf",
+        "actions_present": 40,
+        "action_counts": {
+          "add_subtask": 16,
+          "audit_write": 13,
+          "browse_url": 11,
+          "camera_capture": 6,
+          "capability_check": 11,
+          "create_directory": 127,
+          "delete_file": 126,
+          "exec_process": 123,
+          "gesture_status": 15,
+          "get_config": 30,
+          "hit_test": 14,
+          "http_get": 12,
+          "hud_update": 6,
+          "ipc_send": 19,
+          "keyboard_type": 123,
+          "list_processes": 16,
+          "load_memory": 20,
+          "local_inference": 8,
+          "mouse_click": 116,
+          "mouse_move": 121,
+          "net_connect": 116,
+          "net_recv": 16,
+          "net_send": 16,
+          "play_audio": 124,
+          "poll_input": 16,
+          "query_memory": 8,
+          "read_dir": 5,
+          "read_file": 137,
+          "read_screen": 25,
+          "record_audio": 20,
+          "report_status": 12,
+          "save_memory": 119,
+          "service_start": 117,
+          "service_stop": 124,
+          "set_goal": 18,
+          "set_volume": 10,
+          "sleep": 12,
+          "system_info": 9,
+          "write_file": 120,
+          "yield_cpu": 12
+        }
+      }
+    },
+    "episode_overlaps": {
+      "train_validation": 0,
+      "train_test": 0,
+      "validation_test": 0
+    },
+    "episode_disjoint": true
+  },
+  "architecture": {
+    "runtime_encoder_parameters": 32333,
+    "runtime_transition_parameters": 160896,
+    "runtime_learned_parameters_total": 193229,
+    "training_only_jepa_predictor_parameters": 54349,
+    "training_only_reconstruction_head_parameters": 3744,
+    "training_only_action_decoder_parameters": 4446,
+    "ema_target_parameters_non_gradient": 32333,
+    "risk_head": "No learned risk head. Deterministic predicates map predicted state to a gate score.",
+    "block_threshold": 0.7,
+    "resource_threshold": 0.95
+  },
+  "validation_resource_calibration": {
+    "method": "one-sided split-conformal 95% upper residual by action on validation transitions",
+    "margins": {
+      "ipc_send": {
+        "validation_samples": 17,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.3368872404098511
+      },
+      "audit_write": {
+        "validation_samples": 10,
+        "heap_upper_residual": 0.012172967195510864,
+        "disk_upper_residual": 0.0
+      },
+      "yield_cpu": {
+        "validation_samples": 17,
+        "heap_upper_residual": 0.008792847394943237,
+        "disk_upper_residual": 0.0
+      },
+      "camera_capture": {
+        "validation_samples": 11,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "gesture_status": {
+        "validation_samples": 16,
+        "heap_upper_residual": 0.06809043884277344,
+        "disk_upper_residual": 0.0
+      },
+      "report_status": {
+        "validation_samples": 14,
+        "heap_upper_residual": 0.010314643383026123,
+        "disk_upper_residual": 0.0
+      },
+      "capability_check": {
+        "validation_samples": 9,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "read_file": {
+        "validation_samples": 140,
+        "heap_upper_residual": 0.02044205367565155,
+        "disk_upper_residual": 0.0
+      },
+      "read_dir": {
+        "validation_samples": 13,
+        "heap_upper_residual": 0.1085832417011261,
+        "disk_upper_residual": 0.0
+      },
+      "query_memory": {
+        "validation_samples": 10,
+        "heap_upper_residual": 0.01838010549545288,
+        "disk_upper_residual": 0.0
+      },
+      "get_config": {
+        "validation_samples": 6,
+        "heap_upper_residual": 0.023569554090499878,
+        "disk_upper_residual": 0.0
+      },
+      "system_info": {
+        "validation_samples": 13,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.008594155311584473
+      },
+      "list_processes": {
+        "validation_samples": 19,
+        "heap_upper_residual": 0.03379601240158081,
+        "disk_upper_residual": 0.0
+      },
+      "net_connect": {
+        "validation_samples": 154,
+        "heap_upper_residual": 0.033426083624362946,
+        "disk_upper_residual": 0.0
+      },
+      "net_send": {
+        "validation_samples": 15,
+        "heap_upper_residual": 0.051480770111083984,
+        "disk_upper_residual": 0.0
+      },
+      "net_recv": {
+        "validation_samples": 6,
+        "heap_upper_residual": 0.024111151695251465,
+        "disk_upper_residual": 0.0
+      },
+      "http_get": {
+        "validation_samples": 9,
+        "heap_upper_residual": 0.027833104133605957,
+        "disk_upper_residual": 0.0
+      },
+      "write_file": {
+        "validation_samples": 144,
+        "heap_upper_residual": 0.028826992958784103,
+        "disk_upper_residual": 0.0
+      },
+      "create_directory": {
+        "validation_samples": 144,
+        "heap_upper_residual": 0.054317474365234375,
+        "disk_upper_residual": 0.0
+      },
+      "save_memory": {
+        "validation_samples": 138,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "load_memory": {
+        "validation_samples": 26,
+        "heap_upper_residual": 0.05819383263587952,
+        "disk_upper_residual": 0.01302337646484375
+      },
+      "set_goal": {
+        "validation_samples": 20,
+        "heap_upper_residual": 0.063568115234375,
+        "disk_upper_residual": 0.0
+      },
+      "sleep": {
+        "validation_samples": 15,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.023363053798675537
+      },
+      "service_start": {
+        "validation_samples": 143,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "service_stop": {
+        "validation_samples": 139,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "exec_process": {
+        "validation_samples": 138,
+        "heap_upper_residual": 0.05057522654533386,
+        "disk_upper_residual": 0.0
+      },
+      "delete_file": {
+        "validation_samples": 135,
+        "heap_upper_residual": 0.035728033632040024,
+        "disk_upper_residual": 0.0
+      },
+      "local_inference": {
+        "validation_samples": 14,
+        "heap_upper_residual": 0.032694607973098755,
+        "disk_upper_residual": 0.0
+      },
+      "trigger_kernel_upgrade": {
+        "validation_samples": 0,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "hud_update": {
+        "validation_samples": 6,
+        "heap_upper_residual": 0.11170428991317749,
+        "disk_upper_residual": 0.0
+      },
+      "hit_test": {
+        "validation_samples": 13,
+        "heap_upper_residual": 0.028277695178985596,
+        "disk_upper_residual": 0.0
+      },
+      "read_screen": {
+        "validation_samples": 13,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.0
+      },
+      "add_subtask": {
+        "validation_samples": 18,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.04805368185043335
+      },
+      "record_audio": {
+        "validation_samples": 10,
+        "heap_upper_residual": 0.027143895626068115,
+        "disk_upper_residual": 0.00014990568161010742
+      },
+      "play_audio": {
+        "validation_samples": 134,
+        "heap_upper_residual": 0.0013760365545749664,
+        "disk_upper_residual": 0.0
+      },
+      "set_volume": {
+        "validation_samples": 13,
+        "heap_upper_residual": 0.0,
+        "disk_upper_residual": 0.011741161346435547
+      },
+      "keyboard_type": {
+        "validation_samples": 149,
+        "heap_upper_residual": 0.007139585912227631,
+        "disk_upper_residual": 0.0
+      },
+      "mouse_click": {
+        "validation_samples": 138,
+        "heap_upper_residual": 0.02195677161216736,
+        "disk_upper_residual": 0.0
+      },
+      "mouse_move": {
+        "validation_samples": 140,
+        "heap_upper_residual": 0.03531976416707039,
+        "disk_upper_residual": 0.0
+      },
+      "browse_url": {
+        "validation_samples": 19,
+        "heap_upper_residual": 0.03628179430961609,
+        "disk_upper_residual": 0.0
+      },
+      "poll_input": {
+        "validation_samples": 9,
+        "heap_upper_residual": 0.004927843809127808,
+        "disk_upper_residual": 0.0
+      }
+    },
+    "stress_evaluation": {
+      "rules_only": {
+        "confusion": {
+          "tp": 147,
+          "fn": 103,
+          "fp": 21,
+          "tn": 229
+        },
+        "precision": 0.875,
+        "recall": 0.588,
+        "f1": 0.7033492822966506,
+        "specificity": 0.916,
+        "balanced_accuracy": 0.752,
+        "auroc": 0.76964,
+        "average_precision": 0.7729999999999999,
+        "brier_score": 0.23834,
+        "ece_10_bin": 0.2437999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 68,
+          "fn": 182,
+          "fp": 23,
+          "tn": 227
+        },
+        "precision": 0.7472527472527473,
+        "recall": 0.272,
+        "f1": 0.3988269794721408,
+        "specificity": 0.908,
+        "balanced_accuracy": 0.5900000000000001,
+        "auroc": 0.59,
+        "average_precision": 0.5672527472527473,
+        "brier_score": 0.39888,
+        "ece_10_bin": 0.37359999999999993,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 209,
+          "fn": 41,
+          "fp": 41,
+          "tn": 209
+        },
+        "precision": 0.836,
+        "recall": 0.836,
+        "f1": 0.836,
+        "specificity": 0.836,
+        "balanced_accuracy": 0.836,
+        "auroc": 0.87044,
+        "average_precision": 0.8497760000000001,
+        "brier_score": 0.14489999999999997,
+        "ece_10_bin": 0.12699999999999995,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "deployment_status": "research ablation only; not enabled in the release runtime"
+  },
+  "label_protocol": {
+    "method": "versioned programmatic scenario oracle authored before model inference",
+    "independent_human_annotators": 0,
+    "balanced_stress_fixture": true,
+    "categories": [
+      "compound_resource_exhaustion",
+      "direct_single_step",
+      "provider_prompt_injection",
+      "rule_table_edge_cases"
+    ],
+    "source": "scripts/evaluate_world_model_safety.py::generate_fixture"
+  },
+  "baselines": {
+    "always_allow": {
+      "confusion": {
+        "tp": 0,
+        "fn": 250,
+        "fp": 0,
+        "tn": 250
+      },
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "specificity": 1.0,
+      "balanced_accuracy": 0.5,
+      "auroc": 0.5,
+      "average_precision": 0.5,
+      "brier_score": 0.5,
+      "ece_10_bin": 0.5,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "always_block": {
+      "confusion": {
+        "tp": 250,
+        "fn": 0,
+        "fp": 250,
+        "tn": 0
+      },
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6666666666666666,
+      "specificity": 0.0,
+      "balanced_accuracy": 0.5,
+      "auroc": 0.5,
+      "average_precision": 0.5,
+      "brier_score": 0.5,
+      "ece_10_bin": 0.5,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "rules_only": {
+      "confusion": {
+        "tp": 147,
+        "fn": 103,
+        "fp": 21,
+        "tn": 229
+      },
+      "precision": 0.875,
+      "recall": 0.588,
+      "f1": 0.7033492822966506,
+      "specificity": 0.916,
+      "balanced_accuracy": 0.752,
+      "auroc": 0.76964,
+      "average_precision": 0.7729999999999999,
+      "brier_score": 0.23834,
+      "ece_10_bin": 0.2437999999999999,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "jepa_only": {
+      "confusion": {
+        "tp": 57,
+        "fn": 193,
+        "fp": 23,
+        "tn": 227
+      },
+      "precision": 0.7125,
+      "recall": 0.228,
+      "f1": 0.34545454545454546,
+      "specificity": 0.908,
+      "balanced_accuracy": 0.5680000000000001,
+      "auroc": 0.568,
+      "average_precision": 0.54845,
+      "brier_score": 0.42,
+      "ece_10_bin": 0.39999999999999997,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "rules_plus_jepa": {
+      "confusion": {
+        "tp": 198,
+        "fn": 52,
+        "fp": 41,
+        "tn": 209
+      },
+      "precision": 0.8284518828451883,
+      "recall": 0.792,
+      "f1": 0.8098159509202454,
+      "specificity": 0.836,
+      "balanced_accuracy": 0.8140000000000001,
+      "auroc": 0.84844,
+      "average_precision": 0.8321841004184101,
+      "brier_score": 0.16602,
+      "ece_10_bin": 0.15339999999999993,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "mean_delta_only": {
+      "confusion": {
+        "tp": 51,
+        "fn": 199,
+        "fp": 21,
+        "tn": 229
+      },
+      "precision": 0.7083333333333334,
+      "recall": 0.204,
+      "f1": 0.3167701863354037,
+      "specificity": 0.916,
+      "balanced_accuracy": 0.56,
+      "auroc": 0.56,
+      "average_precision": 0.5425,
+      "brier_score": 0.42895999999999995,
+      "ece_10_bin": 0.4112,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "rules_plus_mean_delta": {
+      "confusion": {
+        "tp": 198,
+        "fn": 52,
+        "fp": 42,
+        "tn": 208
+      },
+      "precision": 0.825,
+      "recall": 0.792,
+      "f1": 0.8081632653061225,
+      "specificity": 0.832,
+      "balanced_accuracy": 0.812,
+      "auroc": 0.84728,
+      "average_precision": 0.8309,
+      "brier_score": 0.1673,
+      "ece_10_bin": 0.15499999999999992,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "jepa_without_action_conditioning": {
+      "confusion": {
+        "tp": 72,
+        "fn": 178,
+        "fp": 36,
+        "tn": 214
+      },
+      "precision": 0.6666666666666666,
+      "recall": 0.288,
+      "f1": 0.4022346368715084,
+      "specificity": 0.856,
+      "balanced_accuracy": 0.572,
+      "auroc": 0.572,
+      "average_precision": 0.5479999999999999,
+      "brier_score": 0.40784000000000004,
+      "ece_10_bin": 0.38480000000000003,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "validation_calibrated_jepa_only": {
+      "confusion": {
+        "tp": 68,
+        "fn": 182,
+        "fp": 23,
+        "tn": 227
+      },
+      "precision": 0.7472527472527473,
+      "recall": 0.272,
+      "f1": 0.3988269794721408,
+      "specificity": 0.908,
+      "balanced_accuracy": 0.5900000000000001,
+      "auroc": 0.59,
+      "average_precision": 0.5672527472527473,
+      "brier_score": 0.39888,
+      "ece_10_bin": 0.37359999999999993,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "rules_plus_validation_calibrated_jepa": {
+      "confusion": {
+        "tp": 209,
+        "fn": 41,
+        "fp": 41,
+        "tn": 209
+      },
+      "precision": 0.836,
+      "recall": 0.836,
+      "f1": 0.836,
+      "specificity": 0.836,
+      "balanced_accuracy": 0.836,
+      "auroc": 0.87044,
+      "average_precision": 0.8497760000000001,
+      "brier_score": 0.14489999999999997,
+      "ece_10_bin": 0.12699999999999995,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "autoencoder_only": {
+      "confusion": {
+        "tp": 50,
+        "fn": 200,
+        "fp": 33,
+        "tn": 217
+      },
+      "precision": 0.6024096385542169,
+      "recall": 0.2,
+      "f1": 0.3003003003003003,
+      "specificity": 0.868,
+      "balanced_accuracy": 0.534,
+      "auroc": 0.534,
+      "average_precision": 0.5204819277108435,
+      "brier_score": 0.44624,
+      "ece_10_bin": 0.4328,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    },
+    "rules_plus_autoencoder": {
+      "confusion": {
+        "tp": 189,
+        "fn": 61,
+        "fp": 41,
+        "tn": 209
+      },
+      "precision": 0.8217391304347826,
+      "recall": 0.756,
+      "f1": 0.7875,
+      "specificity": 0.836,
+      "balanced_accuracy": 0.796,
+      "auroc": 0.83044,
+      "average_precision": 0.818104347826087,
+      "brier_score": 0.18330000000000002,
+      "ece_10_bin": 0.17499999999999993,
+      "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+    }
+  },
+  "paired_rules_vs_combined": {
+    "paired_correctness_table": {
+      "rules_correct_combined_correct": 356,
+      "rules_correct_combined_incorrect": 20,
+      "rules_incorrect_combined_correct": 51,
+      "rules_incorrect_combined_incorrect": 73
+    },
+    "accuracy_difference": 0.062,
+    "accuracy_difference_bootstrap_95": [
+      0.03,
+      0.094
+    ],
+    "note": "The registered exact McNemar test is computed separately on dangerous-catch discordances."
+  },
+  "horizon_ablation": {
+    "1": {
+      "rules_only": {
+        "confusion": {
+          "tp": 147,
+          "fn": 103,
+          "fp": 0,
+          "tn": 250
+        },
+        "precision": 1.0,
+        "recall": 0.588,
+        "f1": 0.7405541561712845,
+        "specificity": 1.0,
+        "balanced_accuracy": 0.794,
+        "auroc": 0.794,
+        "average_precision": 0.794,
+        "brier_score": 0.21145999999999998,
+        "ece_10_bin": 0.24379999999999996,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 53,
+          "fn": 197,
+          "fp": 22,
+          "tn": 228
+        },
+        "precision": 0.7066666666666667,
+        "recall": 0.212,
+        "f1": 0.3261538461538461,
+        "specificity": 0.912,
+        "balanced_accuracy": 0.562,
+        "auroc": 0.562,
+        "average_precision": 0.5438133333333334,
+        "brier_score": 0.4264,
+        "ece_10_bin": 0.4079999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 194,
+          "fn": 56,
+          "fp": 22,
+          "tn": 228
+        },
+        "precision": 0.8981481481481481,
+        "recall": 0.776,
+        "f1": 0.832618025751073,
+        "specificity": 0.912,
+        "balanced_accuracy": 0.8440000000000001,
+        "auroc": 0.86248,
+        "average_precision": 0.8517407407407408,
+        "brier_score": 0.14937999999999999,
+        "ece_10_bin": 0.13339999999999996,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "2": {
+      "rules_only": {
+        "confusion": {
+          "tp": 147,
+          "fn": 103,
+          "fp": 0,
+          "tn": 250
+        },
+        "precision": 1.0,
+        "recall": 0.588,
+        "f1": 0.7405541561712845,
+        "specificity": 1.0,
+        "balanced_accuracy": 0.794,
+        "auroc": 0.794,
+        "average_precision": 0.794,
+        "brier_score": 0.21145999999999998,
+        "ece_10_bin": 0.24379999999999996,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 56,
+          "fn": 194,
+          "fp": 23,
+          "tn": 227
+        },
+        "precision": 0.7088607594936709,
+        "recall": 0.224,
+        "f1": 0.3404255319148936,
+        "specificity": 0.908,
+        "balanced_accuracy": 0.5660000000000001,
+        "auroc": 0.566,
+        "average_precision": 0.5467848101265823,
+        "brier_score": 0.42192,
+        "ece_10_bin": 0.4023999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 197,
+          "fn": 53,
+          "fp": 23,
+          "tn": 227
+        },
+        "precision": 0.8954545454545455,
+        "recall": 0.788,
+        "f1": 0.8382978723404256,
+        "specificity": 0.908,
+        "balanced_accuracy": 0.8480000000000001,
+        "auroc": 0.86732,
+        "average_precision": 0.8555272727272728,
+        "brier_score": 0.14489999999999997,
+        "ece_10_bin": 0.12699999999999995,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "3": {
+      "rules_only": {
+        "confusion": {
+          "tp": 147,
+          "fn": 103,
+          "fp": 21,
+          "tn": 229
+        },
+        "precision": 0.875,
+        "recall": 0.588,
+        "f1": 0.7033492822966506,
+        "specificity": 0.916,
+        "balanced_accuracy": 0.752,
+        "auroc": 0.76964,
+        "average_precision": 0.7729999999999999,
+        "brier_score": 0.23834,
+        "ece_10_bin": 0.2437999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 57,
+          "fn": 193,
+          "fp": 23,
+          "tn": 227
+        },
+        "precision": 0.7125,
+        "recall": 0.228,
+        "f1": 0.34545454545454546,
+        "specificity": 0.908,
+        "balanced_accuracy": 0.5680000000000001,
+        "auroc": 0.568,
+        "average_precision": 0.54845,
+        "brier_score": 0.42,
+        "ece_10_bin": 0.39999999999999997,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 198,
+          "fn": 52,
+          "fp": 41,
+          "tn": 209
+        },
+        "precision": 0.8284518828451883,
+        "recall": 0.792,
+        "f1": 0.8098159509202454,
+        "specificity": 0.836,
+        "balanced_accuracy": 0.8140000000000001,
+        "auroc": 0.84844,
+        "average_precision": 0.8321841004184101,
+        "brier_score": 0.16602,
+        "ece_10_bin": 0.15339999999999993,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "4": {
+      "rules_only": {
+        "confusion": {
+          "tp": 147,
+          "fn": 103,
+          "fp": 21,
+          "tn": 229
+        },
+        "precision": 0.875,
+        "recall": 0.588,
+        "f1": 0.7033492822966506,
+        "specificity": 0.916,
+        "balanced_accuracy": 0.752,
+        "auroc": 0.76964,
+        "average_precision": 0.7729999999999999,
+        "brier_score": 0.23834,
+        "ece_10_bin": 0.2437999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 61,
+          "fn": 189,
+          "fp": 23,
+          "tn": 227
+        },
+        "precision": 0.7261904761904762,
+        "recall": 0.244,
+        "f1": 0.3652694610778443,
+        "specificity": 0.908,
+        "balanced_accuracy": 0.5760000000000001,
+        "auroc": 0.576,
+        "average_precision": 0.5551904761904762,
+        "brier_score": 0.4123200000000001,
+        "ece_10_bin": 0.39039999999999997,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 202,
+          "fn": 48,
+          "fp": 41,
+          "tn": 209
+        },
+        "precision": 0.831275720164609,
+        "recall": 0.808,
+        "f1": 0.81947261663286,
+        "specificity": 0.836,
+        "balanced_accuracy": 0.8220000000000001,
+        "auroc": 0.85644,
+        "average_precision": 0.8385349794238683,
+        "brier_score": 0.15834,
+        "ece_10_bin": 0.1437999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "5": {
+      "rules_only": {
+        "confusion": {
+          "tp": 147,
+          "fn": 103,
+          "fp": 21,
+          "tn": 229
+        },
+        "precision": 0.875,
+        "recall": 0.588,
+        "f1": 0.7033492822966506,
+        "specificity": 0.916,
+        "balanced_accuracy": 0.752,
+        "auroc": 0.76964,
+        "average_precision": 0.7729999999999999,
+        "brier_score": 0.23834,
+        "ece_10_bin": 0.2437999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 67,
+          "fn": 183,
+          "fp": 23,
+          "tn": 227
+        },
+        "precision": 0.7444444444444445,
+        "recall": 0.268,
+        "f1": 0.3941176470588236,
+        "specificity": 0.908,
+        "balanced_accuracy": 0.5880000000000001,
+        "auroc": 0.588,
+        "average_precision": 0.5655111111111111,
+        "brier_score": 0.4008,
+        "ece_10_bin": 0.37599999999999995,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 208,
+          "fn": 42,
+          "fp": 41,
+          "tn": 209
+        },
+        "precision": 0.8353413654618473,
+        "recall": 0.832,
+        "f1": 0.8336673346693386,
+        "specificity": 0.836,
+        "balanced_accuracy": 0.834,
+        "auroc": 0.86844,
+        "average_precision": 0.848160642570281,
+        "brier_score": 0.14682,
+        "ece_10_bin": 0.1293999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    }
+  },
+  "latency_reference": {
+    "1": {
+      "median_microseconds_per_episode": 325.4,
+      "min_microseconds_per_episode": 323.252,
+      "repetitions": 7,
+      "episodes_per_repetition": 100,
+      "scope": "host-side Python reference evaluator; not in-guest latency"
+    },
+    "2": {
+      "median_microseconds_per_episode": 547.43,
+      "min_microseconds_per_episode": 524.867,
+      "repetitions": 7,
+      "episodes_per_repetition": 100,
+      "scope": "host-side Python reference evaluator; not in-guest latency"
+    },
+    "3": {
+      "median_microseconds_per_episode": 733.074,
+      "min_microseconds_per_episode": 725.923,
+      "repetitions": 7,
+      "episodes_per_repetition": 100,
+      "scope": "host-side Python reference evaluator; not in-guest latency"
+    },
+    "4": {
+      "median_microseconds_per_episode": 932.744,
+      "min_microseconds_per_episode": 921.467,
+      "repetitions": 7,
+      "episodes_per_repetition": 100,
+      "scope": "host-side Python reference evaluator; not in-guest latency"
+    },
+    "5": {
+      "median_microseconds_per_episode": 1137.936,
+      "min_microseconds_per_episode": 1120.121,
+      "repetitions": 7,
+      "episodes_per_repetition": 100,
+      "scope": "host-side Python reference evaluator; not in-guest latency"
+    }
+  },
+  "prevalence_sensitivity_projection": [
+    {
+      "danger_prevalence": 0.001,
+      "projected_alerts_per_1000": 164.62800000000001,
+      "projected_precision": 0.004810846271594139
+    },
+    {
+      "danger_prevalence": 0.01,
+      "projected_alerts_per_1000": 170.28000000000003,
+      "projected_precision": 0.04651162790697673
+    },
+    {
+      "danger_prevalence": 0.05,
+      "projected_alerts_per_1000": 195.4,
+      "projected_precision": 0.20266120777891505
+    }
+  ],
+  "prevalence_projection_warning": "This is not a measured natural-traffic benchmark.",
+  "untouched_qemu_safe_replay": {
+    "source": "untouched episode-disjoint QEMU test transitions",
+    "oracle": "executed rows with no observed process, heap, or disk value above 0.95 and no config deletion",
+    "safe_rows": 1969,
+    "hazardous_rows_excluded": 0,
+    "limitation": "This negative-control replay estimates false alarms only; it contains no independently labeled dangerous deployment traffic.",
+    "conditions": {
+      "rules_only": {
+        "confusion": {
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "tn": 1969
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0,
+        "balanced_accuracy": 0.5,
+        "auroc": 0.0,
+        "average_precision": 0.0,
+        "brier_score": 0.0,
+        "ece_10_bin": 0.0,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only.",
+        "alerts_per_1000_safe_actions": 0.0,
+        "blocks_by_action": {}
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 0,
+          "fn": 0,
+          "fp": 216,
+          "tn": 1753
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 0.8902996444895886,
+        "balanced_accuracy": 0.4451498222447943,
+        "auroc": 0.0,
+        "average_precision": 0.0,
+        "brier_score": 0.07221940071102084,
+        "ece_10_bin": 0.08887760284408329,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only.",
+        "alerts_per_1000_safe_actions": 109.70035551041137,
+        "blocks_by_action": {
+          "add_subtask": 4,
+          "audit_write": 5,
+          "browse_url": 6,
+          "camera_capture": 1,
+          "create_directory": 1,
+          "delete_file": 9,
+          "exec_process": 6,
+          "gesture_status": 8,
+          "get_config": 10,
+          "hit_test": 3,
+          "http_get": 10,
+          "keyboard_type": 4,
+          "list_processes": 5,
+          "load_memory": 13,
+          "local_inference": 2,
+          "mouse_click": 1,
+          "mouse_move": 11,
+          "net_recv": 6,
+          "net_send": 6,
+          "poll_input": 2,
+          "query_memory": 6,
+          "read_file": 12,
+          "read_screen": 24,
+          "report_status": 10,
+          "save_memory": 4,
+          "service_start": 8,
+          "service_stop": 12,
+          "set_goal": 6,
+          "set_volume": 3,
+          "sleep": 6,
+          "system_info": 8,
+          "yield_cpu": 4
+        }
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 0,
+          "fn": 0,
+          "fp": 216,
+          "tn": 1753
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 0.8902996444895886,
+        "balanced_accuracy": 0.4451498222447943,
+        "auroc": 0.0,
+        "average_precision": 0.0,
+        "brier_score": 0.07221940071102084,
+        "ece_10_bin": 0.08887760284408329,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only.",
+        "alerts_per_1000_safe_actions": 109.70035551041137,
+        "blocks_by_action": {
+          "add_subtask": 4,
+          "audit_write": 5,
+          "browse_url": 6,
+          "camera_capture": 1,
+          "create_directory": 1,
+          "delete_file": 9,
+          "exec_process": 6,
+          "gesture_status": 8,
+          "get_config": 10,
+          "hit_test": 3,
+          "http_get": 10,
+          "keyboard_type": 4,
+          "list_processes": 5,
+          "load_memory": 13,
+          "local_inference": 2,
+          "mouse_click": 1,
+          "mouse_move": 11,
+          "net_recv": 6,
+          "net_send": 6,
+          "poll_input": 2,
+          "query_memory": 6,
+          "read_file": 12,
+          "read_screen": 24,
+          "report_status": 10,
+          "save_memory": 4,
+          "service_start": 8,
+          "service_stop": 12,
+          "set_goal": 6,
+          "set_volume": 3,
+          "sleep": 6,
+          "system_info": 8,
+          "yield_cpu": 4
+        }
+      }
+    }
+  },
+  "untouched_qemu_safe_replay_calibrated": {
+    "source": "untouched episode-disjoint QEMU test transitions",
+    "oracle": "executed rows with no observed process, heap, or disk value above 0.95 and no config deletion",
+    "safe_rows": 1969,
+    "hazardous_rows_excluded": 0,
+    "limitation": "This negative-control replay estimates false alarms only; it contains no independently labeled dangerous deployment traffic.",
+    "conditions": {
+      "rules_only": {
+        "confusion": {
+          "tp": 0,
+          "fn": 0,
+          "fp": 0,
+          "tn": 1969
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0,
+        "balanced_accuracy": 0.5,
+        "auroc": 0.0,
+        "average_precision": 0.0,
+        "brier_score": 0.0,
+        "ece_10_bin": 0.0,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only.",
+        "alerts_per_1000_safe_actions": 0.0,
+        "blocks_by_action": {}
+      },
+      "jepa_only": {
+        "confusion": {
+          "tp": 0,
+          "fn": 0,
+          "fp": 265,
+          "tn": 1704
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 0.8654139156932453,
+        "balanced_accuracy": 0.43270695784662266,
+        "auroc": 0.0,
+        "average_precision": 0.0,
+        "brier_score": 0.08960893854748604,
+        "ece_10_bin": 0.10959878110716101,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only.",
+        "alerts_per_1000_safe_actions": 134.58608430675469,
+        "blocks_by_action": {
+          "add_subtask": 6,
+          "audit_write": 6,
+          "browse_url": 8,
+          "camera_capture": 1,
+          "create_directory": 3,
+          "delete_file": 9,
+          "exec_process": 8,
+          "gesture_status": 11,
+          "get_config": 13,
+          "hit_test": 4,
+          "http_get": 10,
+          "hud_update": 1,
+          "ipc_send": 19,
+          "keyboard_type": 4,
+          "list_processes": 7,
+          "load_memory": 14,
+          "local_inference": 2,
+          "mouse_click": 1,
+          "mouse_move": 11,
+          "net_recv": 6,
+          "net_send": 6,
+          "poll_input": 2,
+          "query_memory": 6,
+          "read_dir": 3,
+          "read_file": 13,
+          "read_screen": 24,
+          "report_status": 11,
+          "save_memory": 4,
+          "service_start": 8,
+          "service_stop": 12,
+          "set_goal": 5,
+          "set_volume": 3,
+          "sleep": 11,
+          "system_info": 9,
+          "yield_cpu": 4
+        }
+      },
+      "rules_plus_jepa": {
+        "confusion": {
+          "tp": 0,
+          "fn": 0,
+          "fp": 265,
+          "tn": 1704
+        },
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 0.8654139156932453,
+        "balanced_accuracy": 0.43270695784662266,
+        "auroc": 0.0,
+        "average_precision": 0.0,
+        "brier_score": 0.08960893854748604,
+        "ece_10_bin": 0.10959878110716101,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only.",
+        "alerts_per_1000_safe_actions": 134.58608430675469,
+        "blocks_by_action": {
+          "add_subtask": 6,
+          "audit_write": 6,
+          "browse_url": 8,
+          "camera_capture": 1,
+          "create_directory": 3,
+          "delete_file": 9,
+          "exec_process": 8,
+          "gesture_status": 11,
+          "get_config": 13,
+          "hit_test": 4,
+          "http_get": 10,
+          "hud_update": 1,
+          "ipc_send": 19,
+          "keyboard_type": 4,
+          "list_processes": 7,
+          "load_memory": 14,
+          "local_inference": 2,
+          "mouse_click": 1,
+          "mouse_move": 11,
+          "net_recv": 6,
+          "net_send": 6,
+          "poll_input": 2,
+          "query_memory": 6,
+          "read_dir": 3,
+          "read_file": 13,
+          "read_screen": 24,
+          "report_status": 11,
+          "save_memory": 4,
+          "service_start": 8,
+          "service_stop": 12,
+          "set_goal": 5,
+          "set_volume": 3,
+          "sleep": 11,
+          "system_info": 9,
+          "yield_cpu": 4
+        }
+      }
+    }
+  },
+  "autoencoder_safety_baseline_included": true,
+  "training_seed_sensitivity": {
+    "17": {
+      "transition_sha256": "bd80ccb2be57e2ffeb52d03431e18b88d80db015b5b7d84d4921f054c5c9193d",
+      "one_step_normalized_error": 0.01675176384439766,
+      "macro_tool_normalized_error": 0.017080015771248368,
+      "rollout_h3_normalized_error": 0.03867185344696794,
+      "safety": {
+        "confusion": {
+          "tp": 198,
+          "fn": 52,
+          "fp": 41,
+          "tn": 209
+        },
+        "precision": 0.8284518828451883,
+        "recall": 0.792,
+        "f1": 0.8098159509202454,
+        "specificity": 0.836,
+        "balanced_accuracy": 0.8140000000000001,
+        "auroc": 0.84844,
+        "average_precision": 0.8321841004184101,
+        "brier_score": 0.16602,
+        "ece_10_bin": 0.15339999999999993,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "42": {
+      "transition_sha256": "81ee018d206d372ae3a7e8e719ef1959313ac43e6e7a0b9bb0b838aca3b7b1b6",
+      "one_step_normalized_error": 0.018519442346963524,
+      "macro_tool_normalized_error": 0.019408716922305783,
+      "rollout_h3_normalized_error": 0.041136672503766965,
+      "safety": {
+        "confusion": {
+          "tp": 156,
+          "fn": 94,
+          "fp": 25,
+          "tn": 225
+        },
+        "precision": 0.861878453038674,
+        "recall": 0.624,
+        "f1": 0.7238979118329466,
+        "specificity": 0.9,
+        "balanced_accuracy": 0.762,
+        "auroc": 0.783,
+        "average_precision": 0.7838232044198894,
+        "brier_score": 0.22618000000000002,
+        "ece_10_bin": 0.22859999999999991,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    },
+    "91": {
+      "transition_sha256": "5e7b7c0f847ccfeff3b6c5c95575b0550937a6535b1c808dbe89a23ceaa44043",
+      "one_step_normalized_error": 0.016270521873030686,
+      "macro_tool_normalized_error": 0.016420370897153605,
+      "rollout_h3_normalized_error": 0.03991381860470207,
+      "safety": {
+        "confusion": {
+          "tp": 166,
+          "fn": 84,
+          "fp": 25,
+          "tn": 225
+        },
+        "precision": 0.8691099476439791,
+        "recall": 0.664,
+        "f1": 0.7528344671201814,
+        "specificity": 0.9,
+        "balanced_accuracy": 0.782,
+        "auroc": 0.803,
+        "average_precision": 0.8000628272251309,
+        "brier_score": 0.20698,
+        "ece_10_bin": 0.2045999999999999,
+        "calibration_note": "Risk is a gate score, not a fitted probability; ECE and Brier are diagnostic only."
+      }
+    }
+  },
+  "training_seed_aggregate": {
+    "one_step_normalized_error": {
+      "mean": 0.017180576021463955,
+      "sample_standard_deviation": 0.0011841962408819027,
+      "min": 0.016270521873030686,
+      "max": 0.018519442346963524
+    },
+    "rollout_h3_normalized_error": {
+      "mean": 0.039907448185145654,
+      "sample_standard_deviation": 0.001232421876783231,
+      "min": 0.03867185344696794,
+      "max": 0.041136672503766965
+    },
+    "combined_balanced_accuracy": {
+      "mean": 0.786,
+      "sample_standard_deviation": 0.026229754097208024,
+      "min": 0.762,
+      "max": 0.8140000000000001
+    },
+    "combined_false_negative_rate": {
+      "mean": 0.30666666666666664,
+      "sample_standard_deviation": 0.08775724091682313,
+      "min": 0.20799999999999996,
+      "max": 0.376
+    },
+    "combined_false_positive_rate": {
+      "mean": 0.12133333333333333,
+      "sample_standard_deviation": 0.036950417228136086,
+      "min": 0.09999999999999998,
+      "max": 0.16400000000000003
+    }
+  }
+}

@@ -203,12 +203,25 @@ class TransitionModel:
 
     def predict(self, state: np.ndarray, action: Action) -> tuple[np.ndarray, int] | None:
         action_id = TOOL_NAMES.index(action.name)
+        return self.predict_features(state, action_id, action_features(action))
+
+    def predict_features(self, state: np.ndarray, action_id: int,
+                         features: np.ndarray) -> tuple[np.ndarray, int] | None:
+        """Predict from an already-normalized action vector.
+
+        This is used by the paper's untouched-row replay so the exact recorded
+        argument features are retained even though raw argument strings are not
+        included in the released transition row.
+        """
         if self.coverage & (1 << action_id) == 0:
             return None
         inputs = np.zeros(self.input_size, dtype=np.float32)
         inputs[:EMBEDDING_SIZE] = state
         inputs[EMBEDDING_SIZE + action_id] = 1.0
-        inputs[EMBEDDING_SIZE + NUM_TOOLS:] = action_features(action)
+        normalized = np.asarray(features, dtype=np.float32)
+        if normalized.shape != (ACTION_FEATURE_SIZE,):
+            raise ValueError("normalized action feature width mismatch")
+        inputs[EMBEDDING_SIZE + NUM_TOOLS:] = normalized
         hidden = np.maximum(inputs @ self.w1 + self.b1, 0.0)
         delta = hidden @ self.w2 + self.b2
         if not np.all(np.isfinite(delta)):
@@ -264,11 +277,14 @@ def risk_score(state: np.ndarray, proc_delta: int, config_delete: bool,
 
 
 def branch_decision(state: np.ndarray, action: Action, branch: str,
-                    model: TransitionModel) -> Decision:
+                    model: TransitionModel,
+                    max_lookahead: int = MAX_LOOKAHEAD) -> Decision:
+    if max_lookahead < 1:
+        raise ValueError("max_lookahead must be at least one")
     embedding = state.copy()
     cumulative_proc = 0
     worst = Decision(False, 0.0, "", 1)
-    for step in range(1, MAX_LOOKAHEAD + 1):
+    for step in range(1, max_lookahead + 1):
         if branch == "rules":
             predicted, proc_delta = rule_prediction(embedding, action)
             direct_policy = targets_own_config(action)
@@ -290,13 +306,14 @@ def branch_decision(state: np.ndarray, action: Action, branch: str,
 
 
 def gate_decision(state: np.ndarray, action: Action, condition: str,
-                  model: TransitionModel) -> Decision:
+                  model: TransitionModel,
+                  max_lookahead: int = MAX_LOOKAHEAD) -> Decision:
     if condition == "rules_only":
-        return branch_decision(state, action, "rules", model)
+        return branch_decision(state, action, "rules", model, max_lookahead)
     if condition == "jepa_only":
-        return branch_decision(state, action, "jepa", model)
-    rule = branch_decision(state, action, "rules", model)
-    learned = branch_decision(state, action, "jepa", model)
+        return branch_decision(state, action, "jepa", model, max_lookahead)
+    rule = branch_decision(state, action, "rules", model, max_lookahead)
+    learned = branch_decision(state, action, "jepa", model, max_lookahead)
     return learned if learned.risk > rule.risk else rule
 
 
@@ -479,12 +496,15 @@ def generate_fixture(rows: list[dict], encoder: Encoder, manifest: dict,
 
 
 def simulate(case: dict, condition: str, encoder: Encoder,
-             model: TransitionModel) -> dict:
+             model: TransitionModel,
+             max_lookahead: int = MAX_LOOKAHEAD) -> dict:
     state = encoder.state(case["initial_raw"])
     max_risk = 0.0
     for step_index, step in enumerate(case["steps"]):
         action = Action(step["action"]["name"], step["action"]["args"])
-        decision = gate_decision(state, action, condition, model)
+        decision = gate_decision(
+            state, action, condition, model, max_lookahead=max_lookahead
+        )
         max_risk = max(max_risk, decision.risk)
         if decision.blocked:
             return {
@@ -531,11 +551,15 @@ def summarize(records: list[dict]) -> dict:
     }
 
 
-def evaluate(fixture: dict, encoder: Encoder, model: TransitionModel) -> tuple[dict, list[dict]]:
+def evaluate(fixture: dict, encoder: Encoder, model: TransitionModel,
+             max_lookahead: int = MAX_LOOKAHEAD) -> tuple[dict, list[dict]]:
     records = []
     for condition in CONDITIONS:
         for case in fixture["cases"]:
-            outcome = simulate(case, condition, encoder, model)
+            outcome = simulate(
+                case, condition, encoder, model,
+                max_lookahead=max_lookahead,
+            )
             records.append({
                 "condition": condition, "episode_id": case["id"],
                 "category": case["category"], "dangerous": case["dangerous"],
