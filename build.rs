@@ -93,6 +93,9 @@ fn main() {
     println!("cargo:rerun-if-changed=userland/heliox-daemon/Cargo.toml");
     println!("cargo:rerun-if-changed=userland/heliox-daemon/.cargo/config.toml");
     println!("cargo:rerun-if-changed=userland/heliox-daemon/src");
+    println!("cargo:rerun-if-changed=userland/heliox-daemon/physical_world_model.bin");
+    println!("cargo:rerun-if-changed=userland/physical-runtime/Cargo.toml");
+    println!("cargo:rerun-if-changed=userland/physical-runtime/src");
 
     if daemon_manifest.exists() {
         // Hand-written freestanding stubs for the handful of libc headers
