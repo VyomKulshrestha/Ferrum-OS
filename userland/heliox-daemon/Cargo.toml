@@ -11,6 +11,7 @@ embedded-tls = { version = "=0.19.0", default-features = false, features = ["web
 embedded-io = { version = "=0.7.1", default-features = false }
 rand_core = { version = "0.6.4", default-features = false }
 getrandom = { version = "0.2.17", default-features = false, features = ["custom"] }
+ferrum-physical-runtime = { path = "../physical-runtime" }
 
 
 [[bin]]

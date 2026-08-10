@@ -224,6 +224,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferrum-physical-runtime"
+version = "0.1.0"
+
+[[package]]
 name = "ff"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -307,6 +311,7 @@ version = "0.1.1"
 dependencies = [
  "embedded-io",
  "embedded-tls",
+ "ferrum-physical-runtime",
  "getrandom",
  "libm",
  "linked_list_allocator",

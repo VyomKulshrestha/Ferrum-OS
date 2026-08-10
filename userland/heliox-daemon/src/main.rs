@@ -11,6 +11,7 @@ pub mod memory;
 pub mod cognitive;
 pub mod network;
 pub mod config;
+pub mod physical;
 
 // Basic bump allocator for userspace
 use linked_list_allocator::LockedHeap;
@@ -503,6 +504,7 @@ pub extern "C" fn _start() -> ! {
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
+    let mut physical_service = physical::PhysicalService::new();
 
     // The network bridge delegates the daemon's powerful native syscall
     // authority to an external model/client. Require a fresh physical-console
@@ -1101,6 +1103,35 @@ pub extern "C" fn _start() -> ! {
                                                 id_str
                                             );
                                             let _ = network::ws_send_text_server(conn.fd, &res_json);
+                                        } else if method == "physical_status" {
+                                            let response = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
+                                                physical_service.status_json(),
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &response);
+                                        } else if method == "physical_maintenance_demo" {
+                                            let confirmed = parsed.get("params")
+                                                .and_then(|params| params.get("confirm_simulation"))
+                                                .and_then(|value| value.as_bool())
+                                                .unwrap_or(false);
+                                            if !confirmed {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "confirm_simulation=true is required");
+                                            } else {
+                                                match physical_service.run_maintenance_simulation_json() {
+                                                    Ok(result) => {
+                                                        let response = alloc::format!(
+                                                            "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
+                                                            result,
+                                                            id_str
+                                                        );
+                                                        let _ = network::ws_send_text_server(conn.fd, &response);
+                                                    }
+                                                    Err(message) => {
+                                                        send_rpc_error(conn.fd, &id_str, -32020, message);
+                                                    }
+                                                }
+                                            }
                                         } else if method == "system_status" {
                                             let mut buf = [0u8; 512];
                                             let bytes_written = unsafe {
