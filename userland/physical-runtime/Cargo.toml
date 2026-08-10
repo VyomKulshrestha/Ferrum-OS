@@ -1,0 +1,13 @@
+[package]
+name = "ferrum-physical-runtime"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Deterministic physical-operations primitives for FerrumOS"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = []
+
