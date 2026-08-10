@@ -101,6 +101,8 @@ pub struct Endpoint {
     pub id: EndpointId,
     pub adapter_id: AdapterId,
     pub kind: EndpointKind,
+    pub zone_id: u32,
+    pub controlled_actor_id: Option<ActorId>,
     pub capabilities: EndpointCapabilitySet,
 }
 
@@ -505,6 +507,8 @@ mod tests {
                 id: EndpointId(2),
                 adapter_id: AdapterId(1),
                 kind: EndpointKind::Robot,
+                zone_id: 7,
+                controlled_actor_id: Some(ActorId(8)),
                 capabilities: EndpointCapabilitySet::empty()
                     .with(EndpointCapability::Sense)
                     .with(EndpointCapability::Move)
