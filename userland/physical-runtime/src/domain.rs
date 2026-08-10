@@ -256,6 +256,10 @@ impl DomainRegistry {
         self.assets.iter().find(|asset| asset.id == id)
     }
 
+    pub fn asset_mut(&mut self, id: AssetId) -> Option<&mut Asset> {
+        self.assets.iter_mut().find(|asset| asset.id == id)
+    }
+
     pub fn site(&self, id: SiteId) -> Option<&Site> {
         self.sites.iter().find(|site| site.id == id)
     }
