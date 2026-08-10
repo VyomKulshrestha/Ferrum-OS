@@ -26,6 +26,7 @@ docs/HELIOX_INTEGRATION.md
 REPORT.md
 model.md
 work.md
+nextpath.md
 
 # Ignore custom certificate keys and intermediate files
 userland/heliox-daemon/certs/*.key
