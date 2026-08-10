@@ -360,6 +360,14 @@ try {
     return responses.find((response) => response.id === id);
   }
 
+  async function rpcMethod(id, method, params, timeoutMs = 60000) {
+    const expectedResponses = responses.length + 1;
+    client.write(makeFrame(JSON.stringify({ method, params, id })));
+    const rpcDeadline = Date.now() + timeoutMs;
+    while (responses.length < expectedResponses && Date.now() < rpcDeadline) await sleep(50);
+    return responses.find((response) => response.id === id);
+  }
+
   const auditStart = serialText().length;
   const auditResponse = await executeTool(120, "audit_write", { message: "bridge audit event" });
   check("audit_write appends the caller-provided event", auditResponse?.result?.success === true);
@@ -394,9 +402,63 @@ try {
     sleepResponse?.result?.success === true && Date.now() - sleepStart >= 20,
   );
 
+  const physicalBefore = await rpcMethod(125, "physical_status", {});
+  check(
+    "physical runtime and embedded transition model are available in the booted daemon",
+    physicalBefore?.result?.schema_version === 1
+      && physicalBefore?.result?.available === true
+      && physicalBefore?.result?.mode === "simulator"
+      && physicalBefore?.result?.learned_gate === "shadow_only"
+      && physicalBefore?.result?.physical_model_loaded === true
+      && physicalBefore?.result?.os_jepa_reused === false
+      && physicalBefore?.result?.completed_simulations === 0,
+    JSON.stringify(physicalBefore?.result),
+  );
+
+  const unconfirmedPhysical = await rpcMethod(126, "physical_maintenance_demo", {});
+  check(
+    "physical maintenance simulation requires explicit per-request confirmation",
+    unconfirmedPhysical?.error?.code === -32602
+      && /confirm_simulation=true/.test(unconfirmedPhysical?.error?.message || ""),
+  );
+
+  const physicalDemo = await rpcMethod(
+    127,
+    "physical_maintenance_demo",
+    { confirm_simulation: true },
+  );
+  check(
+    "physical maintenance vertical completes through the booted Heliox service",
+    physicalDemo?.result?.simulation_only === true
+      && physicalDemo?.result?.job_completed === true
+      && physicalDemo?.result?.tasks === 5
+      && physicalDemo?.result?.approval_enforced === true,
+    JSON.stringify(physicalDemo?.result),
+  );
+  check(
+    "physical safety and delivery evidence survives the JSON-RPC boundary",
+    physicalDemo?.result?.unsafe_motion_blocked === true
+      && physicalDemo?.result?.safe_motion_delivered === true
+      && physicalDemo?.result?.policy_revision === 1
+      && Number.isInteger(physicalDemo?.result?.shadow_risk_permille)
+      && physicalDemo?.result?.task_successes === 5
+      && physicalDemo?.result?.safety_interventions >= 1
+      && physicalDemo?.result?.twin_events >= 1,
+    JSON.stringify(physicalDemo?.result),
+  );
+
+  const physicalAfter = await rpcMethod(128, "physical_status", {});
+  check(
+    "physical service state advances only after a confirmed successful run",
+    physicalAfter?.result?.completed_simulations === 1
+      && physicalAfter?.result?.last_job_completed === true,
+    JSON.stringify(physicalAfter?.result),
+  );
+
   // Send gesture_event request
   console.log("[test] sending gesture_event...");
   const gestureStart = serialText().length;
+  const gestureExpectedResponses = responses.length + 1;
   client.write(makeFrame(JSON.stringify({
     method: "gesture_event",
     params: {
@@ -407,17 +469,17 @@ try {
 
   // Wait for gesture response
   deadline = Date.now() + 5000;
-  while (responses.length < 15 && Date.now() < deadline) {
+  while (responses.length < gestureExpectedResponses && Date.now() < deadline) {
     await sleep(50);
   }
 
+  const gestureResponse = responses.find((response) => response.id === 108);
+
   check(
     "received capability-gated gesture response from daemon",
-    responses.length >= 15
-      && responses[14].id === 108
-      && responses[14].result
-      && responses[14].result.success === false
-      && /Awaiting confirmation/.test(responses[14].result.output || ""),
+    gestureResponse?.result
+      && gestureResponse.result.success === false
+      && /Awaiting confirmation/.test(gestureResponse.result.output || ""),
   );
 
   // Gesture-originated OS effects must use exactly the same world-model and
