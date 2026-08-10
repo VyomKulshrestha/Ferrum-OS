@@ -456,6 +456,49 @@ try {
     JSON.stringify(physicalAfter?.result),
   );
 
+  const providerPhysicalStart = serialText().length;
+  const providerUnconfirmed = await executeTool(
+    129,
+    "physical_maintenance_demo",
+    { confirm_simulation: false },
+  );
+  check(
+    "provider-equivalent physical tool calls retain the simulation confirmation boundary",
+    providerUnconfirmed?.result?.success === false
+      && /confirm_simulation=true/.test(providerUnconfirmed?.result?.output || ""),
+  );
+
+  const providerPhysical = await executeTool(
+    130,
+    "physical_maintenance_demo",
+    { confirm_simulation: true },
+  );
+  let providerPhysicalOutput = null;
+  try {
+    providerPhysicalOutput = JSON.parse(providerPhysical?.result?.output || "null");
+  } catch { /* assertion below reports the malformed result */ }
+  check(
+    "provider-generated tools reach the same physical model and safety supervisor",
+    providerPhysical?.result?.success === true
+      && providerPhysicalOutput?.simulation_only === true
+      && providerPhysicalOutput?.job_completed === true
+      && providerPhysicalOutput?.unsafe_shadow_risk_permille >= 900
+      && providerPhysicalOutput?.safe_shadow_risk_permille < 900,
+    JSON.stringify(providerPhysical?.result),
+  );
+  check(
+    "physical tools do not contaminate the fixed 41-action OS world-model dataset",
+    !serialText().slice(providerPhysicalStart).includes("action=255"),
+  );
+
+  const physicalAfterProvider = await rpcMethod(131, "physical_status", {});
+  check(
+    "direct RPC and provider-equivalent dispatch share one physical service state",
+    physicalAfterProvider?.result?.completed_simulations === 2
+      && physicalAfterProvider?.result?.last_job_completed === true,
+    JSON.stringify(physicalAfterProvider?.result),
+  );
+
   // Send gesture_event request
   console.log("[test] sending gesture_event...");
   const gestureStart = serialText().length;

@@ -248,9 +248,16 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 37. `gesture_status` - Get the current hand gesture status.
     Arguments: {}
 
+38. `physical_status` - Inspect the independent physical-operations runtime and model status.
+    Arguments: {}
+
+39. `physical_maintenance_demo` - Run the simulator-only maintenance workflow through the physical world model and deterministic safety supervisor.
+    Arguments: {"confirm_simulation": true}
+
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}
 If no tool is needed, respond with plain text.
-Tools marked REQUIRES CONFIRMATION need operator approval before executing."#;
+Tools marked REQUIRES CONFIRMATION need operator approval before executing.
+The physical maintenance tool is simulation-only; `confirm_simulation` acknowledges that boundary and never authorizes real machinery."#;
 
 // ---- Tool Execution --------------------------------------------------------
 

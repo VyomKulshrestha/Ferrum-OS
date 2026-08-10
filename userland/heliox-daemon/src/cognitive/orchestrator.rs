@@ -28,6 +28,7 @@ use alloc::format;
 use core::arch::asm;
 use crate::memory::vector_store::{VectorStore, MemoryCategory};
 use crate::network;
+use crate::physical::PhysicalService;
 
 // Syscall numbers for telemetry and IPC
 const SYS_IPC_SEND: u64 = 1;
@@ -146,6 +147,10 @@ pub struct Orchestrator {
     wm_last_action_name: String,
     wm_last_action_failed: bool,
     wm_last_suggestion: String,
+
+    // Independent physical-state schema, model, and simulator runtime. It is
+    // deliberately not encoded into the published 41-action OS JEPA ABI.
+    physical_service: PhysicalService,
 }
 
 impl Orchestrator {
@@ -203,6 +208,14 @@ impl Orchestrator {
 
     pub fn world_model_suggestion(&self) -> String {
         self.wm_last_suggestion.clone()
+    }
+
+    pub fn physical_status_json(&self) -> String {
+        self.physical_service.status_json()
+    }
+
+    pub fn run_physical_maintenance_simulation(&mut self) -> Result<String, &'static str> {
+        self.physical_service.run_maintenance_simulation_json()
     }
 
     /// Execute a public JSON-RPC tool through the same predictive gate and
@@ -316,6 +329,7 @@ impl Orchestrator {
             wm_last_action_name: String::new(),
             wm_last_action_failed: false,
             wm_last_suggestion: String::new(),
+            physical_service: PhysicalService::new(),
         }
     }
 
@@ -882,6 +896,37 @@ impl Orchestrator {
                     }
                 }
             }
+            "physical_status" => tool_mapper::ToolResult {
+                tool_name: String::from("physical_status"),
+                success: true,
+                output: self.physical_status_json(),
+            },
+            "physical_maintenance_demo" => {
+                let confirmed = tc.arguments.iter().any(|(key, value)| {
+                    key == "confirm_simulation"
+                        && matches!(value, super::json::JsonValue::Bool(true))
+                });
+                if !confirmed {
+                    tool_mapper::ToolResult {
+                        tool_name: String::from("physical_maintenance_demo"),
+                        success: false,
+                        output: String::from("confirm_simulation=true is required"),
+                    }
+                } else {
+                    match self.run_physical_maintenance_simulation() {
+                        Ok(output) => tool_mapper::ToolResult {
+                            tool_name: String::from("physical_maintenance_demo"),
+                            success: true,
+                            output,
+                        },
+                        Err(message) => tool_mapper::ToolResult {
+                            tool_name: String::from("physical_maintenance_demo"),
+                            success: false,
+                            output: String::from(message),
+                        },
+                    }
+                }
+            }
             _ => tool_mapper::execute(
                 tc,
                 &mut self.confirmation_gate,
@@ -899,6 +944,14 @@ impl Orchestrator {
     /// experience tuple: a predicted-and-refused action is training
     /// signal too, not just an allowed one.
     fn dispatch_with_world_model(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        // Physical actions have their own observation schema, transition
+        // artifact, deterministic interlocks, and audit path. Sending them
+        // through the fixed 41-action OS model would create action_id=255
+        // training rows and pretend computer-state features describe a site.
+        if tc.name == "physical_status" || tc.name == "physical_maintenance_demo" {
+            return self.execute_action(tc);
+        }
+
         use super::world_model::{self, encoder, experience, observation};
         use experience::ExperienceTuple;
 

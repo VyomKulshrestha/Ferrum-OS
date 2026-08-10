@@ -504,7 +504,6 @@ pub extern "C" fn _start() -> ! {
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
-    let mut physical_service = physical::PhysicalService::new();
 
     // The network bridge delegates the daemon's powerful native syscall
     // authority to an external model/client. Require a fresh physical-console
@@ -1106,7 +1105,7 @@ pub extern "C" fn _start() -> ! {
                                         } else if method == "physical_status" {
                                             let response = alloc::format!(
                                                 "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
-                                                physical_service.status_json(),
+                                                orchestrator.physical_status_json(),
                                                 id_str
                                             );
                                             let _ = network::ws_send_text_server(conn.fd, &response);
@@ -1118,7 +1117,7 @@ pub extern "C" fn _start() -> ! {
                                             if !confirmed {
                                                 send_rpc_error(conn.fd, &id_str, -32602, "confirm_simulation=true is required");
                                             } else {
-                                                match physical_service.run_maintenance_simulation_json() {
+                                                match orchestrator.run_physical_maintenance_simulation() {
                                                     Ok(result) => {
                                                         let response = alloc::format!(
                                                             "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
