@@ -94,6 +94,8 @@ pub struct WorkOrder {
 pub enum WorkGraphError {
     DuplicateJob,
     DuplicateTask,
+    EmptyOrder,
+    InvalidInitialState,
     UnknownDependency,
     DependencyCycle,
     SelfDependency,
@@ -137,6 +139,18 @@ impl WorkGraph {
         }
         if self.orders.len() >= MAX_WORK_ORDERS || order.tasks.len() > MAX_TASKS_PER_ORDER {
             return Err(WorkGraphError::CapacityExceeded);
+        }
+        if order.tasks.is_empty() {
+            return Err(WorkGraphError::EmptyOrder);
+        }
+        if order.state != JobState::Pending
+            || order.revision != 0
+            || order
+                .tasks
+                .iter()
+                .any(|task| task.status != TaskStatus::Pending)
+        {
+            return Err(WorkGraphError::InvalidInitialState);
         }
         validate_tasks(&order.tasks)?;
         self.orders.push(order);
@@ -475,6 +489,22 @@ mod tests {
         assert_eq!(
             graph.add_order(order(tasks)),
             Err(WorkGraphError::DependencyCycle)
+        );
+    }
+
+    #[test]
+    fn graph_rejects_empty_or_pretransitioned_orders() {
+        let mut graph = WorkGraph::new();
+        assert_eq!(
+            graph.add_order(order(vec![])),
+            Err(WorkGraphError::EmptyOrder)
+        );
+
+        let mut already_running = order(vec![task(1, vec![], ActorConstraint::Any)]);
+        already_running.tasks[0].status = TaskStatus::Assigned(ActorId(1));
+        assert_eq!(
+            graph.add_order(already_running),
+            Err(WorkGraphError::InvalidInitialState)
         );
     }
 
