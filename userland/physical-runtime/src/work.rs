@@ -113,6 +113,7 @@ pub enum DispatchError {
     TaskNotReady,
     ActorUnavailable,
     AssignmentMismatch,
+    HumanApprovalRequired,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -218,6 +219,7 @@ impl WorkGraph {
         task_id: TaskId,
         actor_id: ActorId,
         expected_revision: u64,
+        human_approved: bool,
     ) -> Result<u64, DispatchError> {
         let order = self.order_mut(job_id).ok_or(DispatchError::UnknownJob)?;
         if order.revision != expected_revision {
@@ -230,6 +232,9 @@ impl WorkGraph {
             .ok_or(DispatchError::UnknownTask)?;
         if task.status != TaskStatus::Assigned(actor_id) {
             return Err(DispatchError::AssignmentMismatch);
+        }
+        if task.requires_human_approval && !human_approved {
+            return Err(DispatchError::HumanApprovalRequired);
         }
         task.status = TaskStatus::InProgress(actor_id);
         order.revision = order.revision.saturating_add(1);
@@ -577,12 +582,50 @@ mod tests {
             .unwrap();
         let receipt = graph.dispatch_next(&mut registry, 100, 10).unwrap();
         assert_eq!(
-            graph.start_task(receipt.job_id, receipt.task_id, receipt.actor_id, 0),
+            graph.start_task(receipt.job_id, receipt.task_id, receipt.actor_id, 0, false),
             Err(DispatchError::RevisionConflict)
         );
         assert_eq!(
             graph.order(JobId(1)).unwrap().tasks[0].status,
             TaskStatus::Assigned(ActorId(1))
+        );
+    }
+
+    #[test]
+    fn approval_required_task_cannot_start_without_approval() {
+        let mut registry = registry();
+        registry
+            .register_actor(actor(
+                2,
+                ActorKind::Human,
+                0,
+                CapabilitySet::empty().with(Capability::Inspect),
+            ))
+            .unwrap();
+        let mut guarded = task(1, vec![], ActorConstraint::Human);
+        guarded.requires_human_approval = true;
+        let mut graph = WorkGraph::new();
+        graph.add_order(order(vec![guarded])).unwrap();
+        let receipt = graph.dispatch_next(&mut registry, 100, 10).unwrap();
+        assert_eq!(
+            graph.start_task(
+                receipt.job_id,
+                receipt.task_id,
+                receipt.actor_id,
+                receipt.revision,
+                false,
+            ),
+            Err(DispatchError::HumanApprovalRequired)
+        );
+        assert_eq!(
+            graph.start_task(
+                receipt.job_id,
+                receipt.task_id,
+                receipt.actor_id,
+                receipt.revision,
+                true,
+            ),
+            Ok(receipt.revision + 1)
         );
     }
 
@@ -606,7 +649,13 @@ mod tests {
             .unwrap();
         let first = graph.dispatch_next(&mut registry, 100, 10).unwrap();
         let revision = graph
-            .start_task(first.job_id, first.task_id, first.actor_id, first.revision)
+            .start_task(
+                first.job_id,
+                first.task_id,
+                first.actor_id,
+                first.revision,
+                false,
+            )
             .unwrap();
         graph
             .complete_task(

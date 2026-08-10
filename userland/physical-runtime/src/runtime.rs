@@ -190,6 +190,7 @@ impl PhysicalRuntime {
         &mut self,
         receipt: DispatchReceipt,
         expected_revision: u64,
+        human_approved: bool,
         tick: u64,
     ) -> Result<u64, RuntimeError> {
         let site_id = self.job_site(receipt.job_id)?;
@@ -200,6 +201,7 @@ impl PhysicalRuntime {
                 receipt.task_id,
                 receipt.actor_id,
                 expected_revision,
+                human_approved,
             )
             .map_err(RuntimeError::Dispatch)?;
         self.record_reliability(
@@ -704,7 +706,9 @@ mod tests {
         let mut runtime = configured_runtime();
         runtime.submit_work_order(order()).unwrap();
         let receipt = runtime.dispatch_next(100, 10).unwrap();
-        let running_revision = runtime.start_task(receipt, receipt.revision, 101).unwrap();
+        let running_revision = runtime
+            .start_task(receipt, receipt.revision, false, 101)
+            .unwrap();
         runtime
             .complete_task(receipt, running_revision, 9, 110)
             .unwrap();
