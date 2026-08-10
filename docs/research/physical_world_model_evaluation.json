@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "source": "deterministic_simulator_only",
+  "model_class": "action_conditioned_latent_transition_mlp",
+  "action_names": [
+    "move",
+    "inspect",
+    "diagnose",
+    "approve",
+    "repair",
+    "verify",
+    "stop"
+  ],
+  "state_dimensions": 16,
+  "action_feature_dimensions": 3,
+  "episodes": 2500,
+  "transitions": 15000,
+  "dangerous_transitions": 3602,
+  "episode_split": {
+    "train": 1750,
+    "validation": 375,
+    "test": 375
+  },
+  "transition_split": {
+    "train": 10500,
+    "validation": 2250,
+    "test": 2250
+  },
+  "episode_overlap": 0,
+  "seed": 42,
+  "hidden": 64,
+  "epochs_requested": 1200,
+  "epochs_completed": 1200,
+  "validation_mse": 0.0004484612727537751,
+  "normalized_rollout_error": {
+    "transition_model_h1": 0.005983532872051001,
+    "transition_model_h3": 0.012787802144885063,
+    "per_action_mean_h1": 0.019730109721422195,
+    "per_action_mean_h3": 0.04665490239858627
+  },
+  "safety": {
+    "rules_only": {
+      "tp": 514,
+      "fp": 14,
+      "tn": 1701,
+      "fn": 21,
+      "balanced_accuracy": 0.9762921991226396,
+      "false_negative_rate": 0.03925233644859813,
+      "false_positive_rate": 0.00816326530612245
+    },
+    "learned_only": {
+      "tp": 531,
+      "fp": 7,
+      "tn": 1708,
+      "fn": 4,
+      "balanced_accuracy": 0.99422086591646,
+      "false_negative_rate": 0.007476635514018692,
+      "false_positive_rate": 0.004081632653061225
+    },
+    "rules_plus_learned": {
+      "tp": 533,
+      "fp": 18,
+      "tn": 1697,
+      "fn": 2,
+      "balanced_accuracy": 0.9928830277104166,
+      "false_negative_rate": 0.003738317757009346,
+      "false_positive_rate": 0.010495626822157435
+    }
+  },
+  "artifact": "userland/heliox-daemon/physical_world_model.bin",
+  "artifact_format": "PWM1",
+  "artifact_sha256": "f8f081d1c250de1194330e7c412d268c83a6e58a879afb17775d280cf9a74b29",
+  "generated_dataset": "target/physical_world_model/trajectories.jsonl",
+  "generated_dataset_sha256": "c2cda1752e4dd7f3781b67b9e326be69eceb0a1a1b040e6a7d347e563e9d0915",
+  "validated_for_gating": false,
+  "gating_reason": "Simulator-only trajectories cannot validate control of real physical machinery."
+}

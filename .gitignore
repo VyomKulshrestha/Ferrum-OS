@@ -4,6 +4,7 @@
 *.bin
 !appliance/packages/notes/bin
 !appliance/world-model/*.bin
+!userland/heliox-daemon/physical_world_model.bin
 *.iso
 *.img
 *.ppm
