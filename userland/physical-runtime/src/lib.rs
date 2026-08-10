@@ -5,6 +5,7 @@ extern crate alloc;
 pub mod adapter;
 pub mod domain;
 pub mod fleet;
+pub mod privacy;
 pub mod safety;
 pub mod twin;
 pub mod work;
@@ -22,6 +23,11 @@ pub use domain::{
 pub use fleet::{
     CommandClaim, CommandDeliveryState, DeviceHealth, DeviceLifecycle, FleetDevice, FleetError,
     FleetManager, PendingUpdate, UpdateManifest, UpdateState, UpdateVerifier,
+};
+pub use privacy::{
+    ConsentGrant, DataAccessRequest, DataKind, DataKindSet, PrivacyAuditEvent, PrivacyDecision,
+    PrivacyError, PrivacyGuard, PrivacyReason, ProcessingPurpose, PurposeSet, Representation,
+    RetentionPolicy, TenantId,
 };
 pub use safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyDecision,
