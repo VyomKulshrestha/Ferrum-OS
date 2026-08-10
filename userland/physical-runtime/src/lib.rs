@@ -9,6 +9,7 @@ pub mod privacy;
 pub mod reliability;
 pub mod runtime;
 pub mod safety;
+pub mod scenario;
 pub mod twin;
 pub mod work;
 
@@ -39,6 +40,10 @@ pub use runtime::{PhysicalRuntime, RuntimeError};
 pub use safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyDecision,
     SafetyError, SafetyPolicy, SafetyReason, SafetySupervisor, SafetyVerdict,
+};
+pub use scenario::{
+    run_maintenance_demo, MaintenanceDemoError, MaintenanceDemoReport, MAINTENANCE_ASSET_ID,
+    MAINTENANCE_JOB_ID, MAINTENANCE_SITE_ID,
 };
 pub use twin::{
     ActorTelemetry, AssetTelemetry, EventEnvelope, EventPayload, OperationalTwin, SensorKind,
