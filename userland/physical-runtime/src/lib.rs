@@ -6,6 +6,7 @@ pub mod adapter;
 pub mod domain;
 pub mod fleet;
 pub mod privacy;
+pub mod reliability;
 pub mod safety;
 pub mod twin;
 pub mod work;
@@ -28,6 +29,10 @@ pub use privacy::{
     ConsentGrant, DataAccessRequest, DataKind, DataKindSet, PrivacyAuditEvent, PrivacyDecision,
     PrivacyError, PrivacyGuard, PrivacyReason, ProcessingPurpose, PurposeSet, Representation,
     RetentionPolicy, TenantId,
+};
+pub use reliability::{
+    ReliabilityError, ReliabilityEvent, ReliabilityEventKind, ReliabilityMonitor,
+    ReliabilitySnapshot, ServiceLevelAssessment, ServiceLevelObjective,
 };
 pub use safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyDecision,
