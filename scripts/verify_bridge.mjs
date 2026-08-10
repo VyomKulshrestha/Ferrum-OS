@@ -440,7 +440,8 @@ try {
     physicalDemo?.result?.unsafe_motion_blocked === true
       && physicalDemo?.result?.safe_motion_delivered === true
       && physicalDemo?.result?.policy_revision === 1
-      && Number.isInteger(physicalDemo?.result?.shadow_risk_permille)
+      && physicalDemo?.result?.unsafe_shadow_risk_permille >= 900
+      && physicalDemo?.result?.safe_shadow_risk_permille < 900
       && physicalDemo?.result?.task_successes === 5
       && physicalDemo?.result?.safety_interventions >= 1
       && physicalDemo?.result?.twin_events >= 1,

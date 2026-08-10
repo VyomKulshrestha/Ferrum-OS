@@ -19,6 +19,54 @@ pub struct PhysicalState {
     pub values: [f32; PHYSICAL_STATE_SIZE],
 }
 
+/// Named physical observation matching the version-1 training schema.
+/// Keeping this mapping in the runtime prevents callers from silently
+/// swapping positional features when constructing model input.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PhysicalObservation {
+    pub position_x: f32,
+    pub position_y: f32,
+    pub clearance: f32,
+    pub human_occupancy: f32,
+    pub battery: f32,
+    pub link_quality: f32,
+    pub health: f32,
+    pub emergency_stop: bool,
+    pub progress: f32,
+    pub vibration: f32,
+    pub fault: bool,
+    pub online: bool,
+    pub payload: f32,
+    pub velocity: f32,
+    pub geofence_margin: f32,
+    pub approval: bool,
+}
+
+impl From<PhysicalObservation> for PhysicalState {
+    fn from(observation: PhysicalObservation) -> Self {
+        Self {
+            values: [
+                observation.position_x,
+                observation.position_y,
+                observation.clearance,
+                observation.human_occupancy,
+                observation.battery,
+                observation.link_quality,
+                observation.health,
+                u8::from(observation.emergency_stop) as f32,
+                observation.progress,
+                observation.vibration,
+                u8::from(observation.fault) as f32,
+                u8::from(observation.online) as f32,
+                observation.payload,
+                observation.velocity,
+                observation.geofence_margin,
+                u8::from(observation.approval) as f32,
+            ],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PhysicalActionKind {

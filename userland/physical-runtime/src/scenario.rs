@@ -42,7 +42,8 @@ pub struct MaintenanceDemoReport {
     pub unsafe_motion_blocked: bool,
     pub safe_motion_delivered: bool,
     pub delivered_policy_revision: u64,
-    pub shadow_prediction_risk_permille: u16,
+    pub unsafe_shadow_risk_permille: u16,
+    pub safe_shadow_risk_permille: u16,
     pub final_asset_state: AssetState,
     pub privacy_representation: Representation,
     pub reliability: ReliabilitySnapshot,
@@ -60,18 +61,24 @@ pub enum MaintenanceDemoError {
 }
 
 pub fn run_maintenance_demo() -> Result<MaintenanceDemoReport, MaintenanceDemoError> {
-    run_maintenance_demo_with_prediction(PhysicalPrediction {
+    let unsafe_prediction = PhysicalPrediction {
         effect: EffectKind::Move,
         risk_permille: 950,
         uncertainty_permille: 300,
         source: PredictionSource::Simulator,
         model_version: 1,
         validated_for_gating: false,
-    })
+    };
+    let safe_prediction = PhysicalPrediction {
+        risk_permille: 0,
+        ..unsafe_prediction
+    };
+    run_maintenance_demo_with_predictions(unsafe_prediction, safe_prediction)
 }
 
-pub fn run_maintenance_demo_with_prediction(
-    shadow_prediction: PhysicalPrediction,
+pub fn run_maintenance_demo_with_predictions(
+    unsafe_prediction: PhysicalPrediction,
+    safe_prediction: PhysicalPrediction,
 ) -> Result<MaintenanceDemoReport, MaintenanceDemoError> {
     let (mut runtime, mut driver) = build_runtime()?;
     runtime
@@ -81,14 +88,14 @@ pub fn run_maintenance_demo_with_prediction(
     runtime
         .ingest_adapter_frame(proximity_frame(1, 100, 100), 100, 0)
         .map_err(MaintenanceDemoError::Runtime)?;
-    if shadow_prediction.validated_for_gating {
+    if unsafe_prediction.validated_for_gating || safe_prediction.validated_for_gating {
         return Err(MaintenanceDemoError::Invariant);
     }
     let blocked_context = current_context(&runtime);
     let unsafe_motion_blocked = runtime.authorize_and_queue_command(
         motion_command(1, 1_001),
         blocked_context,
-        &[shadow_prediction],
+        &[unsafe_prediction],
         100,
     ) == Err(RuntimeError::Safety(SafetyError::Blocked));
 
@@ -100,12 +107,12 @@ pub fn run_maintenance_demo_with_prediction(
         .preview_command(
             &motion_command(2, 1_002),
             safe_context,
-            &[shadow_prediction],
+            &[safe_prediction],
             101,
         )
         .map_err(MaintenanceDemoError::Runtime)?;
     if preview.verdict != SafetyVerdict::Allow
-        || preview.maximum_shadow_risk_permille != shadow_prediction.risk_permille
+        || preview.maximum_shadow_risk_permille != safe_prediction.risk_permille
     {
         return Err(MaintenanceDemoError::Invariant);
     }
@@ -113,7 +120,7 @@ pub fn run_maintenance_demo_with_prediction(
         .authorize_and_queue_command(
             motion_command(2, 1_002),
             safe_context,
-            &[shadow_prediction],
+            &[safe_prediction],
             101,
         )
         .map_err(MaintenanceDemoError::Runtime)?;
@@ -192,7 +199,8 @@ pub fn run_maintenance_demo_with_prediction(
         unsafe_motion_blocked,
         safe_motion_delivered,
         delivered_policy_revision: routed.policy_revision,
-        shadow_prediction_risk_permille: preview.maximum_shadow_risk_permille,
+        unsafe_shadow_risk_permille: unsafe_prediction.risk_permille,
+        safe_shadow_risk_permille: preview.maximum_shadow_risk_permille,
         final_asset_state,
         privacy_representation,
         reliability,
@@ -540,7 +548,8 @@ mod tests {
         assert!(report.unsafe_motion_blocked);
         assert!(report.safe_motion_delivered);
         assert_eq!(report.delivered_policy_revision, 1);
-        assert_eq!(report.shadow_prediction_risk_permille, 950);
+        assert_eq!(report.unsafe_shadow_risk_permille, 950);
+        assert_eq!(report.safe_shadow_risk_permille, 0);
         assert_eq!(report.final_asset_state, AssetState::Operational);
         assert_eq!(report.privacy_representation, Representation::Aggregate);
         assert_eq!(report.reliability.task_attempts, 5);

@@ -29,8 +29,8 @@ pub use fleet::{
     FleetManager, PendingUpdate, UpdateManifest, UpdateState, UpdateVerifier,
 };
 pub use model::{
-    PhysicalAction, PhysicalActionKind, PhysicalForecast, PhysicalModelError, PhysicalState,
-    PhysicalTransitionModel, PHYSICAL_ACTION_COUNT, PHYSICAL_ACTION_FEATURE_SIZE,
+    PhysicalAction, PhysicalActionKind, PhysicalForecast, PhysicalModelError, PhysicalObservation,
+    PhysicalState, PhysicalTransitionModel, PHYSICAL_ACTION_COUNT, PHYSICAL_ACTION_FEATURE_SIZE,
     PHYSICAL_STATE_SIZE,
 };
 pub use privacy::{
@@ -48,7 +48,7 @@ pub use safety::{
     SafetyError, SafetyPolicy, SafetyReason, SafetySupervisor, SafetyVerdict,
 };
 pub use scenario::{
-    run_maintenance_demo, run_maintenance_demo_with_prediction, MaintenanceDemoError,
+    run_maintenance_demo, run_maintenance_demo_with_predictions, MaintenanceDemoError,
     MaintenanceDemoReport, MAINTENANCE_ASSET_ID, MAINTENANCE_JOB_ID, MAINTENANCE_SITE_ID,
 };
 pub use twin::{
