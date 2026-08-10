@@ -4,6 +4,7 @@ extern crate alloc;
 
 pub mod adapter;
 pub mod domain;
+pub mod fleet;
 pub mod safety;
 pub mod twin;
 pub mod work;
@@ -17,6 +18,10 @@ pub use adapter::{
 pub use domain::{
     Actor, ActorId, ActorKind, ActorStatus, Asset, AssetId, AssetState, Capability, CapabilitySet,
     DomainError, DomainRegistry, Position, Qualification, QualificationSet, Site, SiteId,
+};
+pub use fleet::{
+    CommandClaim, CommandDeliveryState, DeviceHealth, DeviceLifecycle, FleetDevice, FleetError,
+    FleetManager, PendingUpdate, UpdateManifest, UpdateState, UpdateVerifier,
 };
 pub use safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyDecision,
