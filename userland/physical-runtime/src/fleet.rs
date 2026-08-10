@@ -357,6 +357,24 @@ impl FleetManager {
         routed: RoutedCommand,
         current_tick: u64,
     ) -> Result<(), FleetError> {
+        self.can_queue_command(&routed, current_tick)?;
+        self.command_journal.push_back(CommandClaim {
+            routed,
+            state: CommandDeliveryState::Queued,
+            attempt_count: 0,
+            last_transition_tick: current_tick,
+        });
+        Ok(())
+    }
+
+    /// Preflight used by the single-owner runtime before consuming an adapter
+    /// execution permit. With no intervening mutation, a succeeding queue is
+    /// guaranteed to accept the routed envelope.
+    pub fn can_queue_command(
+        &self,
+        routed: &RoutedCommand,
+        current_tick: u64,
+    ) -> Result<(), FleetError> {
         if current_tick > routed.command.deadline_tick {
             return Err(FleetError::CommandExpired);
         }
@@ -369,12 +387,6 @@ impl FleetManager {
         if self.command_journal.len() >= MAX_COMMAND_JOURNAL {
             return Err(FleetError::CapacityExceeded);
         }
-        self.command_journal.push_back(CommandClaim {
-            routed,
-            state: CommandDeliveryState::Queued,
-            attempt_count: 0,
-            last_transition_tick: current_tick,
-        });
         Ok(())
     }
 

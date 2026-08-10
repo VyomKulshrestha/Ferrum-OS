@@ -270,6 +270,21 @@ impl OperationalTwin {
         Ok(event_id)
     }
 
+    pub fn reserve_source(&mut self, source_id: u64) -> Result<(), TwinError> {
+        if self
+            .source_sequences
+            .iter()
+            .any(|(existing, _)| *existing == source_id)
+        {
+            return Ok(());
+        }
+        if self.source_sequences.len() >= MAX_EVENT_SOURCES {
+            return Err(TwinError::SourceCapacityExceeded);
+        }
+        self.source_sequences.push((source_id, 0));
+        Ok(())
+    }
+
     pub fn snapshot(&self) -> TwinSnapshot {
         TwinSnapshot {
             latest_event_id: self.latest_event_id,

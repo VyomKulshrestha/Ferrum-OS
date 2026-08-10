@@ -7,6 +7,7 @@ pub mod domain;
 pub mod fleet;
 pub mod privacy;
 pub mod reliability;
+pub mod runtime;
 pub mod safety;
 pub mod twin;
 pub mod work;
@@ -34,6 +35,7 @@ pub use reliability::{
     ReliabilityError, ReliabilityEvent, ReliabilityEventKind, ReliabilityMonitor,
     ReliabilitySnapshot, ServiceLevelAssessment, ServiceLevelObjective,
 };
+pub use runtime::{PhysicalRuntime, RuntimeError};
 pub use safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyDecision,
     SafetyError, SafetyPolicy, SafetyReason, SafetySupervisor, SafetyVerdict,
