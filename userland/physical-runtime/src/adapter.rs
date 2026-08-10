@@ -210,7 +210,6 @@ pub struct AdapterRegistry {
     adapters: Vec<AdapterIdentity>,
     endpoints: Vec<Endpoint>,
     command_claims: Vec<u64>,
-    next_event_id: u64,
 }
 
 impl AdapterRegistry {
@@ -219,7 +218,6 @@ impl AdapterRegistry {
             adapters: Vec::new(),
             endpoints: Vec::new(),
             command_claims: Vec::new(),
-            next_event_id: 1,
         }
     }
 
@@ -312,7 +310,7 @@ impl AdapterRegistry {
             return Err(AdapterError::EndpointMismatch);
         }
 
-        let event_id = self.next_event_id;
+        let event_id = twin.next_event_id();
         twin.apply(
             domain,
             EventEnvelope {
@@ -330,7 +328,6 @@ impl AdapterRegistry {
         let adapter = &mut self.adapters[adapter_index];
         adapter.last_receive_sequence = frame.sequence;
         adapter.last_seen_tick = received_at_tick;
-        self.next_event_id = self.next_event_id.saturating_add(1);
         Ok(event_id)
     }
 
@@ -482,7 +479,8 @@ mod tests {
     use crate::domain::{
         Actor, ActorKind, ActorStatus, CapabilitySet, Position, QualificationSet, Site,
     };
-    use crate::twin::{SensorKind, SensorReading};
+    use crate::twin::{EventPayload, SensorKind, SensorReading};
+    use crate::work::{JobId, TaskId};
     use alloc::string::ToString;
 
     fn identity(state: AdapterState) -> AdapterIdentity {
@@ -607,6 +605,36 @@ mod tests {
             Err(AdapterError::DuplicateOrOutOfOrder)
         );
         assert_eq!(twin.snapshot().retained_events, 1);
+    }
+
+    #[test]
+    fn adapter_and_internal_events_share_one_monotonic_id_domain() {
+        let mut adapters = registry(AdapterState::Online);
+        let mut domain = domain();
+        let mut twin = OperationalTwin::new();
+        assert_eq!(
+            twin.append_internal(
+                &mut domain,
+                9_000,
+                1,
+                9,
+                9,
+                EventPayload::WorkAssigned {
+                    job_id: JobId(1),
+                    task_id: TaskId(2),
+                    actor_id: ActorId(8),
+                },
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            adapters
+                .ingest_frame(&mut twin, &mut domain, sensor_frame(1), 11, 1)
+                .unwrap(),
+            2
+        );
+        assert_eq!(twin.snapshot().latest_event_id, 2);
     }
 
     #[test]

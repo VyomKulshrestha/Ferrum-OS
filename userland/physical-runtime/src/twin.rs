@@ -238,6 +238,38 @@ impl OperationalTwin {
         &self.events
     }
 
+    /// Allocate from the twin's single event-id domain. Producers must not
+    /// maintain independent counters because internal and adapter events share
+    /// this log.
+    pub const fn next_event_id(&self) -> u64 {
+        self.latest_event_id.saturating_add(1)
+    }
+
+    pub fn append_internal(
+        &mut self,
+        registry: &mut DomainRegistry,
+        source_id: u64,
+        source_sequence: u64,
+        observed_at_tick: u64,
+        received_at_tick: u64,
+        payload: EventPayload,
+    ) -> Result<u64, TwinError> {
+        let event_id = self.next_event_id();
+        self.apply(
+            registry,
+            EventEnvelope {
+                event_id,
+                source_id,
+                source_sequence,
+                observed_at_tick,
+                received_at_tick,
+                payload,
+            },
+            0,
+        )?;
+        Ok(event_id)
+    }
+
     pub fn snapshot(&self) -> TwinSnapshot {
         TwinSnapshot {
             latest_event_id: self.latest_event_id,
