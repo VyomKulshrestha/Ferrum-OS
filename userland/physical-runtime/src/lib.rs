@@ -2,10 +2,17 @@
 
 extern crate alloc;
 
+pub mod adapter;
 pub mod domain;
 pub mod twin;
 pub mod work;
 
+pub use adapter::{
+    AdapterCommand, AdapterDriver, AdapterError, AdapterFrame, AdapterId, AdapterIdentity,
+    AdapterPayload, AdapterProtocol, AdapterRegistry, AdapterState, CommandKind, Endpoint,
+    EndpointCapability, EndpointCapabilitySet, EndpointId, EndpointKind, RoutedCommand,
+    SimulatedAdapter,
+};
 pub use domain::{
     Actor, ActorId, ActorKind, ActorStatus, Asset, AssetId, AssetState, Capability, CapabilitySet,
     DomainError, DomainRegistry, Position, Qualification, QualificationSet, Site, SiteId,
