@@ -60,6 +60,19 @@ pub enum MaintenanceDemoError {
 }
 
 pub fn run_maintenance_demo() -> Result<MaintenanceDemoReport, MaintenanceDemoError> {
+    run_maintenance_demo_with_prediction(PhysicalPrediction {
+        effect: EffectKind::Move,
+        risk_permille: 950,
+        uncertainty_permille: 300,
+        source: PredictionSource::Simulator,
+        model_version: 1,
+        validated_for_gating: false,
+    })
+}
+
+pub fn run_maintenance_demo_with_prediction(
+    shadow_prediction: PhysicalPrediction,
+) -> Result<MaintenanceDemoReport, MaintenanceDemoError> {
     let (mut runtime, mut driver) = build_runtime()?;
     runtime
         .submit_work_order(maintenance_order())
@@ -68,14 +81,9 @@ pub fn run_maintenance_demo() -> Result<MaintenanceDemoReport, MaintenanceDemoEr
     runtime
         .ingest_adapter_frame(proximity_frame(1, 100, 100), 100, 0)
         .map_err(MaintenanceDemoError::Runtime)?;
-    let shadow_prediction = PhysicalPrediction {
-        effect: EffectKind::Move,
-        risk_permille: 950,
-        uncertainty_permille: 300,
-        source: PredictionSource::PhysicalJepa,
-        model_version: 1,
-        validated_for_gating: false,
-    };
+    if shadow_prediction.validated_for_gating {
+        return Err(MaintenanceDemoError::Invariant);
+    }
     let blocked_context = current_context(&runtime);
     let unsafe_motion_blocked = runtime.authorize_and_queue_command(
         motion_command(1, 1_001),

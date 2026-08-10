@@ -7,7 +7,12 @@
 use alloc::format;
 use alloc::string::String;
 
-use ferrum_physical_runtime::{run_maintenance_demo, MaintenanceDemoReport};
+use ferrum_physical_runtime::{
+    run_maintenance_demo_with_prediction, MaintenanceDemoReport, PhysicalAction,
+    PhysicalActionKind, PhysicalState, PhysicalTransitionModel,
+};
+
+static PHYSICAL_MODEL_BYTES: &[u8] = include_bytes!("../physical_world_model.bin");
 
 pub const PHYSICAL_SCHEMA_VERSION: u32 = 1;
 
@@ -15,13 +20,15 @@ pub const PHYSICAL_SCHEMA_VERSION: u32 = 1;
 pub struct PhysicalService {
     completed_simulations: u64,
     last_report: Option<MaintenanceDemoReport>,
+    model: Option<PhysicalTransitionModel<'static>>,
 }
 
 impl PhysicalService {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             completed_simulations: 0,
             last_report: None,
+            model: PhysicalTransitionModel::from_bytes(PHYSICAL_MODEL_BYTES).ok(),
         }
     }
 
@@ -31,16 +38,32 @@ impl PhysicalService {
             .as_ref()
             .is_some_and(|report| report.job_completed);
         format!(
-            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
+            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"physical_model_loaded\":{},\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
             PHYSICAL_SCHEMA_VERSION,
+            self.model.is_some(),
             self.completed_simulations,
             last_completed
         )
     }
 
     pub fn run_maintenance_simulation_json(&mut self) -> Result<String, &'static str> {
-        let report =
-            run_maintenance_demo().map_err(|_| "physical maintenance simulation failed")?;
+        let model = self.model.ok_or("physical model artifact rejected")?;
+        let forecast = model
+            .predict_shadow(
+                PhysicalState {
+                    values: [
+                        0.0, 0.0, 0.9, 0.0, 0.9, 0.9, 0.5, 0.0,
+                        0.2, 0.5, 0.0, 1.0, 0.1, 0.0, 1.0, 1.0,
+                    ],
+                },
+                PhysicalAction {
+                    kind: PhysicalActionKind::Move,
+                    features: [0.1, 0.1, 0.3],
+                },
+            )
+            .map_err(|_| "physical model inference failed")?;
+        let report = run_maintenance_demo_with_prediction(forecast.evidence)
+            .map_err(|_| "physical maintenance simulation failed")?;
         self.completed_simulations = self.completed_simulations.saturating_add(1);
         let response = format!(
             "{{\"simulation_only\":true,\"job_completed\":{},\"tasks\":{},\"approval_enforced\":{},\"unsafe_motion_blocked\":{},\"safe_motion_delivered\":{},\"policy_revision\":{},\"shadow_risk_permille\":{},\"task_successes\":{},\"safety_interventions\":{},\"twin_events\":{}}}",
