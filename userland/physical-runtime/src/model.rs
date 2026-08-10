@@ -53,6 +53,7 @@ pub enum PhysicalModelError {
     SchemaMismatch,
     InvalidDimensions,
     InvalidMetric,
+    InvalidWeights,
     InvalidState,
     InvalidAction,
 }
@@ -114,6 +115,12 @@ impl<'a> PhysicalTransitionModel<'a> {
         if bytes.len() != b2_offset + PHYSICAL_STATE_SIZE * 4 {
             return Err(PhysicalModelError::Truncated);
         }
+        for chunk in bytes[HEADER_SIZE..].chunks_exact(4) {
+            let value = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+            if !value.is_finite() {
+                return Err(PhysicalModelError::InvalidWeights);
+            }
+        }
         Ok(Self {
             bytes,
             hidden_size,
@@ -159,6 +166,9 @@ impl<'a> PhysicalTransitionModel<'a> {
                 value += *input_value
                     * self.float_at(self.w1_offset, row * self.hidden_size + column)?;
             }
+            if !value.is_finite() {
+                return Err(PhysicalModelError::InvalidWeights);
+            }
             *output = value.max(0.0);
         }
         let mut next = state.values;
@@ -167,6 +177,9 @@ impl<'a> PhysicalTransitionModel<'a> {
             for (row, hidden_value) in hidden[..self.hidden_size].iter().enumerate() {
                 delta += *hidden_value
                     * self.float_at(self.w2_offset, row * PHYSICAL_STATE_SIZE + column)?;
+            }
+            if !delta.is_finite() {
+                return Err(PhysicalModelError::InvalidWeights);
             }
             *output = (*output + delta).clamp(-1.25, 1.25);
         }
@@ -327,5 +340,12 @@ mod tests {
             ),
             Err(PhysicalModelError::InvalidState)
         );
+
+        let mut corrupt = ARTIFACT.to_vec();
+        corrupt[HEADER_SIZE..HEADER_SIZE + 4].copy_from_slice(&f32::NAN.to_le_bytes());
+        assert!(matches!(
+            PhysicalTransitionModel::from_bytes(&corrupt),
+            Err(PhysicalModelError::InvalidWeights)
+        ));
     }
 }
