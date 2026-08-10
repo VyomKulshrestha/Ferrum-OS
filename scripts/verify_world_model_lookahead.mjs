@@ -11,6 +11,8 @@ const target = path.join(repo, "target");
 const baseDisk = path.join(target, "heliox-disk.img");
 const lookaheadDisk = path.join(target, "world-model-lookahead-base.img");
 const fillFile = path.join(target, "world-model-lookahead-fill.bin");
+const emptyFile = path.join(target, "world-model-lookahead-empty.bin");
+const padFile = path.join(target, "world-model-lookahead-pad.bin");
 const corpus = path.join(target, "world-model-lookahead-corpus.jsonl");
 const dataset = path.join(target, "world-model-lookahead-dataset.jsonl");
 const traces = path.join(target, "world-model-lookahead-traces.jsonl");
@@ -40,17 +42,37 @@ function diskStats() {
 try {
   fs.copyFileSync(baseDisk, lookaheadDisk);
   // Put the image exactly two one-block writes beyond safety: H=1 remains at
-  // or below 95%, while H=2 crosses it. This tracks the size-aware rule-table
-  // estimate instead of the former fixed +2%-per-write approximation.
+  // or below 95%, while H=2 crosses it. Large ext2 files consume a variable
+  // number of indirect metadata blocks depending on the starting image, so
+  // first leave headroom, then measure and close the gap with a direct-block
+  // pad file. This keeps the fixture independent of prior appliance contents.
   const before = diskStats();
   const used = before.total - before.free;
-  // Leave four blocks for the large fixture file's indirect-block metadata.
-  const targetUsed = Math.floor(before.total * 0.95) - 6;
+  const exactUsed = Math.floor(before.total * 0.95) - 1;
+  const targetUsed = exactUsed - 12;
   assert.ok(targetUsed > used, "packaged disk is already too full for a step-two-only lookahead fixture");
   fs.writeFileSync(fillFile, Buffer.alloc((targetUsed - used) * before.size, 0x5a));
   debugfs("unlink /heliox/world/model_learned.bin");
   debugfs("write target/world-model-lookahead-fill.bin /lookahead-fill.bin");
+
+  // Reserve a directory entry before sizing the final pad. If adding the
+  // entry expands the directory, that allocation is included in the measured
+  // remainder instead of shifting the horizon after the fact.
+  fs.writeFileSync(emptyFile, Buffer.alloc(0));
+  debugfs("write target/world-model-lookahead-empty.bin /heliox/lookahead-pad-anchor");
+  const afterAnchor = diskStats();
+  const anchorUsed = afterAnchor.total - afterAnchor.free;
+  const remainingBlocks = exactUsed - anchorUsed;
+  assert.ok(
+    remainingBlocks >= 0 && remainingBlocks <= 12,
+    `unexpected direct-block padding requirement ${remainingBlocks}`,
+  );
+  if (remainingBlocks > 0) {
+    fs.writeFileSync(padFile, Buffer.alloc(remainingBlocks * before.size, 0x3c));
+    debugfs("write target/world-model-lookahead-pad.bin /heliox/lookahead-pad.bin");
+  }
   const afterFill = diskStats();
+  assert.equal(afterFill.total - afterFill.free, exactUsed, "lookahead fixture must reach the exact block count");
   const usedFraction = (afterFill.total - afterFill.free) / afterFill.total;
   assert.ok(usedFraction > 0.949 && usedFraction <= 0.95, `unexpected fixture usage ${usedFraction}`);
   fs.writeFileSync(corpus, `${JSON.stringify({
@@ -90,4 +112,6 @@ try {
 } finally {
   fs.rmSync(lookaheadDisk, { force: true });
   fs.rmSync(fillFile, { force: true });
+  fs.rmSync(emptyFile, { force: true });
+  fs.rmSync(padFile, { force: true });
 }
