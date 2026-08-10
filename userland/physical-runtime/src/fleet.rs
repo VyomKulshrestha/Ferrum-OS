@@ -7,7 +7,7 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
-use crate::adapter::{AdapterCommand, AdapterId};
+use crate::adapter::{AdapterId, RoutedCommand};
 use crate::domain::SiteId;
 
 pub const MAX_FLEET_DEVICES: usize = 128;
@@ -96,7 +96,7 @@ pub enum CommandDeliveryState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CommandClaim {
-    pub command: AdapterCommand,
+    pub routed: RoutedCommand,
     pub state: CommandDeliveryState,
     pub attempt_count: u16,
     pub last_transition_tick: u64,
@@ -354,15 +354,15 @@ impl FleetManager {
 
     pub fn queue_command(
         &mut self,
-        command: AdapterCommand,
+        routed: RoutedCommand,
         current_tick: u64,
     ) -> Result<(), FleetError> {
-        if current_tick > command.deadline_tick {
+        if current_tick > routed.command.deadline_tick {
             return Err(FleetError::CommandExpired);
         }
         if self.command_journal.iter().any(|claim| {
-            claim.command.command_id == command.command_id
-                || claim.command.idempotency_key == command.idempotency_key
+            claim.routed.command.command_id == routed.command.command_id
+                || claim.routed.command.idempotency_key == routed.command.idempotency_key
         }) {
             return Err(FleetError::DuplicateCommand);
         }
@@ -370,7 +370,7 @@ impl FleetManager {
             return Err(FleetError::CapacityExceeded);
         }
         self.command_journal.push_back(CommandClaim {
-            command,
+            routed,
             state: CommandDeliveryState::Queued,
             attempt_count: 0,
             last_transition_tick: current_tick,
@@ -382,15 +382,15 @@ impl FleetManager {
         &mut self,
         adapter_id: AdapterId,
         current_tick: u64,
-    ) -> Option<AdapterCommand> {
+    ) -> Option<RoutedCommand> {
         for claim in &mut self.command_journal {
-            if claim.command.adapter_id == adapter_id
+            if claim.routed.command.adapter_id == adapter_id
                 && matches!(
                     claim.state,
                     CommandDeliveryState::Queued | CommandDeliveryState::Failed
                 )
             {
-                if current_tick > claim.command.deadline_tick {
+                if current_tick > claim.routed.command.deadline_tick {
                     claim.state = CommandDeliveryState::Expired;
                     claim.last_transition_tick = current_tick;
                     continue;
@@ -398,7 +398,7 @@ impl FleetManager {
                 claim.state = CommandDeliveryState::Dispatched;
                 claim.attempt_count = claim.attempt_count.saturating_add(1);
                 claim.last_transition_tick = current_tick;
-                return Some(claim.command);
+                return Some(claim.routed);
             }
         }
         None
@@ -413,7 +413,7 @@ impl FleetManager {
         let claim = self
             .command_journal
             .iter_mut()
-            .find(|claim| claim.command.command_id == command_id)
+            .find(|claim| claim.routed.command.command_id == command_id)
             .ok_or(FleetError::UnknownCommand)?;
         let valid = matches!(
             (claim.state, state),
@@ -466,7 +466,7 @@ impl FleetManager {
     pub fn command_claim(&self, command_id: u64) -> Option<&CommandClaim> {
         self.command_journal
             .iter()
-            .find(|claim| claim.command.command_id == command_id)
+            .find(|claim| claim.routed.command.command_id == command_id)
     }
 
     pub fn devices(&self) -> &[FleetDevice] {
@@ -491,7 +491,7 @@ impl FleetManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::adapter::{CommandKind, EndpointId};
+    use crate::adapter::{AdapterCommand, CommandKind, EndpointId};
 
     struct AcceptingVerifier;
 
@@ -534,18 +534,21 @@ mod tests {
         }
     }
 
-    fn command(id: u64, deadline_tick: u64) -> AdapterCommand {
-        AdapterCommand {
-            command_id: id,
-            idempotency_key: id + 100,
-            adapter_id: AdapterId(1),
-            endpoint_id: EndpointId(2),
-            session_epoch: 1,
-            kind: CommandKind::MoveTo,
-            argument0: 0,
-            argument1: 0,
-            argument2: 0,
-            deadline_tick,
+    fn command(id: u64, deadline_tick: u64) -> RoutedCommand {
+        RoutedCommand {
+            command: AdapterCommand {
+                command_id: id,
+                idempotency_key: id + 100,
+                adapter_id: AdapterId(1),
+                endpoint_id: EndpointId(2),
+                session_epoch: 1,
+                kind: CommandKind::MoveTo,
+                argument0: 0,
+                argument1: 0,
+                argument2: 0,
+                deadline_tick,
+            },
+            policy_revision: 7,
         }
     }
 
