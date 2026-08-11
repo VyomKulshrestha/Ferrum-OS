@@ -203,7 +203,7 @@ const METHODS: &[MethodSpec] = &[
     MethodSpec { name: "neural_calibrate", class: MethodClass::Request, description: "Bind a host calibration to the current paired neural session", required_capability: HELIOX_NEURAL_CAP },
     MethodSpec { name: "neural_intent_preview", class: MethodClass::Request, description: "Validate and preview signed neural intent evidence without execution", required_capability: HELIOX_NEURAL_CAP },
     MethodSpec { name: "neural_intent_commit", class: MethodClass::Request, description: "Commit one previewed allowlisted safe-UI intent", required_capability: HELIOX_NEURAL_CAP },
-    MethodSpec { name: "neural_disarm", class: MethodClass::Request, description: "Report that disarm requires trusted non-neural local input", required_capability: HELIOX_NEURAL_CAP },
+    MethodSpec { name: "neural_disarm", class: MethodClass::Request, description: "Revoke neural authority remotely; only arming requires trusted non-neural local input", required_capability: HELIOX_NEURAL_CAP },
     // ---- Reasoning visualization ----
     MethodSpec { name: "reasoning_log", class: MethodClass::Request, description: "Return the full reasoning event log", required_capability: HELIOX_BRIDGE_CAP },
     MethodSpec { name: "reasoning_stats", class: MethodClass::Request, description: "Reasoning emitter statistics", required_capability: HELIOX_BRIDGE_CAP },
