@@ -507,6 +507,13 @@ fn build_c_code(
 
 fn new_build(target: &Target, c_root_dir: &Path, include_dir: &Path) -> cc::Build {
     let mut b = cc::Build::new();
+    // `cc` defaults to hosted Unix tool names for x86_64-unknown-none even on
+    // a Windows host. FerrumOS CI installs LLVM explicitly, so select its
+    // portable driver and archiver instead of relying on `cc`/`ar` aliases.
+    if target.os == "none" {
+        let _ = b.compiler("clang");
+        let _ = b.archiver("llvm-ar");
+    }
     configure_cc(&mut b, target, c_root_dir, include_dir);
     b
 }
@@ -596,6 +603,7 @@ fn configure_cc(c: &mut cc::Build, target: &Target, c_root_dir: &Path, include_d
 
     // Allow cross-compiling without a target sysroot for these targets.
     if (target.arch == WASM32)
+        || target.os == "none"
         || (target.os == "linux" && target.env == "musl" && target.arch != X86_64)
     {
         // TODO: Expand this to non-clang compilers in 0.17.0 if practical.
