@@ -296,8 +296,10 @@ def main():
     parser.add_argument("--epochs", type=int, default=1200)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dataset", type=Path, default=Path("target/physical_world_model/trajectories.jsonl"))
-    parser.add_argument("--artifact", type=Path, default=Path("userland/heliox-daemon/physical_world_model.bin"))
-    parser.add_argument("--evaluation", type=Path, default=Path("docs/research/physical_world_model_evaluation.json"))
+    # This trainer is retained as the supervised MLP baseline. Its defaults
+    # deliberately cannot overwrite the deployed PJE1 artifact or its report.
+    parser.add_argument("--artifact", type=Path, default=Path("target/physical_world_model/baseline_mlp.bin"))
+    parser.add_argument("--evaluation", type=Path, default=Path("target/physical_world_model/baseline_mlp_evaluation.json"))
     args = parser.parse_args()
 
     rows = generate(args.episodes, args.steps, args.seed)
@@ -318,19 +320,33 @@ def main():
     for action in range(ACTION_COUNT):
         selected = [row[5] - row[2] for row in train_rows if row[3] == action]
         mean_delta[action] = np.mean(selected, axis=0)
-    jepa_predictor = lambda state, action, features: predict(make_input(state, action, features), weights)[0]
+    transition_predictor = lambda state, action, features: predict(make_input(state, action, features), weights)[0]
     mean_predictor = lambda _state, action, _features: mean_delta[action]
-    h1 = rollout_error(test_rows, jepa_predictor, 1)
-    h3 = rollout_error(test_rows, jepa_predictor, 3)
-    mean_h1 = rollout_error(test_rows, mean_predictor, 1)
-    mean_h3 = rollout_error(test_rows, mean_predictor, 3)
+    validation_rollout = {
+        f"transition_model_h{horizon}": rollout_error(val_rows, transition_predictor, horizon)
+        for horizon in range(1, 6)
+    }
+    validation_rollout.update({
+        f"per_action_mean_h{horizon}": rollout_error(val_rows, mean_predictor, horizon)
+        for horizon in range(1, 6)
+    })
+    test_rollout = {
+        f"transition_model_h{horizon}": rollout_error(test_rows, transition_predictor, horizon)
+        for horizon in range(1, 6)
+    }
+    test_rollout.update({
+        f"per_action_mean_h{horizon}": rollout_error(test_rows, mean_predictor, horizon)
+        for horizon in range(1, 6)
+    })
+    h3 = test_rollout["transition_model_h3"]
+    mean_h3 = test_rollout["per_action_mean_h3"]
 
     rules = confusion(test_rows, lambda row: rules_block(row[2], row[3], row[4]))
     learned = confusion(test_rows, lambda row: predicted_block(
-        row[2], row[3], row[4], np.clip(row[2] + jepa_predictor(row[2], row[3], row[4]), -1.25, 1.25)
+        row[2], row[3], row[4], np.clip(row[2] + transition_predictor(row[2], row[3], row[4]), -1.25, 1.25)
     ))
     combined = confusion(test_rows, lambda row: rules_block(row[2], row[3], row[4]) or predicted_block(
-        row[2], row[3], row[4], np.clip(row[2] + jepa_predictor(row[2], row[3], row[4]), -1.25, 1.25)
+        row[2], row[3], row[4], np.clip(row[2] + transition_predictor(row[2], row[3], row[4]), -1.25, 1.25)
     ))
 
     write_dataset(args.dataset, rows)
@@ -355,10 +371,8 @@ def main():
         "epochs_requested": args.epochs,
         "epochs_completed": trained_epochs,
         "validation_mse": validation_mse,
-        "normalized_rollout_error": {
-            "transition_model_h1": h1, "transition_model_h3": h3,
-            "per_action_mean_h1": mean_h1, "per_action_mean_h3": mean_h3,
-        },
+        "validation_rollout_error": validation_rollout,
+        "normalized_rollout_error": test_rollout,
         "safety": {"rules_only": rules, "learned_only": learned, "rules_plus_learned": combined},
         "artifact": str(args.artifact).replace("\\", "/"),
         "artifact_format": "PWM1",
