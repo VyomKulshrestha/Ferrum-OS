@@ -467,7 +467,10 @@ Until a configuration file actually exists on disk, the daemon stays idle: no ti
 
 The daemon exposes JSON-RPC 2.0 over WebSocket port 8785: `ping`, `pair`,
 `set_control_mode`, `execute_tool`, `agent_step`, `world_model_preview`,
-`gesture_event`, `health`, `get_config`, `system_status`, and `agent_stats`.
+`physical_status`, `physical_maintenance_demo`, `neural_status`,
+`neural_calibrate`, `neural_intent_preview`, `neural_intent_commit`,
+`neural_disarm`, `gesture_event`, `health`, `get_config`, `system_status`, and
+`agent_stats`.
 The boot-scoped pairing token is printed only on the physical console. Before
 pairing, privileged calls fail closed. A paired client defaults to an exclusive
 lease, pausing built-in planning so two controllers cannot race; cooperative
@@ -770,6 +773,60 @@ wearables, real robots, site-specific adapters, hardware interlocks, field data,
 independent safety assessment, and natural-use measurements remain external
 work and are not represented as implemented.
 
+### Neural Intent Boundary (`userland/neural-protocol`, `tools/neurod`)
+
+The neural interface is an input boundary, not a privileged execution path and
+not another agent model. Acquisition and decoding run in the host-side
+`neurod`; raw samples never enter Ferrum or a remote provider. Heliox receives
+only the signed, fixed-width `NIV1` evidence envelope over the already paired
+WebSocket session.
+
+```text
+Synthetic/playback/optional BrainFlow source
+  -> bounded signal health + SSVEP decoder in neurod
+  -> signed coarse NIV1 intent (no raw EEG)
+  -> paired neural RPC + non-neural console arm
+  -> strict replay/expiry/quality/dwell/revision state machine
+  -> preview
+       |-> dedicated UI focus/select/cancel
+       |-> compiled read-only OS goal -> OS world model -> capability dispatch
+       `-> physical work-order proposal -> physical H=3 JEPA shadow only
+  -> commit only for the UI/read-only allowlist; physical commit is impossible
+```
+
+- **Session authority**: pairing derives boot-scoped session material from the
+  console token. Calibration, explicit console arming, preview, and commit are
+  separate state transitions. Disconnects, controller-mode changes, and
+  validation failures disarm; the commit rechecks identity, expiry, and both
+  focus and OS-state revisions.
+- **Signal boundary**: `neurod` provides deterministic synthetic and playback
+  adapters, an optional BrainFlow adapter, bounded buffers, quality/artifact/
+  dropout/line-noise checks, a classical SSVEP decoder, fault injection,
+  consent-gated BIDS-shaped recording, and a localhost fixture dashboard. The
+  dashboard contains no pairing token or action endpoint and deliberately does
+  not render photosensitive flicker.
+- **Execution boundary**: neural confidence cannot grant a capability or skip
+  `dispatch_with_world_model`. Only four UI classes and three compiled read-only
+  goals can commit. Physical evidence returns `proposal_only=true`,
+  `permit_issued=false`, and `adapter_invoked=false`; deterministic physical
+  policy and a separate non-neural confirmation remain mandatory.
+- **Fusion/privacy**: multimodal fusion retains a bounded maximum of 16 coarse
+  `(tick, class, scope)` events and clears them on pairing or disconnect. Raw
+  EEG, derived signal features, provider text, and signing material are not
+  retained in the OS context.
+- **Evidence**: parser tests mutate every byte and every truncated length; QEMU
+  integration covers pairing, console-only arm, replay, artifact/signature
+  rejection, physical non-mutation, controller revocation, and normal
+  world-model/physical operation. The deterministic signal suite records
+  600/600 accepted signal windows, 400/400 artifact abstentions, and 0/10,000
+  no-control candidate emissions. This is synthetic N0--N4 software evidence,
+  not live-human EEG or physical-safety evidence.
+
+N5 remains outside the software claim: live-board validation, explicit human
+consent, multi-day and independent-participant evaluation, hardware-in-the-loop
+robots, an independently wired emergency stop, and qualified safety and human-
+factors review are required before any supervised physical pilot.
+
 ### Permission Tiers
 
 | Tier | Level | Auto-approve | Example Tools |
@@ -928,10 +985,10 @@ back. If manually editing this file, restart the daemon (`services stop heliox-d
 
 The release harness has two layers:
 
-- `node scripts/verify_all_audits.mjs` runs the 98-case shell command sweep and
-  the independent 65-case exhaustive command catalog sequentially, failing on
+- `node scripts/verify_all_audits.mjs` runs the 102-case shell command sweep and
+  the independent 81-entry exhaustive command catalog sequentially, failing on
   the first non-zero child result.
-- The 71 `scripts/verify_*.mjs` verification scripts are available individually
+- The 76 `scripts/verify_*.mjs` verification scripts are available individually
   for isolated QEMU evidence across Ring-3, scheduling, GUI apps, networking,
   storage, accounts, Heliox, real/synthetic inference, voice/fusion, and both
   rule-based and learned world-model safety paths.

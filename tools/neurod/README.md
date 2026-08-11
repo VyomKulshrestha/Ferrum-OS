@@ -44,3 +44,16 @@ Recording is intentionally API-only until an explicit consent UX is connected.
 start unless the caller supplies affirmative consent. Its sidecar records
 whether the source was human, playback, or synthetic so fixtures cannot be
 mistaken for human EEG.
+
+Reproduce the registered synthetic safety gates with:
+
+```powershell
+python -m unittest discover -s tools/neurod -p 'test_*.py'
+python scripts/evaluate_neural_simulator.py
+```
+
+The committed fixture result is 600/600 accepted signal windows, 400/400
+artifact-window abstentions, and zero emitted candidates in 10,000 no-control
+windows. Those numbers validate the deterministic software path only. They do
+not measure live EEG accuracy, false activations per natural-use hour, comfort,
+or cross-session/participant performance.

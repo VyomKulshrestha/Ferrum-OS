@@ -105,7 +105,9 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - JSON-RPC 2.0 surface over a non-blocking WebSocket listener: `ping`, `pair`,
   `set_control_mode`, `execute_tool`, `agent_step`, `world_model_preview`,
   `physical_status`, `physical_maintenance_demo`, `gesture_event`, `health`,
-  `get_config`, `system_status`, and `agent_stats`.
+  `neural_status`, `neural_calibrate`, `neural_intent_preview`,
+  `neural_intent_commit`, `neural_disarm`, `get_config`, `system_status`, and
+  `agent_stats`.
   Camera, audio, IPC, and controller input are ingested before each planning
   step, so absent clients or slow inference cannot make the listener own the
   autonomous event loop.
@@ -122,6 +124,47 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
   (37 are advertised directly to the model; local inference, kernel upgrade,
   HUD update, and hit testing remain controlled runtime/bridge actions)
 - Config-driven setup via `/disk/heliox/config.json`
+
+### Neural Intent Interface
+
+Ferrum includes a provider-independent, fail-closed neural-intent path for
+research and simulation. It is not a claim that a consumer EEG headset or a
+medical BCI is included. Raw EEG stays in the host-side `tools/neurod` service;
+the OS accepts only a fixed 210-byte `NIV1` intent carrying bounded signal
+quality, confidence, dwell, sequence, expiry, session, calibration, focus, and
+state-revision evidence protected by HMAC-SHA-256.
+
+- `userland/neural-protocol` is a `no_std` parser and state machine. It rejects
+  malformed, replayed, reordered, stale, future, weak, artifacted, or
+  revision-racy evidence and disarms on a fail-closed error.
+- A paired client may calibrate and preview, but arming requires the local
+  console command `heliox neural arm`. Control-mode changes and disconnects
+  disarm the session; an old session or intent cannot be reused.
+- Committable actions are limited to focus-left, focus-right, select, cancel,
+  and three compiled read-only goals: system information, process listing, and
+  physical-runtime status. The read-only goals still traverse the OS world
+  model and normal capability dispatch.
+- A neural physical goal is always proposal-only. It receives a separate H=3
+  physical-JEPA shadow forecast and deterministic-supervisor trace, but cannot
+  issue a permit, invoke an adapter, or commit an actuator action.
+- Multimodal fusion stores at most 16 coarse class/scope events. It never
+  retains raw EEG, spectral features, provider text, or signing material.
+
+Run the deterministic service, safety evaluation, and optional localhost-only
+fixture dashboard with:
+
+```powershell
+python tools/neurod/neurod.py synthetic --frequency 12 --windows 3
+python scripts/evaluate_neural_simulator.py
+python tools/neurod/dashboard.py
+```
+
+The registered synthetic evaluation records 600/600 accepted signal windows,
+400/400 artifact-window abstentions, and zero emitted candidates across 10,000
+no-control windows. These are reproducible fixture results, not human EEG
+accuracy. Real OpenBCI acquisition, independent participants, multi-day
+no-control use, hardware-in-the-loop robotics, and qualified safety/human-
+factors review remain external N1/N5 evidence.
 
 ### Physical Operations Reference Runtime
 
@@ -370,8 +413,8 @@ node scripts\verify_all_audits.mjs
 The consolidated runner executes `command_sweep.mjs` and
 `audit_all_commands.mjs`, stops on the first failure, and returns a non-zero
 exit code for automation. Feature-specific end-to-end verifiers remain
-available as `scripts\verify_*.mjs`. The v0.1.1 release baseline is 98/98
-command-sweep cases and 65/65 exhaustive catalog cases, with every command
+available as `scripts\verify_*.mjs`. The current baseline is 102/102
+command-sweep cases and 81/81 exhaustive catalog entries, with every command
 returning its expected prompt and no unknown-command or kernel-fault signature.
 
 ## Shell Commands
@@ -499,6 +542,13 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `execute_tool` | Run a public agent operation by name with args |
 | `agent_step` | Run one provider-backed ReAct cycle for a supplied goal and return its actions |
 | `world_model_preview` | Predict risk, lookahead depth, reason, and safer suggestion without executing the action |
+| `physical_status` | Read physical-runtime, simulator, and shadow-model status |
+| `physical_maintenance_demo` | Run the explicitly confirmed simulator maintenance reference workflow |
+| `neural_status` | Read paired neural session, arm, pending-preview, and bounded fusion status |
+| `neural_calibrate` | Bind a stream descriptor and calibration to the paired session |
+| `neural_intent_preview` | Verify signed `NIV1` evidence and produce a non-executing preview |
+| `neural_intent_commit` | Commit only the previewed safe UI/read-only allowlist after all revisions are rechecked |
+| `neural_disarm` | Cancel pending evidence and return the session to observe-only state |
 | `gesture_event` | Report a gesture/HUD input event |
 | `health` | Whether the daemon is configured yet, and which provider is active |
 | `get_config` | Current runtime configuration (excludes the API key) |
