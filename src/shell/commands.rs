@@ -1452,8 +1452,8 @@ fn cmd_heliox_neural(args: &[&str]) {
         message,
         &alloc::vec![alloc::string::String::from("cap:system:all")],
     ) {
-        Ok(()) => println!("heliox neural: {} requested from local shell", args[0]),
-        Err(error) => println!("heliox neural: {}", error),
+        Ok(_) => println!("heliox neural: {} requested from local shell", args[0]),
+        Err(error) => println!("heliox neural: {:?}", error),
     }
 }
 
