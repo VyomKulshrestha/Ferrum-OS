@@ -9,7 +9,9 @@ use crate::adapter::{
     AdapterState, RoutedCommand,
 };
 use crate::domain::{DomainRegistry, SiteId};
+use crate::experience::{ExperienceError, PhysicalExperienceBuffer, PhysicalOutcome};
 use crate::fleet::{CommandDeliveryState, DeviceHealth, DeviceLifecycle, FleetError, FleetManager};
+use crate::model::{PhysicalAction, PhysicalState};
 use crate::privacy::{DataAccessRequest, PrivacyDecision, PrivacyGuard};
 use crate::reliability::{
     ReliabilityError, ReliabilityEvent, ReliabilityEventKind, ReliabilityMonitor,
@@ -36,6 +38,7 @@ pub enum RuntimeError {
     Fleet(FleetError),
     Adapter(AdapterError),
     Reliability(ReliabilityError),
+    Experience(ExperienceError),
     DeliveryUncertain(AdapterError),
 }
 
@@ -49,6 +52,7 @@ pub struct PhysicalRuntime {
     fleet: FleetManager,
     privacy: PrivacyGuard,
     reliability: ReliabilityMonitor,
+    experience: PhysicalExperienceBuffer,
     runtime_twin_sequence: u64,
     reliability_event_id: u64,
 }
@@ -75,6 +79,7 @@ impl PhysicalRuntime {
             fleet: FleetManager::new(),
             privacy: PrivacyGuard::new(),
             reliability: ReliabilityMonitor::new(),
+            experience: PhysicalExperienceBuffer::new(),
             runtime_twin_sequence: 0,
             reliability_event_id: 0,
         }
@@ -130,6 +135,26 @@ impl PhysicalRuntime {
 
     pub fn reliability(&self) -> &ReliabilityMonitor {
         &self.reliability
+    }
+
+    pub fn experience(&self) -> &PhysicalExperienceBuffer {
+        &self.experience
+    }
+
+    /// Records a telemetry-confirmed transition or an explicitly non-executed
+    /// outcome. Callers cannot label predicted states as observed training data.
+    pub fn record_model_experience(
+        &mut self,
+        observed_at_tick: u64,
+        before: PhysicalState,
+        action: PhysicalAction,
+        after: Option<PhysicalState>,
+        outcome: PhysicalOutcome,
+        reward: f32,
+    ) -> Result<u64, RuntimeError> {
+        self.experience
+            .record(observed_at_tick, before, action, after, outcome, reward)
+            .map_err(RuntimeError::Experience)
     }
 
     pub fn submit_work_order(&mut self, order: WorkOrder) -> Result<(), RuntimeError> {

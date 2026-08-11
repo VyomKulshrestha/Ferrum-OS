@@ -4,6 +4,7 @@ extern crate alloc;
 
 pub mod adapter;
 pub mod domain;
+pub mod experience;
 pub mod fleet;
 pub mod model;
 pub mod privacy;
@@ -23,6 +24,10 @@ pub use adapter::{
 pub use domain::{
     Actor, ActorId, ActorKind, ActorStatus, Asset, AssetId, AssetState, Capability, CapabilitySet,
     DomainError, DomainRegistry, Position, Qualification, QualificationSet, Site, SiteId,
+};
+pub use experience::{
+    ExperienceError, PhysicalExperience, PhysicalExperienceBuffer, PhysicalOutcome,
+    PHYSICAL_EXPERIENCE_CAPACITY,
 };
 pub use fleet::{
     CommandClaim, CommandDeliveryState, DeviceHealth, DeviceLifecycle, FleetDevice, FleetError,
