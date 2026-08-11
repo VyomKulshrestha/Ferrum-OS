@@ -147,6 +147,7 @@ pub fn init() {
             String::from("cap:clipboard:read"),
             String::from("cap:clipboard:write"),
             String::from("cap:notification:post"),
+            String::from("cap:heliox:neural"),
         ],
     ));
     state.programs.push(ProgramManifest::new(

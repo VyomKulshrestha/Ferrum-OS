@@ -12,6 +12,7 @@ pub mod cognitive;
 pub mod network;
 pub mod config;
 pub mod physical;
+pub mod neural;
 
 // Basic bump allocator for userspace
 use linked_list_allocator::LockedHeap;
@@ -439,6 +440,33 @@ fn escape_json_string(s: &str) -> String {
     res
 }
 
+fn decode_hex_exact<const N: usize>(text: &str) -> Result<[u8; N], &'static str> {
+    if text.len() != N * 2 {
+        return Err("invalid hex length");
+    }
+    let mut output = [0u8; N];
+    let bytes = text.as_bytes();
+    for index in 0..N {
+        let high = hex_nibble(bytes[index * 2]).ok_or("invalid hex character")?;
+        let low = hex_nibble(bytes[index * 2 + 1]).ok_or("invalid hex character")?;
+        output[index] = (high << 4) | low;
+    }
+    Ok(output)
+}
+
+fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn neural_now_ns() -> u64 {
+    cognitive::fusion::get_uptime_ticks().saturating_mul(1_000_000)
+}
+
 fn generate_bridge_pairing_token() -> Result<String, &'static str> {
     let mut bytes = [0u8; 16];
     custom_getrandom(&mut bytes).map_err(|_| "cryptographic random syscall failed")?;
@@ -769,6 +797,7 @@ pub extern "C" fn _start() -> ! {
                             bridge_connected = true;
                             bridge_authorized = false;
                             bridge_exclusive = false;
+                            orchestrator.neural_disconnect();
                         }
                         Err(e) => {
                             let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
@@ -907,6 +936,12 @@ pub extern "C" fn _start() -> ! {
                                             {
                                                 bridge_authorized = true;
                                                 bridge_exclusive = control_mode == "exclusive";
+                                                if orchestrator.neural_pair(supplied.as_bytes(), control_mode).is_err() {
+                                                    bridge_authorized = false;
+                                                    bridge_exclusive = false;
+                                                    send_rpc_error(conn.fd, &id_str, -32031, "neural session derivation failed");
+                                                    continue;
+                                                }
                                                 let response = alloc::format!(
                                                     "{{\"jsonrpc\":\"2.0\",\"result\":{{\"authorized\":true,\"control_mode\":{}}},\"id\":{}}}",
                                                     escape_json_string(control_mode),
@@ -925,6 +960,7 @@ pub extern "C" fn _start() -> ! {
                                                 .unwrap_or("");
                                             if control_mode == "exclusive" || control_mode == "cooperative" {
                                                 bridge_exclusive = control_mode == "exclusive";
+                                                orchestrator.neural_set_control_mode(control_mode);
                                                 let response = alloc::format!(
                                                     "{{\"jsonrpc\":\"2.0\",\"result\":{{\"control_mode\":{}}},\"id\":{}}}",
                                                     escape_json_string(control_mode),
@@ -934,6 +970,162 @@ pub extern "C" fn _start() -> ! {
                                             } else {
                                                 send_rpc_error(conn.fd, &id_str, -32602, "control_mode must be exclusive or cooperative");
                                             }
+                                        } else if method == "neural_status" {
+                                            let response = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
+                                                orchestrator.neural_status_json(neural_now_ns()),
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &response);
+                                        } else if method == "neural_calibrate" {
+                                            let params = parsed.get("params");
+                                            let transport_name = params
+                                                .and_then(|value| value.get("transport"))
+                                                .and_then(|value| value.as_str())
+                                                .unwrap_or("");
+                                            let sample_rate_value = params
+                                                .and_then(|value| value.get("sample_rate_hz"))
+                                                .and_then(|value| value.as_f64())
+                                                .unwrap_or(0.0);
+                                            let channel_count_value = params
+                                                .and_then(|value| value.get("channel_count"))
+                                                .and_then(|value| value.as_f64())
+                                                .unwrap_or(0.0);
+                                            let calibration_hex = params
+                                                .and_then(|value| value.get("calibration_id_hex"))
+                                                .and_then(|value| value.as_str())
+                                                .unwrap_or("");
+                                            if !(1.0..=4096.0).contains(&sample_rate_value)
+                                                || !(1.0..=32.0).contains(&channel_count_value)
+                                                || sample_rate_value != sample_rate_value as u16 as f64
+                                                || channel_count_value != channel_count_value as u8 as f64
+                                            {
+                                                send_rpc_error(conn.fd, &id_str, -32602, "invalid neural stream shape");
+                                                continue;
+                                            }
+                                            let transport = match neural::transport_from_name(transport_name) {
+                                                Ok(value) => value,
+                                                Err(_) => {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, "unsupported neural transport");
+                                                    continue;
+                                                }
+                                            };
+                                            let calibration_id = match decode_hex_exact::<32>(calibration_hex) {
+                                                Ok(value) => value,
+                                                Err(message) => {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, message);
+                                                    continue;
+                                                }
+                                            };
+                                            match orchestrator.neural_calibrate(
+                                                transport,
+                                                sample_rate_value as u16,
+                                                channel_count_value as u8,
+                                                calibration_id,
+                                                neural_now_ns(),
+                                            ) {
+                                                Ok(()) => {
+                                                    let response = alloc::format!(
+                                                        "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
+                                                        orchestrator.neural_status_json(neural_now_ns()),
+                                                        id_str
+                                                    );
+                                                    let _ = network::ws_send_text_server(conn.fd, &response);
+                                                }
+                                                Err(error) => send_rpc_error(
+                                                    conn.fd,
+                                                    &id_str,
+                                                    -32032,
+                                                    neural::error_name(error),
+                                                ),
+                                            }
+                                        } else if method == "neural_intent_preview" {
+                                            let intent_hex = parsed.get("params")
+                                                .and_then(|value| value.get("intent_hex"))
+                                                .and_then(|value| value.as_str())
+                                                .unwrap_or("");
+                                            let wire = match decode_hex_exact::<{ ferrum_neural_protocol::NEURAL_INTENT_WIRE_BYTES }>(intent_hex) {
+                                                Ok(value) => value,
+                                                Err(message) => {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, message);
+                                                    continue;
+                                                }
+                                            };
+                                            match orchestrator.neural_preview(&wire, neural_now_ns()) {
+                                                Ok(preview) => {
+                                                    let physical_forecast = if preview.disposition
+                                                        == ferrum_neural_protocol::PreviewDisposition::PhysicalProposalOnly
+                                                    {
+                                                        orchestrator.neural_physical_preview_json().unwrap_or_else(|_| String::from("null"))
+                                                    } else {
+                                                        String::from("null")
+                                                    };
+                                                    let response = alloc::format!(
+                                                        "{{\"jsonrpc\":\"2.0\",\"result\":{{\"preview\":{},\"physical_forecast\":{}}},\"id\":{}}}",
+                                                        neural::preview_json(preview),
+                                                        physical_forecast,
+                                                        id_str
+                                                    );
+                                                    let _ = network::ws_send_text_server(conn.fd, &response);
+                                                }
+                                                Err(error) => send_rpc_error(
+                                                    conn.fd,
+                                                    &id_str,
+                                                    -32033,
+                                                    neural::error_name(error),
+                                                ),
+                                            }
+                                        } else if method == "neural_intent_commit" {
+                                            let intent_hex = parsed.get("params")
+                                                .and_then(|value| value.get("intent_id"))
+                                                .and_then(|value| value.as_str())
+                                                .unwrap_or("");
+                                            let intent_id = match decode_hex_exact::<16>(intent_hex) {
+                                                Ok(value) => value,
+                                                Err(message) => {
+                                                    send_rpc_error(conn.fd, &id_str, -32602, message);
+                                                    continue;
+                                                }
+                                            };
+                                            match orchestrator.neural_commit(intent_id, neural_now_ns()) {
+                                                Ok(neural::NeuralCommit::FocusChanged) => {
+                                                    let response = alloc::format!(
+                                                        "{{\"jsonrpc\":\"2.0\",\"result\":{{\"committed\":true,\"effect\":\"focus_changed\",\"status\":{}}},\"id\":{}}}",
+                                                        orchestrator.neural_status_json(neural_now_ns()),
+                                                        id_str
+                                                    );
+                                                    let _ = network::ws_send_text_server(conn.fd, &response);
+                                                }
+                                                Ok(neural::NeuralCommit::ReadOnlyTool(tool)) => {
+                                                    let call = cognitive::json::ToolCall {
+                                                        name: String::from(tool),
+                                                        arguments: Vec::new(),
+                                                    };
+                                                    let result = orchestrator.execute_tool_with_world_model(&call);
+                                                    let response = alloc::format!(
+                                                        "{{\"jsonrpc\":\"2.0\",\"result\":{{\"committed\":true,\"effect\":\"read_only_tool\",\"tool\":{},\"success\":{},\"output\":{}}},\"id\":{}}}",
+                                                        escape_json_string(tool),
+                                                        result.success,
+                                                        escape_json_string(&result.output),
+                                                        id_str
+                                                    );
+                                                    let _ = network::ws_send_text_server(conn.fd, &response);
+                                                }
+                                                Err(error) => send_rpc_error(
+                                                    conn.fd,
+                                                    &id_str,
+                                                    -32034,
+                                                    neural::error_name(error),
+                                                ),
+                                            }
+                                        } else if method == "neural_disarm" {
+                                            orchestrator.neural_disarm();
+                                            let response = alloc::format!(
+                                                "{{\"jsonrpc\":\"2.0\",\"result\":{},\"id\":{}}}",
+                                                orchestrator.neural_status_json(neural_now_ns()),
+                                                id_str
+                                            );
+                                            let _ = network::ws_send_text_server(conn.fd, &response);
                                         } else if method == "world_model_preview" {
                                             if let Some(params) = parsed.get("params") {
                                                 if let Some(tool_name) = params.get("tool").and_then(|tool| tool.as_str()) {
@@ -1193,6 +1385,7 @@ pub extern "C" fn _start() -> ! {
                             bridge_connected = false;
                             bridge_authorized = false;
                             bridge_exclusive = false;
+                            orchestrator.neural_disconnect();
                             ws_conn = None;
                             if let Some(fd) = server_fd {
                                 let _ = network::tcp_close(fd);
@@ -1220,6 +1413,7 @@ pub extern "C" fn _start() -> ! {
                         bridge_connected = false;
                         bridge_authorized = false;
                         bridge_exclusive = false;
+                        orchestrator.neural_disconnect();
                         ws_conn = None;
                         if let Some(fd) = server_fd {
                             let _ = network::tcp_close(fd);

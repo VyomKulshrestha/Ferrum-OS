@@ -52,6 +52,7 @@ pub const HELIOX_VOICE_CAP: &str = "cap:heliox:voice";
 pub const HELIOX_GESTURE_CAP: &str = "cap:heliox:gesture";
 pub const HELIOX_SCREEN_CAP: &str = "cap:heliox:screen";
 pub const HELIOX_PERSONA_CAP: &str = "cap:heliox:persona";
+pub const HELIOX_NEURAL_CAP: &str = "cap:heliox:neural";
 
 // ============================================================================
 // JSON-RPC 2.0 Envelope
@@ -197,6 +198,12 @@ const METHODS: &[MethodSpec] = &[
     MethodSpec { name: "voice_event", class: MethodClass::Request, description: "Feed a voice transcript to the fusion engine", required_capability: HELIOX_VOICE_CAP },
     MethodSpec { name: "gesture_event", class: MethodClass::Request, description: "Feed a gesture event to the fusion engine", required_capability: HELIOX_GESTURE_CAP },
     MethodSpec { name: "multimodal_stats", class: MethodClass::Request, description: "Fusion engine statistics", required_capability: HELIOX_BRIDGE_CAP },
+    // ---- Neural intent boundary ----
+    MethodSpec { name: "neural_status", class: MethodClass::Request, description: "Read paired neural session health and safe-UI focus state", required_capability: HELIOX_NEURAL_CAP },
+    MethodSpec { name: "neural_calibrate", class: MethodClass::Request, description: "Bind a host calibration to the current paired neural session", required_capability: HELIOX_NEURAL_CAP },
+    MethodSpec { name: "neural_intent_preview", class: MethodClass::Request, description: "Validate and preview signed neural intent evidence without execution", required_capability: HELIOX_NEURAL_CAP },
+    MethodSpec { name: "neural_intent_commit", class: MethodClass::Request, description: "Commit one previewed allowlisted safe-UI intent", required_capability: HELIOX_NEURAL_CAP },
+    MethodSpec { name: "neural_disarm", class: MethodClass::Request, description: "Report that disarm requires trusted non-neural local input", required_capability: HELIOX_NEURAL_CAP },
     // ---- Reasoning visualization ----
     MethodSpec { name: "reasoning_log", class: MethodClass::Request, description: "Return the full reasoning event log", required_capability: HELIOX_BRIDGE_CAP },
     MethodSpec { name: "reasoning_stats", class: MethodClass::Request, description: "Reasoning emitter statistics", required_capability: HELIOX_BRIDGE_CAP },

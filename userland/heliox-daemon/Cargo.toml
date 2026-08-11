@@ -12,6 +12,7 @@ embedded-io = { version = "=0.7.1", default-features = false }
 rand_core = { version = "0.6.4", default-features = false }
 getrandom = { version = "0.2.17", default-features = false, features = ["custom"] }
 ferrum-physical-runtime = { path = "../physical-runtime" }
+ferrum-neural-protocol = { path = "../neural-protocol" }
 
 
 [[bin]]

@@ -79,6 +79,24 @@ impl PhysicalService {
         self.last_report = Some(report);
         Ok(response)
     }
+
+    /// Read-only JEPA shadow forecast for a neural work-order proposal. This
+    /// method cannot mint a permit, invoke an adapter, or mutate simulation
+    /// state; the deterministic physical supervisor remains authoritative.
+    pub fn preview_neural_work_order_json(&self) -> Result<String, &'static str> {
+        let model = self.model.ok_or("physical model artifact rejected")?;
+        let action = PhysicalAction {
+            kind: PhysicalActionKind::Move,
+            features: [0.1, 0.1, 0.3],
+        };
+        let forecast = model
+            .predict_shadow_horizon(maintenance_observation(0.5, 0.15).into(), action, 3)
+            .map_err(|_| "physical model inference failed")?;
+        Ok(format!(
+            "{{\"proposal_only\":true,\"permit_issued\":false,\"adapter_invoked\":false,\"model\":\"ema_target_jepa\",\"lookahead_horizon\":3,\"shadow_risk_permille\":{},\"deterministic_supervisor\":\"required\",\"separate_non_neural_confirmation\":true}}",
+            forecast.evidence.risk_permille,
+        ))
+    }
 }
 
 fn maintenance_observation(clearance: f32, human_occupancy: f32) -> PhysicalObservation {

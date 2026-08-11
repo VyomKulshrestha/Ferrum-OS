@@ -97,6 +97,12 @@ pub fn init() {
             "agent:*",
             false,
         ),
+        (
+            "cap:heliox:neural",
+            "Paired Neural Intent Mediation",
+            "heliox:neural:*",
+            true,
+        ),
         ("cap:audio:play", "Audio Playback", "audio:play", true),
         ("cap:audio:record", "Audio Recording", "audio:record", true),
         (

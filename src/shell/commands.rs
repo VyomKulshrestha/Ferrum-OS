@@ -1095,7 +1095,7 @@ fn cmd_agent(args: &[&str]) {
 
 fn cmd_heliox(args: &[&str]) {
     if args.is_empty() {
-        println!("heliox: usage: heliox <status|methods|tiers|actions|services|send|notif|persona|screen|voice|confirm|execute>");
+        println!("heliox: usage: heliox <status|methods|tiers|actions|services|send|notif|persona|screen|voice|neural|confirm|execute>");
         return;
     }
 
@@ -1110,10 +1110,11 @@ fn cmd_heliox(args: &[&str]) {
         "persona" => cmd_heliox_persona(&args[1..]),
         "screen" => cmd_heliox_screen(&args[1..]),
         "voice" => cmd_heliox_voice(&args[1..]),
+        "neural" => cmd_heliox_neural(&args[1..]),
         "confirm" => cmd_heliox_confirm(&args[1..]),
         "execute" => cmd_heliox_execute(&args[1..]),
         _ => println!(
-            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, confirm, execute)",
+            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, neural, confirm, execute)",
             args[0]
         ),
     }
@@ -1421,6 +1422,38 @@ fn cmd_heliox_voice(args: &[&str]) {
             }
         }
         _ => println!("heliox voice: usage: heliox voice [start|stop|event <text>]"),
+    }
+}
+
+fn cmd_heliox_neural(args: &[&str]) {
+    let payload = match args.first().copied() {
+        Some("arm") => "NEURAL_ARM",
+        Some("disarm") => "NEURAL_DISARM",
+        _ => {
+            println!("heliox neural: usage: heliox neural <arm|disarm>");
+            println!("  Status and calibration are available only to the paired local bridge.");
+            return;
+        }
+    };
+    let message = match crate::ipc::Message::new(
+        0,
+        crate::ipc::Endpoint::new("heliox", "default"),
+        crate::ipc::MessageKind::Event,
+        "ipc:send:*",
+        payload.as_bytes(),
+    ) {
+        Ok(message) => message,
+        Err(_) => {
+            println!("heliox neural: failed to construct IPC message");
+            return;
+        }
+    };
+    match crate::ipc::send(
+        message,
+        &alloc::vec![alloc::string::String::from("cap:system:all")],
+    ) {
+        Ok(()) => println!("heliox neural: {} requested from local shell", args[0]),
+        Err(error) => println!("heliox neural: {}", error),
     }
 }
 

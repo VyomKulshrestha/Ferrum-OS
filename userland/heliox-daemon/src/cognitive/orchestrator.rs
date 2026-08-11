@@ -29,6 +29,7 @@ use core::arch::asm;
 use crate::memory::vector_store::{VectorStore, MemoryCategory};
 use crate::network;
 use crate::physical::PhysicalService;
+use crate::neural::{NeuralCommit, NeuralService};
 
 // Syscall numbers for telemetry and IPC
 const SYS_IPC_SEND: u64 = 1;
@@ -151,6 +152,7 @@ pub struct Orchestrator {
     // Independent physical-state schema, model, and simulator runtime. It is
     // deliberately not encoded into the published 41-action OS JEPA ABI.
     physical_service: PhysicalService,
+    neural_service: NeuralService,
 }
 
 impl Orchestrator {
@@ -216,6 +218,75 @@ impl Orchestrator {
 
     pub fn run_physical_maintenance_simulation(&mut self) -> Result<String, &'static str> {
         self.physical_service.run_maintenance_simulation_json()
+    }
+
+    pub fn neural_pair(&mut self, token: &[u8], control_mode: &str) -> Result<(), ferrum_neural_protocol::NeuralError> {
+        let result = self.neural_service.pair(token, control_mode);
+        self.audit_neural_event(if result.is_ok() { "paired session established" } else { "pairing rejected" });
+        result
+    }
+
+    pub fn neural_calibrate(
+        &mut self,
+        transport: ferrum_neural_protocol::NeuralTransport,
+        sample_rate_hz: u16,
+        channel_count: u8,
+        calibration_id: [u8; 32],
+        now_ns: u64,
+    ) -> Result<(), ferrum_neural_protocol::NeuralError> {
+        let result = self.neural_service.calibrate(transport, sample_rate_hz, channel_count, calibration_id, now_ns);
+        self.audit_neural_event(if result.is_ok() { "calibration accepted" } else { "calibration rejected" });
+        result
+    }
+
+    pub fn neural_status_json(&self, now_ns: u64) -> String {
+        self.neural_service.status_json(now_ns)
+    }
+
+    pub fn neural_preview(
+        &mut self,
+        wire: &[u8; ferrum_neural_protocol::NEURAL_INTENT_WIRE_BYTES],
+        now_ns: u64,
+    ) -> Result<ferrum_neural_protocol::NeuralPreview, ferrum_neural_protocol::NeuralError> {
+        let result = self.neural_service.preview(wire, now_ns);
+        self.audit_neural_event(if result.is_ok() { "intent preview accepted" } else { "intent preview rejected and disarmed" });
+        result
+    }
+
+    pub fn neural_commit(
+        &mut self,
+        intent_id: [u8; 16],
+        now_ns: u64,
+    ) -> Result<NeuralCommit, ferrum_neural_protocol::NeuralError> {
+        let result = self.neural_service.commit(intent_id, now_ns);
+        self.audit_neural_event(if result.is_ok() { "safe UI intent committed" } else { "intent commit rejected" });
+        result
+    }
+
+    pub fn neural_physical_preview_json(&self) -> Result<String, &'static str> {
+        self.physical_service.preview_neural_work_order_json()
+    }
+
+    pub fn neural_set_control_mode(&mut self, mode: &str) {
+        self.neural_service.set_control_mode(mode);
+        self.audit_neural_event("control mode changed and session disarmed");
+    }
+
+    pub fn neural_disconnect(&mut self) {
+        self.neural_service.disconnect();
+        self.audit_neural_event("session disconnected and disarmed");
+    }
+
+    pub fn neural_disarm(&mut self) {
+        self.neural_service.disarm();
+        self.audit_neural_event("session disarmed");
+    }
+
+    fn audit_neural_event(&self, event: &str) {
+        let message = format!("neural: {}", event);
+        unsafe {
+            syscall3(6, message.as_ptr() as u64, message.len() as u64, 0);
+        }
     }
 
     /// Execute a public JSON-RPC tool through the same predictive gate and
@@ -330,6 +401,7 @@ impl Orchestrator {
             wm_last_action_failed: false,
             wm_last_suggestion: String::new(),
             physical_service: PhysicalService::new(),
+            neural_service: NeuralService::default(),
         }
     }
 
@@ -1372,6 +1444,33 @@ impl Orchestrator {
                 const FD_CONSOLE: u64 = 1;
                 unsafe {
                     syscall3(SYS_WRITE, FD_CONSOLE, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                }
+            } else if trimmed == "NEURAL_ARM" || trimmed == "NEURAL_ARM:" {
+                let outcome = self.neural_service.arm_from_non_neural_input();
+                self.audit_neural_event(if outcome.is_ok() {
+                    "safe UI armed from local non-neural input"
+                } else {
+                    "local neural arm rejected"
+                });
+                let message = if outcome.is_ok() {
+                    String::from("Neural safe UI armed from local non-neural input")
+                } else {
+                    String::from("Neural arm rejected: pair and calibrate first")
+                };
+                self.emit_telemetry(TelemetryEventKind::ConfirmationQueued, message.clone());
+                let console_msg = format!("[heliox-daemon] {}\n", message);
+                unsafe {
+                    syscall3(34, 1, console_msg.as_ptr() as u64, console_msg.len() as u64);
+                }
+            } else if trimmed == "NEURAL_DISARM" || trimmed == "NEURAL_DISARM:" {
+                self.neural_disarm();
+                self.emit_telemetry(
+                    TelemetryEventKind::ConfirmationQueued,
+                    String::from("Neural input disarmed from local non-neural input"),
+                );
+                let console_msg = "[heliox-daemon] neural input disarmed\n";
+                unsafe {
+                    syscall3(34, 1, console_msg.as_ptr() as u64, console_msg.len() as u64);
                 }
             } else if trimmed == "CONFIG_UPDATED" || trimmed == "CONFIG_UPDATED:" {
                 self.config = Config::load("/disk/heliox/config.json");
