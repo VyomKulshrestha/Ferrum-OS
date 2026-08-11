@@ -104,7 +104,8 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
   unpaired clients cannot execute tools or inspect privileged agent state.
 - JSON-RPC 2.0 surface over a non-blocking WebSocket listener: `ping`, `pair`,
   `set_control_mode`, `execute_tool`, `agent_step`, `world_model_preview`,
-  `gesture_event`, `health`, `get_config`, `system_status`, and `agent_stats`.
+  `physical_status`, `physical_maintenance_demo`, `gesture_event`, `health`,
+  `get_config`, `system_status`, and `agent_stats`.
   Camera, audio, IPC, and controller input are ingested before each planning
   step, so absent clients or slow inference cannot make the listener own the
   autonomous event loop.
@@ -121,6 +122,52 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
   (37 are advertised directly to the model; local inference, kernel upgrade,
   HUD update, and hit testing remain controlled runtime/bridge actions)
 - Config-driven setup via `/disk/heliox/config.json`
+
+### Physical Operations Reference Runtime
+
+Ferrum now includes a `no_std` physical-operations runtime and one end-to-end
+facility-maintenance reference workflow. It is an architectural bridge from the
+agentic computer OS to coordinated AI, robot, and human work—not a claim of
+real-hardware or certified industrial deployment.
+
+- Typed sites, assets, human/robot/agent actors, capabilities, qualifications,
+  work orders, dependency graphs, deterministic dispatch, and approval-aware
+  task lifecycle.
+- Attested adapter identities, endpoints, replay-protected telemetry, canonical
+  commands, single-use execution claims, an operational digital twin, fleet
+  provisioning/health/signed-update rollback, reliability objectives, and
+  consent/retention/tenant privacy enforcement.
+- Independent deterministic physical safety for geofences, proximity, human
+  occupancy, emergency stops, approval, stale telemetry, and policy/twin
+  revision races. Ambiguous delivery becomes `Uncertain` and is never blindly
+  retried.
+- A separate 16-state/7-action physical EMA-target JEPA (`PJE1`), trained on
+  15,000 transitions from 2,500 deterministic simulator episodes. It uses
+  reconstruction and action auxiliaries, episode-disjoint splits,
+  validation-only capacity selection, anti-collapse gates, H=1..5 evaluation,
+  and bounded H=3 runtime lookahead. It does not reuse the 41-action OS JEPA.
+- The selected checkpoint records held-out normalized rollout error of 0.45% at
+  H=1, 1.05% at H=3, and 1.55% at H=5; the supervised transition MLP records
+  0.60%, 1.28%, and 1.78% on those same horizons. Rules + physical JEPA reduce
+  simulator false negatives from 21 to 1, with 16 false positives. A three-seed
+  audit and the remaining clearance miss are committed under `docs/research/`.
+- Simulator-trained evidence is permanently `shadow_only`: serialized model
+  bytes cannot promote it into gating authority. Only telemetry-confirmed
+  execution can enter the bounded transition-fit experience stream; refusals,
+  uncertain deliveries, and simulated predictions remain audit-only.
+
+Run the model reproduction and the booted maintenance vertical with:
+
+```powershell
+python scripts/verify_physical_world_model.py
+node scripts/verify_bridge.mjs
+```
+
+The demo requires `confirm_simulation=true`, routes provider-equivalent and
+direct RPC calls through the same service, blocks unsafe motion with the
+deterministic supervisor, and completes safe delivery in QEMU. Real ROS 2,
+MQTT, CAN, wearable gateways, field telemetry, hardware emergency controllers,
+and natural-use validation remain future integration work.
 
 ### Hybrid World-Model Training
 

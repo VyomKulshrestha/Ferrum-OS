@@ -707,6 +707,69 @@ prediction looks dangerous.
   grant execution authority; deterministic policy, kernel capabilities, and
   confirmation remain independent and fail closed.
 
+### Physical Operations Runtime (`userland/physical-runtime/`)
+
+The physical runtime applies the same separation of concerns as the OS-action
+world model to a distinct operational domain. It remains a userspace `no_std`
+library owned by Heliox; it adds no kernel privilege and cannot bypass the
+kernel capability or confirmation layers.
+
+```text
+work order -> typed actor dispatch -> canonical adapter command
+           -> deterministic physical supervisor -> single-use permit
+           -> fleet journal -> adapter delivery -> observed twin event
+                         ^
+                         | advisory H=3 physical JEPA forecast
+```
+
+- **Observation and twin**: versioned adapter frames update an event-sourced
+  operational twin containing actor, asset, sensor, occupancy, and work events.
+  Source/session sequence checks, clock-skew limits, impossible-state rejection,
+  and one global event-id domain prevent replay and split histories.
+- **Experience**: `PhysicalExperienceBuffer` retains at most 1,024 ordered
+  transitions. Only `ExecutedObserved` entries with an actual post-action state
+  are eligible for fitting. Refused, uncertain, and simulator-only outcomes
+  are retained as policy/audit evidence without a fabricated next state.
+- **Representation and transition**: the physical model has its own 16-value
+  state, seven canonical action kinds, and three bounded action features. Its
+  `PJE1` runtime artifact contains the online encoder, action-conditioned JEPA
+  predictor, and state-delta head. The EMA target encoder, reconstruction head,
+  and action head are training-only anti-collapse components. The 41-action OS
+  JEPA and its weights are never reused.
+- **Selection and evaluation**: 15,000 deterministic simulator transitions from
+  2,500 episodes are split 70/15/15 by complete episode. Four capacities are
+  selected using validation delta/H1/H3/H5 regression gates and latent standard
+  deviation, effective-rank, and action-sensitivity checks. Candidate records
+  contain no test metrics; the held-out split opens only after capacity freeze.
+  The selected 64-latent/128-hidden checkpoint records H1/H3/H5 errors of
+  0.45%/1.05%/1.55%, improving on the matched supervised MLP's
+  0.60%/1.28%/1.78%. A fixed-data three-training-seed audit reports mean H3
+  error 1.05% (sample SD 0.005 percentage points).
+- **Safety arms and failure analysis**: on 2,250 held-out transitions, rules
+  record TP/FP/TN/FN 514/14/1701/21; JEPA-only records 533/4/1711/2; their
+  monotonic union records 534/16/1699/1. The remaining miss is an action-noise
+  clearance crossing: the true next clearance is 0.154 while the forecast is
+  0.188. This miss, simulator provenance, and absence of real hardware evidence
+  are sufficient to prohibit learned gating.
+- **Planner and safety boundary**: `predict_shadow_horizon` supports bounded
+  H=1..5 recurrence and the maintenance service uses H=3. It returns worst-step
+  advisory risk with horizon-scaled uncertainty. Deterministic geofence,
+  proximity, occupancy, emergency-stop, approval, telemetry freshness, policy
+  revision, and twin revision checks remain authoritative. A serialized gating
+  flag is ignored, and model failure cannot disable deterministic enforcement.
+- **End-to-end reference vertical**: `physical_status` exposes model provenance
+  and horizon. `physical_maintenance_demo` requires explicit simulation
+  confirmation, then coordinates AI/robot/human tasks, blocks unsafe motion,
+  queues and acknowledges safe motion, verifies work, and publishes reliability
+  and twin evidence. Provider-equivalent tool calls and direct JSON-RPC calls
+  share the same service owner, preventing a second execution path or race.
+
+This closes the software architecture in `nextpath.md` for a simulator-backed
+reference platform. It does not close deployment work: ROS 2/DDS, MQTT, CAN,
+wearables, real robots, site-specific adapters, hardware interlocks, field data,
+independent safety assessment, and natural-use measurements remain external
+work and are not represented as implemented.
+
 ### Permission Tiers
 
 | Tier | Level | Auto-approve | Example Tools |
