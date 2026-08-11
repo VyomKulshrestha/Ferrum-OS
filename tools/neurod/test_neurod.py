@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import hmac
+import json
 import struct
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from neurod import (
     BoundedSampleBuffer,
     ConsentRecorder,
     IntentEvidence,
+    JsonRpcWebSocket,
     NeurodError,
     PlaybackBoard,
     Sample,
@@ -51,10 +53,13 @@ class NeurodTests(unittest.TestCase):
             result = decoder.decode(board.acquire(1.0, frequency, fault=fault))
             self.assertTrue(result.abstained)
 
-    def test_dropout_is_visible_in_timestamps(self):
+    def test_dropout_is_detected_and_forces_abstention(self):
         samples = SyntheticBoard(seed=2).acquire(1.0, 12.0, fault="dropout")
         gaps = [b.monotonic_ns - a.monotonic_ns for a, b in zip(samples, samples[1:])]
         self.assertGreater(max(gaps), min(gaps))
+        result = SsvepDecoder(250, required_dwell_windows=1).decode(samples)
+        self.assertTrue(result.abstained)
+        self.assertGreater(result.health.dropped_samples, 0)
 
     def test_playback_schema_and_monotonicity_are_strict(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -95,9 +100,30 @@ class NeurodTests(unittest.TestCase):
             with self.assertRaises(NeurodError):
                 ConsentRecorder(Path(directory), "subject1", False)
             recorder = ConsentRecorder(Path(directory), "subject1", True)
-            path = recorder.write([Sample(1, (1.0, 2.0)), Sample(2, (2.0, 3.0))], 250, [(0.0, "stimulus-12hz")])
+            path = recorder.write(
+                [Sample(1, (1.0, 2.0)), Sample(2, (2.0, 3.0))],
+                250,
+                [(0.0, "stimulus-12hz")],
+                source_kind="synthetic",
+            )
             self.assertTrue(path.exists())
             self.assertTrue((Path(directory) / "dataset_description.json").exists())
+            sidecar = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+            self.assertEqual(sidecar["FerrumSourceKind"], "synthetic")
+            self.assertTrue(sidecar["FerrumSynthetic"])
+
+    def test_websocket_client_frames_are_masked_and_bounded(self):
+        payload = b'{"method":"neural_status"}'
+        frame = JsonRpcWebSocket.encode_client_frame(payload, b"abcd")
+        self.assertEqual(frame[0], 0x81)
+        self.assertTrue(frame[1] & 0x80)
+        length = frame[1] & 0x7F
+        self.assertEqual(length, len(payload))
+        self.assertEqual(frame[2:6], b"abcd")
+        decoded = bytes(value ^ b"abcd"[index % 4] for index, value in enumerate(frame[6:]))
+        self.assertEqual(decoded, payload)
+        with self.assertRaises(NeurodError):
+            JsonRpcWebSocket.encode_client_frame(payload, b"bad")
 
     def test_short_pairing_tokens_are_rejected(self):
         with self.assertRaises(NeurodError):
@@ -106,4 +132,3 @@ class NeurodTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

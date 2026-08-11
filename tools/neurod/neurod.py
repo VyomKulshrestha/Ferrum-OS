@@ -9,6 +9,7 @@ Raw samples remain on the host; FerrumOS receives only signed intent evidence.
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import hashlib
 import hmac
@@ -18,6 +19,7 @@ import os
 import random
 import socket
 import struct
+import sys
 import time
 import urllib.parse
 from collections import deque
@@ -215,6 +217,13 @@ class BrainFlowBoard:
 def assess_signal(samples: Sequence[Sample], dropped_samples: int = 0) -> SignalHealth:
     if len(samples) < 8:
         return SignalHealth("reject", ARTIFACTS["contact"], 0.0, 0.0, 0, dropped_samples)
+    intervals = [current.monotonic_ns - previous.monotonic_ns for previous, current in zip(samples, samples[1:])]
+    ordered_intervals = sorted(intervals)
+    median_interval = ordered_intervals[len(ordered_intervals) // 2]
+    inferred_drops = 0
+    if median_interval > 0:
+        inferred_drops = sum(max(0, round(interval / median_interval) - 1) for interval in intervals)
+    dropped_samples += inferred_drops
     values = [value for sample in samples for value in sample.channels_uv]
     rms = math.sqrt(sum(value * value for value in values) / len(values))
     peak = max(abs(value) for value in values)
@@ -231,6 +240,8 @@ def assess_signal(samples: Sequence[Sample], dropped_samples: int = 0) -> Signal
     elif peak >= 180.0:
         flags |= ARTIFACTS["blink"]
     if flat:
+        flags |= ARTIFACTS["contact"]
+    if dropped_samples:
         flags |= ARTIFACTS["contact"]
     quality = "reject" if flags or rms < 0.5 or rms > 150.0 else "good"
     return SignalHealth(quality, flags, rms, peak, flat, dropped_samples)
@@ -371,9 +382,17 @@ class ConsentRecorder:
         self.root = Path(root)
         self.subject_key = subject_key
 
-    def write(self, samples: Sequence[Sample], sample_rate_hz: int, events: Sequence[tuple[float, str]] = ()) -> Path:
+    def write(
+        self,
+        samples: Sequence[Sample],
+        sample_rate_hz: int,
+        events: Sequence[tuple[float, str]] = (),
+        source_kind: str = "human",
+    ) -> Path:
         if not samples:
             raise NeurodError("cannot record an empty session")
+        if source_kind not in {"human", "synthetic", "playback"}:
+            raise NeurodError("recording source must be human, synthetic, or playback")
         eeg_dir = self.root / f"sub-{self.subject_key}" / "eeg"
         eeg_dir.mkdir(parents=True, exist_ok=True)
         (self.root / "dataset_description.json").write_text(
@@ -389,7 +408,17 @@ class ConsentRecorder:
             for sample in samples:
                 writer.writerow([sample.monotonic_ns, *sample.channels_uv, sample.marker])
         (eeg_dir / f"{stem}.json").write_text(
-            json.dumps({"SamplingFrequency": sample_rate_hz, "PowerLineFrequency": 50, "RecordingType": "continuous", "FerrumSynthetic": False}, indent=2) + "\n",
+            json.dumps(
+                {
+                    "SamplingFrequency": sample_rate_hz,
+                    "PowerLineFrequency": 50,
+                    "RecordingType": "continuous",
+                    "FerrumSourceKind": source_kind,
+                    "FerrumSynthetic": source_kind == "synthetic",
+                },
+                indent=2,
+            )
+            + "\n",
             encoding="utf-8",
         )
         with (eeg_dir / f"sub-{self.subject_key}_task-ferrum_events.tsv").open("w", newline="", encoding="utf-8") as handle:
@@ -397,6 +426,144 @@ class ConsentRecorder:
             writer.writerow(["onset", "trial_type"])
             writer.writerows(events)
         return data_path
+
+
+class JsonRpcWebSocket:
+    """Small dependency-free WebSocket client for FerrumOS's local bridge."""
+
+    def __init__(self, url: str, timeout_seconds: float = 5.0):
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme != "ws" or not parsed.hostname:
+            raise NeurodError("bridge URL must use ws:// with an explicit host")
+        self.host = parsed.hostname
+        self.port = parsed.port or 80
+        self.path = parsed.path or "/"
+        self.timeout_seconds = timeout_seconds
+        self._socket: socket.socket | None = None
+        self._request_id = 0
+
+    def connect(self) -> None:
+        if self._socket is not None:
+            raise NeurodError("bridge is already connected")
+        stream = socket.create_connection((self.host, self.port), timeout=self.timeout_seconds)
+        stream.settimeout(self.timeout_seconds)
+        key = base64.b64encode(os.urandom(16)).decode("ascii")
+        request = (
+            f"GET {self.path} HTTP/1.1\r\n"
+            f"Host: {self.host}:{self.port}\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Key: {key}\r\n"
+            "Sec-WebSocket-Version: 13\r\n\r\n"
+        )
+        stream.sendall(request.encode("ascii"))
+        response = self._receive_until(stream, b"\r\n\r\n", 16_384)
+        header = response.decode("ascii", errors="strict")
+        expected_accept = base64.b64encode(
+            hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")).digest()
+        ).decode("ascii")
+        if not header.startswith("HTTP/1.1 101 ") or f"Sec-WebSocket-Accept: {expected_accept}".lower() not in header.lower():
+            stream.close()
+            raise NeurodError("bridge WebSocket upgrade was rejected")
+        self._socket = stream
+
+    @staticmethod
+    def _receive_until(stream: socket.socket, marker: bytes, maximum: int) -> bytes:
+        received = bytearray()
+        while marker not in received:
+            chunk = stream.recv(4096)
+            if not chunk:
+                raise NeurodError("bridge closed during handshake")
+            received.extend(chunk)
+            if len(received) > maximum:
+                raise NeurodError("bridge handshake exceeded size limit")
+        return bytes(received)
+
+    @staticmethod
+    def encode_client_frame(payload: bytes, mask: bytes) -> bytes:
+        if len(mask) != 4:
+            raise NeurodError("WebSocket mask must be four bytes")
+        length = len(payload)
+        if length < 126:
+            header = bytes((0x81, 0x80 | length))
+        elif length <= 65_535:
+            header = bytes((0x81, 0xFE)) + struct.pack(">H", length)
+        else:
+            header = bytes((0x81, 0xFF)) + struct.pack(">Q", length)
+        masked = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
+        return header + mask + masked
+
+    @staticmethod
+    def _receive_exact(stream: socket.socket, count: int) -> bytes:
+        result = bytearray()
+        while len(result) < count:
+            chunk = stream.recv(count - len(result))
+            if not chunk:
+                raise NeurodError("bridge disconnected")
+            result.extend(chunk)
+        return bytes(result)
+
+    def _receive_frame(self) -> bytes:
+        if self._socket is None:
+            raise NeurodError("bridge is not connected")
+        first, second = self._receive_exact(self._socket, 2)
+        opcode = first & 0x0F
+        masked = bool(second & 0x80)
+        length = second & 0x7F
+        if length == 126:
+            length = struct.unpack(">H", self._receive_exact(self._socket, 2))[0]
+        elif length == 127:
+            length = struct.unpack(">Q", self._receive_exact(self._socket, 8))[0]
+        if length > 1_048_576:
+            raise NeurodError("bridge frame exceeded 1 MiB limit")
+        mask = self._receive_exact(self._socket, 4) if masked else b""
+        payload = self._receive_exact(self._socket, length)
+        if masked:
+            payload = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
+        if opcode == 0x8:
+            raise NeurodError("bridge closed the WebSocket")
+        if opcode != 0x1 or not (first & 0x80):
+            raise NeurodError("bridge returned an unsupported WebSocket frame")
+        return payload
+
+    def rpc(self, method: str, params: dict[str, object] | None = None) -> object:
+        if self._socket is None:
+            raise NeurodError("bridge is not connected")
+        self._request_id += 1
+        request: dict[str, object] = {"jsonrpc": "2.0", "method": method, "id": self._request_id}
+        if params is not None:
+            request["params"] = params
+        payload = json.dumps(request, separators=(",", ":")).encode("utf-8")
+        self._socket.sendall(self.encode_client_frame(payload, os.urandom(4)))
+        try:
+            response = json.loads(self._receive_frame().decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise NeurodError("bridge returned invalid JSON") from exc
+        if response.get("id") != self._request_id:
+            raise NeurodError("bridge response id mismatch")
+        if "error" in response:
+            error = response["error"]
+            message = error.get("message", "RPC failed") if isinstance(error, dict) else "RPC failed"
+            raise NeurodError(f"bridge RPC error: {message}")
+        if "result" not in response:
+            raise NeurodError("bridge response omitted result")
+        return response["result"]
+
+    def close(self) -> None:
+        stream = self._socket
+        self._socket = None
+        if stream is not None:
+            try:
+                stream.sendall(bytes((0x88, 0x80)) + b"\0\0\0\0")
+            finally:
+                stream.close()
+
+    def __enter__(self) -> "JsonRpcWebSocket":
+        self.connect()
+        return self
+
+    def __exit__(self, _type: object, _value: object, _traceback: object) -> None:
+        self.close()
 
 
 def build_intent_from_decode(
@@ -472,6 +639,82 @@ def run_synthetic(args: argparse.Namespace) -> dict[str, object]:
     return output
 
 
+def run_bridge_synthetic(args: argparse.Namespace) -> dict[str, object]:
+    """Pair, calibrate, wait for a local non-neural arm, then preview one intent."""
+
+    token_text = args.pairing_token or os.environ.get("FERRUM_NEURAL_PAIRING_TOKEN", "")
+    if len(token_text) != 32 or any(character not in "0123456789abcdefABCDEF" for character in token_text):
+        raise NeurodError("set a 32-hex pairing token via --pairing-token or FERRUM_NEURAL_PAIRING_TOKEN")
+    token = token_text.encode("ascii")
+    calibration_id = hashlib.sha256(args.calibration_id.encode("utf-8")).digest()
+    board = SyntheticBoard(args.sample_rate, args.channels, args.seed)
+    decoder = SsvepDecoder(args.sample_rate, required_dwell_windows=args.dwell)
+    result: DecodeResult | None = None
+    for window in range(args.windows):
+        samples = board.acquire(
+            args.seconds,
+            args.frequency,
+            1_000_000_000 + window * int(args.seconds * 1e9),
+            args.noise,
+            args.fault,
+        )
+        result = decoder.decode(samples)
+    assert result is not None
+    if result.abstained:
+        raise NeurodError("decoder abstained; nothing was sent to FerrumOS")
+
+    with JsonRpcWebSocket(args.url, args.timeout) as bridge:
+        paired = bridge.rpc("pair", {"token": token_text, "control_mode": args.control_mode})
+        if not isinstance(paired, dict) or paired.get("authorized") is not True:
+            raise NeurodError("bridge pairing did not authorize the session")
+        bridge.rpc(
+            "neural_calibrate",
+            {
+                "transport": "synthetic",
+                "sample_rate_hz": args.sample_rate,
+                "channel_count": args.channels,
+                "calibration_id_hex": calibration_id.hex(),
+            },
+        )
+        deadline = time.monotonic() + args.wait_for_arm
+        print("neurod: calibrated; run 'heliox neural arm' at the FerrumOS console", file=sys.stderr)
+        status: object = bridge.rpc("neural_status")
+        while isinstance(status, dict) and status.get("state") != "armed_safe_ui" and time.monotonic() < deadline:
+            time.sleep(0.2)
+            status = bridge.rpc("neural_status")
+        if not isinstance(status, dict) or status.get("state") != "armed_safe_ui":
+            bridge.rpc("neural_disarm")
+            raise NeurodError("timed out waiting for the local 'heliox neural arm' command")
+        now_ns = int(status["monotonic_ns"])
+        window_end_ns = max(2, now_ns - 10_000_000)
+        wire = build_intent_from_decode(
+            result,
+            token,
+            calibration_id,
+            hashlib.sha256(args.subject.encode("utf-8")).digest()[:16],
+            args.sequence,
+            int(status["focus_revision"]),
+            int(status["state_revision"]),
+            args.scope,
+            max(1, window_end_ns - min(1_000_000_000, int(args.seconds * 1e9))),
+            window_end_ns,
+        )
+        preview = bridge.rpc("neural_intent_preview", {"intent_hex": wire.hex()})
+        output: dict[str, object] = {
+            "source": "synthetic",
+            "synthetic_only": True,
+            "result": asdict(result),
+            "preview": preview,
+            "committed": False,
+        }
+        if args.commit:
+            output["commit"] = bridge.rpc("neural_intent_commit", {"intent_id": wire[66:82].hex()})
+            output["committed"] = True
+        else:
+            bridge.rpc("neural_disarm")
+        return output
+
+
 def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(description=__doc__)
     subcommands = command.add_subparsers(dest="command", required=True)
@@ -492,6 +735,29 @@ def parser() -> argparse.ArgumentParser:
     synthetic.add_argument("--focus-revision", type=int, default=0)
     synthetic.add_argument("--state-revision", type=int, default=0)
     synthetic.add_argument("--scope", choices=sorted(SCOPES), default="navigate")
+    bridge = subcommands.add_parser(
+        "bridge-synthetic",
+        help="preview a synthetic fixture through the paired FerrumOS bridge",
+    )
+    bridge.add_argument("--url", default="ws://127.0.0.1:8785/")
+    bridge.add_argument("--pairing-token", help="prefer FERRUM_NEURAL_PAIRING_TOKEN to avoid shell history")
+    bridge.add_argument("--control-mode", choices=["exclusive", "cooperative"], default="exclusive")
+    bridge.add_argument("--frequency", type=float, default=12.0)
+    bridge.add_argument("--sample-rate", type=int, default=250)
+    bridge.add_argument("--channels", type=int, default=8)
+    bridge.add_argument("--seconds", type=float, default=1.0)
+    bridge.add_argument("--windows", type=int, default=3)
+    bridge.add_argument("--dwell", type=int, default=3)
+    bridge.add_argument("--noise", type=float, default=2.0)
+    bridge.add_argument("--fault", choices=["dropout", "saturation", "blink", "line-noise"])
+    bridge.add_argument("--seed", type=int, default=42)
+    bridge.add_argument("--calibration-id", default="synthetic-calibration-v1")
+    bridge.add_argument("--subject", default="synthetic-fixture")
+    bridge.add_argument("--sequence", type=int, default=1)
+    bridge.add_argument("--scope", choices=sorted(SCOPES), default="navigate")
+    bridge.add_argument("--wait-for-arm", type=float, default=30.0)
+    bridge.add_argument("--timeout", type=float, default=5.0)
+    bridge.add_argument("--commit", action="store_true", help="commit after preview; default is preview then disarm")
     return command
 
 
@@ -499,6 +765,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.command == "synthetic":
         print(json.dumps(run_synthetic(args), indent=2, sort_keys=True))
+        return 0
+    if args.command == "bridge-synthetic":
+        print(json.dumps(run_bridge_synthetic(args), indent=2, sort_keys=True))
         return 0
     raise NeurodError("unknown command")
 
@@ -509,4 +778,3 @@ if __name__ == "__main__":
     except NeurodError as error:
         print(json.dumps({"error": str(error), "abstained": True}))
         raise SystemExit(2)
-

@@ -15,7 +15,22 @@ with `ferrum-neural-protocol`. Never publish a live pairing token or recording.
 Real-board acquisition is optional and requires the upstream `brainflow` Python
 package; first validate the board independently in its vendor/OpenBCI GUI.
 
+For an end-to-end synthetic preview against a running QEMU bridge, keep the
+pairing token out of shell history, run the command, and arm locally at the
+FerrumOS console when prompted by the wait:
+
+```powershell
+$env:FERRUM_NEURAL_PAIRING_TOKEN = "<current 32-hex console token>"
+python tools/neurod/neurod.py bridge-synthetic --frequency 12
+# In FerrumOS: heliox neural arm
+```
+
+The default operation previews and then disarms. `--commit` is explicit and is
+still limited by FerrumOS to focus changes or the three compiled read-only
+targets. Physical-goal evidence is proposal-only and cannot be committed.
+
 Recording is intentionally API-only until an explicit consent UX is connected.
 `ConsentRecorder` writes a pseudonymous, BIDS-shaped local folder and refuses to
-start unless the caller supplies affirmative consent.
-
+start unless the caller supplies affirmative consent. Its sidecar records
+whether the source was human, playback, or synthetic so fixtures cannot be
+mistaken for human EEG.
