@@ -10,3 +10,6 @@ path = "src/lib.rs"
 
 [features]
 default = []
+
+[dependencies]
+libm = "0.2.8"

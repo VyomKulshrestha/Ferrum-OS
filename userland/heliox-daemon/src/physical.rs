@@ -38,7 +38,7 @@ impl PhysicalService {
             .as_ref()
             .is_some_and(|report| report.job_completed);
         format!(
-            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"physical_model_loaded\":{},\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
+            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
             PHYSICAL_SCHEMA_VERSION,
             self.model.is_some(),
             self.completed_simulations,
@@ -53,17 +53,17 @@ impl PhysicalService {
             features: [0.1, 0.1, 0.3],
         };
         let unsafe_forecast = model
-            .predict_shadow(maintenance_observation(0.1, 0.25).into(), action)
+            .predict_shadow_horizon(maintenance_observation(0.1, 0.25).into(), action, 3)
             .map_err(|_| "physical model inference failed")?;
         let safe_forecast = model
-            .predict_shadow(maintenance_observation(0.9, 0.0).into(), action)
+            .predict_shadow_horizon(maintenance_observation(0.9, 0.0).into(), action, 3)
             .map_err(|_| "physical model inference failed")?;
         let report =
             run_maintenance_demo_with_predictions(unsafe_forecast.evidence, safe_forecast.evidence)
                 .map_err(|_| "physical maintenance simulation failed")?;
         self.completed_simulations = self.completed_simulations.saturating_add(1);
         let response = format!(
-            "{{\"simulation_only\":true,\"job_completed\":{},\"tasks\":{},\"approval_enforced\":{},\"unsafe_motion_blocked\":{},\"safe_motion_delivered\":{},\"policy_revision\":{},\"unsafe_shadow_risk_permille\":{},\"safe_shadow_risk_permille\":{},\"task_successes\":{},\"safety_interventions\":{},\"twin_events\":{}}}",
+            "{{\"simulation_only\":true,\"model\":\"ema_target_jepa\",\"lookahead_horizon\":3,\"job_completed\":{},\"tasks\":{},\"approval_enforced\":{},\"unsafe_motion_blocked\":{},\"safe_motion_delivered\":{},\"policy_revision\":{},\"unsafe_shadow_risk_permille\":{},\"safe_shadow_risk_permille\":{},\"task_successes\":{},\"safety_interventions\":{},\"twin_events\":{}}}",
             report.job_completed,
             report.assigned_actors.len(),
             report.approval_was_enforced,

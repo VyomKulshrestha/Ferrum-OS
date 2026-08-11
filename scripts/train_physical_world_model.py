@@ -295,12 +295,21 @@ def main():
     parser.add_argument("--hidden", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=1200)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--selection-only",
+        action="store_true",
+        help="report validation metrics without opening the held-out test split",
+    )
     parser.add_argument("--dataset", type=Path, default=Path("target/physical_world_model/trajectories.jsonl"))
     # This trainer is retained as the supervised MLP baseline. Its defaults
     # deliberately cannot overwrite the deployed PJE1 artifact or its report.
     parser.add_argument("--artifact", type=Path, default=Path("target/physical_world_model/baseline_mlp.bin"))
     parser.add_argument("--evaluation", type=Path, default=Path("target/physical_world_model/baseline_mlp_evaluation.json"))
     args = parser.parse_args()
+    if args.steps < 5:
+        parser.error("--steps must be at least 5 for registered H=1..5 evaluation")
+    if args.episodes < 20:
+        parser.error("--episodes must be at least 20 for episode-disjoint splits")
 
     rows = generate(args.episodes, args.steps, args.seed)
     episode_ids = np.arange(args.episodes)
@@ -330,24 +339,27 @@ def main():
         f"per_action_mean_h{horizon}": rollout_error(val_rows, mean_predictor, horizon)
         for horizon in range(1, 6)
     })
-    test_rollout = {
-        f"transition_model_h{horizon}": rollout_error(test_rows, transition_predictor, horizon)
-        for horizon in range(1, 6)
-    }
-    test_rollout.update({
-        f"per_action_mean_h{horizon}": rollout_error(test_rows, mean_predictor, horizon)
-        for horizon in range(1, 6)
-    })
-    h3 = test_rollout["transition_model_h3"]
-    mean_h3 = test_rollout["per_action_mean_h3"]
-
-    rules = confusion(test_rows, lambda row: rules_block(row[2], row[3], row[4]))
-    learned = confusion(test_rows, lambda row: predicted_block(
-        row[2], row[3], row[4], np.clip(row[2] + transition_predictor(row[2], row[3], row[4]), -1.25, 1.25)
-    ))
-    combined = confusion(test_rows, lambda row: rules_block(row[2], row[3], row[4]) or predicted_block(
-        row[2], row[3], row[4], np.clip(row[2] + transition_predictor(row[2], row[3], row[4]), -1.25, 1.25)
-    ))
+    test_rollout = None
+    safety = None
+    if not args.selection_only:
+        test_rollout = {
+            f"transition_model_h{horizon}": rollout_error(test_rows, transition_predictor, horizon)
+            for horizon in range(1, 6)
+        }
+        test_rollout.update({
+            f"per_action_mean_h{horizon}": rollout_error(test_rows, mean_predictor, horizon)
+            for horizon in range(1, 6)
+        })
+        rules = confusion(test_rows, lambda row: rules_block(row[2], row[3], row[4]))
+        learned = confusion(test_rows, lambda row: predicted_block(
+            row[2], row[3], row[4], np.clip(row[2] + transition_predictor(row[2], row[3], row[4]), -1.25, 1.25)
+        ))
+        combined = confusion(test_rows, lambda row: rules_block(row[2], row[3], row[4]) or predicted_block(
+            row[2], row[3], row[4], np.clip(row[2] + transition_predictor(row[2], row[3], row[4]), -1.25, 1.25)
+        ))
+        safety = {"rules_only": rules, "learned_only": learned, "rules_plus_learned": combined}
+    h3 = (test_rollout or validation_rollout)["transition_model_h3"]
+    mean_h3 = (test_rollout or validation_rollout)["per_action_mean_h3"]
 
     write_dataset(args.dataset, rows)
     write_artifact(args.artifact, weights, len(train_rows), h3, mean_h3, args.hidden)
@@ -372,8 +384,7 @@ def main():
         "epochs_completed": trained_epochs,
         "validation_mse": validation_mse,
         "validation_rollout_error": validation_rollout,
-        "normalized_rollout_error": test_rollout,
-        "safety": {"rules_only": rules, "learned_only": learned, "rules_plus_learned": combined},
+        "test_split_opened": not args.selection_only,
         "artifact": str(args.artifact).replace("\\", "/"),
         "artifact_format": "PWM1",
         "artifact_sha256": artifact_sha256,
@@ -382,6 +393,9 @@ def main():
         "validated_for_gating": False,
         "gating_reason": "Simulator-only trajectories cannot validate control of real physical machinery.",
     }
+    if test_rollout is not None:
+        evaluation["normalized_rollout_error"] = test_rollout
+        evaluation["safety"] = safety
     args.evaluation.parent.mkdir(parents=True, exist_ok=True)
     args.evaluation.write_text(json.dumps(evaluation, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(evaluation, indent=2))

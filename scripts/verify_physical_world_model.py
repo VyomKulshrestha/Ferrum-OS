@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TRAINER = ROOT / "scripts" / "train_physical_world_model.py"
+SELECTOR = ROOT / "scripts" / "select_physical_jepa.py"
 ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 EVALUATION = ROOT / "docs" / "research" / "physical_world_model_evaluation.json"
 
@@ -31,46 +31,107 @@ def main():
     evaluation = json.loads(EVALUATION.read_text(encoding="utf-8"))
     artifact = ARTIFACT.read_bytes()
     require(sha256(ARTIFACT) == evaluation["artifact_sha256"], "artifact hash matches evaluation")
-    require(len(artifact) == 11_116, "PWM1 artifact has exact bounded size")
-    header = struct.unpack("<4sIIIIIIIffI", artifact[:44])
-    magic, version, state_size, action_count, feature_size, hidden, samples, input_size, h3, mean_h3, gating = header
-    require(magic == b"PWM1" and version == 1, "artifact magic and version are supported")
-    require((state_size, action_count, feature_size, input_size) == (16, 7, 3, 26), "artifact schema matches runtime")
-    require(hidden == 64 and samples == 10_500, "artifact capacity and training sample count are recorded")
+    require(len(artifact) == 79_984, "PJE1 artifact has exact bounded size")
+    header = struct.unpack("<4sIIIIIIIIffI", artifact[:48])
+    (
+        magic, version, state_size, action_count, feature_size, latent, hidden,
+        samples, action_input_size, h3, mean_h3, gating,
+    ) = header
+    require(magic == b"PJE1" and version == 1, "artifact magic and version are supported")
+    require(
+        (state_size, action_count, feature_size, action_input_size) == (16, 7, 3, 10),
+        "artifact schema matches runtime",
+    )
+    require(
+        latent == 64 and hidden == 128 and samples == 10_500,
+        "validation-selected JEPA capacity and training sample count are recorded",
+    )
     require(gating == 0 and not evaluation["validated_for_gating"], "simulator artifact remains shadow-only")
-    require(h3 < mean_h3, "artifact H=3 error beats per-action mean baseline")
+    require(
+        evaluation["model_class"] == "ema_target_joint_embedding_predictive_architecture",
+        "artifact is a real EMA-target JEPA rather than a renamed transition MLP",
+    )
+    require(h3 < mean_h3, "JEPA H=3 error beats per-action mean baseline")
     require(evaluation["episode_overlap"] == 0, "train validation and test episodes do not overlap")
     require(
-        evaluation["safety"]["rules_plus_learned"]["fn"]
+        evaluation["safety"]["rules_plus_jepa"]["fn"]
         < evaluation["safety"]["rules_only"]["fn"],
-        "combined simulator screen reduces false negatives versus rules only",
+        "rules plus JEPA reduce false negatives versus rules only",
+    )
+    require(
+        evaluation["safety"]["rules_plus_jepa"]["fn"] == 1
+        and evaluation["safety"]["rules_plus_jepa"]["fp"] == 16,
+        "selected JEPA held-out safety screen records one false negative and 16 false positives",
+    )
+    baseline = evaluation["baseline_mlp"]
+    require(
+        evaluation["safety"]["rules_plus_jepa"]["balanced_accuracy"]
+        > baseline["safety"]["rules_plus_learned"]["balanced_accuracy"],
+        "selected JEPA safety balanced accuracy beats the prior physical MLP",
+    )
+    require(
+        evaluation["model_selection"]["criterion"]
+        == "validation_only_geometric_error_with_regression_and_anti_collapse_gates"
+        and evaluation["model_selection"]["test_metrics_not_used_for_selection"],
+        "capacity selection excludes held-out test metrics and rejects rollout regressions",
+    )
+    for candidate in evaluation["model_selection"]["candidates"]:
+        require(
+            not any(key.startswith("test") for key in candidate),
+            f"candidate {candidate['latent']}x{candidate['hidden']} contains no test metrics",
+        )
+    anti_collapse = evaluation["anti_collapse"]
+    require(
+        anti_collapse["latent_standard_deviation"] >= 0.02
+        and anti_collapse["effective_rank"] >= 4.0
+        and anti_collapse["action_sensitivity"] >= 0.005,
+        "held-out representation passes anti-collapse checks",
+    )
+    rollout = evaluation["normalized_rollout_error"]
+    baseline_rollout = baseline["normalized_rollout_error"]
+    require(
+        all(
+            rollout[f"physical_jepa_h{h}"] < baseline_rollout[f"transition_model_h{h}"]
+            for h in (1, 3, 5)
+        ),
+        "selected JEPA beats the supervised transition MLP at H=1, H=3 and H=5",
     )
 
     with tempfile.TemporaryDirectory(prefix="ferrum-physical-model-") as temp:
         directory = Path(temp)
-        dataset = directory / "trajectories.jsonl"
         artifact_copy = directory / "model.bin"
         evaluation_copy = directory / "evaluation.json"
+        selection_copy = directory / "selection.json"
+        dataset_copy = directory / "trajectories.jsonl"
         subprocess.run(
             [
                 sys.executable,
-                str(TRAINER),
-                "--dataset", str(dataset),
+                str(SELECTOR),
                 "--artifact", str(artifact_copy),
                 "--evaluation", str(evaluation_copy),
+                "--selection", str(selection_copy),
+                "--dataset", str(dataset_copy),
             ],
             cwd=ROOT,
             check=True,
             stdout=subprocess.DEVNULL,
         )
         reproduced = json.loads(evaluation_copy.read_text(encoding="utf-8"))
-        require(sha256(artifact_copy) == evaluation["artifact_sha256"], "training deterministically reproduces artifact")
-        require(sha256(dataset) == evaluation["generated_dataset_sha256"], "generator deterministically reproduces 15,000 transitions")
+        reproduced_selection = json.loads(selection_copy.read_text(encoding="utf-8"))
+        require(sha256(artifact_copy) == evaluation["artifact_sha256"], "validation sweep deterministically reproduces artifact")
+        require(
+            reproduced_selection["selected_capacity"] == evaluation["model_selection"]["selected"],
+            "validation-only sweep deterministically selects the same capacity",
+        )
         require(
             reproduced["normalized_rollout_error"] == evaluation["normalized_rollout_error"],
             "held-out rollout metrics reproduce exactly",
         )
         require(reproduced["safety"] == evaluation["safety"], "three-arm safety metrics reproduce exactly")
+        require(
+            sha256(dataset_copy) == evaluation["generated_dataset_sha256"],
+            "deterministic simulator dataset reproduces exactly",
+        )
 
     print("\nPhysical world-model verification passed.")
 

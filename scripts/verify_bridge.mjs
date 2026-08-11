@@ -410,6 +410,9 @@ try {
       && physicalBefore?.result?.mode === "simulator"
       && physicalBefore?.result?.learned_gate === "shadow_only"
       && physicalBefore?.result?.physical_model_loaded === true
+      && physicalBefore?.result?.physical_model === "ema_target_jepa"
+      && physicalBefore?.result?.artifact_format === "PJE1"
+      && physicalBefore?.result?.lookahead_horizon === 3
       && physicalBefore?.result?.os_jepa_reused === false
       && physicalBefore?.result?.completed_simulations === 0,
     JSON.stringify(physicalBefore?.result),

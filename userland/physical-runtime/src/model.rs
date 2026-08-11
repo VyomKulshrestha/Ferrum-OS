@@ -9,9 +9,9 @@ use crate::safety::{EffectKind, PhysicalPrediction, PredictionSource};
 pub const PHYSICAL_STATE_SIZE: usize = 16;
 pub const PHYSICAL_ACTION_COUNT: usize = 7;
 pub const PHYSICAL_ACTION_FEATURE_SIZE: usize = 3;
-const PHYSICAL_INPUT_SIZE: usize =
-    PHYSICAL_STATE_SIZE + PHYSICAL_ACTION_COUNT + PHYSICAL_ACTION_FEATURE_SIZE;
-const HEADER_SIZE: usize = 44;
+const PHYSICAL_ACTION_INPUT_SIZE: usize = PHYSICAL_ACTION_COUNT + PHYSICAL_ACTION_FEATURE_SIZE;
+const HEADER_SIZE: usize = 48;
+const MAX_LATENT_SIZE: usize = 64;
 const MAX_HIDDEN_SIZE: usize = 128;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -89,6 +89,7 @@ pub struct PhysicalAction {
 pub struct PhysicalForecast {
     pub next_state: PhysicalState,
     pub evidence: PhysicalPrediction,
+    pub lookahead_steps: u8,
     pub normalized_h3_error: f32,
     pub per_action_mean_h3_error: f32,
 }
@@ -104,19 +105,25 @@ pub enum PhysicalModelError {
     InvalidWeights,
     InvalidState,
     InvalidAction,
+    InvalidHorizon,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct PhysicalTransitionModel<'a> {
     bytes: &'a [u8],
+    latent_size: usize,
     hidden_size: usize,
     training_samples: u32,
     normalized_h3_error: f32,
     per_action_mean_h3_error: f32,
-    w1_offset: usize,
-    b1_offset: usize,
-    w2_offset: usize,
-    b2_offset: usize,
+    encoder_w_offset: usize,
+    encoder_b_offset: usize,
+    predictor_w1_offset: usize,
+    predictor_b1_offset: usize,
+    predictor_w2_offset: usize,
+    predictor_b2_offset: usize,
+    state_w_offset: usize,
+    state_b_offset: usize,
 }
 
 impl<'a> PhysicalTransitionModel<'a> {
@@ -124,7 +131,7 @@ impl<'a> PhysicalTransitionModel<'a> {
         if bytes.len() < HEADER_SIZE {
             return Err(PhysicalModelError::Truncated);
         }
-        if &bytes[..4] != b"PWM1" {
+        if &bytes[..4] != b"PJE1" {
             return Err(PhysicalModelError::InvalidMagic);
         }
         if read_u32(bytes, 4)? != 1 {
@@ -133,20 +140,26 @@ impl<'a> PhysicalTransitionModel<'a> {
         let state_size = read_u32(bytes, 8)? as usize;
         let action_count = read_u32(bytes, 12)? as usize;
         let action_feature_size = read_u32(bytes, 16)? as usize;
-        let hidden_size = read_u32(bytes, 20)? as usize;
-        let training_samples = read_u32(bytes, 24)?;
-        let input_size = read_u32(bytes, 28)? as usize;
-        let normalized_h3_error = read_f32(bytes, 32)?;
-        let per_action_mean_h3_error = read_f32(bytes, 36)?;
-        let _serialized_gating_flag = read_u32(bytes, 40)?;
+        let latent_size = read_u32(bytes, 20)? as usize;
+        let hidden_size = read_u32(bytes, 24)? as usize;
+        let training_samples = read_u32(bytes, 28)?;
+        let action_input_size = read_u32(bytes, 32)? as usize;
+        let normalized_h3_error = read_f32(bytes, 36)?;
+        let per_action_mean_h3_error = read_f32(bytes, 40)?;
+        let _serialized_gating_flag = read_u32(bytes, 44)?;
         if state_size != PHYSICAL_STATE_SIZE
             || action_count != PHYSICAL_ACTION_COUNT
             || action_feature_size != PHYSICAL_ACTION_FEATURE_SIZE
-            || input_size != PHYSICAL_INPUT_SIZE
+            || action_input_size != PHYSICAL_ACTION_INPUT_SIZE
         {
             return Err(PhysicalModelError::SchemaMismatch);
         }
-        if hidden_size == 0 || hidden_size > MAX_HIDDEN_SIZE || training_samples == 0 {
+        if latent_size == 0
+            || latent_size > MAX_LATENT_SIZE
+            || hidden_size == 0
+            || hidden_size > MAX_HIDDEN_SIZE
+            || training_samples == 0
+        {
             return Err(PhysicalModelError::InvalidDimensions);
         }
         if !normalized_h3_error.is_finite()
@@ -156,11 +169,16 @@ impl<'a> PhysicalTransitionModel<'a> {
         {
             return Err(PhysicalModelError::InvalidMetric);
         }
-        let w1_offset = HEADER_SIZE;
-        let b1_offset = w1_offset + PHYSICAL_INPUT_SIZE * hidden_size * 4;
-        let w2_offset = b1_offset + hidden_size * 4;
-        let b2_offset = w2_offset + hidden_size * PHYSICAL_STATE_SIZE * 4;
-        if bytes.len() != b2_offset + PHYSICAL_STATE_SIZE * 4 {
+        let encoder_w_offset = HEADER_SIZE;
+        let encoder_b_offset = encoder_w_offset + PHYSICAL_STATE_SIZE * latent_size * 4;
+        let predictor_w1_offset = encoder_b_offset + latent_size * 4;
+        let predictor_b1_offset =
+            predictor_w1_offset + (latent_size + PHYSICAL_ACTION_INPUT_SIZE) * hidden_size * 4;
+        let predictor_w2_offset = predictor_b1_offset + hidden_size * 4;
+        let predictor_b2_offset = predictor_w2_offset + hidden_size * latent_size * 4;
+        let state_w_offset = predictor_b2_offset + latent_size * 4;
+        let state_b_offset = state_w_offset + latent_size * PHYSICAL_STATE_SIZE * 4;
+        if bytes.len() != state_b_offset + PHYSICAL_STATE_SIZE * 4 {
             return Err(PhysicalModelError::Truncated);
         }
         for chunk in bytes[HEADER_SIZE..].chunks_exact(4) {
@@ -171,14 +189,19 @@ impl<'a> PhysicalTransitionModel<'a> {
         }
         Ok(Self {
             bytes,
+            latent_size,
             hidden_size,
             training_samples,
             normalized_h3_error,
             per_action_mean_h3_error,
-            w1_offset,
-            b1_offset,
-            w2_offset,
-            b2_offset,
+            encoder_w_offset,
+            encoder_b_offset,
+            predictor_w1_offset,
+            predictor_b1_offset,
+            predictor_w2_offset,
+            predictor_b2_offset,
+            state_w_offset,
+            state_b_offset,
         })
     }
 
@@ -195,6 +218,52 @@ impl<'a> PhysicalTransitionModel<'a> {
         state: PhysicalState,
         action: PhysicalAction,
     ) -> Result<PhysicalForecast, PhysicalModelError> {
+        self.predict_shadow_horizon(state, action, 1)
+    }
+
+    /// Recurrently applies the learned transition for a bounded lookahead.
+    /// The highest risk across the rollout is returned as advisory evidence;
+    /// deterministic policy remains authoritative at every real action.
+    pub fn predict_shadow_horizon(
+        &self,
+        state: PhysicalState,
+        action: PhysicalAction,
+        steps: u8,
+    ) -> Result<PhysicalForecast, PhysicalModelError> {
+        if !(1..=5).contains(&steps) {
+            return Err(PhysicalModelError::InvalidHorizon);
+        }
+        let mut current = state;
+        let mut worst: Option<PhysicalPrediction> = None;
+        for _ in 0..steps {
+            let forecast = self.predict_one_shadow(current, action)?;
+            current = forecast.next_state;
+            if worst
+                .as_ref()
+                .is_none_or(|evidence| forecast.evidence.risk_permille > evidence.risk_permille)
+            {
+                worst = Some(forecast.evidence);
+            }
+        }
+        let mut evidence = worst.ok_or(PhysicalModelError::InvalidHorizon)?;
+        evidence.uncertainty_permille = (self.normalized_h3_error
+            * 1_000.0
+            * libm::sqrtf(f32::from(steps)))
+        .clamp(0.0, 1_000.0) as u16;
+        Ok(PhysicalForecast {
+            next_state: current,
+            evidence,
+            lookahead_steps: steps,
+            normalized_h3_error: self.normalized_h3_error,
+            per_action_mean_h3_error: self.per_action_mean_h3_error,
+        })
+    }
+
+    fn predict_one_shadow(
+        &self,
+        state: PhysicalState,
+        action: PhysicalAction,
+    ) -> Result<PhysicalForecast, PhysicalModelError> {
         validate_state(state)?;
         if action
             .features
@@ -203,33 +272,67 @@ impl<'a> PhysicalTransitionModel<'a> {
         {
             return Err(PhysicalModelError::InvalidAction);
         }
-        let mut input = [0.0f32; PHYSICAL_INPUT_SIZE];
-        input[..PHYSICAL_STATE_SIZE].copy_from_slice(&state.values);
-        input[PHYSICAL_STATE_SIZE + action.kind as usize] = 1.0;
-        input[PHYSICAL_STATE_SIZE + PHYSICAL_ACTION_COUNT..].copy_from_slice(&action.features);
+        let mut latent = [0.0f32; MAX_LATENT_SIZE];
+        for (column, output) in latent[..self.latent_size].iter_mut().enumerate() {
+            let mut value = self.float_at(self.encoder_b_offset, column)?;
+            for (row, state_value) in state.values.iter().enumerate() {
+                value += *state_value
+                    * self.float_at(self.encoder_w_offset, row * self.latent_size + column)?;
+            }
+            if !value.is_finite() {
+                return Err(PhysicalModelError::InvalidWeights);
+            }
+            *output = libm::tanhf(value);
+        }
+        let mut predictor_input = [0.0f32; MAX_LATENT_SIZE + PHYSICAL_ACTION_INPUT_SIZE];
+        predictor_input[..self.latent_size].copy_from_slice(&latent[..self.latent_size]);
+        predictor_input[self.latent_size + action.kind as usize] = 1.0;
+        predictor_input[self.latent_size + PHYSICAL_ACTION_COUNT
+            ..self.latent_size + PHYSICAL_ACTION_INPUT_SIZE]
+            .copy_from_slice(&action.features);
         let mut hidden = [0.0f32; MAX_HIDDEN_SIZE];
         for (column, output) in hidden[..self.hidden_size].iter_mut().enumerate() {
-            let mut value = self.float_at(self.b1_offset, column)?;
-            for (row, input_value) in input.iter().enumerate() {
+            let mut value = self.float_at(self.predictor_b1_offset, column)?;
+            for (row, input_value) in predictor_input
+                [..self.latent_size + PHYSICAL_ACTION_INPUT_SIZE]
+                .iter()
+                .enumerate()
+            {
                 value += *input_value
-                    * self.float_at(self.w1_offset, row * self.hidden_size + column)?;
+                    * self.float_at(self.predictor_w1_offset, row * self.hidden_size + column)?;
             }
             if !value.is_finite() {
                 return Err(PhysicalModelError::InvalidWeights);
             }
             *output = value.max(0.0);
         }
+        let mut predicted_latent = [0.0f32; MAX_LATENT_SIZE];
+        for (column, output) in predicted_latent[..self.latent_size].iter_mut().enumerate() {
+            let mut value = self.float_at(self.predictor_b2_offset, column)?;
+            for (row, hidden_value) in hidden[..self.hidden_size].iter().enumerate() {
+                value += *hidden_value
+                    * self.float_at(self.predictor_w2_offset, row * self.latent_size + column)?;
+            }
+            if !value.is_finite() {
+                return Err(PhysicalModelError::InvalidWeights);
+            }
+            *output = value;
+        }
         let mut next = state.values;
         for (column, output) in next.iter_mut().enumerate() {
-            let mut delta = self.float_at(self.b2_offset, column)?;
-            for (row, hidden_value) in hidden[..self.hidden_size].iter().enumerate() {
-                delta += *hidden_value
-                    * self.float_at(self.w2_offset, row * PHYSICAL_STATE_SIZE + column)?;
+            let mut delta = self.float_at(self.state_b_offset, column)?;
+            for (row, latent_value) in predicted_latent[..self.latent_size].iter().enumerate() {
+                delta += *latent_value
+                    * self.float_at(self.state_w_offset, row * PHYSICAL_STATE_SIZE + column)?;
             }
             if !delta.is_finite() {
                 return Err(PhysicalModelError::InvalidWeights);
             }
-            *output = (*output + delta).clamp(-1.25, 1.25);
+            *output = if column < 2 {
+                (*output + delta).clamp(-1.25, 1.25)
+            } else {
+                (*output + delta).clamp(0.0, 1.0)
+            };
         }
         Ok(PhysicalForecast {
             next_state: PhysicalState { values: next },
@@ -243,6 +346,7 @@ impl<'a> PhysicalTransitionModel<'a> {
                 // Simulator bytes cannot promote themselves into authority.
                 validated_for_gating: false,
             },
+            lookahead_steps: 1,
             normalized_h3_error: self.normalized_h3_error,
             per_action_mean_h3_error: self.per_action_mean_h3_error,
         })
@@ -366,6 +470,45 @@ mod tests {
             )
             .unwrap();
         assert!(forecast.evidence.risk_permille >= 900);
+        assert!(!forecast.evidence.validated_for_gating);
+    }
+
+    #[test]
+    fn h3_rollout_is_bounded_and_remains_shadow_only() {
+        let model = PhysicalTransitionModel::from_bytes(ARTIFACT).unwrap();
+        let action = PhysicalAction {
+            kind: PhysicalActionKind::Move,
+            features: [0.1, 0.1, 0.3],
+        };
+        let forecast = model
+            .predict_shadow_horizon(safe_state(), action, 3)
+            .unwrap();
+        assert_eq!(forecast.lookahead_steps, 3);
+        assert!(!forecast.evidence.validated_for_gating);
+        assert_eq!(
+            model.predict_shadow_horizon(safe_state(), action, 0),
+            Err(PhysicalModelError::InvalidHorizon)
+        );
+        assert_eq!(
+            model.predict_shadow_horizon(safe_state(), action, 6),
+            Err(PhysicalModelError::InvalidHorizon)
+        );
+    }
+
+    #[test]
+    fn serialized_gating_flag_cannot_promote_the_model() {
+        let mut promoted = ARTIFACT.to_vec();
+        promoted[44..48].copy_from_slice(&1u32.to_le_bytes());
+        let model = PhysicalTransitionModel::from_bytes(&promoted).unwrap();
+        let forecast = model
+            .predict_shadow(
+                safe_state(),
+                PhysicalAction {
+                    kind: PhysicalActionKind::Inspect,
+                    features: [0.0; 3],
+                },
+            )
+            .unwrap();
         assert!(!forecast.evidence.validated_for_gating);
     }
 
