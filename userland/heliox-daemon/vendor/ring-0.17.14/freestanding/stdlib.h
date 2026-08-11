@@ -1,6 +1,6 @@
-/* Minimal freestanding declarations required by clang's mm_malloc.h.
- * Ring does not allocate through these declarations in FerrumOS; its x86
- * intrinsic header includes them unconditionally while compiling ADX code. */
+/* Minimal declarations required by clang's mm_malloc.h for FerrumOS only.
+ * Ring does not allocate through these functions; x86 intrinsic headers
+ * include their declarations unconditionally while compiling ADX code. */
 #ifndef FERRUM_RING_FREESTANDING_STDLIB_H
 #define FERRUM_RING_FREESTANDING_STDLIB_H
 

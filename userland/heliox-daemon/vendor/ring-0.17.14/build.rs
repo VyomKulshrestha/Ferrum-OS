@@ -513,6 +513,10 @@ fn new_build(target: &Target, c_root_dir: &Path, include_dir: &Path) -> cc::Buil
     if target.os == "none" {
         let _ = b.compiler("clang");
         let _ = b.archiver("llvm-ar");
+        // clang's x86 intrinsic headers include stdlib.h even though Ring does
+        // not allocate on FerrumOS. Keep the shim target-scoped so it never
+        // shadows a hosted platform's C runtime headers.
+        let _ = b.include(c_root_dir.join("freestanding"));
     }
     configure_cc(&mut b, target, c_root_dir, include_dir);
     b
