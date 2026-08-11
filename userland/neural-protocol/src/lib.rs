@@ -789,4 +789,89 @@ mod tests {
             Err(NeuralError::RevisionMismatch)
         );
     }
+
+    #[test]
+    fn every_single_byte_mutation_and_truncation_fails_closed() {
+        let now = 10_000;
+        let valid = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        for length in 0..NEURAL_INTENT_WIRE_BYTES {
+            assert!(NeuralIntentV1::parse(&valid[..length]).is_err());
+        }
+        for index in 0..NEURAL_INTENT_WIRE_BYTES {
+            let mut mutated = valid;
+            mutated[index] ^= 0x80;
+            let mut session = armed();
+            assert!(session
+                .preview(&mutated, KEY, now, 7, 9, NeuralPolicy::default())
+                .is_err());
+            assert_eq!(session.state(), NeuralSessionState::ObserveOnly);
+            assert_eq!(session.pending(), None);
+        }
+    }
+
+    #[test]
+    fn gaps_future_and_stale_windows_disarm_and_count_loss() {
+        let now = 10_000;
+        let first = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        let mut session = armed();
+        session
+            .preview(&first, KEY, now, 7, 9, NeuralPolicy::default())
+            .unwrap();
+        session.disarm();
+        session.arm_safe_ui(true).unwrap();
+        let gap = wire(NeuralClass::Select, NeuralScope::Navigate, 18, now);
+        assert_eq!(
+            session.preview(&gap, KEY, now, 7, 9, NeuralPolicy::default()),
+            Err(NeuralError::SequenceGap)
+        );
+        assert_eq!(session.dropped_samples(), 16);
+        assert_eq!(session.state(), NeuralSessionState::ObserveOnly);
+
+        let mut future_session = armed();
+        let future = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now + 1_000);
+        assert_eq!(
+            future_session.preview(&future, KEY, now, 7, 9, NeuralPolicy::default()),
+            Err(NeuralError::ExpiredOrFuture)
+        );
+        let mut stale_session = armed();
+        let mut stale = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        stale[42..50].copy_from_slice(&(now + 4_000_000_000).to_le_bytes());
+        let mut mac = HmacSha256::new_from_slice(KEY).unwrap();
+        mac.update(&stale[..NEURAL_INTENT_SIGNED_BYTES]);
+        stale[NEURAL_INTENT_SIGNED_BYTES..].copy_from_slice(&mac.finalize().into_bytes());
+        assert_eq!(
+            stale_session.preview(
+                &stale,
+                KEY,
+                now + NeuralPolicy::default().maximum_window_age_ns + 1,
+                7,
+                9,
+                NeuralPolicy::default(),
+            ),
+            Err(NeuralError::StaleWindow)
+        );
+    }
+
+    #[test]
+    fn commit_rechecks_identity_expiry_and_revisions() {
+        let now = 10_000;
+        for case in 0..3 {
+            let bytes = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+            let mut session = armed();
+            let preview = session
+                .preview(&bytes, KEY, now, 7, 9, NeuralPolicy::default())
+                .unwrap();
+            let outcome = match case {
+                0 => session.commit([0x55; 16], now + 10, 7, 9, NeuralPolicy::default()),
+                1 => session.commit(preview.intent_id, preview.expires_at_ns, 7, 9, NeuralPolicy::default()),
+                _ => session.commit(preview.intent_id, now + 10, 8, 9, NeuralPolicy::default()),
+            };
+            assert!(matches!(
+                outcome,
+                Err(NeuralError::IntentMismatch | NeuralError::ExpiredOrFuture | NeuralError::RevisionMismatch)
+            ));
+            assert_eq!(session.state(), NeuralSessionState::ObserveOnly);
+            assert_eq!(session.pending(), None);
+        }
+    }
 }
