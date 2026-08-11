@@ -1,4 +1,4 @@
-const fields = Object.fromEntries(["intent","quality","posterior","margin","dwell","dropped","status"].map(id => [id, document.getElementById(id)]));
+const fields = Object.fromEntries(["intent","quality","posterior","margin","coherence","dwell","dropped","status"].map(id => [id, document.getElementById(id)]));
 async function decode(frequency) {
   fields.status.textContent = "Decoding three deterministic windows…";
   const fault = document.getElementById("fault").value;
@@ -11,6 +11,7 @@ async function decode(frequency) {
     fields.quality.textContent = result.health.quality;
     fields.posterior.textContent = `${result.posterior_permille / 10}%`;
     fields.margin.textContent = `${result.margin_permille / 10}%`;
+    fields.coherence.textContent = `${result.spectral_coherence_permille / 10}%`;
     fields.dwell.textContent = result.dwell_windows;
     fields.dropped.textContent = result.health.dropped_samples;
     fields.status.textContent = JSON.stringify({synthetic_only:result.synthetic_only,fault:result.fault,os_action_sent:result.os_action_sent}, null, 2);

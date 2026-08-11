@@ -53,6 +53,14 @@ class NeurodTests(unittest.TestCase):
             result = decoder.decode(board.acquire(1.0, frequency, fault=fault))
             self.assertTrue(result.abstained)
 
+    def test_noise_cannot_accumulate_dwell_without_absolute_spectral_evidence(self):
+        board = SyntheticBoard(seed=99173)
+        decoder = SsvepDecoder(250)
+        for window in range(500):
+            result = decoder.decode(board.acquire(1.0, None, 1_000_000_000 + window * 1_000_000_000))
+            self.assertTrue(result.abstained)
+            self.assertEqual(result.dwell_windows, 0)
+
     def test_dropout_is_detected_and_forces_abstention(self):
         samples = SyntheticBoard(seed=2).acquire(1.0, 12.0, fault="dropout")
         gaps = [b.monotonic_ns - a.monotonic_ns for a, b in zip(samples, samples[1:])]

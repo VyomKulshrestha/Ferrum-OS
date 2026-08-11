@@ -73,6 +73,7 @@ class DecodeResult:
     label: str | None
     posterior_permille: int
     margin_permille: int
+    spectral_coherence_permille: int
     dwell_windows: int
     frequency_hz: float | None
     health: SignalHealth
@@ -267,12 +268,14 @@ class SsvepDecoder:
         targets: dict[str, float] | None = None,
         minimum_posterior: float = 0.80,
         minimum_margin: float = 0.15,
+        minimum_spectral_coherence: float = 0.20,
         required_dwell_windows: int = 3,
     ):
         self.sample_rate_hz = sample_rate_hz
         self.targets = targets or {"focus-left": 8.0, "focus-right": 10.0, "select": 12.0, "cancel": 15.0}
         self.minimum_posterior = minimum_posterior
         self.minimum_margin = minimum_margin
+        self.minimum_spectral_coherence = minimum_spectral_coherence
         self.required_dwell_windows = required_dwell_windows
         self._last_label: str | None = None
         self._dwell = 0
@@ -282,7 +285,7 @@ class SsvepDecoder:
         if health.quality != "good":
             self._last_label = None
             self._dwell = 0
-            return DecodeResult(None, 0, 0, 0, None, health)
+            return DecodeResult(None, 0, 0, 0, 0, None, health)
         aggregate = [sum(sample.channels_uv) / len(sample.channels_uv) for sample in samples]
         mean = sum(aggregate) / len(aggregate)
         centered = [value - mean for value in aggregate]
@@ -299,18 +302,33 @@ class SsvepDecoder:
         second = ranked[1][1]
         posterior = best / total
         margin = (best - second) / total
-        if label == self._last_label:
+        total_signal_energy = sum(value * value for value in centered)
+        spectral_coherence = (
+            min(1.0, 2.0 * best / (len(centered) * total_signal_energy))
+            if total_signal_energy
+            else 0.0
+        )
+        evidence_window = (
+            posterior >= self.minimum_posterior
+            and margin >= self.minimum_margin
+            and spectral_coherence >= self.minimum_spectral_coherence
+        )
+        if evidence_window and label == self._last_label:
             self._dwell += 1
-        else:
+        elif evidence_window:
             self._last_label = label
             self._dwell = 1
-        accepted = posterior >= self.minimum_posterior and margin >= self.minimum_margin and self._dwell >= self.required_dwell_windows
+        else:
+            self._last_label = None
+            self._dwell = 0
+        accepted = evidence_window and self._dwell >= self.required_dwell_windows
         return DecodeResult(
             label if accepted else None,
             min(1000, round(posterior * 1000)),
             min(1000, round(margin * 1000)),
+            min(1000, round(spectral_coherence * 1000)),
             self._dwell,
-            self.targets[label],
+            self.targets[label] if evidence_window else None,
             health,
         )
 
