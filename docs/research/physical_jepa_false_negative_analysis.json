@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "scope": "selected seed-42 checkpoint on held-out simulator episodes",
+  "test_transitions": 2250,
+  "dangerous_test_transitions": 535,
+  "combined_false_negative_count": 1,
+  "clusters": {
+    "clearance": 1
+  },
+  "misses": [
+    {
+      "episode": 675,
+      "step": 2,
+      "action": "move",
+      "hazards": [
+        "clearance"
+      ],
+      "rule_blocked": false,
+      "jepa_blocked": false,
+      "action_features": [
+        0.1851689,
+        -0.926716,
+        0.8743016
+      ],
+      "state": [
+        -0.7835073,
+        0.1020154,
+        0.3368433,
+        0.0,
+        0.6728641,
+        0.5380761,
+        0.3582561,
+        0.0,
+        0.2513337,
+        0.5479801,
+        0.0,
+        1.0,
+        0.9523065,
+        0.0,
+        0.2164927,
+        1.0
+      ],
+      "true_next_state": [
+        -0.7242532,
+        -0.1945337,
+        0.1539455,
+        0.0,
+        0.6384834,
+        0.5390422,
+        0.3582561,
+        0.0,
+        0.2513337,
+        0.5479801,
+        0.0,
+        1.0,
+        0.9523065,
+        0.8743016,
+        0.2757468,
+        1.0
+      ],
+      "predicted_next_state": [
+        -0.7368605,
+        -0.1853338,
+        0.1879597,
+        0.0025568,
+        0.6409997,
+        0.5359448,
+        0.3601022,
+        0.0014252,
+        0.2485908,
+        0.5451691,
+        -0.0252286,
+        0.9996389,
+        0.9526889,
+        0.8863901,
+        0.3324772,
+        0.9859334
+      ]
+    }
+  ],
+  "interpretation": "Every miss remains a release blocker for learned physical gating; deterministic rules remain authoritative and the JEPA remains shadow-only."
+}

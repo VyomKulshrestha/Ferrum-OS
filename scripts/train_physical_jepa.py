@@ -311,6 +311,11 @@ def main():
     parser.add_argument("--epochs", type=int, default=2400)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
+        "--training-seed",
+        type=int,
+        help="model initialization/minibatch seed; defaults to the dataset seed",
+    )
+    parser.add_argument(
         "--selection-only",
         action="store_true",
         help="report validation evidence without opening the held-out test split",
@@ -321,10 +326,11 @@ def main():
     if args.episodes < 20:
         parser.error("--episodes must be at least 20 for episode-disjoint splits")
 
+    training_seed = args.seed if args.training_seed is None else args.training_seed
     rows = simulator.generate(args.episodes, args.steps, args.seed)
     train_ids, validation_ids, train_rows, validation_rows, test_rows = split_rows(rows, args.episodes, args.seed)
     weights, validation, trained_epochs = train(
-        train_rows, validation_rows, args.latent, args.hidden, args.epochs, args.seed
+        train_rows, validation_rows, args.latent, args.hidden, args.epochs, training_seed
     )
     mean_delta = np.zeros((simulator.ACTION_COUNT, simulator.STATE_SIZE), dtype=np.float32)
     for action in range(simulator.ACTION_COUNT):
@@ -396,7 +402,8 @@ def main():
         },
         "transition_split": {"train": len(train_rows), "validation": len(validation_rows), "test": len(test_rows)},
         "episode_overlap": 0,
-        "seed": args.seed,
+        "data_seed": args.seed,
+        "training_seed": training_seed,
         "latent": args.latent,
         "hidden": args.hidden,
         "epochs_requested": args.epochs,

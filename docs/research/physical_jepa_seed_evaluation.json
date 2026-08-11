@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "scope": "deterministic_simulator_only",
+  "data_seed": 42,
+  "split_policy": "fixed episode-disjoint split; only training seed varies",
+  "checkpoint_selection": "capacity frozen by the validation-only sweep before this audit",
+  "test_metrics_used_for_selection": false,
+  "runs": [
+    {
+      "training_seed": 17,
+      "validation_h3": 0.010365516878664494,
+      "test_h1": 0.004783689044415951,
+      "test_h3": 0.01057132612913847,
+      "test_h5": 0.016016095876693726,
+      "combined_false_negatives": 0,
+      "combined_false_positives": 18,
+      "latent_standard_deviation": 0.23176142573356628,
+      "effective_rank": 17.118452072143555,
+      "action_sensitivity": 0.06704303622245789
+    },
+    {
+      "training_seed": 42,
+      "validation_h3": 0.010579030029475689,
+      "test_h1": 0.004541031550616026,
+      "test_h3": 0.010492870584130287,
+      "test_h5": 0.015461564064025879,
+      "combined_false_negatives": 1,
+      "combined_false_positives": 16,
+      "latent_standard_deviation": 0.21401827037334442,
+      "effective_rank": 17.556991577148438,
+      "action_sensitivity": 0.063968226313591
+    },
+    {
+      "training_seed": 91,
+      "validation_h3": 0.009965636767446995,
+      "test_h1": 0.004465720150619745,
+      "test_h3": 0.010579857043921947,
+      "test_h5": 0.015588951297104359,
+      "combined_false_negatives": 0,
+      "combined_false_positives": 18,
+      "latent_standard_deviation": 0.21002636849880219,
+      "effective_rank": 17.331113815307617,
+      "action_sensitivity": 0.06481331586837769
+    }
+  ],
+  "aggregate": {
+    "test_h1": {
+      "mean": 0.004596813581883907,
+      "sample_standard_deviation": 0.00016616191084232822,
+      "minimum": 0.004465720150619745,
+      "maximum": 0.004783689044415951
+    },
+    "test_h3": {
+      "mean": 0.010548017919063568,
+      "sample_standard_deviation": 4.7949093207727524e-05,
+      "minimum": 0.010492870584130287,
+      "maximum": 0.010579857043921947
+    },
+    "test_h5": {
+      "mean": 0.015688870412607987,
+      "sample_standard_deviation": 0.00029045525481120605,
+      "minimum": 0.015461564064025879,
+      "maximum": 0.016016095876693726
+    },
+    "combined_false_negatives": {
+      "mean": 0.3333333333333333,
+      "sample_standard_deviation": 0.5773502691896257,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "combined_false_positives": {
+      "mean": 17.333333333333332,
+      "sample_standard_deviation": 1.1547005383792515,
+      "minimum": 16,
+      "maximum": 18
+    },
+    "latent_standard_deviation": {
+      "mean": 0.21860202153523764,
+      "sample_standard_deviation": 0.011569842664670761,
+      "minimum": 0.21002636849880219,
+      "maximum": 0.23176142573356628
+    },
+    "effective_rank": {
+      "mean": 17.335519154866535,
+      "sample_standard_deviation": 0.21930294030166111,
+      "minimum": 17.118452072143555,
+      "maximum": 17.556991577148438
+    },
+    "action_sensitivity": {
+      "mean": 0.0652748594681422,
+      "sample_standard_deviation": 0.0015885153020286505,
+      "minimum": 0.063968226313591,
+      "maximum": 0.06704303622245789
+    }
+  },
+  "claim_boundary": "Seed stability on authored simulator trajectories is not evidence of real-hardware safety."
+}

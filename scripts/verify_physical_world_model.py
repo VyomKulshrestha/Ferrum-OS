@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SELECTOR = ROOT / "scripts" / "select_physical_jepa.py"
 ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 EVALUATION = ROOT / "docs" / "research" / "physical_world_model_evaluation.json"
+SEED_EVALUATION = ROOT / "docs" / "research" / "physical_jepa_seed_evaluation.json"
+FALSE_NEGATIVES = ROOT / "docs" / "research" / "physical_jepa_false_negative_analysis.json"
 
 
 def require(condition: bool, message: str):
@@ -29,6 +31,8 @@ def sha256(path: Path) -> str:
 
 def main():
     evaluation = json.loads(EVALUATION.read_text(encoding="utf-8"))
+    seed_evaluation = json.loads(SEED_EVALUATION.read_text(encoding="utf-8"))
+    false_negatives = json.loads(FALSE_NEGATIVES.read_text(encoding="utf-8"))
     artifact = ARTIFACT.read_bytes()
     require(sha256(ARTIFACT) == evaluation["artifact_sha256"], "artifact hash matches evaluation")
     require(len(artifact) == 79_984, "PJE1 artifact has exact bounded size")
@@ -95,6 +99,18 @@ def main():
             for h in (1, 3, 5)
         ),
         "selected JEPA beats the supervised transition MLP at H=1, H=3 and H=5",
+    )
+    require(
+        seed_evaluation["data_seed"] == 42
+        and len(seed_evaluation["runs"]) >= 3
+        and not seed_evaluation["test_metrics_used_for_selection"],
+        "seed sensitivity holds data and the episode split fixed after capacity selection",
+    )
+    require(
+        false_negatives["combined_false_negative_count"]
+        == evaluation["safety"]["rules_plus_jepa"]["fn"]
+        and false_negatives["clusters"] == {"clearance": 1},
+        "held-out false-negative decomposition accounts for every combined miss",
     )
 
     with tempfile.TemporaryDirectory(prefix="ferrum-physical-model-") as temp:
