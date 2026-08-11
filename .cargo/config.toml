@@ -9,16 +9,6 @@ runner = "bootimage runner"
 rustflags = [
     "-C", "relocation-model=static",
     "-C", "link-arg=-no-pie",
-    # x86_64-unknown-none does not advertise the ABI-mandatory SSE baseline;
-    # ring rejects that target and RustCrypto's runtime intrinsic probes hit an
-    # LLVM backend error. Keep TLS portable and deterministic in bare metal.
-    # This target's upstream spec enables soft-float and disables SSE, which
-    # LLVM cannot optimize for FerrumOS's existing f32-heavy JEPA runtimes.
-    # FerrumOS boots x86-64 with SSE state enabled and uses the SysV register
-    # ABI throughout userland, so select that ABI explicitly.
-    "-C", "target-feature=-soft-float,+sse,+sse2",
-    "--cfg", "aes_force_soft",
-    "--cfg", "polyval_force_soft",
     # curve25519-dalek otherwise auto-selects its nightly AVX2 backend on
     # x86_64, which this bare-metal LLVM target cannot lower safely.
     "--cfg", "curve25519_dalek_backend=\"serial\"",
