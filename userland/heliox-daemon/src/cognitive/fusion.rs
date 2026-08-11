@@ -32,6 +32,14 @@ pub struct ResolvedIntent {
 }
 
 static GESTURE_HISTORY: Mutex<Vec<(u64, u16, u16)>> = Mutex::new(Vec::new());
+static NEURAL_INTENT_HISTORY: Mutex<Vec<NeuralFusionEvent>> = Mutex::new(Vec::new());
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NeuralFusionEvent {
+    pub monotonic_tick: u64,
+    pub class: ferrum_neural_protocol::NeuralClass,
+    pub scope: ferrum_neural_protocol::NeuralScope,
+}
 
 // The kernel programs the PIT at 1 kHz, so uptime ticks are milliseconds.
 // Keep the original ~8.2 second gesture/voice association window after the
@@ -72,6 +80,34 @@ pub fn note_gesture(ticks: u64, cam_x: u16, cam_y: u16) {
     if history.len() > 16 {
         history.remove(0);
     }
+}
+
+/// Retain only coarse, already-verified evidence for temporal context. Raw
+/// samples, channel features, free-form text, and signing material never enter
+/// multimodal fusion.
+pub fn note_neural_intent(
+    monotonic_tick: u64,
+    class: ferrum_neural_protocol::NeuralClass,
+    scope: ferrum_neural_protocol::NeuralScope,
+) {
+    let mut history = NEURAL_INTENT_HISTORY.lock();
+    history.push(NeuralFusionEvent {
+        monotonic_tick,
+        class,
+        scope,
+    });
+    if history.len() > 16 {
+        history.remove(0);
+    }
+}
+
+pub fn clear_neural_history() {
+    NEURAL_INTENT_HISTORY.lock().clear();
+}
+
+pub fn neural_history_summary() -> (usize, Option<NeuralFusionEvent>) {
+    let history = NEURAL_INTENT_HISTORY.lock();
+    (history.len(), history.last().copied())
 }
 
 pub fn resolve_spatial_intent(transcript: &str, current_ticks: u64) -> Option<ResolvedIntent> {

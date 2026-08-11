@@ -222,6 +222,9 @@ impl Orchestrator {
 
     pub fn neural_pair(&mut self, token: &[u8], control_mode: &str) -> Result<(), ferrum_neural_protocol::NeuralError> {
         let result = self.neural_service.pair(token, control_mode);
+        if result.is_ok() {
+            crate::cognitive::fusion::clear_neural_history();
+        }
         self.audit_neural_event(if result.is_ok() { "paired session established" } else { "pairing rejected" });
         result
     }
@@ -240,7 +243,24 @@ impl Orchestrator {
     }
 
     pub fn neural_status_json(&self, now_ns: u64) -> String {
-        self.neural_service.status_json(now_ns)
+        let mut status = self.neural_service.status_json(now_ns);
+        let (retained, latest) = crate::cognitive::fusion::neural_history_summary();
+        let latest_json = match latest {
+            Some(event) => format!(
+                "{{\"tick\":{},\"class\":\"{}\",\"scope\":\"{}\"}}",
+                event.monotonic_tick,
+                neural_class_name(event.class),
+                neural_scope_name(event.scope),
+            ),
+            None => String::from("null"),
+        };
+        if status.pop() == Some('}') {
+            status.push_str(&format!(
+                ",\"fusion\":{{\"raw_eeg_retained\":false,\"retained_intents\":{},\"latest\":{}}}}}",
+                retained, latest_json,
+            ));
+        }
+        status
     }
 
     pub fn neural_preview(
@@ -249,6 +269,13 @@ impl Orchestrator {
         now_ns: u64,
     ) -> Result<ferrum_neural_protocol::NeuralPreview, ferrum_neural_protocol::NeuralError> {
         let result = self.neural_service.preview(wire, now_ns);
+        if let Ok(preview) = result {
+            crate::cognitive::fusion::note_neural_intent(
+                now_ns / 1_000_000,
+                preview.class,
+                preview.scope,
+            );
+        }
         self.audit_neural_event(if result.is_ok() { "intent preview accepted" } else { "intent preview rejected and disarmed" });
         result
     }
@@ -274,6 +301,7 @@ impl Orchestrator {
 
     pub fn neural_disconnect(&mut self) {
         self.neural_service.disconnect();
+        crate::cognitive::fusion::clear_neural_history();
         self.audit_neural_event("session disconnected and disarmed");
     }
 
@@ -1494,5 +1522,23 @@ impl Orchestrator {
                 }
             }
         }
+    }
+}
+
+fn neural_class_name(class: ferrum_neural_protocol::NeuralClass) -> &'static str {
+    match class {
+        ferrum_neural_protocol::NeuralClass::Cancel => "cancel",
+        ferrum_neural_protocol::NeuralClass::FocusLeft => "focus_left",
+        ferrum_neural_protocol::NeuralClass::FocusRight => "focus_right",
+        ferrum_neural_protocol::NeuralClass::Select => "select",
+    }
+}
+
+fn neural_scope_name(scope: ferrum_neural_protocol::NeuralScope) -> &'static str {
+    match scope {
+        ferrum_neural_protocol::NeuralScope::Observe => "observe",
+        ferrum_neural_protocol::NeuralScope::Navigate => "navigate",
+        ferrum_neural_protocol::NeuralScope::SafeDesktop => "safe_desktop",
+        ferrum_neural_protocol::NeuralScope::PhysicalGoal => "physical_goal",
     }
 }
