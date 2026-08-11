@@ -47,7 +47,7 @@ class NeurodTests(unittest.TestCase):
             self.assertGreaterEqual(result.posterior_permille, 800)
 
     def test_no_control_and_artifacts_abstain(self):
-        for frequency, fault in ((None, None), (12.0, "saturation"), (12.0, "blink")):
+        for frequency, fault in ((None, None), (12.0, "saturation"), (12.0, "blink"), (12.0, "line-noise")):
             board = SyntheticBoard(seed=3)
             decoder = SsvepDecoder(250, required_dwell_windows=1)
             result = decoder.decode(board.acquire(1.0, frequency, fault=fault))

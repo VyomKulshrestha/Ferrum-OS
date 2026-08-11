@@ -10,6 +10,16 @@ The built-in synthetic source is a deterministic test fixture, not human EEG:
 python tools/neurod/neurod.py synthetic --frequency 12 --windows 3
 ```
 
+Run the localhost-only visual fixture console with:
+
+```powershell
+python tools/neurod/dashboard.py
+```
+
+It deliberately does not render 8–15 Hz flicker: the frequency controls select
+generated samples, avoiding a photosensitivity risk. The dashboard has no
+pairing token and no OS action endpoint.
+
 Add `--pairing-token <current-token>` to emit a signed `intent_hex` compatible
 with `ferrum-neural-protocol`. Never publish a live pairing token or recording.
 Real-board acquisition is optional and requires the upstream `brainflow` Python

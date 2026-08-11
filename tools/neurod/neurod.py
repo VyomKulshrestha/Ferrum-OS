@@ -243,6 +243,17 @@ def assess_signal(samples: Sequence[Sample], dropped_samples: int = 0) -> Signal
         flags |= ARTIFACTS["contact"]
     if dropped_samples:
         flags |= ARTIFACTS["contact"]
+    if median_interval > 0:
+        sample_rate_hz = 1_000_000_000 / median_interval
+        aggregate = [sum(sample.channels_uv) / channel_count for sample in samples]
+        aggregate_mean = sum(aggregate) / len(aggregate)
+        centered = [value - aggregate_mean for value in aggregate]
+        total_energy = sum(value * value for value in centered)
+        sine = sum(value * math.sin(2 * math.pi * 50.0 * index / sample_rate_hz) for index, value in enumerate(centered))
+        cosine = sum(value * math.cos(2 * math.pi * 50.0 * index / sample_rate_hz) for index, value in enumerate(centered))
+        line_ratio = 2.0 * (sine * sine + cosine * cosine) / (len(centered) * total_energy) if total_energy else 0.0
+        if line_ratio >= 0.45:
+            flags |= ARTIFACTS["line-noise"]
     quality = "reject" if flags or rms < 0.5 or rms > 150.0 else "good"
     return SignalHealth(quality, flags, rms, peak, flat, dropped_samples)
 

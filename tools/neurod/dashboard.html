@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FerrumOS Neural Fixture Console</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#090d12;color:#edf2f7}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 10%,#173046 0,transparent 35%),#090d12}
+    main{max-width:1040px;margin:auto;padding:48px 24px}.eyebrow{color:#70e1c1;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;font-weight:750}
+    h1{font-size:clamp(2rem,5vw,4rem);line-height:.98;margin:.5rem 0 1rem;max-width:760px}.lede{color:#9ba9b8;max-width:680px;line-height:1.6}
+    .warning{margin:28px 0;padding:14px 16px;border:1px solid #3d675d;background:#10231f;border-radius:12px;color:#bde9dc}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.panel{border:1px solid #26313c;background:rgba(13,19,26,.9);border-radius:18px;padding:22px}
+    h2{font-size:1rem;margin:0 0 16px;color:#cfd8e3}.controls{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    button,select,input{font:inherit;color:inherit;background:#151e27;border:1px solid #344454;border-radius:10px;padding:12px}
+    button{cursor:pointer;text-align:left}button:hover,button:focus-visible{border-color:#70e1c1;outline:none}.row{display:flex;gap:10px;margin-top:16px}.row>*{flex:1}
+    dl{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}dt{font-size:.72rem;color:#8191a2;text-transform:uppercase;letter-spacing:.08em}dd{margin:4px 0 0;font-size:1.2rem}
+    .status{margin-top:18px;padding:16px;background:#080c10;border-radius:12px;min-height:96px;font-family:ui-monospace,monospace;white-space:pre-wrap;color:#9ddbc9}
+    footer{margin-top:24px;color:#738191;font-size:.8rem}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <div class="eyebrow">FerrumOS · neurod</div>
+  <h1>Neural fixture console</h1>
+  <p class="lede">Exercise the registered decoder and abstention paths with deterministic, generated signals. This panel does not acquire human EEG, pair with FerrumOS, or send an OS action.</p>
+  <div class="warning"><strong>Synthetic-only.</strong> Visual flicker is deliberately disabled. Frequency buttons select generated data, not a flashing stimulus.</div>
+  <div class="grid">
+    <section class="panel"><h2>Registered classes</h2><div class="controls">
+      <button data-frequency="8">8 Hz · Focus left</button><button data-frequency="10">10 Hz · Focus right</button>
+      <button data-frequency="12">12 Hz · Select</button><button data-frequency="15">15 Hz · Cancel</button>
+      <button data-frequency="0">No control · Abstain</button>
+    </div><div class="row"><select id="fault" aria-label="Fault injection"><option value="">No fault</option><option value="dropout">Dropout</option><option value="saturation">Saturation</option><option value="blink">Blink artifact</option><option value="line-noise">Line noise</option></select><input id="seed" type="number" min="0" max="1000000" value="42" aria-label="Seed"></div>
+    <div id="status" class="status" aria-live="polite">Choose a generated fixture.</div></section>
+    <section class="panel"><h2>Latest decoder result</h2><dl>
+      <div><dt>Intent</dt><dd id="intent">—</dd></div><div><dt>Quality</dt><dd id="quality">—</dd></div>
+      <div><dt>Posterior</dt><dd id="posterior">—</dd></div><div><dt>Margin</dt><dd id="margin">—</dd></div>
+      <div><dt>Dwell</dt><dd id="dwell">—</dd></div><div><dt>Dropped</dt><dd id="dropped">—</dd></div>
+    </dl></section>
+  </div>
+  <footer>Localhost only · bounded deterministic fixtures · no raw data leaves this process · no OS commit path</footer>
+</main><script src="/dashboard.js"></script></body></html>
