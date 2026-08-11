@@ -2,6 +2,7 @@
 // FerrumOS - heliox-daemon WebSocket Bridge Verification
 // ============================================================================
 import { spawn } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -93,6 +94,7 @@ async function mon(cmd, waitMs = 60) {
 
 const keyMap = new Map(Object.entries({ " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon" }));
 async function sendKey(k) { await mon(`sendkey ${k} 20`, 45); }
+async function sendKeySlow(k) { await mon(`sendkey ${k} 50`, 180); }
 async function sendText(t) {
   for (const ch of t) {
     if (keyMap.has(ch)) await sendKey(keyMap.get(ch));
@@ -121,23 +123,26 @@ function check(name, ok, detail = "") {
 function makeFrame(text) {
   const payload = Buffer.from(text, "utf8");
   const len = payload.length;
+  const mask = crypto.randomBytes(4);
   let header;
   if (len < 126) {
     header = Buffer.alloc(2);
     header[0] = 0x81;
-    header[1] = len;
+    header[1] = 0x80 | len;
   } else if (len <= 65535) {
     header = Buffer.alloc(4);
     header[0] = 0x81;
-    header[1] = 126;
+    header[1] = 0x80 | 126;
     header.writeUInt16BE(len, 2);
   } else {
     header = Buffer.alloc(10);
     header[0] = 0x81;
-    header[1] = 127;
+    header[1] = 0x80 | 127;
     header.writeBigUInt64BE(BigInt(len), 2);
   }
-  return Buffer.concat([header, payload]);
+  const masked = Buffer.alloc(payload.length);
+  for (let index = 0; index < payload.length; index++) masked[index] = payload[index] ^ mask[index % 4];
+  return Buffer.concat([header, mask, masked]);
 }
 
 function parseFrame(buffer) {
@@ -159,6 +164,56 @@ function parseFrame(buffer) {
   const payload = buffer.slice(headerLen, headerLen + payloadLen);
   const rest = buffer.slice(headerLen + payloadLen);
   return { opcode, payload, rest };
+}
+async function sendTextSlow(t) {
+  for (const ch of t) {
+    if (keyMap.has(ch)) await sendKeySlow(keyMap.get(ch));
+    else if (/^[a-z0-9]$/i.test(ch)) await sendKeySlow(ch.toLowerCase());
+    else throw new Error(`no key mapping for ${JSON.stringify(ch)}`);
+  }
+}
+
+function neuralSessionMaterial(pairingToken) {
+  const token = Buffer.from(pairingToken, "ascii");
+  const key = crypto.createHash("sha256").update(Buffer.from("ferrum-neural-key-v1\0", "binary")).update(token).digest();
+  const sessionId = crypto.createHash("sha256").update(Buffer.from("ferrum-neural-session-v1\0", "binary")).update(token).digest().subarray(0, 16);
+  return { key, sessionId };
+}
+
+function makeNeuralIntent({ pairingToken, status, calibrationId, sequence, intentClass, scope, artifactFlags = 0 }) {
+  const { key, sessionId } = neuralSessionMaterial(pairingToken);
+  const wire = Buffer.alloc(210);
+  wire.write("NIV1", 0, "ascii");
+  wire.writeUInt16LE(1, 4);
+  wire[6] = 0;
+  wire[7] = intentClass;
+  wire[8] = 0;
+  wire[9] = scope;
+  wire.writeUInt16LE(artifactFlags, 10);
+  wire[12] = 3;
+  wire.writeUInt16LE(900, 14);
+  wire.writeUInt16LE(300, 16);
+  const now = BigInt(status.monotonic_ns);
+  const windowEnd = now - 10_000_000n;
+  const windowStart = windowEnd - 1_000_000_000n;
+  wire.writeBigUInt64LE(BigInt(sequence), 18);
+  wire.writeBigUInt64LE(windowStart, 26);
+  wire.writeBigUInt64LE(windowEnd, 34);
+  wire.writeBigUInt64LE(now + 1_500_000_000n, 42);
+  sessionId.copy(wire, 50);
+  const sequenceBytes = Buffer.alloc(8);
+  sequenceBytes.writeBigUInt64LE(BigInt(sequence));
+  const endBytes = Buffer.alloc(8);
+  endBytes.writeBigUInt64LE(windowEnd);
+  const intentId = crypto.createHash("sha256").update(sessionId).update(sequenceBytes).update(endBytes).digest().subarray(0, 16);
+  intentId.copy(wire, 66);
+  crypto.createHash("sha256").update("ferrum-neurod-ssvep-v1").digest().copy(wire, 82);
+  Buffer.from(calibrationId, "hex").copy(wire, 114);
+  crypto.createHash("sha256").update("qemu-neural-fixture").digest().subarray(0, 16).copy(wire, 146);
+  wire.writeBigUInt64LE(BigInt(status.focus_revision), 162);
+  wire.writeBigUInt64LE(BigInt(status.state_revision), 170);
+  crypto.createHmac("sha256", key).update(wire.subarray(0, 178)).digest().copy(wire, 178);
+  return { wire, intentId, sessionId };
 }
 
 try {
@@ -361,10 +416,9 @@ try {
   }
 
   async function rpcMethod(id, method, params, timeoutMs = 60000) {
-    const expectedResponses = responses.length + 1;
     client.write(makeFrame(JSON.stringify({ method, params, id })));
     const rpcDeadline = Date.now() + timeoutMs;
-    while (responses.length < expectedResponses && Date.now() < rpcDeadline) await sleep(50);
+    while (!responses.find((response) => response.id === id) && Date.now() < rpcDeadline) await sleep(50);
     return responses.find((response) => response.id === id);
   }
 
@@ -500,6 +554,173 @@ try {
     physicalAfterProvider?.result?.completed_simulations === 2
       && physicalAfterProvider?.result?.last_job_completed === true,
     JSON.stringify(physicalAfterProvider?.result),
+  );
+
+  // Neural intents are provider-independent evidence. Pairing alone grants no
+  // authority: calibration plus a fresh physical-console arm are mandatory.
+  const calibrationId = crypto.createHash("sha256").update("qemu-neural-calibration-v1").digest("hex");
+  const neuralInitial = await rpcMethod(132, "neural_status", {});
+  check(
+    "paired bridge exposes a disconnected, unarmed neural session without raw EEG",
+    neuralInitial?.result?.paired === true
+      && neuralInitial?.result?.state === "disconnected"
+      && neuralInitial?.result?.raw_eeg_in_os === false
+      && neuralInitial?.result?.fusion?.raw_eeg_retained === false,
+    JSON.stringify(neuralInitial?.result),
+  );
+  const expectedSession = neuralSessionMaterial(pairingToken).sessionId.toString("hex");
+  check("neurod and FerrumOS derive the same paired session", neuralInitial?.result?.session_id === expectedSession);
+
+  const neuralCalibrated = await rpcMethod(133, "neural_calibrate", {
+    transport: "synthetic",
+    sample_rate_hz: 250,
+    channel_count: 8,
+    calibration_id_hex: calibrationId,
+  });
+  check(
+    "synthetic stream calibration enters observe-only",
+    neuralCalibrated?.result?.state === "observe_only" && neuralCalibrated?.result?.control_mode === "exclusive",
+    JSON.stringify(neuralCalibrated?.result),
+  );
+
+  const beforeArmIntent = makeNeuralIntent({
+    pairingToken,
+    status: neuralCalibrated.result,
+    calibrationId,
+    sequence: 1,
+    intentClass: 2,
+    scope: 1,
+  });
+  const beforeArm = await rpcMethod(134, "neural_intent_preview", { intent_hex: beforeArmIntent.wire.toString("hex") });
+  check("paired remote client cannot self-arm neural control", beforeArm?.error?.code === -32033 && beforeArm?.error?.message === "not_armed");
+
+  const neuralArmStart = serialText().length;
+  await sendTextSlow("heliox neural arm");
+  await sendKeySlow("ret");
+  await waitForSerial("heliox neural: arm requested from local shell", 15, neuralArmStart);
+  await waitForSerial("Neural safe UI armed from local non-neural input", 15, neuralArmStart);
+  const neuralArmed = await rpcMethod(135, "neural_status", {});
+  check("local non-neural shell input arms only the safe UI scope", neuralArmed?.result?.state === "armed_safe_ui");
+
+  const focusIntent = makeNeuralIntent({
+    pairingToken,
+    status: neuralArmed.result,
+    calibrationId,
+    sequence: 1,
+    intentClass: 2,
+    scope: 1,
+  });
+  const focusPreview = await rpcMethod(136, "neural_intent_preview", { intent_hex: focusIntent.wire.toString("hex") });
+  check(
+    "signed focus intent reaches preview without executing",
+    focusPreview?.result?.preview?.disposition === "safe_ui_candidate"
+      && focusPreview?.result?.preview?.executable === true
+      && focusPreview?.result?.physical_forecast === null,
+    JSON.stringify(focusPreview?.result),
+  );
+  const focusCommit = await rpcMethod(137, "neural_intent_commit", { intent_id: focusIntent.intentId.toString("hex") });
+  check(
+    "previewed focus intent commits once to the compiled safe target list",
+    focusCommit?.result?.committed === true
+      && focusCommit?.result?.effect === "focus_changed"
+      && focusCommit?.result?.status?.focus_target === "list_processes"
+      && focusCommit?.result?.status?.fusion?.retained_intents === 1,
+    JSON.stringify(focusCommit?.result),
+  );
+
+  let replay = await rpcMethod(138, "neural_intent_preview", { intent_hex: focusIntent.wire.toString("hex") });
+  if (replay?.error?.message === "cooldown_active") {
+    const cooldownEndNs = BigInt(focusCommit.result.status.monotonic_ns) + 760_000_000n;
+    for (let probe = 0; probe < 20; probe++) {
+      const cooldownStatus = await rpcMethod(180 + probe, "neural_status", {});
+      if (BigInt(cooldownStatus?.result?.monotonic_ns || 0) >= cooldownEndNs) break;
+      await sleep(150);
+    }
+    replay = await rpcMethod(200, "neural_intent_preview", { intent_hex: focusIntent.wire.toString("hex") });
+  }
+  check("committed intent replay is rejected and disarms", replay?.error?.message === "replayed_intent");
+
+  const physicalArmStart = serialText().length;
+  await sendTextSlow("heliox neural arm");
+  await sendKeySlow("ret");
+  await waitForSerial("Neural safe UI armed from local non-neural input", 15, physicalArmStart);
+  const beforePhysical = await rpcMethod(139, "neural_status", {});
+  const physicalIntent = makeNeuralIntent({
+    pairingToken,
+    status: beforePhysical.result,
+    calibrationId,
+    sequence: 2,
+    intentClass: 3,
+    scope: 3,
+  });
+  const physicalPreview = await rpcMethod(140, "neural_intent_preview", { intent_hex: physicalIntent.wire.toString("hex") });
+  check(
+    "physical neural intent receives an H=3 JEPA shadow forecast but no permit or adapter call",
+    physicalPreview?.result?.preview?.disposition === "physical_proposal_only"
+      && physicalPreview?.result?.preview?.executable === false
+      && physicalPreview?.result?.physical_forecast?.proposal_only === true
+      && physicalPreview?.result?.physical_forecast?.permit_issued === false
+      && physicalPreview?.result?.physical_forecast?.adapter_invoked === false
+      && physicalPreview?.result?.physical_forecast?.model === "ema_target_jepa"
+      && physicalPreview?.result?.physical_forecast?.lookahead_horizon === 3
+      && physicalPreview?.result?.physical_forecast?.deterministic_supervisor === "required"
+      && physicalPreview?.result?.physical_forecast?.separate_non_neural_confirmation === true,
+    JSON.stringify(physicalPreview?.result),
+  );
+  const physicalCommit = await rpcMethod(141, "neural_intent_commit", { intent_id: physicalIntent.intentId.toString("hex") });
+  check("physical neural proposal cannot cross the commit boundary", physicalCommit?.error?.message === "physical_execution_forbidden");
+  const physicalUnchanged = await rpcMethod(142, "physical_status", {});
+  check(
+    "physical proposal preview does not mutate runtime or race confirmed simulations",
+    physicalUnchanged?.result?.completed_simulations === physicalAfterProvider?.result?.completed_simulations,
+  );
+
+  const badSignatureArm = serialText().length;
+  await sendTextSlow("heliox neural arm");
+  await sendKeySlow("ret");
+  await waitForSerial("Neural safe UI armed from local non-neural input", 15, badSignatureArm);
+  const beforeBadSignature = await rpcMethod(143, "neural_status", {});
+  const badSignature = makeNeuralIntent({
+    pairingToken,
+    status: beforeBadSignature.result,
+    calibrationId,
+    sequence: 3,
+    intentClass: 3,
+    scope: 1,
+  });
+  badSignature.wire[209] ^= 1;
+  const rejectedSignature = await rpcMethod(144, "neural_intent_preview", { intent_hex: badSignature.wire.toString("hex") });
+  check("tampered neural evidence is rejected and disarms", rejectedSignature?.error?.message === "invalid_signature");
+
+  const artifactArm = serialText().length;
+  await sendTextSlow("heliox neural arm");
+  await sendKeySlow("ret");
+  await waitForSerial("Neural safe UI armed from local non-neural input", 15, artifactArm);
+  const beforeArtifact = await rpcMethod(145, "neural_status", {});
+  const artifactIntent = makeNeuralIntent({
+    pairingToken,
+    status: beforeArtifact.result,
+    calibrationId,
+    sequence: 3,
+    intentClass: 3,
+    scope: 1,
+    artifactFlags: 1,
+  });
+  const rejectedArtifact = await rpcMethod(146, "neural_intent_preview", { intent_hex: artifactIntent.wire.toString("hex") });
+  check("signed artifact evidence still abstains and disarms", rejectedArtifact?.error?.message === "rejected_signal");
+
+  const modeArm = serialText().length;
+  await sendTextSlow("heliox neural arm");
+  await sendKeySlow("ret");
+  await waitForSerial("Neural safe UI armed from local non-neural input", 15, modeArm);
+  await rpcMethod(147, "set_control_mode", { control_mode: "cooperative" });
+  const afterModeChange = await rpcMethod(148, "neural_status", {});
+  check(
+    "control-mode changes revoke neural authority without clearing coarse provenance",
+    afterModeChange?.result?.state === "observe_only"
+      && afterModeChange?.result?.control_mode === "cooperative"
+      && afterModeChange?.result?.fusion?.retained_intents === 2,
+    JSON.stringify(afterModeChange?.result),
   );
 
   // Send gesture_event request
