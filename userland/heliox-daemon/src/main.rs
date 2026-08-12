@@ -1508,11 +1508,16 @@ pub extern "C" fn _start() -> ! {
         // requests. The loop consumes one complete WebSocket frame at a time;
         // the old unconditional 100 ms sleep imposed an avoidable 10 req/s
         // ceiling even when inference itself was ready. A connected client
-        // gets a 10 ms cooperative cadence while the idle daemon retains its
-        // low-CPU 100 ms cadence.
-        let sleep_ticks = if bridge_connected { 10 } else { 100 };
+        // gets a one-tick cooperative cadence while the idle daemon retains
+        // its low-CPU 100 ms cadence. This preserves an explicit throttle for
+        // connected-but-idle clients while removing the old ten-tick floor
+        // from an authorized client's request queue.
         unsafe {
-            syscall3(SYS_SLEEP, sleep_ticks, 0, 0);
+            if bridge_connected {
+                syscall3(SYS_SLEEP, 1, 0, 0);
+            } else {
+                syscall3(SYS_SLEEP, 100, 0, 0);
+            }
         }
     }
 }
