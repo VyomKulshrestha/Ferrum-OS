@@ -95,11 +95,11 @@ const keyMap = new Map(Object.entries({
 // This is a command-coverage audit, not a maximum-rate keyboard benchmark.
 // Use a fast but human-plausible cadence so command results are not polluted
 // by QEMU HMP/PS/2 saturation while background userspace is starting.
-async function sendKey(k) { await mon(`sendkey ${k} 50`, 180); }
-async function sendText(t) {
+async function sendKey(k, waitMs = 180) { await mon(`sendkey ${k} 50`, waitMs); }
+async function sendText(t, waitMs = 180) {
   for (const ch of t) {
-    if (keyMap.has(ch)) await sendKey(keyMap.get(ch));
-    else if (/^[a-z0-9]$/i.test(ch)) await sendKey(ch.toLowerCase());
+    if (keyMap.has(ch)) await sendKey(keyMap.get(ch), waitMs);
+    else if (/^[a-z0-9]$/i.test(ch)) await sendKey(ch.toLowerCase(), waitMs);
     else throw new Error(`no key mapping for ${JSON.stringify(ch)}`);
   }
 }
@@ -118,6 +118,14 @@ const requiredOutput = new Map([
 async function runCmd(cmd, waitSeconds = 8) {
   const before = serialText().length;
   await sendText(cmd);
+  if (!await waitForSerial(cmd, 2, before)) {
+    console.log(`[audit] incomplete keyboard echo; clearing and retrying slowly: ${cmd}`);
+    await sendKey("ctrl-u", 300);
+    await sendText(cmd, 300);
+    if (!await waitForSerial(cmd, 3, before)) {
+      throw new Error(`keyboard input remained incomplete after retry: ${cmd}`);
+    }
+  }
   await sendKey("ret");
   const got = await waitForSerial("FerrumOS:~$", waitSeconds, before);
   const output = serialText().slice(before);
