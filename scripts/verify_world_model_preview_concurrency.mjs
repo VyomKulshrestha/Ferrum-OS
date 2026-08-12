@@ -6,6 +6,7 @@ import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freeTcpPort } from "./lib/free_port.mjs";
@@ -14,11 +15,15 @@ import { assertPaired, waitForPairingToken } from "./lib/heliox_pairing.mjs";
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
 const sourceDisk = path.join(repo, "target", "heliox-disk.img");
-const runDisk = path.join(repo, "target", `world-model-preview-concurrency-${process.pid}.img`);
-const serialLog = path.join(repo, "target", "world-model-preview-concurrency-serial.log");
+const runId = `${process.pid}-${Date.now()}`;
+const runDisk = path.join(repo, "target", `world-model-preview-concurrency-${runId}.img`);
+const runDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "ferrumos-preview-concurrency-"));
+const serialLog = path.join(runDirectory, "serial.log");
 let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
 if (!fs.existsSync(qemu)) qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
-const monitorPort = Number(process.env.FERRUMOS_MONITOR_PORT || 45541);
+const monitorPort = process.env.FERRUMOS_MONITOR_PORT
+  ? Number(process.env.FERRUMOS_MONITOR_PORT)
+  : await freeTcpPort();
 const hostPort = await freeTcpPort();
 const requestCount = Number(process.env.FERRUMOS_PREVIEW_REQUESTS || 96);
 const outputIndex = process.argv.indexOf("--json-out");
@@ -32,7 +37,6 @@ const unlinkConfig = spawnSync("wsl", ["debugfs", "-w", "-R", "unlink /heliox/co
   cwd: repo, encoding: "utf8",
 });
 if (unlinkConfig.status !== 0) throw new Error(`failed to prepare isolated appliance disk: ${unlinkConfig.stderr}`);
-fs.rmSync(serialLog, { force: true });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const serialText = () => { try { return fs.readFileSync(serialLog, "utf8"); } catch { return ""; } };
@@ -181,4 +185,5 @@ try {
   try { child?.kill("SIGKILL"); } catch {}
   await sleep(250);
   fs.rmSync(runDisk, { force: true });
+  fs.rmSync(runDirectory, { recursive: true, force: true });
 }
