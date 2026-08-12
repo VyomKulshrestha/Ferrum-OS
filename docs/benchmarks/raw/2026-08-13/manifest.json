@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-08-13",
+  "runtime_source_commit": "54e1cc1819d3b3c11436f437733d197d469d1607",
+  "queue_baseline_source_commit": "54e1cc1819d3b3c11436f437733d197d469d1607",
+  "queue_optimized_source_commit": "c92056d8635af5e4ee2a81351350b1b25cfd4861",
+  "environment": {
+    "host_os": "Windows 11",
+    "qemu_version": "10.1.0",
+    "accelerator": "WHPX",
+    "runtime_guest_ram_mb": 512,
+    "queue_guest_ram_mb": 4096
+  },
+  "notes": [
+    "Runs were sequential to avoid cross-VM contention.",
+    "Runtime timing uses the guest 1 kHz PIT plus retained raw virtualized TSC cycles.",
+    "The optimized queue commit changes only paired-client loop cadence; prediction, capability, confirmation, and execution gates are unchanged."
+  ]
+}

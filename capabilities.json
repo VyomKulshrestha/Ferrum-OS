@@ -1,0 +1,388 @@
+{
+  "actions": [
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "ipc_send",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "audit_write",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "yield_cpu",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "camera_capture",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "gesture_status",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "report_status",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "capability_check",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "read_file",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "read_dir",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "query_memory",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "get_config",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "system_info",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "list_processes",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "net_connect",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "net_send",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "net_recv",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "http_get",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "write_file",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "create_directory",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "save_memory",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "load_memory",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "set_goal",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "sleep",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "service_start",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "service_stop",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "exec_process",
+      "operator_confirmation_required": true,
+      "permission_tier": 4,
+      "permission_tier_name": "destructive",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "delete_file",
+      "operator_confirmation_required": true,
+      "permission_tier": 4,
+      "permission_tier_name": "destructive",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "local_inference",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "trigger_kernel_upgrade",
+      "operator_confirmation_required": true,
+      "permission_tier": 4,
+      "permission_tier_name": "destructive",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "hud_update",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "hit_test",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "read_screen",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "add_subtask",
+      "operator_confirmation_required": false,
+      "permission_tier": 0,
+      "permission_tier_name": "observe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "record_audio",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "play_audio",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "set_volume",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "keyboard_type",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "mouse_click",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "mouse_move",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "browse_url",
+      "operator_confirmation_required": false,
+      "permission_tier": 2,
+      "permission_tier_name": "network",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    },
+    {
+      "execution_boundary": "ring-3 daemon to capability-gated syscall",
+      "name": "poll_input",
+      "operator_confirmation_required": false,
+      "permission_tier": 1,
+      "permission_tier_name": "safe",
+      "verification": "registry and exhaustive QEMU command/bridge audits",
+      "world_model_previewed": true
+    }
+  ],
+  "canonical_action_count": 41,
+  "claim_boundary": [
+    "Catalog membership does not mean each action has an independent semantic postcondition verifier.",
+    "Camera input is synthetic in the current release; broad physical-PC compatibility is not claimed.",
+    "Neural physical intents remain proposal-only and cannot invoke an actuator adapter."
+  ],
+  "generated_from": [
+    "userland/heliox-daemon/src/cognitive/world_model/mod.rs",
+    "userland/heliox-daemon/src/cognitive/tool_mapper.rs"
+  ],
+  "permission_tier_count": 5,
+  "platform": "bootable x86_64 research OS; documented QEMU/Bochs profile",
+  "project": "FerrumOS",
+  "schema_version": 1,
+  "unknown_action_policy": "destructive tier; fail closed"
+}

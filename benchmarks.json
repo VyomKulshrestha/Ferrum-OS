@@ -1,0 +1,236 @@
+{
+  "current_ring3_preview": {
+    "accelerator": "whpx",
+    "heap_growth_bytes_each_run": [
+      0,
+      0,
+      0
+    ],
+    "horizons": [
+      {
+        "blocked_previews_each_run": [
+          2,
+          2,
+          2
+        ],
+        "horizon": 1,
+        "mean_microseconds_range": [
+          1290,
+          1400
+        ],
+        "median_microseconds_across_runs": [
+          1000,
+          1000,
+          1000
+        ],
+        "median_run_mean_microseconds": 1320.0,
+        "p95_microseconds_across_runs": [
+          2000,
+          2000,
+          2000
+        ]
+      },
+      {
+        "blocked_previews_each_run": [
+          2,
+          2,
+          2
+        ],
+        "horizon": 2,
+        "mean_microseconds_range": [
+          1350,
+          1490
+        ],
+        "median_microseconds_across_runs": [
+          1000,
+          1000,
+          1000
+        ],
+        "median_run_mean_microseconds": 1390.0,
+        "p95_microseconds_across_runs": [
+          2000,
+          2000,
+          2000
+        ]
+      },
+      {
+        "blocked_previews_each_run": [
+          2,
+          2,
+          2
+        ],
+        "horizon": 3,
+        "mean_microseconds_range": [
+          1370,
+          1450
+        ],
+        "median_microseconds_across_runs": [
+          1000,
+          1000,
+          1000
+        ],
+        "median_run_mean_microseconds": 1430.0,
+        "p95_microseconds_across_runs": [
+          2000,
+          2000,
+          2000
+        ]
+      },
+      {
+        "blocked_previews_each_run": [
+          2,
+          2,
+          2
+        ],
+        "horizon": 4,
+        "mean_microseconds_range": [
+          1400,
+          1470
+        ],
+        "median_microseconds_across_runs": [
+          1000,
+          1000,
+          1000
+        ],
+        "median_run_mean_microseconds": 1430.0,
+        "p95_microseconds_across_runs": [
+          2000,
+          2000,
+          2000
+        ]
+      },
+      {
+        "blocked_previews_each_run": [
+          2,
+          2,
+          2
+        ],
+        "horizon": 5,
+        "mean_microseconds_range": [
+          1430,
+          1570
+        ],
+        "median_microseconds_across_runs": [
+          1000,
+          1000,
+          2000
+        ],
+        "median_run_mean_microseconds": 1510.0,
+        "p95_microseconds_across_runs": [
+          2000,
+          2000,
+          2000
+        ]
+      }
+    ],
+    "iterations_per_horizon_per_run": 100,
+    "model_load_milliseconds_range": [
+      26.0,
+      30.0
+    ],
+    "runs": 3,
+    "scope": "ring-3 Heliox capture + encoder + transition + safety predicate preview; no action dispatch",
+    "source_commit": "54e1cc1819d3b3c11436f437733d197d469d1607",
+    "warmup_previews_per_run": 64
+  },
+  "environment": {
+    "accelerator": "WHPX",
+    "host_os": "Windows 11",
+    "qemu_version": "10.1.0",
+    "queue_guest_ram_mb": 4096,
+    "runtime_guest_ram_mb": 512
+  },
+  "global_limitations": [
+    "The paper, physical simulator, and neural synthetic evaluations use different protocols and are not directly comparable.",
+    "No live EEG, human neural calibration, robot hardware-in-the-loop, or broad physical-PC benchmark is claimed.",
+    "Ring-3 timing uses a virtualized 1 kHz PIT; provider, tool execution, and operator-confirmation latency are excluded.",
+    "A passing benchmark is evidence for its named fixture and protocol, not formal safety proof."
+  ],
+  "neural_synthetic": {
+    "accepted_signal_accuracy": 1.0,
+    "artifact_abstention_rate": 1.0,
+    "artifact_trials": 400,
+    "claim_boundary": [
+      "Synthetic decoder evidence only; no human EEG accuracy or usability claim.",
+      "No-control emitted intents are decoder candidates; OS commit additionally requires pairing, calibration, a local non-neural arm, signed preview, and revision checks.",
+      "Physical neural intents remain proposal-only and cannot invoke an adapter."
+    ],
+    "emitted_intents": 0,
+    "no_control_windows": 10000,
+    "passed": true,
+    "signal_trials": 600
+  },
+  "paired_preview_queue": {
+    "baseline_batch_milliseconds": [
+      15114.109,
+      14910.766,
+      15086.329
+    ],
+    "baseline_median_batch_milliseconds": 15086.329,
+    "baseline_source_commit": "54e1cc1819d3b3c11436f437733d197d469d1607",
+    "execution_records_added_each_run": [
+      0,
+      0,
+      0
+    ],
+    "guest_fault_free_each_run": [
+      true,
+      true,
+      true
+    ],
+    "limitation": "The single-threaded daemon serializes preview inference; concurrency here means multiple outstanding requests with response correlation, not parallel neural execution.",
+    "median_improvement_percent": 10.4,
+    "optimized_batch_milliseconds": [
+      13784.147,
+      13496.023,
+      13517.414
+    ],
+    "optimized_median_batch_milliseconds": 13517.414,
+    "optimized_median_milliseconds_per_serialized_request": 140.806,
+    "optimized_source_commit": "c92056d8635af5e4ee2a81351350b1b25cfd4861",
+    "requests_per_run": 96,
+    "responses_received_each_run": [
+      96,
+      96,
+      96
+    ],
+    "runs_each": 3
+  },
+  "paper_release": {
+    "accepted_rows": 13697,
+    "claim_boundary": "Authored balanced safety fixture; no material JEPA safety advantage over the per-action mean baseline was established.",
+    "eligible_transitions": 13270,
+    "episodes": 3639,
+    "evidence_commit": "42ea7b8",
+    "five_pipeline_balanced_accuracy_mean": 0.7976,
+    "fixture_episodes": 500,
+    "release_tag": "world-model-study-v1.0.0",
+    "rules_plus_jepa_balanced_accuracy": 0.8140000000000001,
+    "rules_plus_jepa_false_negative_rate": 0.20799999999999996,
+    "rules_plus_jepa_false_positive_rate": 0.16400000000000003,
+    "rules_plus_mean_balanced_accuracy": 0.812
+  },
+  "physical_simulator_jepa": {
+    "claim_boundary": "Deterministic simulator evidence; the artifact is permanently shadow-only and has no actuator authority.",
+    "episodes": 2500,
+    "false_negatives": 1,
+    "false_positives": 16,
+    "normalized_rollout_error": {
+      "per_action_mean_h1": 0.019730109721422195,
+      "per_action_mean_h2": 0.034468431025743484,
+      "per_action_mean_h3": 0.04665490239858627,
+      "per_action_mean_h4": 0.05753195658326149,
+      "per_action_mean_h5": 0.06636197119951248,
+      "physical_jepa_h1": 0.004541031550616026,
+      "physical_jepa_h2": 0.007690879516303539,
+      "physical_jepa_h3": 0.010492870584130287,
+      "physical_jepa_h4": 0.01306567620486021,
+      "physical_jepa_h5": 0.015461564064025879
+    },
+    "rules_plus_jepa_balanced_accuracy": 0.9944006975286777,
+    "transitions": 15000,
+    "validated_for_gating": false
+  },
+  "schema_version": 1,
+  "snapshot_date": "2026-08-13"
+}

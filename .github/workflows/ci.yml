@@ -13,6 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python for generated evidence checks
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify public benchmark and capability evidence
+        run: python scripts/generate_public_evidence.py --check
+        shell: pwsh
+
       - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)
         # windows-latest ships an older LLVM pre-installed, which a plain
         # `choco install llvm` treats as "already installed" and silently

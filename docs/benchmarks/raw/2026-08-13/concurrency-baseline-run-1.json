@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "protocol": "world-model-preview-concurrency-v1",
+  "accelerator": "whpx",
+  "ram_mb": 4096,
+  "outstanding_requests": 96,
+  "action_classes": 6,
+  "responses_received": 96,
+  "batch_wall_milliseconds": 15114.109,
+  "identical_requests_deterministic": true,
+  "execution_dataset_records_added": 0,
+  "learned_encoder_loaded": true,
+  "learned_transition_loaded": true,
+  "guest_fault_free": true,
+  "serial_sha256": "0b39211cadbab9fd0220f64088b076b6ab9dc1ba70b8c47902ff6e9b1c2120ef",
+  "limitation": "The single-threaded daemon serializes preview inference; concurrency here means multiple outstanding requests with response correlation, not parallel neural execution."
+}

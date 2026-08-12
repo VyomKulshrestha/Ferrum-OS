@@ -1,0 +1,119 @@
+{
+  "artifact": {
+    "abstention_rate": 1.0,
+    "abstentions": 400,
+    "by_fault": {
+      "blink": {
+        "abstentions": 100,
+        "emitted_intents": 0,
+        "trials": 100
+      },
+      "dropout": {
+        "abstentions": 100,
+        "emitted_intents": 0,
+        "trials": 100
+      },
+      "line-noise": {
+        "abstentions": 100,
+        "emitted_intents": 0,
+        "trials": 100
+      },
+      "saturation": {
+        "abstentions": 100,
+        "emitted_intents": 0,
+        "trials": 100
+      }
+    },
+    "trials": 400
+  },
+  "claim_boundary": [
+    "Synthetic decoder evidence only; no human EEG accuracy or usability claim.",
+    "No-control emitted intents are decoder candidates; OS commit additionally requires pairing, calibration, a local non-neural arm, signed preview, and revision checks.",
+    "Physical neural intents remain proposal-only and cannot invoke an adapter."
+  ],
+  "gates": {
+    "accepted_signal_accuracy": true,
+    "artifact_abstention": true,
+    "no_control": true
+  },
+  "no_control_soak": {
+    "emitted_intents": 0,
+    "labels": {
+      "cancel": 0,
+      "focus-left": 0,
+      "focus-right": 0,
+      "select": 0
+    },
+    "simulated_seconds": 10000,
+    "unintended_committable_intents": 0,
+    "windows": 10000
+  },
+  "passed": true,
+  "protocol": {
+    "artifact_seeds": 100,
+    "channels": 8,
+    "faults": [
+      "dropout",
+      "saturation",
+      "blink",
+      "line-noise"
+    ],
+    "minimum_margin": 0.15,
+    "minimum_posterior": 0.8,
+    "no_control_seed": 99173,
+    "no_control_windows": 10000,
+    "noise_uv": [
+      2.0,
+      6.0,
+      12.0
+    ],
+    "pass_thresholds": {
+      "accepted_signal_accuracy": 0.98,
+      "artifact_abstention_rate": 1.0,
+      "no_control_emitted_intents": 0
+    },
+    "required_dwell_windows": 3,
+    "sample_rate_hz": 250,
+    "schema_version": 1,
+    "signal_seeds": 50,
+    "source": "deterministic synthetic fixtures; not human EEG",
+    "targets_hz": {
+      "cancel": 15.0,
+      "focus-left": 8.0,
+      "focus-right": 10.0,
+      "select": 12.0
+    },
+    "window_seconds": 1.0
+  },
+  "protocol_sha256": "b1c3bd43547ae7474416ff0307f29b4e985a121f3f0afb6cd80b0fdbc3fb4e7c",
+  "schema_version": 1,
+  "signal": {
+    "abstained": 0,
+    "accepted": 600,
+    "accepted_accuracy": 1.0,
+    "by_noise_uv": {
+      "12.0": {
+        "abstained": 0,
+        "correct": 200,
+        "misclassified": 0,
+        "trials": 200
+      },
+      "2.0": {
+        "abstained": 0,
+        "correct": 200,
+        "misclassified": 0,
+        "trials": 200
+      },
+      "6.0": {
+        "abstained": 0,
+        "correct": 200,
+        "misclassified": 0,
+        "trials": 200
+      }
+    },
+    "correct": 600,
+    "misclassified": 0,
+    "overall_accuracy": 1.0,
+    "trials": 600
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "schema_version": 2,
+  "protocol": "in-guest-world-model-runtime-benchmark-v2",
+  "accelerator": "whpx",
+  "ram_mb": 512,
+  "iterations_per_horizon": 100,
+  "warmup_previews": 64,
+  "scope": "ring-3 Heliox capture + encoder + transition + safety predicate preview; no action dispatch",
+  "horizons": [
+    {
+      "horizon": 1,
+      "iterations": 100,
+      "batch_ticks": 129,
+      "mean_microseconds": 1290,
+      "median_microseconds": 1000,
+      "p95_microseconds": 2000,
+      "max_microseconds": 3000,
+      "median_cycles": 213899669,
+      "p95_cycles": 222580211,
+      "max_cycles": 233738628,
+      "blocked_previews": 2
+    },
+    {
+      "horizon": 2,
+      "iterations": 100,
+      "batch_ticks": 135,
+      "mean_microseconds": 1350,
+      "median_microseconds": 1000,
+      "p95_microseconds": 2000,
+      "max_microseconds": 3000,
+      "median_cycles": 213854452,
+      "p95_cycles": 220998078,
+      "max_cycles": 225585059,
+      "blocked_previews": 2
+    },
+    {
+      "horizon": 3,
+      "iterations": 100,
+      "batch_ticks": 137,
+      "mean_microseconds": 1370,
+      "median_microseconds": 1000,
+      "p95_microseconds": 2000,
+      "max_microseconds": 3000,
+      "median_cycles": 219366482,
+      "p95_cycles": 230114929,
+      "max_cycles": 240273243,
+      "blocked_previews": 2
+    },
+    {
+      "horizon": 4,
+      "iterations": 100,
+      "batch_ticks": 143,
+      "mean_microseconds": 1430,
+      "median_microseconds": 1000,
+      "p95_microseconds": 2000,
+      "max_microseconds": 3000,
+      "median_cycles": 214816274,
+      "p95_cycles": 225590401,
+      "max_cycles": 229565536,
+      "blocked_previews": 2
+    },
+    {
+      "horizon": 5,
+      "iterations": 100,
+      "batch_ticks": 151,
+      "mean_microseconds": 1510,
+      "median_microseconds": 1000,
+      "p95_microseconds": 2000,
+      "max_microseconds": 3000,
+      "median_cycles": 215593508,
+      "p95_cycles": 224026154,
+      "max_cycles": 282168098,
+      "blocked_previews": 2
+    }
+  ],
+  "memory": {
+    "heap_before_bytes": 665072,
+    "heap_after_bytes": 665072,
+    "heap_growth_bytes": 0,
+    "encoder_file_bytes": 129344,
+    "transition_file_bytes": 643616,
+    "runtime_parameters": 193229,
+    "encoder_loaded": true,
+    "transition_loaded": true
+  },
+  "model_load": {
+    "cycles": 9864517809,
+    "pit_ticks": 28,
+    "pit_elapsed_microseconds": 28000,
+    "encoder_loaded": true,
+    "transition_loaded": true
+  },
+  "serial_sha256": "82e6bef0c940b66421fdf84d0a62a9759452eb5697d6dad5dbfd15853ea5f8c2",
+  "limitations": [
+    "Mean and percentile time use the guest 1 kHz PIT; percentile resolution is therefore 1 ms. Raw TSC cycles are retained without converting virtualized TSC to wall time.",
+    "A 64-preview H=5 warmup runs before the measured horizons to remove first-use cache and paging bias.",
+    "Preview latency excludes tool execution, provider latency, and operator confirmation.",
+    "Concurrent request behavior is evaluated separately."
+  ]
+}
