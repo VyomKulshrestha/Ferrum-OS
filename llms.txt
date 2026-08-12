@@ -1,0 +1,37 @@
+# FerrumOS
+
+> FerrumOS is a bootable x86_64 Rust research operating system with a deterministic kernel, freestanding Ring-3 AI agent, capability-gated syscalls, and a provider-independent JEPA world-model preview.
+
+FerrumOS targets a documented QEMU/Bochs profile. It is not a Windows replacement, certified safety system, live brain-computer interface, or validated robot controller.
+
+## Canonical project sources
+
+- [Repository README](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/README.md): product scope, build, features, and limitations
+- [Proof center](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/proof.md): compact evidence and claim boundaries
+- [Benchmarks](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/BENCHMARKS.md): protocols, repeated measurements, and limitations
+- [Machine-readable benchmarks](https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/benchmarks.json): generated benchmark summary
+- [Capability catalog](https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/capabilities.json): 41 source-derived actions and permission tiers
+- [Architecture](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/ARCHITECTURE.md): kernel, userland, world model, physical runtime, and neural boundary
+- [Security policy](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/SECURITY.md): vulnerability scope and private reporting
+- [Contributing](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/CONTRIBUTING.md): build, QEMU, tests, and pull requests
+
+## Published research
+
+- [Technical report DOI](https://doi.org/10.5281/zenodo.21829808): When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition
+- [Dataset DOI](https://doi.org/10.5281/zenodo.21829193): 13,697 accounted transitions from 3,639 QEMU episodes
+- [Frozen GitHub release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0): report, dataset, checksums, evaluation, predictions, and training config
+
+## Evidence boundaries
+
+- Published OS safety: authored balanced 500-episode fixture; rules plus JEPA reach 81.4% balanced accuracy and rules plus the per-action mean reach 81.2%.
+- Ring-3 preview: 1.29-1.57 ms run-mean range over three WHPX runs; timing excludes provider, action execution, and confirmation.
+- Physical JEPA: deterministic simulator evidence only; the artifact is permanently shadow-only.
+- Neural decoder: deterministic synthetic SSVEP evidence only; no live EEG, human calibration, medical, or usability claim.
+- Camera: synthetic YUYV generator in the current release; no UVC hardware driver.
+- General claim: automated evidence is not formal safety proof or independent replication.
+
+## License and citation
+
+- Core code and dataset: MIT
+- Citation metadata: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/CITATION.cff
+- Author ORCID: https://orcid.org/0009-0009-1434-7148

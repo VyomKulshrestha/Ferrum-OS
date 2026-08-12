@@ -1,17 +1,74 @@
-# FerrumOS
+# FerrumOS - Rust AI-native OS with a JEPA safety gate
 
 [![CI](https://github.com/VyomKulshrestha/Ferrum-OS/actions/workflows/ci.yml/badge.svg)](https://github.com/VyomKulshrestha/Ferrum-OS/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust: nightly](https://img.shields.io/badge/rust-nightly-orange.svg)](rust-toolchain.toml)
 [![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
+[![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21829808.svg)](https://doi.org/10.5281/zenodo.21829808)
 
-An operating system built in Rust — where the AI agent has full
-hardware control: it can see the screen, hear audio, type commands, browse the
-web, manage files, remember context, and autonomously operate.
+FerrumOS is a bootable x86_64 research operating system written in Rust for
+studying AI agents that act below the application layer. It combines a
+deterministic kernel, real Ring-3 userland, capability-gated syscalls, a
+graphical desktop, and a provider-independent JEPA world-model preview before
+agent actions reach implemented OS and device services.
 
 FerrumOS keeps the kernel deterministic and independent from probabilistic AI
 systems. The AI brain runs natively as a freestanding userspace process
-(`heliox-daemon`) with direct syscall access to all hardware drivers.
+(`heliox-daemon`). Its actions cross explicit capability, world-model, and
+operator-confirmation boundaries instead of receiving unrestricted kernel
+authority.
+
+> [!IMPORTANT]
+> FerrumOS v0.1.1 targets a documented QEMU/Bochs profile. Camera input is
+> synthetic, physical-world learning is simulator-only and shadow-only, and
+> neural results use deterministic synthetic EEG fixtures. Broad physical-PC,
+> live-EEG, medical, robot-deployment, and formal-safety claims are out of
+> scope.
+
+## Start here
+
+| Goal | Canonical source |
+| --- | --- |
+| See what is implemented | [Feature inventory](#features) and [architecture](docs/ARCHITECTURE.md) |
+| Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
+| Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
+| Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
+
+## Evidence snapshot
+
+| Layer | Reproduced evidence | Boundary |
+| --- | --- | --- |
+| OS world-model study | Rules + JEPA: **81.4%** balanced accuracy; rules + per-action mean: **81.2%** on the authored 500-episode fixture | No material JEPA safety advantage established |
+| Ring-3 preview | **1.29-1.57 ms** run-mean range across H=1..5; **0 bytes** heap growth in three runs | Excludes provider, action, and approval latency |
+| Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
+| Physical JEPA | **99.44%** balanced accuracy, 1 FN, 16 FP on a deterministic simulator | Permanently shadow-only; no actuator authority |
+| Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
+
+Every value above is derived and checked by
+`scripts/generate_public_evidence.py`; protocols, raw results, commit IDs, and
+limitations are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
+## What makes FerrumOS different
+
+This is a category-level architecture comparison, not a superiority claim.
+
+| Question | Desktop AI copilot | Typical agent framework | FerrumOS |
+| --- | --- | --- | --- |
+| Where does it run? | Application on an existing OS | Host process, container, or service | Bootable Rust kernel plus freestanding Ring-3 userland |
+| How do actions reach the system? | Product/host automation APIs | Tool or plugin APIs | Capability-gated syscalls through a 5-tier policy |
+| Where is probabilistic inference? | Product-specific | Framework runtime | Ring 3; never in the deterministic kernel |
+| How are risky forecasts composed? | Product-specific | Framework-specific guardrails | Monotonic union of deterministic rules and learned preview; Tier 3/4 confirmation remains independent |
+| What is the verified hardware scope? | Host platform support | Host platform support | Documented QEMU/Bochs device profile |
+
+## Research and development use cases
+
+- Agentic operating-system and capability-security research.
+- Reproducible JEPA/world-model screening at an OS action boundary.
+- Ring-0/Ring-3, syscall, scheduler, filesystem, driver, and desktop OS work in Rust.
+- Safe simulation of physical operations and proposal-only neural intent.
+- QEMU-based evaluation of agent actions, confirmation gates, failure modes,
+  and provider-independent policy enforcement.
 
 ## Features
 

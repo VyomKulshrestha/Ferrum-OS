@@ -1,0 +1,38 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "FerrumOS",
+  "description": "A bootable x86_64 Rust research operating system with a deterministic kernel, Ring-3 AI agent, capability-gated syscalls, and a JEPA world-model safety preview.",
+  "version": "0.1.1",
+  "codeRepository": "https://github.com/VyomKulshrestha/Ferrum-OS",
+  "issueTracker": "https://github.com/VyomKulshrestha/Ferrum-OS/issues",
+  "license": "https://spdx.org/licenses/MIT",
+  "programmingLanguage": [
+    "Rust",
+    "Python",
+    "JavaScript",
+    "PowerShell",
+    "Assembly"
+  ],
+  "runtimePlatform": "x86_64 bare metal; documented QEMU/Bochs profile",
+  "keywords": [
+    "AI-native operating system",
+    "agentic operating system",
+    "Rust kernel",
+    "JEPA",
+    "world model",
+    "capability security",
+    "Ring 3",
+    "QEMU",
+    "neural intent",
+    "brain-computer interface research"
+  ],
+  "author": {
+    "@type": "Person",
+    "givenName": "Vyom",
+    "familyName": "Kulshrestha",
+    "@id": "https://orcid.org/0009-0009-1434-7148"
+  },
+  "citation": "https://doi.org/10.5281/zenodo.21829808",
+  "developmentStatus": "research"
+}
