@@ -631,12 +631,17 @@ try {
   let replay = await rpcMethod(138, "neural_intent_preview", { intent_hex: focusIntent.wire.toString("hex") });
   if (replay?.error?.message === "cooldown_active") {
     const cooldownEndNs = BigInt(focusCommit.result.status.monotonic_ns) + 760_000_000n;
-    for (let probe = 0; probe < 20; probe++) {
+    // QEMU guest time can advance substantially slower than host time on a
+    // busy software-emulated runner. Wait on the guest's monotonic clock,
+    // with a wall-clock safety bound, instead of assuming a fixed number of
+    // bridge round trips is enough to expire the protocol cooldown.
+    const cooldownDeadlineMs = Date.now() + 20_000;
+    for (let probe = 0; Date.now() < cooldownDeadlineMs; probe++) {
       const cooldownStatus = await rpcMethod(180 + probe, "neural_status", {});
       if (BigInt(cooldownStatus?.result?.monotonic_ns || 0) >= cooldownEndNs) break;
-      await sleep(150);
+      await sleep(100);
     }
-    replay = await rpcMethod(200, "neural_intent_preview", { intent_hex: focusIntent.wire.toString("hex") });
+    replay = await rpcMethod(500, "neural_intent_preview", { intent_hex: focusIntent.wire.toString("hex") });
   }
   check("committed intent replay is rejected and disarms", replay?.error?.message === "replayed_intent");
 
