@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Provenance checks resolve the dated OS and audit source commits.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:

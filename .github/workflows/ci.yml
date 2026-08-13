@@ -12,6 +12,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Evidence provenance resolves dated source and audit commits.
+          fetch-depth: 0
 
       - name: Set up Python for generated evidence checks
         uses: actions/setup-python@v5

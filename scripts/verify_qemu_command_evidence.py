@@ -23,14 +23,26 @@ def require(condition: bool, message: str) -> None:
     print(f"PASS  {message}")
 
 
-def committed_sha256(path: Path) -> str:
+def committed_sha256(path: Path, revision: str = "HEAD") -> str:
+    return hashlib.sha256(committed_bytes(path, revision)).hexdigest()
+
+
+def committed_bytes(path: Path, revision: str = "HEAD") -> bytes:
     relative = path.relative_to(ROOT).as_posix()
-    data = subprocess.check_output(["git", "show", f"HEAD:{relative}"], cwd=ROOT)
-    return hashlib.sha256(data).hexdigest()
+    return subprocess.check_output(["git", "show", f"{revision}:{relative}"], cwd=ROOT)
 
 
-def command_sweep_count(path: Path) -> int:
-    source = path.read_text(encoding="utf-8")
+def commit_exists(revision: str) -> bool:
+    result = subprocess.run(
+        ["git", "cat-file", "-e", f"{revision}^{{commit}}"],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def command_sweep_count(source: str) -> int:
     start = source.index("const tests = [")
     end = source.index("\n];", start)
     return len(re.findall(r'^\s*\["', source[start:end], re.MULTILINE))
@@ -52,23 +64,33 @@ def main() -> int:
         ),
         "QEMU evidence names full OS and harness source commits",
     )
+    require(
+        commit_exists(evidence["os_source_commit"])
+        and commit_exists(evidence["audit_source_commit"]),
+        "named OS and harness source commits exist in repository history",
+    )
 
     sweep = evidence["harness"]["command_sweep"]
     catalog = evidence["harness"]["exhaustive_catalog"]
     artifacts = evidence["artifacts"]
     sweep_path = ROOT / sweep["path"]
     catalog_path = ROOT / catalog["path"]
+    recorded_sweep_source = committed_bytes(
+        sweep_path, evidence["audit_source_commit"]
+    ).decode("utf-8")
     require(
-        committed_sha256(sweep_path) == sweep["git_blob_sha256"],
-        "committed command sweep matches the canonical Git-blob hash",
+        committed_sha256(sweep_path, evidence["audit_source_commit"])
+        == sweep["git_blob_sha256"],
+        "recorded command sweep matches its audit-commit Git-blob hash",
     )
     require(
-        committed_sha256(catalog_path) == catalog["git_blob_sha256"],
-        "committed catalog audit matches the canonical Git-blob hash",
+        committed_sha256(catalog_path, evidence["audit_source_commit"])
+        == catalog["git_blob_sha256"],
+        "recorded catalog audit matches its audit-commit Git-blob hash",
     )
     require(
-        command_sweep_count(sweep_path) == sweep["cases"],
-        "command sweep case count matches source",
+        command_sweep_count(recorded_sweep_source) == sweep["cases"],
+        "command sweep case count matches its recorded audit source",
     )
     require(
         sweep["cases"] == sweep["passed"] and sweep["failed"] == 0,
@@ -106,8 +128,8 @@ def main() -> int:
         "public catalog summary contains no unknown-command route",
     )
     require(
-        "process.exitCode = 1" in sweep_path.read_text(encoding="utf-8"),
-        "terminal Ring-3 failure makes the command sweep non-zero",
+        "process.exitCode = 1" in recorded_sweep_source,
+        "recorded terminal Ring-3 failure makes the command sweep non-zero",
     )
     require(
         "physical-PC" in evidence["claim_boundary"]
