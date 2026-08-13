@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+WEBSITE_URL = "https://ferrum-os.vercel.app"
 
 
 def require(condition: bool, message: str) -> None:
@@ -86,10 +87,17 @@ def main() -> int:
     require(
         "not directly comparable" in llms_full, "llms-full preserves protocol boundary"
     )
+    for label, document in (
+        ("README", readme),
+        ("llms.txt", llms),
+        ("llms-full.txt", llms_full),
+    ):
+        require(WEBSITE_URL in document, f"{label} links the canonical website")
 
     require(
         codemeta["@type"] == "SoftwareSourceCode", "CodeMeta type is SoftwareSourceCode"
     )
+    require(codemeta["url"] == WEBSITE_URL, "CodeMeta URL is the canonical website")
     require(codemeta["version"] == "0.1.1", "CodeMeta version matches release")
     require(
         codemeta["codeRepository"].endswith("/Ferrum-OS"),

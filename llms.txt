@@ -8,6 +8,7 @@ The latest tagged software release is v0.1.1 and has no prebuilt OS image. The c
 
 ## Canonical project sources
 
+- [Cinematic website](https://ferrum-os.vercel.app): visual overview, public proof, capabilities, benchmarks, and project links
 - [Repository README](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/README.md): product scope, build, features, and limitations
 - [Full agent-readable context](https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/llms-full.txt): release scope, all canonical actions, safety invariants, evidence, and reproduction commands
 - [Proof center](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/proof.md): compact evidence and claim boundaries

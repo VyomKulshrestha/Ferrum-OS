@@ -3,6 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "FerrumOS",
   "description": "A bootable x86_64 Rust research operating system with a deterministic kernel, Ring-3 AI agent, capability-gated syscalls, and a JEPA world-model safety preview.",
+  "url": "https://ferrum-os.vercel.app",
   "version": "0.1.1",
   "codeRepository": "https://github.com/VyomKulshrestha/Ferrum-OS",
   "issueTracker": "https://github.com/VyomKulshrestha/Ferrum-OS/issues",

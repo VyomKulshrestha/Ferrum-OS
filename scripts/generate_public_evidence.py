@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK_DIR = ROOT / "docs" / "benchmarks"
 RAW_DIR = BENCHMARK_DIR / "raw" / "2026-08-13"
 REPOSITORY_URL = "https://github.com/VyomKulshrestha/Ferrum-OS"
+WEBSITE_URL = "https://ferrum-os.vercel.app"
 RAW_MAIN_URL = "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main"
 CAPABILITY_SCHEMA_URL = f"{RAW_MAIN_URL}/schemas/capabilities.schema.json"
 BENCHMARK_SCHEMA_URL = f"{RAW_MAIN_URL}/schemas/benchmarks.schema.json"
@@ -582,6 +583,7 @@ The five evidence sections use different protocols and are not directly comparab
 
 ## Canonical evidence and documentation
 
+- Website: {WEBSITE_URL}
 - README: {REPOSITORY_URL}/blob/main/README.md
 - Proof center: {REPOSITORY_URL}/blob/main/proof.md
 - Capability JSON: {RAW_MAIN_URL}/capabilities.json
