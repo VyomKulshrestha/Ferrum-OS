@@ -33,6 +33,7 @@ def main() -> int:
     llms_full = (ROOT / "llms-full.txt").read_text(encoding="utf-8")
     proof = (ROOT / "proof.md").read_text(encoding="utf-8")
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+    citation_guide = (ROOT / "docs" / "CITATION.md").read_text(encoding="utf-8")
     codemeta = json.loads((ROOT / "codemeta.json").read_text(encoding="utf-8"))
     capabilities = json.loads((ROOT / "capabilities.json").read_text(encoding="utf-8"))
     benchmarks = json.loads((ROOT / "benchmarks.json").read_text(encoding="utf-8"))
@@ -104,6 +105,26 @@ def main() -> int:
     require(
         "type: software" in citation,
         "CITATION.cff identifies the repository as software",
+    )
+    preferred_citation = citation.index("preferred-citation:")
+    software_citation = citation[:preferred_citation]
+    report_citation = citation[preferred_citation:]
+    require(
+        not re.search(r"^doi:\s*", software_citation, re.MULTILINE),
+        "software citation does not claim an unrelated DOI",
+    )
+    require(
+        "10.5281/zenodo.21829193" not in citation,
+        "dataset DOI is not assigned to the software citation",
+    )
+    require(
+        "doi: 10.5281/zenodo.21829808" in report_citation,
+        "preferred report citation retains the technical-report DOI",
+    )
+    require(
+        "10.5281/zenodo.21829808" in citation_guide
+        and "10.5281/zenodo.21829193" in citation_guide,
+        "citation guide keeps report and dataset identifiers separate",
     )
     require(
         "docs/CITATION.md" in llms, "llms.txt links artifact-specific citation guidance"
