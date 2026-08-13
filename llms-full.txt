@@ -75,7 +75,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `neural-ssvep-synthetic-v1` | 600 synthetic signals, 400 artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG, human, medical, or usability claim |
 | `ferrumos-qemu-command-audit-v1` | 101/101 focused cases and 81/81 exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
 
-The five evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
+The six evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 
 ## Canonical evidence and documentation
 
