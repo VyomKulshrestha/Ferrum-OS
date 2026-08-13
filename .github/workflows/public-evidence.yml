@@ -1,0 +1,39 @@
+name: Public Evidence Reproduction
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deterministic-evidence:
+    name: Reproduce deterministic public evidence
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deterministic evaluator dependency
+        run: python -m pip install --disable-pip-version-check numpy==2.2.6
+
+      - name: Reproduce software and simulator evidence
+        run: |
+          python scripts/verify_world_model_paper_evaluation.py
+          python scripts/verify_world_model_research_sources.py
+          python scripts/verify_physical_world_model.py
+          python scripts/evaluate_neural_simulator.py --output "$env:RUNNER_TEMP\neural-synthetic.json"
+          python -m unittest discover -s tools/neurod -p "test_*.py" -v
+
+      - name: Verify dated QEMU evidence contract
+        run: python scripts/verify_qemu_command_evidence.py
+
+      - name: Preserve claim boundary
+        run: |
+          echo "These checks reproduce software, deterministic simulator, and synthetic-signal evidence."
+          echo "They do not claim live EEG, human calibration, robot hardware, broad physical-PC support, formal safety, or independent replication."

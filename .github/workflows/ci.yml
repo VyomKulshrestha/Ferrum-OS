@@ -18,19 +18,24 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install public evidence tooling
+        run: python -m pip install --disable-pip-version-check jsonschema==4.25.1 ruff==0.15.21
+        shell: pwsh
+
       - name: Verify public benchmark and capability evidence
         run: |
           python scripts/generate_public_evidence.py --check
+          python scripts/verify_public_json_schemas.py
           python scripts/verify_public_evidence_contract.py
+          python scripts/verify_qemu_command_evidence.py
           python scripts/verify_repository_discovery.py
-          python -m py_compile scripts/generate_public_evidence.py scripts/verify_public_evidence_contract.py scripts/verify_repository_discovery.py
+          python -m py_compile scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
         shell: pwsh
 
       - name: Lint public evidence tooling
         run: |
-          python -m pip install --disable-pip-version-check ruff==0.15.21
-          ruff check scripts/generate_public_evidence.py scripts/verify_public_evidence_contract.py scripts/verify_repository_discovery.py
-          ruff format --check scripts/generate_public_evidence.py scripts/verify_public_evidence_contract.py scripts/verify_repository_discovery.py
+          ruff check scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
+          ruff format --check scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
         shell: pwsh
 
       - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)
