@@ -334,7 +334,7 @@
       },
       {
         "path": "docs/benchmarks/raw/2026-08-13/qemu-command-audit.json",
-        "sha256": "9cb2cc83a3a3869e4ae180a90860a0bf8cc148f2b78300d454b416ed097de48c"
+        "sha256": "374182fd18f13d3184e89c6ed4297aa54748ea4fb7b6495886bcb57c434830c2"
       },
       {
         "path": "docs/research/world_model_paper_evaluation.json",

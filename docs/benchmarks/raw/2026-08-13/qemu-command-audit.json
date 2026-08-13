@@ -15,6 +15,7 @@
     "command_sweep": {
       "path": "scripts/command_sweep.mjs",
       "sha256": "0773e2d9d444af1f7f793ae32a920dcdfe4fb9329665f3cfb6fd277938bc3273",
+      "git_blob_sha256": "c3a439e58355cb8af371900a727710cf1249b168d47583d23327e087e1a4c757",
       "cases": 101,
       "passed": 101,
       "failed": 0,
@@ -23,6 +24,7 @@
     "exhaustive_catalog": {
       "path": "scripts/audit_all_commands.mjs",
       "sha256": "a918564cae985dc75dc46b0ad70e175d92a1001e1eff5164c74dc455ba62a1e4",
+      "git_blob_sha256": "c19cf80a2e751a040cae95dfe07208eeedc724e7911ddedf5d8167b657d006e0",
       "entries": 81,
       "passed": 81,
       "failed": 0,

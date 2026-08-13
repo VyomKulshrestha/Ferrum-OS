@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,10 +27,10 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def measured_windows_text_sha256(path: Path) -> str:
-    """Hash source text using the CRLF representation used by the measured run."""
-    normalized = path.read_text(encoding="utf-8").replace("\r\n", "\n")
-    return hashlib.sha256(normalized.replace("\n", "\r\n").encode("utf-8")).hexdigest()
+def committed_sha256(path: Path) -> str:
+    relative = path.relative_to(ROOT).as_posix()
+    data = subprocess.check_output(["git", "show", f"HEAD:{relative}"], cwd=ROOT)
+    return hashlib.sha256(data).hexdigest()
 
 
 def command_sweep_count(path: Path) -> int:
@@ -62,12 +63,12 @@ def main() -> int:
     sweep_path = ROOT / sweep["path"]
     catalog_path = ROOT / catalog["path"]
     require(
-        measured_windows_text_sha256(sweep_path) == sweep["sha256"],
-        "command sweep content matches the measured Windows-text hash",
+        committed_sha256(sweep_path) == sweep["git_blob_sha256"],
+        "committed command sweep matches the canonical Git-blob hash",
     )
     require(
-        measured_windows_text_sha256(catalog_path) == catalog["sha256"],
-        "catalog audit content matches the measured Windows-text hash",
+        committed_sha256(catalog_path) == catalog["git_blob_sha256"],
+        "committed catalog audit matches the canonical Git-blob hash",
     )
     require(
         command_sweep_count(sweep_path) == sweep["cases"],
