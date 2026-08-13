@@ -114,11 +114,8 @@ def main() -> int:
         "type: software" in citation,
         "CITATION.cff identifies the repository as software",
     )
-    preferred_citation = citation.index("preferred-citation:")
-    software_citation = citation[:preferred_citation]
-    report_citation = citation[preferred_citation:]
     require(
-        not re.search(r"^doi:\s*", software_citation, re.MULTILINE),
+        not re.search(r"^doi:\s*", citation, re.MULTILINE),
         "software citation does not claim an unrelated DOI",
     )
     require(
@@ -126,8 +123,8 @@ def main() -> int:
         "dataset DOI is not assigned to the software citation",
     )
     require(
-        "doi: 10.5281/zenodo.21829808" in report_citation,
-        "preferred report citation retains the technical-report DOI",
+        "preferred-citation:" not in citation,
+        "software citation does not override GitHub's cite flow with the report",
     )
     require(
         "10.5281/zenodo.21829808" in citation_guide

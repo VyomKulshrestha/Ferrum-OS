@@ -21,7 +21,7 @@ operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
 **Open-access research:** [Read *When Agents Control the Kernel: A JEPA World
-Model for Safe Agentic Operating Systems*](https://doi.org/10.5281/zenodo.21829808).
+Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.21829808).
 The report, software, and dataset are separate artifacts; use the
 [citation guide](docs/CITATION.md) for the one you relied on.
 
