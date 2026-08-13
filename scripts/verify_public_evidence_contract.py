@@ -32,6 +32,14 @@ def canonical_sha256(value: object) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def portable_text_sha256(path: Path) -> str:
+    """Hash UTF-8 source text after normalizing checkout-specific line endings."""
+    normalized = (
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    )
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def validate_schema_required(document: dict, schema: dict, label: str) -> None:
     missing = [key for key in schema["required"] if key not in document]
     require(not missing, f"{label} contains every schema-required top-level field")
@@ -48,7 +56,7 @@ def validate_sources(provenance: dict, label: str) -> None:
         paths.add(relative)
         path = ROOT / relative
         require(path.is_file(), f"{label} provenance source exists: {relative}")
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        actual = portable_text_sha256(path)
         require(
             actual == source["sha256"], f"{label} provenance hash matches: {relative}"
         )

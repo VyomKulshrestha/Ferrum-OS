@@ -82,13 +82,21 @@ def canonical_sha256(value: object) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def portable_text_sha256(path: Path) -> str:
+    """Hash UTF-8 source text after normalizing checkout-specific line endings."""
+    normalized = (
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    )
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def source_records(paths: list[Path]) -> list[dict[str, str]]:
     records = []
     for path in paths:
         records.append(
             {
                 "path": str(path.relative_to(ROOT)).replace("\\", "/"),
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "sha256": portable_text_sha256(path),
             }
         )
     return records
