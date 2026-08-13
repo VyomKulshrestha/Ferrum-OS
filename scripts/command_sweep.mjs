@@ -333,3 +333,6 @@ try {
 }
 
 console.log(results.join("\n"));
+if (results.some((result) => result.startsWith("FAIL\t"))) {
+  process.exitCode = 1;
+}
