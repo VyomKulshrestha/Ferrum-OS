@@ -23,10 +23,6 @@ def require(condition: bool, message: str) -> None:
     print(f"PASS  {message}")
 
 
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def committed_sha256(path: Path) -> str:
     relative = path.relative_to(ROOT).as_posix()
     data = subprocess.check_output(["git", "show", f"HEAD:{relative}"], cwd=ROOT)
@@ -84,12 +80,12 @@ def main() -> int:
         "committed catalog audit records every entry and prompt passing",
     )
     require(
-        sha256(FOCUSED_SERIAL) == artifacts["command_serial_sha256"],
-        "public focused serial log matches the measured artifact hash",
+        committed_sha256(FOCUSED_SERIAL) == artifacts["command_serial_sha256"],
+        "committed focused serial log matches the measured artifact hash",
     )
     require(
-        sha256(CATALOG_SUMMARY) == artifacts["catalog_summary_sha256"],
-        "public catalog summary matches the measured artifact hash",
+        committed_sha256(CATALOG_SUMMARY) == artifacts["catalog_summary_sha256"],
+        "committed catalog summary matches the measured artifact hash",
     )
     focused_serial = FOCUSED_SERIAL.read_text(encoding="utf-8")
     require(
