@@ -20,6 +20,11 @@ systems. The AI brain runs natively as a freestanding userspace process
 operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
+**Open-access research:** [Read *When Agents Control the Kernel: A JEPA World
+Model for Safe Agentic Operating Systems*](https://doi.org/10.5281/zenodo.21829808).
+The report, software, and dataset are separate artifacts; use the
+[citation guide](docs/CITATION.md) for the one you relied on.
+
 > [!IMPORTANT]
 > FerrumOS v0.1.1 targets a documented QEMU/Bochs profile. Camera input is
 > synthetic, physical-world learning is simulator-only and shadow-only, and
