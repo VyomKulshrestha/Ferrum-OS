@@ -13,6 +13,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Paired preview queue | 96/96 responses in every run; median batch 13.517 s after optimization | Parallel inference; the daemon intentionally serializes previews |
 | Physical JEPA | 99.44% balanced accuracy, 1 FN, 16 FP | Real robot safety; the artifact is shadow-only |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
+| QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
 
 ## Published world-model study
 
@@ -56,6 +57,7 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v
+python scripts/verify_qemu_command_evidence.py
 node scripts/benchmark_world_model_runtime.mjs --iterations 100
 node scripts/verify_world_model_preview_concurrency.mjs
 python scripts/generate_public_evidence.py --check

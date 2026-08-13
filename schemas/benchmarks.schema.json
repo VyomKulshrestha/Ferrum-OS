@@ -17,6 +17,7 @@
     "paired_preview_queue",
     "physical_simulator_jepa",
     "neural_synthetic",
+    "qemu_command_audit",
     "metric_definitions",
     "provenance",
     "global_limitations"
@@ -36,6 +37,7 @@
     "paired_preview_queue": { "$ref": "#/$defs/evidenceSection" },
     "physical_simulator_jepa": { "$ref": "#/$defs/evidenceSection" },
     "neural_synthetic": { "$ref": "#/$defs/evidenceSection" },
+    "qemu_command_audit": { "$ref": "#/$defs/evidenceSection" },
     "metric_definitions": {
       "type": "object",
       "minProperties": 1,

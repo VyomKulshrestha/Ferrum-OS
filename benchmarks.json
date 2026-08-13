@@ -333,6 +333,10 @@
         "sha256": "41eb693e5e47d9500d144fc3b3f30db8115da8d845bbcb83a2236f541c2c7512"
       },
       {
+        "path": "docs/benchmarks/raw/2026-08-13/qemu-command-audit.json",
+        "sha256": "9cb2cc83a3a3869e4ae180a90860a0bf8cc148f2b78300d454b416ed097de48c"
+      },
+      {
         "path": "docs/research/world_model_paper_evaluation.json",
         "sha256": "503f171239d2d4df530156f86e86cac717ec6355d101c23ef8c2c3e9b6d1568e"
       },
@@ -345,6 +349,18 @@
         "sha256": "25195d0d3b8229305cb07aa6274c2f5a337d74a6380103edc3f5243a7f824cde"
       }
     ]
+  },
+  "qemu_command_audit": {
+    "audit_source_commit": "45e369cececfc81e341c8772e295c4a00cba4bf1",
+    "catalog_entries": 81,
+    "catalog_passed": 81,
+    "claim_boundary": "This is a dated emulator command-path audit for the named source commit and artifact hashes. It is not evidence of broad physical-PC compatibility, hardware accuracy, live EEG performance, formal safety, or independent replication.",
+    "command_sweep_cases": 101,
+    "command_sweep_passed": 101,
+    "evidence_grade": "dated-emulator-measurement",
+    "os_source_commit": "c92056d8635af5e4ee2a81351350b1b25cfd4861",
+    "protocol_id": "ferrumos-qemu-command-audit-v1",
+    "unknown_command_paths": 0
   },
   "schema_version": "2.0.0",
   "snapshot_date": "2026-08-13"

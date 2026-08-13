@@ -211,6 +211,7 @@ def aggregate_benchmarks() -> dict:
         RAW_DIR / f"concurrency-optimized-run-{index}.json" for index in range(1, 4)
     ]
     neural_path = RAW_DIR / "neural-synthetic.json"
+    qemu_command_path = RAW_DIR / "qemu-command-audit.json"
     paper_path = ROOT / "docs" / "research" / "world_model_paper_evaluation.json"
     training_path = ROOT / "docs" / "research" / "world_model_training_config.json"
     physical_path = ROOT / "docs" / "research" / "physical_world_model_evaluation.json"
@@ -220,6 +221,7 @@ def aggregate_benchmarks() -> dict:
         *queue_before_paths,
         *queue_after_paths,
         neural_path,
+        qemu_command_path,
         paper_path,
         training_path,
         physical_path,
@@ -230,6 +232,7 @@ def aggregate_benchmarks() -> dict:
     queue_before = [load_json(path) for path in queue_before_paths]
     queue_after = [load_json(path) for path in queue_after_paths]
     neural = load_json(neural_path)
+    qemu_command = load_json(qemu_command_path)
     paper = load_json(paper_path)
     training = load_json(training_path)
     physical = load_json(physical_path)
@@ -369,6 +372,20 @@ def aggregate_benchmarks() -> dict:
             "passed": neural["passed"],
             "claim_boundary": neural["claim_boundary"],
         },
+        "qemu_command_audit": {
+            "evidence_grade": "dated-emulator-measurement",
+            "protocol_id": qemu_command["protocol"],
+            "os_source_commit": qemu_command["os_source_commit"],
+            "audit_source_commit": qemu_command["audit_source_commit"],
+            "command_sweep_cases": qemu_command["harness"]["command_sweep"]["cases"],
+            "command_sweep_passed": qemu_command["harness"]["command_sweep"]["passed"],
+            "catalog_entries": qemu_command["harness"]["exhaustive_catalog"]["entries"],
+            "catalog_passed": qemu_command["harness"]["exhaustive_catalog"]["passed"],
+            "unknown_command_paths": qemu_command["harness"]["exhaustive_catalog"][
+                "unknown_command_paths"
+            ],
+            "claim_boundary": qemu_command["claim_boundary"],
+        },
         "metric_definitions": {
             "balanced_accuracy": {
                 "unit": "ratio",
@@ -421,6 +438,7 @@ def benchmark_markdown(summary: dict) -> str:
     queue = summary["paired_preview_queue"]
     physical = summary["physical_simulator_jepa"]
     neural = summary["neural_synthetic"]
+    qemu = summary["qemu_command_audit"]
     runtime_rows = "\n".join(
         f"| H={row['horizon']} | {row['mean_microseconds_range'][0] / 1000:.2f}-{row['mean_microseconds_range'][1] / 1000:.2f} ms | "
         f"{row['median_run_mean_microseconds'] / 1000:.2f} ms | {max(row['p95_microseconds_across_runs']) / 1000:.2f} ms |"
@@ -442,6 +460,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Paired preview queue | 96/96 responses in every run; median batch {queue["optimized_median_batch_milliseconds"] / 1000:.3f} s after optimization | Parallel inference; the daemon intentionally serializes previews |
 | Physical JEPA | {percent(physical["rules_plus_jepa_balanced_accuracy"])} balanced accuracy, {physical["false_negatives"]} FN, {physical["false_positives"]} FP | Real robot safety; the artifact is shadow-only |
 | Neural decoder | {neural["signal_trials"]}/{neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]}/{neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | Live EEG accuracy, usability, or medical performance |
+| QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Broad physical-PC compatibility or independent replication |
 
 ## Published world-model study
 
@@ -481,6 +500,7 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v
+python scripts/verify_qemu_command_evidence.py
 node scripts/benchmark_world_model_runtime.mjs --iterations 100
 node scripts/verify_world_model_preview_concurrency.mjs
 python scripts/generate_public_evidence.py --check
@@ -499,6 +519,7 @@ def proof_markdown(summary: dict, capabilities: dict) -> str:
     queue = summary["paired_preview_queue"]
     physical = summary["physical_simulator_jepa"]
     neural = summary["neural_synthetic"]
+    qemu = summary["qemu_command_audit"]
     return f"""# FerrumOS Proof Center
 
 FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ring-3 agent daemon, capability-gated syscalls, and a provider-independent predictive safety screen. This page links claims to reproducible evidence; it is not a formal safety certificate. The latest tagged software release is `v0.1.1`; current-main capability and benchmark evidence is labeled separately and does not retroactively describe that tag.
@@ -512,6 +533,7 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | Preview queue | 96/96 responses in every run; {queue["median_improvement_percent"]:.2f}% median batch improvement after cadence optimization |
 | Physical model | {percent(physical["rules_plus_jepa_balanced_accuracy"])} simulator balanced accuracy; permanently shadow-only |
 | Neural input | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, zero candidates in {neural["no_control_windows"]:,} no-control windows |
+| QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries for OS source `{qemu["os_source_commit"][:7]}` |
 
 Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [full agent-readable context](llms-full.txt), [citation guide](docs/CITATION.md), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
 
@@ -533,6 +555,7 @@ def llms_full_markdown(summary: dict, capabilities: dict) -> str:
     queue = summary["paired_preview_queue"]
     physical = summary["physical_simulator_jepa"]
     neural = summary["neural_synthetic"]
+    qemu = summary["qemu_command_audit"]
     action_rows = "\n".join(
         "| `{name}` | {category} | {tier} ({tier_name}) | {confirmation} |".format(
             name=action["name"],
@@ -578,6 +601,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `{queue["protocol_id"]}` | 96/96 responses each run; {queue["median_improvement_percent"]:.2f}% median batch improvement | Serialized queue responsiveness, not parallel inference |
 | `{physical["protocol_id"]}` | {percent(physical["rules_plus_jepa_balanced_accuracy"])}, {physical["false_negatives"]} FN, {physical["false_positives"]} FP | Deterministic simulator; permanently shadow-only |
 | `{neural["protocol_id"]}` | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | No live EEG, human, medical, or usability claim |
+| `{qemu["protocol_id"]}` | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
 
 The five evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 
@@ -606,6 +630,7 @@ python scripts/verify_repository_discovery.py
 python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
+python scripts/verify_qemu_command_evidence.py
 ```
 """
 

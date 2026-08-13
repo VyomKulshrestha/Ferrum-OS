@@ -73,6 +73,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `paired-preview-queue-whpx-2026-08-13` | 96/96 responses each run; 10.40% median batch improvement | Serialized queue responsiveness, not parallel inference |
 | `physical-jepa-simulator-v1` | 99.44%, 1 FN, 16 FP | Deterministic simulator; permanently shadow-only |
 | `neural-ssvep-synthetic-v1` | 600 synthetic signals, 400 artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG, human, medical, or usability claim |
+| `ferrumos-qemu-command-audit-v1` | 101/101 focused cases and 81/81 exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
 
 The five evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 
@@ -101,4 +102,5 @@ python scripts/verify_repository_discovery.py
 python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
+python scripts/verify_qemu_command_evidence.py
 ```

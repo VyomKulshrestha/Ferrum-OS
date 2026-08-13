@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "protocol": "ferrumos-qemu-command-audit-v1",
+  "snapshot_date": "2026-08-13",
+  "os_source_commit": "c92056d8635af5e4ee2a81351350b1b25cfd4861",
+  "audit_source_commit": "45e369cececfc81e341c8772e295c4a00cba4bf1",
+  "environment": {
+    "host_os": "Windows 11",
+    "qemu_version": "10.1.0",
+    "accelerator": "WHPX",
+    "guest_ram_mb": 2048
+  },
+  "harness": {
+    "entrypoint": "node scripts/verify_all_audits.mjs",
+    "command_sweep": {
+      "path": "scripts/command_sweep.mjs",
+      "sha256": "0773e2d9d444af1f7f793ae32a920dcdfe4fb9329665f3cfb6fd277938bc3273",
+      "cases": 101,
+      "passed": 101,
+      "failed": 0,
+      "final_one_way_check": "ring3 init"
+    },
+    "exhaustive_catalog": {
+      "path": "scripts/audit_all_commands.mjs",
+      "sha256": "a918564cae985dc75dc46b0ad70e175d92a1001e1eff5164c74dc455ba62a1e4",
+      "entries": 81,
+      "passed": 81,
+      "failed": 0,
+      "prompt_returns": 81,
+      "unknown_command_paths": 0
+    }
+  },
+  "artifacts": {
+    "boot_image_sha256": "8bb48247449a708351e493ecc29942267f29e791623ff476f3c250ed76269348",
+    "appliance_disk_sha256": "635b757878b8224764d66d403446fe4426cdce3067d43d635d94869866abf1c5",
+    "command_serial_sha256": "0e989c8247c8a7af5d2576c77740c0a97151d16045822adea09448d8641bf60c",
+    "catalog_serial_sha256": "b95290b64686a0fc8209b94d8d27f5302b7f88f4af82bd7da0a4e9c4a58f268c",
+    "catalog_summary_sha256": "ee6a92881b4ada4db3bc90f9deb39f98ec56a2ddce9f2b29ec5a6a4bbca200c7"
+  },
+  "claim_boundary": "This is a dated emulator command-path audit for the named source commit and artifact hashes. It is not evidence of broad physical-PC compatibility, hardware accuracy, live EEG performance, formal safety, or independent replication."
+}

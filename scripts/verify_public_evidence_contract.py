@@ -132,6 +132,7 @@ def main() -> int:
         "paired_preview_queue",
         "physical_simulator_jepa",
         "neural_synthetic",
+        "qemu_command_audit",
     ]
     protocol_ids = [benchmarks[name]["protocol_id"] for name in sections]
     require(
@@ -156,6 +157,16 @@ def main() -> int:
     require(
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,
         "neural no-control soak remains zero",
+    )
+    qemu = benchmarks["qemu_command_audit"]
+    require(
+        qemu["command_sweep_cases"] == qemu["command_sweep_passed"] == 101,
+        "dated QEMU command sweep records 101 passing cases",
+    )
+    require(
+        qemu["catalog_entries"] == qemu["catalog_passed"] == 81
+        and qemu["unknown_command_paths"] == 0,
+        "dated QEMU catalog audit records 81 passing entries",
     )
     require(
         "not directly comparable" in " ".join(benchmarks["global_limitations"]),
