@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = (
     ROOT / "docs" / "benchmarks" / "raw" / "2026-08-13" / "qemu-command-audit.json"
 )
+FOCUSED_SERIAL = EVIDENCE.with_name("qemu-command-serial.txt")
+CATALOG_SUMMARY = EVIDENCE.with_name("qemu-command-summary.json")
 
 
 def require(condition: bool, message: str) -> None:
@@ -50,6 +52,7 @@ def main() -> int:
 
     sweep = evidence["harness"]["command_sweep"]
     catalog = evidence["harness"]["exhaustive_catalog"]
+    artifacts = evidence["artifacts"]
     sweep_path = ROOT / sweep["path"]
     catalog_path = ROOT / catalog["path"]
     require(
@@ -70,6 +73,32 @@ def main() -> int:
         catalog["entries"] == catalog["passed"] == catalog["prompt_returns"]
         and catalog["failed"] == catalog["unknown_command_paths"] == 0,
         "committed catalog audit records every entry and prompt passing",
+    )
+    require(
+        sha256(FOCUSED_SERIAL) == artifacts["command_serial_sha256"],
+        "public focused serial log matches the measured artifact hash",
+    )
+    require(
+        sha256(CATALOG_SUMMARY) == artifacts["catalog_summary_sha256"],
+        "public catalog summary matches the measured artifact hash",
+    )
+    focused_serial = FOCUSED_SERIAL.read_text(encoding="utf-8")
+    require(
+        "[init] userspace is alive in ring 3" in focused_serial,
+        "public focused serial preserves the terminal Ring-3 success marker",
+    )
+    command_summary = json.loads(CATALOG_SUMMARY.read_text(encoding="utf-8"))
+    require(
+        len(command_summary) == catalog["entries"]
+        and all(record["promptReturned"] for record in command_summary),
+        "public catalog summary contains every prompt-returning entry",
+    )
+    require(
+        not any(
+            "unknown command" in record.get("output", "").lower()
+            for record in command_summary
+        ),
+        "public catalog summary contains no unknown-command route",
     )
     require(
         "process.exitCode = 1" in sweep_path.read_text(encoding="utf-8"),

@@ -1,0 +1,407 @@
+[
+  {
+    "cmd": "help",
+    "promptReturned": true,
+    "output": "help\nFerrumOS Shell Commands:\n  help       Show this help message\n  clear      Clear the screen\n  desktop    Launch GUI Desktop Environment\n  echo       Print arguments to screen\n  ps         List running tasks\n  mem        Show memory usage\n  ls [path]  List directory contents\n  cat <file> Display file contents\n  stat <p>   Show filesystem metadata\n  mounts     Show mounted filesystems\n  sync       Synchronize dirty filesystem data to disk\n  mkdir <d>  Create a directory\n  touch <f>  Create an empty file\n  write <f> <text>  Write text to file\n  rm <path>  Remove file or directory\n  devices    List kernel-visible device surfaces\n  camera_gesture <name>  Set the synthetic camera's gesture (none|fist|openpalm|pointing|peace|threefingers|fourfingers|thumbsup)\n  net        Show network interfaces and loopback state\n  caps       Show capability tokens\n  services   List/start/stop/restart service registry\n  ipc        Show IPC broker statistics\n  clipboard <get|set|clear|status>  Use the shared desktop clipboard\n  notify <title> <body>  Post a desktop notification\n  notifications [clear]  List or clear notification history\n  syscalls   Show syscall ABI numbers\n  programs   List userspace program manifests\n  users      List userspace process table\n  run <p>    Launch a userspace program\n  pkg <list|verify|install|remove|run|status|rollback> [name]\n             Manage signed packages (privileged install needs --confirm)\n  syscall <pid> <num> [arg0]  Dispatch a userspace syscall\n  agent      Control the agent runtime boundary\n  heliox     Heliox-OS JSON-RPC bridge surface\n  elf        Inspect the embedded userspace init ELF\n  process    List per-process address spaces\n  ring3 <pid|init>  Enter ring-3 in the given process\n  log        Show recent audit log\n  uptime     Show system uptime (ticks)\n  scheduler  Show Phase 2 scheduler state\n  test-syscall <yield|sleep|wait|priority>  Exercise Phase 2 syscalls\n  uname      Show system information\n  whoami     Show current identity\n  session    Switch debug shell capability profile (root|guest)\n  useradd <name> [root|user|guest]  Create a real user account\n  login <name>  Log in as a real account, switching capabilities\n  accounts   List all registered user accounts\n  spawn <n>  Spawn a new task\n  kill <id>  Kill a task by ID\n  security   Show security status\n  about      About FerrumOS\n  disk       List ATA drives or read sectors\n  dashboard  Full-screen system status dashboard\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "uname",
+    "promptReturned": true,
+    "output": "uname\nFerrumOS v0.1.1 x86_64 (Rust nightly)\nAI-Native Autonomous OS Foundation\nKernel: microkernel-inspired, capability-based\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "whoami",
+    "promptReturned": true,
+    "output": "whoami\nroot (uid=0, gid=0, home=/disk/root)\nCapabilities: cap:system:all\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "uptime",
+    "promptReturned": true,
+    "output": "uptime\nUptime: 6329 ticks (~0m 6s)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "mem",
+    "promptReturned": true,
+    "output": "mem\nKernel Heap Memory:\n  Total:  12582912 bytes (12288 KiB)\n  Used:   363872 bytes (355 KiB) [2%]\n  Free:   12219040 bytes (11932 KiB)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "ps",
+    "promptReturned": true,
+    "output": "ps\n  PID  STATE    PRIO     TICKS  NAME\n  ---  -----    ----     -----  ----\n  100  RUNNING  system     7425  kernel\n  101  READY    normal     7425  init\n  102  RUNNING  normal     5159  shell\n\nTotal tasks: 3\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "devices",
+    "promptReturned": true,
+    "output": "devices\nDevice Registry:\n  Online:  9\n  Planned: 2\n  ID  STATE    CLASS    DRIVER        NAME\n  --  -----    -----    ------        ----\n   1  ONLINE   display  vga           vga.text\n      cap: display:write\n   2  ONLINE   serial   uart_16550    uart.com1\n      cap: serial:write\n   3  ONLINE   timer    pic8259-pit   pit.timer\n      cap: timer:read\n   4  ONLINE   input    ps2-set1      ps2.keyboard\n      cap: input:read\n   5  ONLINE   storage  ramfs         ramfs.root\n      cap: fs:*\n   6  PLANNED  network  pending       net.primary\n      cap: net:*\n   7  PLANNED  audio    pending       audio.primary\n      cap: audio:*\n   8  ONLINE   camera   camera_synth  camera.primary\n      cap: camera:*\n   9  ONLINE   storage  ata-pio       ata.primary.master\n      cap: block:rw\n  10  ONLINE   storage  ata-pio       ata.primary.slave\n      cap: block:rw\n  11  ONLINE   display  bochs-vbe     vga.framebuffer\n      cap: display:fb\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "net",
+    "promptReturned": true,
+    "output": "net\nNetwork:\n  Interfaces: 2\n  Routes:     1\n  Sent:       0\n  Received:   0\n  Denied:     0\nInterfaces:\n  lo UP      127.0.0.1/8 loopback\n  net0 PLANNED unassigned pending-nic\nRoutes:\n  127.0.0.0/8 via local dev lo\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "caps",
+    "promptReturned": true,
+    "output": "caps\nRegistered Capabilities:\n  [1] cap:system:all - Full System Access\n  [2] cap:fs:read - Filesystem Read\n  [3] cap:fs:write - Filesystem Write\n  [4] cap:pkg:manage - Package Repository Management\n  [5] cap:pkg:request - Package Manager Requests\n  [6] cap:app:launch - Trusted App Launcher Requests\n  [7] cap:desktop:configure - Desktop Preference Configuration\n  [8] cap:process:spawn - Process Spawn\n  [9] cap:process:kill - Process Kill\n  [10] cap:net:listen - Network Listen\n  [11] cap:net:connect - Network Connect\n  [12] cap:service:register - Service Registration\n  [13] cap:audit:read - Audit Log Read\n  [14] cap:audit:write - Append Audit Events\n  [15] cap:memory:alloc - Memory Allocation\n  [16] cap:ipc:send - IPC Send\n  [17] cap:ipc:receive - Owned IPC Mailbox Receive\n  [18] cap:agent:control - Agent Runtime Control\n  [19] cap:heliox:neural - Paired Neural Intent Mediation\n  [20] cap:audio:play - Audio Playback\n  [21] cap:audio:record - Audio Recording\n  [22] cap:input:inject - Input Injection\n  [23] cap:input:read - Raw Input Observation\n  [24] cap:screen:read - Screen Observation\n  [25] cap:system:observe - System State Observation\n  [26] cap:camera:read - Camera Frame Access\n  [27] cap:quota:exempt - Quota Exemption\n  [28] cap:confirmation:bypass - Confirmation Gating Bypass\n  [29] cap:system:kexec - Kernel Hot-Reload Execution\n  [30] cap:hud:overlay - HUD Overlay Access\n  [31] cap:mem:mmap - Memory Map File\n  [32] cap:crypto:rng - Cryptographic Randomness Access\n  [33] cap:net:tls - Network TLS Access\n  [34] cap:gui:window - GUI App Window Creation\n  [35] cap:clipboard:read - Clipboard Read\n  [36] cap:clipboard:write - Clipboard Write\n  [37] cap:notification:post - Post Desktop Notifications\n  [38] cap:notification:read - Read Desktop Notifications\n  [39] cap:notification:manage - Manage Desktop Notifications\n  [40] cap:heliox:bridge - Heliox bridge control\n  [41] cap:heliox:execute - Heliox execute / autonomous submission\n  [42] cap:heliox:voice - Heliox voice event intake\n  [43] cap:heliox:gesture - Heliox gesture event intake\n  [44] cap:heliox:screen - Heliox screen vision control\n  [45] cap:heliox:persona - Heliox persona learning control\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "services",
+    "promptReturned": true,
+    "output": "services\nRegistered Services:\n  [1] RUNNING    kernel trusted - kernel.memory (Memory Management Service)\n       health checks: 0 restarts: 0\n  [2] RUNNING    kernel trusted - kernel.scheduler (Task Scheduler Service)\n       health checks: 0 restarts: 0\n  [3] RUNNING    kernel trusted - kernel.security (Security Enforcement Service)\n       health checks: 0 restarts: 0\n  [4] RUNNING    kernel trusted - kernel.logging (Audit Logging Service)\n       health checks: 0 restarts: 0\n  [5] RUNNING    kernel trusted - kernel.fs (Filesystem Service)\n       health checks: 0 restarts: 0\n  [6] RUNNING   runtime sandbox - runtime.ipc (Inter-Process Communication)\n       health checks: 0 restarts: 0\n  [7] STOPPED   runtime sandbox - runtime.agentd (agent runtime boundary)\n       caps: cap:agent:control\n       health checks: 0 restarts: 0\n  [8] STOPPED   runtime sandbox - runtime.heliox.bridge (Heliox-OS JSON-RPC bridge service)\n       caps: cap:heliox:bridge\n       health checks: 0 restarts: 0\n  [9] STOPPED   runtime sandbox - runtime.heliox.input (Voice, gesture, and multimodal event intake)\n       caps: cap:heliox:voice\n       health checks: 0 restarts: 0\n  [10] STOPPED   runtime sandbox - runtime.heliox.inference (Local model inference (Ollama, TRIBE, cloud LLM))\n       caps: cap:heliox:execute\n       health checks: 0 restarts: 0\n  [11] STOPPED   runtime sandbox - runtime.heliox.memory (Semantic memory and vector store (ChromaDB-class))\n       caps: cap:heliox:bridge\n       health checks: 0 restarts: 0\n  [12] STOPPED   runtime sandbox - runtime.heliox.orchestrator (Multi-agent planner, orchestrator, verifier, reflector)\n       caps: cap:heliox:execute\n       health checks: 0 restarts: 0\n  [13] STOPPED   runtime sandbox - runtime.heliox.screen (Screen vision and active app detection)\n       caps: cap:heliox:screen\n       health checks: 0 restarts: 0\n  [14] STOPPED   runtime sandbox - runtime.heliox.persona (Subconscious persona learning and consolidation)\n       caps: cap:heliox:persona\n       health checks: 0 restarts: 0\n  [15] STOPPED   runtime sandbox - runtime.heliox.plugins (Plugin registry and Ed25519 signature verification)\n       caps: cap:heliox:bridge\n       health checks: 0 restarts: 0\n  [16] STOPPED   runtime sandbox - runtime.heliox.audit (Audit exporter for Heliox-OS lifecycle events)\n       caps: cap:heliox:bridge\n       health checks: 0 restarts: 0\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "ipc",
+    "promptReturned": true,
+    "output": "ipc\nIPC Broker:\n  Queued:   0\n  Sent:     0\n  Received: 0\n  Denied:   0\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "clipboard status",
+    "promptReturned": true,
+    "output": "clipboard status\nClipboard:\n  Bytes:      0\n  Generation: 0\n  Owner PID:  0\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "clipboard set audit",
+    "promptReturned": true,
+    "output": "clipboard set audit\n[clipboard] write pid=0 bytes=5 generation=1\nclipboard updated (generation 1)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "clipboard get",
+    "promptReturned": true,
+    "output": "clipboard get\naudit\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "clipboard clear",
+    "promptReturned": true,
+    "output": "clipboard clear\n[clipboard] write pid=0 bytes=0 generation=2\nclipboard cleared (generation 2)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "notify audit complete",
+    "promptReturned": true,
+    "output": "notify audit complete\n[notification] posted id=1 pid=0 title=audit\nnotification posted (id 1)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "notifications",
+    "promptReturned": true,
+    "output": "notifications\nNotifications (newest first):\n  [1] audit - complete (pid 0)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "notifications clear",
+    "promptReturned": true,
+    "output": "notifications clear\ncleared 1 notifications\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "notifications",
+    "promptReturned": true,
+    "output": "notifications\n(no notifications)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "syscalls",
+    "promptReturned": true,
+    "output": "syscalls\nSyscall ABI:\n  range: 0-60\n  0  yield\n  1  ipc_send\n  2  ipc_receive\n  3  service_start\n  4  service_stop\n  5  capability_check\n  6  audit_write\n  7  socket                 8  bind\n  9  listen                10  accept\n 11  recv                  12  send\n 13  wait                  14  connect\n 15  read_file             16  write_file\n 17  read_dir              18  exec\n 19  framebuffer_info      20  read_text_buffer\n 21  create_dir            22  delete_file\n 23  play_audio            24  record_audio\n 25  set_volume            26  inject_key\n 27  inject_mouse          28  poll_input\n 29  system_query          30  exit\n 31  get_pid               32  sleep\n 33  wait_pid              34  write\n 35  close                 36  read_camera_frame\n 37  camera_info           38  kexec\n 39  hud_update            40  hit_test\n 41  mmap                  42  get_random\n 43  get_time              44  create_window\n 45  present_window        46  poll_window_input\n 47  package_list          48  package_install\n 49  package_remove        50  package_rollback\n 51  app_launch            52  package_launch\n 53  clipboard_read        54  clipboard_write\n 55  notification_post     56  notification_list\n 57  notification_dismiss\n 58  process_kill\n 59  launch_context\n 60  desktop_preferences\nCapability resources:\n  1  ipc:send:*\n  2  service:register\n  3  audit:read\n  4  process:spawn\n  5  net:tls:*\nStatus: capability dispatch active\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "programs",
+    "promptReturned": true,
+    "output": "programs\nUserspace Programs:\n  init - first userspace service supervisor (/bin/init)\n       caps: cap:system:all\n  agent-bridge - Heliox-compatible agent runtime bridge (/srv/agent-bridge)\n       caps: cap:ipc:send, cap:net:connect\n  audit-exporter - exports audit events to runtime services (/srv/audit-exporter)\n       caps: cap:ipc:send\n  heliox-daemon - Heliox-OS native cognitive daemon (/bin/heliox-daemon)\n       caps: cap:ipc:send, cap:ipc:receive, cap:audit:write, cap:net:connect, cap:net:listen, cap:fs:read, cap:fs:write, cap:audio:play, cap:audio:record, cap:input:inject, cap:input:read, cap:screen:read, cap:system:observe, cap:camera:read, cap:quota:exempt, cap:confirmation:bypass, cap:system:kexec, cap:hud:overlay, cap:mem:mmap, cap:crypto:rng, cap:net:tls, cap:process:spawn, cap:clipboard:read, cap:clipboard:write, cap:notification:post, cap:heliox:neural\n  gui-smoke-test - D1 app-window framework smoke test (/bin/gui-smoke-test)\n       caps: cap:gui:window\n  text-editor - Read/write text files in a GUI window (/bin/text-editor)\n       caps: cap:gui:window, cap:fs:read, cap:fs:write, cap:clipboard:read, cap:clipboard:write, cap:notification:post\n  calculator - Basic arithmetic calculator (/bin/calculator)\n       caps: cap:gui:window\n  file-manager - Browse the filesystem and open documents with associated apps (/bin/file-manager)\n       caps: cap:gui:window, cap:fs:read, cap:app:launch\n  heliox-assistant-panel - Chat with the Heliox agent and run its first-run setup wizard (/bin/heliox-assistant-panel)\n       caps: cap:gui:window, cap:fs:read, cap:fs:write, cap:ipc:send, cap:ipc:receive\n  settings - View system state and persist desktop preferences (/bin/settings)\n       caps: cap:gui:window, cap:fs:read, cap:desktop:configure, cap:system:observe\n  browser - Minimal HTTP text browser (/bin/browser)\n       caps: cap:gui:window, cap:net:connect\n  app-store - Browse built-in apps and manage signed packages (/bin/app-store)\n       caps: cap:gui:window, cap:app:launch, cap:pkg:request\n  notification-center - Review and clear desktop notification history (/bin/notification-center)\n       caps: cap:gui:window, cap:notification:read, cap:notification:manage\n  task-manager - Inspect live tasks and terminate non-critical processes (/bin/task-manager)\n       caps: cap:gui:window, cap:process:kill\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "users",
+    "promptReturned": true,
+    "output": "users\nActive Scheduler Tasks:\n  PID  STATE    AFFINITY  PARENT  NAME\n  ---  -----    --------  ------  ----\n  100  RUNNING       any    none  kernel\n       caps: cap:system:all\n  101  READY         any    none  init\n       caps: cap:system:all\n  102  RUNNING       any    none  shell\n       caps: cap:system:all\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "mounts",
+    "promptReturned": true,
+    "output": "mounts\nMount Table:\n  ramfs.root on / type ramfs (rw,volatile)\n  ata.primary.slave on /disk type ext2 (ro)\nUsage: 3 files, 7 directories, 75 bytes\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "log",
+    "promptReturned": true,
+    "output": "log\nRecent Audit Log (10 entries):\n  [0] ServiceRegistered: Service registered: runtime.heliox.memory\n  [0] ServiceRegistered: Service registered: runtime.heliox.orchestrator\n  [0] ServiceRegistered: Service registered: runtime.heliox.screen\n  [0] ServiceRegistered: Service registered: runtime.heliox.persona\n  [0] ServiceRegistered: Service registered: runtime.heliox.plugins\n  [0] ServiceRegistered: Service registered: runtime.heliox.audit\n  [0] ProcessSpawned: Task spawned\n  [1] ProcessSpawned: userspace process launched\n  [1] ProcessSpawned: userspace init bootstrapped\n  [2239] SystemBoot: FerrumOS kernel boot sequence completed successfully\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "scheduler",
+    "promptReturned": true,
+    "output": "scheduler\nScheduler State:\n  current_pid:    0\n  total_ticks:    38665\n  active tasks:   2\n    running:      1\n    ready:        1\n    blocked:      0\n  time slice:     275 PIT ticks (~275 ms)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "security",
+    "promptReturned": true,
+    "output": "security\nSecurity Status:\n  Model:      Capability-based\n  Default:    Deny-all\n  Sandbox:    Enabled\n  Audit Log:  Active\n  Capabilities: 45 registered\n  Audit Events: 20 recorded\n  Shell Session: root\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "about",
+    "promptReturned": true,
+    "output": "about\nFerrumOS v0.1.1\nA minimal modular Rust-based operating system designed as\nthe foundation for an AI-native autonomous computing environment.\n\nArchitecture Layers:\n  [Kernel]    Scheduling, Memory, Isolation, HAL\n  [Runtime]   Services, Permissions, IPC\n  [Cognitive] Semantic Memory, Vector Search (future)\n  [Agent]     Autonomous Workflows, Planning (future)\n\nBuilt with Rust for safety, performance, and fearless concurrency.\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "disk",
+    "promptReturned": true,
+    "output": "disk\nATA Drives:\n  BUS        DRIVE   SECTORS       SIZE   MODEL\n  ---        -----   -------       ----   -----\n  primary   master       18054      8 MiB  QEMU HARDDISK\n             serial: QM00001  LBA48: true\n  primary   slave        65536     32 MiB  QEMU HARDDISK\n             serial: QM00002  LBA48: true\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "accounts",
+    "promptReturned": true,
+    "output": "accounts\n  UID   USERNAME       PROFILE  HOME\n  ----  -------------  -------  ----\n  0     root           root     /disk/root\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "elf",
+    "promptReturned": true,
+    "output": "elf\nEmbedded init ELF:\n  size:  690456 bytes\n  type:       ET_EXEC\n  machine:    EM_X86_64\n  entry:      0x8000001350\n  phoff:      64 (9 entries of 56 bytes)\n  PT_LOAD segments:\n    vaddr=0x8000000000 filesz=0x238 memsz=0x238 off=0x0 align=0x1000 flags=R--\n    vaddr=0x8000001240 filesz=0x2a0c memsz=0x2a0c off=0x240 align=0x1000 flags=R-X\n    vaddr=0x8000004c50 filesz=0xa456c memsz=0xa456c off=0x2c50 align=0x1000 flags=R--\n    vaddr=0x80000aa1c0 filesz=0x8b5 memsz=0x8b5 off=0xa71c0 align=0x1000 flags=R-X\n    vaddr=0x80000aba78 filesz=0x28 memsz=0x588 off=0xa7a78 align=0x1000 flags=RW-\n  range:      [0x8000000000, 0x80000ac000)  (704512 bytes)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "process",
+    "promptReturned": true,
+    "output": "process\nPer-process Address Spaces (2):\n  PID  USER_FRAMES  NAME\n  ---  -----------  ----\n    2          429  init\n    3        16895  heliox-daemon\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "ls /disk",
+    "promptReturned": true,
+    "output": "ls /disk\n  DIR       0  .\n  DIR       0  ..\n  DIR       0  lost+found\n  DIR       0  heliox\n  DIR       0  pkgs-available\n  DIR       0  pkgs\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "mkdir /disk/audit_test_dir",
+    "promptReturned": true,
+    "output": "mkdir /disk/audit_test_dir\nDirectory created: /disk/audit_test_dir\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "touch /disk/audit_test_file.txt",
+    "promptReturned": true,
+    "output": "touch /disk/audit_test_file.txt\nCreated: /disk/audit_test_file.txt\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "write /disk/audit_test_file.txt hello_audit",
+    "promptReturned": true,
+    "output": "write /disk/audit_test_file.txt hello_audit\nWritten to /disk/audit_test_file.txt\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "cat /disk/audit_test_file.txt",
+    "promptReturned": true,
+    "output": "cat /disk/audit_test_file.txt\nhello_audit\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "stat /disk/audit_test_file.txt",
+    "promptReturned": true,
+    "output": "stat /disk/audit_test_file.txt\nFilesystem Stat:\n  Path:     /disk/audit_test_file.txt\n  Type:     file\n  Size:     11 bytes\n  Children: 0\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "sync",
+    "promptReturned": true,
+    "output": "sync\nSyncing filesystems...\nFilesystems synchronized successfully.\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "rm /disk/audit_test_file.txt",
+    "promptReturned": true,
+    "output": "rm /disk/audit_test_file.txt\nRemoved: /disk/audit_test_file.txt\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "ls /disk",
+    "promptReturned": true,
+    "output": "ls /disk\n  DIR       0  .\n  DIR       0  ..\n  DIR       0  lost+found\n  DIR       0  heliox\n  DIR       0  pkgs-available\n  DIR       0  pkgs\n  DIR       0  audit_test_dir\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "echo audit test message",
+    "promptReturned": true,
+    "output": "echo audit test message\naudit test message\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "clear",
+    "promptReturned": true,
+    "output": "clear\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "camera_gesture openpalm",
+    "promptReturned": true,
+    "output": "camera_gesture openpalm\nsynthetic camera gesture set to OpenPalm\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "camera_gesture none",
+    "promptReturned": true,
+    "output": "camera_gesture none\nsynthetic camera gesture set to None\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "camera_gesture bogus_gesture_name",
+    "promptReturned": true,
+    "output": "camera_gesture bogus_gesture_name\ninvalid gesture name: bogus_gesture_name\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "services start 1",
+    "promptReturned": true,
+    "output": "services start 1\n[AUDIT] ServiceStarted: Service started\nservice 1 started\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "services stop 1",
+    "promptReturned": true,
+    "output": "services stop 1\n[AUDIT] ServiceStopped: Service stopped\nservice 1 stopped\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "pkg list",
+    "promptReturned": true,
+    "output": "pkg list\n  notes (1.0.0) [available] - A simple persistent scratchpad\n  (nothing installed yet - try: pkg install <name>)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "pkg install notes --confirm",
+    "promptReturned": true,
+    "output": "pkg install notes --confirm\n[AUDIT] FileAccess: ferrumpkg: installed 'notes' at generation 1\ninstalled notes (registry generation 1)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "pkg run notes",
+    "promptReturned": true,
+    "output": "pkg run notes\nlaunched notes as pid 4\nFerrumOS:~$ [notes] alive in ring 3\n"
+  },
+  {
+    "cmd": "pkg remove notes",
+    "promptReturned": true,
+    "output": "[kernel-read] read /disk/notes.txt failed: file not found: notes.txt\n[notes] window created id=1000\npkg remove notes\n[AUDIT] FileAccess: ferrumpkg: removed 'notes' at generation 2\nremoved notes (registry generation 2)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "run notes",
+    "promptReturned": true,
+    "output": "run notes\nrun: program not found: notes\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "spawn audit_task",
+    "promptReturned": true,
+    "output": "spawn audit_task\n[AUDIT] ProcessSpawned: Task spawned\nSpawned task 'audit_task' with PID 103\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "ps",
+    "promptReturned": true,
+    "output": "ps\n  PID  STATE    PRIO     TICKS  NAME\n  ---  -----    ----     -----  ----\n  100  RUNNING  system   109663  kernel\n  101  READY    normal   109663  init\n  102  RUNNING  normal   107397  shell\n    4  BLOCKED  normal      761  notes\n  103  READY    normal      227  audit_task\n\nTotal tasks: 5\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "kill 999",
+    "promptReturned": true,
+    "output": "kill 999\nkill: no task with PID 999\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "test-syscall yield",
+    "promptReturned": true,
+    "output": "test-syscall yield\nyield: ran=false\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "test-syscall sleep",
+    "promptReturned": true,
+    "output": "test-syscall sleep\nsleep(2): ran=false\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "test-syscall priority",
+    "promptReturned": true,
+    "output": "test-syscall priority\npriority Idle -> index 0\npriority Normal -> index 1\npriority High -> index 2\npriority System -> index 3\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "test-syscall frame-recycle",
+    "promptReturned": true,
+    "output": "test-syscall frame-recycle\nframe-recycle: reused_and_scrubbed=true before=Some((21824, 0)) after=Some((21825, 1))\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "syscall 2 0",
+    "promptReturned": true,
+    "output": "syscall 2 0\nsyscall result: InvalidArgument value=0\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "dashboard",
+    "promptReturned": true,
+    "output": "dashboard\n[dashboard] launching system dashboard\n[dashboard] exiting dashboard\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "session guest",
+    "promptReturned": true,
+    "output": "session guest\n[AUDIT] CapabilityRevoked: debug shell switched to guest profile\nsession switched to guest\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "whoami",
+    "promptReturned": true,
+    "output": "whoami\nguest (uid=1000, gid=1000, home=none)\nCapabilities: cap:fs:read\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "clipboard get",
+    "promptReturned": true,
+    "output": "clipboard get\n[AUDIT] PermissionDenied: shell denied resource clipboard:read\npermission denied: clipboard:read\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "notify denied body",
+    "promptReturned": true,
+    "output": "notify denied body\n[AUDIT] PermissionDenied: shell denied resource notification:post\npermission denied: notification:post\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "notifications",
+    "promptReturned": true,
+    "output": "notifications\n[AUDIT] PermissionDenied: shell denied resource notification:read\npermission denied: notification:read\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "session root",
+    "promptReturned": true,
+    "output": "session root\n[AUDIT] CapabilityGranted: debug shell switched to root profile\nsession switched to root\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "useradd audituser user",
+    "promptReturned": true,
+    "output": "useradd audituser user\n[AUDIT] CapabilityGranted: accounts: created user 'audituser' (uid=1000, profile=user)\ncreated account 'audituser' (uid=1000, profile=user, home=/disk/home/audituser)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "login audituser",
+    "promptReturned": true,
+    "output": "login audituser\n[AUDIT] CapabilityGranted: shell logged in as 'audituser'\nlogged in as audituser (profile=user)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "whoami",
+    "promptReturned": true,
+    "output": "whoami\naudituser (uid=1000, profile=user, home=/disk/home/audituser)\nCapabilities: cap:fs:read, cap:fs:write, cap:process:spawn, cap:gui:window, cap:ipc:send, cap:net:connect, cap:audio:play, cap:camera:read\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "session root",
+    "promptReturned": true,
+    "output": "session root\n[AUDIT] CapabilityGranted: debug shell switched to root profile\nsession switched to root\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "heliox status",
+    "promptReturned": true,
+    "output": "heliox status\nHeliox-OS Integration Bridge:\n  Transport:    ws://127.0.0.1:8785\n  Protocol:     jsonrpc/2.0\n  Version:      heliox-0.7.1-compat\n  Services:     9\n  Methods:      79 (JSON-RPC 2.0 over WebSocket)\n  Actions:      126 (5-tier permission model)\n  Envelopes:    0 (invoked 0, denied 0)\n  Voice listener: stopped (events=0, commands=0)\n  Gesture events: 0\n  Multimodal intents: 0\n  Screen vision: Disabled\n  Screen frames: 0\n  Persona rules: 0\n  Pending confirmations: 0\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "heliox tiers",
+    "promptReturned": true,
+    "output": "heliox tiers\nHeliox Permission Tiers:\n  Tier 0 - Read Only (auto-exec=true): 46 actions\n  Tier 1 - User Write (auto-exec=true): 46 actions\n  Tier 2 - System Modify (auto-exec=false): 20 actions\n  Tier 3 - Destructive (auto-exec=false): 11 actions\n  Tier 4 - Root Critical (auto-exec=false): 3 actions\n  Total action types: 126\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "heliox neural",
+    "promptReturned": true,
+    "output": "heliox neural\nheliox neural: usage: heliox neural <arm|disarm>\n  Status and calibration are available only to the paired local bridge.\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "heliox neural arm",
+    "promptReturned": true,
+    "output": "heliox neural arm\nheliox neural: arm requested from local shell\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "heliox neural disarm",
+    "promptReturned": true,
+    "output": "heliox neural disarm\nheliox neural: disarm requested from local shell\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "agent status",
+    "promptReturned": true,
+    "output": "agent status\nAgent Runtime Boundary:\n  Service ID: 7\n  Running:    false\n  Commands:   0\n  Last response: agentd registered; waiting for start\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "ring3 init",
+    "promptReturned": true,
+    "output": "ring3 init\n[  OK  ] Dispatching ring-3 init: pid=2 name=init user_frames=429\nFerrumOS:~$ [init] userspace is alive in ring 3\n[init] obtained pid from kernel via SYS_GETPID\n[kernel-read] read /tmp/init_test failed: no such file or directory: /tmp/init_test\n[kernel-read] read /tmp/gui_test failed: no such file or directory: /tmp/gui_test\n[init] Spawning heliox-daemon...\n"
+  },
+  {
+    "cmd": "agent status",
+    "promptReturned": true,
+    "output": "age[AUDIT] UserAudit: neural: session disarmed\n[heliox-daemon] neural input disarmed\n[heliox-daemon] loop tick complete, sleeping...\n[init] heartbeat\nn[init] heartbeat\nt[heliox-daemon] loop tick complete, sleeping...\n [init] heartbeat\n[init] heartbeat\n[heliox-daemon] loop tick complete, sleeping...\ns[init] heartbeat\n[init] heartbeat\n[heliox-daemon] loop tick complete, sleeping...\nt[init] heartbeat\n[init] heartbeat\na[init] heartbeat\n[init] heartbeat\nt[init] heartbeat\n[init] heartbeat\nu[init] heartbeat\n[init] heartbeat\ns[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\n[init] heartbeat\nuagent status\nagent: unknown subcommand 'statusuagent'\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "uptime",
+    "promptReturned": true,
+    "output": "uptime\nUptime: 162951 ticks (~2m 42s)\nFerrumOS:~$ "
+  },
+  {
+    "cmd": "heliox status",
+    "promptReturned": true,
+    "output": "heliox status\nHeliox-OS Integration Bridge:\n  Transport:    ws://127.0.0.1:8785\n  Protocol:     jsonrpc/2.0\n  Version:      heliox-0.7.1-compat\n  Services:     9\n  Methods:      79 (JSON-RPC 2.0 over WebSocket)\n  Actions:      126 (5-tier permission model)\n  Envelopes:    0 (invoked 0, denied 0)\n  Voice listener: stopped (events=0, commands=0)\n  Gesture events: 0\n  Multimodal intents: 0\n  Screen vision: Disabled\n  Screen frames: 0\n  Persona rules: 0\n  Pending confirmations: 0\nFerrumOS:~$ "
+  }
+]

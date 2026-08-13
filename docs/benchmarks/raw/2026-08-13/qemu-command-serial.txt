@@ -1,0 +1,995 @@
+
+  _   _      _ _           ___  ____
+ | | | | ___| (_) _____  / _ \/ ___|
+ | |_| |/ _ \ | |/ / _ \| | | \___ \
+ |  _  |  __/ |   < (_) | |_| |___) |
+ |_| |_|\___|_|_|\_\___/ \___/|____/
+
+  Booting FerrumOS v0.1.1 - AI-Native Autonomous OS
+  Architecture: x86_64 | Mode: Protected
+
+[  OK  ] Interrupts and GDT initialized
+[  OK  ] Hardware detected: 2047MB RAM | SSE:true AVX:true AVX2:true | Tier: standard
+[  OK  ] Page table mapper initialized
+[  OK  ] Kernel heap initialized (12288KB)
+[  OK  ] Global frame allocator installed (bump past heap)
+[  OK  ] Logging subsystem initialized
+[  OK  ] RAM filesystem initialized
+[  OK  ] Device registry initialized
+[camera_synth] initialized (320x240 YUYV, double-buffered)
+[camera] device online (synthetic)
+[ata] primary.master: QEMU HARDDISK — 18054 sectors (8 MiB) [LBA48=true]
+[  OK  ] ATA PIO disk driver initialized
+[ INFO ] No ext2 filesystem found on primary master: invalid ext2 magic: 0x0
+[  OK  ] Capability-based security initialized
+[  OK  ] Shared clipboard service initialized
+[  OK  ] Desktop notification service initialized
+[graphics] VBE framebuffer 1024x768 initialized
+[graphics::console] Console initialized (128x48 cells)
+[gui] Desktop Environment initialized
+[  OK  ] VGA framebuffer initialized (1024x768x32bpp)
+[ INFO ] VirtIO-GPU not found: virtio-gpu: device not found on PCI bus
+HDA: found PCI device at bus=0 slot=4 func=0
+HDA: BAR0 phys=0xFEBF0000 virt=0x180FEBF0000
+HDA: STATESTS=0x0001 — codec(s) detected
+HDA: GCAP=0x4401 oss=4 iss=4 bss=0
+HDA: root node: start_nid=1 num_nodes=1
+HDA: Audio Function Group at NID 1
+HDA: FG1: widget start=2 count=4
+HDA: found DAC at NID 2
+HDA: found output pin at NID 3 (dev=0x0)
+HDA: found ADC at NID 4
+HDA: found input pin at NID 5 (dev=0x8)
+HDA: codec topology â€” DAC=2 pin_out=3 ADC=4 pin_in=5
+HDA: output stream configured at SD base 0x100
+HDA: input stream configured at SD base 0x80
+HDA: output path configured (DAC 2 â†’ pin 3)
+HDA: input path configured (pin 5 â†’ ADC 4)
+HDA: initialisation complete
+[audio] HDA controller initialised
+PS/2 Mouse initialized
+[ INFO ] XHCI USB controller not found: XHCI: PCI device not found
+[  OK  ] ACPI Tables parsed successfully
+         Found APIC model. BSP APIC ID: 0
+         Found 0 Application Processors
+Initializing SMP subsystem...
+[  OK  ] AP trampoline loaded at 0x8000
+[  OK  ] Service manager initialized
+[  OK  ] Service manager initialized
+[ WARN ] Failed to initialize RTL8139: RTL8139 not found on PCI bus
+[  OK  ] Network subsystem initialized
+[  OK  ] Userspace registry initialized
+[AUDIT] ServiceRegistered: Service registered: runtime.agentd
+[  OK  ] Agent runtime boundary initialized
+[AUDIT] CapabilityGranted: Registered capability: cap:heliox:bridge (heliox:*)
+[AUDIT] CapabilityGranted: Registered capability: cap:heliox:execute (heliox:execute)
+[AUDIT] CapabilityGranted: Registered capability: cap:heliox:voice (heliox:voice:*)
+[AUDIT] CapabilityGranted: Registered capability: cap:heliox:gesture (heliox:gesture:*)
+[AUDIT] CapabilityGranted: Registered capability: cap:heliox:screen (heliox:screen:*)
+[AUDIT] CapabilityGranted: Registered capability: cap:heliox:persona (heliox:persona:*)
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.bridge
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.input
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.inference
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.memory
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.orchestrator
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.screen
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.persona
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.plugins
+[AUDIT] ServiceRegistered: Service registered: runtime.heliox.audit
+[  OK  ] Heliox-OS integration boundary initialized
+[  OK  ] Task scheduler initialized
+[AUDIT] ProcessSpawned: Task spawned
+[AUDIT] ProcessSpawned: userspace process launched
+[AUDIT] ProcessSpawned: userspace init bootstrapped
+[  OK  ] Userspace init launched as PID 101
+[  OK  ] Embedded init ELF: 690456 bytes, entry=0x8000001350, 5 PT_LOAD segment(s)
+[ INFO ] Kernel heap: 28632 used / 12554280 free
+[ WARN ] Sample address space map failed: ParentEntryHugePage
+[  OK  ] Ring-3 init loaded: pid=2 entry=0x8000001350 user_rsp=0x8070100000 kernel_rsp0=0x44444444f190
+[  OK  ] Ring-3 heliox-daemon loaded: pid=3 entry=0x800000c570 user_rsp=0x8070100000 kernel_rsp0=0x444444459300
+[AUDIT] SystemBoot: FerrumOS kernel boot sequence completed successfully
+FerrumOS v0.1.1
+AI-Native Autonomous OS Foundation
+
+[ OK ] Interrupts and GDT initialized
+[ OK ] Page table mapper initialized
+[ OK ] Kernel heap initialized
+[ OK ] Logging subsystem initialized
+[ OK ] RAM filesystem initialized
+[ OK ] Device registry initialized
+[ OK ] Capability security initialized
+[ OK ] Service manager initialized
+[ OK ] Network subsystem initialized
+[ OK ] Userspace registry initialized
+[ OK ] Task scheduler initialized
+[ OK ] Userspace init launched
+
+Kernel boundary: deterministic; AI runs in runtime services.
+Heliox-OS JSON-RPC bridge registered (try 'heliox status').
+Type 'help' for available commands.
+
+FerrumOS:~$ help
+FerrumOS Shell Commands:
+  help       Show this help message
+  clear      Clear the screen
+  desktop    Launch GUI Desktop Environment
+  echo       Print arguments to screen
+  ps         List running tasks
+  mem        Show memory usage
+  ls [path]  List directory contents
+  cat <file> Display file contents
+  stat <p>   Show filesystem metadata
+  mounts     Show mounted filesystems
+  sync       Synchronize dirty filesystem data to disk
+  mkdir <d>  Create a directory
+  touch <f>  Create an empty file
+  write <f> <text>  Write text to file
+  rm <path>  Remove file or directory
+  devices    List kernel-visible device surfaces
+  camera_gesture <name>  Set the synthetic camera's gesture (none|fist|openpalm|pointing|peace|threefingers|fourfingers|thumbsup)
+  net        Show network interfaces and loopback state
+  caps       Show capability tokens
+  services   List/start/stop/restart service registry
+  ipc        Show IPC broker statistics
+  clipboard <get|set|clear|status>  Use the shared desktop clipboard
+  notify <title> <body>  Post a desktop notification
+  notifications [clear]  List or clear notification history
+  syscalls   Show syscall ABI numbers
+  programs   List userspace program manifests
+  users      List userspace process table
+  run <p>    Launch a userspace program
+  pkg <list|verify|install|remove|run|status|rollback> [name]
+             Manage signed packages (privileged install needs --confirm)
+  syscall <pid> <num> [arg0]  Dispatch a userspace syscall
+  agent      Control the agent runtime boundary
+  heliox     Heliox-OS JSON-RPC bridge surface
+  elf        Inspect the embedded userspace init ELF
+  process    List per-process address spaces
+  ring3 <pid|init>  Enter ring-3 in the given process
+  log        Show recent audit log
+  uptime     Show system uptime (ticks)
+  scheduler  Show Phase 2 scheduler state
+  test-syscall <yield|sleep|wait|priority>  Exercise Phase 2 syscalls
+  uname      Show system information
+  whoami     Show current identity
+  session    Switch debug shell capability profile (root|guest)
+  useradd <name> [root|user|guest]  Create a real user account
+  login <name>  Log in as a real account, switching capabilities
+  accounts   List all registered user accounts
+  spawn <n>  Spawn a new task
+  kill <id>  Kill a task by ID
+  security   Show security status
+  about      About FerrumOS
+  disk       List ATA drives or read sectors
+  dashboard  Full-screen system status dashboard
+FerrumOS:~$ clear
+FerrumOS:~$ echo hello ferrumos
+hello ferrumos
+FerrumOS:~$ ps
+  PID  STATE    PRIO     TICKS  NAME
+  ---  -----    ----     -----  ----
+  100  RUNNING  system     5809  kernel
+  101  READY    normal     5809  init
+  102  RUNNING  normal     3467  shell
+
+Total tasks: 3
+FerrumOS:~$ mem
+Kernel Heap Memory:
+  Total:  12582912 bytes (12288 KiB)
+  Used:   362664 bytes (354 KiB) [2%]
+  Free:   12220248 bytes (11933 KiB)
+FerrumOS:~$ ls
+  DIR       1  disk
+  DIR       2  etc
+  FILE     62  readme.txt
+  DIR       0  srv
+  DIR       0  tmp
+  DIR       0  var
+FerrumOS:~$ cat readme.txt
+Welcome to FerrumOS v0.1.1
+AI-Native Autonomous OS Foundation
+
+FerrumOS:~$ stat readme.txt
+Filesystem Stat:
+  Path:     /readme.txt
+  Type:     file
+  Size:     62 bytes
+  Children: 0
+FerrumOS:~$ mounts
+Mount Table:
+  ramfs.root on / type ramfs (rw,volatile)
+Usage: 3 files, 7 directories, 75 bytes
+FerrumOS:~$ mkdir testdir
+Directory created: testdir
+FerrumOS:~$ ls
+  DIR       1  disk
+  DIR       2  etc
+  FILE     62  readme.txt
+  DIR       0  srv
+  DIR       0  testdir
+  DIR       0  tmp
+  DIR       0  var
+FerrumOS:~$ touch note.txt
+Created: note.txt
+FerrumOS:~$ write note.txt ferrumosok
+Written to note.txt
+FerrumOS:~$ cat note.txt
+ferrumosok
+FerrumOS:~$ rm note.txt
+Removed: note.txt
+FerrumOS:~$ devices
+Device Registry:
+  Online:  9
+  Planned: 2
+  ID  STATE    CLASS    DRIVER        NAME
+  --  -----    -----    ------        ----
+   1  ONLINE   display  vga           vga.text
+      cap: display:write
+   2  ONLINE   serial   uart_16550    uart.com1
+      cap: serial:write
+   3  ONLINE   timer    pic8259-pit   pit.timer
+      cap: timer:read
+   4  ONLINE   input    ps2-set1      ps2.keyboard
+      cap: input:read
+   5  ONLINE   storage  ramfs         ramfs.root
+      cap: fs:*
+   6  PLANNED  network  pending       net.primary
+      cap: net:*
+   7  PLANNED  audio    pending       audio.primary
+      cap: audio:*
+   8  ONLINE   camera   camera_synth  camera.primary
+      cap: camera:*
+   9  ONLINE   storage  ata-pio       ata.primary.master
+      cap: block:rw
+  10  ONLINE   display  bochs-vbe     vga.framebuffer
+      cap: display:fb
+  11  ONLINE   audio    intel-hda     audio.hda
+      cap: audio:pcm
+FerrumOS:~$ net
+Network:
+  Interfaces: 2
+  Routes:     1
+  Sent:       0
+  Received:   0
+  Denied:     0
+Interfaces:
+  lo UP      127.0.0.1/8 loopback
+  net0 PLANNED unassigned pending-nic
+Routes:
+  127.0.0.0/8 via local dev lo
+FerrumOS:~$ net send hello
+[AUDIT] FileAccess: loopback packet delivered
+loopback packet delivered
+FerrumOS:~$ caps
+Registered Capabilities:
+  [1] cap:system:all - Full System Access
+  [2] cap:fs:read - Filesystem Read
+  [3] cap:fs:write - Filesystem Write
+  [4] cap:pkg:manage - Package Repository Management
+  [5] cap:pkg:request - Package Manager Requests
+  [6] cap:app:launch - Trusted App Launcher Requests
+  [7] cap:desktop:configure - Desktop Preference Configuration
+  [8] cap:process:spawn - Process Spawn
+  [9] cap:process:kill - Process Kill
+  [10] cap:net:listen - Network Listen
+  [11] cap:net:connect - Network Connect
+  [12] cap:service:register - Service Registration
+  [13] cap:audit:read - Audit Log Read
+  [14] cap:audit:write - Append Audit Events
+  [15] cap:memory:alloc - Memory Allocation
+  [16] cap:ipc:send - IPC Send
+  [17] cap:ipc:receive - Owned IPC Mailbox Receive
+  [18] cap:agent:control - Agent Runtime Control
+  [19] cap:heliox:neural - Paired Neural Intent Mediation
+  [20] cap:audio:play - Audio Playback
+  [21] cap:audio:record - Audio Recording
+  [22] cap:input:inject - Input Injection
+  [23] cap:input:read - Raw Input Observation
+  [24] cap:screen:read - Screen Observation
+  [25] cap:system:observe - System State Observation
+  [26] cap:camera:read - Camera Frame Access
+  [27] cap:quota:exempt - Quota Exemption
+  [28] cap:confirmation:bypass - Confirmation Gating Bypass
+  [29] cap:system:kexec - Kernel Hot-Reload Execution
+  [30] cap:hud:overlay - HUD Overlay Access
+  [31] cap:mem:mmap - Memory Map File
+  [32] cap:crypto:rng - Cryptographic Randomness Access
+  [33] cap:net:tls - Network TLS Access
+  [34] cap:gui:window - GUI App Window Creation
+  [35] cap:clipboard:read - Clipboard Read
+  [36] cap:clipboard:write - Clipboard Write
+  [37] cap:notification:post - Post Desktop Notifications
+  [38] cap:notification:read - Read Desktop Notifications
+  [39] cap:notification:manage - Manage Desktop Notifications
+  [40] cap:heliox:bridge - Heliox bridge control
+  [41] cap:heliox:execute - Heliox execute / autonomous submission
+  [42] cap:heliox:voice - Heliox voice event intake
+  [43] cap:heliox:gesture - Heliox gesture event intake
+  [44] cap:heliox:screen - Heliox screen vision control
+  [45] cap:heliox:persona - Heliox persona learning control
+FerrumOS:~$ services
+Registered Services:
+  [1] RUNNING    kernel trusted - kernel.memory (Memory Management Service)
+       health checks: 0 restarts: 0
+  [2] RUNNING    kernel trusted - kernel.scheduler (Task Scheduler Service)
+       health checks: 0 restarts: 0
+  [3] RUNNING    kernel trusted - kernel.security (Security Enforcement Service)
+       health checks: 0 restarts: 0
+  [4] RUNNING    kernel trusted - kernel.logging (Audit Logging Service)
+       health checks: 0 restarts: 0
+  [5] RUNNING    kernel trusted - kernel.fs (Filesystem Service)
+       health checks: 0 restarts: 0
+  [6] RUNNING   runtime sandbox - runtime.ipc (Inter-Process Communication)
+       health checks: 0 restarts: 0
+  [7] STOPPED   runtime sandbox - runtime.agentd (agent runtime boundary)
+       caps: cap:agent:control
+       health checks: 0 restarts: 0
+  [8] STOPPED   runtime sandbox - runtime.heliox.bridge (Heliox-OS JSON-RPC bridge service)
+       caps: cap:heliox:bridge
+       health checks: 0 restarts: 0
+  [9] STOPPED   runtime sandbox - runtime.heliox.input (Voice, gesture, and multimodal event intake)
+       caps: cap:heliox:voice
+       health checks: 0 restarts: 0
+  [10] STOPPED   runtime sandbox - runtime.heliox.inference (Local model inference (Ollama, TRIBE, cloud LLM))
+       caps: cap:heliox:execute
+       health checks: 0 restarts: 0
+  [11] STOPPED   runtime sandbox - runtime.heliox.memory (Semantic memory and vector store (ChromaDB-class))
+       caps: cap:heliox:bridge
+       health checks: 0 restarts: 0
+  [12] STOPPED   runtime sandbox - runtime.heliox.orchestrator (Multi-agent planner, orchestrator, verifier, reflector)
+       caps: cap:heliox:execute
+       health checks: 0 restarts: 0
+  [13] STOPPED   runtime sandbox - runtime.heliox.screen (Screen vision and active app detection)
+       caps: cap:heliox:screen
+       health checks: 0 restarts: 0
+  [14] STOPPED   runtime sandbox - runtime.heliox.persona (Subconscious persona learning and consolidation)
+       caps: cap:heliox:persona
+       health checks: 0 restarts: 0
+  [15] STOPPED   runtime sandbox - runtime.heliox.plugins (Plugin registry and Ed25519 signature verification)
+       caps: cap:heliox:bridge
+       health checks: 0 restarts: 0
+  [16] STOPPED   runtime sandbox - runtime.heliox.audit (Audit exporter for Heliox-OS lifecycle events)
+       caps: cap:heliox:bridge
+       health checks: 0 restarts: 0
+FerrumOS:~$ services stop 7
+[AUDIT] ServiceStopped: Service stopped
+service 7 stopped
+FerrumOS:~$ services start 7
+[AUDIT] ServiceStarted: Service started
+service 7 started
+FerrumOS:~$ services health
+Service Health:
+  Total:     16
+  Running:   7
+  Stopped:   9
+  Failed:    0
+  Sandboxed: 11
+  Restarts:  0
+FerrumOS:~$ services restart 7
+[AUDIT] ServiceStarted: Service restarted
+service 7 restarted
+FerrumOS:~$ ipc
+IPC Broker:
+  Queued:   0
+  Sent:     0
+  Received: 0
+  Denied:   0
+FerrumOS:~$ clipboard status
+Clipboard:
+  Bytes:      0
+  Generation: 0
+  Owner PID:  0
+FerrumOS:~$ clipboard set audit
+[clipboard] write pid=0 bytes=5 generation=1
+clipboard updated (generation 1)
+FerrumOS:~$ clipboard get
+audit
+FerrumOS:~$ clipboard clear
+[clipboard] write pid=0 bytes=0 generation=2
+clipboard cleared (generation 2)
+FerrumOS:~$ notify audit complete
+[notification] posted id=1 pid=0 title=audit
+notification posted (id 1)
+FerrumOS:~$ notifications
+Notifications (newest first):
+  [1] audit - complete (pid 0)
+FerrumOS:~$ notifications clear
+cleared 1 notifications
+FerrumOS:~$ notifications
+(no notifications)
+FerrumOS:~$ syscalls
+Syscall ABI:
+  range: 0-60
+  0  yield
+  1  ipc_send
+  2  ipc_receive
+  3  service_start
+  4  service_stop
+  5  capability_check
+  6  audit_write
+  7  socket                 8  bind
+  9  listen                10  accept
+ 11  recv                  12  send
+ 13  wait                  14  connect
+ 15  read_file             16  write_file
+ 17  read_dir              18  exec
+ 19  framebuffer_info      20  read_text_buffer
+ 21  create_dir            22  delete_file
+ 23  play_audio            24  record_audio
+ 25  set_volume            26  inject_key
+ 27  inject_mouse          28  poll_input
+ 29  system_query          30  exit
+ 31  get_pid               32  sleep
+ 33  wait_pid              34  write
+ 35  close                 36  read_camera_frame
+ 37  camera_info           38  kexec
+ 39  hud_update            40  hit_test
+ 41  mmap                  42  get_random
+ 43  get_time              44  create_window
+ 45  present_window        46  poll_window_input
+ 47  package_list          48  package_install
+ 49  package_remove        50  package_rollback
+ 51  app_launch            52  package_launch
+ 53  clipboard_read        54  clipboard_write
+ 55  notification_post     56  notification_list
+ 57  notification_dismiss
+ 58  process_kill
+ 59  launch_context
+ 60  desktop_preferences
+Capability resources:
+  1  ipc:send:*
+  2  service:register
+  3  audit:read
+  4  process:spawn
+  5  net:tls:*
+Status: capability dispatch active
+FerrumOS:~$ programs
+Userspace Programs:
+  init - first userspace service supervisor (/bin/init)
+       caps: cap:system:all
+  agent-bridge - Heliox-compatible agent runtime bridge (/srv/agent-bridge)
+       caps: cap:ipc:send, cap:net:connect
+  audit-exporter - exports audit events to runtime services (/srv/audit-exporter)
+       caps: cap:ipc:send
+  heliox-daemon - Heliox-OS native cognitive daemon (/bin/heliox-daemon)
+       caps: cap:ipc:send, cap:ipc:receive, cap:audit:write, cap:net:connect, cap:net:listen, cap:fs:read, cap:fs:write, cap:audio:play, cap:audio:record, cap:input:inject, cap:input:read, cap:screen:read, cap:system:observe, cap:camera:read, cap:quota:exempt, cap:confirmation:bypass, cap:system:kexec, cap:hud:overlay, cap:mem:mmap, cap:crypto:rng, cap:net:tls, cap:process:spawn, cap:clipboard:read, cap:clipboard:write, cap:notification:post, cap:heliox:neural
+  gui-smoke-test - D1 app-window framework smoke test (/bin/gui-smoke-test)
+       caps: cap:gui:window
+  text-editor - Read/write text files in a GUI window (/bin/text-editor)
+       caps: cap:gui:window, cap:fs:read, cap:fs:write, cap:clipboard:read, cap:clipboard:write, cap:notification:post
+  calculator - Basic arithmetic calculator (/bin/calculator)
+       caps: cap:gui:window
+  file-manager - Browse the filesystem and open documents with associated apps (/bin/file-manager)
+       caps: cap:gui:window, cap:fs:read, cap:app:launch
+  heliox-assistant-panel - Chat with the Heliox agent and run its first-run setup wizard (/bin/heliox-assistant-panel)
+       caps: cap:gui:window, cap:fs:read, cap:fs:write, cap:ipc:send, cap:ipc:receive
+  settings - View system state and persist desktop preferences (/bin/settings)
+       caps: cap:gui:window, cap:fs:read, cap:desktop:configure, cap:system:observe
+  browser - Minimal HTTP text browser (/bin/browser)
+       caps: cap:gui:window, cap:net:connect
+  app-store - Browse built-in apps and manage signed packages (/bin/app-store)
+       caps: cap:gui:window, cap:app:launch, cap:pkg:request
+  notification-center - Review and clear desktop notification history (/bin/notification-center)
+       caps: cap:gui:window, cap:notification:read, cap:notification:manage
+  task-manager - Inspect live tasks and terminate non-critical processes (/bin/task-manager)
+       caps: cap:gui:window, cap:process:kill
+FerrumOS:~$ users
+Active Scheduler Tasks:
+  PID  STATE    AFFINITY  PARENT  NAME
+  ---  -----    --------  ------  ----
+  100  RUNNING       any    none  kernel
+       caps: cap:system:all
+  101  READY         any    none  init
+       caps: cap:system:all
+  102  RUNNING       any    none  shell
+       caps: cap:system:all
+FerrumOS:~$ run agent-bridge
+[AUDIT] ProcessSpawned: Task spawned
+[AUDIT] ProcessSpawned: userspace process launched
+launched agent-bridge as userspace pid 103
+FerrumOS:~$ users
+Active Scheduler Tasks:
+  PID  STATE    AFFINITY  PARENT  NAME
+  ---  -----    --------  ------  ----
+  100  RUNNING       any    none  kernel
+       caps: cap:system:all
+  101  READY         any    none  init
+       caps: cap:system:all
+  102  RUNNING       any    none  shell
+       caps: cap:system:all
+  103  READY         any    none  agent-bridge
+       caps: cap:ipc:send, cap:net:connect
+FerrumOS:~$ syscall 103 5 1
+syscall result: Ok value=1
+FerrumOS:~$ syscall 103 1
+syscall result: InvalidArgument value=0
+FerrumOS:~$ syscall 103 2
+syscall result: PermissionDenied value=0
+FerrumOS:~$ syscall 103 3 7
+[AUDIT] PermissionDenied: Service start denied; missing cap:agent:control
+syscall result: PermissionDenied value=0
+FerrumOS:~$ agent status
+Agent Runtime Boundary:
+  Service ID: 7
+  Running:    false
+  Commands:   0
+  Last response: agentd registered; waiting for start
+FerrumOS:~$ agent start
+[AUDIT] ServiceStarted: Service started
+[AUDIT] ProcessSpawned: Task spawned
+agentd started
+FerrumOS:~$ agent send ping
+agent command queued as IPC message 1
+FerrumOS:~$ agent status
+Agent Runtime Boundary:
+  Service ID: 7
+  Running:    true
+  Commands:   1
+  Last command:  ping
+  Last response: accepted by agentd boundary; planner/orchestrator not loaded yet
+FerrumOS:~$ heliox status
+Heliox-OS Integration Bridge:
+  Transport:    ws://127.0.0.1:8785
+  Protocol:     jsonrpc/2.0
+  Version:      heliox-0.7.1-compat
+  Services:     9
+  Methods:      79 (JSON-RPC 2.0 over WebSocket)
+  Actions:      126 (5-tier permission model)
+  Envelopes:    0 (invoked 0, denied 0)
+  Voice listener: stopped (events=0, commands=0)
+  Gesture events: 0
+  Multimodal intents: 0
+  Screen vision: Disabled
+  Screen frames: 0
+  Persona rules: 0
+  Pending confirmations: 0
+FerrumOS:~$ heliox services
+Heliox Runtime Service Slots:
+  [8] STOPPED runtime.heliox.bridge - Heliox-OS JSON-RPC bridge service
+  [9] STOPPED runtime.heliox.input - Voice, gesture, and multimodal event intake
+  [10] STOPPED runtime.heliox.inference - Local model inference (Ollama, TRIBE, cloud LLM)
+  [11] STOPPED runtime.heliox.memory - Semantic memory and vector store (ChromaDB-class)
+  [12] STOPPED runtime.heliox.orchestrator - Multi-agent planner, orchestrator, verifier, reflector
+  [13] STOPPED runtime.heliox.screen - Screen vision and active app detection
+  [14] STOPPED runtime.heliox.persona - Subconscious persona learning and consolidation
+  [15] STOPPED runtime.heliox.plugins - Plugin registry and Ed25519 signature verification
+  [16] STOPPED runtime.heliox.audit - Audit exporter for Heliox-OS lifecycle events
+FerrumOS:~$ heliox methods
+Heliox JSON-RPC Methods (79):
+  requests:     66
+  notifications:13
+  NAME                              CLASS         CAPABILITY
+  ----                              -----         ----------
+  execute                           request      cap:heliox:execute
+  confirm                           request      cap:heliox:bridge
+  get_config                        request      cap:heliox:bridge
+  update_config                     request      cap:heliox:bridge
+  get_history                       request      cap:heliox:bridge
+  store_api_key                     request      cap:heliox:bridge
+  delete_api_key                    request      cap:heliox:bridge
+  list_api_keys                     request      cap:heliox:bridge
+  ping                              request      cap:heliox:bridge
+  health                            request      cap:heliox:bridge
+  system_status                     request      cap:heliox:bridge
+  capabilities                      request      cap:heliox:bridge
+  list_ollama_models                request      cap:heliox:bridge
+  agent_routing                     request      cap:heliox:bridge
+  agent_stats                       request      cap:heliox:bridge
+  agent_capabilities                request      cap:heliox:bridge
+  agent_spawn                       request      cap:heliox:bridge
+  voice_event                       request      cap:heliox:voice
+  gesture_event                     request      cap:heliox:gesture
+  multimodal_stats                  request      cap:heliox:bridge
+  neural_status                     request      cap:heliox:neural
+  neural_calibrate                  request      cap:heliox:neural
+  neural_intent_preview             request      cap:heliox:neural
+  neural_intent_commit              request      cap:heliox:neural
+  neural_disarm                     request      cap:heliox:neural
+  reasoning_log                     request      cap:heliox:bridge
+  reasoning_stats                   request      cap:heliox:bridge
+  decompose_task                    request      cap:heliox:bridge
+  simulate_plan                     request      cap:heliox:bridge
+  prompt_strategies                 request      cap:heliox:bridge
+  prompt_stats                      request      cap:heliox:bridge
+  plugin_list                       request      cap:heliox:bridge
+  plugin_tools                      request      cap:heliox:bridge
+  plugin_toggle                     request      cap:heliox:bridge
+  persona_rules                     request      cap:heliox:persona
+  persona_consolidate               request      cap:heliox:persona
+  persona_add_preference            request      cap:heliox:persona
+  subconscious_stats                request      cap:heliox:bridge
+  screen_context                    request      cap:heliox:screen
+  screen_current_app                request      cap:heliox:screen
+  screen_vision_stats               request      cap:heliox:screen
+  screen_vision_toggle              request      cap:heliox:screen
+  cognitive_stats                   request      cap:heliox:bridge
+  cognitive_state                   request      cap:heliox:bridge
+  attention_toggle                  request      cap:heliox:bridge
+  stress_gate_toggle                request      cap:heliox:bridge
+  intent_predictor_toggle           request      cap:heliox:bridge
+  tribe_model_toggle                request      cap:heliox:bridge
+  voice_listener_start              request      cap:heliox:voice
+  voice_listener_stop               request      cap:heliox:voice
+  voice_listener_stats              request      cap:heliox:voice
+  autonomous_submit                 request      cap:heliox:execute
+  autonomous_cancel                 request      cap:heliox:execute
+  autonomous_jobs                   request      cap:heliox:bridge
+  autonomous_job                    request      cap:heliox:bridge
+  proactive_start                   request      cap:heliox:bridge
+  proactive_stop                    request      cap:heliox:bridge
+  proactive_stats                   request      cap:heliox:bridge
+  proactive_accept                  request      cap:heliox:execute
+  proactive_dismiss                 request      cap:heliox:bridge
+  background_tasks                  request      cap:heliox:bridge
+  background_start                  request      cap:heliox:bridge
+  background_stop                   request      cap:heliox:bridge
+  reflection_stats                  request      cap:heliox:bridge
+  resolve_git_conflict              request      cap:heliox:bridge
+  apply_git_resolution              request      cap:heliox:bridge
+  status                            notif        cap:heliox:bridge
+  agent_routing                     notif        cap:heliox:bridge
+  plan_preview                      notif        cap:heliox:bridge
+  confirm_required                  notif        cap:heliox:bridge
+  action_start                      notif        cap:heliox:bridge
+  action_complete                   notif        cap:heliox:bridge
+  orchestrator_routing              notif        cap:heliox:bridge
+  reasoning_event                   notif        cap:heliox:bridge
+  voice_command                     notif        cap:heliox:voice
+  voice_status                      notif        cap:heliox:voice
+  voice_result                      notif        cap:heliox:voice
+  multimodal_intent                 notif        cap:heliox:bridge
+  feature_announcement              notif        cap:heliox:bridge
+FerrumOS:~$ heliox tiers
+Heliox Permission Tiers:
+  Tier 0 - Read Only (auto-exec=true): 46 actions
+  Tier 1 - User Write (auto-exec=true): 46 actions
+  Tier 2 - System Modify (auto-exec=false): 20 actions
+  Tier 3 - Destructive (auto-exec=false): 11 actions
+  Tier 4 - Root Critical (auto-exec=false): 3 actions
+  Total action types: 126
+FerrumOS:~$ heliox actions
+Heliox Action Catalog:
+[0] Tier 0 - Read Only (46 actions)
+  file_read
+  file_list
+  file_search
+  directory_summary
+  package_search
+  service_status
+  gnome_setting_read
+  open_url
+  open_application
+  notify
+  process_list
+  process_info
+  clipboard_read
+  system_info
+  disk_usage
+  memory_usage
+  cpu_usage
+  network_info
+  battery_info
+  env_get
+  env_list
+  window_list
+  volume_get
+  brightness_get
+  screenshot
+  wifi_list
+  disk_list
+  user_list
+  user_info
+  schedule_list
+  mouse_position
+  screen_ocr
+  screen_find_text
+  screen_analyze
+  screen_element_map
+  browser_extract
+  browser_extract_table
+  browser_extract_links
+  browser_screenshot
+  browser_list_tabs
+  browser_page_info
+  trigger_list
+  file_parse
+  file_search_content
+  api_scrape
+  registry_read
+[1] Tier 1 - User Write (46 actions)
+  file_write
+  file_move
+  file_copy
+  git_resolve
+  clipboard_write
+  keyboard_type
+  keyboard_press
+  keyboard_hotkey
+  keyboard_hold
+  mouse_click
+  mouse_double_click
+  mouse_right_click
+  mouse_move
+  mouse_drag
+  mouse_scroll
+  volume_set
+  volume_mute
+  brightness_set
+  window_focus
+  window_minimize
+  window_maximize
+  browser_navigate
+  browser_click
+  browser_type
+  browser_select
+  browser_hover
+  browser_scroll
+  browser_execute_js
+  browser_fill_form
+  browser_new_tab
+  browser_close_tab
+  browser_switch_tab
+  browser_back
+  browser_forward
+  browser_refresh
+  browser_wait
+  browser_close
+  env_set
+  download_file
+  api_request
+  api_github
+  code_execute
+  code_generate_and_run
+  trigger_create
+  trigger_start
+  trigger_stop
+[2] Tier 2 - System Modify (20 actions)
+  package_install
+  package_update
+  service_start
+  service_stop
+  service_restart
+  service_enable
+  service_disable
+  gnome_setting_write
+  shell_command
+  shell_script
+  schedule_create
+  file_permissions
+  wifi_connect
+  wifi_disconnect
+  disk_mount
+  registry_write
+  api_send_email
+  api_webhook
+  api_slack
+  api_discord
+[3] Tier 3 - Destructive (11 actions)
+  file_delete
+  package_remove
+  process_kill
+  power_shutdown
+  power_restart
+  power_logout
+  schedule_delete
+  disk_unmount
+  window_close
+  trigger_delete
+  browser_click_text
+[4] Tier 4 - Root Critical (3 actions)
+  power_sleep
+  power_lock
+  dbus_call
+FerrumOS:~$ heliox send ping
+[AUDIT] FileAccess: heliox envelope dispatched: ping
+heliox envelope dispatched: ping kind=request id=1
+FerrumOS:~$ heliox notif status
+[AUDIT] FileAccess: heliox notification prepared: status
+heliox notification prepared: status (id=0)
+FerrumOS:~$ heliox voice start
+[AUDIT] FileAccess: heliox envelope dispatched: voice_listener_start
+heliox voice listener started
+FerrumOS:~$ heliox voice event hello world
+[AUDIT] FileAccess: heliox envelope dispatched: voice_event
+voice_event envelope id=3
+FerrumOS:~$ heliox voice stop
+[AUDIT] FileAccess: heliox envelope dispatched: voice_listener_stop
+heliox voice listener stopped
+FerrumOS:~$ heliox screen on
+[AUDIT] FileAccess: heliox envelope dispatched: screen_vision_toggle
+heliox screen vision enabled
+FerrumOS:~$ heliox screen context
+[AUDIT] FileAccess: heliox envelope dispatched: screen_context
+screen_context envelope id=6
+FerrumOS:~$ heliox screen off
+[AUDIT] FileAccess: heliox envelope dispatched: screen_vision_toggle
+heliox screen vision disabled
+FerrumOS:~$ heliox neural
+heliox neural: usage: heliox neural <arm|disarm>
+  Status and calibration are available only to the paired local bridge.
+FerrumOS:~$ heliox neural arm
+heliox neural: arm requested from local shell
+FerrumOS:~$ heliox neural disarm
+heliox neural: disarm requested from local shell
+FerrumOS:~$ heliox persona add editor=helix
+[AUDIT] FileAccess: heliox envelope dispatched: persona_add_preference
+persona rule recorded (envelope id=8)
+FerrumOS:~$ heliox confirm no-such-plan
+[AUDIT] FileAccess: heliox envelope dispatched: confirm
+confirmation gate resolved: no-such-plan
+FerrumOS:~$ heliox execute open terminal
+[AUDIT] FileAccess: heliox envelope dispatched: execute
+heliox execute dispatched: id=10 method=execute
+FerrumOS:~$ elf
+Embedded init ELF:
+  size:  690456 bytes
+  type:       ET_EXEC
+  machine:    EM_X86_64
+  entry:      0x8000001350
+  phoff:      64 (9 entries of 56 bytes)
+  PT_LOAD segments:
+    vaddr=0x8000000000 filesz=0x238 memsz=0x238 off=0x0 align=0x1000 flags=R--
+    vaddr=0x8000001240 filesz=0x2a0c memsz=0x2a0c off=0x240 align=0x1000 flags=R-X
+    vaddr=0x8000004c50 filesz=0xa456c memsz=0xa456c off=0x2c50 align=0x1000 flags=R--
+    vaddr=0x80000aa1c0 filesz=0x8b5 memsz=0x8b5 off=0xa71c0 align=0x1000 flags=R-X
+    vaddr=0x80000aba78 filesz=0x28 memsz=0x588 off=0xa7a78 align=0x1000 flags=RW-
+  range:      [0x8000000000, 0x80000ac000)  (704512 bytes)
+FerrumOS:~$ elf
+Embedded init ELF:
+  size:  690456 bytes
+  type:       ET_EXEC
+  machine:    EM_X86_64
+  entry:      0x8000001350
+  phoff:      64 (9 entries of 56 bytes)
+  PT_LOAD segments:
+    vaddr=0x8000000000 filesz=0x238 memsz=0x238 off=0x0 align=0x1000 flags=R--
+    vaddr=0x8000001240 filesz=0x2a0c memsz=0x2a0c off=0x240 align=0x1000 flags=R-X
+    vaddr=0x8000004c50 filesz=0xa456c memsz=0xa456c off=0x2c50 align=0x1000 flags=R--
+    vaddr=0x80000aa1c0 filesz=0x8b5 memsz=0x8b5 off=0xa71c0 align=0x1000 flags=R-X
+    vaddr=0x80000aba78 filesz=0x28 memsz=0x588 off=0xa7a78 align=0x1000 flags=RW-
+  range:      [0x8000000000, 0x80000ac000)  (704512 bytes)
+FerrumOS:~$ process
+Per-process Address Spaces (2):
+  PID  USER_FRAMES  NAME
+  ---  -----------  ----
+    2          429  init
+    3        16895  heliox-daemon
+FerrumOS:~$ process
+Per-process Address Spaces (2):
+  PID  USER_FRAMES  NAME
+  ---  -----------  ----
+    2          429  init
+    3        16895  heliox-daemon
+FerrumOS:~$ session guest
+[AUDIT] CapabilityRevoked: debug shell switched to guest profile
+session switched to guest
+FerrumOS:~$ heliox send ping
+[AUDIT] PermissionDenied: shell missing capability cap:heliox:bridge
+permission denied: cap:heliox:bridge
+FerrumOS:~$ session root
+[AUDIT] CapabilityGranted: debug shell switched to root profile
+session switched to root
+FerrumOS:~$ log
+Recent Audit Log (10 entries):
+  [70760] FileAccess: heliox envelope dispatched: voice_listener_stop
+  [72194] FileAccess: heliox envelope dispatched: screen_vision_toggle
+  [74013] FileAccess: heliox envelope dispatched: screen_context
+  [75521] FileAccess: heliox envelope dispatched: screen_vision_toggle
+  [82659] FileAccess: heliox envelope dispatched: persona_add_preference
+  [84956] FileAccess: heliox envelope dispatched: confirm
+  [87334] FileAccess: heliox envelope dispatched: execute
+  [90625] CapabilityRevoked: debug shell switched to guest profile
+  [92079] PermissionDenied: shell missing capability cap:heliox:bridge
+  [93227] CapabilityGranted: debug shell switched to root profile
+FerrumOS:~$ uptime
+Uptime: 94319 ticks (~1m 34s)
+FerrumOS:~$ uname
+FerrumOS v0.1.1 x86_64 (Rust nightly)
+AI-Native Autonomous OS Foundation
+Kernel: microkernel-inspired, capability-based
+FerrumOS:~$ whoami
+root (uid=0, gid=0, home=/disk/root)
+Capabilities: cap:system:all
+FerrumOS:~$ session guest
+[AUDIT] CapabilityRevoked: debug shell switched to guest profile
+session switched to guest
+FerrumOS:~$ whoami
+guest (uid=1000, gid=1000, home=none)
+Capabilities: cap:fs:read
+FerrumOS:~$ cat readme.txt
+Welcome to FerrumOS v0.1.1
+AI-Native Autonomous OS Foundation
+
+FerrumOS:~$ write blocked.txt nope
+[AUDIT] PermissionDenied: shell denied resource fs:write:*
+permission denied: fs:write:*
+FerrumOS:~$ net send denied
+[AUDIT] PermissionDenied: shell denied resource net:connect:*
+permission denied: net:connect:*
+FerrumOS:~$ clipboard get
+[AUDIT] PermissionDenied: shell denied resource clipboard:read
+permission denied: clipboard:read
+FerrumOS:~$ notify denied body
+[AUDIT] PermissionDenied: shell denied resource notification:post
+permission denied: notification:post
+FerrumOS:~$ notifications
+[AUDIT] PermissionDenied: shell denied resource notification:read
+permission denied: notification:read
+FerrumOS:~$ run init
+[AUDIT] PermissionDenied: shell denied resource process:spawn
+permission denied: process:spawn
+FerrumOS:~$ services stop 7
+[AUDIT] PermissionDenied: shell missing capability cap:service:register
+permission denied: cap:service:register
+FerrumOS:~$ agent send denied
+[AUDIT] PermissionDenied: shell missing capability cap:agent:control
+permission denied: cap:agent:control
+FerrumOS:~$ log
+[AUDIT] PermissionDenied: shell denied resource audit:read
+permission denied: audit:read
+FerrumOS:~$ session root
+[AUDIT] CapabilityGranted: debug shell switched to root profile
+session switched to root
+FerrumOS:~$ spawn worker1
+[AUDIT] ProcessSpawned: Task spawned
+Spawned task 'worker1' with PID 105
+FerrumOS:~$ kill 104
+[AUDIT] ProcessKilled: Task marked dead
+[app-window] closed pid=104 windows=0
+Killed task 104
+FerrumOS:~$ security
+Security Status:
+  Model:      Capability-based
+  Default:    Deny-all
+  Sandbox:    Enabled
+  Audit Log:  Active
+  Capabilities: 45 registered
+  Audit Events: 56 recorded
+  Shell Session: root
+FerrumOS:~$ about
+FerrumOS v0.1.1
+A minimal modular Rust-based operating system designed as
+the foundation for an AI-native autonomous computing environment.
+
+Architecture Layers:
+  [Kernel]    Scheduling, Memory, Isolation, HAL
+  [Runtime]   Services, Permissions, IPC
+  [Cognitive] Semantic Memory, Vector Search (future)
+  [Agent]     Autonomous Workflows, Planning (future)
+
+Built with Rust for safety, performance, and fearless concurrency.
+FerrumOS:~$ process
+Per-process Address Spaces (2):
+  PID  USER_FRAMES  NAME
+  ---  -----------  ----
+    2          429  init
+    3        16895  heliox-daemon
+FerrumOS:~$ scheduler
+Scheduler State:
+  current_pid:    0
+  total_ticks:    115733
+  active tasks:   4
+    running:      1
+    ready:        3
+    blocked:      0
+  time slice:     275 PIT ticks (~275 ms)
+FerrumOS:~$ test-syscall yield
+yield: ran=false
+FerrumOS:~$ test-syscall sleep
+sleep(2): ran=false
+FerrumOS:~$ test-syscall wait
+wait(-1): any_dead=false
+FerrumOS:~$ test-syscall priority
+priority Idle -> index 0
+priority Normal -> index 1
+priority High -> index 2
+priority System -> index 3
+FerrumOS:~$ test-syscall frame-recycle
+frame-recycle: reused_and_scrubbed=true before=Some((20537, 0)) after=Some((20538, 1))
+FerrumOS:~$ ring3 init
+[  OK  ] Dispatching ring-3 init: pid=2 name=init user_frames=429
+FerrumOS:~$ [init] userspace is alive in ring 3
+[init] obtained pid from kernel via SYS_GETPID
+[kernel-read] read /tmp/init_test failed: no such file or directory: /tmp/init_test
+[kernel-read] read /tmp/gui_test failed: no such file or directory: /tmp/gui_test
+[init] Spawning heliox-daemon...
