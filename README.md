@@ -5,6 +5,8 @@
 [![Rust: nightly](https://img.shields.io/badge/rust-nightly-orange.svg)](rust-toolchain.toml)
 [![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
 [![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21829808.svg)](https://doi.org/10.5281/zenodo.21829808)
+[![Explore FerrumOS](https://img.shields.io/badge/Explore-FerrumOS-29d9c2)](https://ferrum-os.vercel.app)
+[![Sponsor FerrumOS](https://img.shields.io/badge/Sponsor-FerrumOS-EA4AAA?logo=githubsponsors)](https://github.com/sponsors/VyomKulshrestha)
 
 FerrumOS is a Rust AI-native OS: a bootable x86_64 research operating system
 for studying AI agents that act below the application layer. It combines a
@@ -36,6 +38,7 @@ authority.
 
 | Goal | Canonical source |
 | --- | --- |
+| Explore the project | [Cinematic FerrumOS website](https://ferrum-os.vercel.app) |
 | See what is implemented | [Feature inventory](#features) and [architecture](docs/ARCHITECTURE.md) |
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
