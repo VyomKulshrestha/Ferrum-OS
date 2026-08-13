@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use the FerrumOS world-model dataset, please cite this release."
-type: dataset
-title: "FerrumOS World-Model Safety Dataset"
-version: 1.0.0
-date-released: 2026-08-07
+message: "If you use FerrumOS software, cite this software record. Cite the research report and dataset separately when you use those artifacts."
+type: software
+title: "FerrumOS"
+version: 0.1.1
+date-released: 2026-07-27
 doi: 10.5281/zenodo.21829193
 authors:
   - family-names: "Kulshrestha"
@@ -11,7 +11,7 @@ authors:
     affiliation: "Independent Researcher, India"
     orcid: "https://orcid.org/0009-0009-1434-7148"
 repository-code: "https://github.com/VyomKulshrestha/Ferrum-OS"
-url: "https://zenodo.org/records/21829193"
+url: "https://github.com/VyomKulshrestha/Ferrum-OS"
 license: MIT
 keywords:
   - agentic operating systems

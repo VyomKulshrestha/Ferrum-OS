@@ -1,4 +1,4 @@
-# FerrumOS - Rust AI-native OS with a JEPA safety gate
+# FerrumOS — Rust agentic operating system with a JEPA safety gate
 
 [![CI](https://github.com/VyomKulshrestha/Ferrum-OS/actions/workflows/ci.yml/badge.svg)](https://github.com/VyomKulshrestha/Ferrum-OS/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -6,8 +6,8 @@
 [![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
 [![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21829808.svg)](https://doi.org/10.5281/zenodo.21829808)
 
-FerrumOS is a bootable x86_64 research operating system written in Rust for
-studying AI agents that act below the application layer. It combines a
+FerrumOS is a Rust AI-native OS: a bootable x86_64 research operating system
+for studying AI agents that act below the application layer. It combines a
 deterministic kernel, real Ring-3 userland, capability-gated syscalls, a
 graphical desktop, and a provider-independent JEPA world-model preview before
 agent actions reach implemented OS and device services.
@@ -24,6 +24,13 @@ authority.
 > neural results use deterministic synthetic EEG fixtures. Broad physical-PC,
 > live-EEG, medical, robot-deployment, and formal-safety claims are out of
 > scope.
+
+> [!NOTE]
+> The latest tagged software release is `v0.1.1`; its GitHub release has source
+> archives but no prebuilt OS image. Build it with the instructions below.
+> `capabilities.json`, `benchmarks.json`, and the research links on `main`
+> describe the current source tree and post-release evidence—they do not claim
+> that every current capability shipped in `v0.1.1`.
 
 ## Start here
 
@@ -470,7 +477,7 @@ node scripts\verify_all_audits.mjs
 The consolidated runner executes `command_sweep.mjs` and
 `audit_all_commands.mjs`, stops on the first failure, and returns a non-zero
 exit code for automation. Feature-specific end-to-end verifiers remain
-available as `scripts\verify_*.mjs`. The current baseline is 102/102
+available as `scripts\verify_*.mjs`. The current baseline is 101/101
 command-sweep cases and 81/81 exhaustive catalog entries, with every command
 returning its expected prompt and no unknown-command or kernel-fault signature.
 

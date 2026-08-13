@@ -985,7 +985,7 @@ back. If manually editing this file, restart the daemon (`services stop heliox-d
 
 The release harness has two layers:
 
-- `node scripts/verify_all_audits.mjs` runs the 102-case shell command sweep and
+- `node scripts/verify_all_audits.mjs` runs the 101-case shell command sweep and
   the independent 81-entry exhaustive command catalog sequentially, failing on
   the first non-zero child result.
 - The 76 `scripts/verify_*.mjs` verification scripts are available individually
