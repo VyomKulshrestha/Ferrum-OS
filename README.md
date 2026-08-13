@@ -39,7 +39,9 @@ authority.
 | See what is implemented | [Feature inventory](#features) and [architecture](docs/ARCHITECTURE.md) |
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
+| Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
 | Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
+| Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 
 ## Evidence snapshot

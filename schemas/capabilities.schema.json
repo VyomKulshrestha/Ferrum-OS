@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/capabilities.schema.json",
+  "title": "FerrumOS capability catalog",
+  "description": "Source-derived canonical actions and their default safety policy on the current main source tree.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "project",
+    "canonical_url",
+    "catalog_scope",
+    "platform",
+    "canonical_action_count",
+    "permission_tier_count",
+    "unknown_action_policy",
+    "actions",
+    "provenance",
+    "claim_boundary"
+  ],
+  "properties": {
+    "$schema": { "const": "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/capabilities.schema.json" },
+    "schema_version": { "const": "2.0.0" },
+    "project": { "const": "FerrumOS" },
+    "canonical_url": { "type": "string", "format": "uri" },
+    "catalog_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_channel", "latest_tagged_software_release", "release_compatibility", "distribution"],
+      "properties": {
+        "source_channel": { "type": "string" },
+        "latest_tagged_software_release": { "type": "string" },
+        "release_compatibility": { "type": "string" },
+        "distribution": { "type": "string" }
+      }
+    },
+    "platform": { "type": "string" },
+    "canonical_action_count": { "type": "integer", "minimum": 1 },
+    "permission_tier_count": { "const": 5 },
+    "unknown_action_policy": { "type": "string" },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "claim_boundary": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generator", "inputs", "action_catalog_sha256"],
+      "properties": {
+        "generator": { "const": "scripts/generate_public_evidence.py" },
+        "inputs": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/source" }
+        },
+        "action_catalog_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "category",
+        "availability",
+        "permission_tier",
+        "permission_tier_name",
+        "operator_confirmation_required",
+        "execution_route",
+        "world_model_mediation",
+        "verification"
+      ],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "category": { "type": "string", "minLength": 1 },
+        "availability": { "const": "current-main-source" },
+        "permission_tier": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "permission_tier_name": { "enum": ["observe", "safe", "network", "modify", "destructive"] },
+        "operator_confirmation_required": { "type": "boolean" },
+        "execution_route": { "type": "string" },
+        "world_model_mediation": { "type": "string" },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["catalog_source_parity", "qemu_runtime_suite", "semantic_postcondition_verified_per_action"],
+          "properties": {
+            "catalog_source_parity": { "const": true },
+            "qemu_runtime_suite": { "type": "string" },
+            "semantic_postcondition_verified_per_action": { "const": false }
+          }
+        }
+      }
+    }
+  }
+}

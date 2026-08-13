@@ -1,6 +1,6 @@
 # FerrumOS Proof Center
 
-FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ring-3 agent daemon, capability-gated syscalls, and a provider-independent predictive safety screen. This page links claims to reproducible evidence; it is not a formal safety certificate.
+FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ring-3 agent daemon, capability-gated syscalls, and a provider-independent predictive safety screen. This page links claims to reproducible evidence; it is not a formal safety certificate. The latest tagged software release is `v0.1.1`; current-main capability and benchmark evidence is labeled separately and does not retroactively describe that tag.
 
 | Surface | Current evidence |
 | --- | --- |
@@ -12,7 +12,7 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | Physical model | 99.44% simulator balanced accuracy; permanently shadow-only |
 | Neural input | 600 synthetic signals, 400 artifact abstentions, zero candidates in 10,000 no-control windows |
 
-Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
+Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [full agent-readable context](llms-full.txt), [citation guide](docs/CITATION.md), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
 
 ## Claim boundaries
 

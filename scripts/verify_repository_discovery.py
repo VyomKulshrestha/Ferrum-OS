@@ -30,7 +30,9 @@ def local_markdown_links(text: str) -> list[str]:
 def main() -> int:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     llms = (ROOT / "llms.txt").read_text(encoding="utf-8")
+    llms_full = (ROOT / "llms-full.txt").read_text(encoding="utf-8")
     proof = (ROOT / "proof.md").read_text(encoding="utf-8")
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     codemeta = json.loads((ROOT / "codemeta.json").read_text(encoding="utf-8"))
     capabilities = json.loads((ROOT / "capabilities.json").read_text(encoding="utf-8"))
     benchmarks = json.loads((ROOT / "benchmarks.json").read_text(encoding="utf-8"))
@@ -49,31 +51,83 @@ def main() -> int:
         "synthetic eeg",
     ):
         require(phrase in opening, f"README opening contains {phrase!r}")
-    for target in ("proof.md", "docs/BENCHMARKS.md", "benchmarks.json", "capabilities.json"):
+    for target in (
+        "proof.md",
+        "docs/BENCHMARKS.md",
+        "benchmarks.json",
+        "capabilities.json",
+    ):
         require(target in readme, f"README links {target}")
 
-    require("full hardware control" not in opening, "README opening avoids unbounded hardware claim")
+    require(
+        "full hardware control" not in opening,
+        "README opening avoids unbounded hardware claim",
+    )
     require("10.5281/zenodo.21829808" in readme, "README exposes technical-report DOI")
     require("10.5281/zenodo.21829193" in readme, "README exposes dataset DOI")
 
     require(llms.startswith("# FerrumOS\n"), "llms.txt has canonical project heading")
-    require("raw.githubusercontent.com" in llms, "llms.txt links raw machine-readable evidence")
+    require(
+        "raw.githubusercontent.com" in llms,
+        "llms.txt links raw machine-readable evidence",
+    )
+    require("llms-full.txt" in llms, "llms.txt links full agent-readable context")
     require("no live EEG" in llms, "llms.txt preserves neural claim boundary")
     require("formal safety proof" in llms, "llms.txt preserves safety claim boundary")
-
-    require(codemeta["@type"] == "SoftwareSourceCode", "CodeMeta type is SoftwareSourceCode")
-    require(codemeta["version"] == "0.1.1", "CodeMeta version matches release")
-    require(codemeta["codeRepository"].endswith("/Ferrum-OS"), "CodeMeta repository is canonical")
-    require("JEPA" in codemeta["keywords"], "CodeMeta exposes JEPA keyword")
-    require("version = \"0.1.1\"" in cargo, "Cargo version matches CodeMeta")
     require(
-        "repository = \"https://github.com/VyomKulshrestha/Ferrum-OS\"" in cargo,
+        "41" in llms_full and "Canonical actions" in llms_full,
+        "llms-full catalogs canonical actions",
+    )
+    require(
+        "v0.1.1" in llms_full and "no prebuilt OS image" in llms_full,
+        "llms-full states distribution scope",
+    )
+    require(
+        "not directly comparable" in llms_full, "llms-full preserves protocol boundary"
+    )
+
+    require(
+        codemeta["@type"] == "SoftwareSourceCode", "CodeMeta type is SoftwareSourceCode"
+    )
+    require(codemeta["version"] == "0.1.1", "CodeMeta version matches release")
+    require(
+        codemeta["codeRepository"].endswith("/Ferrum-OS"),
+        "CodeMeta repository is canonical",
+    )
+    require("JEPA" in codemeta["keywords"], "CodeMeta exposes JEPA keyword")
+    require('version = "0.1.1"' in cargo, "Cargo version matches CodeMeta")
+    require(
+        'repository = "https://github.com/VyomKulshrestha/Ferrum-OS"' in cargo,
         "Cargo repository metadata is canonical",
     )
     require("VyomKulshrestha" in funding, "GitHub Sponsors button is configured")
+    require(
+        "type: software" in citation,
+        "CITATION.cff identifies the repository as software",
+    )
+    require(
+        "docs/CITATION.md" in llms, "llms.txt links artifact-specific citation guidance"
+    )
 
-    require(capabilities["canonical_action_count"] == 41, "capability catalog contains 41 source-derived actions")
-    require(len(capabilities["actions"]) == 41, "capability action count matches catalog")
+    require(
+        capabilities["canonical_action_count"] == 41,
+        "capability catalog contains 41 source-derived actions",
+    )
+    require(
+        len(capabilities["actions"]) == 41, "capability action count matches catalog"
+    )
+    require(
+        capabilities["schema_version"] == "2.0.0",
+        "capability catalog uses versioned schema",
+    )
+    require(
+        benchmarks["schema_version"] == "2.0.0",
+        "benchmark summary uses versioned schema",
+    )
+    require(
+        "current main" in capabilities["catalog_scope"]["source_channel"],
+        "capability catalog states source scope",
+    )
     require(
         benchmarks["paper_release"]["rules_plus_jepa_balanced_accuracy"]
         == 0.8140000000000001,
@@ -87,12 +141,22 @@ def main() -> int:
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,
         "neural no-control count remains zero",
     )
-    require("formal safety certificate" in proof, "proof center disclaims formal certification")
+    require(
+        "formal safety certificate" in proof,
+        "proof center disclaims formal certification",
+    )
 
-    for document in (ROOT / "README.md", ROOT / "proof.md", ROOT / "docs" / "BENCHMARKS.md"):
+    for document in (
+        ROOT / "README.md",
+        ROOT / "proof.md",
+        ROOT / "docs" / "BENCHMARKS.md",
+    ):
         for target in local_markdown_links(document.read_text(encoding="utf-8")):
             resolved = (document.parent / target).resolve()
-            require(resolved.exists(), f"{document.relative_to(ROOT)} local link exists: {target}")
+            require(
+                resolved.exists(),
+                f"{document.relative_to(ROOT)} local link exists: {target}",
+            )
 
     print("\nRepository discovery verification passed.")
     return 0

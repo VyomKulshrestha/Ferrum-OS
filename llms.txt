@@ -4,9 +4,12 @@
 
 FerrumOS targets a documented QEMU/Bochs profile. It is not a Windows replacement, certified safety system, live brain-computer interface, or validated robot controller.
 
+The latest tagged software release is v0.1.1 and has no prebuilt OS image. The capability and benchmark files on main describe the current source tree and later evidence; they do not claim that every current action shipped in v0.1.1.
+
 ## Canonical project sources
 
 - [Repository README](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/README.md): product scope, build, features, and limitations
+- [Full agent-readable context](https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/llms-full.txt): release scope, all canonical actions, safety invariants, evidence, and reproduction commands
 - [Proof center](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/proof.md): compact evidence and claim boundaries
 - [Benchmarks](https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/BENCHMARKS.md): protocols, repeated measurements, and limitations
 - [Machine-readable benchmarks](https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/benchmarks.json): generated benchmark summary
@@ -34,4 +37,5 @@ FerrumOS targets a documented QEMU/Bochs profile. It is not a Windows replacemen
 
 - Core code and dataset: MIT
 - Citation metadata: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/CITATION.cff
+- Citation guide: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/CITATION.md
 - Author ORCID: https://orcid.org/0009-0009-1434-7148

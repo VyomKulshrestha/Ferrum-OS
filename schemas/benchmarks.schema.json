@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/benchmarks.schema.json",
+  "title": "FerrumOS benchmark evidence",
+  "description": "Protocol-separated benchmark summaries with source hashes and explicit claim boundaries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "canonical_url",
+    "snapshot_date",
+    "benchmark_scope",
+    "environment",
+    "paper_release",
+    "current_ring3_preview",
+    "paired_preview_queue",
+    "physical_simulator_jepa",
+    "neural_synthetic",
+    "metric_definitions",
+    "provenance",
+    "global_limitations"
+  ],
+  "properties": {
+    "$schema": { "const": "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/benchmarks.schema.json" },
+    "schema_version": { "const": "2.0.0" },
+    "canonical_url": { "type": "string", "format": "uri" },
+    "snapshot_date": { "type": "string", "format": "date" },
+    "benchmark_scope": {
+      "type": "object",
+      "required": ["source_channel", "latest_tagged_software_release", "comparability"]
+    },
+    "environment": { "type": "object" },
+    "paper_release": { "$ref": "#/$defs/evidenceSection" },
+    "current_ring3_preview": { "$ref": "#/$defs/evidenceSection" },
+    "paired_preview_queue": { "$ref": "#/$defs/evidenceSection" },
+    "physical_simulator_jepa": { "$ref": "#/$defs/evidenceSection" },
+    "neural_synthetic": { "$ref": "#/$defs/evidenceSection" },
+    "metric_definitions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "object" }
+    },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "global_limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "evidenceSection": {
+      "type": "object",
+      "required": ["evidence_grade", "protocol_id"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generator", "inputs"],
+      "properties": {
+        "generator": { "const": "scripts/generate_public_evidence.py" },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/source" }
+        }
+      }
+    }
+  }
+}

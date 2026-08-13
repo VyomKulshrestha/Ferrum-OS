@@ -1,6 +1,14 @@
 {
+  "$schema": "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/benchmarks.schema.json",
+  "benchmark_scope": {
+    "comparability": "Each section has a distinct protocol; cross-section ranking is invalid.",
+    "latest_tagged_software_release": "v0.1.1",
+    "source_channel": "current main evidence plus frozen research artifacts"
+  },
+  "canonical_url": "https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/benchmarks.json",
   "current_ring3_preview": {
     "accelerator": "whpx",
+    "evidence_grade": "repeated-emulator-measurement",
     "heap_growth_bytes_each_run": [
       0,
       0,
@@ -128,6 +136,7 @@
       26.0,
       30.0
     ],
+    "protocol_id": "ring3-preview-whpx-2026-08-13",
     "runs": 3,
     "scope": "ring-3 Heliox capture + encoder + transition + safety predicate preview; no action dispatch",
     "source_commit": "54e1cc1819d3b3c11436f437733d197d469d1607",
@@ -146,6 +155,43 @@
     "Ring-3 timing uses a virtualized 1 kHz PIT; provider, tool execution, and operator-confirmation latency are excluded.",
     "A passing benchmark is evidence for its named fixture and protocol, not formal safety proof."
   ],
+  "metric_definitions": {
+    "balanced_accuracy": {
+      "definition": "Mean of sensitivity and specificity within the named fixture.",
+      "higher_is_better": true,
+      "range": [
+        0.0,
+        1.0
+      ],
+      "unit": "ratio"
+    },
+    "false_negative_rate": {
+      "lower_is_better": true,
+      "range": [
+        0.0,
+        1.0
+      ],
+      "unit": "ratio"
+    },
+    "false_positive_rate": {
+      "lower_is_better": true,
+      "range": [
+        0.0,
+        1.0
+      ],
+      "unit": "ratio"
+    },
+    "preview_latency": {
+      "clock": "virtualized 1 kHz PIT with raw TSC retained in source runs",
+      "lower_is_better": true,
+      "unit": "microseconds"
+    },
+    "queue_batch_latency": {
+      "lower_is_better": true,
+      "request_count": 96,
+      "unit": "milliseconds"
+    }
+  },
   "neural_synthetic": {
     "accepted_signal_accuracy": 1.0,
     "artifact_abstention_rate": 1.0,
@@ -156,8 +202,10 @@
       "Physical neural intents remain proposal-only and cannot invoke an adapter."
     ],
     "emitted_intents": 0,
+    "evidence_grade": "deterministic-synthetic-signal",
     "no_control_windows": 10000,
     "passed": true,
+    "protocol_id": "neural-ssvep-synthetic-v1",
     "signal_trials": 600
   },
   "paired_preview_queue": {
@@ -168,6 +216,7 @@
     ],
     "baseline_median_batch_milliseconds": 15086.329,
     "baseline_source_commit": "54e1cc1819d3b3c11436f437733d197d469d1607",
+    "evidence_grade": "paired-repeated-emulator-measurement",
     "execution_records_added_each_run": [
       0,
       0,
@@ -188,6 +237,7 @@
     "optimized_median_batch_milliseconds": 13517.414,
     "optimized_median_milliseconds_per_serialized_request": 140.806,
     "optimized_source_commit": "c92056d8635af5e4ee2a81351350b1b25cfd4861",
+    "protocol_id": "paired-preview-queue-whpx-2026-08-13",
     "requests_per_run": 96,
     "responses_received_each_run": [
       96,
@@ -202,8 +252,10 @@
     "eligible_transitions": 13270,
     "episodes": 3639,
     "evidence_commit": "42ea7b8",
+    "evidence_grade": "authored-balanced-fixture",
     "five_pipeline_balanced_accuracy_mean": 0.7976,
     "fixture_episodes": 500,
+    "protocol_id": "world-model-study-v1.0.0/episode-disjoint-500",
     "release_tag": "world-model-study-v1.0.0",
     "rules_plus_jepa_balanced_accuracy": 0.8140000000000001,
     "rules_plus_jepa_false_negative_rate": 0.20799999999999996,
@@ -213,6 +265,7 @@
   "physical_simulator_jepa": {
     "claim_boundary": "Deterministic simulator evidence; the artifact is permanently shadow-only and has no actuator authority.",
     "episodes": 2500,
+    "evidence_grade": "deterministic-simulator",
     "false_negatives": 1,
     "false_positives": 16,
     "normalized_rollout_error": {
@@ -227,10 +280,72 @@
       "physical_jepa_h4": 0.01306567620486021,
       "physical_jepa_h5": 0.015461564064025879
     },
+    "protocol_id": "physical-jepa-simulator-v1",
     "rules_plus_jepa_balanced_accuracy": 0.9944006975286777,
     "transitions": 15000,
     "validated_for_gating": false
   },
-  "schema_version": 1,
+  "provenance": {
+    "generator": "scripts/generate_public_evidence.py",
+    "inputs": [
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/manifest.json",
+        "sha256": "030e41206f386e3318e06135fa5f2ce651948984ec39d7e4e212a30d9776b876"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/runtime-run-1.json",
+        "sha256": "699f099e6f87b203b08d84e848ee039e96d71126c21d4c94c7e5a223ea9a1523"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/runtime-run-2.json",
+        "sha256": "c857c0deb89d0afb0723016c2daf75d0607eda982a1e84bb283fcd4fa759aa26"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/runtime-run-3.json",
+        "sha256": "267db39b3ac2a59bd2502c3102680f7e2bfcd50395d919350700bf3e28c8c19b"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/concurrency-baseline-run-1.json",
+        "sha256": "11cde8b42902c57310e58d5da80259eed120ca3654e18cc5e96cca767c1aea01"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/concurrency-baseline-run-2.json",
+        "sha256": "2e507a785a5368f30c8ad823bd02d5229b69452f7ebc26ff421026b41131b369"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/concurrency-baseline-run-3.json",
+        "sha256": "668f162e9872294e4ed2dfd859448d01e7cce3f4a46c307676edd754a9d3b188"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/concurrency-optimized-run-1.json",
+        "sha256": "44ddaf62d43a3a73c40aca348aff175ec4e23ae01e75aa4be554650564bc8e35"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/concurrency-optimized-run-2.json",
+        "sha256": "bb8e12b0d3a8aa56bdc0af3903a6fdd74e134440295244369a777cc417b544db"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/concurrency-optimized-run-3.json",
+        "sha256": "6f9e0018844606136ec55b89d3da7ecb857bb4bb21f9cbc891a1b7a6456ac37a"
+      },
+      {
+        "path": "docs/benchmarks/raw/2026-08-13/neural-synthetic.json",
+        "sha256": "41eb693e5e47d9500d144fc3b3f30db8115da8d845bbcb83a2236f541c2c7512"
+      },
+      {
+        "path": "docs/research/world_model_paper_evaluation.json",
+        "sha256": "503f171239d2d4df530156f86e86cac717ec6355d101c23ef8c2c3e9b6d1568e"
+      },
+      {
+        "path": "docs/research/world_model_training_config.json",
+        "sha256": "a6d0f3f198f28476c314951424de0114094fc8afc744c50b737c4d9aaed3604c"
+      },
+      {
+        "path": "docs/research/physical_world_model_evaluation.json",
+        "sha256": "25195d0d3b8229305cb07aa6274c2f5a337d74a6380103edc3f5243a7f824cde"
+      }
+    ]
+  },
+  "schema_version": "2.0.0",
   "snapshot_date": "2026-08-13"
 }

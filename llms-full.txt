@@ -1,0 +1,103 @@
+# FerrumOS: full agent-readable project context
+
+FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic kernel exposes capability-gated syscalls to a freestanding Ring-3 agent daemon. The daemon can run local or configured remote inference, but probabilistic inference does not run in Ring 0.
+
+## Distribution and scope
+
+- Latest tagged software release: `v0.1.1`.
+- Distribution: build from source; the `v0.1.1` release has no prebuilt OS image.
+- Capability catalog scope: current `main` source tree, not a claim about the older `v0.1.1` tag.
+- Verified device profile: QEMU/Bochs x86_64 configuration documented in the repository.
+- Current camera: deterministic synthetic YUYV frames, not a UVC hardware camera.
+
+## Safety architecture
+
+- Unknown tools map to the destructive tier and fail closed.
+- Canonical action execution uses the Ring-3 orchestrator, world-model decision, permission tier, capability check, and—at the default policy—operator confirmation for tiers 3 and 4.
+- Learned risk is monotonic: it may add caution but cannot remove a deterministic rule warning.
+- Catalog membership is not an independent semantic postcondition proof for every action.
+- Neural physical intent remains proposal-only and cannot invoke an actuator adapter.
+
+## Canonical actions (41)
+
+| Action | Category | Permission tier | Default operator confirmation |
+| --- | --- | ---: | --- |
+| `ipc_send` | interprocess-communication | 1 (safe) | no |
+| `audit_write` | audit | 1 (safe) | no |
+| `yield_cpu` | scheduling | 1 (safe) | no |
+| `camera_capture` | camera | 0 (observe) | no |
+| `gesture_status` | camera | 0 (observe) | no |
+| `report_status` | system-observation | 1 (safe) | no |
+| `capability_check` | security | 1 (safe) | no |
+| `read_file` | filesystem | 1 (safe) | no |
+| `read_dir` | filesystem | 1 (safe) | no |
+| `query_memory` | agent-memory | 0 (observe) | no |
+| `get_config` | configuration | 0 (observe) | no |
+| `system_info` | system-observation | 0 (observe) | no |
+| `list_processes` | process | 0 (observe) | no |
+| `net_connect` | network | 2 (network) | no |
+| `net_send` | network | 2 (network) | no |
+| `net_recv` | network | 2 (network) | no |
+| `http_get` | network | 2 (network) | no |
+| `write_file` | filesystem | 3 (modify) | yes |
+| `create_directory` | filesystem | 3 (modify) | yes |
+| `save_memory` | agent-memory | 3 (modify) | yes |
+| `load_memory` | agent-memory | 2 (network) | no |
+| `set_goal` | orchestration | 2 (network) | no |
+| `sleep` | scheduling | 1 (safe) | no |
+| `service_start` | service-management | 3 (modify) | yes |
+| `service_stop` | service-management | 3 (modify) | yes |
+| `exec_process` | process | 4 (destructive) | yes |
+| `delete_file` | filesystem | 4 (destructive) | yes |
+| `local_inference` | inference | 1 (safe) | no |
+| `trigger_kernel_upgrade` | system-update | 4 (destructive) | yes |
+| `hud_update` | desktop-ui | 0 (observe) | no |
+| `hit_test` | desktop-ui | 0 (observe) | no |
+| `read_screen` | desktop-ui | 1 (safe) | no |
+| `add_subtask` | orchestration | 0 (observe) | no |
+| `record_audio` | audio | 2 (network) | no |
+| `play_audio` | audio | 3 (modify) | yes |
+| `set_volume` | audio | 1 (safe) | no |
+| `keyboard_type` | desktop-input | 3 (modify) | yes |
+| `mouse_click` | desktop-input | 3 (modify) | yes |
+| `mouse_move` | desktop-input | 3 (modify) | yes |
+| `browse_url` | browser | 2 (network) | no |
+| `poll_input` | desktop-input | 1 (safe) | no |
+
+## Evidence snapshot
+
+| Protocol | Measurement | Boundary |
+| --- | --- | --- |
+| `world-model-study-v1.0.0/episode-disjoint-500` | Rules + JEPA 81.40%; rules + per-action mean 81.20% balanced accuracy | Authored balanced fixture; no material JEPA advantage established |
+| `ring3-preview-whpx-2026-08-13` | 3 WHPX runs, 100 previews per H=1..5, zero heap growth | Excludes provider, execution, and approval latency |
+| `paired-preview-queue-whpx-2026-08-13` | 96/96 responses each run; 10.40% median batch improvement | Serialized queue responsiveness, not parallel inference |
+| `physical-jepa-simulator-v1` | 99.44%, 1 FN, 16 FP | Deterministic simulator; permanently shadow-only |
+| `neural-ssvep-synthetic-v1` | 600 synthetic signals, 400 artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG, human, medical, or usability claim |
+
+The five evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
+
+## Canonical evidence and documentation
+
+- README: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/README.md
+- Proof center: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/proof.md
+- Capability JSON: https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/capabilities.json
+- Capability schema: https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/capabilities.schema.json
+- Benchmark JSON: https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/benchmarks.json
+- Benchmark schema: https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/benchmarks.schema.json
+- Benchmark protocols: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/BENCHMARKS.md
+- Architecture: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/ARCHITECTURE.md
+- Security: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/SECURITY.md
+- Citation guide: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/CITATION.md
+- Technical report DOI: https://doi.org/10.5281/zenodo.21829808
+- Dataset DOI: https://doi.org/10.5281/zenodo.21829193
+
+## Reproduction entry points
+
+```powershell
+python scripts/generate_public_evidence.py --check
+python scripts/verify_public_evidence_contract.py
+python scripts/verify_repository_discovery.py
+python scripts/verify_world_model_paper_evaluation.py
+python scripts/verify_physical_world_model.py
+python scripts/evaluate_neural_simulator.py --output target/neural.json
+```
