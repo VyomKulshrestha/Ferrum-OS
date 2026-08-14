@@ -258,6 +258,24 @@ real-hardware or certified industrial deployment.
   occupancy, emergency stops, approval, stale telemetry, and policy/twin
   revision races. Ambiguous delivery becomes `Uncertain` and is never blindly
   retried.
+- Versioned observation/command provenance, append-only evidence sessions,
+  deterministic replay and fault manifests, and virtual camera/depth, IMU,
+  proximity, environmental, actuator, EEG, watchdog, and emergency-stop device
+  contracts. Device leases, hot-unplug, reset, replacement, heartbeat loss,
+  clock rollback, and counter exhaustion fail closed.
+- A host-side simulator bridge with a dependency-free scripted backend and
+  optional Gazebo/ROS 2 and Webots connectors. Publishing a command is not
+  execution evidence: connectors without a round-trip acknowledgement record
+  delivery as `Uncertain`, preserving the no-blind-retry rule.
+- A bounded supervisor layer with stop/health priority, backpressure, per-
+  endpoint rate limits, liveness watchdogs, resource ceilings, and explicit
+  post-stop recovery. ROS 2, MQTT, and CAN/CANopen conformance policies verify
+  common freshness, identity, replay, authentication, QoS, retained-message,
+  CRC/counter, and bus-off rules without claiming deployed native gateways.
+- An actuator-disabled HIL software mode exercises the complete permit and
+  evidence path but uses a distinct non-execution acknowledgement. Host-managed
+  agent-cell contracts test attestation, capability mapping, quotas, restart,
+  quarantine, and termination; they are not native Ferrum virtualization.
 - A separate 16-state/7-action physical EMA-target JEPA (`PJE1`), trained on
   15,000 transitions from 2,500 deterministic simulator episodes. It uses
   reconstruction and action auxiliaries, episode-disjoint splits,
@@ -272,19 +290,30 @@ real-hardware or certified industrial deployment.
   bytes cannot promote it into gating authority. Only telemetry-confirmed
   execution can enter the bounded transition-fit experience stream; refusals,
   uncertain deliveries, and simulated predictions remain audit-only.
+- The committed robustness suite adds 256 counterfactual context pairs, 535
+  rare-hazard cases, 512 registered synthetic OOD cases, calibration diagnostics,
+  a 250--1,750 episode data-scaling curve, and a matched autoencoder. On held-out
+  simulator data, JEPA H=3 rollout error is 1.05% versus 1.75% for the matched
+  autoencoder. The OOD fixture retains 42 false negatives, so this evidence
+  strengthens failure analysis rather than supporting model promotion.
 
 Run the model reproduction and the booted maintenance vertical with:
 
 ```powershell
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_robustness.py
+python -m unittest tools.physical_sim_bridge.test_bridge
 node scripts/verify_bridge.mjs
 ```
 
 The demo requires `confirm_simulation=true`, routes provider-equivalent and
 direct RPC calls through the same service, blocks unsafe motion with the
-deterministic supervisor, and completes safe delivery in QEMU. Real ROS 2,
-MQTT, CAN, wearable gateways, field telemetry, hardware emergency controllers,
-and natural-use validation remain future integration work.
+deterministic supervisor, and completes safe delivery in QEMU. The software
+contracts, simulator connectors, conformance gates, and actuator-disabled path
+are implemented; deployed ROS 2/MQTT/CAN gateways, real robots and sensors, an
+MCU-owned motor loop, independent electrical emergency stop, measured HIL,
+live EEG, field telemetry, hard-real-time evidence, and external safety review
+remain future integration work.
 
 ### Hybrid World-Model Training
 

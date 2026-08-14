@@ -729,6 +729,24 @@ work order -> typed actor dispatch -> canonical adapter command
   operational twin containing actor, asset, sensor, occupancy, and work events.
   Source/session sequence checks, clock-skew limits, impossible-state rejection,
   and one global event-id domain prevent replay and split histories.
+- **Unified evidence contract**: every observation carries schema, clock,
+  uncertainty, session, sequence, expiry, identity, evidence-class, fault, and
+  integrity provenance. Commands bind issued/deadline time, requested
+  capability, policy and twin revisions, target session, confirmation, and
+  kernel authority. Clock rollback, arithmetic overflow, and monotonic-ID or
+  revision exhaustion are explicit errors and do not partially mutate state.
+- **Sessions, replay, and faults**: an evidence coordinator binds run ID,
+  simulator epoch, seed, topology, policy, and model hashes. Bounded checksummed
+  records cover observations, intents, forecasts, decisions, confirmations,
+  permits, delivery, acknowledgements, and operator actions. Deterministic
+  replay/fork and fault manifests remain simulation-only and cannot receive a
+  live permit.
+- **Virtual device boundary**: the logical bus represents camera/depth, IMU,
+  proximity/environment, actuator, EEG, watchdog, and emergency-stop devices.
+  Registration authority, discovery, capabilities, identity, leases, heartbeat,
+  reset, hot-unplug, replacement generation, and stale-session behavior are
+  fail closed. QEMU can verify the software response to a stop observation; it
+  cannot prove an independent electrical energy cut.
 - **Experience**: `PhysicalExperienceBuffer` retains at most 1,024 ordered
   transitions. Only `ExecutedObserved` entries with an actual post-action state
   are eligible for fitting. Refused, uncertain, and simulator-only outcomes
@@ -760,6 +778,24 @@ work order -> typed actor dispatch -> canonical adapter command
   proximity, occupancy, emergency-stop, approval, telemetry freshness, policy
   revision, and twin revision checks remain authoritative. A serialized gating
   flag is ignored, and model failure cannot disable deterministic enforcement.
+- **Deterministic supervisor**: `AuthoritySeverity` is a monotonic
+  `Allow < RequireApproval < Block < EmergencyStop` lattice. A bounded priority
+  queue prevents ordinary goals from starving stop/health traffic; command-rate,
+  resource, and Heliox/model/adapter/supervisor/controller/sensor watchdogs all
+  fail closed. Recovery after a stop requires independently satisfied reset,
+  controller, sensor, and operator conditions.
+- **Transport conformance**: protocol-neutral ROS 2, MQTT, and CAN/CANopen gates
+  enforce the same session, sequence, expiry, size, and replay rules. ROS 2
+  control requires reliable, volatile, bounded QoS; MQTT requires mTLS, ACLs,
+  expiry, and non-retained control; CAN requires allowlisted identifiers,
+  counters, CRC, and bus-off safety. These are testable contracts, not evidence
+  of deployed native gateways, and none owns the fast motor-control loop.
+- **Physics bridge and HIL boundary**: `tools/physical_sim_bridge` provides a
+  canonical JSON-lines bridge, deterministic scripted backend, optional
+  Gazebo/ROS 2 and Webots connectors, and an actuator-disabled backend. A
+  publish/send without execution acknowledgement is `Uncertain`, never success.
+  `HardwareInLoopActuatorDisabled` records a distinct acknowledgement and cannot
+  be paired with a physical execution driver.
 - **End-to-end reference vertical**: `physical_status` exposes model provenance
   and horizon. `physical_maintenance_demo` requires explicit simulation
   confirmation, then coordinates AI/robot/human tasks, blocks unsafe motion,
@@ -767,11 +803,34 @@ work order -> typed actor dispatch -> canonical adapter command
   and twin evidence. Provider-equivalent tool calls and direct JSON-RPC calls
   share the same service owner, preventing a second execution path or race.
 
-This closes the software architecture in `nextpath.md` for a simulator-backed
-reference platform. It does not close deployment work: ROS 2/DDS, MQTT, CAN,
-wearables, real robots, site-specific adapters, hardware interlocks, field data,
-independent safety assessment, and natural-use measurements remain external
-work and are not represented as implemented.
+The physical robustness report adds 256 counterfactual pairs, 535 rare-hazard
+cases, 512 registered synthetic OOD cases, calibration diagnostics, a
+250--1,750-episode scaling curve, and a matched autoencoder. The selected JEPA's
+held-out H=3 rollout error is 1.05% versus 1.75% for that autoencoder, while the
+OOD fixture still records 42 false negatives. All results are deterministic
+simulator evidence, never checkpoint-selection or execution authority.
+
+This closes the planned software contracts for a simulator-backed reference
+platform. It does not close deployment work: installing and operating actual
+ROS 2/DDS, MQTT, or CAN gateways; real sensors, wearables, robots, and MCU-owned
+motor loops; independent electrical interlocks; measured hardware-in-the-loop;
+hard-real-time evidence; live-human EEG; field data; independent safety
+assessment; and natural-use measurements remain external work and are not
+represented as implemented.
+
+### Intelligence Isolation Contract (`userland/physical-runtime/src/isolation.rs`)
+
+`HostCellManager` defines how development-host-managed cells may identify,
+attest, communicate, consume bounded resources, restart, quarantine, and
+terminate. Cell capabilities expose observation and proposal surfaces only;
+they cannot issue a Ferrum permit or invoke an actuator. This lets tests model
+an LLM, perception process, neural decoder, plugin, or digital twin as an
+untrusted failure domain without claiming that Ferrum currently hosts a VM.
+
+The host OS still owns QEMU/Firecracker-style VMs. Consequently this contract
+is research scaffolding, not a native Ferrum security feature. The decision to
+defer native virtualization, its evidence threshold, and reconsideration gates
+are recorded in [ADR-001](ADR-001-HOST-MANAGED-CELLS.md).
 
 ### Neural Intent Boundary (`userland/neural-protocol`, `tools/neurod`)
 
