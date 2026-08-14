@@ -78,7 +78,9 @@ def command(key: int = 5) -> BridgeCommand:
 class ProtocolTests(unittest.TestCase):
     def test_hello_observation_and_command_round_trip_canonically(self) -> None:
         self.assertEqual(BridgeHello.parse(hello().to_wire()), hello())
-        self.assertEqual(BridgeObservation.parse(observation().to_wire()), observation())
+        self.assertEqual(
+            BridgeObservation.parse(observation().to_wire()), observation()
+        )
         self.assertEqual(BridgeCommand.parse(command().to_wire()), command())
         self.assertEqual(command().to_wire(), command().to_wire())
         ack = BridgeAck(7, 4, 5, "accepted", 20, "simulated")
@@ -106,7 +108,9 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             BridgeObservation.parse(__import__("json").dumps(value))
 
-    def test_command_requires_routed_authority_and_consistent_confirmation(self) -> None:
+    def test_command_requires_routed_authority_and_consistent_confirmation(
+        self,
+    ) -> None:
         value = decode_message(command().to_wire())
         value["authority"] = "provider_output"
         with self.assertRaises(ProtocolError):
@@ -124,7 +128,9 @@ class BridgeSessionTests(unittest.TestCase):
         self.assertEqual(session.poll(), observation(1))
         self.assertEqual(session.poll(), observation(2))
 
-        replay = BridgeSession(hello(), ScriptedBackend([observation(1), observation(1)]))
+        replay = BridgeSession(
+            hello(), ScriptedBackend([observation(1), observation(1)])
+        )
         replay.poll()
         with self.assertRaises(BridgeError):
             replay.poll()
@@ -148,7 +154,9 @@ class BridgeSessionTests(unittest.TestCase):
         with self.assertRaises(BridgeError):
             BridgeSession(hello(), ScriptedBackend()).submit(command(), 21)
         with self.assertRaises(BridgeError):
-            BridgeSession(hello(), ScriptedBackend()).submit(replace(command(), run_id=8), 20)
+            BridgeSession(hello(), ScriptedBackend()).submit(
+                replace(command(), run_id=8), 20
+            )
 
     def test_hil_backend_records_but_never_executes(self) -> None:
         backend = ActuatorDisabledBackend(ScriptedBackend())
@@ -160,7 +168,9 @@ class BridgeSessionTests(unittest.TestCase):
         with self.assertRaises(BridgeError):
             BridgeSession(hello(actuator_enabled=True), backend)
 
-    def test_optional_backends_fail_explicitly_when_dependencies_are_absent(self) -> None:
+    def test_optional_backends_fail_explicitly_when_dependencies_are_absent(
+        self,
+    ) -> None:
         try:
             GazeboRos2Backend()
         except BridgeError as error:

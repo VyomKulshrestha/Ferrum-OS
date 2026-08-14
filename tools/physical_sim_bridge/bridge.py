@@ -7,7 +7,13 @@ from dataclasses import dataclass
 import json
 from typing import Any, Protocol
 
-from .protocol import BridgeAck, BridgeCommand, BridgeHello, BridgeObservation, ProtocolError
+from .protocol import (
+    BridgeAck,
+    BridgeCommand,
+    BridgeHello,
+    BridgeObservation,
+    ProtocolError,
+)
 
 
 MAX_SEEN_COMMANDS = 4_096
@@ -43,7 +49,11 @@ class ScriptedBackend:
 
     def submit_command(self, command: BridgeCommand) -> dict[str, Any]:
         self.commands.append(command)
-        return {"command_id": command.command_id, "executed": True, "reason": "simulated"}
+        return {
+            "command_id": command.command_id,
+            "executed": True,
+            "reason": "simulated",
+        }
 
     def close(self) -> None:
         self._observations.clear()
@@ -83,7 +93,9 @@ class GazeboRos2Backend:
             import rclpy
             from std_msgs.msg import String
         except ImportError as error:
-            raise BridgeError("Gazebo ROS 2 backend requires rclpy and std_msgs") from error
+            raise BridgeError(
+                "Gazebo ROS 2 backend requires rclpy and std_msgs"
+            ) from error
         self._rclpy = rclpy
         self._string_type = String
         self._queue: deque[BridgeObservation] = deque()
@@ -108,7 +120,11 @@ class GazeboRos2Backend:
         message = self._string_type()
         message.data = command.to_wire().decode("ascii").strip()
         self._publisher.publish(message)
-        return {"command_id": command.command_id, "executed": True, "reason": "published_ros2"}
+        return {
+            "command_id": command.command_id,
+            "executed": True,
+            "reason": "published_ros2",
+        }
 
     def close(self) -> None:
         self._node.destroy_node()
@@ -118,16 +134,22 @@ class GazeboRos2Backend:
 class WebotsBackend:
     """Optional Webots Receiver/Emitter connector using canonical JSON lines."""
 
-    def __init__(self, receiver_name: str = "ferrum_rx", emitter_name: str = "ferrum_tx") -> None:
+    def __init__(
+        self, receiver_name: str = "ferrum_rx", emitter_name: str = "ferrum_tx"
+    ) -> None:
         try:
             from controller import Robot
         except ImportError as error:
-            raise BridgeError("Webots backend requires the Webots controller module") from error
+            raise BridgeError(
+                "Webots backend requires the Webots controller module"
+            ) from error
         self._robot = Robot()
         self._receiver = self._robot.getDevice(receiver_name)
         self._emitter = self._robot.getDevice(emitter_name)
         if self._receiver is None or self._emitter is None:
-            raise BridgeError("Webots world does not expose the Ferrum Receiver/Emitter")
+            raise BridgeError(
+                "Webots world does not expose the Ferrum Receiver/Emitter"
+            )
         self._receiver.enable(int(self._robot.getBasicTimeStep()))
 
     def poll_observation(self) -> BridgeObservation | None:
@@ -140,7 +162,11 @@ class WebotsBackend:
 
     def submit_command(self, command: BridgeCommand) -> dict[str, Any]:
         self._emitter.send(command.to_wire())
-        return {"command_id": command.command_id, "executed": True, "reason": "sent_webots"}
+        return {
+            "command_id": command.command_id,
+            "executed": True,
+            "reason": "sent_webots",
+        }
 
     def close(self) -> None:
         self._receiver.disable()
@@ -152,8 +178,12 @@ class BridgeSession:
     backend: SimulatorBackend
 
     def __post_init__(self) -> None:
-        if self.hello.actuator_enabled and isinstance(self.backend, ActuatorDisabledBackend):
-            raise BridgeError("hello claims actuator authority while HIL backend disables it")
+        if self.hello.actuator_enabled and isinstance(
+            self.backend, ActuatorDisabledBackend
+        ):
+            raise BridgeError(
+                "hello claims actuator authority while HIL backend disables it"
+            )
         self._last_sequence: dict[int, int] = {}
         self._clock_by_adapter: dict[int, int] = {}
         self._seen_commands: set[int] = set()
@@ -188,7 +218,9 @@ class BridgeSession:
         if self._closed:
             raise BridgeRejected("bridge session is closed")
         if command.run_id != self.hello.run_id:
-            raise BridgeRejected("command run identity does not match the bridge session")
+            raise BridgeRejected(
+                "command run identity does not match the bridge session"
+            )
         if current_tick > command.deadline_tick:
             raise BridgeRejected("command expired before backend delivery")
         if command.idempotency_key in self._seen_commands:

@@ -91,7 +91,9 @@ def _exact_keys(value: Mapping[str, Any], expected: set[str], name: str) -> None
     if actual != expected:
         missing = sorted(expected - actual)
         unknown = sorted(actual - expected)
-        raise ProtocolError(f"{name} keys mismatch: missing={missing}, unknown={unknown}")
+        raise ProtocolError(
+            f"{name} keys mismatch: missing={missing}, unknown={unknown}"
+        )
 
 
 def _integer(value: Any, name: str, minimum: int = 0, maximum: int = MAX_U64) -> int:
@@ -110,7 +112,9 @@ def _text(value: Any, name: str, allowed: set[str] | None = None) -> str:
 
 def _sha256(value: Any, name: str) -> str:
     text = _text(value, name)
-    if len(text) != 64 or any(character not in "0123456789abcdef" for character in text):
+    if len(text) != 64 or any(
+        character not in "0123456789abcdef" for character in text
+    ):
         raise ProtocolError(f"{name} is not a lowercase SHA-256 digest")
     return text
 
@@ -148,7 +152,9 @@ class BridgeHello:
         return cls(
             run_id=_integer(value["run_id"], "run_id", 1),
             simulator_epoch=_integer(value["simulator_epoch"], "simulator_epoch", 1),
-            backend=_text(value["backend"], "backend", {"scripted", "gazebo_ros2", "webots"}),
+            backend=_text(
+                value["backend"], "backend", {"scripted", "gazebo_ros2", "webots"}
+            ),
             source_clock_id=_integer(value["source_clock_id"], "source_clock_id", 1),
             topology_sha256=_sha256(value["topology_sha256"], "topology_sha256"),
             actuator_enabled=value["actuator_enabled"],
@@ -240,7 +246,9 @@ class BridgeObservation:
         if observation.expires_at_tick < observation.observed_at_tick:
             raise ProtocolError("observation expires before it was observed")
         if (observation.fault_manifest_id == 0) != (observation.fault_code == 0):
-            raise ProtocolError("fault manifest and code must both be present or absent")
+            raise ProtocolError(
+                "fault manifest and code must both be present or absent"
+            )
         return observation
 
     def to_wire(self) -> bytes:
@@ -347,7 +355,11 @@ class BridgeCommand:
             {
                 "type": "command",
                 "schema_version": SCHEMA_VERSION,
-                **{key: value for key, value in self.__dict__.items() if key != "arguments"},
+                **{
+                    key: value
+                    for key, value in self.__dict__.items()
+                    if key != "arguments"
+                },
                 "arguments": list(self.arguments),
             }
         )
@@ -407,7 +419,16 @@ def _validate_payload(value: Any, observed_at_tick: Any) -> dict[str, Any]:
     if payload_type == "sensor":
         _exact_keys(
             value,
-            {"type", "sensor_id", "site_id", "asset_id", "kind", "value", "quality_permille", "observed_at_tick"},
+            {
+                "type",
+                "sensor_id",
+                "site_id",
+                "asset_id",
+                "kind",
+                "value",
+                "quality_permille",
+                "observed_at_tick",
+            },
             "sensor payload",
         )
         _integer(value["sensor_id"], "sensor_id", 1)
@@ -421,7 +442,17 @@ def _validate_payload(value: Any, observed_at_tick: Any) -> dict[str, Any]:
     elif payload_type == "actor":
         _exact_keys(
             value,
-            {"type", "actor_id", "zone_id", "x_mm", "y_mm", "z_mm", "battery_permille", "load_permille", "state"},
+            {
+                "type",
+                "actor_id",
+                "zone_id",
+                "x_mm",
+                "y_mm",
+                "z_mm",
+                "battery_permille",
+                "load_permille",
+                "state",
+            },
             "actor payload",
         )
         _integer(value["actor_id"], "actor_id", 1)

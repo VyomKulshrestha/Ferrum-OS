@@ -17,7 +17,9 @@ SELECTOR = ROOT / "scripts" / "select_physical_jepa.py"
 ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 EVALUATION = ROOT / "docs" / "research" / "physical_world_model_evaluation.json"
 SEED_EVALUATION = ROOT / "docs" / "research" / "physical_jepa_seed_evaluation.json"
-FALSE_NEGATIVES = ROOT / "docs" / "research" / "physical_jepa_false_negative_analysis.json"
+FALSE_NEGATIVES = (
+    ROOT / "docs" / "research" / "physical_jepa_false_negative_analysis.json"
+)
 
 
 def require(condition: bool, message: str):
@@ -42,14 +44,29 @@ def main():
     seed_evaluation = json.loads(SEED_EVALUATION.read_text(encoding="utf-8"))
     false_negatives = json.loads(FALSE_NEGATIVES.read_text(encoding="utf-8"))
     artifact = ARTIFACT.read_bytes()
-    require(sha256(ARTIFACT) == evaluation["artifact_sha256"], "artifact hash matches evaluation")
+    require(
+        sha256(ARTIFACT) == evaluation["artifact_sha256"],
+        "artifact hash matches evaluation",
+    )
     require(len(artifact) == 79_984, "PJE1 artifact has exact bounded size")
     header = struct.unpack("<4sIIIIIIIIffI", artifact[:48])
     (
-        magic, version, state_size, action_count, feature_size, latent, hidden,
-        samples, action_input_size, h3, mean_h3, gating,
+        magic,
+        version,
+        state_size,
+        action_count,
+        feature_size,
+        latent,
+        hidden,
+        samples,
+        action_input_size,
+        h3,
+        mean_h3,
+        gating,
     ) = header
-    require(magic == b"PJE1" and version == 1, "artifact magic and version are supported")
+    require(
+        magic == b"PJE1" and version == 1, "artifact magic and version are supported"
+    )
     require(
         (state_size, action_count, feature_size, action_input_size) == (16, 7, 3, 10),
         "artifact schema matches runtime",
@@ -58,13 +75,20 @@ def main():
         latent == 64 and hidden == 128 and samples == 10_500,
         "validation-selected JEPA capacity and training sample count are recorded",
     )
-    require(gating == 0 and not evaluation["validated_for_gating"], "simulator artifact remains shadow-only")
     require(
-        evaluation["model_class"] == "ema_target_joint_embedding_predictive_architecture",
+        gating == 0 and not evaluation["validated_for_gating"],
+        "simulator artifact remains shadow-only",
+    )
+    require(
+        evaluation["model_class"]
+        == "ema_target_joint_embedding_predictive_architecture",
         "artifact is a real EMA-target JEPA rather than a renamed transition MLP",
     )
     require(h3 < mean_h3, "JEPA H=3 error beats per-action mean baseline")
-    require(evaluation["episode_overlap"] == 0, "train validation and test episodes do not overlap")
+    require(
+        evaluation["episode_overlap"] == 0,
+        "train validation and test episodes do not overlap",
+    )
     require(
         evaluation["safety"]["rules_plus_jepa"]["fn"]
         < evaluation["safety"]["rules_only"]["fn"],
@@ -138,10 +162,14 @@ def reproduce(evaluation):
             [
                 sys.executable,
                 str(SELECTOR),
-                "--artifact", str(artifact_copy),
-                "--evaluation", str(evaluation_copy),
-                "--selection", str(selection_copy),
-                "--dataset", str(dataset_copy),
+                "--artifact",
+                str(artifact_copy),
+                "--evaluation",
+                str(evaluation_copy),
+                "--selection",
+                str(selection_copy),
+                "--dataset",
+                str(dataset_copy),
             ],
             cwd=ROOT,
             check=True,
@@ -149,20 +177,29 @@ def reproduce(evaluation):
         )
         reproduced = json.loads(evaluation_copy.read_text(encoding="utf-8"))
         reproduced_selection = json.loads(selection_copy.read_text(encoding="utf-8"))
-        require(sha256(artifact_copy) == evaluation["artifact_sha256"], "validation sweep deterministically reproduces artifact")
         require(
-            reproduced_selection["selected_capacity"] == evaluation["model_selection"]["selected"],
+            sha256(artifact_copy) == evaluation["artifact_sha256"],
+            "validation sweep deterministically reproduces artifact",
+        )
+        require(
+            reproduced_selection["selected_capacity"]
+            == evaluation["model_selection"]["selected"],
             "validation-only sweep deterministically selects the same capacity",
         )
         require(
-            reproduced["normalized_rollout_error"] == evaluation["normalized_rollout_error"],
+            reproduced["normalized_rollout_error"]
+            == evaluation["normalized_rollout_error"],
             "held-out rollout metrics reproduce exactly",
         )
-        require(reproduced["safety"] == evaluation["safety"], "three-arm safety metrics reproduce exactly")
+        require(
+            reproduced["safety"] == evaluation["safety"],
+            "three-arm safety metrics reproduce exactly",
+        )
         require(
             sha256(dataset_copy) == evaluation["generated_dataset_sha256"],
             "deterministic simulator dataset reproduces exactly",
         )
+
 
 if __name__ == "__main__":
     main()
