@@ -7,6 +7,7 @@ pub mod contract;
 pub mod domain;
 pub mod experience;
 pub mod fleet;
+pub mod isolation;
 pub mod model;
 pub mod privacy;
 pub mod reliability;
@@ -42,6 +43,10 @@ pub use experience::{
 pub use fleet::{
     CommandClaim, CommandDeliveryState, DeviceHealth, DeviceLifecycle, FleetDevice, FleetError,
     FleetManager, PendingUpdate, UpdateManifest, UpdateState, UpdateVerifier,
+};
+pub use isolation::{
+    CellCapability, CellCapabilitySet, CellIpcEnvelope, CellQuota, CellState, HostCellKind,
+    HostCellManager, HostCellManifest, IsolationError, MAX_CELL_MESSAGE_BYTES, MAX_HOST_CELLS,
 };
 pub use model::{
     PhysicalAction, PhysicalActionKind, PhysicalForecast, PhysicalModelError, PhysicalObservation,
