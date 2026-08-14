@@ -252,6 +252,13 @@ impl WatchdogBank {
     }
 
     pub fn severity(&self, tick: u64) -> AuthoritySeverity {
+        if self
+            .entries
+            .iter()
+            .any(|entry| entry.armed && tick < entry.last_heartbeat_tick)
+        {
+            return AuthoritySeverity::EmergencyStop;
+        }
         self.entries
             .iter()
             .filter(|entry| {
@@ -436,6 +443,7 @@ mod tests {
         .unwrap();
         assert_eq!(bank.severity(15), AuthoritySeverity::Allow);
         assert_eq!(bank.severity(16), AuthoritySeverity::EmergencyStop);
+        assert_eq!(bank.severity(9), AuthoritySeverity::EmergencyStop);
     }
 
     #[test]

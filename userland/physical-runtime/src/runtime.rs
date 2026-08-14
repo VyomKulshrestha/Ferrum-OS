@@ -696,10 +696,16 @@ impl PhysicalRuntime {
                         tick,
                     )
                     .map_err(RuntimeError::Fleet)?;
+                let evidence_kind =
+                    if driver.execution_mode() == DriverExecutionMode::ActuatorDisabled {
+                        EvidenceKind::ActuatorDisabledAcknowledged
+                    } else {
+                        EvidenceKind::DeliveryAcknowledged
+                    };
                 self.evidence
                     .append(
                         tick,
-                        EvidenceKind::DeliveryAcknowledged,
+                        evidence_kind,
                         routed.command.command_id,
                         adapter_id.0,
                         routed.command.endpoint_id.0,
@@ -1354,6 +1360,10 @@ mod tests {
         assert_eq!(
             disabled.execution_mode(),
             DriverExecutionMode::ActuatorDisabled
+        );
+        assert_eq!(
+            runtime.evidence().records().back().unwrap().kind,
+            EvidenceKind::ActuatorDisabledAcknowledged
         );
     }
 

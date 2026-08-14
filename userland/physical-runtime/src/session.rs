@@ -70,6 +70,7 @@ pub enum EvidenceKind {
     EmergencyStopObserved = 10,
     OperatorAction = 11,
     Checkpoint = 12,
+    ActuatorDisabledAcknowledged = 13,
 }
 
 impl EvidenceKind {
@@ -87,6 +88,7 @@ impl EvidenceKind {
             10 => Ok(Self::EmergencyStopObserved),
             11 => Ok(Self::OperatorAction),
             12 => Ok(Self::Checkpoint),
+            13 => Ok(Self::ActuatorDisabledAcknowledged),
             _ => Err(SessionError::InvalidWireRecord),
         }
     }
