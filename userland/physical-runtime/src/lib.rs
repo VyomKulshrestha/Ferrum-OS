@@ -13,6 +13,7 @@ pub mod reliability;
 pub mod runtime;
 pub mod safety;
 pub mod scenario;
+pub mod session;
 pub mod twin;
 pub mod work;
 
@@ -60,6 +61,10 @@ pub use safety::{
 pub use scenario::{
     run_maintenance_demo, run_maintenance_demo_with_predictions, MaintenanceDemoError,
     MaintenanceDemoReport, MAINTENANCE_ASSET_ID, MAINTENANCE_JOB_ID, MAINTENANCE_SITE_ID,
+};
+pub use session::{
+    EvidenceKind, EvidenceLog, EvidenceRecord, SessionDescriptor, SessionError, SessionMode,
+    EVIDENCE_RECORD_WIRE_SIZE, MAX_EVIDENCE_RECORDS,
 };
 pub use twin::{
     ActorTelemetry, AssetTelemetry, EventEnvelope, EventPayload, OperationalTwin, SensorKind,
