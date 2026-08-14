@@ -6,7 +6,7 @@
 
 use crate::adapter::{
     AdapterCommand, AdapterDriver, AdapterError, AdapterFrame, AdapterId, AdapterRegistry,
-    AdapterState, RoutedCommand,
+    AdapterState, DriverExecutionMode, RoutedCommand,
 };
 use crate::contract::ObservationPolicy;
 use crate::domain::{DomainRegistry, SiteId};
@@ -24,7 +24,7 @@ use crate::safety::{
     PhysicalPrediction, SafetyContext, SafetyDecision, SafetyError, SafetyReason, SafetySupervisor,
     SafetyVerdict,
 };
-use crate::session::{EvidenceKind, EvidenceLog, SessionDescriptor, SessionError};
+use crate::session::{EvidenceKind, EvidenceLog, SessionDescriptor, SessionError, SessionMode};
 use crate::twin::{EventPayload, OperationalTwin, TwinError};
 use crate::work::{DispatchError, DispatchReceipt, JobId, WorkGraph, WorkGraphError, WorkOrder};
 
@@ -47,6 +47,7 @@ pub enum RuntimeError {
     DeliveryUncertain(AdapterError),
     Session(SessionError),
     Replay(ReplayError),
+    DriverModeMismatch,
 }
 
 #[derive(Debug)]
@@ -624,6 +625,18 @@ impl PhysicalRuntime {
         if driver.identity().id != adapter_id {
             return Err(RuntimeError::Adapter(AdapterError::EndpointMismatch));
         }
+        let driver_allowed = matches!(
+            (self.evidence.descriptor().mode, driver.execution_mode()),
+            (SessionMode::Simulation, DriverExecutionMode::Simulation)
+                | (
+                    SessionMode::HardwareInLoopActuatorDisabled,
+                    DriverExecutionMode::ActuatorDisabled
+                )
+                | (SessionMode::Live, DriverExecutionMode::Physical)
+        );
+        if !driver_allowed {
+            return Err(RuntimeError::DriverModeMismatch);
+        }
         self.evidence
             .reserve_at(tick, 1)
             .map_err(RuntimeError::Session)?;
@@ -1200,6 +1213,56 @@ mod tests {
     }
 
     #[test]
+    fn session_mode_cannot_be_crossed_by_a_driver() {
+        struct PhysicalDriver {
+            identity: AdapterIdentity,
+        }
+
+        impl AdapterDriver for PhysicalDriver {
+            fn identity(&self) -> &AdapterIdentity {
+                &self.identity
+            }
+
+            fn execution_mode(&self) -> DriverExecutionMode {
+                DriverExecutionMode::Physical
+            }
+
+            fn poll_frame(&mut self) -> Option<AdapterFrame> {
+                None
+            }
+
+            fn submit(&mut self, _: RoutedCommand) -> Result<(), AdapterError> {
+                panic!("mode mismatch must be rejected before delivery")
+            }
+        }
+
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = SafetyContext {
+            expected_policy_revision: 1,
+            expected_twin_event_id: runtime.twin().snapshot().latest_event_id,
+            human_approved: true,
+            requesting_actor_id: None,
+        };
+        runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        let mut driver = PhysicalDriver {
+            identity: runtime.adapters().adapter(AdapterId(1)).unwrap().clone(),
+        };
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 100),
+            Err(RuntimeError::DriverModeMismatch)
+        );
+        assert_eq!(
+            runtime.fleet().command_claim(1).unwrap().state,
+            CommandDeliveryState::Queued
+        );
+    }
+
+    #[test]
     fn transport_failure_becomes_uncertain_and_is_not_retried() {
         struct AmbiguousDriver {
             identity: AdapterIdentity,
@@ -1208,6 +1271,10 @@ mod tests {
         impl AdapterDriver for AmbiguousDriver {
             fn identity(&self) -> &AdapterIdentity {
                 &self.identity
+            }
+
+            fn execution_mode(&self) -> DriverExecutionMode {
+                DriverExecutionMode::Simulation
             }
 
             fn poll_frame(&mut self) -> Option<AdapterFrame> {

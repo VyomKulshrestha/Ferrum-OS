@@ -20,10 +20,10 @@ pub mod virtual_device;
 pub mod work;
 
 pub use adapter::{
-    AdapterCommand, AdapterDriver, AdapterError, AdapterFrame, AdapterId, AdapterIdentity,
-    AdapterPayload, AdapterProtocol, AdapterRegistry, AdapterState, CommandKind, Endpoint,
-    EndpointCapability, EndpointCapabilitySet, EndpointId, EndpointKind, RoutedCommand,
-    SimulatedAdapter,
+    ActuatorDisabledAdapter, AdapterCommand, AdapterDriver, AdapterError, AdapterFrame, AdapterId,
+    AdapterIdentity, AdapterPayload, AdapterProtocol, AdapterRegistry, AdapterState, CommandKind,
+    DriverExecutionMode, Endpoint, EndpointCapability, EndpointCapabilitySet, EndpointId,
+    EndpointKind, RoutedCommand, SimulatedAdapter,
 };
 pub use contract::{
     CommandMetadata, ConfirmationProvenance, ContractError, EvidenceClass, FaultProvenance,

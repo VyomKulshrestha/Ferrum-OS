@@ -486,8 +486,16 @@ fn endpoint_accepts_payload(endpoint: &Endpoint, payload: AdapterPayload) -> boo
 
 pub trait AdapterDriver {
     fn identity(&self) -> &AdapterIdentity;
+    fn execution_mode(&self) -> DriverExecutionMode;
     fn poll_frame(&mut self) -> Option<AdapterFrame>;
     fn submit(&mut self, command: RoutedCommand) -> Result<(), AdapterError>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DriverExecutionMode {
+    Simulation,
+    ActuatorDisabled,
+    Physical,
 }
 
 #[derive(Debug)]
@@ -495,6 +503,62 @@ pub struct SimulatedAdapter {
     identity: AdapterIdentity,
     frames: VecDeque<AdapterFrame>,
     commands: Vec<RoutedCommand>,
+}
+
+/// Hardware-in-the-loop sink that exercises the complete permit/delivery path
+/// while making actuator execution structurally unavailable.
+#[derive(Debug)]
+pub struct ActuatorDisabledAdapter {
+    identity: AdapterIdentity,
+    frames: VecDeque<AdapterFrame>,
+    commands: Vec<RoutedCommand>,
+}
+
+impl ActuatorDisabledAdapter {
+    pub fn new(identity: AdapterIdentity) -> Result<Self, AdapterError> {
+        if identity.protocol == AdapterProtocol::Simulator {
+            return Err(AdapterError::InvalidIdentity);
+        }
+        Ok(Self {
+            identity,
+            frames: VecDeque::new(),
+            commands: Vec::new(),
+        })
+    }
+
+    pub fn queue_frame(&mut self, frame: AdapterFrame) -> Result<(), AdapterError> {
+        if frame.adapter_id != self.identity.id {
+            return Err(AdapterError::EndpointMismatch);
+        }
+        self.frames.push_back(frame);
+        Ok(())
+    }
+
+    pub fn recorded_commands(&self) -> &[RoutedCommand] {
+        &self.commands
+    }
+}
+
+impl AdapterDriver for ActuatorDisabledAdapter {
+    fn identity(&self) -> &AdapterIdentity {
+        &self.identity
+    }
+
+    fn execution_mode(&self) -> DriverExecutionMode {
+        DriverExecutionMode::ActuatorDisabled
+    }
+
+    fn poll_frame(&mut self) -> Option<AdapterFrame> {
+        self.frames.pop_front()
+    }
+
+    fn submit(&mut self, command: RoutedCommand) -> Result<(), AdapterError> {
+        if command.command.adapter_id != self.identity.id {
+            return Err(AdapterError::EndpointMismatch);
+        }
+        self.commands.push(command);
+        Ok(())
+    }
 }
 
 impl SimulatedAdapter {
@@ -525,6 +589,10 @@ impl SimulatedAdapter {
 impl AdapterDriver for SimulatedAdapter {
     fn identity(&self) -> &AdapterIdentity {
         &self.identity
+    }
+
+    fn execution_mode(&self) -> DriverExecutionMode {
+        DriverExecutionMode::Simulation
     }
 
     fn poll_frame(&mut self) -> Option<AdapterFrame> {
@@ -842,5 +910,43 @@ mod tests {
             })
             .unwrap();
         assert_eq!(driver.commands().len(), 1);
+    }
+
+    #[test]
+    fn actuator_disabled_driver_records_without_physical_execution_mode() {
+        let mut adapter_identity = identity(AdapterState::Online);
+        adapter_identity.protocol = AdapterProtocol::Mqtt;
+        let mut driver = ActuatorDisabledAdapter::new(adapter_identity).unwrap();
+        assert_eq!(
+            driver.execution_mode(),
+            DriverExecutionMode::ActuatorDisabled
+        );
+        let command = AdapterCommand {
+            command_id: 1,
+            idempotency_key: 2,
+            adapter_id: AdapterId(1),
+            endpoint_id: EndpointId(2),
+            session_epoch: 5,
+            kind: CommandKind::Stop,
+            argument0: 0,
+            argument1: 0,
+            argument2: 0,
+            deadline_tick: 10,
+            metadata: CommandMetadata::kernel(
+                1,
+                0,
+                0,
+                EndpointCapability::EmergencyStop,
+                ConfirmationProvenance::NotRequired,
+            ),
+        };
+        let routed = RoutedCommand {
+            command,
+            policy_revision: 0,
+            twin_event_id: 0,
+            confirmation: ConfirmationProvenance::NotRequired,
+        };
+        driver.submit(routed).unwrap();
+        assert_eq!(driver.recorded_commands(), &[routed]);
     }
 }
