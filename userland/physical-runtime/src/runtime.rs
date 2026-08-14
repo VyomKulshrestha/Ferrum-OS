@@ -20,6 +20,7 @@ use crate::safety::{
     PhysicalPrediction, SafetyContext, SafetyDecision, SafetyError, SafetyReason, SafetySupervisor,
     SafetyVerdict,
 };
+use crate::session::{EvidenceKind, EvidenceLog, SessionDescriptor, SessionError};
 use crate::twin::{EventPayload, OperationalTwin, TwinError};
 use crate::work::{DispatchError, DispatchReceipt, JobId, WorkGraph, WorkGraphError, WorkOrder};
 
@@ -40,6 +41,7 @@ pub enum RuntimeError {
     Reliability(ReliabilityError),
     Experience(ExperienceError),
     DeliveryUncertain(AdapterError),
+    Session(SessionError),
 }
 
 #[derive(Debug)]
@@ -53,6 +55,7 @@ pub struct PhysicalRuntime {
     privacy: PrivacyGuard,
     reliability: ReliabilityMonitor,
     experience: PhysicalExperienceBuffer,
+    evidence: EvidenceLog,
     runtime_twin_sequence: u64,
     reliability_event_id: u64,
 }
@@ -65,12 +68,17 @@ impl Default for PhysicalRuntime {
 
 impl PhysicalRuntime {
     pub fn new() -> Self {
+        Self::new_with_session(SessionDescriptor::simulator(1, 1, 42))
+            .expect("built-in simulator session descriptor is valid")
+    }
+
+    pub fn new_with_session(descriptor: SessionDescriptor) -> Result<Self, RuntimeError> {
         let mut twin = OperationalTwin::new();
         // The empty twin always has room. Reserving before any adapter traffic
         // prevents hostile source exhaustion from disabling work/safety records.
         let reserved = twin.reserve_source(RUNTIME_TWIN_SOURCE_ID);
         debug_assert!(reserved.is_ok());
-        Self {
+        Ok(Self {
             domain: DomainRegistry::new(),
             work: WorkGraph::new(),
             twin,
@@ -80,9 +88,10 @@ impl PhysicalRuntime {
             privacy: PrivacyGuard::new(),
             reliability: ReliabilityMonitor::new(),
             experience: PhysicalExperienceBuffer::new(),
+            evidence: EvidenceLog::new(descriptor).map_err(RuntimeError::Session)?,
             runtime_twin_sequence: 0,
             reliability_event_id: 0,
-        }
+        })
     }
 
     pub fn domain(&self) -> &DomainRegistry {
@@ -141,6 +150,51 @@ impl PhysicalRuntime {
         &self.experience
     }
 
+    pub fn evidence(&self) -> &EvidenceLog {
+        &self.evidence
+    }
+
+    pub fn record_resolved_intent(
+        &mut self,
+        tick: u64,
+        intent_id: u64,
+        source_kind: u64,
+        action_kind: u64,
+    ) -> Result<(), RuntimeError> {
+        self.evidence
+            .append(
+                tick,
+                EvidenceKind::IntentResolved,
+                intent_id,
+                source_kind,
+                action_kind,
+                0,
+                0,
+            )
+            .map(|_| ())
+            .map_err(RuntimeError::Session)
+    }
+
+    pub fn record_operator_action(
+        &mut self,
+        tick: u64,
+        action_id: u64,
+        action_kind: u64,
+    ) -> Result<(), RuntimeError> {
+        self.evidence
+            .append(
+                tick,
+                EvidenceKind::OperatorAction,
+                action_id,
+                action_kind,
+                0,
+                0,
+                0,
+            )
+            .map(|_| ())
+            .map_err(RuntimeError::Session)
+    }
+
     /// Records a telemetry-confirmed transition or an explicitly non-executed
     /// outcome. Callers cannot label predicted states as observed training data.
     pub fn record_model_experience(
@@ -180,7 +234,15 @@ impl PhysicalRuntime {
         received_at_tick: u64,
         maximum_clock_skew_ticks: u64,
     ) -> Result<u64, RuntimeError> {
-        self.adapters
+        self.evidence
+            .reserve_at(received_at_tick, 1)
+            .map_err(RuntimeError::Session)?;
+        let frame_id = frame.metadata.frame_id;
+        let evidence_class = frame.metadata.evidence_class as u64;
+        let adapter_id = frame.adapter_id.0;
+        let endpoint_id = frame.endpoint_id.0;
+        let event_id = self
+            .adapters
             .ingest_frame(
                 &mut self.twin,
                 &mut self.domain,
@@ -188,7 +250,19 @@ impl PhysicalRuntime {
                 received_at_tick,
                 maximum_clock_skew_ticks,
             )
-            .map_err(RuntimeError::Adapter)
+            .map_err(RuntimeError::Adapter)?;
+        self.evidence
+            .append(
+                received_at_tick,
+                EvidenceKind::ObservationAccepted,
+                adapter_id,
+                event_id,
+                endpoint_id,
+                frame_id,
+                evidence_class,
+            )
+            .map_err(RuntimeError::Session)?;
+        Ok(event_id)
     }
 
     pub fn dispatch_next(
@@ -282,13 +356,17 @@ impl PhysicalRuntime {
     }
 
     pub fn preview_command(
-        &self,
+        &mut self,
         command: &AdapterCommand,
         context: SafetyContext,
         predictions: &[PhysicalPrediction],
         current_tick: u64,
     ) -> Result<SafetyDecision, RuntimeError> {
-        self.safety
+        self.evidence
+            .reserve_at(current_tick, 2)
+            .map_err(RuntimeError::Session)?;
+        let decision = self
+            .safety
             .evaluate(
                 &self.adapters,
                 &self.domain,
@@ -298,7 +376,10 @@ impl PhysicalRuntime {
                 predictions,
                 current_tick,
             )
-            .map_err(RuntimeError::Safety)
+            .map_err(RuntimeError::Safety)?;
+        self.record_prediction_summary(command.command_id, predictions, current_tick)?;
+        self.record_safety_decision(command.command_id, &decision, current_tick)?;
+        Ok(decision)
     }
 
     pub fn authorize_and_queue_command(
@@ -308,7 +389,23 @@ impl PhysicalRuntime {
         predictions: &[PhysicalPrediction],
         current_tick: u64,
     ) -> Result<RoutedCommand, RuntimeError> {
-        let decision = self.preview_command(&command, context, predictions, current_tick)?;
+        self.evidence
+            .reserve_at(current_tick, 3)
+            .map_err(RuntimeError::Session)?;
+        let decision = self
+            .safety
+            .evaluate(
+                &self.adapters,
+                &self.domain,
+                &self.twin,
+                &command,
+                context,
+                predictions,
+                current_tick,
+            )
+            .map_err(RuntimeError::Safety)?;
+        self.record_prediction_summary(command.command_id, predictions, current_tick)?;
+        self.record_safety_decision(command.command_id, &decision, current_tick)?;
         if decision.verdict != SafetyVerdict::Allow {
             if decision.verdict == SafetyVerdict::Block {
                 let site_id = self
@@ -374,6 +471,17 @@ impl PhysicalRuntime {
         self.fleet
             .queue_command(routed, current_tick)
             .map_err(RuntimeError::Fleet)?;
+        self.evidence
+            .append(
+                current_tick,
+                EvidenceKind::PermitIssued,
+                routed.command.command_id,
+                routed.policy_revision,
+                routed.twin_event_id,
+                routed.command.deadline_tick,
+                confirmation_code(routed.confirmation),
+            )
+            .map_err(RuntimeError::Session)?;
         Ok(routed)
     }
 
@@ -386,6 +494,9 @@ impl PhysicalRuntime {
         if driver.identity().id != adapter_id {
             return Err(RuntimeError::Adapter(AdapterError::EndpointMismatch));
         }
+        self.evidence
+            .reserve_at(tick, 1)
+            .map_err(RuntimeError::Session)?;
         let routed = match self.fleet.claim_next_ready(adapter_id, tick) {
             Some(routed) => routed,
             None => return Ok(None),
@@ -399,6 +510,17 @@ impl PhysicalRuntime {
                         tick,
                     )
                     .map_err(RuntimeError::Fleet)?;
+                self.evidence
+                    .append(
+                        tick,
+                        EvidenceKind::DeliveryAcknowledged,
+                        routed.command.command_id,
+                        adapter_id.0,
+                        routed.command.endpoint_id.0,
+                        routed.policy_revision,
+                        routed.twin_event_id,
+                    )
+                    .map_err(RuntimeError::Session)?;
                 Ok(Some(routed))
             }
             Err(error) => {
@@ -422,6 +544,17 @@ impl PhysicalRuntime {
                         ReliabilityEventKind::DeviceCommandUncertain,
                     )?;
                 }
+                self.evidence
+                    .append(
+                        tick,
+                        EvidenceKind::DeliveryUncertain,
+                        routed.command.command_id,
+                        adapter_id.0,
+                        routed.command.endpoint_id.0,
+                        routed.policy_revision,
+                        routed.twin_event_id,
+                    )
+                    .map_err(RuntimeError::Session)?;
                 Err(RuntimeError::DeliveryUncertain(error))
             }
         }
@@ -434,6 +567,9 @@ impl PhysicalRuntime {
         health: DeviceHealth,
         tick: u64,
     ) -> Result<(), RuntimeError> {
+        self.evidence
+            .reserve_at(tick, 1)
+            .map_err(RuntimeError::Session)?;
         if self.adapters.adapter(adapter_id).is_none() {
             return Err(RuntimeError::Adapter(AdapterError::UnknownAdapter));
         }
@@ -454,7 +590,19 @@ impl PhysicalRuntime {
         };
         self.adapters
             .set_state(adapter_id, state, tick)
-            .map_err(RuntimeError::Adapter)
+            .map_err(RuntimeError::Adapter)?;
+        self.evidence
+            .append(
+                tick,
+                EvidenceKind::ObservationAccepted,
+                adapter_id.0,
+                session_epoch,
+                health.battery_permille as u64,
+                health.link_quality_permille as u64,
+                health.fault_code as u64,
+            )
+            .map_err(RuntimeError::Session)?;
+        Ok(())
     }
 
     pub fn evaluate_data_access(
@@ -510,6 +658,80 @@ impl PhysicalRuntime {
             .order(job_id)
             .map(|order| order.site_id)
             .ok_or(RuntimeError::Dispatch(DispatchError::UnknownJob))
+    }
+
+    fn record_prediction_summary(
+        &mut self,
+        command_id: u64,
+        predictions: &[PhysicalPrediction],
+        tick: u64,
+    ) -> Result<(), RuntimeError> {
+        let maximum_risk = predictions
+            .iter()
+            .map(|prediction| prediction.risk_permille)
+            .max()
+            .unwrap_or(0);
+        let maximum_uncertainty = predictions
+            .iter()
+            .map(|prediction| prediction.uncertainty_permille)
+            .max()
+            .unwrap_or(0);
+        let validated_count = predictions
+            .iter()
+            .filter(|prediction| prediction.validated_for_gating)
+            .count();
+        self.evidence
+            .append(
+                tick,
+                EvidenceKind::PredictionObserved,
+                command_id,
+                predictions.len() as u64,
+                maximum_risk as u64,
+                maximum_uncertainty as u64,
+                validated_count as u64,
+            )
+            .map(|_| ())
+            .map_err(RuntimeError::Session)
+    }
+
+    fn record_safety_decision(
+        &mut self,
+        command_id: u64,
+        decision: &SafetyDecision,
+        tick: u64,
+    ) -> Result<(), RuntimeError> {
+        let packed_risk = (decision.maximum_validated_risk_permille as u64) << 16
+            | decision.maximum_shadow_risk_permille as u64;
+        self.evidence
+            .append(
+                tick,
+                EvidenceKind::SafetyDecision,
+                command_id,
+                verdict_code(decision.verdict),
+                decision.policy_revision,
+                self.twin.snapshot().latest_event_id,
+                packed_risk,
+            )
+            .map(|_| ())
+            .map_err(RuntimeError::Session)
+    }
+}
+
+const fn verdict_code(verdict: SafetyVerdict) -> u64 {
+    match verdict {
+        SafetyVerdict::Allow => 0,
+        SafetyVerdict::RequireApproval => 1,
+        SafetyVerdict::Block => 2,
+    }
+}
+
+const fn confirmation_code(confirmation: crate::contract::ConfirmationProvenance) -> u64 {
+    match confirmation {
+        crate::contract::ConfirmationProvenance::NotRequired => 0,
+        crate::contract::ConfirmationProvenance::LocalHuman { confirmation_id } => confirmation_id,
+        crate::contract::ConfirmationProvenance::ExternalSupervisor { confirmation_id } => {
+            confirmation_id | (1u64 << 63)
+        }
     }
 }
 
@@ -827,6 +1049,23 @@ mod tests {
             runtime.fleet().command_claim(1).unwrap().state,
             CommandDeliveryState::Acknowledged
         );
+        let kinds: alloc::vec::Vec<_> = runtime
+            .evidence()
+            .records()
+            .iter()
+            .map(|record| record.kind)
+            .collect();
+        assert_eq!(
+            kinds,
+            alloc::vec![
+                EvidenceKind::ObservationAccepted,
+                EvidenceKind::PredictionObserved,
+                EvidenceKind::SafetyDecision,
+                EvidenceKind::PermitIssued,
+                EvidenceKind::DeliveryAcknowledged,
+            ]
+        );
+        assert_eq!(runtime.evidence().verify(), Ok(()));
     }
 
     #[test]
@@ -887,5 +1126,49 @@ mod tests {
                 .uncertain_commands,
             1
         );
+        assert_eq!(
+            runtime.evidence().records().back().unwrap().kind,
+            EvidenceKind::DeliveryUncertain
+        );
+        assert_eq!(runtime.evidence().verify(), Ok(()));
+    }
+
+    #[test]
+    fn evidence_time_reversal_rejects_input_before_twin_mutation() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        assert_eq!(
+            runtime.ingest_adapter_frame(frame(2, 800, 99), 99, 0),
+            Err(RuntimeError::Session(SessionError::TimeReversal))
+        );
+        assert_eq!(runtime.twin().snapshot().latest_event_id, 1);
+        assert_eq!(
+            runtime
+                .adapters()
+                .adapter(AdapterId(1))
+                .unwrap()
+                .last_receive_sequence,
+            1
+        );
+        assert_eq!(runtime.evidence().records().len(), 1);
+    }
+
+    #[test]
+    fn resolved_intent_and_operator_action_have_bounded_public_recorders() {
+        let mut runtime = configured_runtime();
+        runtime.record_resolved_intent(10, 7, 2, 4).unwrap();
+        runtime.record_operator_action(11, 8, 3).unwrap();
+        assert_eq!(runtime.evidence().records().len(), 2);
+        assert_eq!(
+            runtime.evidence().records()[0].kind,
+            EvidenceKind::IntentResolved
+        );
+        assert_eq!(
+            runtime.evidence().records()[1].kind,
+            EvidenceKind::OperatorAction
+        );
+        assert_eq!(runtime.evidence().verify(), Ok(()));
     }
 }

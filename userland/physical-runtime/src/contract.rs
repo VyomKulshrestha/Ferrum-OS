@@ -8,6 +8,7 @@ use crate::adapter::{AdapterProtocol, EndpointCapability};
 pub const CYBER_PHYSICAL_SCHEMA_VERSION: u16 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum EvidenceClass {
     Internal,
     Simulated,

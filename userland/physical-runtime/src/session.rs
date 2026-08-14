@@ -197,6 +197,14 @@ impl EvidenceLog {
         Ok(())
     }
 
+    pub fn reserve_at(&self, tick: u64, additional: usize) -> Result<(), SessionError> {
+        self.reserve(additional)?;
+        if tick < self.last_tick {
+            return Err(SessionError::TimeReversal);
+        }
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn append(
         &mut self,
@@ -208,10 +216,7 @@ impl EvidenceLog {
         detail2: u64,
         detail3: u64,
     ) -> Result<EvidenceRecord, SessionError> {
-        self.reserve(1)?;
-        if tick < self.last_tick {
-            return Err(SessionError::TimeReversal);
-        }
+        self.reserve_at(tick, 1)?;
         let mut record = EvidenceRecord {
             sequence: self.records.len() as u64 + 1,
             tick,
