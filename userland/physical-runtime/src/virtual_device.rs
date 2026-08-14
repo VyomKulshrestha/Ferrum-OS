@@ -286,8 +286,8 @@ impl VirtualDeviceBus {
             if matches!(
                 device.state,
                 VirtualDeviceState::Ready | VirtualDeviceState::Degraded
-            ) && tick.saturating_sub(device.last_heartbeat_tick)
-                > device.heartbeat_deadline_ticks
+            ) && (tick < device.last_heartbeat_tick
+                || tick - device.last_heartbeat_tick > device.heartbeat_deadline_ticks)
             {
                 device.state = VirtualDeviceState::Offline;
             }
@@ -324,7 +324,10 @@ impl VirtualDeviceBus {
         if device.state != VirtualDeviceState::Resetting {
             return Err(VirtualDeviceError::InvalidTransition);
         }
-        device.generation = device.generation.saturating_add(1);
+        device.generation = device
+            .generation
+            .checked_add(1)
+            .ok_or(VirtualDeviceError::InvalidTransition)?;
         device.state = VirtualDeviceState::Discovered;
         device.last_heartbeat_tick = tick;
         Ok(device.generation)
@@ -341,8 +344,12 @@ impl VirtualDeviceBus {
         if device.state == VirtualDeviceState::Removed {
             return Err(VirtualDeviceError::InvalidTransition);
         }
+        let next_generation = device
+            .generation
+            .checked_add(1)
+            .ok_or(VirtualDeviceError::InvalidTransition)?;
         device.state = VirtualDeviceState::Removed;
-        device.generation = device.generation.saturating_add(1);
+        device.generation = next_generation;
         Ok(())
     }
 
@@ -538,6 +545,41 @@ mod tests {
             bus.device(VirtualDeviceId(1)).unwrap().state,
             VirtualDeviceState::Offline
         );
+
+        let mut reversed = VirtualDeviceBus::new();
+        reversed.register(sensor(), None).unwrap();
+        reversed.mark_ready(VirtualDeviceId(1), 4, 1, 10).unwrap();
+        reversed.evaluate_liveness(9);
+        assert_eq!(
+            reversed.device(VirtualDeviceId(1)).unwrap().state,
+            VirtualDeviceState::Offline
+        );
+    }
+
+    #[test]
+    fn zero_and_multiple_devices_have_deterministic_lifecycle() {
+        let mut bus = VirtualDeviceBus::new();
+        assert!(bus.device(VirtualDeviceId(1)).is_none());
+        for id in 1..=16 {
+            let mut descriptor = sensor();
+            descriptor.id = VirtualDeviceId(id);
+            descriptor.endpoint_id = EndpointId(id + 100);
+            bus.register(descriptor, None).unwrap();
+            bus.mark_ready(VirtualDeviceId(id), 4, 1, 10).unwrap();
+        }
+        for id in 1..=16 {
+            assert_eq!(
+                bus.device(VirtualDeviceId(id)).unwrap().state,
+                VirtualDeviceState::Ready
+            );
+        }
+        bus.evaluate_liveness(21);
+        for id in 1..=16 {
+            assert_eq!(
+                bus.device(VirtualDeviceId(id)).unwrap().state,
+                VirtualDeviceState::Offline
+            );
+        }
     }
 
     #[test]
