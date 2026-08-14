@@ -395,7 +395,20 @@ impl FleetManager {
         adapter_id: AdapterId,
         current_tick: u64,
     ) -> Option<RoutedCommand> {
-        for claim in &mut self.command_journal {
+        let stop_position = self.command_journal.iter().position(|claim| {
+            claim.routed.command.adapter_id == adapter_id
+                && claim.routed.command.kind == crate::adapter::CommandKind::Stop
+                && matches!(
+                    claim.state,
+                    CommandDeliveryState::Queued | CommandDeliveryState::Failed
+                )
+                && current_tick <= claim.routed.command.deadline_tick
+        });
+        let ordered_positions = stop_position
+            .into_iter()
+            .chain(0..self.command_journal.len());
+        for position in ordered_positions {
+            let claim = &mut self.command_journal[position];
             if claim.routed.command.adapter_id == adapter_id
                 && matches!(
                     claim.state,
@@ -674,6 +687,21 @@ mod tests {
         assert_eq!(
             fleet.command_claim(1).unwrap().state,
             CommandDeliveryState::Expired
+        );
+    }
+
+    #[test]
+    fn stop_preempts_ordinary_goals_for_the_same_adapter() {
+        let mut fleet = FleetManager::new();
+        fleet.queue_command(command(1, 100), 10).unwrap();
+        let mut stop = command(2, 100);
+        stop.command.kind = CommandKind::Stop;
+        stop.command.metadata.requested_capability = EndpointCapability::EmergencyStop;
+        fleet.queue_command(stop, 10).unwrap();
+        assert_eq!(fleet.claim_next_ready(AdapterId(1), 10), Some(stop));
+        assert_eq!(
+            fleet.claim_next_ready(AdapterId(1), 10),
+            Some(command(1, 100))
         );
     }
 }

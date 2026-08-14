@@ -25,6 +25,10 @@ use crate::safety::{
     SafetyVerdict,
 };
 use crate::session::{EvidenceKind, EvidenceLog, SessionDescriptor, SessionError, SessionMode};
+use crate::supervisor::{
+    AuthoritySeverity, CommandRateLimiter, RecoveryLatch, SupervisorError, WatchdogBank,
+    WatchdogState,
+};
 use crate::twin::{EventPayload, OperationalTwin, TwinError};
 use crate::work::{DispatchError, DispatchReceipt, JobId, WorkGraph, WorkGraphError, WorkOrder};
 
@@ -48,6 +52,7 @@ pub enum RuntimeError {
     Session(SessionError),
     Replay(ReplayError),
     DriverModeMismatch,
+    Supervisor(SupervisorError),
 }
 
 #[derive(Debug)]
@@ -63,6 +68,9 @@ pub struct PhysicalRuntime {
     experience: PhysicalExperienceBuffer,
     evidence: EvidenceLog,
     faults: FaultController,
+    watchdogs: WatchdogBank,
+    command_rate: CommandRateLimiter,
+    recovery: RecoveryLatch,
     runtime_twin_sequence: u64,
     reliability_event_id: u64,
 }
@@ -97,6 +105,9 @@ impl PhysicalRuntime {
             experience: PhysicalExperienceBuffer::new(),
             evidence: EvidenceLog::new(descriptor).map_err(RuntimeError::Session)?,
             faults: FaultController::new(),
+            watchdogs: WatchdogBank::new(),
+            command_rate: CommandRateLimiter::new(100, 16).map_err(RuntimeError::Supervisor)?,
+            recovery: RecoveryLatch::default(),
             runtime_twin_sequence: 0,
             reliability_event_id: 0,
         })
@@ -160,6 +171,26 @@ impl PhysicalRuntime {
 
     pub fn evidence(&self) -> &EvidenceLog {
         &self.evidence
+    }
+
+    pub fn register_watchdog(&mut self, watchdog: WatchdogState) -> Result<(), RuntimeError> {
+        self.watchdogs
+            .register(watchdog)
+            .map_err(RuntimeError::Supervisor)
+    }
+
+    pub fn heartbeat_watchdog(&mut self, id: u64, tick: u64) -> Result<(), RuntimeError> {
+        self.watchdogs
+            .heartbeat(id, tick)
+            .map_err(RuntimeError::Supervisor)
+    }
+
+    pub fn authority_severity(&self, tick: u64) -> AuthoritySeverity {
+        self.watchdogs.severity(tick)
+    }
+
+    pub fn recovery_mut(&mut self) -> &mut RecoveryLatch {
+        &mut self.recovery
     }
 
     pub fn faults(&self) -> &FaultController {
@@ -520,6 +551,13 @@ impl PhysicalRuntime {
         predictions: &[PhysicalPrediction],
         current_tick: u64,
     ) -> Result<RoutedCommand, RuntimeError> {
+        if command.kind != crate::adapter::CommandKind::Stop
+            && self.watchdogs.severity(current_tick) >= AuthoritySeverity::Block
+        {
+            return Err(RuntimeError::Supervisor(
+                SupervisorError::AuthorityUnavailable,
+            ));
+        }
         self.evidence
             .reserve_at(current_tick, 3)
             .map_err(RuntimeError::Session)?;
@@ -587,6 +625,11 @@ impl PhysicalRuntime {
                 current_tick,
             )
             .map_err(RuntimeError::Fleet)?;
+        if command.kind != crate::adapter::CommandKind::Stop {
+            self.command_rate
+                .admit(command.endpoint_id, current_tick)
+                .map_err(RuntimeError::Supervisor)?;
+        }
         let routed = self
             .safety
             .authorize_and_route(
@@ -1260,6 +1303,40 @@ mod tests {
             runtime.fleet().command_claim(1).unwrap().state,
             CommandDeliveryState::Queued
         );
+    }
+
+    #[test]
+    fn expired_controller_watchdog_blocks_motion_before_evidence_or_permit() {
+        let mut runtime = configured_runtime();
+        runtime
+            .register_watchdog(WatchdogState {
+                id: 1,
+                role: crate::supervisor::WatchdogRole::Controller,
+                timeout_ticks: 5,
+                last_heartbeat_tick: 90,
+                armed: true,
+            })
+            .unwrap();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = SafetyContext {
+            expected_policy_revision: 1,
+            expected_twin_event_id: runtime.twin().snapshot().latest_event_id,
+            human_approved: true,
+            requesting_actor_id: None,
+        };
+        assert_eq!(
+            runtime.authority_severity(100),
+            AuthoritySeverity::EmergencyStop
+        );
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(1), context, &[], 100),
+            Err(RuntimeError::Supervisor(
+                SupervisorError::AuthorityUnavailable
+            ))
+        );
+        assert!(runtime.fleet().command_claim(1).is_none());
     }
 
     #[test]

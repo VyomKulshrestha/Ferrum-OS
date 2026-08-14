@@ -68,6 +68,7 @@ pub enum SupervisorError {
     CapacityExceeded,
     UnknownWatchdog,
     RecoveryIncomplete,
+    AuthorityUnavailable,
 }
 
 #[derive(Debug, Default)]
@@ -334,6 +335,10 @@ impl RecoveryLatch {
         }
         *self = Self::default();
         Ok(())
+    }
+
+    pub const fn is_complete(self) -> bool {
+        self.stop_observed && self.controller_safe && self.fresh_twin && self.operator_acknowledged
     }
 }
 
