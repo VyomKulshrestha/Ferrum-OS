@@ -30,6 +30,7 @@ work.md
 nextpath.md
 brain.md
 physical.md
+implementation.md
 
 # Ignore custom certificate keys and intermediate files
 userland/heliox-daemon/certs/*.key
