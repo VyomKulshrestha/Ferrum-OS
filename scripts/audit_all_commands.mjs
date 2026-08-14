@@ -114,11 +114,19 @@ const requiredOutput = new Map([
   ["heliox neural arm", "heliox neural: arm requested"],
   ["heliox neural disarm", "heliox neural: disarm requested"],
   ["ring3 init", "Dispatching ring-3 init"],
+  ["agent status", "Agent Runtime Boundary"],
+  ["uptime", "Uptime:"],
+  ["heliox status", "Heliox-OS Integration Bridge"],
 ]);
-async function runCmd(cmd, waitSeconds = 8) {
+async function runCmd(cmd, waitSeconds = 8, verifyContiguousEcho = true) {
   const before = serialText().length;
   await sendText(cmd);
-  if (!await waitForSerial(cmd, 2, before)) {
+  // Once ring-3 services are live, their serial logs can be emitted between
+  // individual physical-key echoes (for example `ag[init] heartbeat\nent`).
+  // The shell still receives the complete command, but a contiguous substring
+  // is no longer a valid input-delivery oracle. Post-ring3 callers therefore
+  // verify the command-specific response and returned prompt instead.
+  if (verifyContiguousEcho && !await waitForSerial(cmd, 2, before)) {
     console.log(`[audit] incomplete keyboard echo; clearing and retrying slowly: ${cmd}`);
     await sendKey("ctrl-u", 300);
     await sendText(cmd, 300);
@@ -279,9 +287,9 @@ try {
     throw new Error("ring3 init did not start a live heliox-daemon");
   }
   await sleep(250);
-  await runCmd("agent status");
-  await runCmd("uptime");
-  await runCmd("heliox status");
+  await runCmd("agent status", 8, false);
+  await runCmd("uptime", 8, false);
+  await runCmd("heliox status", 8, false);
 
   console.log("\n[audit] all commands attempted, writing raw log...");
 } catch (err) {
