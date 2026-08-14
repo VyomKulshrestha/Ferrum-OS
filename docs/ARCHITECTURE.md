@@ -810,8 +810,8 @@ held-out H=3 rollout error is 1.05% versus 1.75% for that autoencoder, while the
 OOD fixture still records 42 false negatives. All results are deterministic
 simulator evidence, never checkpoint-selection or execution authority.
 
-This closes the planned software contracts for a simulator-backed reference
-platform. It does not close deployment work: installing and operating actual
+The implemented simulator-backed reference platform includes these software
+contracts. It does not demonstrate deployment work: installing and operating actual
 ROS 2/DDS, MQTT, or CAN gateways; real sensors, wearables, robots, and MCU-owned
 motor loops; independent electrical interlocks; measured hardware-in-the-loop;
 hard-real-time evidence; live-human EEG; field data; independent safety
