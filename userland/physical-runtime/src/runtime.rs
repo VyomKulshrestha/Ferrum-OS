@@ -963,7 +963,17 @@ mod tests {
     use alloc::vec;
 
     fn configured_runtime() -> PhysicalRuntime {
-        let mut runtime = PhysicalRuntime::new();
+        configured_runtime_with(
+            SessionDescriptor::simulator(1, 1, 42),
+            AdapterProtocol::Simulator,
+        )
+    }
+
+    fn configured_runtime_with(
+        descriptor: SessionDescriptor,
+        protocol: AdapterProtocol,
+    ) -> PhysicalRuntime {
+        let mut runtime = PhysicalRuntime::new_with_session(descriptor).unwrap();
         runtime
             .domain_mut()
             .register_site(Site {
@@ -1006,7 +1016,7 @@ mod tests {
         let identity = AdapterIdentity {
             id: AdapterId(1),
             site_id: SiteId(1),
-            protocol: AdapterProtocol::Simulator,
+            protocol,
             public_key_sha256: [7; 32],
             firmware_version: 1,
             session_epoch: 5,
@@ -1302,6 +1312,48 @@ mod tests {
         assert_eq!(
             runtime.fleet().command_claim(1).unwrap().state,
             CommandDeliveryState::Queued
+        );
+    }
+
+    #[test]
+    fn actuator_disabled_hil_runs_full_permit_path_without_physical_driver() {
+        let descriptor = SessionDescriptor {
+            run_id: 9,
+            parent_run_id: 0,
+            fork_sequence: 0,
+            simulator_epoch: 4,
+            seed: 42,
+            started_at_tick: 0,
+            mode: SessionMode::HardwareInLoopActuatorDisabled,
+            topology_sha256: [1; 32],
+            policy_sha256: [2; 32],
+            model_sha256: [3; 32],
+        };
+        let mut runtime = configured_runtime_with(descriptor, AdapterProtocol::Mqtt);
+        let mut input = frame(1, 900, 100);
+        input.metadata.evidence_class = crate::contract::EvidenceClass::HardwareInLoop;
+        input.metadata.integrity =
+            crate::contract::IntegrityEvidence::TransportAuthenticated([4; 32]);
+        runtime.ingest_adapter_frame(input, 100, 0).unwrap();
+        let context = SafetyContext {
+            expected_policy_revision: 1,
+            expected_twin_event_id: runtime.twin().snapshot().latest_event_id,
+            human_approved: true,
+            requesting_actor_id: None,
+        };
+        let routed = runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut disabled = crate::adapter::ActuatorDisabledAdapter::new(identity).unwrap();
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut disabled, 100),
+            Ok(Some(routed))
+        );
+        assert_eq!(disabled.recorded_commands(), &[routed]);
+        assert_eq!(
+            disabled.execution_mode(),
+            DriverExecutionMode::ActuatorDisabled
         );
     }
 
