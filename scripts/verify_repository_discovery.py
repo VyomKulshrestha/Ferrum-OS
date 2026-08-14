@@ -147,7 +147,7 @@ def main() -> int:
         "capability catalog uses versioned schema",
     )
     require(
-        benchmarks["schema_version"] == "2.0.0",
+        benchmarks["schema_version"] == "2.1.0",
         "benchmark summary uses versioned schema",
     )
     require(
@@ -166,6 +166,10 @@ def main() -> int:
     require(
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,
         "neural no-control count remains zero",
+    )
+    require(
+        benchmarks["cyber_physical_software"]["contract_tests_passed"] == 152,
+        "cyber-physical contract evidence is discoverable",
     )
     require(
         "formal safety certificate" in proof,

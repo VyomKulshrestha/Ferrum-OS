@@ -18,13 +18,14 @@
     "physical_simulator_jepa",
     "neural_synthetic",
     "qemu_command_audit",
+    "cyber_physical_software",
     "metric_definitions",
     "provenance",
     "global_limitations"
   ],
   "properties": {
     "$schema": { "const": "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main/schemas/benchmarks.schema.json" },
-    "schema_version": { "const": "2.0.0" },
+    "schema_version": { "const": "2.1.0" },
     "canonical_url": { "type": "string", "format": "uri" },
     "snapshot_date": { "type": "string", "format": "date" },
     "benchmark_scope": {
@@ -38,6 +39,7 @@
     "physical_simulator_jepa": { "$ref": "#/$defs/evidenceSection" },
     "neural_synthetic": { "$ref": "#/$defs/evidenceSection" },
     "qemu_command_audit": { "$ref": "#/$defs/evidenceSection" },
+    "cyber_physical_software": { "$ref": "#/$defs/evidenceSection" },
     "metric_definitions": {
       "type": "object",
       "minProperties": 1,

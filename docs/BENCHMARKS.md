@@ -14,6 +14,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Physical JEPA | 99.44% balanced accuracy, 1 FN, 16 FP | Real robot safety; the artifact is shadow-only |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
+| Cyber-physical software tier | 152 contract tests and 32 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
 
 ## Published world-model study
 
@@ -50,6 +51,12 @@ The physical JEPA uses 15,000 transitions from 2,500 deterministic simulator epi
 
 The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 600 accepted signal trials at 100.00% accuracy, 400 artifact trials at 100.00% abstention, and zero emitted candidates in 10,000 no-control windows. OS commit still requires pairing, calibration, non-neural arming, a signed preview, and revision checks.
 
+## Simulator-backed cyber-physical software tier
+
+At source `167b047`, 152 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 32 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+
+This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
+
 ## Reproduce
 
 ```powershell
@@ -57,6 +64,8 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v
+python -m unittest tools.physical_sim_bridge.test_bridge -v
+python scripts/verify_physical_jepa_robustness.py
 python scripts/verify_qemu_command_evidence.py
 node scripts/benchmark_world_model_runtime.mjs --iterations 100
 node scripts/verify_world_model_preview_concurrency.mjs
@@ -65,7 +74,7 @@ python scripts/generate_public_evidence.py --check
 
 ## Global limitations
 
-- The paper, physical simulator, and neural synthetic evaluations use different protocols and are not directly comparable.
+- The paper, physical simulator, neural synthetic, QEMU, and cyber-physical software evaluations use different protocols and are not directly comparable.
 - No live EEG, human neural calibration, robot hardware-in-the-loop, or broad physical-PC benchmark is claimed.
 - Ring-3 timing uses a virtualized 1 kHz PIT; provider, tool execution, and operator-confirmation latency are excluded.
 - A passing benchmark is evidence for its named fixture and protocol, not formal safety proof.

@@ -12,6 +12,7 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | Physical model | 99.44% simulator balanced accuracy; permanently shadow-only |
 | Neural input | 600 synthetic signals, 400 artifact abstentions, zero candidates in 10,000 no-control windows |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries for OS source `c92056d` |
+| Cyber-physical software | 152 contract tests and 32 model/decoder gates passed at source `167b047` |
 
 Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [full agent-readable context](llms-full.txt), [citation guide](docs/CITATION.md), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
 
@@ -21,6 +22,8 @@ Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine
 - Camera frames are synthetic; physical camera, gaze, and gesture accuracy are not claimed.
 - Neural results are synthetic software evidence, not live EEG or medical evidence.
 - Physical-world results use a deterministic simulator; the learned artifact has no actuator authority.
+- Simulator connectors and ROS 2/MQTT/CAN contracts are software-tested boundaries, not evidence of installed infrastructure or physical delivery.
+- Host-managed agent cells define an isolation contract; Ferrum does not claim a native hypervisor or measured microVM containment.
 - The published 500-episode safety fixture is authored and balanced; it is not natural-use prevalence.
 - JEPA does not materially outperform the per-action mean safety baseline on the published fixture.
 - Passing automated checks does not establish formal safety or independent replication.

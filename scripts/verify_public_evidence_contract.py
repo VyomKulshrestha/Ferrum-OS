@@ -93,7 +93,7 @@ def main() -> int:
         "capability schema version is explicit",
     )
     require(
-        benchmarks["schema_version"] == "2.0.0", "benchmark schema version is explicit"
+        benchmarks["schema_version"] == "2.1.0", "benchmark schema version is explicit"
     )
 
     actions = capabilities["actions"]
@@ -141,6 +141,7 @@ def main() -> int:
         "physical_simulator_jepa",
         "neural_synthetic",
         "qemu_command_audit",
+        "cyber_physical_software",
     ]
     protocol_ids = [benchmarks[name]["protocol_id"] for name in sections]
     require(
@@ -175,6 +176,20 @@ def main() -> int:
         qemu["catalog_entries"] == qemu["catalog_passed"] == 81
         and qemu["unknown_command_paths"] == 0,
         "dated QEMU catalog audit records 81 passing entries",
+    )
+    cyber = benchmarks["cyber_physical_software"]
+    require(
+        cyber["contract_tests_passed"] == 152 and cyber["contract_tests_failed"] == 0,
+        "cyber-physical software contract records 152 passing tests",
+    )
+    require(
+        cyber["model_and_decoder_gates_passed"] == 32
+        and cyber["model_and_decoder_gates_failed"] == 0,
+        "cyber-physical model and decoder checks record 32 passing gates",
+    )
+    require(
+        "does not prove" in cyber["claim_boundary"],
+        "cyber-physical software evidence preserves external claim boundaries",
     )
     require(
         "not directly comparable" in " ".join(benchmarks["global_limitations"]),

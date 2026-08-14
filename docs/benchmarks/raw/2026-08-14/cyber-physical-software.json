@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_id": "cyber-physical-software-regression-2026-08-14",
+  "snapshot_date": "2026-08-14",
+  "source_commit": "167b04766ee5ea3c5714cd09a551feb7bc78f359",
+  "environment": {
+    "host_os": "Windows 11",
+    "rust_target": "x86_64-pc-windows-msvc",
+    "python_runtime": "CPython"
+  },
+  "contract_suites": [
+    {
+      "component": "ferrum-physical-runtime",
+      "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
+      "passed": 117,
+      "failed": 0
+    },
+    {
+      "component": "ferrum-neural-protocol",
+      "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "component": "neurod",
+      "command": "python -m unittest discover -s tools/neurod -p test_*.py",
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "component": "physical-simulator-bridge",
+      "command": "python -m unittest tools.physical_sim_bridge.test_bridge",
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "model_and_decoder_gates": [
+    {
+      "component": "physical-world-model",
+      "command": "python scripts/verify_physical_world_model.py --quick",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "component": "physical-jepa-robustness",
+      "command": "python scripts/verify_physical_jepa_robustness.py",
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "component": "neural-simulator",
+      "command": "python scripts/evaluate_neural_simulator.py --output target/neural-simulator-audit.json",
+      "passed": 3,
+      "failed": 0
+    }
+  ],
+  "contract_tests_passed": 152,
+  "contract_tests_failed": 0,
+  "model_and_decoder_gates_passed": 32,
+  "model_and_decoder_gates_failed": 0,
+  "covered_software_boundaries": [
+    "versioned provenance and logical clocks",
+    "deterministic sessions replay and fault injection",
+    "virtual sensor actuator EEG watchdog and stop contracts",
+    "scripted Gazebo ROS 2 and Webots bridge boundaries",
+    "deterministic supervisor watchdog recovery and stop priority",
+    "ROS 2 MQTT and CAN transport conformance",
+    "actuator-disabled delivery",
+    "bounded neural intent and proposal-only physical goals",
+    "shadow-only physical JEPA evaluation",
+    "host-managed agent-cell contract",
+    "privacy retention reliability and incident primitives"
+  ],
+  "claim_boundary": "Local deterministic software regression on the named commit. It does not prove an installed Gazebo or Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical clocks, actuator hardware, robot safety, live EEG, hard-real-time behavior, native hypervisor containment, certification, or independent replication."
+}

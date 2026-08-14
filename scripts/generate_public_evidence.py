@@ -220,6 +220,9 @@ def aggregate_benchmarks() -> dict:
     ]
     neural_path = RAW_DIR / "neural-synthetic.json"
     qemu_command_path = RAW_DIR / "qemu-command-audit.json"
+    cyber_physical_path = (
+        BENCHMARK_DIR / "raw" / "2026-08-14" / "cyber-physical-software.json"
+    )
     paper_path = ROOT / "docs" / "research" / "world_model_paper_evaluation.json"
     training_path = ROOT / "docs" / "research" / "world_model_training_config.json"
     physical_path = ROOT / "docs" / "research" / "physical_world_model_evaluation.json"
@@ -230,6 +233,7 @@ def aggregate_benchmarks() -> dict:
         *queue_after_paths,
         neural_path,
         qemu_command_path,
+        cyber_physical_path,
         paper_path,
         training_path,
         physical_path,
@@ -241,6 +245,7 @@ def aggregate_benchmarks() -> dict:
     queue_after = [load_json(path) for path in queue_after_paths]
     neural = load_json(neural_path)
     qemu_command = load_json(qemu_command_path)
+    cyber_physical = load_json(cyber_physical_path)
     paper = load_json(paper_path)
     training = load_json(training_path)
     physical = load_json(physical_path)
@@ -277,9 +282,9 @@ def aggregate_benchmarks() -> dict:
 
     summary = {
         "$schema": BENCHMARK_SCHEMA_URL,
-        "schema_version": "2.0.0",
+        "schema_version": "2.1.0",
         "canonical_url": f"{REPOSITORY_URL}/blob/main/benchmarks.json",
-        "snapshot_date": manifest["snapshot_date"],
+        "snapshot_date": cyber_physical["snapshot_date"],
         "benchmark_scope": {
             "source_channel": "current main evidence plus frozen research artifacts",
             "latest_tagged_software_release": "v0.1.1",
@@ -394,6 +399,26 @@ def aggregate_benchmarks() -> dict:
             ],
             "claim_boundary": qemu_command["claim_boundary"],
         },
+        "cyber_physical_software": {
+            "evidence_grade": "local-deterministic-regression",
+            "protocol_id": cyber_physical["protocol_id"],
+            "source_commit": cyber_physical["source_commit"],
+            "environment": cyber_physical["environment"],
+            "contract_suites": cyber_physical["contract_suites"],
+            "model_and_decoder_gates": cyber_physical["model_and_decoder_gates"],
+            "contract_tests_passed": cyber_physical["contract_tests_passed"],
+            "contract_tests_failed": cyber_physical["contract_tests_failed"],
+            "model_and_decoder_gates_passed": cyber_physical[
+                "model_and_decoder_gates_passed"
+            ],
+            "model_and_decoder_gates_failed": cyber_physical[
+                "model_and_decoder_gates_failed"
+            ],
+            "covered_software_boundaries": cyber_physical[
+                "covered_software_boundaries"
+            ],
+            "claim_boundary": cyber_physical["claim_boundary"],
+        },
         "metric_definitions": {
             "balanced_accuracy": {
                 "unit": "ratio",
@@ -427,7 +452,7 @@ def aggregate_benchmarks() -> dict:
             "inputs": source_records(evidence_paths),
         },
         "global_limitations": [
-            "The paper, physical simulator, and neural synthetic evaluations use different protocols and are not directly comparable.",
+            "The paper, physical simulator, neural synthetic, QEMU, and cyber-physical software evaluations use different protocols and are not directly comparable.",
             "No live EEG, human neural calibration, robot hardware-in-the-loop, or broad physical-PC benchmark is claimed.",
             "Ring-3 timing uses a virtualized 1 kHz PIT; provider, tool execution, and operator-confirmation latency are excluded.",
             "A passing benchmark is evidence for its named fixture and protocol, not formal safety proof.",
@@ -447,6 +472,7 @@ def benchmark_markdown(summary: dict) -> str:
     physical = summary["physical_simulator_jepa"]
     neural = summary["neural_synthetic"]
     qemu = summary["qemu_command_audit"]
+    cyber = summary["cyber_physical_software"]
     runtime_rows = "\n".join(
         f"| H={row['horizon']} | {row['mean_microseconds_range'][0] / 1000:.2f}-{row['mean_microseconds_range'][1] / 1000:.2f} ms | "
         f"{row['median_run_mean_microseconds'] / 1000:.2f} ms | {max(row['p95_microseconds_across_runs']) / 1000:.2f} ms |"
@@ -469,6 +495,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Physical JEPA | {percent(physical["rules_plus_jepa_balanced_accuracy"])} balanced accuracy, {physical["false_negatives"]} FN, {physical["false_positives"]} FP | Real robot safety; the artifact is shadow-only |
 | Neural decoder | {neural["signal_trials"]}/{neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]}/{neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Broad physical-PC compatibility or independent replication |
+| Cyber-physical software tier | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
 
 ## Published world-model study
 
@@ -501,6 +528,12 @@ The physical JEPA uses {physical["transitions"]:,} transitions from {physical["e
 
 The neural decoder evaluation is deterministic synthetic SSVEP evidence only: {neural["signal_trials"]} accepted signal trials at {percent(neural["accepted_signal_accuracy"])} accuracy, {neural["artifact_trials"]} artifact trials at {percent(neural["artifact_abstention_rate"])} abstention, and zero emitted candidates in {neural["no_control_windows"]:,} no-control windows. OS commit still requires pairing, calibration, non-neural arming, a signed preview, and revision checks.
 
+## Simulator-backed cyber-physical software tier
+
+At source `{cyber["source_commit"][:7]}`, {cyber["contract_tests_passed"]} deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; {cyber["model_and_decoder_gates_passed"]} physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+
+This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
+
 ## Reproduce
 
 ```powershell
@@ -508,6 +541,8 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v
+python -m unittest tools.physical_sim_bridge.test_bridge -v
+python scripts/verify_physical_jepa_robustness.py
 python scripts/verify_qemu_command_evidence.py
 node scripts/benchmark_world_model_runtime.mjs --iterations 100
 node scripts/verify_world_model_preview_concurrency.mjs
@@ -528,6 +563,7 @@ def proof_markdown(summary: dict, capabilities: dict) -> str:
     physical = summary["physical_simulator_jepa"]
     neural = summary["neural_synthetic"]
     qemu = summary["qemu_command_audit"]
+    cyber = summary["cyber_physical_software"]
     return f"""# FerrumOS Proof Center
 
 FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ring-3 agent daemon, capability-gated syscalls, and a provider-independent predictive safety screen. This page links claims to reproducible evidence; it is not a formal safety certificate. The latest tagged software release is `v0.1.1`; current-main capability and benchmark evidence is labeled separately and does not retroactively describe that tag.
@@ -542,6 +578,7 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | Physical model | {percent(physical["rules_plus_jepa_balanced_accuracy"])} simulator balanced accuracy; permanently shadow-only |
 | Neural input | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, zero candidates in {neural["no_control_windows"]:,} no-control windows |
 | QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries for OS source `{qemu["os_source_commit"][:7]}` |
+| Cyber-physical software | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed at source `{cyber["source_commit"][:7]}` |
 
 Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [full agent-readable context](llms-full.txt), [citation guide](docs/CITATION.md), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
 
@@ -551,6 +588,8 @@ Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine
 - Camera frames are synthetic; physical camera, gaze, and gesture accuracy are not claimed.
 - Neural results are synthetic software evidence, not live EEG or medical evidence.
 - Physical-world results use a deterministic simulator; the learned artifact has no actuator authority.
+- Simulator connectors and ROS 2/MQTT/CAN contracts are software-tested boundaries, not evidence of installed infrastructure or physical delivery.
+- Host-managed agent cells define an isolation contract; Ferrum does not claim a native hypervisor or measured microVM containment.
 - The published 500-episode safety fixture is authored and balanced; it is not natural-use prevalence.
 - JEPA does not materially outperform the per-action mean safety baseline on the published fixture.
 - Passing automated checks does not establish formal safety or independent replication.
@@ -564,6 +603,7 @@ def llms_full_markdown(summary: dict, capabilities: dict) -> str:
     physical = summary["physical_simulator_jepa"]
     neural = summary["neural_synthetic"]
     qemu = summary["qemu_command_audit"]
+    cyber = summary["cyber_physical_software"]
     action_rows = "\n".join(
         "| `{name}` | {category} | {tier} ({tier_name}) | {confirmation} |".format(
             name=action["name"],
@@ -593,6 +633,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 - Learned risk is monotonic: it may add caution but cannot remove a deterministic rule warning.
 - Catalog membership is not an independent semantic postcondition proof for every action.
 - Neural physical intent remains proposal-only and cannot invoke an actuator adapter.
+- The simulator-backed cyber-physical tier includes deterministic session/replay, virtual-device, bridge, supervisor, transport-conformance, actuator-disabled, host-cell, privacy, and reliability contracts. It does not establish live deployment or hardware safety.
 
 ## Canonical actions ({capabilities["canonical_action_count"]})
 
@@ -610,8 +651,9 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `{physical["protocol_id"]}` | {percent(physical["rules_plus_jepa_balanced_accuracy"])}, {physical["false_negatives"]} FN, {physical["false_positives"]} FP | Deterministic simulator; permanently shadow-only |
 | `{neural["protocol_id"]}` | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | No live EEG, human, medical, or usability claim |
 | `{qemu["protocol_id"]}` | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
+| `{cyber["protocol_id"]}` | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
 
-The six evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
+The seven evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 
 ## Canonical evidence and documentation
 
@@ -637,6 +679,8 @@ python scripts/verify_public_evidence_contract.py
 python scripts/verify_repository_discovery.py
 python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_robustness.py
+python -m unittest tools.physical_sim_bridge.test_bridge
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python scripts/verify_qemu_command_evidence.py
 ```

@@ -31,6 +31,7 @@ The latest tagged software release is v0.1.1 and has no prebuilt OS image. The c
 - Ring-3 preview: 1.29-1.57 ms run-mean range over three WHPX runs; timing excludes provider, action execution, and confirmation.
 - Physical JEPA: deterministic simulator evidence only; the artifact is permanently shadow-only.
 - Neural decoder: deterministic synthetic SSVEP evidence only; no live EEG, human calibration, medical, or usability claim.
+- Cyber-physical software: 152 deterministic contract tests and 32 model/decoder gates pass for the named local regression snapshot. This covers software contracts, not installed simulators/transports, robot hardware, hard-real-time behavior, native hypervisor containment, certification, or independent replication.
 - Camera: synthetic YUYV generator in the current release; no UVC hardware driver.
 - General claim: automated evidence is not formal safety proof or independent replication.
 

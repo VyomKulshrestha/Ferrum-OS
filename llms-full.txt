@@ -17,6 +17,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 - Learned risk is monotonic: it may add caution but cannot remove a deterministic rule warning.
 - Catalog membership is not an independent semantic postcondition proof for every action.
 - Neural physical intent remains proposal-only and cannot invoke an actuator adapter.
+- The simulator-backed cyber-physical tier includes deterministic session/replay, virtual-device, bridge, supervisor, transport-conformance, actuator-disabled, host-cell, privacy, and reliability contracts. It does not establish live deployment or hardware safety.
 
 ## Canonical actions (41)
 
@@ -74,8 +75,9 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `physical-jepa-simulator-v1` | 99.44%, 1 FN, 16 FP | Deterministic simulator; permanently shadow-only |
 | `neural-ssvep-synthetic-v1` | 600 synthetic signals, 400 artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG, human, medical, or usability claim |
 | `ferrumos-qemu-command-audit-v1` | 101/101 focused cases and 81/81 exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
+| `cyber-physical-software-regression-2026-08-14` | 152 contract tests and 32 model/decoder gates passed | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
 
-The six evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
+The seven evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 
 ## Canonical evidence and documentation
 
@@ -101,6 +103,8 @@ python scripts/verify_public_evidence_contract.py
 python scripts/verify_repository_discovery.py
 python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_robustness.py
+python -m unittest tools.physical_sim_bridge.test_bridge
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python scripts/verify_qemu_command_evidence.py
 ```

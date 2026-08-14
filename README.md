@@ -8,8 +8,9 @@
 [![Explore FerrumOS](https://img.shields.io/badge/Explore-FerrumOS-29d9c2)](https://ferrum-os.vercel.app)
 [![Sponsor FerrumOS](https://img.shields.io/badge/Sponsor-FerrumOS-EA4AAA?logo=githubsponsors)](https://github.com/sponsors/VyomKulshrestha)
 
-FerrumOS is a Rust AI-native OS: a bootable x86_64 research operating system
-for studying AI agents that act below the application layer. It combines a
+FerrumOS is a Rust AI-native and simulator-backed cyber-physical research OS: a
+bootable x86_64 operating system for studying AI agents that act below the
+application layer and across bounded physical-work contracts. It combines a
 deterministic kernel, real Ring-3 userland, capability-gated syscalls, a
 graphical desktop, and a provider-independent JEPA world-model preview before
 agent actions reach implemented OS and device services.
@@ -30,7 +31,9 @@ The report, software, and dataset are separate artifacts; use the
 > synthetic, physical-world learning is simulator-only and shadow-only, and
 > neural results use deterministic synthetic EEG fixtures. Broad physical-PC,
 > live-EEG, medical, robot-deployment, and formal-safety claims are out of
-> scope.
+> scope. ROS 2, MQTT, CAN, Gazebo, Webots, and actuator-disabled interfaces are
+> software-tested contracts, not evidence of installed infrastructure or
+> physical execution.
 
 > [!NOTE]
 > The latest tagged software release is `v0.1.1`; its GitHub release has source
@@ -61,6 +64,7 @@ The report, software, and dataset are separate artifacts; use the
 | Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
 | Physical JEPA | **99.44%** balanced accuracy, 1 FN, 16 FP on a deterministic simulator | Permanently shadow-only; no actuator authority |
 | Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
+| Cyber-physical software | **152/152** deterministic contract tests and **32/32** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
 
 Every value above is derived and checked by
 `scripts/generate_public_evidence.py`; protocols, raw results, commit IDs, and
@@ -83,7 +87,8 @@ This is a category-level architecture comparison, not a superiority claim.
 - Agentic operating-system and capability-security research.
 - Reproducible JEPA/world-model screening at an OS action boundary.
 - Ring-0/Ring-3, syscall, scheduler, filesystem, driver, and desktop OS work in Rust.
-- Safe simulation of physical operations and proposal-only neural intent.
+- Safe simulation of physical operations, transport-conformance research,
+  actuator-disabled delivery, and proposal-only neural intent.
 - QEMU-based evaluation of agent actions, confirmation gates, failure modes,
   and provider-independent policy enforcement.
 
@@ -250,6 +255,9 @@ real-hardware or certified industrial deployment.
 - Typed sites, assets, human/robot/agent actors, capabilities, qualifications,
   work orders, dependency graphs, deterministic dispatch, and approval-aware
   task lifecycle.
+- Versioned observation/command envelopes, bounded logical clocks, checksummed
+  evidence sessions, deterministic replay/fork, explicit fault manifests, and
+  virtual sensor/actuator/EEG/watchdog/stop device lifecycles.
 - Attested adapter identities, endpoints, replay-protected telemetry, canonical
   commands, single-use execution claims, an operational digital twin, fleet
   provisioning/health/signed-update rollback, reliability objectives, and
@@ -272,19 +280,33 @@ real-hardware or certified industrial deployment.
   bytes cannot promote it into gating authority. Only telemetry-confirmed
   execution can enter the bounded transition-fit experience stream; refusals,
   uncertain deliveries, and simulated predictions remain audit-only.
+- A transport-neutral host bridge implements deterministic scripted tests plus
+  optional Gazebo/ROS 2 and Webots connectors. ROS 2, MQTT, and CAN conformance
+  rules cover bounded QoS, mTLS/ACL, expiry, retained-message rejection,
+  CRC/counter checks, bus-off, replay, and common-state semantics.
+- Watchdogs, stop-priority queues, bounded resources/rates, recovery latches,
+  actuator-disabled acknowledgements, and permit revalidation fail closed.
+- Host-managed agent cells define attested identity, proposal-only capability,
+  IPC, quota, restart, quarantine, and termination contracts. Ferrum does not
+  claim a native hypervisor or measured microVM containment.
 
 Run the model reproduction and the booted maintenance vertical with:
 
 ```powershell
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_robustness.py
+python -m unittest tools.physical_sim_bridge.test_bridge
+cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs
 ```
 
 The demo requires `confirm_simulation=true`, routes provider-equivalent and
 direct RPC calls through the same service, blocks unsafe motion with the
-deterministic supervisor, and completes safe delivery in QEMU. Real ROS 2,
-MQTT, CAN, wearable gateways, field telemetry, hardware emergency controllers,
-and natural-use validation are not demonstrated capabilities.
+deterministic supervisor, and completes safe delivery in QEMU. The repository
+now implements and tests ROS 2/MQTT/CAN and simulator-facing software contracts;
+it does not claim a running third-party deployment, wearable gateway, field
+telemetry, physical emergency controller, robot execution, or natural-use
+validation.
 
 ### Hybrid World-Model Training
 
