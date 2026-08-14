@@ -189,8 +189,8 @@ impl HostCellManager {
         if cell.state != CellState::Running {
             return Err(IsolationError::InvalidTransition);
         }
-        if tick.saturating_sub(cell.last_heartbeat_tick)
-            > cell.manifest.quota.heartbeat_timeout_ticks
+        if tick < cell.last_heartbeat_tick
+            || tick - cell.last_heartbeat_tick > cell.manifest.quota.heartbeat_timeout_ticks
         {
             cell.state = CellState::Quarantined;
             return Err(IsolationError::HeartbeatExpired);
@@ -213,7 +213,11 @@ impl HostCellManager {
         if envelope.payload_bytes > cell.manifest.quota.maximum_message_bytes {
             return Err(IsolationError::QuotaExceeded);
         }
-        if tick.saturating_sub(cell.window_started_at_tick) >= 1_000 {
+        if tick < cell.window_started_at_tick {
+            cell.state = CellState::Quarantined;
+            return Err(IsolationError::Replay);
+        }
+        if tick - cell.window_started_at_tick >= 1_000 {
             cell.window_started_at_tick = tick;
             cell.messages_in_window = 0;
         }
@@ -372,5 +376,14 @@ mod tests {
         assert_eq!(manager.state(1), Some(CellState::Quarantined));
         manager.terminate(1).unwrap();
         assert_eq!(manager.state(1), Some(CellState::Terminated));
+
+        let mut reversed = HostCellManager::new();
+        reversed.register(manifest()).unwrap();
+        let generation = reversed.launch(1, 10).unwrap();
+        assert_eq!(
+            reversed.admit(envelope(generation, 1), 9),
+            Err(IsolationError::HeartbeatExpired)
+        );
+        assert_eq!(reversed.state(1), Some(CellState::Quarantined));
     }
 }

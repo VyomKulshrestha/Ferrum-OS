@@ -411,7 +411,8 @@ impl SafetySupervisor {
             .find(|policy| policy.revision == decision.policy_revision)
             .map_or(1, |policy| policy.permit_ttl_ticks);
         let expires_at_tick = current_tick
-            .saturating_add(policy_ttl)
+            .checked_add(policy_ttl)
+            .ok_or(SafetyError::InvalidPolicy)?
             .min(command.deadline_tick);
         adapters
             .route_authorized(

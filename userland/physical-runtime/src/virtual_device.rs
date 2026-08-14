@@ -363,11 +363,14 @@ impl VirtualDeviceBus {
         if device.state != VirtualDeviceState::Ready || ttl_ticks == 0 {
             return Err(VirtualDeviceError::DeviceUnavailable);
         }
+        let expires_at_tick = tick
+            .checked_add(ttl_ticks)
+            .ok_or(VirtualDeviceError::InvalidTransition)?;
         Ok(VirtualDeviceLease {
             device_id: id,
             session_epoch: device.session_epoch,
             generation: device.generation,
-            expires_at_tick: tick.saturating_add(ttl_ticks),
+            expires_at_tick,
         })
     }
 
@@ -492,6 +495,10 @@ mod tests {
         assert_eq!(
             bus.validate_lease(lease, 16),
             Err(VirtualDeviceError::LeaseExpired)
+        );
+        assert_eq!(
+            bus.issue_lease(VirtualDeviceId(1), u64::MAX - 1, 5),
+            Err(VirtualDeviceError::InvalidTransition)
         );
     }
 

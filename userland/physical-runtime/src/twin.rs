@@ -238,7 +238,8 @@ impl OperationalTwin {
         maximum_age_ticks: u64,
     ) -> bool {
         self.sensor(sensor_id).is_some_and(|reading| {
-            current_tick.saturating_sub(reading.observed_at_tick) <= maximum_age_ticks
+            current_tick >= reading.observed_at_tick
+                && current_tick - reading.observed_at_tick <= maximum_age_ticks
         })
     }
 

@@ -345,7 +345,8 @@ fn best_actor(
         .filter(|actor| {
             actor.site_id == site_id
                 && actor.is_dispatchable_at(tick)
-                && tick.saturating_sub(actor.last_seen_tick) <= max_staleness_ticks
+                && tick >= actor.last_seen_tick
+                && tick - actor.last_seen_tick <= max_staleness_ticks
                 && actor.position.zone_id == task.zone_id
                 && task.actor_constraint.accepts(actor.kind)
                 && actor.capabilities.contains_all(task.required_capabilities)
@@ -691,6 +692,12 @@ mod tests {
             .unwrap();
         assert_eq!(
             graph.dispatch_next(&mut registry, 1_000, 50),
+            Err(DispatchError::NoEligibleActor)
+        );
+
+        registry.actor_mut(ActorId(1)).unwrap().last_seen_tick = 2_000;
+        assert_eq!(
+            graph.dispatch_next(&mut registry, 1_000, 2_000),
             Err(DispatchError::NoEligibleActor)
         );
     }

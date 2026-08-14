@@ -129,6 +129,7 @@ pub enum PrivacyReason {
     RawMediaNotGranted,
     RetentionExpired,
     MissingRetentionPolicy,
+    InvalidClock,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -269,6 +270,9 @@ impl PrivacyGuard {
     }
 
     fn evaluate_inner(&self, request: DataAccessRequest, current_tick: u64) -> PrivacyDecision {
+        if request.observed_at_tick > current_tick {
+            return denied(PrivacyReason::InvalidClock);
+        }
         if !self
             .tenant_sites
             .iter()
@@ -286,9 +290,13 @@ impl PrivacyGuard {
             return denied(PrivacyReason::RetentionExpired);
         }
 
-        let delete_after_tick = request
+        let delete_after_tick = match request
             .observed_at_tick
-            .saturating_add(policy.maximum_age_ticks);
+            .checked_add(policy.maximum_age_ticks)
+        {
+            Some(tick) => tick,
+            None => return denied(PrivacyReason::InvalidClock),
+        };
         if !requires_consent(request.data_kind) {
             return PrivacyDecision {
                 representation: if request.raw_content_requested && policy.retain_raw_content {
@@ -431,6 +439,24 @@ mod tests {
         let decision = guard.evaluate(location_request(), 110);
         assert_eq!(decision.representation, Representation::Denied);
         assert_eq!(decision.reason, PrivacyReason::ConsentRequired);
+    }
+
+    #[test]
+    fn future_observation_and_retention_overflow_fail_closed() {
+        let mut guard = guard();
+        let mut future = location_request();
+        future.observed_at_tick = 111;
+        assert_eq!(
+            guard.evaluate(future, 110).reason,
+            PrivacyReason::InvalidClock
+        );
+
+        let mut overflow = location_request();
+        overflow.observed_at_tick = u64::MAX - 50;
+        assert_eq!(
+            guard.evaluate(overflow, u64::MAX).reason,
+            PrivacyReason::InvalidClock
+        );
     }
 
     #[test]

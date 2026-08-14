@@ -175,6 +175,9 @@ impl FleetManager {
         if session_epoch < device.session_epoch {
             return Err(FleetError::SessionRollback);
         }
+        if tick < device.last_seen_tick {
+            return Err(FleetError::SessionRollback);
+        }
         device.session_epoch = session_epoch;
         device.last_seen_tick = tick;
         device.lifecycle = DeviceLifecycle::Active;
@@ -201,6 +204,9 @@ impl FleetManager {
         if session_epoch < device.session_epoch {
             return Err(FleetError::SessionRollback);
         }
+        if tick < device.last_seen_tick {
+            return Err(FleetError::SessionRollback);
+        }
         device.session_epoch = session_epoch;
         device.health = health;
         device.last_seen_tick = tick;
@@ -220,7 +226,8 @@ impl FleetManager {
             if matches!(
                 device.lifecycle,
                 DeviceLifecycle::Active | DeviceLifecycle::Degraded
-            ) && current_tick.saturating_sub(device.last_seen_tick) > maximum_age_ticks
+            ) && (current_tick < device.last_seen_tick
+                || current_tick - device.last_seen_tick > maximum_age_ticks)
             {
                 device.lifecycle = DeviceLifecycle::Offline;
                 changed += 1;
@@ -610,6 +617,24 @@ mod tests {
             fleet.device(AdapterId(1)).unwrap().lifecycle,
             DeviceLifecycle::Offline
         );
+
+        let mut reversed = FleetManager::new();
+        reversed.provision(device()).unwrap();
+        reversed.activate(AdapterId(1), 1, 10).unwrap();
+        assert_eq!(
+            reversed.heartbeat(
+                AdapterId(1),
+                1,
+                DeviceHealth {
+                    battery_permille: 800,
+                    link_quality_permille: 800,
+                    fault_code: 0,
+                },
+                9,
+            ),
+            Err(FleetError::SessionRollback)
+        );
+        assert_eq!(reversed.mark_stale_offline(9, 20), 1);
     }
 
     #[test]
