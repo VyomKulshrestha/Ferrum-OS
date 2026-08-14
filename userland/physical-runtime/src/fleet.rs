@@ -503,7 +503,8 @@ impl FleetManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::adapter::{AdapterCommand, CommandKind, EndpointId};
+    use crate::adapter::{AdapterCommand, CommandKind, EndpointCapability, EndpointId};
+    use crate::contract::{CommandMetadata, ConfirmationProvenance};
 
     struct AcceptingVerifier;
 
@@ -559,8 +560,17 @@ mod tests {
                 argument1: 0,
                 argument2: 0,
                 deadline_tick,
+                metadata: CommandMetadata::kernel(
+                    10,
+                    7,
+                    1,
+                    EndpointCapability::Move,
+                    ConfirmationProvenance::NotRequired,
+                ),
             },
             policy_revision: 7,
+            twin_event_id: 1,
+            confirmation: ConfirmationProvenance::NotRequired,
         }
     }
 

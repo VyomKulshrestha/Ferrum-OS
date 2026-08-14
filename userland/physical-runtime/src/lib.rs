@@ -3,6 +3,7 @@
 extern crate alloc;
 
 pub mod adapter;
+pub mod contract;
 pub mod domain;
 pub mod experience;
 pub mod fleet;
@@ -20,6 +21,10 @@ pub use adapter::{
     AdapterPayload, AdapterProtocol, AdapterRegistry, AdapterState, CommandKind, Endpoint,
     EndpointCapability, EndpointCapabilitySet, EndpointId, EndpointKind, RoutedCommand,
     SimulatedAdapter,
+};
+pub use contract::{
+    CommandMetadata, ConfirmationProvenance, ContractError, EvidenceClass, FaultProvenance,
+    IntegrityEvidence, ObservationMetadata, ObservationPolicy, CYBER_PHYSICAL_SCHEMA_VERSION,
 };
 pub use domain::{
     Actor, ActorId, ActorKind, ActorStatus, Asset, AssetId, AssetState, Capability, CapabilitySet,

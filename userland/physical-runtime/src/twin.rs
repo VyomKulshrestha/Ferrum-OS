@@ -8,6 +8,7 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
+use crate::contract::{ContractError, ObservationMetadata};
 use crate::domain::{ActorId, ActorStatus, AssetId, AssetState, DomainRegistry, Position, SiteId};
 use crate::work::{JobId, TaskId};
 
@@ -99,6 +100,7 @@ pub struct EventEnvelope {
     pub source_sequence: u64,
     pub observed_at_tick: u64,
     pub received_at_tick: u64,
+    pub metadata: ObservationMetadata,
     pub payload: EventPayload,
 }
 
@@ -113,6 +115,8 @@ pub enum TwinError {
     SourceCapacityExceeded,
     SensorCapacityExceeded,
     ZoneCapacityExceeded,
+    ClockIdentityChanged,
+    Contract(ContractError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,6 +132,7 @@ pub struct TwinSnapshot {
 pub struct OperationalTwin {
     events: VecDeque<EventEnvelope>,
     source_sequences: Vec<(u64, u64)>,
+    source_clocks: Vec<(u64, u64)>,
     sensor_readings: Vec<SensorReading>,
     zone_occupancies: Vec<ZoneOccupancy>,
     latest_event_id: u64,
@@ -138,6 +143,7 @@ impl OperationalTwin {
         Self {
             events: VecDeque::new(),
             source_sequences: Vec::new(),
+            source_clocks: Vec::new(),
             sensor_readings: Vec::new(),
             zone_occupancies: Vec::new(),
             latest_event_id: 0,
@@ -203,6 +209,14 @@ impl OperationalTwin {
         }
 
         self.commit_sequence(envelope.source_id, envelope.source_sequence);
+        if !self
+            .source_clocks
+            .iter()
+            .any(|(source_id, _)| *source_id == envelope.source_id)
+        {
+            self.source_clocks
+                .push((envelope.source_id, envelope.metadata.source_clock_id));
+        }
         self.latest_event_id = envelope.event_id;
         if self.events.len() == MAX_TWIN_EVENTS {
             self.events.pop_front();
@@ -263,6 +277,7 @@ impl OperationalTwin {
                 source_sequence,
                 observed_at_tick,
                 received_at_tick,
+                metadata: ObservationMetadata::internal(event_id, received_at_tick),
                 payload,
             },
             0,
@@ -322,6 +337,22 @@ impl OperationalTwin {
                 .saturating_add(maximum_clock_skew_ticks)
         {
             return Err(TwinError::FutureObservation);
+        }
+        envelope
+            .metadata
+            .validate_event(
+                envelope.observed_at_tick,
+                envelope.received_at_tick,
+                maximum_clock_skew_ticks,
+            )
+            .map_err(TwinError::Contract)?;
+        if self
+            .source_clocks
+            .iter()
+            .find(|(source_id, _)| *source_id == envelope.source_id)
+            .is_some_and(|(_, clock_id)| *clock_id != envelope.metadata.source_clock_id)
+        {
+            return Err(TwinError::ClockIdentityChanged);
         }
         if !self
             .source_sequences
@@ -464,6 +495,7 @@ mod tests {
             source_sequence: sequence,
             observed_at_tick: 100,
             received_at_tick: 101,
+            metadata: ObservationMetadata::simulated(event_id, 110),
             payload: EventPayload::ActorTelemetry(ActorTelemetry {
                 actor_id: ActorId(1),
                 position: Position::origin(7, 100),
@@ -482,6 +514,22 @@ mod tests {
             .unwrap();
         assert_eq!(registry.actor(ActorId(1)).unwrap().battery_permille, 800);
         assert_eq!(twin.snapshot().retained_events, 1);
+    }
+
+    #[test]
+    fn source_clock_identity_cannot_change_mid_session() {
+        let mut registry = registry();
+        let mut twin = OperationalTwin::new();
+        twin.apply(&mut registry, actor_event(1, 1, 900), 2)
+            .unwrap();
+        let mut changed_clock = actor_event(2, 2, 800);
+        changed_clock.metadata.source_clock_id = 2;
+        assert_eq!(
+            twin.apply(&mut registry, changed_clock, 2),
+            Err(TwinError::ClockIdentityChanged)
+        );
+        assert_eq!(twin.snapshot().latest_event_id, 1);
+        assert_eq!(registry.actor(ActorId(1)).unwrap().battery_permille, 900);
     }
 
     #[test]
@@ -533,6 +581,7 @@ mod tests {
                 source_sequence: 1,
                 observed_at_tick: 100,
                 received_at_tick: 101,
+                metadata: ObservationMetadata::simulated(1, 110),
                 payload: EventPayload::SensorReading(SensorReading {
                     sensor_id: 7,
                     site_id: SiteId(1),
@@ -562,6 +611,7 @@ mod tests {
                 source_sequence: 1,
                 observed_at_tick: 100,
                 received_at_tick: 100,
+                metadata: ObservationMetadata::simulated(1, 110),
                 payload: EventPayload::EmergencyStop {
                     actor_id: ActorId(1),
                     reason_code: 55,

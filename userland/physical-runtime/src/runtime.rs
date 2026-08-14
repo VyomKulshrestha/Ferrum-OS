@@ -353,6 +353,8 @@ impl PhysicalRuntime {
                 &RoutedCommand {
                     command,
                     policy_revision: decision.policy_revision,
+                    twin_event_id: context.expected_twin_event_id,
+                    confirmation: command.metadata.confirmation,
                 },
                 current_tick,
             )
@@ -524,10 +526,11 @@ fn safety_reason_code(reason: SafetyReason) -> u32 {
         SafetyReason::UnsafeProximity => 9,
         SafetyReason::HumanOccupiedZone => 10,
         SafetyReason::HumanApprovalRequired => 11,
-        SafetyReason::EmergencyStoppedActor => 12,
-        SafetyReason::PredictiveWarning => 13,
-        SafetyReason::PredictiveBlock => 14,
-        SafetyReason::PredictiveShadowOnly => 15,
+        SafetyReason::ConfirmationProvenanceMismatch => 12,
+        SafetyReason::EmergencyStoppedActor => 13,
+        SafetyReason::PredictiveWarning => 14,
+        SafetyReason::PredictiveBlock => 15,
+        SafetyReason::PredictiveShadowOnly => 16,
     }
 }
 
@@ -538,6 +541,7 @@ mod tests {
         AdapterIdentity, AdapterPayload, AdapterProtocol, Endpoint, EndpointCapability,
         EndpointCapabilitySet, EndpointId, EndpointKind, SimulatedAdapter,
     };
+    use crate::contract::{CommandMetadata, ConfirmationProvenance, ObservationMetadata};
     use crate::domain::{
         Actor, ActorId, ActorKind, ActorStatus, Asset, AssetId, AssetState, Capability,
         CapabilitySet, Position, Qualification, QualificationSet, Site,
@@ -699,6 +703,7 @@ mod tests {
             session_epoch: 5,
             sequence,
             observed_at_tick: tick,
+            metadata: ObservationMetadata::simulated(sequence, tick.saturating_add(10)),
             payload: AdapterPayload::SensorReading(SensorReading {
                 sensor_id: 9,
                 site_id: SiteId(1),
@@ -723,6 +728,15 @@ mod tests {
             argument1: 100,
             argument2: 0,
             deadline_tick: 200,
+            metadata: CommandMetadata::kernel(
+                100,
+                1,
+                1,
+                EndpointCapability::Move,
+                ConfirmationProvenance::LocalHuman {
+                    confirmation_id: command_id,
+                },
+            ),
         }
     }
 

@@ -108,6 +108,7 @@ pub enum SafetyReason {
     UnsafeProximity,
     HumanOccupiedZone,
     HumanApprovalRequired,
+    ConfirmationProvenanceMismatch,
     EmergencyStoppedActor,
     PredictiveWarning,
     PredictiveBlock,
@@ -181,6 +182,28 @@ impl SafetySupervisor {
         let endpoint = adapters
             .endpoint(command.endpoint_id)
             .ok_or(SafetyError::UnknownEndpoint)?;
+
+        let metadata = command.metadata;
+        let confirmation_matches =
+            context.human_approved == metadata.confirmation.is_human_verified();
+        if metadata.expected_policy_revision != context.expected_policy_revision {
+            return Ok(blocked_decision(
+                context.expected_policy_revision,
+                SafetyReason::PolicyRevisionMismatch,
+            ));
+        }
+        if metadata.expected_twin_event_id != context.expected_twin_event_id {
+            return Ok(blocked_decision(
+                context.expected_policy_revision,
+                SafetyReason::TwinRevisionMismatch,
+            ));
+        }
+        if !confirmation_matches {
+            return Ok(blocked_decision(
+                context.expected_policy_revision,
+                SafetyReason::ConfirmationProvenanceMismatch,
+            ));
+        }
 
         // Emergency stop must not depend on a model, fresh telemetry, or an
         // installed zone policy. Transport/session checks still occur when the
@@ -390,6 +413,8 @@ impl SafetySupervisor {
                     command.command_id,
                     expires_at_tick,
                     decision.policy_revision,
+                    context.expected_twin_event_id,
+                    command.metadata.confirmation,
                 ),
                 current_tick,
             )
@@ -437,6 +462,7 @@ mod tests {
         AdapterId, AdapterIdentity, AdapterProtocol, AdapterState, Endpoint, EndpointCapability,
         EndpointCapabilitySet, EndpointId, EndpointKind,
     };
+    use crate::contract::{CommandMetadata, ConfirmationProvenance, ObservationMetadata};
     use crate::domain::{
         Actor, ActorKind, CapabilitySet, DomainRegistry, Position, QualificationSet, Site,
     };
@@ -523,7 +549,7 @@ mod tests {
         }
     }
 
-    fn motion(key: u64) -> AdapterCommand {
+    fn motion(key: u64, twin: &OperationalTwin) -> AdapterCommand {
         AdapterCommand {
             command_id: 10,
             idempotency_key: key,
@@ -535,6 +561,15 @@ mod tests {
             argument1: 200,
             argument2: 0,
             deadline_tick: 200,
+            metadata: CommandMetadata::kernel(
+                100,
+                1,
+                twin.snapshot().latest_event_id,
+                EndpointCapability::Move,
+                ConfirmationProvenance::LocalHuman {
+                    confirmation_id: key,
+                },
+            ),
         }
     }
 
@@ -547,6 +582,7 @@ mod tests {
                 source_sequence: 1,
                 observed_at_tick: 100,
                 received_at_tick: 100,
+                metadata: ObservationMetadata::simulated(1, 110),
                 payload: EventPayload::SensorReading(SensorReading {
                     sensor_id: 9,
                     site_id: SiteId(1),
@@ -579,7 +615,7 @@ mod tests {
                 &adapters,
                 &_domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 context(&twin),
                 &[],
                 100,
@@ -595,7 +631,7 @@ mod tests {
         prime_twin(&mut domain, &mut twin);
         let mut supervisor = SafetySupervisor::new();
         supervisor.install_policy(policy()).unwrap();
-        let mut command = motion(1);
+        let mut command = motion(1, &twin);
         command.argument0 = 5_000;
         let decision = supervisor
             .evaluate(
@@ -634,7 +670,7 @@ mod tests {
                 &adapters,
                 &domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 context(&twin),
                 &[prediction],
                 100,
@@ -666,7 +702,7 @@ mod tests {
                 &adapters,
                 &domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 context(&twin),
                 &[prediction],
                 100,
@@ -689,7 +725,7 @@ mod tests {
                 &adapters,
                 &domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 stale_context,
                 &[],
                 100,
@@ -699,6 +735,31 @@ mod tests {
         assert!(decision
             .reasons
             .contains(&SafetyReason::TwinRevisionMismatch));
+    }
+
+    #[test]
+    fn unproven_confirmation_cannot_set_human_approved() {
+        let (mut domain, adapters, mut twin) = setup();
+        prime_twin(&mut domain, &mut twin);
+        let mut supervisor = SafetySupervisor::new();
+        supervisor.install_policy(policy()).unwrap();
+        let mut command = motion(1, &twin);
+        command.metadata.confirmation = ConfirmationProvenance::NotRequired;
+        let decision = supervisor
+            .evaluate(
+                &adapters,
+                &domain,
+                &twin,
+                &command,
+                context(&twin),
+                &[],
+                100,
+            )
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Block);
+        assert!(decision
+            .reasons
+            .contains(&SafetyReason::ConfirmationProvenanceMismatch));
     }
 
     #[test]
@@ -712,7 +773,7 @@ mod tests {
                 &mut adapters,
                 &domain,
                 &twin,
-                motion(77),
+                motion(77, &twin),
                 context(&twin),
                 &[],
                 100,
@@ -724,7 +785,7 @@ mod tests {
                 &mut adapters,
                 &domain,
                 &twin,
-                motion(77),
+                motion(77, &twin),
                 context(&twin),
                 &[],
                 100,
@@ -737,8 +798,15 @@ mod tests {
     fn stop_does_not_depend_on_sensor_or_model_availability() {
         let (_domain, mut adapters, twin) = setup();
         let supervisor = SafetySupervisor::new();
-        let mut command = motion(5);
+        let mut command = motion(5, &twin);
         command.kind = CommandKind::Stop;
+        command.metadata = CommandMetadata::kernel(
+            100,
+            0,
+            0,
+            EndpointCapability::EmergencyStop,
+            ConfirmationProvenance::NotRequired,
+        );
         let routed = supervisor
             .authorize_and_route(
                 &mut adapters,
@@ -770,6 +838,7 @@ mod tests {
                 source_sequence: 1,
                 observed_at_tick: 100,
                 received_at_tick: 100,
+                metadata: ObservationMetadata::simulated(2, 110),
                 payload: EventPayload::ZoneOccupancy(ZoneOccupancy {
                     site_id: SiteId(1),
                     zone_id: 7,
@@ -790,7 +859,7 @@ mod tests {
                 &adapters,
                 &domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 context(&twin),
                 &[],
                 100,
@@ -823,7 +892,7 @@ mod tests {
                 &adapters,
                 &domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 context(&twin),
                 &[],
                 100,
@@ -856,7 +925,7 @@ mod tests {
                 &adapters,
                 &domain,
                 &twin,
-                &motion(1),
+                &motion(1, &twin),
                 context(&twin),
                 &[prediction],
                 100,

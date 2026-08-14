@@ -9,6 +9,9 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
+use crate::contract::{
+    CommandMetadata, ConfirmationProvenance, ContractError, ObservationMetadata, ObservationPolicy,
+};
 use crate::domain::{ActorId, DomainRegistry, SiteId};
 use crate::twin::{
     ActorTelemetry, AssetTelemetry, EventEnvelope, EventPayload, OperationalTwin, SensorReading,
@@ -122,6 +125,7 @@ pub struct AdapterFrame {
     pub session_epoch: u64,
     pub sequence: u64,
     pub observed_at_tick: u64,
+    pub metadata: ObservationMetadata,
     pub payload: AdapterPayload,
 }
 
@@ -136,7 +140,7 @@ pub enum CommandKind {
 }
 
 impl CommandKind {
-    fn required_capability(self) -> EndpointCapability {
+    pub const fn required_capability(self) -> EndpointCapability {
         match self {
             Self::ReadSensor => EndpointCapability::Sense,
             Self::SetOutput => EndpointCapability::Actuate,
@@ -160,12 +164,15 @@ pub struct AdapterCommand {
     pub argument1: i64,
     pub argument2: i64,
     pub deadline_tick: u64,
+    pub metadata: CommandMetadata,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RoutedCommand {
     pub command: AdapterCommand,
     pub policy_revision: u64,
+    pub twin_event_id: u64,
+    pub confirmation: ConfirmationProvenance,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -173,14 +180,24 @@ pub(crate) struct ExecutionPermit {
     command_id: u64,
     expires_at_tick: u64,
     policy_revision: u64,
+    twin_event_id: u64,
+    confirmation: ConfirmationProvenance,
 }
 
 impl ExecutionPermit {
-    pub(crate) const fn new(command_id: u64, expires_at_tick: u64, policy_revision: u64) -> Self {
+    pub(crate) const fn new(
+        command_id: u64,
+        expires_at_tick: u64,
+        policy_revision: u64,
+        twin_event_id: u64,
+        confirmation: ConfirmationProvenance,
+    ) -> Self {
         Self {
             command_id,
             expires_at_tick,
             policy_revision,
+            twin_event_id,
+            confirmation,
         }
     }
 }
@@ -202,6 +219,10 @@ pub enum AdapterError {
     PermitExpired,
     CommandExpired,
     DuplicateCommand,
+    PolicyRevisionMismatch,
+    TwinRevisionMismatch,
+    ConfirmationMismatch,
+    Contract(ContractError),
     TwinRejected(TwinError),
 }
 
@@ -285,6 +306,23 @@ impl AdapterRegistry {
         received_at_tick: u64,
         maximum_clock_skew_ticks: u64,
     ) -> Result<u64, AdapterError> {
+        self.ingest_frame_with_policy(
+            twin,
+            domain,
+            frame,
+            received_at_tick,
+            ObservationPolicy::strict(maximum_clock_skew_ticks),
+        )
+    }
+
+    pub fn ingest_frame_with_policy(
+        &mut self,
+        twin: &mut OperationalTwin,
+        domain: &mut DomainRegistry,
+        frame: AdapterFrame,
+        received_at_tick: u64,
+        observation_policy: ObservationPolicy,
+    ) -> Result<u64, AdapterError> {
         let adapter_index = self
             .adapters
             .iter()
@@ -300,6 +338,15 @@ impl AdapterRegistry {
         if frame.sequence <= adapter.last_receive_sequence {
             return Err(AdapterError::DuplicateOrOutOfOrder);
         }
+        frame
+            .metadata
+            .validate_adapter(
+                adapter.protocol,
+                frame.observed_at_tick,
+                received_at_tick,
+                observation_policy,
+            )
+            .map_err(AdapterError::Contract)?;
         let endpoint = self
             .endpoint(frame.endpoint_id)
             .ok_or(AdapterError::UnknownEndpoint)?;
@@ -319,9 +366,10 @@ impl AdapterRegistry {
                 source_sequence: frame.sequence,
                 observed_at_tick: frame.observed_at_tick,
                 received_at_tick,
+                metadata: frame.metadata,
                 payload: frame.payload.into(),
             },
-            maximum_clock_skew_ticks,
+            observation_policy.maximum_clock_skew_ticks,
         )
         .map_err(AdapterError::TwinRejected)?;
 
@@ -345,6 +393,23 @@ impl AdapterRegistry {
         }
         if current_tick > command.deadline_tick {
             return Err(AdapterError::CommandExpired);
+        }
+        command
+            .metadata
+            .validate(
+                current_tick,
+                command.deadline_tick,
+                command.kind.required_capability(),
+            )
+            .map_err(AdapterError::Contract)?;
+        if command.metadata.expected_policy_revision != permit.policy_revision {
+            return Err(AdapterError::PolicyRevisionMismatch);
+        }
+        if command.metadata.expected_twin_event_id != permit.twin_event_id {
+            return Err(AdapterError::TwinRevisionMismatch);
+        }
+        if command.metadata.confirmation != permit.confirmation {
+            return Err(AdapterError::ConfirmationMismatch);
         }
         let adapter = self
             .adapter(command.adapter_id)
@@ -377,6 +442,8 @@ impl AdapterRegistry {
         Ok(RoutedCommand {
             command,
             policy_revision: permit.policy_revision,
+            twin_event_id: permit.twin_event_id,
+            confirmation: permit.confirmation,
         })
     }
 }
@@ -552,6 +619,7 @@ mod tests {
             session_epoch: 5,
             sequence,
             observed_at_tick: 10,
+            metadata: ObservationMetadata::simulated(sequence, 20),
             payload: AdapterPayload::SensorReading(SensorReading {
                 sensor_id: 4,
                 site_id: SiteId(1),
@@ -576,6 +644,13 @@ mod tests {
             argument1: 200,
             argument2: 0,
             deadline_tick: 100,
+            metadata: CommandMetadata::kernel(
+                10,
+                1,
+                1,
+                EndpointCapability::Move,
+                ConfirmationProvenance::NotRequired,
+            ),
         }
     }
 
@@ -647,7 +722,11 @@ mod tests {
             Err(AdapterError::AdapterUnavailable)
         );
         assert_eq!(
-            adapters.route_authorized(command(1), ExecutionPermit::new(10, 100, 1), 10),
+            adapters.route_authorized(
+                command(1),
+                ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired),
+                10,
+            ),
             Err(AdapterError::AdapterUnavailable)
         );
     }
@@ -656,11 +735,19 @@ mod tests {
     fn command_requires_matching_unexpired_permit() {
         let mut adapters = registry(AdapterState::Online);
         assert_eq!(
-            adapters.route_authorized(command(1), ExecutionPermit::new(11, 100, 1), 10),
+            adapters.route_authorized(
+                command(1),
+                ExecutionPermit::new(11, 100, 1, 1, ConfirmationProvenance::NotRequired),
+                10,
+            ),
             Err(AdapterError::PermitMismatch)
         );
         assert_eq!(
-            adapters.route_authorized(command(1), ExecutionPermit::new(10, 5, 1), 10),
+            adapters.route_authorized(
+                command(1),
+                ExecutionPermit::new(10, 5, 1, 1, ConfirmationProvenance::NotRequired),
+                10,
+            ),
             Err(AdapterError::PermitExpired)
         );
     }
@@ -669,12 +756,76 @@ mod tests {
     fn idempotency_key_prevents_duplicate_physical_effects() {
         let mut adapters = registry(AdapterState::Online);
         adapters
-            .route_authorized(command(77), ExecutionPermit::new(10, 100, 1), 10)
+            .route_authorized(
+                command(77),
+                ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired),
+                10,
+            )
             .unwrap();
         assert_eq!(
-            adapters.route_authorized(command(77), ExecutionPermit::new(10, 100, 1), 10),
+            adapters.route_authorized(
+                command(77),
+                ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired),
+                10,
+            ),
             Err(AdapterError::DuplicateCommand)
         );
+    }
+
+    #[test]
+    fn command_provenance_must_match_the_single_use_permit() {
+        let mut adapters = registry(AdapterState::Online);
+        let permit = ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired);
+
+        let mut policy_mismatch = command(91);
+        policy_mismatch.metadata.expected_policy_revision = 2;
+        assert_eq!(
+            adapters.route_authorized(policy_mismatch, permit, 10),
+            Err(AdapterError::PolicyRevisionMismatch)
+        );
+
+        let mut twin_mismatch = command(91);
+        twin_mismatch.metadata.expected_twin_event_id = 2;
+        assert_eq!(
+            adapters.route_authorized(twin_mismatch, permit, 10),
+            Err(AdapterError::TwinRevisionMismatch)
+        );
+
+        let mut confirmation_mismatch = command(91);
+        confirmation_mismatch.metadata.confirmation =
+            ConfirmationProvenance::LocalHuman { confirmation_id: 7 };
+        assert_eq!(
+            adapters.route_authorized(confirmation_mismatch, permit, 10),
+            Err(AdapterError::ConfirmationMismatch)
+        );
+
+        assert!(adapters.route_authorized(command(91), permit, 10).is_ok());
+    }
+
+    #[test]
+    fn rejected_observation_does_not_advance_adapter_sequence() {
+        let mut adapters = registry(AdapterState::Online);
+        let mut domain = domain();
+        let mut twin = OperationalTwin::new();
+        let mut invalid = sensor_frame(1);
+        invalid.metadata.evidence_class = crate::contract::EvidenceClass::Live;
+        assert_eq!(
+            adapters.ingest_frame(&mut twin, &mut domain, invalid, 11, 1),
+            Err(AdapterError::Contract(
+                ContractError::InvalidEvidenceBoundary
+            ))
+        );
+        assert_eq!(
+            adapters
+                .adapter(AdapterId(1))
+                .unwrap()
+                .last_receive_sequence,
+            0
+        );
+        assert_eq!(twin.snapshot().latest_event_id, 0);
+        assert!(adapters
+            .ingest_frame(&mut twin, &mut domain, sensor_frame(1), 11, 1)
+            .is_ok());
     }
 
     #[test]
@@ -685,7 +836,9 @@ mod tests {
         driver
             .submit(RoutedCommand {
                 command: command(9),
-                policy_revision: 3,
+                policy_revision: 1,
+                twin_event_id: 1,
+                confirmation: ConfirmationProvenance::NotRequired,
             })
             .unwrap();
         assert_eq!(driver.commands().len(), 1);

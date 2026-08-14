@@ -9,6 +9,7 @@ use crate::adapter::{
     AdapterProtocol, AdapterRegistry, AdapterState, CommandKind, Endpoint, EndpointCapability,
     EndpointCapabilitySet, EndpointId, EndpointKind, SimulatedAdapter,
 };
+use crate::contract::{CommandMetadata, ConfirmationProvenance, ObservationMetadata};
 use crate::domain::{
     Actor, ActorId, ActorKind, ActorStatus, Asset, AssetId, AssetState, Capability, CapabilitySet,
     DomainError, Position, Qualification, QualificationSet, Site, SiteId,
@@ -93,7 +94,7 @@ pub fn run_maintenance_demo_with_predictions(
     }
     let blocked_context = current_context(&runtime);
     let unsafe_motion_blocked = runtime.authorize_and_queue_command(
-        motion_command(1, 1_001),
+        motion_command(1, 1_001, blocked_context, 100),
         blocked_context,
         &[unsafe_prediction],
         100,
@@ -105,7 +106,7 @@ pub fn run_maintenance_demo_with_predictions(
     let safe_context = current_context(&runtime);
     let preview = runtime
         .preview_command(
-            &motion_command(2, 1_002),
+            &motion_command(2, 1_002, safe_context, 101),
             safe_context,
             &[safe_prediction],
             101,
@@ -118,7 +119,7 @@ pub fn run_maintenance_demo_with_predictions(
     }
     let routed = runtime
         .authorize_and_queue_command(
-            motion_command(2, 1_002),
+            motion_command(2, 1_002, safe_context, 101),
             safe_context,
             &[safe_prediction],
             101,
@@ -475,6 +476,7 @@ fn proximity_frame(sequence: u64, clearance: i64, tick: u64) -> AdapterFrame {
         session_epoch: 5,
         sequence,
         observed_at_tick: tick,
+        metadata: ObservationMetadata::simulated(sequence, tick.saturating_add(10)),
         payload: AdapterPayload::SensorReading(SensorReading {
             sensor_id: 9,
             site_id: MAINTENANCE_SITE_ID,
@@ -494,6 +496,7 @@ fn asset_frame(sequence: u64, state: AssetState, tick: u64) -> AdapterFrame {
         session_epoch: 5,
         sequence,
         observed_at_tick: tick,
+        metadata: ObservationMetadata::simulated(sequence, tick.saturating_add(10)),
         payload: AdapterPayload::AssetTelemetry(AssetTelemetry {
             asset_id: MAINTENANCE_ASSET_ID,
             state,
@@ -502,7 +505,12 @@ fn asset_frame(sequence: u64, state: AssetState, tick: u64) -> AdapterFrame {
     }
 }
 
-fn motion_command(command_id: u64, idempotency_key: u64) -> AdapterCommand {
+fn motion_command(
+    command_id: u64,
+    idempotency_key: u64,
+    context: SafetyContext,
+    issued_at_tick: u64,
+) -> AdapterCommand {
     AdapterCommand {
         command_id,
         idempotency_key,
@@ -514,6 +522,15 @@ fn motion_command(command_id: u64, idempotency_key: u64) -> AdapterCommand {
         argument1: 100,
         argument2: 0,
         deadline_tick: 200,
+        metadata: CommandMetadata::kernel(
+            issued_at_tick,
+            context.expected_policy_revision,
+            context.expected_twin_event_id,
+            EndpointCapability::Move,
+            ConfirmationProvenance::LocalHuman {
+                confirmation_id: command_id,
+            },
+        ),
     }
 }
 
