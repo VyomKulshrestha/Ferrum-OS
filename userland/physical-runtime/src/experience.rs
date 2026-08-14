@@ -41,6 +41,7 @@ pub enum ExperienceError {
     MissingObservedState,
     UnexpectedObservedState,
     NonMonotonicTick,
+    SequenceExhausted,
 }
 
 #[derive(Debug, Default)]
@@ -88,12 +89,15 @@ impl PhysicalExperienceBuffer {
         if self.last_tick.is_some_and(|tick| observed_at_tick < tick) {
             return Err(ExperienceError::NonMonotonicTick);
         }
-        self.next_sequence = self.next_sequence.saturating_add(1);
+        let next_sequence = self
+            .next_sequence
+            .checked_add(1)
+            .ok_or(ExperienceError::SequenceExhausted)?;
         if self.entries.len() == PHYSICAL_EXPERIENCE_CAPACITY {
             self.entries.pop_front();
         }
         self.entries.push_back(PhysicalExperience {
-            sequence: self.next_sequence,
+            sequence: next_sequence,
             observed_at_tick,
             before,
             action,
@@ -101,8 +105,9 @@ impl PhysicalExperienceBuffer {
             outcome,
             reward,
         });
+        self.next_sequence = next_sequence;
         self.last_tick = Some(observed_at_tick);
-        Ok(self.next_sequence)
+        Ok(next_sequence)
     }
 }
 
@@ -193,5 +198,17 @@ mod tests {
             buffer.record(0, state(0.1), action(), None, PhysicalOutcome::Refused, 0.0),
             Err(ExperienceError::NonMonotonicTick)
         );
+    }
+
+    #[test]
+    fn sequence_exhaustion_is_transactional() {
+        let mut buffer = PhysicalExperienceBuffer::new();
+        buffer.next_sequence = u64::MAX;
+        assert_eq!(
+            buffer.record(1, state(0.1), action(), None, PhysicalOutcome::Refused, 0.0),
+            Err(ExperienceError::SequenceExhausted)
+        );
+        assert!(buffer.is_empty());
+        assert_eq!(buffer.last_tick, None);
     }
 }

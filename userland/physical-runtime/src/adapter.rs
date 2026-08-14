@@ -357,7 +357,7 @@ impl AdapterRegistry {
             return Err(AdapterError::EndpointMismatch);
         }
 
-        let event_id = twin.next_event_id();
+        let event_id = twin.next_event_id().map_err(AdapterError::TwinRejected)?;
         twin.apply(
             domain,
             EventEnvelope {

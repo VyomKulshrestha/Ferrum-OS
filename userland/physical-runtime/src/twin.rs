@@ -107,6 +107,7 @@ pub struct EventEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TwinError {
     DuplicateOrOutOfOrder,
+    EventIdExhausted,
     FutureObservation,
     InvalidTelemetry,
     UnknownActor,
@@ -256,8 +257,11 @@ impl OperationalTwin {
     /// Allocate from the twin's single event-id domain. Producers must not
     /// maintain independent counters because internal and adapter events share
     /// this log.
-    pub const fn next_event_id(&self) -> u64 {
-        self.latest_event_id.saturating_add(1)
+    pub const fn next_event_id(&self) -> Result<u64, TwinError> {
+        match self.latest_event_id.checked_add(1) {
+            Some(event_id) => Ok(event_id),
+            None => Err(TwinError::EventIdExhausted),
+        }
     }
 
     pub fn append_internal(
@@ -269,7 +273,7 @@ impl OperationalTwin {
         received_at_tick: u64,
         payload: EventPayload,
     ) -> Result<u64, TwinError> {
-        let event_id = self.next_event_id();
+        let event_id = self.next_event_id()?;
         self.apply(
             registry,
             EventEnvelope {
@@ -626,5 +630,32 @@ mod tests {
             ActorStatus::EmergencyStop
         );
         assert!(!registry.actor(ActorId(1)).unwrap().is_dispatchable_at(100));
+    }
+
+    #[test]
+    fn exhausted_event_id_fails_before_state_mutation() {
+        let mut registry = registry();
+        let mut twin = OperationalTwin::new();
+        twin.latest_event_id = u64::MAX;
+        assert_eq!(twin.next_event_id(), Err(TwinError::EventIdExhausted));
+        assert_eq!(
+            twin.append_internal(
+                &mut registry,
+                99,
+                1,
+                10,
+                10,
+                EventPayload::EmergencyStop {
+                    actor_id: ActorId(1),
+                    reason_code: 7,
+                },
+            ),
+            Err(TwinError::EventIdExhausted)
+        );
+        assert_eq!(
+            registry.actor(ActorId(1)).unwrap().status,
+            ActorStatus::Available
+        );
+        assert!(twin.events().is_empty());
     }
 }

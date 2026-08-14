@@ -114,6 +114,7 @@ pub enum DispatchError {
     ActorUnavailable,
     AssignmentMismatch,
     HumanApprovalRequired,
+    RevisionExhausted,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -182,6 +183,10 @@ impl WorkGraph {
 
         let order = &self.orders[order_index];
         let task = &order.tasks[task_index];
+        let next_revision = order
+            .revision
+            .checked_add(1)
+            .ok_or(DispatchError::RevisionExhausted)?;
         let actor_id = best_actor(
             registry,
             order.site_id,
@@ -202,7 +207,7 @@ impl WorkGraph {
         let order = &mut self.orders[order_index];
         order.state = JobState::Active;
         order.tasks[task_index].status = TaskStatus::Assigned(actor_id);
-        order.revision = order.revision.saturating_add(1);
+        order.revision = next_revision;
 
         Ok(DispatchReceipt {
             job_id: order.id,
@@ -225,6 +230,10 @@ impl WorkGraph {
         if order.revision != expected_revision {
             return Err(DispatchError::RevisionConflict);
         }
+        let next_revision = order
+            .revision
+            .checked_add(1)
+            .ok_or(DispatchError::RevisionExhausted)?;
         let task = order
             .tasks
             .iter_mut()
@@ -237,7 +246,7 @@ impl WorkGraph {
             return Err(DispatchError::HumanApprovalRequired);
         }
         task.status = TaskStatus::InProgress(actor_id);
-        order.revision = order.revision.saturating_add(1);
+        order.revision = next_revision;
         Ok(order.revision)
     }
 
@@ -257,6 +266,10 @@ impl WorkGraph {
         if self.orders[order_index].revision != expected_revision {
             return Err(DispatchError::RevisionConflict);
         }
+        let next_revision = self.orders[order_index]
+            .revision
+            .checked_add(1)
+            .ok_or(DispatchError::RevisionExhausted)?;
         let task_index = self.orders[order_index]
             .tasks
             .iter()
@@ -282,7 +295,7 @@ impl WorkGraph {
         {
             order.state = JobState::Completed;
         }
-        order.revision = order.revision.saturating_add(1);
+        order.revision = next_revision;
         Ok(order.revision)
     }
 
@@ -699,6 +712,37 @@ mod tests {
         assert_eq!(
             graph.dispatch_next(&mut registry, 1_000, 2_000),
             Err(DispatchError::NoEligibleActor)
+        );
+    }
+
+    #[test]
+    fn revision_exhaustion_does_not_assign_an_actor() {
+        let mut registry = registry();
+        registry
+            .register_actor(actor(
+                1,
+                ActorKind::Robot,
+                0,
+                CapabilitySet::empty().with(Capability::Inspect),
+            ))
+            .unwrap();
+        let mut graph = WorkGraph::new();
+        graph
+            .add_order(order(vec![task(1, vec![], ActorConstraint::Robot)]))
+            .unwrap();
+        graph.order_mut(JobId(1)).unwrap().revision = u64::MAX;
+
+        assert_eq!(
+            graph.dispatch_next(&mut registry, 100, 10),
+            Err(DispatchError::RevisionExhausted)
+        );
+        assert_eq!(
+            registry.actor(ActorId(1)).unwrap().status,
+            ActorStatus::Available
+        );
+        assert_eq!(
+            graph.order(JobId(1)).unwrap().tasks[0].status,
+            TaskStatus::Pending
         );
     }
 }

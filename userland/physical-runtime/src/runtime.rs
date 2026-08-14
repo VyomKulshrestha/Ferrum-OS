@@ -53,6 +53,7 @@ pub enum RuntimeError {
     Replay(ReplayError),
     DriverModeMismatch,
     Supervisor(SupervisorError),
+    SequenceExhausted,
 }
 
 #[derive(Debug)]
@@ -810,7 +811,10 @@ impl PhysicalRuntime {
         tick: u64,
         payload: EventPayload,
     ) -> Result<u64, RuntimeError> {
-        let next_sequence = self.runtime_twin_sequence.saturating_add(1);
+        let next_sequence = self
+            .runtime_twin_sequence
+            .checked_add(1)
+            .ok_or(RuntimeError::SequenceExhausted)?;
         let event_id = self
             .twin
             .append_internal(
@@ -832,7 +836,10 @@ impl PhysicalRuntime {
         tick: u64,
         kind: ReliabilityEventKind,
     ) -> Result<(), RuntimeError> {
-        let next_id = self.reliability_event_id.saturating_add(1);
+        let next_id = self
+            .reliability_event_id
+            .checked_add(1)
+            .ok_or(RuntimeError::SequenceExhausted)?;
         self.reliability
             .record(ReliabilityEvent {
                 event_id: next_id,
@@ -1184,6 +1191,34 @@ mod tests {
         let metrics = runtime.reliability().snapshot(SiteId(1)).unwrap();
         assert_eq!(metrics.task_attempts, 1);
         assert_eq!(metrics.task_successes, 1);
+    }
+
+    #[test]
+    fn exhausted_runtime_sequences_fail_before_mutation() {
+        let mut runtime = configured_runtime();
+        runtime.runtime_twin_sequence = u64::MAX;
+        assert_eq!(
+            runtime.append_runtime_event(
+                100,
+                EventPayload::SafetyInterlock {
+                    site_id: SiteId(1),
+                    zone_id: 7,
+                    reason_code: 7,
+                },
+            ),
+            Err(RuntimeError::SequenceExhausted)
+        );
+        assert_eq!(runtime.twin().snapshot().retained_events, 0);
+
+        runtime.reliability_event_id = u64::MAX;
+        assert_eq!(
+            runtime.record_reliability(SiteId(1), 100, ReliabilityEventKind::DeviceCommandRetried,),
+            Err(RuntimeError::SequenceExhausted)
+        );
+        assert_eq!(
+            runtime.reliability().snapshot(SiteId(1)),
+            Err(ReliabilityError::UnknownSite)
+        );
     }
 
     #[test]
