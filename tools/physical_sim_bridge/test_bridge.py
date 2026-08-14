@@ -199,6 +199,23 @@ class BridgeSessionTests(unittest.TestCase):
         duplicate = BridgeAck.parse(pump.submit_bytes(command().to_wire(), 20))
         self.assertEqual(duplicate.state, "rejected")
 
+        class PublishOnlyBackend(ScriptedBackend):
+            def submit_command(self, value: BridgeCommand) -> dict[str, object]:
+                return {
+                    "command_id": value.command_id,
+                    "executed": False,
+                    "delivery_state": "uncertain",
+                    "reason": "published_without_execution_ack",
+                }
+
+        publish_only = BridgePump(BridgeSession(hello(), PublishOnlyBackend()))
+        ack = BridgeAck.parse(publish_only.submit_bytes(command(8).to_wire(), 20))
+        self.assertEqual(ack.state, "uncertain")
+        duplicate = BridgeAck.parse(
+            publish_only.submit_bytes(command(8).to_wire(), 20)
+        )
+        self.assertEqual(duplicate.state, "rejected")
+
     def test_closed_or_crashed_simulator_cannot_receive_new_authority(self) -> None:
         pump = BridgePump(BridgeSession(hello(), ScriptedBackend()))
         pump.session.close()

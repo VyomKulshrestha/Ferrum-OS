@@ -15,6 +15,11 @@ Supported software boundaries:
   or test-pipe host gateway. Delivery acknowledgements distinguish accepted,
   actuator-disabled, and uncertain states and never authorize blind retries.
 
+ROS 2 publication and Webots emitter transmission are recorded as `uncertain`
+until an execution acknowledgement is supplied by a future simulator-specific
+round-trip adapter. Publishing or sending bytes alone is never treated as proof
+that a command executed.
+
 The bridge rejects unknown fields, non-finite values, unsupported evidence classes,
 run/epoch changes, source-clock changes, replayed observations, expired commands,
 duplicate idempotency keys, and commands that lack Ferrum routed-command authority.

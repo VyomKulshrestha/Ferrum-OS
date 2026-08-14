@@ -52,6 +52,7 @@ class ScriptedBackend:
         return {
             "command_id": command.command_id,
             "executed": True,
+            "delivery_state": "accepted",
             "reason": "simulated",
         }
 
@@ -74,6 +75,7 @@ class ActuatorDisabledBackend:
         return {
             "command_id": command.command_id,
             "executed": False,
+            "delivery_state": "actuator_disabled",
             "reason": "actuator_disabled_hil",
         }
 
@@ -122,8 +124,9 @@ class GazeboRos2Backend:
         self._publisher.publish(message)
         return {
             "command_id": command.command_id,
-            "executed": True,
-            "reason": "published_ros2",
+            "executed": False,
+            "delivery_state": "uncertain",
+            "reason": "published_ros2_without_execution_ack",
         }
 
     def close(self) -> None:
@@ -164,8 +167,9 @@ class WebotsBackend:
         self._emitter.send(command.to_wire())
         return {
             "command_id": command.command_id,
-            "executed": True,
-            "reason": "sent_webots",
+            "executed": False,
+            "delivery_state": "uncertain",
+            "reason": "sent_webots_without_execution_ack",
         }
 
     def close(self) -> None:
@@ -262,8 +266,9 @@ class BridgePump:
         command = BridgeCommand.parse(raw)
         try:
             result = self.session.submit(command, current_tick)
-            executed = bool(result.get("executed", False))
-            state = "accepted" if executed else "actuator_disabled"
+            state = str(result.get("delivery_state", ""))
+            if state not in {"accepted", "actuator_disabled", "uncertain"}:
+                state = "uncertain"
             reason = str(result.get("reason", "backend_acknowledged"))[:128]
         except BridgeRejected as error:
             state = "rejected"
