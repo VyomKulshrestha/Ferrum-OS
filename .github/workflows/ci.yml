@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install public evidence tooling
-        run: python -m pip install --disable-pip-version-check jsonschema==4.25.1 ruff==0.15.21
+        run: python -m pip install --disable-pip-version-check jsonschema==4.25.1 numpy==2.2.6 ruff==0.15.21
         shell: pwsh
 
       - name: Verify public benchmark and capability evidence
@@ -39,6 +39,17 @@ jobs:
         run: |
           ruff check scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
           ruff format --check scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
+        shell: pwsh
+
+      - name: Verify cyber-physical and neural safety contracts
+        run: |
+          cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
+          cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc
+          python -m unittest discover -s tools/neurod -p "test_*.py"
+          python -m unittest tools.physical_sim_bridge.test_bridge
+          python scripts/verify_physical_world_model.py --quick
+          python scripts/evaluate_neural_simulator.py --output target/neural-simulator-ci.json
+          python -m py_compile tools/neurod/neurod.py tools/neurod/dashboard.py tools/physical_sim_bridge/protocol.py tools/physical_sim_bridge/bridge.py scripts/verify_physical_world_model.py scripts/evaluate_neural_simulator.py
         shell: pwsh
 
       - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)

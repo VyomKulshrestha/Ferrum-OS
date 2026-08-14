@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import struct
@@ -30,6 +31,13 @@ def sha256(path: Path) -> str:
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="verify committed artifacts and metrics without retraining the validation sweep",
+    )
+    args = parser.parse_args()
     evaluation = json.loads(EVALUATION.read_text(encoding="utf-8"))
     seed_evaluation = json.loads(SEED_EVALUATION.read_text(encoding="utf-8"))
     false_negatives = json.loads(FALSE_NEGATIVES.read_text(encoding="utf-8"))
@@ -113,6 +121,13 @@ def main():
         "held-out false-negative decomposition accounts for every combined miss",
     )
 
+    if not args.quick:
+        reproduce(evaluation)
+
+    print("\nPhysical world-model verification passed.")
+
+
+def reproduce(evaluation):
     with tempfile.TemporaryDirectory(prefix="ferrum-physical-model-") as temp:
         directory = Path(temp)
         artifact_copy = directory / "model.bin"
@@ -148,9 +163,6 @@ def main():
             sha256(dataset_copy) == evaluation["generated_dataset_sha256"],
             "deterministic simulator dataset reproduces exactly",
         )
-
-    print("\nPhysical world-model verification passed.")
-
 
 if __name__ == "__main__":
     main()
