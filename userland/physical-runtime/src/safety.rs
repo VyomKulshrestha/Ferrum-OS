@@ -13,6 +13,7 @@ use crate::domain::{ActorId, ActorStatus, DomainRegistry, SiteId};
 use crate::twin::OperationalTwin;
 
 pub const MAX_SAFETY_POLICIES: usize = 128;
+pub const MAX_PHYSICAL_PREDICTIONS: usize = 32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Geofence {
@@ -176,6 +177,12 @@ impl SafetySupervisor {
         predictions: &[PhysicalPrediction],
         current_tick: u64,
     ) -> Result<SafetyDecision, SafetyError> {
+        if predictions.len() > MAX_PHYSICAL_PREDICTIONS {
+            return Ok(blocked_decision(
+                context.expected_policy_revision,
+                SafetyReason::InvalidPrediction,
+            ));
+        }
         let adapter = adapters
             .adapter(command.adapter_id)
             .ok_or(SafetyError::UnknownAdapter)?;
@@ -935,5 +942,38 @@ mod tests {
         assert_eq!(decision.verdict, SafetyVerdict::Block);
         assert!(decision.reasons.contains(&SafetyReason::InvalidPrediction));
         assert!(!decision.reasons.contains(&SafetyReason::InvalidPolicy));
+    }
+
+    #[test]
+    fn prediction_input_is_bounded_before_iteration() {
+        let (mut domain, adapters, mut twin) = setup();
+        prime_twin(&mut domain, &mut twin);
+        let mut supervisor = SafetySupervisor::new();
+        supervisor.install_policy(policy()).unwrap();
+        let prediction = PhysicalPrediction {
+            effect: EffectKind::Move,
+            risk_permille: 0,
+            uncertainty_permille: 0,
+            source: PredictionSource::PhysicalJepa,
+            model_version: 1,
+            validated_for_gating: false,
+        };
+        let predictions = alloc::vec![prediction; MAX_PHYSICAL_PREDICTIONS + 1];
+        let decision = supervisor
+            .evaluate(
+                &adapters,
+                &domain,
+                &twin,
+                &motion(1, &twin),
+                context(&twin),
+                &predictions,
+                100,
+            )
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Block);
+        assert_eq!(
+            decision.reasons,
+            alloc::vec![SafetyReason::InvalidPrediction]
+        );
     }
 }

@@ -15,6 +15,7 @@ pub mod runtime;
 pub mod safety;
 pub mod scenario;
 pub mod session;
+pub mod supervisor;
 pub mod twin;
 pub mod virtual_device;
 pub mod work;
@@ -72,6 +73,11 @@ pub use scenario::{
 pub use session::{
     EvidenceKind, EvidenceLog, EvidenceRecord, SessionDescriptor, SessionError, SessionMode,
     EVIDENCE_RECORD_WIRE_SIZE, MAX_EVIDENCE_RECORDS,
+};
+pub use supervisor::{
+    AuthoritySeverity, CommandRateLimiter, ControlTrafficClass, OperationalLimits,
+    PriorityControlQueue, QueuedControl, RecoveryLatch, ResourceSnapshot, SupervisorError,
+    WatchdogBank, WatchdogRole, WatchdogState, MAX_CONTROL_QUEUE, MAX_RATE_EVENTS, MAX_WATCHDOGS,
 };
 pub use twin::{
     ActorTelemetry, AssetTelemetry, EventEnvelope, EventPayload, OperationalTwin, SensorKind,
