@@ -1,0 +1,148 @@
+{
+  "artifact_sha256": "8e0400ac53f9ab80069b49fda93adb26569b898d0b769b10359c044fc222ba33",
+  "calibration": {
+    "bins": [
+      {
+        "count": 1718,
+        "danger_frequency": 0.004656577415599534,
+        "lower": 0.0,
+        "mean_score": 0.00020697754188725637,
+        "upper": 0.1
+      },
+      {
+        "count": 3,
+        "danger_frequency": 0.6666666666666666,
+        "lower": 0.1,
+        "mean_score": 0.1479304195381701,
+        "upper": 0.2
+      },
+      {
+        "count": 4,
+        "danger_frequency": 0.75,
+        "lower": 0.2,
+        "mean_score": 0.2508432639038397,
+        "upper": 0.3
+      },
+      {
+        "count": 10,
+        "danger_frequency": 1.0,
+        "lower": 0.3,
+        "mean_score": 0.3467155997537904,
+        "upper": 0.4
+      },
+      {
+        "count": 14,
+        "danger_frequency": 0.8571428571428571,
+        "lower": 0.4,
+        "mean_score": 0.44459325613247025,
+        "upper": 0.5
+      },
+      {
+        "count": 10,
+        "danger_frequency": 0.9,
+        "lower": 0.5,
+        "mean_score": 0.5479335015432703,
+        "upper": 0.6
+      },
+      {
+        "count": 9,
+        "danger_frequency": 1.0,
+        "lower": 0.6,
+        "mean_score": 0.6452454512271983,
+        "upper": 0.7
+      },
+      {
+        "count": 8,
+        "danger_frequency": 1.0,
+        "lower": 0.7,
+        "mean_score": 0.7445520434476849,
+        "upper": 0.8
+      },
+      {
+        "count": 11,
+        "danger_frequency": 1.0,
+        "lower": 0.8,
+        "mean_score": 0.8420552372970064,
+        "upper": 0.9
+      },
+      {
+        "count": 463,
+        "danger_frequency": 1.0,
+        "lower": 0.9,
+        "mean_score": 0.9991744097267692,
+        "upper": 1.0
+      }
+    ],
+    "brier_score": 0.010441649503454565,
+    "expected_calibration_error": 0.015281096421153408
+  },
+  "checkpoint_selected_by_this_suite": false,
+  "claim_boundary": [
+    "All rows are deterministic simulator evidence, not physical robot traces.",
+    "Calibration scores diagnose threshold behavior; they are not calibrated epistemic uncertainty.",
+    "OOD labels are registered synthetic stress cases and do not establish real-world coverage.",
+    "This suite cannot select, promote, gate, issue permits, or route commands."
+  ],
+  "context_counterfactuals": {
+    "danger_context_higher_risk": 256,
+    "directional_accuracy": 1.0,
+    "mean_risk_margin": 0.9583085323554568,
+    "pairs": 256
+  },
+  "gates": {
+    "all_held_out_predictions_finite": true,
+    "artifact_remains_shadow_only": true,
+    "counterfactual_directional_accuracy_at_least_95_percent": true,
+    "rare_hazard_false_negatives_below_rules_only": true
+  },
+  "held_out": {
+    "all_predictions_finite": true,
+    "normalized_one_step_error": 0.004541031800210476,
+    "p95_normalized_one_step_error": 0.009640072239562866,
+    "rows": 2250,
+    "rules_plus_jepa": {
+      "balanced_accuracy": 0.9944006975286777,
+      "false_negative_rate": 0.001869158878504673,
+      "false_positive_rate": 0.009329446064139942,
+      "fn": 1,
+      "fp": 16,
+      "tn": 1699,
+      "tp": 534
+    }
+  },
+  "out_of_distribution": {
+    "all_predictions_finite": true,
+    "detector": "registered stress label only; no calibrated epistemic detector",
+    "normalized_one_step_error": 0.01066869615192445,
+    "p95_normalized_one_step_error": 0.05079126376658677,
+    "rows": 512,
+    "rules_plus_jepa": {
+      "balanced_accuracy": 0.9023399014778326,
+      "false_negative_rate": 0.1810344827586207,
+      "false_positive_rate": 0.014285714285714285,
+      "fn": 42,
+      "fp": 4,
+      "tn": 276,
+      "tp": 190
+    }
+  },
+  "passed": true,
+  "rare_hazards": {
+    "all_predictions_finite": true,
+    "normalized_one_step_error": 0.005043827173752693,
+    "p95_normalized_one_step_error": 0.011486067529767743,
+    "rows": 535,
+    "rules_plus_jepa": {
+      "balanced_accuracy": null,
+      "false_negative_rate": 0.001869158878504673,
+      "false_positive_rate": null,
+      "fn": 1,
+      "fp": 0,
+      "tn": 0,
+      "tp": 534
+    }
+  },
+  "schema_version": 1,
+  "source": "deterministic_simulator_shadow_evaluation",
+  "validated_for_gating": false
+}
