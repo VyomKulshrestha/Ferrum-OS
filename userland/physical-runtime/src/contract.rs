@@ -127,10 +127,13 @@ impl ObservationMetadata {
         if self.clock_uncertainty_ticks > policy.maximum_clock_uncertainty_ticks {
             return Err(ContractError::ClockUncertain);
         }
-        if observed_at_tick > received_at_tick.saturating_add(policy.maximum_clock_skew_ticks) {
+        if observed_at_tick > received_at_tick
+            && observed_at_tick - received_at_tick > policy.maximum_clock_skew_ticks
+        {
             return Err(ContractError::FutureObservation);
         }
-        if received_at_tick.saturating_sub(observed_at_tick) > policy.maximum_observation_age_ticks
+        if received_at_tick >= observed_at_tick
+            && received_at_tick - observed_at_tick > policy.maximum_observation_age_ticks
         {
             return Err(ContractError::StaleObservation);
         }
@@ -196,7 +199,9 @@ impl ObservationMetadata {
         {
             return Err(ContractError::UnsupportedSchema);
         }
-        if observed_at_tick > received_at_tick.saturating_add(maximum_clock_skew_ticks) {
+        if observed_at_tick > received_at_tick
+            && observed_at_tick - received_at_tick > maximum_clock_skew_ticks
+        {
             return Err(ContractError::FutureObservation);
         }
         if received_at_tick > self.expires_at_tick {
@@ -411,6 +416,29 @@ mod tests {
         assert_eq!(
             metadata.validate(10, 20, EndpointCapability::Actuate),
             Err(ContractError::CapabilityMismatch)
+        );
+    }
+
+    #[test]
+    fn clock_boundaries_are_overflow_safe() {
+        let policy = ObservationPolicy {
+            maximum_clock_skew_ticks: 10,
+            maximum_clock_uncertainty_ticks: 1,
+            maximum_observation_age_ticks: 10,
+        };
+        let metadata = ObservationMetadata::simulated(1, u64::MAX);
+
+        assert_eq!(
+            metadata.validate_adapter(AdapterProtocol::Simulator, u64::MAX, u64::MAX - 5, policy),
+            Ok(())
+        );
+        assert_eq!(
+            metadata.validate_adapter(AdapterProtocol::Simulator, u64::MAX, u64::MAX - 11, policy,),
+            Err(ContractError::FutureObservation)
+        );
+        assert_eq!(
+            metadata.validate_event(u64::MAX, u64::MAX - 11, 10),
+            Err(ContractError::FutureObservation)
         );
     }
 }
