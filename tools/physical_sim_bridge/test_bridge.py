@@ -211,9 +211,7 @@ class BridgeSessionTests(unittest.TestCase):
         publish_only = BridgePump(BridgeSession(hello(), PublishOnlyBackend()))
         ack = BridgeAck.parse(publish_only.submit_bytes(command(8).to_wire(), 20))
         self.assertEqual(ack.state, "uncertain")
-        duplicate = BridgeAck.parse(
-            publish_only.submit_bytes(command(8).to_wire(), 20)
-        )
+        duplicate = BridgeAck.parse(publish_only.submit_bytes(command(8).to_wire(), 20))
         self.assertEqual(duplicate.state, "rejected")
 
     def test_closed_or_crashed_simulator_cannot_receive_new_authority(self) -> None:
