@@ -17,6 +17,14 @@ class BridgeError(RuntimeError):
     """The bridge session violated identity, ordering, or delivery rules."""
 
 
+class BridgeRejected(BridgeError):
+    """A command was deterministically rejected before backend delivery."""
+
+
+class BridgeDeliveryUncertain(BridgeError):
+    """The backend may have received a command but did not acknowledge it."""
+
+
 class SimulatorBackend(Protocol):
     def poll_observation(self) -> BridgeObservation | None: ...
 
@@ -149,9 +157,16 @@ class BridgeSession:
         self._last_sequence: dict[int, int] = {}
         self._clock_by_adapter: dict[int, int] = {}
         self._seen_commands: set[int] = set()
+        self._closed = False
 
     def poll(self) -> BridgeObservation | None:
-        observation = self.backend.poll_observation()
+        if self._closed:
+            raise BridgeError("bridge session is closed")
+        try:
+            observation = self.backend.poll_observation()
+        except Exception as error:
+            self._closed = True
+            raise BridgeError("simulator backend disconnected") from error
         if observation is None:
             return None
         if observation.run_id != self.hello.run_id:
@@ -170,24 +185,28 @@ class BridgeSession:
         return observation
 
     def submit(self, command: BridgeCommand, current_tick: int) -> dict[str, Any]:
+        if self._closed:
+            raise BridgeRejected("bridge session is closed")
         if command.run_id != self.hello.run_id:
-            raise BridgeError("command run identity does not match the bridge session")
+            raise BridgeRejected("command run identity does not match the bridge session")
         if current_tick > command.deadline_tick:
-            raise BridgeError("command expired before backend delivery")
+            raise BridgeRejected("command expired before backend delivery")
         if command.idempotency_key in self._seen_commands:
-            raise BridgeError("duplicate command idempotency key")
+            raise BridgeRejected("duplicate command idempotency key")
         if len(self._seen_commands) >= MAX_SEEN_COMMANDS:
-            raise BridgeError("command replay journal is full")
+            raise BridgeRejected("command replay journal is full")
         self._seen_commands.add(command.idempotency_key)
         try:
             return self.backend.submit_command(command)
         except Exception as error:
             # The backend may have received the command before raising. Retain
             # the idempotency claim and force external reconciliation.
-            raise BridgeError("backend delivery is uncertain") from error
+            raise BridgeDeliveryUncertain("backend delivery is uncertain") from error
 
     def close(self) -> None:
-        self.backend.close()
+        if not self._closed:
+            self.backend.close()
+            self._closed = True
 
 
 @dataclass
@@ -214,7 +233,10 @@ class BridgePump:
             executed = bool(result.get("executed", False))
             state = "accepted" if executed else "actuator_disabled"
             reason = str(result.get("reason", "backend_acknowledged"))[:128]
-        except BridgeError:
+        except BridgeRejected as error:
+            state = "rejected"
+            reason = str(error)[:128]
+        except BridgeDeliveryUncertain:
             # The session keeps the idempotency claim. The caller must reconcile
             # rather than retry an action that may have reached the backend.
             state = "uncertain"

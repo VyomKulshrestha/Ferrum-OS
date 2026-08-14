@@ -187,7 +187,27 @@ class BridgeSessionTests(unittest.TestCase):
         ack = BridgeAck.parse(pump.submit_bytes(command().to_wire(), 20))
         self.assertEqual(ack.state, "uncertain")
         duplicate = BridgeAck.parse(pump.submit_bytes(command().to_wire(), 20))
-        self.assertEqual(duplicate.state, "uncertain")
+        self.assertEqual(duplicate.state, "rejected")
+
+    def test_closed_or_crashed_simulator_cannot_receive_new_authority(self) -> None:
+        pump = BridgePump(BridgeSession(hello(), ScriptedBackend()))
+        pump.session.close()
+        ack = BridgeAck.parse(pump.submit_bytes(command().to_wire(), 20))
+        self.assertEqual(ack.state, "rejected")
+        with self.assertRaises(BridgeError):
+            pump.poll_bytes()
+
+        class CrashedBackend(ScriptedBackend):
+            def poll_observation(self) -> BridgeObservation | None:
+                raise RuntimeError("simulator stopped")
+
+        crashed = BridgePump(BridgeSession(hello(), CrashedBackend()))
+        with self.assertRaises(BridgeError):
+            crashed.poll_bytes()
+        self.assertEqual(
+            BridgeAck.parse(crashed.submit_bytes(command(7).to_wire(), 20)).state,
+            "rejected",
+        )
 
 
 if __name__ == "__main__":
