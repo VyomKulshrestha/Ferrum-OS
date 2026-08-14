@@ -16,6 +16,7 @@ pub mod safety;
 pub mod scenario;
 pub mod session;
 pub mod supervisor;
+pub mod transport;
 pub mod twin;
 pub mod virtual_device;
 pub mod work;
@@ -78,6 +79,11 @@ pub use supervisor::{
     AuthoritySeverity, CommandRateLimiter, ControlTrafficClass, OperationalLimits,
     PriorityControlQueue, QueuedControl, RecoveryLatch, ResourceSnapshot, SupervisorError,
     WatchdogBank, WatchdogRole, WatchdogState, MAX_CONTROL_QUEUE, MAX_RATE_EVENTS, MAX_WATCHDOGS,
+};
+pub use transport::{
+    crc8_with_zeroed_byte, CanBusState, CanConformance, CanFramePolicy, MessageClass, MqttPolicy,
+    Ros2Qos, RosDurability, RosReliability, TransportConformance, TransportEnvelope,
+    TransportError, MAX_TRANSPORT_PAYLOAD_BYTES, MAX_TRANSPORT_SOURCES,
 };
 pub use twin::{
     ActorTelemetry, AssetTelemetry, EventEnvelope, EventPayload, OperationalTwin, SensorKind,
