@@ -43,6 +43,13 @@ def main():
         and report["calibration"]["expected_calibration_error"] >= 0,
         "threshold-score calibration diagnostics are recorded",
     )
+    require(
+        [point["episodes"] for point in report["data_scaling"]["points"]]
+        == [250, 500, 1000, 1750]
+        and report["data_scaling"]["selection_split_only"]
+        and not report["data_scaling"]["test_split_used"],
+        "fixed-capacity data scaling is fit without opening the test split",
+    )
     with tempfile.TemporaryDirectory(prefix="ferrum-physical-robustness-") as temp:
         output = Path(temp) / "report.json"
         subprocess.run(

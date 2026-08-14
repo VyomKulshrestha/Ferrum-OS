@@ -89,10 +89,69 @@
     "mean_risk_margin": 0.9583085323554568,
     "pairs": 256
   },
+  "data_scaling": {
+    "fixed_capacity": {
+      "hidden": 64,
+      "latent": 24
+    },
+    "points": [
+      {
+        "episodes": 250,
+        "epochs_completed": 600,
+        "epochs_requested": 600,
+        "hidden": 64,
+        "latent": 24,
+        "transitions": 1500,
+        "validation_delta_mse": 0.0012735333293676376,
+        "validation_h1": 0.012704619206488132,
+        "validation_h3": 0.027419758960604668,
+        "validation_h5": 0.03907373175024986
+      },
+      {
+        "episodes": 500,
+        "epochs_completed": 600,
+        "epochs_requested": 600,
+        "hidden": 64,
+        "latent": 24,
+        "transitions": 3000,
+        "validation_delta_mse": 0.0014476522337645292,
+        "validation_h1": 0.013835146091878414,
+        "validation_h3": 0.028887547552585602,
+        "validation_h5": 0.04054604098200798
+      },
+      {
+        "episodes": 1000,
+        "epochs_completed": 600,
+        "epochs_requested": 600,
+        "hidden": 64,
+        "latent": 24,
+        "transitions": 6000,
+        "validation_delta_mse": 0.001193938311189413,
+        "validation_h1": 0.012515697628259659,
+        "validation_h3": 0.02651810273528099,
+        "validation_h5": 0.03753921017050743
+      },
+      {
+        "episodes": 1750,
+        "epochs_completed": 600,
+        "epochs_requested": 600,
+        "hidden": 64,
+        "latent": 24,
+        "transitions": 10500,
+        "validation_delta_mse": 0.0013294422533363104,
+        "validation_h1": 0.012440967373549938,
+        "validation_h3": 0.026644429191946983,
+        "validation_h5": 0.03746452182531357
+      }
+    ],
+    "selection_split_only": true,
+    "test_split_used": false
+  },
   "gates": {
     "all_held_out_predictions_finite": true,
     "artifact_remains_shadow_only": true,
     "counterfactual_directional_accuracy_at_least_95_percent": true,
+    "data_scaling_final_h3_below_smallest_data_h3": true,
     "rare_hazard_false_negatives_below_rules_only": true
   },
   "held_out": {

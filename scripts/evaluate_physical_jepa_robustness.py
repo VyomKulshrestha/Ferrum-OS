@@ -254,19 +254,63 @@ def diagnostics(rows, weights):
     }
 
 
+def data_scaling_curve(train_ids, train_rows, validation_rows):
+    episode_ids = np.asarray(sorted(train_ids), dtype=np.int64)
+    np.random.default_rng(13_579).shuffle(episode_ids)
+    points = []
+    for episode_count in (250, 500, 1_000, 1_750):
+        selected = set(episode_ids[:episode_count].tolist())
+        subset = [row for row in train_rows if row[0] in selected]
+        weights, metrics, completed = jepa.train(
+            subset,
+            validation_rows,
+            latent=24,
+            hidden=64,
+            epochs=600,
+            seed=20_260 + episode_count,
+        )
+
+        def predictor(state, action, features, model=weights):
+            return jepa.predict_delta(state, action, features, model)
+
+        points.append(
+            {
+                "episodes": episode_count,
+                "transitions": len(subset),
+                "epochs_requested": 600,
+                "epochs_completed": completed,
+                "latent": 24,
+                "hidden": 64,
+                "validation_delta_mse": metrics["delta_mse"],
+                "validation_h1": simulator.rollout_error(validation_rows, predictor, 1),
+                "validation_h3": simulator.rollout_error(validation_rows, predictor, 3),
+                "validation_h5": simulator.rollout_error(validation_rows, predictor, 5),
+            }
+        )
+    return {
+        "selection_split_only": True,
+        "test_split_used": False,
+        "fixed_capacity": {"latent": 24, "hidden": 64},
+        "points": points,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
     weights = load_artifact(ARTIFACT)
     rows = simulator.generate(2500, 6, 42)
-    _, _, _, _, test_rows = jepa.split_rows(rows, 2500, 42)
+    train_ids, _, train_rows, validation_rows, test_rows = jepa.split_rows(
+        rows, 2500, 42
+    )
     rare = [row for row in test_rows if row[6]]
     ood = ood_rows()
     held_out_diagnostics = diagnostics(test_rows, weights)
     rare_diagnostics = diagnostics(rare, weights)
     context_diagnostics = counterfactuals(test_rows, weights)
     ood_diagnostics = diagnostics(ood, weights)
+    scaling = data_scaling_curve(train_ids, train_rows, validation_rows)
     result = {
         "schema_version": 1,
         "artifact_sha256": hashlib.sha256(ARTIFACT.read_bytes()).hexdigest(),
@@ -277,6 +321,7 @@ def main():
         "rare_hazards": rare_diagnostics,
         "context_counterfactuals": context_diagnostics,
         "calibration": calibration(test_rows, weights),
+        "data_scaling": scaling,
         "out_of_distribution": {
             **ood_diagnostics,
             "detector": "registered stress label only; no calibrated epistemic detector",
@@ -296,6 +341,10 @@ def main():
             < simulator.confusion(
                 rare, lambda row: simulator.rules_block(row[2], row[3], row[4])
             )["fn"],
+            "data_scaling_final_h3_below_smallest_data_h3": scaling["points"][-1][
+                "validation_h3"
+            ]
+            < scaling["points"][0]["validation_h3"],
         },
         "claim_boundary": [
             "All rows are deterministic simulator evidence, not physical robot traces.",
