@@ -16,6 +16,7 @@ pub mod safety;
 pub mod scenario;
 pub mod session;
 pub mod twin;
+pub mod virtual_device;
 pub mod work;
 
 pub use adapter::{
@@ -75,6 +76,11 @@ pub use session::{
 pub use twin::{
     ActorTelemetry, AssetTelemetry, EventEnvelope, EventPayload, OperationalTwin, SensorKind,
     SensorReading, TwinError, TwinSnapshot, ZoneOccupancy,
+};
+pub use virtual_device::{
+    VirtualDeviceAuthority, VirtualDeviceAuthorization, VirtualDeviceBus, VirtualDeviceClass,
+    VirtualDeviceDescriptor, VirtualDeviceError, VirtualDeviceId, VirtualDeviceLease,
+    VirtualDeviceState, VirtualTransport, MAX_VIRTUAL_DEVICES,
 };
 pub use work::{
     ActorConstraint, DispatchError, DispatchReceipt, JobId, JobState, Priority, TaskId, TaskStatus,
