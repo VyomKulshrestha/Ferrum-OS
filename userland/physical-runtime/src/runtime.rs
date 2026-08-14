@@ -8,6 +8,7 @@ use crate::adapter::{
     AdapterCommand, AdapterDriver, AdapterError, AdapterFrame, AdapterId, AdapterRegistry,
     AdapterState, RoutedCommand,
 };
+use crate::contract::ObservationPolicy;
 use crate::domain::{DomainRegistry, SiteId};
 use crate::experience::{ExperienceError, PhysicalExperienceBuffer, PhysicalOutcome};
 use crate::fleet::{CommandDeliveryState, DeviceHealth, DeviceLifecycle, FleetError, FleetManager};
@@ -15,6 +16,9 @@ use crate::model::{PhysicalAction, PhysicalState};
 use crate::privacy::{DataAccessRequest, PrivacyDecision, PrivacyGuard};
 use crate::reliability::{
     ReliabilityError, ReliabilityEvent, ReliabilityEventKind, ReliabilityMonitor,
+};
+use crate::replay::{
+    FaultController, FrameDisposition, ReplayAction, ReplayError, ReplayOutcome, ReplayStep,
 };
 use crate::safety::{
     PhysicalPrediction, SafetyContext, SafetyDecision, SafetyError, SafetyReason, SafetySupervisor,
@@ -42,6 +46,7 @@ pub enum RuntimeError {
     Experience(ExperienceError),
     DeliveryUncertain(AdapterError),
     Session(SessionError),
+    Replay(ReplayError),
 }
 
 #[derive(Debug)]
@@ -56,6 +61,7 @@ pub struct PhysicalRuntime {
     reliability: ReliabilityMonitor,
     experience: PhysicalExperienceBuffer,
     evidence: EvidenceLog,
+    faults: FaultController,
     runtime_twin_sequence: u64,
     reliability_event_id: u64,
 }
@@ -89,6 +95,7 @@ impl PhysicalRuntime {
             reliability: ReliabilityMonitor::new(),
             experience: PhysicalExperienceBuffer::new(),
             evidence: EvidenceLog::new(descriptor).map_err(RuntimeError::Session)?,
+            faults: FaultController::new(),
             runtime_twin_sequence: 0,
             reliability_event_id: 0,
         })
@@ -152,6 +159,10 @@ impl PhysicalRuntime {
 
     pub fn evidence(&self) -> &EvidenceLog {
         &self.evidence
+    }
+
+    pub fn faults(&self) -> &FaultController {
+        &self.faults
     }
 
     pub fn record_resolved_intent(
@@ -234,6 +245,19 @@ impl PhysicalRuntime {
         received_at_tick: u64,
         maximum_clock_skew_ticks: u64,
     ) -> Result<u64, RuntimeError> {
+        self.ingest_adapter_frame_with_policy(
+            frame,
+            received_at_tick,
+            ObservationPolicy::strict(maximum_clock_skew_ticks),
+        )
+    }
+
+    pub fn ingest_adapter_frame_with_policy(
+        &mut self,
+        frame: AdapterFrame,
+        received_at_tick: u64,
+        observation_policy: ObservationPolicy,
+    ) -> Result<u64, RuntimeError> {
         self.evidence
             .reserve_at(received_at_tick, 1)
             .map_err(RuntimeError::Session)?;
@@ -243,12 +267,12 @@ impl PhysicalRuntime {
         let endpoint_id = frame.endpoint_id.0;
         let event_id = self
             .adapters
-            .ingest_frame(
+            .ingest_frame_with_policy(
                 &mut self.twin,
                 &mut self.domain,
                 frame,
                 received_at_tick,
-                maximum_clock_skew_ticks,
+                observation_policy,
             )
             .map_err(RuntimeError::Adapter)?;
         self.evidence
@@ -263,6 +287,112 @@ impl PhysicalRuntime {
             )
             .map_err(RuntimeError::Session)?;
         Ok(event_id)
+    }
+
+    pub fn apply_replay_step(&mut self, step: ReplayStep) -> Result<ReplayOutcome, RuntimeError> {
+        if step.run_id != self.evidence.descriptor().run_id {
+            return Err(RuntimeError::Replay(ReplayError::RunMismatch));
+        }
+        self.faults.expire_before(step.at_tick);
+        match step.action {
+            ReplayAction::IngestFrame {
+                frame,
+                received_at_tick,
+                observation_policy,
+            } => match self
+                .faults
+                .transform_frame(frame, received_at_tick, step.at_tick)
+            {
+                FrameDisposition::Deliver {
+                    frame,
+                    received_at_tick,
+                } => self
+                    .ingest_adapter_frame_with_policy(frame, received_at_tick, observation_policy)
+                    .map(|event_id| ReplayOutcome::ObservationApplied { event_id }),
+                FrameDisposition::Duplicate {
+                    frame,
+                    received_at_tick,
+                } => {
+                    let event_id = self.ingest_adapter_frame_with_policy(
+                        frame,
+                        received_at_tick,
+                        observation_policy,
+                    )?;
+                    match self.ingest_adapter_frame_with_policy(
+                        frame,
+                        received_at_tick,
+                        observation_policy,
+                    ) {
+                        Err(RuntimeError::Adapter(AdapterError::DuplicateOrOutOfOrder)) => {
+                            Ok(ReplayOutcome::DuplicateRejected { event_id })
+                        }
+                        _ => Err(RuntimeError::Replay(ReplayError::InvalidAction)),
+                    }
+                }
+                FrameDisposition::Drop => Ok(ReplayOutcome::FrameDropped),
+                FrameDisposition::Hold => Ok(ReplayOutcome::FrameHeld),
+            },
+            ReplayAction::DeviceHealth {
+                adapter_id,
+                session_epoch,
+                health,
+            } => {
+                self.update_device_health(adapter_id, session_epoch, health, step.at_tick)?;
+                Ok(ReplayOutcome::DeviceHealthApplied)
+            }
+            ReplayAction::ActivateFault(fault) => {
+                self.evidence
+                    .reserve_at(step.at_tick, 1)
+                    .map_err(RuntimeError::Session)?;
+                self.faults.activate(fault).map_err(RuntimeError::Replay)?;
+                self.evidence
+                    .append(
+                        step.at_tick,
+                        EvidenceKind::FaultInjected,
+                        fault.manifest_id,
+                        fault.fault_code as u64,
+                        fault.target_code(),
+                        fault.kind_code(),
+                        fault.kind_argument(),
+                    )
+                    .map_err(RuntimeError::Session)?;
+                Ok(ReplayOutcome::FaultActivated {
+                    manifest_id: fault.manifest_id,
+                })
+            }
+            ReplayAction::Checkpoint { checkpoint_id } => {
+                let twin_event_id = self.twin.snapshot().latest_event_id;
+                let previous_checksum = self.evidence.final_checksum();
+                self.evidence
+                    .append(
+                        step.at_tick,
+                        EvidenceKind::Checkpoint,
+                        checkpoint_id,
+                        step.step_id,
+                        twin_event_id,
+                        previous_checksum,
+                        0,
+                    )
+                    .map_err(RuntimeError::Session)?;
+                Ok(ReplayOutcome::CheckpointRecorded { checkpoint_id })
+            }
+            ReplayAction::Pause => {
+                let twin_event_id = self.twin.snapshot().latest_event_id;
+                let previous_checksum = self.evidence.final_checksum();
+                self.evidence
+                    .append(
+                        step.at_tick,
+                        EvidenceKind::Checkpoint,
+                        step.step_id,
+                        1,
+                        twin_event_id,
+                        previous_checksum,
+                        0,
+                    )
+                    .map_err(RuntimeError::Session)?;
+                Ok(ReplayOutcome::Paused)
+            }
+        }
     }
 
     pub fn dispatch_next(
@@ -769,6 +899,7 @@ mod tests {
         CapabilitySet, Position, Qualification, QualificationSet, Site,
     };
     use crate::fleet::{DeviceLifecycle, FleetDevice};
+    use crate::replay::{FaultKind, FaultSpec, FaultTarget, ReplayManifest};
     use crate::safety::{Geofence, SafetyPolicy};
     use crate::twin::{SensorKind, SensorReading};
     use crate::work::{ActorConstraint, JobState, Priority, TaskId, TaskStatus, WorkTask};
@@ -1170,5 +1301,111 @@ mod tests {
             EvidenceKind::OperatorAction
         );
         assert_eq!(runtime.evidence().verify(), Ok(()));
+    }
+
+    #[test]
+    fn replay_faults_are_deterministic_and_preserve_twin_state() {
+        let mut runtime = configured_runtime();
+        let mut manifest = ReplayManifest::new(SessionDescriptor::simulator(1, 1, 42)).unwrap();
+        manifest
+            .push(
+                100,
+                ReplayAction::ActivateFault(FaultSpec {
+                    manifest_id: 9,
+                    fault_code: 4,
+                    target: FaultTarget::Adapter(AdapterId(1)),
+                    kind: FaultKind::DropFrame,
+                    starts_at_tick: 100,
+                    ends_at_tick: 102,
+                }),
+            )
+            .unwrap();
+        manifest
+            .push(
+                101,
+                ReplayAction::IngestFrame {
+                    frame: frame(1, 900, 101),
+                    received_at_tick: 101,
+                    observation_policy: ObservationPolicy::strict(0),
+                },
+            )
+            .unwrap();
+        manifest
+            .push(
+                103,
+                ReplayAction::IngestFrame {
+                    frame: frame(1, 800, 103),
+                    received_at_tick: 103,
+                    observation_policy: ObservationPolicy::strict(0),
+                },
+            )
+            .unwrap();
+
+        let mut cursor = manifest.cursor();
+        assert_eq!(
+            runtime.apply_replay_step(cursor.next_step().unwrap()),
+            Ok(ReplayOutcome::FaultActivated { manifest_id: 9 })
+        );
+        assert_eq!(
+            runtime.apply_replay_step(cursor.next_step().unwrap()),
+            Ok(ReplayOutcome::FrameDropped)
+        );
+        assert_eq!(runtime.twin().snapshot().latest_event_id, 0);
+        assert_eq!(
+            runtime.apply_replay_step(cursor.next_step().unwrap()),
+            Ok(ReplayOutcome::ObservationApplied { event_id: 1 })
+        );
+        assert_eq!(runtime.twin().snapshot().latest_event_id, 1);
+        assert_eq!(runtime.evidence().verify(), Ok(()));
+    }
+
+    #[test]
+    fn duplicate_fault_is_rejected_by_the_normal_adapter_replay_guard() {
+        let mut runtime = configured_runtime();
+        let fault = ReplayStep {
+            run_id: 1,
+            step_id: 1,
+            at_tick: 100,
+            action: ReplayAction::ActivateFault(FaultSpec {
+                manifest_id: 10,
+                fault_code: 5,
+                target: FaultTarget::Endpoint(EndpointId(2)),
+                kind: FaultKind::DuplicateFrame,
+                starts_at_tick: 100,
+                ends_at_tick: 100,
+            }),
+        };
+        let duplicate = ReplayStep {
+            run_id: 1,
+            step_id: 2,
+            at_tick: 100,
+            action: ReplayAction::IngestFrame {
+                frame: frame(1, 900, 100),
+                received_at_tick: 100,
+                observation_policy: ObservationPolicy::strict(0),
+            },
+        };
+        runtime.apply_replay_step(fault).unwrap();
+        assert_eq!(
+            runtime.apply_replay_step(duplicate),
+            Ok(ReplayOutcome::DuplicateRejected { event_id: 1 })
+        );
+        assert_eq!(runtime.twin().snapshot().retained_events, 1);
+        assert_eq!(runtime.evidence().verify(), Ok(()));
+    }
+
+    #[test]
+    fn replay_run_identity_is_bound_to_the_runtime_session() {
+        let mut runtime = configured_runtime();
+        assert_eq!(
+            runtime.apply_replay_step(ReplayStep {
+                run_id: 99,
+                step_id: 1,
+                at_tick: 1,
+                action: ReplayAction::Pause,
+            }),
+            Err(RuntimeError::Replay(ReplayError::RunMismatch))
+        );
+        assert!(runtime.evidence().records().is_empty());
     }
 }

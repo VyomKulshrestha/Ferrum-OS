@@ -10,6 +10,7 @@ pub mod fleet;
 pub mod model;
 pub mod privacy;
 pub mod reliability;
+pub mod replay;
 pub mod runtime;
 pub mod safety;
 pub mod scenario;
@@ -52,6 +53,11 @@ pub use privacy::{
 pub use reliability::{
     ReliabilityError, ReliabilityEvent, ReliabilityEventKind, ReliabilityMonitor,
     ReliabilitySnapshot, ServiceLevelAssessment, ServiceLevelObjective,
+};
+pub use replay::{
+    FaultController, FaultKind, FaultSpec, FaultTarget, FrameDisposition, ReplayAction,
+    ReplayCursor, ReplayError, ReplayManifest, ReplayOutcome, ReplayStep, MAX_ACTIVE_FAULTS,
+    MAX_REPLAY_STEPS,
 };
 pub use runtime::{PhysicalRuntime, RuntimeError};
 pub use safety::{
