@@ -295,6 +295,39 @@ def data_scaling_curve(train_ids, train_rows, validation_rows):
     }
 
 
+def matched_autoencoder_baseline(train_rows, validation_rows, test_rows):
+    weights, validation, completed = jepa.train(
+        train_rows,
+        validation_rows,
+        latent=64,
+        hidden=128,
+        epochs=1_200,
+        seed=4_242,
+        latent_loss_weight=np.float32(0.0),
+        validation_latent_weight=0.0,
+    )
+
+    def predictor(state, action, features):
+        return jepa.predict_delta(state, action, features, weights)
+
+    return {
+        "model_class": "matched_autoencoder_transition_baseline",
+        "latent_target_prediction_loss": False,
+        "reconstruction_auxiliary": True,
+        "action_auxiliary": True,
+        "latent": 64,
+        "hidden": 128,
+        "epochs_requested": 1_200,
+        "epochs_completed": completed,
+        "validation": validation,
+        "test_rollout": {
+            f"h{horizon}": simulator.rollout_error(test_rows, predictor, horizon)
+            for horizon in range(1, 6)
+        },
+        "test_safety": diagnostics(test_rows, weights)["rules_plus_jepa"],
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
@@ -311,6 +344,7 @@ def main():
     context_diagnostics = counterfactuals(test_rows, weights)
     ood_diagnostics = diagnostics(ood, weights)
     scaling = data_scaling_curve(train_ids, train_rows, validation_rows)
+    autoencoder = matched_autoencoder_baseline(train_rows, validation_rows, test_rows)
     result = {
         "schema_version": 1,
         "artifact_sha256": hashlib.sha256(ARTIFACT.read_bytes()).hexdigest(),
@@ -322,6 +356,7 @@ def main():
         "context_counterfactuals": context_diagnostics,
         "calibration": calibration(test_rows, weights),
         "data_scaling": scaling,
+        "matched_autoencoder": autoencoder,
         "out_of_distribution": {
             **ood_diagnostics,
             "detector": "registered stress label only; no calibrated epistemic detector",

@@ -169,6 +169,39 @@
       "tp": 534
     }
   },
+  "matched_autoencoder": {
+    "action_auxiliary": true,
+    "epochs_completed": 1200,
+    "epochs_requested": 1200,
+    "hidden": 128,
+    "latent": 64,
+    "latent_target_prediction_loss": false,
+    "model_class": "matched_autoencoder_transition_baseline",
+    "reconstruction_auxiliary": true,
+    "test_rollout": {
+      "h1": 0.008337433449923992,
+      "h2": 0.013250035233795643,
+      "h3": 0.017498578876256943,
+      "h4": 0.021255068480968475,
+      "h5": 0.024613410234451294
+    },
+    "test_safety": {
+      "balanced_accuracy": 0.9941091523391733,
+      "false_negative_rate": 0.001869158878504673,
+      "false_positive_rate": 0.009912536443148687,
+      "fn": 1,
+      "fp": 17,
+      "tn": 1698,
+      "tp": 534
+    },
+    "validation": {
+      "action_cross_entropy": 0.0003011852386407554,
+      "delta_mse": 0.0005675090942531824,
+      "latent_prediction_mse": 0.63426274061203,
+      "objective": 0.0005760338387219235,
+      "reconstruction_mse": 8.494625944877043e-05
+    }
+  },
   "out_of_distribution": {
     "all_predictions_finite": true,
     "detector": "registered stress label only; no calibrated epistemic detector",

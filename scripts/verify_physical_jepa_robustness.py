@@ -50,6 +50,14 @@ def main():
         and not report["data_scaling"]["test_split_used"],
         "fixed-capacity data scaling is fit without opening the test split",
     )
+    require(
+        report["matched_autoencoder"]["latent"] == 64
+        and report["matched_autoencoder"]["hidden"] == 128
+        and not report["matched_autoencoder"]["latent_target_prediction_loss"]
+        and set(report["matched_autoencoder"]["test_rollout"])
+        == {"h1", "h2", "h3", "h4", "h5"},
+        "matched autoencoder baseline reports H=1 through H=5 without JEPA target loss",
+    )
     with tempfile.TemporaryDirectory(prefix="ferrum-physical-robustness-") as temp:
         output = Path(temp) / "report.json"
         subprocess.run(

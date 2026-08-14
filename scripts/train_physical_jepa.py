@@ -31,18 +31,25 @@ def split_rows(rows, episodes: int, seed: int):
     episode_ids = np.arange(episodes)
     np.random.default_rng(seed).shuffle(episode_ids)
     train_ids = set(episode_ids[: int(episodes * 0.70)].tolist())
-    validation_ids = set(episode_ids[int(episodes * 0.70): int(episodes * 0.85)].tolist())
+    validation_ids = set(
+        episode_ids[int(episodes * 0.70) : int(episodes * 0.85)].tolist()
+    )
     train = [row for row in rows if row[0] in train_ids]
     validation = [row for row in rows if row[0] in validation_ids]
-    test = [row for row in rows if row[0] not in train_ids and row[0] not in validation_ids]
+    test = [
+        row for row in rows if row[0] not in train_ids and row[0] not in validation_ids
+    ]
     return train_ids, validation_ids, train, validation, test
 
 
 def action_matrix(rows) -> np.ndarray:
-    values = np.zeros((len(rows), simulator.ACTION_COUNT + simulator.ACTION_FEATURE_SIZE), dtype=np.float32)
+    values = np.zeros(
+        (len(rows), simulator.ACTION_COUNT + simulator.ACTION_FEATURE_SIZE),
+        dtype=np.float32,
+    )
     for index, row in enumerate(rows):
         values[index, row[3]] = 1.0
-        values[index, simulator.ACTION_COUNT:] = row[4]
+        values[index, simulator.ACTION_COUNT :] = row[4]
     return values
 
 
@@ -56,17 +63,27 @@ def initialize(latent: int, hidden: int, seed: int):
     rng = np.random.default_rng(seed)
     action_width = simulator.ACTION_COUNT + simulator.ACTION_FEATURE_SIZE
     weights = {
-        "encoder_w": rng.normal(0, 0.16, (simulator.STATE_SIZE, latent)).astype(np.float32),
+        "encoder_w": rng.normal(0, 0.16, (simulator.STATE_SIZE, latent)).astype(
+            np.float32
+        ),
         "encoder_b": np.zeros(latent, dtype=np.float32),
-        "predictor_w1": rng.normal(0, 0.12, (latent + action_width, hidden)).astype(np.float32),
+        "predictor_w1": rng.normal(0, 0.12, (latent + action_width, hidden)).astype(
+            np.float32
+        ),
         "predictor_b1": np.zeros(hidden, dtype=np.float32),
         "predictor_w2": rng.normal(0, 0.10, (hidden, latent)).astype(np.float32),
         "predictor_b2": np.zeros(latent, dtype=np.float32),
-        "state_w": rng.normal(0, 0.08, (latent, simulator.STATE_SIZE)).astype(np.float32),
+        "state_w": rng.normal(0, 0.08, (latent, simulator.STATE_SIZE)).astype(
+            np.float32
+        ),
         "state_b": np.zeros(simulator.STATE_SIZE, dtype=np.float32),
-        "reconstruction_w": rng.normal(0, 0.08, (latent, simulator.STATE_SIZE)).astype(np.float32),
+        "reconstruction_w": rng.normal(0, 0.08, (latent, simulator.STATE_SIZE)).astype(
+            np.float32
+        ),
         "reconstruction_b": np.zeros(simulator.STATE_SIZE, dtype=np.float32),
-        "action_w": rng.normal(0, 0.08, (latent, simulator.ACTION_COUNT)).astype(np.float32),
+        "action_w": rng.normal(0, 0.08, (latent, simulator.ACTION_COUNT)).astype(
+            np.float32
+        ),
         "action_b": np.zeros(simulator.ACTION_COUNT, dtype=np.float32),
     }
     target = {
@@ -83,7 +100,9 @@ def forward(state, actions, weights):
     hidden_pre = predictor_input @ weights["predictor_w1"] + weights["predictor_b1"]
     hidden = np.maximum(hidden_pre, 0)
     predicted_latent = hidden @ weights["predictor_w2"] + weights["predictor_b2"]
-    reconstructed_state = latent @ weights["reconstruction_w"] + weights["reconstruction_b"]
+    reconstructed_state = (
+        latent @ weights["reconstruction_w"] + weights["reconstruction_b"]
+    )
     action_context = predicted_latent - latent
     action_logits = action_context @ weights["action_w"] + weights["action_b"]
     delta = predicted_latent @ weights["state_w"] + weights["state_b"]
@@ -102,9 +121,11 @@ def forward(state, actions, weights):
 
 
 def predict_delta(state, action, features, weights):
-    actions = np.zeros((1, simulator.ACTION_COUNT + simulator.ACTION_FEATURE_SIZE), dtype=np.float32)
+    actions = np.zeros(
+        (1, simulator.ACTION_COUNT + simulator.ACTION_FEATURE_SIZE), dtype=np.float32
+    )
     actions[0, action] = 1.0
-    actions[0, simulator.ACTION_COUNT:] = features
+    actions[0, simulator.ACTION_COUNT :] = features
     return forward(state.reshape(1, -1), actions, weights)[-1][0]
 
 
@@ -114,9 +135,16 @@ def softmax(logits: np.ndarray) -> np.ndarray:
     return values / values.sum(axis=1, keepdims=True)
 
 
-def validation_metrics(state, actions, delta, next_state, weights, target):
+def validation_metrics(
+    state,
+    actions,
+    delta,
+    next_state,
+    weights,
+    target,
+    latent_objective_weight: float = 0.25,
+):
     outputs = forward(state, actions, weights)
-    latent = outputs[1]
     predicted_latent = outputs[5]
     reconstructed_state = outputs[6]
     action_logits = outputs[8]
@@ -127,10 +155,12 @@ def validation_metrics(state, actions, delta, next_state, weights, target):
     delta_mse = float(np.mean((predicted_delta - delta) ** 2))
     latent_mse = float(np.mean((predicted_latent - target_latent) ** 2))
     reconstruction_mse = float(np.mean((reconstructed_state - state) ** 2))
-    action_cross_entropy = float(-np.mean(np.sum(action_targets * np.log(probabilities), axis=1)))
+    action_cross_entropy = float(
+        -np.mean(np.sum(action_targets * np.log(probabilities), axis=1))
+    )
     objective = (
         delta_mse
-        + 0.25 * latent_mse
+        + latent_objective_weight * latent_mse
         + 0.10 * reconstruction_mse
         + 0.0001 * action_cross_entropy
     )
@@ -163,7 +193,16 @@ def representation_metrics(rows, weights):
     }
 
 
-def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, seed: int):
+def train(
+    train_rows,
+    validation_rows,
+    latent: int,
+    hidden: int,
+    epochs: int,
+    seed: int,
+    latent_loss_weight: np.float32 = LATENT_LOSS_WEIGHT,
+    validation_latent_weight: float = 0.25,
+):
     train_state, train_actions, train_delta, train_next = state_arrays(train_rows)
     val_state, val_actions, val_delta, val_next = state_arrays(validation_rows)
     rng, weights, target = initialize(latent, hidden, seed)
@@ -194,9 +233,15 @@ def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, se
         ) = forward(state, actions, weights)
         target_latent = np.tanh(actual_next @ target["encoder_w"] + target["encoder_b"])
 
-        delta_gradient = np.float32(2.0) * (predicted_delta - actual_delta) / np.float32(batch_size * simulator.STATE_SIZE)
+        delta_gradient = (
+            np.float32(2.0)
+            * (predicted_delta - actual_delta)
+            / np.float32(batch_size * simulator.STATE_SIZE)
+        )
         latent_gradient = (
-            np.float32(2.0) * LATENT_LOSS_WEIGHT * (predicted_latent - target_latent)
+            np.float32(2.0)
+            * latent_loss_weight
+            * (predicted_latent - target_latent)
             / np.float32(batch_size * latent)
         )
         reconstruction_gradient = (
@@ -206,7 +251,11 @@ def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, se
             / np.float32(batch_size * simulator.STATE_SIZE)
         )
         action_targets = actions[:, : simulator.ACTION_COUNT]
-        action_gradient = ACTION_LOSS_WEIGHT * (softmax(action_logits) - action_targets) / np.float32(batch_size)
+        action_gradient = (
+            ACTION_LOSS_WEIGHT
+            * (softmax(action_logits) - action_targets)
+            / np.float32(batch_size)
+        )
         gradients = {}
         gradients["state_w"] = predicted_latent.T @ delta_gradient
         gradients["state_b"] = delta_gradient.sum(axis=0)
@@ -232,7 +281,9 @@ def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, se
             + reconstruction_gradient @ weights["reconstruction_w"].T
             - action_context_gradient
         )
-        encoder_gradient = latent_gradient_online * (np.float32(1.0) - np.tanh(encoder_pre) ** 2)
+        encoder_gradient = latent_gradient_online * (
+            np.float32(1.0) - np.tanh(encoder_pre) ** 2
+        )
         gradients["encoder_w"] = state.T @ encoder_gradient
         gradients["encoder_b"] = encoder_gradient.sum(axis=0)
 
@@ -244,7 +295,11 @@ def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, se
             velocities[name] += 0.001 * gradient * gradient
             corrected_moment = moments[name] / (1 - 0.9**epoch)
             corrected_velocity = velocities[name] / (1 - 0.999**epoch)
-            parameter -= np.float32(0.002) * corrected_moment / (np.sqrt(corrected_velocity) + 1e-8)
+            parameter -= (
+                np.float32(0.002)
+                * corrected_moment
+                / (np.sqrt(corrected_velocity) + 1e-8)
+            )
 
         target["encoder_w"] *= EMA_DECAY
         target["encoder_w"] += (np.float32(1.0) - EMA_DECAY) * weights["encoder_w"]
@@ -253,7 +308,13 @@ def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, se
 
         if epoch % 25 == 0 or epoch == epochs:
             metrics = validation_metrics(
-                val_state, val_actions, val_delta, val_next, weights, target
+                val_state,
+                val_actions,
+                val_delta,
+                val_next,
+                weights,
+                target,
+                validation_latent_weight,
             )
             current = metrics["objective"]
             if current < best_validation - 1e-9:
@@ -268,12 +329,26 @@ def train(train_rows, validation_rows, latent: int, hidden: int, epochs: int, se
     if best is None:
         best = weights
         best_metrics = validation_metrics(
-            val_state, val_actions, val_delta, val_next, weights, target
+            val_state,
+            val_actions,
+            val_delta,
+            val_next,
+            weights,
+            target,
+            validation_latent_weight,
         )
     return best, best_metrics, epoch
 
 
-def write_artifact(path: Path, weights, samples: int, h3: float, mean_h3: float, latent: int, hidden: int):
+def write_artifact(
+    path: Path,
+    weights,
+    samples: int,
+    h3: float,
+    mean_h3: float,
+    latent: int,
+    hidden: int,
+):
     header = struct.pack(
         "<4sIIIIIIIIffI",
         MAGIC,
@@ -292,8 +367,14 @@ def write_artifact(path: Path, weights, samples: int, h3: float, mean_h3: float,
     body = b"".join(
         np.asarray(weights[name], dtype="<f4").tobytes(order="C")
         for name in (
-            "encoder_w", "encoder_b", "predictor_w1", "predictor_b1",
-            "predictor_w2", "predictor_b2", "state_w", "state_b",
+            "encoder_w",
+            "encoder_b",
+            "predictor_w1",
+            "predictor_b1",
+            "predictor_w2",
+            "predictor_b2",
+            "state_w",
+            "state_b",
         )
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -302,8 +383,12 @@ def write_artifact(path: Path, weights, samples: int, h3: float, mean_h3: float,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifact", type=Path, default=Path("target/physical_jepa_candidate.bin"))
-    parser.add_argument("--evaluation", type=Path, default=Path("target/physical_jepa_candidate.json"))
+    parser.add_argument(
+        "--artifact", type=Path, default=Path("target/physical_jepa_candidate.bin")
+    )
+    parser.add_argument(
+        "--evaluation", type=Path, default=Path("target/physical_jepa_candidate.json")
+    )
     parser.add_argument("--episodes", type=int, default=2500)
     parser.add_argument("--steps", type=int, default=6)
     parser.add_argument("--latent", type=int, default=24)
@@ -328,16 +413,28 @@ def main():
 
     training_seed = args.seed if args.training_seed is None else args.training_seed
     rows = simulator.generate(args.episodes, args.steps, args.seed)
-    train_ids, validation_ids, train_rows, validation_rows, test_rows = split_rows(rows, args.episodes, args.seed)
-    weights, validation, trained_epochs = train(
-        train_rows, validation_rows, args.latent, args.hidden, args.epochs, training_seed
+    train_ids, validation_ids, train_rows, validation_rows, test_rows = split_rows(
+        rows, args.episodes, args.seed
     )
-    mean_delta = np.zeros((simulator.ACTION_COUNT, simulator.STATE_SIZE), dtype=np.float32)
+    weights, validation, trained_epochs = train(
+        train_rows,
+        validation_rows,
+        args.latent,
+        args.hidden,
+        args.epochs,
+        training_seed,
+    )
+    mean_delta = np.zeros(
+        (simulator.ACTION_COUNT, simulator.STATE_SIZE), dtype=np.float32
+    )
     for action in range(simulator.ACTION_COUNT):
         selected = [row[5] - row[2] for row in train_rows if row[3] == action]
         mean_delta[action] = np.mean(selected, axis=0)
-    predictor = lambda state, action, features: predict_delta(state, action, features, weights)
-    mean_predictor = lambda _state, action, _features: mean_delta[action]
+    def predictor(state, action, features):
+        return predict_delta(state, action, features, weights)
+
+    def mean_predictor(_state, action, _features):
+        return mean_delta[action]
     validation_rollout = {}
     for horizon in range(1, 6):
         validation_rollout[f"physical_jepa_h{horizon}"] = simulator.rollout_error(
@@ -363,12 +460,27 @@ def main():
         rules = simulator.confusion(
             test_rows, lambda row: simulator.rules_block(row[2], row[3], row[4])
         )
-        learned = simulator.confusion(test_rows, lambda row: simulator.predicted_block(
-            row[2], row[3], row[4], np.clip(row[2] + predictor(row[2], row[3], row[4]), -1.25, 1.25)
-        ))
-        combined = simulator.confusion(test_rows, lambda row: simulator.rules_block(row[2], row[3], row[4]) or simulator.predicted_block(
-            row[2], row[3], row[4], np.clip(row[2] + predictor(row[2], row[3], row[4]), -1.25, 1.25)
-        ))
+        learned = simulator.confusion(
+            test_rows,
+            lambda row: simulator.predicted_block(
+                row[2],
+                row[3],
+                row[4],
+                np.clip(row[2] + predictor(row[2], row[3], row[4]), -1.25, 1.25),
+            ),
+        )
+        combined = simulator.confusion(
+            test_rows,
+            lambda row: (
+                simulator.rules_block(row[2], row[3], row[4])
+                or simulator.predicted_block(
+                    row[2],
+                    row[3],
+                    row[4],
+                    np.clip(row[2] + predictor(row[2], row[3], row[4]), -1.25, 1.25),
+                )
+            ),
+        )
         safety = {
             "rules_only": rules,
             "jepa_only": learned,
@@ -397,10 +509,15 @@ def main():
         "transitions": len(rows),
         "dangerous_transitions": sum(row[6] for row in rows),
         "episode_split": {
-            "train": len(train_ids), "validation": len(validation_ids),
+            "train": len(train_ids),
+            "validation": len(validation_ids),
             "test": args.episodes - len(train_ids) - len(validation_ids),
         },
-        "transition_split": {"train": len(train_rows), "validation": len(validation_rows), "test": len(test_rows)},
+        "transition_split": {
+            "train": len(train_rows),
+            "validation": len(validation_rows),
+            "test": len(test_rows),
+        },
         "episode_overlap": 0,
         "data_seed": args.seed,
         "training_seed": training_seed,
@@ -431,7 +548,9 @@ def main():
         evaluation["anti_collapse"] = test_representation
         evaluation["safety"] = safety
     args.evaluation.parent.mkdir(parents=True, exist_ok=True)
-    args.evaluation.write_text(json.dumps(evaluation, indent=2) + "\n", encoding="utf-8")
+    args.evaluation.write_text(
+        json.dumps(evaluation, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(evaluation, indent=2))
 
 
