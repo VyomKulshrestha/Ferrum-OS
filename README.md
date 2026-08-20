@@ -361,6 +361,15 @@ hashes, dataset fingerprint, and metrics are versioned in
 `appliance/world-model/manifest.json`; clean builds verify that matched pair,
 and partial local overrides fail closed.
 
+Current `main` carries a post-study runtime refinement of the same JEPA/FWM2
+model. A validation-only core-state loss sweep selected weight 128; on the
+untouched test split it reduces one-step error from 1.68% to 1.36%, macro-tool
+error from 1.71% to 1.25%, core-state error from 3.81% to 3.40%, and H=3 error
+from 3.87% to 3.78%. H=5 is effectively unchanged at 4.04% and remains inside
+the 2% promotion tolerance. The published checkpoint is preserved under
+`docs/research/artifacts/world-model-study-v1.0.0/`; the runtime-v2 protocol and
+evidence are in `docs/research/WORLD_MODEL_RUNTIME_V2.md`.
+
 A registered 500-episode paired stress evaluation now compares rules only,
 JEPA only, and their deployed union on the same 250 safe and 250 dangerous
 episodes. Rules + JEPA reduces the false-negative rate from 41.2% to 20.8%

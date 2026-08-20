@@ -621,6 +621,13 @@ prediction looks dangerous.
   metric (one-step 1.68%, macro-tool 1.71%, H3 3.87%, H5 4.03%) and is stored as
   a matched, hash-verified pair under `appliance/world-model/`. Clean builds
   package those assets; local overrides must supply both files.
+- **Post-study runtime refinement** - current `main` warm-starts the published
+  512-unit FWM2 checkpoint and validation-selects a core-state loss weight. The
+  selected weight 128 improves untouched one-step, macro-tool, core-state, and
+  H=3 errors to 1.36%, 1.25%, 3.40%, and 3.78%; H=5 remains effectively flat
+  at 4.04%. The study checkpoint is archived under
+  `docs/research/artifacts/world-model-study-v1.0.0/`, keeping the published
+  evidence immutable while `appliance/world-model/` tracks the current runtime.
 - **Registered safety baseline** - a fixed 500-episode paired protocol runs
   rules only, JEPA only, and rules + JEPA over identical cases: 250 safe and
   250 dangerous, stratified across direct harm, compound exhaustion, prompt
