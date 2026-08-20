@@ -41,14 +41,15 @@ function diskStats() {
 
 try {
   fs.copyFileSync(baseDisk, lookaheadDisk);
-  // Put the image exactly two one-block writes beyond safety: H=1 remains at
-  // or below 95%, while H=2 crosses it. Large ext2 files consume a variable
+  // Put the encoded state two blocks below the 95% threshold. The hybrid
+  // harness writes a one-block runtime config before observation, leaving H=1
+  // at or below 95% while H=2 crosses it. Large ext2 files consume a variable
   // number of indirect metadata blocks depending on the starting image, so
   // first leave headroom, then measure and close the gap with a direct-block
   // pad file. This keeps the fixture independent of prior appliance contents.
   const before = diskStats();
   const used = before.total - before.free;
-  const exactUsed = Math.floor(before.total * 0.95) - 1;
+  const exactUsed = Math.floor(before.total * 0.95) - 2;
   const targetUsed = exactUsed - 12;
   assert.ok(targetUsed > used, "packaged disk is already too full for a step-two-only lookahead fixture");
   fs.writeFileSync(fillFile, Buffer.alloc((targetUsed - used) * before.size, 0x5a));
