@@ -53,7 +53,7 @@ The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 60
 
 ## Simulator-backed cyber-physical software tier
 
-At source `167b047`, 152 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 32 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+At source `039ccd1`, 152 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 32 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
 
 This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
 

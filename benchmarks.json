@@ -148,24 +148,28 @@
       {
         "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
         "component": "ferrum-physical-runtime",
+        "exit_code": 0,
         "failed": 0,
         "passed": 117
       },
       {
         "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
         "component": "ferrum-neural-protocol",
+        "exit_code": 0,
         "failed": 0,
         "passed": 9
       },
       {
         "command": "python -m unittest discover -s tools/neurod -p test_*.py",
         "component": "neurod",
+        "exit_code": 0,
         "failed": 0,
         "passed": 15
       },
       {
         "command": "python -m unittest tools.physical_sim_bridge.test_bridge",
         "component": "physical-simulator-bridge",
+        "exit_code": 0,
         "failed": 0,
         "passed": 11
       }
@@ -186,35 +190,40 @@
       "privacy retention reliability and incident primitives"
     ],
     "environment": {
-      "host_os": "Windows 11",
-      "python_runtime": "CPython",
-      "rust_target": "x86_64-pc-windows-msvc"
+      "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
+      "host_os": "Microsoft Windows NT 10.0.26220.0",
+      "python_runtime": "CPython 3.12.6",
+      "rust_target": "x86_64-pc-windows-msvc",
+      "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)"
     },
     "evidence_grade": "local-deterministic-regression",
     "model_and_decoder_gates": [
       {
         "command": "python scripts/verify_physical_world_model.py --quick",
         "component": "physical-world-model",
+        "exit_code": 0,
         "failed": 0,
         "passed": 21
       },
       {
         "command": "python scripts/verify_physical_jepa_robustness.py",
         "component": "physical-jepa-robustness",
+        "exit_code": 0,
         "failed": 0,
         "passed": 8
       },
       {
         "command": "python scripts/evaluate_neural_simulator.py --output target/neural-simulator-audit.json",
         "component": "neural-simulator",
+        "exit_code": 0,
         "failed": 0,
         "passed": 3
       }
     ],
     "model_and_decoder_gates_failed": 0,
     "model_and_decoder_gates_passed": 32,
-    "protocol_id": "cyber-physical-software-regression-2026-08-14",
-    "source_commit": "167b04766ee5ea3c5714cd09a551feb7bc78f359"
+    "protocol_id": "cyber-physical-software-regression-2026-08-20",
+    "source_commit": "039ccd114f7b8cdacd17c609a3d84e0a1fe8d223"
   },
   "environment": {
     "accelerator": "WHPX",
@@ -411,8 +420,8 @@
         "sha256": "374182fd18f13d3184e89c6ed4297aa54748ea4fb7b6495886bcb57c434830c2"
       },
       {
-        "path": "docs/benchmarks/raw/2026-08-14/cyber-physical-software.json",
-        "sha256": "ef32ea6a79fe4945af7c5797d0eae743b0510c5206f80c1324e29ff8e6447530"
+        "path": "docs/benchmarks/raw/2026-08-20/cyber-physical-software.json",
+        "sha256": "9cadb74ee45c65d7bd19b97e4855f106a50834eca610b59dfe42b3254d06105c"
       },
       {
         "path": "docs/research/world_model_paper_evaluation.json",
@@ -441,5 +450,5 @@
     "unknown_command_paths": 0
   },
   "schema_version": "2.1.0",
-  "snapshot_date": "2026-08-14"
+  "snapshot_date": "2026-08-20"
 }

@@ -221,7 +221,7 @@ def aggregate_benchmarks() -> dict:
     neural_path = RAW_DIR / "neural-synthetic.json"
     qemu_command_path = RAW_DIR / "qemu-command-audit.json"
     cyber_physical_path = (
-        BENCHMARK_DIR / "raw" / "2026-08-14" / "cyber-physical-software.json"
+        BENCHMARK_DIR / "raw" / "2026-08-20" / "cyber-physical-software.json"
     )
     paper_path = ROOT / "docs" / "research" / "world_model_paper_evaluation.json"
     training_path = ROOT / "docs" / "research" / "world_model_training_config.json"

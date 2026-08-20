@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_id": "cyber-physical-software-regression-2026-08-20",
+  "snapshot_date": "2026-08-20",
+  "source_commit": "039ccd114f7b8cdacd17c609a3d84e0a1fe8d223",
+  "environment": {
+    "host_os": "Microsoft Windows NT 10.0.26220.0",
+    "rust_target": "x86_64-pc-windows-msvc",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
+    "python_runtime": "CPython 3.12.6"
+  },
+  "contract_suites": [
+    {
+      "component": "ferrum-physical-runtime",
+      "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "passed": 117,
+      "failed": 0
+    },
+    {
+      "component": "ferrum-neural-protocol",
+      "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "component": "neurod",
+      "command": "python -m unittest discover -s tools/neurod -p test_*.py",
+      "exit_code": 0,
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "component": "physical-simulator-bridge",
+      "command": "python -m unittest tools.physical_sim_bridge.test_bridge",
+      "exit_code": 0,
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "model_and_decoder_gates": [
+    {
+      "component": "physical-world-model",
+      "command": "python scripts/verify_physical_world_model.py --quick",
+      "exit_code": 0,
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "component": "physical-jepa-robustness",
+      "command": "python scripts/verify_physical_jepa_robustness.py",
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "component": "neural-simulator",
+      "command": "python scripts/evaluate_neural_simulator.py --output target/neural-simulator-audit.json",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0
+    }
+  ],
+  "contract_tests_passed": 152,
+  "contract_tests_failed": 0,
+  "model_and_decoder_gates_passed": 32,
+  "model_and_decoder_gates_failed": 0,
+  "covered_software_boundaries": [
+    "versioned provenance and logical clocks",
+    "deterministic sessions replay and fault injection",
+    "virtual sensor actuator EEG watchdog and stop contracts",
+    "scripted Gazebo ROS 2 and Webots bridge boundaries",
+    "deterministic supervisor watchdog recovery and stop priority",
+    "ROS 2 MQTT and CAN transport conformance",
+    "actuator-disabled delivery",
+    "bounded neural intent and proposal-only physical goals",
+    "shadow-only physical JEPA evaluation",
+    "host-managed agent-cell contract",
+    "privacy retention reliability and incident primitives"
+  ],
+  "claim_boundary": "Local deterministic software regression on the named commit. It does not prove an installed Gazebo or Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical clocks, actuator hardware, robot safety, live EEG, hard-real-time behavior, native hypervisor containment, certification, or independent replication."
+}
