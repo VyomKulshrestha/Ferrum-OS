@@ -125,10 +125,22 @@ def train_mlp(
     patience=0,
     seed=0,
     sample_weights=None,
+    output_weights=None,
+    initial_weights=None,
 ):
     rng = np.random.default_rng(seed)
     n_in, n_out = X.shape[1], Y.shape[1]
-    w1 = rng.normal(0, 1.0 / np.sqrt(n_in), size=(n_in, hidden_size)).astype(np.float32)
+    if initial_weights is None:
+        w1 = rng.normal(0, 1.0 / np.sqrt(n_in), size=(n_in, hidden_size)).astype(np.float32)
+        b1 = np.zeros(hidden_size, dtype=np.float32)
+        w2 = rng.normal(0, 1.0 / np.sqrt(hidden_size), size=(hidden_size, n_out)).astype(np.float32)
+        b2 = np.zeros(n_out, dtype=np.float32)
+    else:
+        w1, b1, w2, b2 = (value.copy() for value in initial_weights)
+        if w1.shape != (n_in, hidden_size) or b1.shape != (hidden_size,):
+            raise ValueError("initial model layer-one dimensions do not match this training run")
+        if w2.shape != (hidden_size, n_out) or b2.shape != (n_out,):
+            raise ValueError("initial model layer-two dimensions do not match this training run")
     inactive_inputs = np.all(X == 0.0, axis=0)
     # A missing legacy feature (or an unseen tool one-hot) never receives a
     # gradient. Zero its row up front so runtime nonzero values cannot activate
@@ -136,10 +148,6 @@ def train_mlp(
     w1[inactive_inputs] = 0.0
     if inactive_inputs.any():
         print(f"  zeroed {int(inactive_inputs.sum())} inactive input columns")
-    b1 = np.zeros(hidden_size, dtype=np.float32)
-    w2 = rng.normal(0, 1.0 / np.sqrt(hidden_size), size=(hidden_size, n_out)).astype(np.float32)
-    b2 = np.zeros(n_out, dtype=np.float32)
-
     n = X.shape[0]
     if sample_weights is None:
         sample_weights = np.ones(n, dtype=np.float32)
@@ -147,6 +155,12 @@ def train_mlp(
     if sample_weights.shape != (n,) or np.any(sample_weights <= 0):
         raise ValueError("sample_weights must contain one positive value per training row")
     sample_weights = sample_weights / float(sample_weights.mean())
+    if output_weights is None:
+        output_weights = np.ones(n_out, dtype=np.float32)
+    output_weights = np.asarray(output_weights, dtype=np.float32)
+    if output_weights.shape != (n_out,) or np.any(output_weights <= 0):
+        raise ValueError("output_weights must contain one positive value per output dimension")
+    output_weights = output_weights / float(output_weights.mean())
     report_every = max(1, epochs // 10)
     best_validation = float("inf")
     best_weights = None
@@ -157,15 +171,29 @@ def train_mlp(
         pred = h @ w2 + b2
 
         err = pred - Y
-        loss = float(np.sum(sample_weights[:, None] * err ** 2) / (sample_weights.sum() * n_out))
+        loss = float(
+            np.sum(sample_weights[:, None] * output_weights[None, :] * err ** 2)
+            / (sample_weights.sum() * output_weights.sum())
+        )
+        if not np.isfinite(loss):
+            raise FloatingPointError(
+                f"non-finite training loss at epoch {epoch}; reduce --lr or inspect the dataset"
+            )
 
-        d_pred = (2.0 / n) * sample_weights[:, None] * err
+        d_pred = (2.0 / n) * sample_weights[:, None] * output_weights[None, :] * err
         grad_w2 = h.T @ d_pred
         grad_b2 = d_pred.sum(axis=0)
         d_h = d_pred @ w2.T
         d_h[h_pre <= 0] = 0.0
         grad_w1 = X.T @ d_h
         grad_b1 = d_h.sum(axis=0)
+        if not all(
+            np.all(np.isfinite(gradient))
+            for gradient in (grad_w1, grad_b1, grad_w2, grad_b2)
+        ):
+            raise FloatingPointError(
+                f"non-finite training gradient at epoch {epoch}; reduce --lr or inspect the dataset"
+            )
 
         w2 -= lr * grad_w2
         b2 -= lr * grad_b2
@@ -177,7 +205,11 @@ def train_mlp(
             if validation is not None:
                 X_validation, Y_validation = validation
                 validation_pred = predict_mlp(X_validation, w1, b1, w2, b2)
-                validation_loss = float(np.mean((validation_pred - Y_validation) ** 2))
+                validation_error = validation_pred - Y_validation
+                validation_loss = float(
+                    np.sum(output_weights[None, :] * validation_error ** 2)
+                    / (len(X_validation) * output_weights.sum())
+                )
                 message += f" validation MSE={validation_loss:.6f}"
                 if validation_loss < best_validation - 1e-9:
                     best_validation = validation_loss
@@ -428,6 +460,33 @@ def rollout_metrics(rows, test_idx, weights, max_horizon=5):
     }
 
 
+def read_weights(path):
+    with open(path, "rb") as handle:
+        payload = handle.read()
+    if len(payload) < 32 or payload[:4] != V2_MAGIC:
+        raise ValueError(f"{path} is not an FWM2 transition model")
+    version, input_size, hidden_size, output_size, action_size, coverage = struct.unpack(
+        "<IIIIIQ", payload[4:32]
+    )
+    if version != V2_VERSION or action_size != ACTION_FEATURE_SIZE:
+        raise ValueError(f"{path} uses an unsupported FWM2 header")
+    expected_floats = (
+        input_size * hidden_size + hidden_size + hidden_size * output_size + output_size
+    )
+    if len(payload) != 32 + expected_floats * 4:
+        raise ValueError(f"{path} has an invalid FWM2 payload length")
+    values = np.frombuffer(payload, dtype="<f4", offset=32)
+    offset = 0
+    w1 = values[offset:offset + input_size * hidden_size].reshape(input_size, hidden_size)
+    offset += input_size * hidden_size
+    b1 = values[offset:offset + hidden_size]
+    offset += hidden_size
+    w2 = values[offset:offset + hidden_size * output_size].reshape(hidden_size, output_size)
+    offset += hidden_size * output_size
+    b2 = values[offset:offset + output_size]
+    return tuple(value.astype(np.float32, copy=True) for value in (w1, b1, w2, b2)), coverage
+
+
 def write_weights(path, w1, b1, w2, b2, coverage):
     """
     Flat binary format cognitive/world_model/learned.rs parses directly:
@@ -493,11 +552,23 @@ def main():
     parser.add_argument("--max-rollout-horizon", type=int, default=5)
     parser.add_argument("--metrics-out", default="target/world_model_metrics.json")
     parser.add_argument(
+        "--init-model",
+        help="warm-start from an existing FWM2 model with matching dimensions",
+    )
+    parser.add_argument(
+        "--core-loss-weight",
+        type=float,
+        default=1.0,
+        help="relative fitting weight for the seven deterministic/core state dimensions",
+    )
+    parser.add_argument(
         "--no-balance-tools",
         action="store_true",
         help="disable inverse-frequency training weights across canonical tools",
     )
     args = parser.parse_args()
+    if args.core_loss_weight <= 0:
+        parser.error("--core-loss-weight must be greater than zero")
 
     corpus_rows = load_dataset(args.dataset)
     excluded_unexecuted = sum(not row.get("executed", True) for row in corpus_rows)
@@ -558,6 +629,17 @@ def main():
             f"balanced {len(active_counts)} observed tools during fitting "
             f"(training counts {active_counts.min()}..{active_counts.max()})"
         )
+    initial_weights = None
+    if args.init_model:
+        initial_weights, _ = read_weights(args.init_model)
+        if initial_weights[0].shape != (INPUT_SIZE, args.hidden):
+            parser.error(
+                f"--init-model dimensions {initial_weights[0].shape} do not match "
+                f"input={INPUT_SIZE}, hidden={args.hidden}"
+            )
+        print(f"warm-started transition weights from {args.init_model}")
+    output_weights = np.ones(OUTPUT_SIZE, dtype=np.float32)
+    output_weights[:7] = args.core_loss_weight
     w1, b1, w2, b2 = train_mlp(
         X_train,
         Y_train,
@@ -568,6 +650,8 @@ def main():
         patience=max(0, args.patience),
         seed=args.seed,
         sample_weights=sample_weights,
+        output_weights=output_weights,
+        initial_weights=initial_weights,
     )
 
     pred_test = predict_mlp(X_test, w1, b1, w2, b2)
@@ -656,6 +740,8 @@ def main():
         "input_size": INPUT_SIZE,
         "hidden_size": args.hidden,
         "tool_balanced_training": not args.no_balance_tools,
+        "initial_model": args.init_model,
+        "core_loss_weight": args.core_loss_weight,
         "min_train_per_tool": args.min_train_per_tool,
         "coverage_mask": f"0x{coverage:x}",
         "covered_tools": [TOOL_NAMES[i] for i in range(NUM_TOOLS) if coverage & (1 << i)],

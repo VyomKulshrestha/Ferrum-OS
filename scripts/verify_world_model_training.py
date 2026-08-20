@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fast host-side checks for leakage, coverage, and runtime rollout bounds."""
 import importlib.util
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -62,6 +63,49 @@ assert np.all(clamped[:, :MODULE.LATENT_START] <= 1.0)
 assert np.all(clamped[:, MODULE.LATENT_START:] >= -1.0)
 assert np.all(clamped[:, MODULE.LATENT_START:] <= 1.0)
 assert clamped[0, MODULE.LATENT_START] == -1.0
+
+rng = np.random.default_rng(11)
+conditioning_w1 = rng.normal(size=(MODULE.INPUT_SIZE, 7)).astype(np.float32)
+conditioning_b1 = rng.normal(size=7).astype(np.float32)
+conditioning_w2 = rng.normal(size=(7, MODULE.OUTPUT_SIZE)).astype(np.float32)
+conditioning_b2 = rng.normal(size=MODULE.OUTPUT_SIZE).astype(np.float32)
+
+# Warm starts must round-trip the exact FWM2 format used by the Rust loader.
+with tempfile.TemporaryDirectory() as temporary_directory:
+    warm_start_path = Path(temporary_directory) / "warm-start.bin"
+    MODULE.write_weights(
+        warm_start_path,
+        conditioning_w1,
+        conditioning_b1,
+        conditioning_w2,
+        conditioning_b2,
+        coverage=0x123,
+    )
+    loaded_weights, loaded_coverage = MODULE.read_weights(warm_start_path)
+assert loaded_coverage == 0x123
+for expected, loaded in zip(
+    (conditioning_w1, conditioning_b1, conditioning_w2, conditioning_b2),
+    loaded_weights,
+):
+    assert np.array_equal(expected, loaded)
+
+# An all-ones feature objective must preserve the historical training path.
+compatibility_x = rng.normal(size=(5, MODULE.INPUT_SIZE)).astype(np.float32)
+compatibility_y = rng.normal(size=(5, MODULE.OUTPUT_SIZE)).astype(np.float32)
+default_fit = MODULE.train_mlp(
+    compatibility_x, compatibility_y, hidden_size=3, epochs=1, lr=0.001, seed=19
+)
+explicit_fit = MODULE.train_mlp(
+    compatibility_x,
+    compatibility_y,
+    hidden_size=3,
+    epochs=1,
+    lr=0.001,
+    seed=19,
+    output_weights=np.ones(MODULE.OUTPUT_SIZE, dtype=np.float32),
+)
+for default_value, explicit_value in zip(default_fit, explicit_fit):
+    assert np.array_equal(default_value, explicit_value)
 
 # A candidate whose latent space is scaled down 10x has 100x smaller raw MSE,
 # but exactly the same error relative to its own zero-delta baseline.  The
@@ -143,8 +187,10 @@ print("PASS\tepisode-aware train/validation/test partitions are disjoint")
 print("PASS\tlearned-tool coverage is derived only from sufficiently sampled training rows")
 print("PASS\tpolicy-only kernel upgrades can never enter learned weights")
 print("PASS\toffline rollout clamping matches signed runtime latent bounds")
+print("PASS\tFWM2 warm-start weights round-trip exactly")
+print("PASS\tdefault output weighting preserves the historical fitting path")
 print("PASS\tJEPA promotion metrics are invariant to latent scale alone")
 print("PASS\tmacro tool normalization remains finite for legitimate no-op actions")
 print("PASS\tdataset fingerprints ignore representation latents but bind row identity")
 print("PASS\tJEPA acceptance reports are bound to their transition dataset and split")
-print("8/8 checks passed")
+print("10/10 checks passed")
