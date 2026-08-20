@@ -1348,15 +1348,46 @@ impl HdaController {
 
         let lpib = (self.regs.read32(self.in_stream_base + SD_LPIB) as usize) % self.in_buf_size as usize;
 
-        // Clear buffer completion status if set, so QEMU knows we processed
-        // it and doesn't halt DMA.
+        // Capture buffer-completion before acknowledging it. LPIB is cyclic:
+        // after a complete ring it can equal the previous position again.
+        // Treating equality as "no progress" loses that DMA lap and can make
+        // a valid QEMU capture return zero bytes.
         let sts = self.regs.read8(self.in_stream_base + SD_STS);
-        if (sts & 0x04) != 0 {
+        let completed_ring = (sts & 0x04) != 0;
+        if completed_ring {
             self.regs.write8(self.in_stream_base + SD_STS, 0x04);
         }
 
         if lpib == *last_lpib {
-            return false;
+            if !completed_ring {
+                return false;
+            }
+
+            // BCIS proves the DMA engine completed the IOC-marked final BDL
+            // entry. Copy the newest full ring, beginning at the current LPIB
+            // (the oldest retained byte) and wrapping once.
+            let remaining = buf.len() - *copied_bytes;
+            let ring_size = self.in_buf_size as usize;
+            let chunk_len = remaining.min(ring_size);
+            let tail_len = chunk_len.min(ring_size - lpib);
+            if tail_len > 0 {
+                let src_ptr = (self.in_buf_virt.as_u64() + lpib as u64) as *const u8;
+                let dst_ptr = unsafe { buf.as_mut_ptr().add(*copied_bytes) };
+                unsafe {
+                    core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, tail_len);
+                }
+                *copied_bytes += tail_len;
+            }
+            let head_len = chunk_len - tail_len;
+            if head_len > 0 {
+                let src_ptr = self.in_buf_virt.as_u64() as *const u8;
+                let dst_ptr = unsafe { buf.as_mut_ptr().add(*copied_bytes) };
+                unsafe {
+                    core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, head_len);
+                }
+                *copied_bytes += head_len;
+            }
+            return *copied_bytes >= buf.len();
         }
 
         if lpib > *last_lpib {

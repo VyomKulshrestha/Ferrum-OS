@@ -52,6 +52,10 @@ struct CaptureSession {
     accum: alloc::vec::Vec<u8>,
     copied_bytes: usize,
     last_lpib: usize,
+    /// Earliest PIT tick at which a successful recording may return. DMA can
+    /// fill the requested byte count faster than wall time under emulation,
+    /// but the syscall's duration contract must still be honored.
+    complete_after_tick: u64,
     /// Absolute PIT tick at which we give up waiting for more data and
     /// return whatever has been captured so far.
     deadline_tick: u64,
@@ -130,7 +134,7 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
             s.copied_bytes = copied;
             s.last_lpib = last_lpib;
 
-            if done || now >= s.deadline_tick {
+            if (done && now >= s.complete_after_tick) || now >= s.deadline_tick {
                 crate::devices::hda::finish_recording_nonblocking();
                 let accum = core::mem::take(&mut s.accum);
                 let user_ptr = s.user_buf_ptr;
@@ -163,10 +167,14 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
             if crate::devices::hda::start_recording_nonblocking().is_err() {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
+            let duration_ticks = (duration_ms as u64)
+                .div_ceil(crate::interrupts::PIT_TICK_MS)
+                .max(1);
             // Generous safety margin (~2s) over the requested duration so a
             // slow DMA doesn't get truncated early.
-            let timeout_ticks = (duration_ms as u64 / crate::interrupts::PIT_TICK_MS)
+            let timeout_ticks = duration_ticks
                 .saturating_add(2000 / crate::interrupts::PIT_TICK_MS);
+            let started_tick = crate::scheduler::total_ticks();
             *session = Some(CaptureSession {
                 pid,
                 user_buf_ptr: buf_ptr,
@@ -174,7 +182,8 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
                 accum: alloc::vec![0u8; target_len],
                 copied_bytes: 0,
                 last_lpib: 0,
-                deadline_tick: crate::scheduler::total_ticks().saturating_add(timeout_ticks),
+                complete_after_tick: started_tick.saturating_add(duration_ticks),
+                deadline_tick: started_tick.saturating_add(timeout_ticks),
             });
             SyscallResult::err(SyscallStatus::Blocked)
         }

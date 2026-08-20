@@ -72,14 +72,14 @@ const keyMap = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon"
 }));
 
-// `-audiodev none,id=hda0` + `audiodev=hda0` on the hda-duplex device gives
-// the emulated input stream a real (if silent) clocked PCM source. Without
-// this, the codec's input line has nothing feeding it at all - the DMA
-// position (LPIB) genuinely never advances, so every capture call
-// legitimately reads back 0 bytes forever (not a kernel bug: there was
-// nothing to record). The `bytes > 0` check only cares about byte *count*,
-// not content, so silence is enough to prove the capture path itself works.
-const audioArgs = ["-audiodev", "none,id=hda0"];
+// Bind hda-duplex to QEMU's deterministic dummy backend and make the input
+// format explicit. This supplies synthetic silence through the emulated HDA
+// capture/DMA path without touching a host microphone. It proves DMA progress
+// and scheduling only; it is not evidence of acoustic or physical-mic input.
+const audioArgs = [
+  "-audiodev",
+  "none,id=hda0,timer-period=10000,in.fixed-settings=on,in.frequency=48000,in.channels=2,in.format=s16",
+];
 const hdaDuplexArgs = ["-device", "hda-duplex,audiodev=hda0"];
 
 const whpxArgs = [
