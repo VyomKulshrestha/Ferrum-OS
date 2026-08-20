@@ -14,7 +14,8 @@ FIXTURE = ROOT / "docs/research/world_model_safety_scenarios.json"
 EXPECTED_JSON = ROOT / "docs/research/world_model_safety_baseline.json"
 EXPECTED_CSV = ROOT / "docs/research/world_model_safety_predictions.csv"
 EXPECTED_MD = ROOT / "docs/research/WORLD_MODEL_SAFETY_BASELINE.md"
-MANIFEST = ROOT / "appliance/world-model/manifest.json"
+STUDY_ARTIFACTS = ROOT / "docs/research/artifacts/world-model-study-v1.0.0"
+MANIFEST = STUDY_ARTIFACTS / "manifest.json"
 TARGET = ROOT / "target"
 ACTUAL_JSON = TARGET / "world_model_safety_verify.json"
 ACTUAL_CSV = TARGET / "world_model_safety_verify.csv"
@@ -49,6 +50,9 @@ for artifact in registered["artifacts"].values():
 
 command = [
     sys.executable, str(ROOT / "scripts/evaluate_world_model_safety.py"),
+    "--manifest", str(MANIFEST),
+    "--encoder", str(STUDY_ARTIFACTS / "model_encoder.bin"),
+    "--transition", str(STUDY_ARTIFACTS / "model_learned.bin"),
     "--fixture", str(FIXTURE),
     "--json-out", str(ACTUAL_JSON),
     "--csv-out", str(ACTUAL_CSV),

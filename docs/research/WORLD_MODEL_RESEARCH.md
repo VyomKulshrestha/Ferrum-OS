@@ -416,6 +416,6 @@ primary-source access for the six core paper references was rechecked on
 Regenerate and byte-verify both paper figures with:
 
 ```powershell
-python scripts/generate_world_model_figures.py
+python scripts/generate_world_model_figures.py --manifest docs/research/artifacts/world-model-study-v1.0.0/manifest.json
 python scripts/verify_world_model_figures.py
 ```

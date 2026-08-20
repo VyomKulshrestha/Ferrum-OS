@@ -1,7 +1,6 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "release": "0.1.1",
-  "runtime_revision": 2,
   "representation": {
     "kind": "action-conditioned-jepa",
     "hidden_size": 256,
@@ -12,14 +11,7 @@
     "hidden_size": 512,
     "seed": 17,
     "split_seed": 42,
-    "lookahead_horizon": 3,
-    "refinement": {
-      "initial_checkpoint": "world-model-study-v1.0.0",
-      "epochs": 300,
-      "learning_rate": 0.005,
-      "core_loss_weight": 128.0,
-      "selection": "validation macro-tool + core-state + H=3 normalized error"
-    }
+    "lookahead_horizon": 3
   },
   "dataset": {
     "corpus_rows": 13697,
@@ -38,27 +30,15 @@
     }
   },
   "held_out_normalized_error": {
-    "one_step": 0.013645326724030427,
-    "core_features": 0.034007256292931866,
-    "macro_tool": 0.012516926748315152,
-    "rollout_h3": 0.03775091878464707,
-    "rollout_h5": 0.04036217771239069
+    "one_step": 0.01675176384439766,
+    "core_features": 0.03805335272330985,
+    "macro_tool": 0.017080015771248368,
+    "rollout_h3": 0.03867185344696794,
+    "rollout_h5": 0.040282874368013304
   },
   "promotion": {
-    "representation_geometric_error_ratio_vs_autoencoder": 0.65978181839315,
-    "runtime_geometric_error_ratio_vs_previous": 0.878010353247811,
+    "geometric_error_ratio_vs_autoencoder": 0.65978181839315,
     "regressions_beyond_tolerance": []
-  },
-  "runtime_benchmark": {
-    "protocol": "in-guest-world-model-runtime-benchmark-v2",
-    "accelerator": "whpx",
-    "iterations_per_horizon": 100,
-    "runtime_parameters": 193229,
-    "heap_growth_bytes": 0,
-    "artifact": {
-      "path": "docs/research/world_model_runtime_v2_benchmark.json",
-      "sha256": "ed9972b2609c7a8e6dfb689c77b64af57027c62277c93530f44f54aae34b6e80"
-    }
   },
   "safety_evaluation": {
     "protocol": "paired-three-arm-safety-evaluation-v1",
@@ -71,15 +51,15 @@
       "balanced_accuracy": 0.752
     },
     "jepa_only": {
-      "false_negative_rate": 0.78,
-      "false_positive_rate": 0.084,
+      "false_negative_rate": 0.772,
+      "false_positive_rate": 0.092,
       "balanced_accuracy": 0.568
     },
     "rules_plus_jepa": {
-      "false_negative_rate": 0.2,
+      "false_negative_rate": 0.208,
       "false_positive_rate": 0.164,
-      "balanced_accuracy": 0.818,
-      "dangerous_catches_added_over_rules": 53,
+      "balanced_accuracy": 0.814,
+      "dangerous_catches_added_over_rules": 51,
       "deterministic_catches_lost": 0
     },
     "artifacts": {
@@ -88,12 +68,12 @@
         "sha256": "9e74e9557842eda70a1436c3d0a171a0948eaf17e22ddb78002658d2bdf6bd9a"
       },
       "aggregate": {
-        "path": "docs/research/world_model_runtime_v2_safety.json",
-        "sha256": "05249575327e57c5f31b7b6258c0e28315c2a1cd021256569a1e2424d04a211d"
+        "path": "docs/research/world_model_safety_baseline.json",
+        "sha256": "76595e4c8eb7774e85dc8dc38ea32923bc50b7bcd03d38126626cd840305d35f"
       },
       "predictions": {
-        "path": "docs/research/world_model_runtime_v2_safety_predictions.csv",
-        "sha256": "52953ee13ab6575cc2382aba830f5a02186fdeaf11b425c1af91da0e7f2461e1"
+        "path": "docs/research/world_model_safety_predictions.csv",
+        "sha256": "cdacbf301ec56193cc20f073a64ba9d8b31fa116cb41572a97c0db4775d461f3"
       }
     }
   },
@@ -106,7 +86,7 @@
     "transition": {
       "path": "model_learned.bin",
       "bytes": 643616,
-      "sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8"
+      "sha256": "bd80ccb2be57e2ffeb52d03431e18b88d80db015b5b7d84d4921f054c5c9193d"
     }
   }
 }

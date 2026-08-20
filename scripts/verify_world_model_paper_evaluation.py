@@ -40,8 +40,8 @@ assert set(accounting["episode_overlaps"].values()) == {0}
 assert [accounting["partitions"][name]["rows"] for name in ("train", "validation", "test")] == [9104, 2197, 1969]
 
 artifact_paths = {
-    "encoder": ROOT / "appliance/world-model/model_encoder.bin",
-    "transition": ROOT / "appliance/world-model/model_learned.bin",
+    "encoder": RESEARCH / "artifacts/world-model-study-v1.0.0/model_encoder.bin",
+    "transition": RESEARCH / "artifacts/world-model-study-v1.0.0/model_learned.bin",
     "fixture": RESEARCH / "world_model_safety_scenarios.json",
 }
 for name, path in artifact_paths.items():

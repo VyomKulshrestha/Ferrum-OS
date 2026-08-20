@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+STUDY_MANIFEST = ROOT / "docs/research/artifacts/world-model-study-v1.0.0/manifest.json"
 
 
 def run(*arguments: str) -> None:
@@ -86,7 +87,9 @@ def full_reproduction(dataset: Path) -> None:
         assert digest(ae_transition) == config["autoencoder_baseline"]["transition_sha256"]
 
         command = [
-            "scripts/evaluate_world_model_paper.py", "--dataset", str(dataset),
+        "scripts/evaluate_world_model_paper.py",
+        "--manifest", str(STUDY_MANIFEST),
+        "--dataset", str(dataset),
             "--encoder", str(jepa_encoder), "--transition", str(seed_models[17]),
             "--ae-encoder", str(ae_encoder), "--ae-transition", str(ae_transition),
             "--json-out", str(out / "paper.json"), "--csv-out", str(out / "paper.csv"),

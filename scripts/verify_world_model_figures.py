@@ -14,6 +14,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 FIGURES = ROOT / "docs/research/figures"
+STUDY_MANIFEST = ROOT / "docs/research/artifacts/world-model-study-v1.0.0/manifest.json"
 manifest = json.loads((FIGURES / "manifest.json").read_text(encoding="utf-8"))
 assert len(manifest["figures"]) == 12
 
@@ -21,8 +22,9 @@ with tempfile.TemporaryDirectory(prefix="ferrumos-paper-figures-") as temp_dir:
     generated = Path(temp_dir) / "figures"
     subprocess.run([
         sys.executable,
-        str(ROOT / "scripts/generate_world_model_figures.py"),
-        "--out-dir", str(generated),
+            str(ROOT / "scripts/generate_world_model_figures.py"),
+            "--manifest", str(STUDY_MANIFEST),
+            "--out-dir", str(generated),
     ], cwd=ROOT, check=True)
     for item in manifest["figures"]:
         expected = ROOT / item["path"]

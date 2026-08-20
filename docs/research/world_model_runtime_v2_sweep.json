@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "purpose": "validation-only core-state objective sweep for the post-study runtime checkpoint",
+  "selection_metric": "validation normalized_macro_tool_mse + normalized_core_mse + H=3 normalized_mse",
+  "dataset_fingerprint": "sha256:b0c409769d679e957877f05b48cc8e077f4e34514c2e0011ea9a49f3861287ce",
+  "split_seed": 42,
+  "training": {
+    "initial_checkpoint": "docs/research/artifacts/world-model-study-v1.0.0/model_learned.bin",
+    "hidden_size": 512,
+    "epochs": 300,
+    "learning_rate": 0.005,
+    "weight_seed": 17,
+    "tool_balanced": true
+  },
+  "boundary_candidates": [
+    {
+      "core_loss_weight": 64.0,
+      "validation": {
+        "one_step": 0.011282854898,
+        "macro_tool": 0.009996650362,
+        "core_features": 0.030638273116,
+        "rollout_h3": 0.035903383677,
+        "selection_score": 0.076538307154
+      }
+    },
+    {
+      "core_loss_weight": 128.0,
+      "selected": true,
+      "validation": {
+        "one_step": 0.011408709208,
+        "macro_tool": 0.010119144802,
+        "core_features": 0.030410160933,
+        "rollout_h3": 0.035981923945,
+        "selection_score": 0.076511229680
+      }
+    },
+    {
+      "core_loss_weight": 256.0,
+      "validation": {
+        "one_step": 0.011502548707,
+        "macro_tool": 0.010208232156,
+        "core_features": 0.030800014174,
+        "rollout_h3": 0.035957693579,
+        "selection_score": 0.076965939909
+      }
+    }
+  ],
+  "untouched_test": {
+    "previous": {
+      "one_step": 0.01675176384439766,
+      "macro_tool": 0.017080015771248368,
+      "core_features": 0.03805335272330985,
+      "rollout_h3": 0.03867185344696794,
+      "rollout_h5": 0.040282874368013304
+    },
+    "selected": {
+      "one_step": 0.013645326724030427,
+      "macro_tool": 0.012516926748315152,
+      "core_features": 0.034007256292931866,
+      "rollout_h3": 0.03775091878464707,
+      "rollout_h5": 0.04036217771239069
+    },
+    "geometric_error_ratio": 0.878010353247811,
+    "regressions_beyond_2_percent": []
+  },
+  "selected_transition_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8"
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "comparison_space": "error relative to held-out zero-delta baseline",
+  "selected": "candidate",
+  "comparable_split": {
+    "rows": [
+      13270,
+      13270
+    ],
+    "train_rows": [
+      9104,
+      9104
+    ],
+    "validation_rows": [
+      2197,
+      2197
+    ],
+    "test_rows": [
+      1969,
+      1969
+    ],
+    "split_mode": [
+      "episode",
+      "episode"
+    ],
+    "dataset_fingerprint": [
+      "sha256:b0c409769d679e957877f05b48cc8e077f4e34514c2e0011ea9a49f3861287ce",
+      "sha256:b0c409769d679e957877f05b48cc8e077f4e34514c2e0011ea9a49f3861287ce"
+    ],
+    "split_seed": [
+      42,
+      42
+    ]
+  },
+  "max_regression": 0.02,
+  "geometric_error_ratio": 0.878010353247811,
+  "metric_ratios": {
+    "one_step_relative_error": 0.8145605949784132,
+    "core_feature_relative_error": 0.8936730631911044,
+    "macro_tool_relative_error": 0.7328404678282272,
+    "rollout_h3_relative_error": 0.976185918691904,
+    "rollout_h5_relative_error": 1.0019686615124057
+  },
+  "regressions_beyond_tolerance": [],
+  "baseline": {
+    "one_step_relative_error": 0.01675176384439766,
+    "core_feature_relative_error": 0.03805335272330985,
+    "macro_tool_relative_error": 0.017080015771248368,
+    "rollout_h3_relative_error": 0.03867185344696794,
+    "rollout_h5_relative_error": 0.040282874368013304
+  },
+  "candidate": {
+    "one_step_relative_error": 0.013645326724030427,
+    "core_feature_relative_error": 0.034007256292931866,
+    "macro_tool_relative_error": 0.012516926748315152,
+    "rollout_h3_relative_error": 0.03775091878464707,
+    "rollout_h5_relative_error": 0.04036217771239069
+  },
+  "representation_test": {
+    "prediction_mse": 0.000320687482599169,
+    "zero_delta_mse": 0.14901050925254822,
+    "reconstruction_mse": 0.00014818414638284594,
+    "action_decoder_mse": 0.003584126476198435,
+    "latent_std": 0.5020714998245239,
+    "effective_rank": 12.595231083330633,
+    "action_sensitivity": 0.1531236320734024
+  }
+}
