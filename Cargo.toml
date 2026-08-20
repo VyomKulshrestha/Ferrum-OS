@@ -34,7 +34,7 @@ default = []
 # background. Needed only by scripts/verify_dashboard_scheduling.mjs and
 # scripts/verify_shell_coexistence.mjs, which assert on scheduling
 # fairness by counting these lines - build with
-# `cargo build --features sched-trace` before running either.
+# `cargo bootimage --features sched-trace` before running either.
 sched-trace = []
 
 # ==== Dependencies ====

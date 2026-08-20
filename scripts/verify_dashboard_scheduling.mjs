@@ -12,7 +12,7 @@
 // Requires a build with the `sched-trace` Cargo feature enabled (off by
 // default - see Cargo.toml and src/scheduler/mod.rs::resume_task), since
 // this script counts `[RESUME_TASK]` serial lines to judge fairness:
-//   cargo build --features sched-trace
+//   cargo bootimage --features sched-trace
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -125,7 +125,7 @@ try {
     throw new Error(
       "no [RESUME_TASK] lines seen yet - this image was likely built without " +
       "the sched-trace feature this script depends on; rebuild with " +
-      "`cargo build --features sched-trace` and try again"
+      "`cargo bootimage --features sched-trace` and try again"
     );
   }
 
