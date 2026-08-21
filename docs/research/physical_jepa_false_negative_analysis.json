@@ -1,82 +1,99 @@
 {
-  "schema_version": 1,
-  "scope": "selected seed-42 checkpoint on held-out simulator episodes",
+  "schema_version": 2,
+  "scope": "incident-augmented checkpoint on original and source-family-disjoint held-out simulator episodes",
+  "artifact_sha256": "b1900179c91a80c6933272c41787fa16e72d39cbb815edbe1a82fc4dac7a5800",
   "test_transitions": 2250,
   "dangerous_test_transitions": 535,
-  "combined_false_negative_count": 1,
-  "clusters": {
-    "clearance": 1
+  "combined_false_negative_count": 0,
+  "clusters": {},
+  "misses": [],
+  "incident_challenge": {
+    "test_transitions": 2880,
+    "dangerous_test_transitions": 840,
+    "combined_false_negative_count": 1,
+    "clusters": {
+      "clearance": 1
+    },
+    "source_family_counts": {
+      "german_steel_mill_2014": 1
+    },
+    "misses": [
+      {
+        "episode": 3000190,
+        "step": 4,
+        "action": "move",
+        "hazards": [
+          "clearance"
+        ],
+        "rule_blocked": false,
+        "jepa_blocked": false,
+        "action_features": [
+          -0.4986034,
+          0.8170875,
+          0.46129
+        ],
+        "state": [
+          0.4872359,
+          0.0694709,
+          0.3568878,
+          0.0,
+          0.5530879,
+          0.7002399,
+          0.2603602,
+          0.0,
+          0.4893968,
+          0.7307061,
+          1.0,
+          1.0,
+          0.5450464,
+          0.0,
+          0.5127641,
+          1.0
+        ],
+        "true_next_state": [
+          0.3276828,
+          0.3309389,
+          0.1464386,
+          0.0,
+          0.5331051,
+          0.7038113,
+          0.2603602,
+          0.0,
+          0.4893968,
+          0.7307061,
+          1.0,
+          1.0,
+          0.5450464,
+          0.46129,
+          0.6690611,
+          1.0
+        ],
+        "predicted_next_state": [
+          0.3163915,
+          0.3291885,
+          0.1805318,
+          0.0004236,
+          0.5336196,
+          0.700032,
+          0.2603219,
+          0.000359,
+          0.4975389,
+          0.7327476,
+          0.9939157,
+          1.0010935,
+          0.5455463,
+          0.4634416,
+          0.6373301,
+          1.0007454
+        ],
+        "partition": "test",
+        "source_id": "bsi_steel_mill_2014",
+        "source_family": "german_steel_mill_2014",
+        "hazard_tags": [
+          "process_divergence"
+        ]
+      }
+    ]
   },
-  "misses": [
-    {
-      "episode": 675,
-      "step": 2,
-      "action": "move",
-      "hazards": [
-        "clearance"
-      ],
-      "rule_blocked": false,
-      "jepa_blocked": false,
-      "action_features": [
-        0.1851689,
-        -0.926716,
-        0.8743016
-      ],
-      "state": [
-        -0.7835073,
-        0.1020154,
-        0.3368433,
-        0.0,
-        0.6728641,
-        0.5380761,
-        0.3582561,
-        0.0,
-        0.2513337,
-        0.5479801,
-        0.0,
-        1.0,
-        0.9523065,
-        0.0,
-        0.2164927,
-        1.0
-      ],
-      "true_next_state": [
-        -0.7242532,
-        -0.1945337,
-        0.1539455,
-        0.0,
-        0.6384834,
-        0.5390422,
-        0.3582561,
-        0.0,
-        0.2513337,
-        0.5479801,
-        0.0,
-        1.0,
-        0.9523065,
-        0.8743016,
-        0.2757468,
-        1.0
-      ],
-      "predicted_next_state": [
-        -0.7368605,
-        -0.1853338,
-        0.1879597,
-        0.0025568,
-        0.6409997,
-        0.5359448,
-        0.3601022,
-        0.0014252,
-        0.2485908,
-        0.5451691,
-        -0.0252286,
-        0.9996389,
-        0.9526889,
-        0.8863901,
-        0.3324772,
-        0.9859334
-      ]
-    }
-  ],
-  "interpretation": "Every miss remains a release blocker for learned physical gating; deterministic rules remain authoritative and the JEPA remains shadow-only."
+  "interpretation": "Every miss remains a blocker for learned physical gating; deterministic rules remain authoritative and the JEPA remains shadow-only."
 }

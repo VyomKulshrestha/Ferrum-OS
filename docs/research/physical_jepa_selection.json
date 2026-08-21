@@ -1,4 +1,6 @@
 {
+  "status": "historical_pre_incident_checkpoint",
+  "superseded_by": "docs/research/physical_incident_jepa_improvement.json",
   "selection_criterion": "validation_only_geometric_error_with_regression_and_anti_collapse_gates",
   "test_metrics_not_used_for_selection": true,
   "baseline_validation": {

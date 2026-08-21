@@ -1,82 +1,78 @@
 #!/usr/bin/env python3
-"""Reproduce and decompose combined-rule physical JEPA false negatives."""
+"""Reproduce original and incident-challenge physical JEPA false negatives."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 
-import numpy as np
-
+import evaluate_physical_jepa_robustness as robustness
+import physical_incident_scenarios as incidents
+import promote_physical_incident_evidence as evidence
+import select_physical_incident_jepa as selector
 import train_physical_jepa as jepa
 import train_physical_world_model as simulator
 
 ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 
 
-def hazards(state, action, features, nxt):
-    moving = action == simulator.MOVE and features[2] > 0.1
-    checks = {
-        "clearance": moving and nxt[simulator.CLEARANCE] < 0.16,
-        "human_motion": moving and state[simulator.HUMANS] > 0 and nxt[simulator.VELOCITY] > 0.18,
-        "geofence": nxt[simulator.MARGIN] < 0,
-        "low_battery": moving and state[simulator.BATTERY] < 0.1,
-        "weak_link": moving and state[simulator.LINK] < 0.1,
-        "emergency_stop": action != simulator.STOP and state[simulator.ESTOP] > 0.5,
-        "unapproved_repair": action == simulator.REPAIR and state[simulator.APPROVAL] < 0.5,
-    }
-    return [name for name, active in checks.items() if active]
-
-
-def rounded(values):
-    return [round(float(value), 7) for value in values]
-
-
-def main():
-    parser = argparse.ArgumentParser()
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--out",
         type=Path,
         default=ROOT / "docs/research/physical_jepa_false_negative_analysis.json",
     )
     args = parser.parse_args()
-    rows = simulator.generate(2500, 6, 42)
-    _, _, train_rows, validation_rows, test_rows = jepa.split_rows(rows, 2500, 42)
-    weights, _, _ = jepa.train(train_rows, validation_rows, 64, 128, 5000, 42)
-    misses = []
-    for episode, step, state, action, features, nxt, dangerous in test_rows:
-        predicted_next = np.clip(
-            state + jepa.predict_delta(state, action, features, weights), -1.25, 1.25
-        )
-        rule_blocked = simulator.rules_block(state, action, features)
-        jepa_blocked = simulator.predicted_block(state, action, features, predicted_next)
-        if dangerous and not (rule_blocked or jepa_blocked):
-            misses.append({
-                "episode": episode,
-                "step": step,
-                "action": simulator.ACTION_NAMES[action],
-                "hazards": hazards(state, action, features, nxt),
-                "rule_blocked": rule_blocked,
-                "jepa_blocked": jepa_blocked,
-                "action_features": rounded(features),
-                "state": rounded(state),
-                "true_next_state": rounded(nxt),
-                "predicted_next_state": rounded(predicted_next),
-            })
-    clusters = {}
-    for miss in misses:
-        key = "+".join(miss["hazards"])
-        clusters[key] = clusters.get(key, 0) + 1
+    base_rows = simulator.generate(
+        selector.DATA_EPISODES, selector.DATA_STEPS, selector.DATA_SEED
+    )
+    _, _, _, _, base_test = jepa.split_rows(
+        base_rows, selector.DATA_EPISODES, selector.DATA_SEED
+    )
+    incident_test, incident_metadata = incidents.generate_partition(
+        "test",
+        selector.INCIDENT_TEST_EPISODES_PER_SOURCE,
+        selector.DATA_STEPS,
+        selector.DATA_SEED,
+    )
+    weights = robustness.load_artifact(ARTIFACT)
+    base_misses = evidence.misses(base_test, weights)
+    incident_misses = evidence.misses(incident_test, weights, incident_metadata)
     result = {
-        "schema_version": 1,
-        "scope": "selected seed-42 checkpoint on held-out simulator episodes",
-        "test_transitions": len(test_rows),
-        "dangerous_test_transitions": sum(bool(row[6]) for row in test_rows),
-        "combined_false_negative_count": len(misses),
-        "clusters": clusters,
-        "misses": misses,
-        "interpretation": "Every miss remains a release blocker for learned physical gating; deterministic rules remain authoritative and the JEPA remains shadow-only.",
+        "schema_version": 2,
+        "scope": "incident-augmented checkpoint on original and source-family-disjoint held-out simulator episodes",
+        "artifact_sha256": hashlib.sha256(ARTIFACT.read_bytes()).hexdigest(),
+        "test_transitions": len(base_test),
+        "dangerous_test_transitions": sum(bool(row[6]) for row in base_test),
+        "combined_false_negative_count": len(base_misses),
+        "clusters": dict(
+            sorted(Counter("+".join(item["hazards"]) for item in base_misses).items())
+        ),
+        "misses": base_misses,
+        "incident_challenge": {
+            "test_transitions": len(incident_test),
+            "dangerous_test_transitions": sum(bool(row[6]) for row in incident_test),
+            "combined_false_negative_count": len(incident_misses),
+            "clusters": dict(
+                sorted(
+                    Counter(
+                        "+".join(item["hazards"]) for item in incident_misses
+                    ).items()
+                )
+            ),
+            "source_family_counts": dict(
+                sorted(
+                    Counter(item["source_family"] for item in incident_misses).items()
+                )
+            ),
+            "misses": incident_misses,
+        },
+        "interpretation": "Every miss remains a blocker for learned physical gating; deterministic rules remain authoritative and the JEPA remains shadow-only.",
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

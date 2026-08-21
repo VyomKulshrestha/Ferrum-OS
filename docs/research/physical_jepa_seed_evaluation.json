@@ -1,5 +1,7 @@
 {
   "schema_version": 1,
+  "status": "historical_pre_incident_checkpoint",
+  "superseded_by": "docs/research/physical_incident_jepa_improvement.json",
   "scope": "deterministic_simulator_only",
   "data_seed": 42,
   "split_policy": "fixed episode-disjoint split; only training seed varies",

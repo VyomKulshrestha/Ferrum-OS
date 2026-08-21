@@ -40,7 +40,9 @@ def main() -> None:
     allowed_tags = set(document["allowed_hazard_tags"])
 
     require(document["schema_version"] == 1, "incident catalog schema is supported")
-    require(len(sources) >= 15, "catalog contains a broad authoritative incident corpus")
+    require(
+        len(sources) >= 15, "catalog contains a broad authoritative incident corpus"
+    )
     require(len(document["claim_boundary"]) >= 4, "claim boundary is explicit")
 
     ids = [source["id"] for source in sources]
@@ -53,7 +55,10 @@ def main() -> None:
     )
 
     kinds = Counter(source["source_kind"] for source in sources)
-    require(REQUIRED_KINDS <= set(kinds), "government, paper, company, vendor-blog, and standard sources are represented")
+    require(
+        REQUIRED_KINDS <= set(kinds),
+        "government, paper, company, vendor-blog, and standard sources are represented",
+    )
     require(
         all(set(source["hazard_tags"]) <= allowed_tags for source in sources),
         "every defensive abstraction uses registered hazard tags",
@@ -64,7 +69,10 @@ def main() -> None:
     )
 
     generated = [source for source in sources if source["use_for_scenario_generation"]]
-    require(len(generated) >= 10, "at least ten independent sources drive scenario generation")
+    require(
+        len(generated) >= 10,
+        "at least ten independent sources drive scenario generation",
+    )
     require(
         all(source["training_partition"] in PARTITIONS for source in generated),
         "every generated source has a registered partition",
@@ -91,7 +99,10 @@ def main() -> None:
         "each incident partition contains at least three source families",
     )
     require(
-        all(source["defensive_abstraction"] and source["limitations"] for source in sources),
+        all(
+            source["defensive_abstraction"] and source["limitations"]
+            for source in sources
+        ),
         "every source records abstraction and limitations",
     )
     print("\nPhysical incident-source verification passed.")

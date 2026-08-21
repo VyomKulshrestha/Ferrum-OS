@@ -440,7 +440,7 @@ mod tests {
     #[test]
     fn committed_artifact_loads_and_beats_recorded_mean_baseline() {
         let model = PhysicalTransitionModel::from_bytes(ARTIFACT).unwrap();
-        assert_eq!(model.training_samples(), 10_500);
+        assert_eq!(model.training_samples(), 18_900);
         let forecast = model
             .predict_shadow(
                 safe_state(),
