@@ -870,8 +870,12 @@ pub extern "C" fn _start() -> ! {
                                         syscall3(SYS_WRITE, FD_CONSOLE, goal_msg.as_ptr() as u64, goal_msg.len() as u64);
                                     }
 
-                                    // Set goal
-                                    orchestrator.set_goal(cmd_trimmed);
+                                    // Feed the captured transcript into the
+                                    // voice-event intake. That boundary only
+                                    // updates intent; any action still runs
+                                    // later through the normal gated ReAct
+                                    // dispatcher.
+                                    orchestrator.handle_voice_event(cmd_trimmed);
 
                                     // Play confirmation beep
                                     let _ = cognitive::voice::play_audio(&beep);

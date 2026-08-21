@@ -2,12 +2,15 @@
 // FerrumOS - heliox-daemon End-to-End Voice & STT Loop verification
 // ============================================================================
 // Boots the kernel in QEMU with audio devices, runs a mock Whisper STT server
-// on a free host port, writes a custom config to /disk/heliox/config.json with
+// on free host ports, writes a custom config to /disk/heliox/config.json with
 // vad_threshold=0 to force silent capture, and asserts that:
 //   1. the daemon starts up and detects voice activity,
 //   2. records 3 seconds and POSTs to mock Whisper STT,
-//   3. receives transcript and sets goal,
-//   4. receiving "heliox voice event" updates the goal via IPC.
+//   3. the capture blocks only the calling task while init keeps scheduling,
+//   4. the transcript enters voice-event handling and triggers a safe action,
+//   5. the action reaches a capability-gated syscall without bypassing the
+//      normal world-model, permission-tier, or confirmation pipeline,
+//   6. receiving "heliox voice event" updates the goal via IPC.
 // ============================================================================
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -27,6 +30,7 @@ if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\
 }
 const port = Number(process.env.FERRUMOS_MONITOR_PORT || await freeTcpPort());
 const sttPort = Number(process.env.FERRUMOS_STT_PORT || await freeTcpPort());
+const providerPort = Number(process.env.FERRUMOS_PROVIDER_PORT || await freeTcpPort());
 const hostPort = Number(process.env.FERRUMOS_HOST_PORT || await freeTcpPort());
 const serialLog = path.join(repo, "target", "voice-verify-serial.log");
 // Truncate any stale log from a previous run - QEMU's `-serial file:X` appends
@@ -44,6 +48,9 @@ try { fs.unlinkSync(serialLog); } catch {}
 // 1. Start Host-Side Mock STT HTTP Server
 let requestReceived = false;
 let receivedBodyLength = 0;
+let providerRequestReceived = false;
+let voiceProviderRequestReceived = false;
+let safeVoiceActionReturned = false;
 const mockServer = http.createServer((req, res) => {
   console.log(`[mock server] received request: ${req.method} ${req.url}`);
   if (req.url === "/v1/audio/transcriptions" && req.method === "POST") {
@@ -68,9 +75,55 @@ const mockServer = http.createServer((req, res) => {
   }
 });
 
+const mockProvider = http.createServer((req, res) => {
+  if (req.url === "/api/generate" && req.method === "POST") {
+    providerRequestReceived = true;
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      const body = Buffer.concat(chunks).toString("utf8");
+      const isCapturedVoiceGoal = body.includes("list the files");
+      voiceProviderRequestReceived ||= isCapturedVoiceGoal;
+      const action = !isCapturedVoiceGoal
+        ? null
+        : !safeVoiceActionReturned
+          ? {
+              tool: "report_status",
+              args: { status: "voice-capture-ok" },
+            }
+          : {
+              tool: "write_file",
+              args: { path: "/tmp/voice-confirmation-boundary", content: "blocked" },
+            };
+      if (isCapturedVoiceGoal && !safeVoiceActionReturned) {
+        safeVoiceActionReturned = true;
+      }
+      const response = JSON.stringify({
+        response: action === null
+          ? "No action for the queued shell-only test event."
+          : JSON.stringify(action),
+      });
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(response).toString(),
+      });
+      res.end(response);
+    });
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
 await new Promise((resolve) => {
   mockServer.listen(sttPort, "127.0.0.1", () => {
     console.log(`[mock server] STT listening on port ${sttPort}`);
+    resolve();
+  });
+});
+await new Promise((resolve) => {
+  mockProvider.listen(providerPort, "127.0.0.1", () => {
+    console.log(`[mock provider] listening on port ${providerPort}`);
     resolve();
   });
 });
@@ -82,7 +135,7 @@ const qemuArgs = [
   "-serial", `file:${serialLog}`,
   "-netdev", `user,id=net0,hostfwd=tcp:127.0.0.1:${hostPort}-:8785`,
   "-device", "rtl8139,netdev=net0",
-  "-audiodev", "none,id=hda0",
+  "-audiodev", "none,id=hda0,timer-period=10000,in.fixed-settings=on,in.frequency=48000,in.channels=2,in.format=s16",
   "-device", "intel-hda",
   "-device", "hda-duplex,audiodev=hda0",
   "-no-reboot",
@@ -172,7 +225,7 @@ try {
   const start = serialText().length;
 
   // 2. Write custom config.json to enable STT loop and set vad_threshold to 0
-  await sendText(`write /disk/heliox/config.json {"api_host":"host","stt_host":"10.0.2.2","stt_port":${sttPort},"vad_threshold":0}`);
+  await sendText(`write /disk/heliox/config.json {"provider":"ollama","model_name":"voice-test","api_host":"10.0.2.2","api_port":${providerPort},"api_path":"/api/generate","tick_interval":1,"auto_approve_tier":1,"stt_host":"10.0.2.2","stt_port":${sttPort},"vad_threshold":0}`);
   await sendKey("ret");
   await sleep(600);
 
@@ -192,12 +245,19 @@ try {
     ws.addEventListener("error", reject, { once: true });
   });
   const pairingToken = await waitForPairingToken(serialText);
-  assertPaired(await rpcCall(ws, "pair-voice", "pair", { token: pairingToken }));
+  assertPaired(await rpcCall(ws, "pair-voice", "pair", {
+    token: pairingToken,
+    control_mode: "cooperative",
+  }));
   check("external model remains paired while ambient hearing is enabled", true);
 
   // Step 1: Daemon spawns and registers voice activity due to vad_threshold=0
   await waitForSerial("[heliox-daemon] voice activity detected, recording command...", 30, start);
   check("daemon starts and detects voice activity (VAD=0)", true);
+  const captureStart = serialText().indexOf(
+    "[heliox-daemon] voice activity detected, recording command...",
+    start,
+  );
 
   // Step 2: Daemon records 3 seconds of audio and POSTs to Whisper mock endpoint
   await waitForSerial("[heliox-daemon] voice transcript: hey heliox list the files", 30, start);
@@ -205,9 +265,47 @@ try {
   check("mock server received the binary audio payload", requestReceived);
   check("mock server received expected size (>=500KB)", receivedBodyLength >= 500000); // 3 seconds * 192KB/s = 576KB
 
+  const transcriptOffset = serialText().indexOf(
+    "[heliox-daemon] voice transcript: hey heliox list the files",
+    captureStart,
+  );
+  const captureWindow = serialText().slice(captureStart, transcriptOffset);
+  const heartbeats = (captureWindow.match(/\[init\] heartbeat/g) || []).length;
+  check(
+    `independent init task kept scheduling during 3s capture (heartbeats=${heartbeats})`,
+    heartbeats >= 2,
+  );
+
   // Step 3: Daemon sets goal from ambient VAD transcription
   await waitForSerial("[heliox-daemon] new goal set: list the files", 30, start);
   check("daemon extracts and sets new goal from transcript", true);
+
+  await waitForSerial("[heliox-daemon] voice event accepted: list the files", 30, start);
+  check("captured transcript enters Heliox voice-event handling", true);
+  const voiceEventOffset = serialText().indexOf(
+    "[heliox-daemon] voice event accepted: list the files",
+    transcriptOffset,
+  );
+
+  await waitForSerial(
+    "[AUDIT] UserAudit: HELIOX_STATUS:voice-capture-ok",
+    30,
+    voiceEventOffset,
+  );
+  check("voice-triggered Tier-1 report_status reaches capability-gated audit syscall", true);
+  check("mock provider received the voice-driven planning request", providerRequestReceived);
+  check("provider request contains the captured voice goal", voiceProviderRequestReceived);
+  const safeActionOffset = serialText().indexOf(
+    "[AUDIT] UserAudit: HELIOX_STATUS:voice-capture-ok",
+    voiceEventOffset,
+  );
+
+  await waitForSerial(
+    "[heliox-daemon] tool write_file awaiting operator confirmation",
+    30,
+    safeActionOffset,
+  );
+  check("higher-tier follow-up remains behind explicit operator confirmation", true);
 
   // Step 4: Verify the queued voice event updated the goal via IPC
   await waitForSerial("New goal set via IPC: hello world", 30, start);
@@ -228,6 +326,7 @@ try {
   monitor.destroy();
   qemuProcess.kill("SIGKILL");
   mockServer.close();
+  mockProvider.close();
 }
 
 console.log(results.join("\n"));

@@ -193,6 +193,26 @@ impl Orchestrator {
         );
     }
 
+    /// Accept a transcript from the in-guest voice capture/STT path.
+    ///
+    /// Voice input only updates planner intent. It is deliberately not parsed
+    /// as a tool call here: any resulting action must still be proposed by the
+    /// normal ReAct loop and pass the world-model, permission-tier,
+    /// confirmation, and capability-gated syscall boundaries.
+    pub fn handle_voice_event(&mut self, transcript: &str) -> bool {
+        let goal = transcript.trim();
+        if goal.is_empty() {
+            return false;
+        }
+
+        self.set_goal(goal);
+        let message = format!("[heliox-daemon] voice event accepted: {}\n", goal);
+        unsafe {
+            syscall3(34, 1, message.as_ptr() as u64, message.len() as u64);
+        }
+        true
+    }
+
     /// Read-only simulation for a paired external model that wants to inspect
     /// risk before requesting execution. It does not append experience data,
     /// alter planner state, or invoke a syscall-producing tool.
@@ -846,6 +866,13 @@ impl Orchestrator {
 
             if result.output.contains("Awaiting confirmation") {
                 self.emit_telemetry(TelemetryEventKind::ConfirmationQueued, format!("Tool {} requires confirmation", tc.name));
+                let message = format!(
+                    "[heliox-daemon] tool {} awaiting operator confirmation\n",
+                    tc.name
+                );
+                unsafe {
+                    syscall3(34, 1, message.as_ptr() as u64, message.len() as u64);
+                }
             } else {
                 let snippet = if result.output.len() > 64 {
                     let mut end = 64;
