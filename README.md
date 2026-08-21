@@ -502,6 +502,8 @@ Or use the build script:
 
 `scripts/make-appliance.ps1` builds the kernel and packages a real, trained language-model checkpoint onto a disk image the OS mounts at `/disk` — this is what powers Heliox's on-device ("local") brain, as opposed to the tiny synthetic fixture used only by the automated test suite. It builds the boot image, then packages `appliance/models/stories15M-q8.bin` and `appliance/models/tokenizer.bin` (real weights and vocabulary — see `appliance/models/README.md` for provenance and how to regenerate them) into a fresh ext2 disk image at `target/heliox-disk.img`. The script fails loudly if those model assets are missing rather than silently shipping a placeholder.
 
+The 2026-08-21 QEMU gate at `ba17f8e` passed all 7 checks: the packaged checkpoint and both world-model artifacts loaded, a paired JSON-RPC `local_inference` call generated `", there was"`, the live WebSocket response matched, and no userspace/page-fault panic occurred. The exact artifact hashes, observed warning, and scope limits are recorded in [`docs/benchmarks/raw/2026-08-21/qemu-real-model.txt`](docs/benchmarks/raw/2026-08-21/qemu-real-model.txt).
+
 ```powershell
 .\scripts\make-appliance.ps1
 .\build.ps1 run-appliance

@@ -1,0 +1,66 @@
+FerrumOS QEMU packaged real-model verification
+Date: 2026-08-21
+Verified HEAD: ba17f8ed78e6a476e30d81378a88b17e40e7135f
+
+Command:
+  node scripts/verify_real_model.mjs
+
+Environment:
+  Node.js: v24.6.0
+  QEMU: 9.2.0 (v9.2.0-12071-g3dd0aeb44b)
+  Accelerator: WHPX
+  Guest RAM: 512 MiB
+  Boot image SHA-256:
+    c874546d975b5c88a61705ef86030f9198ec532de1cf5658bde0800053bba49d
+
+Packaged appliance assets:
+  /heliox/models/stories15M-q8.bin
+    SHA-256: 83f1a18166b51fbe26eeebde1568445630738391cac3d3cc4667cb4ded3ee9f7
+  /heliox/tokenizer.bin
+    SHA-256: 50a52ef822ee9e83de5ce9d0be0a025a773d019437f58b5ff9dcafb063ece361
+  /heliox/world/model_learned.bin
+    SHA-256: f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8
+  /heliox/world/model_encoder.bin
+    SHA-256: 9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3
+  Each hash was read back from target/heliox-disk.img with debugfs and matched
+  the corresponding checked-in appliance asset.
+
+Observed model path and output:
+  Loaded: /disk/heliox/models/stories15M-q8.bin
+  Prompt: Once upon a time
+  max_tokens: 4
+  Generated suffix: ", there was"
+  Live JSON-RPC/WebSocket response matched the console-logged output.
+
+Observed world-model integration:
+  Loaded transition: input=185, hidden=512, output=128, arg_features=16
+  Loaded encoder: input=48, hidden=256, output=77
+  Load status: encoder_loaded=1, transition_loaded=1
+  local_inference telemetry: allowed=1, risk=0.0000, lookahead=1,
+    executed=1, success=1
+
+Result:
+  PASS boot reaches the shell prompt
+  PASS daemon loaded the real stories15M-q8.bin checkpoint
+  PASS local_inference actually ran and produced output
+  PASS live WebSocket response matches the console-logged output
+  PASS output is not the synthetic gibberish pattern
+  PASS output contains a recognizable English word
+  PASS no userspace fault or page-fault panic
+  7/7 checks passed
+
+Non-gating observation:
+  The pre-run removal of /disk/heliox/config.json reported
+  "ATA timeout: DRQ not set". The following config write succeeded, and the
+  verifier completed all seven checks. This warning was not hidden or counted
+  as a separate passing assertion.
+
+Scope and limitations:
+  This is emulator-backed integration evidence for one four-token generation.
+  It proves that this packaged appliance boots, loads the checked-in real model
+  and both world-model artifacts, routes a paired JSON-RPC execute_tool request
+  through the world-model gate, and returns the same generated text over the
+  live WebSocket. It is not a language-quality benchmark or broad world-model
+  safety evaluation. The 512 MiB guest was classified as the low hardware tier,
+  so provider auto-selection fell back to cloud; the verifier deliberately
+  invoked local_inference directly to test the packaged local fallback.
