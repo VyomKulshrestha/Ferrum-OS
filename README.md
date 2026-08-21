@@ -175,7 +175,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 ### Agent Daemon (`heliox-daemon`)
 - Bare-metal ReAct orchestrator (observe → think → act → verify → reflect)
 - Multi-Provider Support: Natively connects to local Ollama or cloud models (OpenAI, Gemini, Claude) via host proxy
-- Ambient Background Logic: Actively records voice from mic and performs anomaly screen vision checks
+- Ambient Background Logic: Samples HDA input without stalling other tasks, routes transcribed voice intent through the normal gated ReAct action path, and performs anomaly screen vision checks
 - Chat state (thinking / done / error, with the actual response text) streamed to the Heliox Assistant app over a structured IPC channel; user messages flow back the same way
 - Stays genuinely idle — no autonomous ticking or inference — until the user has completed setup; a missing config file is never treated as an implicit choice
 - Boot-scoped console-token pairing for external models. Paired clients choose

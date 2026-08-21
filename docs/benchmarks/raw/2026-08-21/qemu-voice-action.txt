@@ -1,0 +1,50 @@
+FerrumOS QEMU in-guest voice action verification
+Date: 2026-08-21
+Implementation commit: 2912bb49e59690a1d89afb6123f95946fb3a42d2
+
+Command:
+  node scripts/verify_voice.mjs
+
+Environment:
+  Node.js: v24.6.0
+  QEMU: 9.2.0 (v9.2.0-12071-g3dd0aeb44b)
+  HDA backend: QEMU deterministic dummy input, 48 kHz, stereo, s16
+
+Observed input and scheduling:
+  Captured audio bytes posted to mock STT: 576000
+  Independent init heartbeats during 3-second capture: 25
+
+Result:
+  PASS boot reaches the shell prompt
+  PASS external model remains paired while ambient hearing is enabled
+  PASS daemon starts and detects voice activity (VAD=0)
+  PASS daemon receives mock STT transcript
+  PASS mock server received the binary audio payload
+  PASS mock server received expected size (>=500KB)
+  PASS independent init task kept scheduling during 3s capture (heartbeats=25)
+  PASS daemon extracts and sets new goal from transcript
+  PASS captured transcript enters Heliox voice-event handling
+  PASS voice-triggered Tier-1 report_status reaches capability-gated audit syscall
+  PASS mock provider received the voice-driven planning request
+  PASS provider request contains the captured voice goal
+  PASS higher-tier follow-up remains behind explicit operator confirmation
+  PASS queued shell command voice event updates goal on the daemon via IPC
+  PASS bridge remains responsive after full audio/STT cycle
+  PASS no userspace fault/panic during voice activity test
+  16/16 checks passed
+
+Serial ordering asserted by the verifier:
+  HDA capture and transcript
+  -> voice event accepted: list the files
+  -> HELIOX_STATUS:voice-capture-ok audit record
+  -> write_file awaiting operator confirmation
+
+Scope and limitations:
+  This is emulator-backed integration evidence. QEMU supplied synthetic silent
+  samples, the test forced vad_threshold=0, and host mocks supplied the STT
+  transcript and provider actions. It proves the in-guest HDA DMA capture path,
+  non-blocking scheduler behavior, STT transport, voice-event intake, safe tool
+  dispatch through a capability-gated syscall, and preservation of the
+  higher-tier confirmation boundary in this QEMU configuration. It does not
+  prove physical microphone capture, acoustic recognition quality, production
+  STT/model behavior, real-hardware compatibility, or formal safety.

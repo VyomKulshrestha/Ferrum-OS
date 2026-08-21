@@ -445,9 +445,21 @@ redraws) with no `present()` failure logged and no fault/panic.
 
 ### Ambient Intelligence & Multi-Provider Support
 
-The agent daemon samples 250 ms audio windows every ten loop iterations. When
-voice activity is detected, it records the 3-second command, transcribes it,
-and generates a new `GOAL:`, bridging the physical world with the ReAct loop.
+The agent daemon samples 250 ms HDA input windows every ten loop iterations.
+When voice activity is detected, it records the 3-second command and transcribes
+it. `handle_voice_event` accepts the transcript as planner intent only; any tool
+call still has to be proposed by the ReAct/world-model path, pass its permission
+tier and confirmation gate, and reach the kernel through a capability-gated
+syscall. The record syscall parks only the calling task while DMA capture is in
+progress, so unrelated scheduler tasks continue to run.
+
+The QEMU voice verifier exercises that whole route with deterministic HDA input,
+a mock STT response, and a mock provider. The 2026-08-21 run captured 576,000
+bytes, observed 25 independent init heartbeats during the 3-second capture,
+executed the Tier-1 `report_status` action through the audit syscall, and left a
+subsequent Tier-3 `write_file` request awaiting explicit confirmation. It passed
+all 16 checks; the raw result and its synthetic-input limitations are recorded
+in [`docs/benchmarks/raw/2026-08-21/qemu-voice-action.txt`](benchmarks/raw/2026-08-21/qemu-voice-action.txt).
 It also periodically screenshots the desktop to proactively solve GUI errors.
 A stable Pointing gesture triggers an immediate VAD sample and is retained for
 an 8.2-second multimodal association window (8,200 ticks at the 1 kHz PIT),
