@@ -51,6 +51,14 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def repository_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(ROOT)).replace("\\", "/")
+    except ValueError:
+        return str(resolved).replace("\\", "/")
+
+
 def rollout_metrics(rows, weights) -> dict:
     def predictor(state, action, features):
         if "reconstruction_w" in weights:
@@ -313,14 +321,14 @@ def main() -> int:
         "schema_version": 1,
         "selection_protocol": "validation_only_then_single_untouched_test_open",
         "test_metrics_used_for_selection": False,
-        "current_artifact": str(args.current_artifact).replace("\\", "/"),
+        "current_artifact": repository_path(args.current_artifact),
         "current_artifact_sha256": current_artifact_sha256,
-        "candidate_artifact": str(args.artifact).replace("\\", "/"),
+        "candidate_artifact": repository_path(args.artifact),
         "candidate_artifact_sha256": digest(args.artifact),
         "candidate_artifact_bytes": args.artifact.stat().st_size,
         "catalog": str(incidents.DEFAULT_CATALOG.relative_to(ROOT)).replace("\\", "/"),
         "catalog_sha256": incidents.catalog_sha256(),
-        "dataset": str(args.dataset).replace("\\", "/"),
+        "dataset": repository_path(args.dataset),
         "dataset_sha256": digest(args.dataset),
         "base_dataset": {
             "episodes": DATA_EPISODES,
