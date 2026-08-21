@@ -189,6 +189,7 @@ def main() -> int:
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     args = parser.parse_args()
 
+    current_artifact_sha256 = digest(args.current_artifact)
     base_rows = simulator.generate(DATA_EPISODES, DATA_STEPS, DATA_SEED)
     _, _, base_train, base_validation, base_test = jepa.split_rows(
         base_rows, DATA_EPISODES, DATA_SEED
@@ -313,7 +314,7 @@ def main() -> int:
         "selection_protocol": "validation_only_then_single_untouched_test_open",
         "test_metrics_used_for_selection": False,
         "current_artifact": str(args.current_artifact).replace("\\", "/"),
-        "current_artifact_sha256": digest(args.current_artifact),
+        "current_artifact_sha256": current_artifact_sha256,
         "candidate_artifact": str(args.artifact).replace("\\", "/"),
         "candidate_artifact_sha256": digest(args.artifact),
         "candidate_artifact_bytes": args.artifact.stat().st_size,
