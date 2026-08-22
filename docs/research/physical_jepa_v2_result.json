@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-large-simulator-v2",
+  "protocol_sha256": "88a4698c6b786ab0b1c2a6dbac8d437bae81ae9a859c5445a7e899b4d6d1bb72",
+  "selection_report_sha256": "033f205a93cdddef96e9a034a49328fb1b0feebef96bdab367c69dbce3711a07",
+  "selected_candidate": {
+    "index": 1,
+    "latent": 96,
+    "hidden": 192,
+    "training_seed": 42,
+    "training_transitions": 80000,
+    "artifact_bytes": 169072,
+    "artifact_sha256": "2aa8e55d42fd8ce3b97907cdb224d60d3636dc59be72d1602de75d2c80f5c20e"
+  },
+  "generated_incident_dataset": {
+    "episodes": 4680,
+    "transitions": 37440,
+    "bytes": 31048310,
+    "sha256": "795f61739f26e6da4fd726cdda0bb447710690f5f5e0d802ec41877a180ab5e"
+  },
+  "baseline": {
+    "original_h3_error": 0.010475238785147667,
+    "incident_h3_error": 0.010633762925863266,
+    "ood_one_step_error": 0.00912713806454235,
+    "ood_false_negatives": 173,
+    "ood_false_positives": 11
+  },
+  "candidate": {
+    "original_h3_error": 0.00788085162639618,
+    "incident_h3_error": 0.008395700715482235,
+    "ood_one_step_error": 0.00879013270730411,
+    "ood_false_negatives": 173,
+    "ood_false_positives": 10
+  },
+  "relative_change": {
+    "original_h3_error": -0.2476685459838819,
+    "incident_h3_error": -0.2104675669360329,
+    "ood_one_step_error": -0.03692344000512367
+  },
+  "promotion": {
+    "passed": false,
+    "failed_checks": [
+      "ood_one_step_error_improves_at_least_5_percent"
+    ],
+    "passed_checks": 8,
+    "total_checks": 9
+  },
+  "decision": "rejected_without_runtime_or_artifact_change",
+  "interpretation": "The larger corpus materially improved original and incident rollouts, but the frozen candidate missed the registered OOD improvement threshold. The test result is retained and the checkpoint is not promoted."
+}
