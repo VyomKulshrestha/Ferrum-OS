@@ -93,7 +93,18 @@ def main() -> int:
 
     columns = tuple(metadata["signal_columns"])
     final_signals = temporal.read_signals(args.cache / FINAL_SIGNAL, columns)
-    raw_labels = pd.read_csv(args.cache / FINAL_LABEL)["label"].to_numpy(dtype=np.int8)
+    label_frame = pd.read_csv(args.cache / FINAL_LABEL)
+    raw_labels = label_frame["label"].to_numpy(dtype=np.int8)
+    label_timestamp = pd.to_datetime(label_frame["timestamp"], errors="raise").to_numpy(
+        dtype="datetime64[m]"
+    )
+    signal_minute = final_signals.timestamp.astype("datetime64[m]")
+    if len(label_timestamp) != len(signal_minute) or not np.array_equal(
+        label_timestamp, signal_minute
+    ):
+        raise AssertionError(
+            "official minute-resolution test2 labels do not align by row and minute"
+        )
     labels = raw_labels[6:]
     if len(labels) != len(final_signals.values) - 6:
         raise AssertionError("final labels do not align with the five-second context")
@@ -128,9 +139,7 @@ def main() -> int:
     ]
     projection = hai.fit_projection(fit_paths)
     state_fit = [hai.project_trace(path, projection) for path in fit_paths]
-    state_final = hai.project_trace(
-        args.cache / FINAL_SIGNAL, projection, args.cache / FINAL_LABEL
-    )
+    state_final = hai.project_trace(args.cache / FINAL_SIGNAL, projection)
     action_baseline = temporal.action_mean(state_fit)
     state_model = {
         "coefficients": archive["state_coefficients"],
@@ -182,6 +191,11 @@ def main() -> int:
             }
             for item in final_items
         ],
+        "label_alignment": {
+            "method": "row order with minute-resolution timestamp equality",
+            "reason": "The official label-test2.csv repeats minute timestamps for its per-second rows, unlike label-test1.csv. Row counts are equal and every label timestamp equals the corresponding signal timestamp floored to the minute.",
+            "rows": len(raw_labels),
+        },
         "evidence": {
             "recorded_seconds": len(final_signals.values),
             "recorded_hours": len(final_signals.values) / 3600.0,
