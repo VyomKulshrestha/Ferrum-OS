@@ -114,11 +114,27 @@ ACTION_PLANS = {
 
 
 def load_catalog(path: Path = DEFAULT_CATALOG) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    base_name = payload.get("extends")
+    if base_name is None:
+        return payload
+    base = load_catalog(path.parent / base_name)
+    return {
+        **base,
+        **payload,
+        "allowed_hazard_tags": base["allowed_hazard_tags"],
+        "sources": [*base["sources"], *payload["additional_sources"]],
+    }
 
 
 def catalog_sha256(path: Path = DEFAULT_CATALOG) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if "extends" not in payload:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    resolved = json.dumps(
+        load_catalog(path), sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(resolved).hexdigest()
 
 
 def source_seed(source_id: str, seed: int) -> int:
