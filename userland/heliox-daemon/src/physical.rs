@@ -2,19 +2,24 @@
 //!
 //! The existing 41-action OS JEPA checkpoint is intentionally not reused for
 //! physical state. This service exposes the independent typed runtime and its
-//! simulator evaluation while physical learned evidence remains shadow-only.
+//! simulator evaluation. The selected checkpoint may add caution only inside
+//! a digest-bound simulation session; live and HIL paths remain shadow-only.
 
 use alloc::format;
 use alloc::string::String;
 
 use ferrum_physical_runtime::{
-    run_maintenance_demo_with_predictions, MaintenanceDemoReport, PhysicalAction,
-    PhysicalActionKind, PhysicalObservation, PhysicalTransitionModel,
+    run_maintenance_demo_with_predictions, run_simulation_caution_demo, MaintenanceDemoReport,
+    PhysicalAction, PhysicalActionKind, PhysicalObservation, PhysicalTransitionModel,
 };
 
 static PHYSICAL_MODEL_BYTES: &[u8] = include_bytes!("../physical_world_model.bin");
 
-pub const PHYSICAL_SCHEMA_VERSION: u32 = 2;
+pub const PHYSICAL_SCHEMA_VERSION: u32 = 3;
+const PHYSICAL_MODEL_SHA256: [u8; 32] = [
+    0xb1, 0x90, 0x01, 0x79, 0xc9, 0x1a, 0x80, 0xc6, 0x93, 0x32, 0x72, 0xc4, 0x17, 0x87, 0xfa, 0x16,
+    0xe7, 0x2d, 0x39, 0xcb, 0xb8, 0x15, 0xed, 0xbe, 0x1a, 0x82, 0xfc, 0x4d, 0xac, 0x7a, 0x58, 0x00,
+];
 
 #[derive(Debug, Default)]
 pub struct PhysicalService {
@@ -48,7 +53,7 @@ impl PhysicalService {
             })
             .unwrap_or((0, 0, 0));
         format!(
-            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"model_revision\":\"physical-jepa-incident-v1\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"training_samples\":{},\"normalized_h3_error_ppm\":{},\"per_action_mean_h3_error_ppm\":{},\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
+            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"simulation_caution\",\"live_learned_gate\":\"shadow_only\",\"learned_authority\":\"increase_severity_only\",\"permit_authority\":\"deterministic_supervisor\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"model_revision\":\"physical-jepa-incident-v1\",\"model_sha256\":\"b1900179c91a80c6933272c41787fa16e72d39cbb815edbe1a82fc4dac7a5800\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"training_samples\":{},\"normalized_h3_error_ppm\":{},\"per_action_mean_h3_error_ppm\":{},\"held_out_rows\":2250,\"held_out_false_negatives\":0,\"held_out_false_positives\":16,\"ood_rows\":512,\"ood_false_negatives\":41,\"ood_false_positives\":4,\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
             PHYSICAL_SCHEMA_VERSION,
             self.model.is_some(),
             training_samples,
@@ -74,12 +79,18 @@ impl PhysicalService {
         let safe_forecast = model
             .predict_shadow_horizon(maintenance_observation(0.9, 0.0).into(), action, 3)
             .map_err(|_| "physical model inference failed")?;
+        let caution_report = run_simulation_caution_demo(
+            unsafe_forecast.evidence,
+            safe_forecast.evidence,
+            PHYSICAL_MODEL_SHA256,
+        )
+        .map_err(|_| "physical simulation-caution evaluation failed")?;
         let report =
             run_maintenance_demo_with_predictions(unsafe_forecast.evidence, safe_forecast.evidence)
                 .map_err(|_| "physical maintenance simulation failed")?;
         self.completed_simulations = self.completed_simulations.saturating_add(1);
         let response = format!(
-            "{{\"simulation_only\":true,\"model\":\"ema_target_jepa\",\"lookahead_horizon\":3,\"job_completed\":{},\"tasks\":{},\"approval_enforced\":{},\"unsafe_motion_blocked\":{},\"safe_motion_delivered\":{},\"policy_revision\":{},\"unsafe_shadow_risk_permille\":{},\"safe_shadow_risk_permille\":{},\"task_successes\":{},\"safety_interventions\":{},\"twin_events\":{}}}",
+            "{{\"simulation_only\":true,\"model\":\"ema_target_jepa\",\"lookahead_horizon\":3,\"job_completed\":{},\"tasks\":{},\"approval_enforced\":{},\"unsafe_motion_blocked\":{},\"safe_motion_delivered\":{},\"policy_revision\":{},\"unsafe_shadow_risk_permille\":{},\"safe_shadow_risk_permille\":{},\"task_successes\":{},\"safety_interventions\":{},\"twin_events\":{},\"gate_evaluation\":{{\"rules_only_allowed\":{},\"shadow_only_allowed\":{},\"rules_plus_jepa_blocked\":{},\"rejected_command_received_permit\":{},\"bounded_safe_command_delivered\":{},\"risky_prediction_permille\":{},\"safe_prediction_permille\":{},\"evidence_records\":{},\"evidence_checksum\":{}}},\"live_learned_gate\":\"shadow_only\",\"permit_authority\":\"deterministic_supervisor\"}}",
             report.job_completed,
             report.assigned_actors.len(),
             report.approval_was_enforced,
@@ -91,6 +102,15 @@ impl PhysicalService {
             report.reliability.task_successes,
             report.reliability.safety_interventions,
             report.retained_twin_events,
+            caution_report.rules_only_allowed,
+            caution_report.shadow_only_allowed,
+            caution_report.rules_plus_jepa_blocked,
+            caution_report.rejected_command_received_permit,
+            caution_report.bounded_safe_command_delivered,
+            caution_report.risky_prediction_permille,
+            caution_report.safe_prediction_permille,
+            caution_report.evidence_records,
+            caution_report.evidence_checksum,
         );
         self.last_report = Some(report);
         Ok(response)

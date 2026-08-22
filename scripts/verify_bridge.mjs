@@ -459,10 +459,13 @@ try {
   const physicalBefore = await rpcMethod(125, "physical_status", {});
   check(
     "physical runtime and embedded transition model are available in the booted daemon",
-    physicalBefore?.result?.schema_version === 2
+    physicalBefore?.result?.schema_version === 3
       && physicalBefore?.result?.available === true
       && physicalBefore?.result?.mode === "simulator"
-      && physicalBefore?.result?.learned_gate === "shadow_only"
+      && physicalBefore?.result?.learned_gate === "simulation_caution"
+      && physicalBefore?.result?.live_learned_gate === "shadow_only"
+      && physicalBefore?.result?.learned_authority === "increase_severity_only"
+      && physicalBefore?.result?.permit_authority === "deterministic_supervisor"
       && physicalBefore?.result?.physical_model_loaded === true
       && physicalBefore?.result?.physical_model === "ema_target_jepa"
       && physicalBefore?.result?.artifact_format === "PJE1"
@@ -470,6 +473,12 @@ try {
       && physicalBefore?.result?.training_samples === 18900
       && physicalBefore?.result?.normalized_h3_error_ppm === 10074
       && physicalBefore?.result?.per_action_mean_h3_error_ppm === 42816
+      && physicalBefore?.result?.held_out_rows === 2250
+      && physicalBefore?.result?.held_out_false_negatives === 0
+      && physicalBefore?.result?.held_out_false_positives === 16
+      && physicalBefore?.result?.ood_rows === 512
+      && physicalBefore?.result?.ood_false_negatives === 41
+      && physicalBefore?.result?.ood_false_positives === 4
       && physicalBefore?.result?.lookahead_horizon === 3
       && physicalBefore?.result?.os_jepa_reused === false
       && physicalBefore?.result?.completed_simulations === 0,
@@ -507,6 +516,21 @@ try {
       && physicalDemo?.result?.safety_interventions >= 1
       && physicalDemo?.result?.twin_events >= 1,
     JSON.stringify(physicalDemo?.result),
+  );
+  check(
+    "booted FerrumOS lets the digest-bound JEPA add simulator caution without permit authority",
+    physicalDemo?.result?.gate_evaluation?.rules_only_allowed === true
+      && physicalDemo?.result?.gate_evaluation?.shadow_only_allowed === true
+      && physicalDemo?.result?.gate_evaluation?.rules_plus_jepa_blocked === true
+      && physicalDemo?.result?.gate_evaluation?.rejected_command_received_permit === false
+      && physicalDemo?.result?.gate_evaluation?.bounded_safe_command_delivered === true
+      && physicalDemo?.result?.gate_evaluation?.risky_prediction_permille >= 800
+      && physicalDemo?.result?.gate_evaluation?.safe_prediction_permille < 600
+      && physicalDemo?.result?.gate_evaluation?.evidence_records > 0
+      && physicalDemo?.result?.gate_evaluation?.evidence_checksum > 0
+      && physicalDemo?.result?.live_learned_gate === "shadow_only"
+      && physicalDemo?.result?.permit_authority === "deterministic_supervisor",
+    JSON.stringify(physicalDemo?.result?.gate_evaluation),
   );
 
   const physicalAfter = await rpcMethod(128, "physical_status", {});

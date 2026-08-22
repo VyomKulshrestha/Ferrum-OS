@@ -21,8 +21,8 @@ use crate::replay::{
     FaultController, FrameDisposition, ReplayAction, ReplayError, ReplayOutcome, ReplayStep,
 };
 use crate::safety::{
-    PhysicalPrediction, SafetyContext, SafetyDecision, SafetyError, SafetyReason, SafetySupervisor,
-    SafetyVerdict,
+    PhysicalPrediction, PredictionUse, SafetyContext, SafetyDecision, SafetyError, SafetyReason,
+    SafetySupervisor, SafetyVerdict,
 };
 use crate::session::{EvidenceKind, EvidenceLog, SessionDescriptor, SessionError, SessionMode};
 use crate::supervisor::{
@@ -53,7 +53,18 @@ pub enum RuntimeError {
     Replay(ReplayError),
     DriverModeMismatch,
     Supervisor(SupervisorError),
+    SimulationCautionUnavailable,
     SequenceExhausted,
+}
+
+/// An OS-owned, session-bound capability to let one exact JEPA checkpoint add
+/// caution in simulation. It cannot be constructed from model bytes and it is
+/// revalidated against the runtime session before every use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SimulationCautionGrant {
+    run_id: u64,
+    model_sha256: [u8; 32],
+    model_version: u64,
 }
 
 #[derive(Debug)]
@@ -172,6 +183,26 @@ impl PhysicalRuntime {
 
     pub fn evidence(&self) -> &EvidenceLog {
         &self.evidence
+    }
+
+    pub fn simulation_caution_grant(
+        &self,
+        model_sha256: [u8; 32],
+        model_version: u64,
+    ) -> Result<SimulationCautionGrant, RuntimeError> {
+        let descriptor = self.evidence.descriptor();
+        if descriptor.mode != SessionMode::Simulation
+            || model_version == 0
+            || model_sha256.iter().all(|byte| *byte == 0)
+            || descriptor.model_sha256 != model_sha256
+        {
+            return Err(RuntimeError::SimulationCautionUnavailable);
+        }
+        Ok(SimulationCautionGrant {
+            run_id: descriptor.run_id,
+            model_sha256,
+            model_version,
+        })
     }
 
     pub fn register_watchdog(&mut self, watchdog: WatchdogState) -> Result<(), RuntimeError> {
@@ -525,12 +556,47 @@ impl PhysicalRuntime {
         predictions: &[PhysicalPrediction],
         current_tick: u64,
     ) -> Result<SafetyDecision, RuntimeError> {
+        self.preview_command_with_prediction_use(
+            command,
+            context,
+            predictions,
+            current_tick,
+            PredictionUse::ShadowOnly,
+        )
+    }
+
+    pub fn preview_command_with_simulation_caution(
+        &mut self,
+        command: &AdapterCommand,
+        context: SafetyContext,
+        predictions: &[PhysicalPrediction],
+        current_tick: u64,
+        grant: SimulationCautionGrant,
+    ) -> Result<SafetyDecision, RuntimeError> {
+        let prediction_use = self.validate_simulation_caution_grant(grant)?;
+        self.preview_command_with_prediction_use(
+            command,
+            context,
+            predictions,
+            current_tick,
+            prediction_use,
+        )
+    }
+
+    fn preview_command_with_prediction_use(
+        &mut self,
+        command: &AdapterCommand,
+        context: SafetyContext,
+        predictions: &[PhysicalPrediction],
+        current_tick: u64,
+        prediction_use: PredictionUse,
+    ) -> Result<SafetyDecision, RuntimeError> {
         self.evidence
             .reserve_at(current_tick, 2)
             .map_err(RuntimeError::Session)?;
         let decision = self
             .safety
-            .evaluate(
+            .evaluate_with_prediction_use(
                 &self.adapters,
                 &self.domain,
                 &self.twin,
@@ -538,9 +604,15 @@ impl PhysicalRuntime {
                 context,
                 predictions,
                 current_tick,
+                prediction_use,
             )
             .map_err(RuntimeError::Safety)?;
-        self.record_prediction_summary(command.command_id, predictions, current_tick)?;
+        self.record_prediction_summary(
+            command.command_id,
+            predictions,
+            current_tick,
+            prediction_use,
+        )?;
         self.record_safety_decision(command.command_id, &decision, current_tick)?;
         Ok(decision)
     }
@@ -551,6 +623,41 @@ impl PhysicalRuntime {
         context: SafetyContext,
         predictions: &[PhysicalPrediction],
         current_tick: u64,
+    ) -> Result<RoutedCommand, RuntimeError> {
+        self.authorize_and_queue_command_with_prediction_use(
+            command,
+            context,
+            predictions,
+            current_tick,
+            PredictionUse::ShadowOnly,
+        )
+    }
+
+    pub fn authorize_and_queue_command_with_simulation_caution(
+        &mut self,
+        command: AdapterCommand,
+        context: SafetyContext,
+        predictions: &[PhysicalPrediction],
+        current_tick: u64,
+        grant: SimulationCautionGrant,
+    ) -> Result<RoutedCommand, RuntimeError> {
+        let prediction_use = self.validate_simulation_caution_grant(grant)?;
+        self.authorize_and_queue_command_with_prediction_use(
+            command,
+            context,
+            predictions,
+            current_tick,
+            prediction_use,
+        )
+    }
+
+    fn authorize_and_queue_command_with_prediction_use(
+        &mut self,
+        command: AdapterCommand,
+        context: SafetyContext,
+        predictions: &[PhysicalPrediction],
+        current_tick: u64,
+        prediction_use: PredictionUse,
     ) -> Result<RoutedCommand, RuntimeError> {
         if command.kind != crate::adapter::CommandKind::Stop
             && self.watchdogs.severity(current_tick) >= AuthoritySeverity::Block
@@ -564,7 +671,7 @@ impl PhysicalRuntime {
             .map_err(RuntimeError::Session)?;
         let decision = self
             .safety
-            .evaluate(
+            .evaluate_with_prediction_use(
                 &self.adapters,
                 &self.domain,
                 &self.twin,
@@ -572,9 +679,15 @@ impl PhysicalRuntime {
                 context,
                 predictions,
                 current_tick,
+                prediction_use,
             )
             .map_err(RuntimeError::Safety)?;
-        self.record_prediction_summary(command.command_id, predictions, current_tick)?;
+        self.record_prediction_summary(
+            command.command_id,
+            predictions,
+            current_tick,
+            prediction_use,
+        )?;
         self.record_safety_decision(command.command_id, &decision, current_tick)?;
         if decision.verdict != SafetyVerdict::Allow {
             if decision.verdict == SafetyVerdict::Block {
@@ -658,6 +771,22 @@ impl PhysicalRuntime {
             )
             .map_err(RuntimeError::Session)?;
         Ok(routed)
+    }
+
+    fn validate_simulation_caution_grant(
+        &self,
+        grant: SimulationCautionGrant,
+    ) -> Result<PredictionUse, RuntimeError> {
+        let descriptor = self.evidence.descriptor();
+        if descriptor.mode != SessionMode::Simulation
+            || descriptor.run_id != grant.run_id
+            || descriptor.model_sha256 != grant.model_sha256
+        {
+            return Err(RuntimeError::SimulationCautionUnavailable);
+        }
+        Ok(PredictionUse::SimulationCaution {
+            model_version: grant.model_version,
+        })
     }
 
     pub fn deliver_next(
@@ -864,6 +993,7 @@ impl PhysicalRuntime {
         command_id: u64,
         predictions: &[PhysicalPrediction],
         tick: u64,
+        prediction_use: PredictionUse,
     ) -> Result<(), RuntimeError> {
         let maximum_risk = predictions
             .iter()
@@ -875,10 +1005,17 @@ impl PhysicalRuntime {
             .map(|prediction| prediction.uncertainty_permille)
             .max()
             .unwrap_or(0);
-        let validated_count = predictions
-            .iter()
-            .filter(|prediction| prediction.validated_for_gating)
-            .count();
+        let caution_count = match prediction_use {
+            PredictionUse::ShadowOnly => 0,
+            PredictionUse::SimulationCaution { model_version } => predictions
+                .iter()
+                .filter(|prediction| {
+                    prediction.source == crate::safety::PredictionSource::PhysicalJepa
+                        && prediction.model_version == model_version
+                        && !prediction.validated_for_gating
+                })
+                .count(),
+        };
         self.evidence
             .append(
                 tick,
@@ -887,7 +1024,7 @@ impl PhysicalRuntime {
                 predictions.len() as u64,
                 maximum_risk as u64,
                 maximum_uncertainty as u64,
-                validated_count as u64,
+                caution_count as u64,
             )
             .map(|_| ())
             .map_err(RuntimeError::Session)
@@ -969,7 +1106,7 @@ mod tests {
     };
     use crate::fleet::{DeviceLifecycle, FleetDevice};
     use crate::replay::{FaultKind, FaultSpec, FaultTarget, ReplayManifest};
-    use crate::safety::{Geofence, SafetyPolicy};
+    use crate::safety::{EffectKind, Geofence, PredictionSource, SafetyPolicy};
     use crate::twin::{SensorKind, SensorReading};
     use crate::work::{ActorConstraint, JobState, Priority, TaskId, TaskStatus, WorkTask};
     use alloc::string::ToString;
@@ -1256,6 +1393,86 @@ mod tests {
                 .safety_interventions,
             1
         );
+    }
+
+    #[test]
+    fn exact_model_digest_can_add_caution_only_inside_its_simulation_session() {
+        let mut descriptor = SessionDescriptor::simulator(7, 3, 42);
+        descriptor.model_sha256 = [9; 32];
+        let mut runtime = configured_runtime_with(descriptor, AdapterProtocol::Simulator);
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = SafetyContext {
+            expected_policy_revision: 1,
+            expected_twin_event_id: runtime.twin().snapshot().latest_event_id,
+            human_approved: true,
+            requesting_actor_id: None,
+        };
+        let prediction = PhysicalPrediction {
+            effect: EffectKind::Move,
+            risk_permille: 900,
+            uncertainty_permille: 20,
+            source: PredictionSource::PhysicalJepa,
+            model_version: 1,
+            validated_for_gating: false,
+        };
+        assert_eq!(
+            runtime
+                .preview_command(&command(70), context, &[prediction], 100)
+                .unwrap()
+                .verdict,
+            SafetyVerdict::Allow
+        );
+        assert_eq!(
+            runtime.simulation_caution_grant([8; 32], 1),
+            Err(RuntimeError::SimulationCautionUnavailable)
+        );
+        let grant = runtime.simulation_caution_grant([9; 32], 1).unwrap();
+        let decision = runtime
+            .preview_command_with_simulation_caution(
+                &command(71),
+                context,
+                &[prediction],
+                100,
+                grant,
+            )
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Block);
+        assert!(decision.reasons.contains(&SafetyReason::PredictiveBlock));
+        assert_eq!(
+            runtime.authorize_and_queue_command_with_simulation_caution(
+                command(72),
+                context,
+                &[prediction],
+                100,
+                grant,
+            ),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
+        assert!(runtime.fleet().command_claim(72).is_none());
+        assert!(!runtime
+            .evidence()
+            .records()
+            .iter()
+            .any(|record| record.kind == EvidenceKind::PermitIssued));
+    }
+
+    #[test]
+    fn live_and_actuator_disabled_sessions_cannot_obtain_simulation_caution() {
+        for mode in [
+            SessionMode::HardwareInLoopActuatorDisabled,
+            SessionMode::Live,
+        ] {
+            let mut descriptor = SessionDescriptor::simulator(9, 3, 42);
+            descriptor.mode = mode;
+            descriptor.model_sha256 = [9; 32];
+            let runtime = PhysicalRuntime::new_with_session(descriptor).unwrap();
+            assert_eq!(
+                runtime.simulation_caution_grant([9; 32], 1),
+                Err(RuntimeError::SimulationCautionUnavailable)
+            );
+        }
     }
 
     #[test]

@@ -81,6 +81,17 @@ pub struct PhysicalPrediction {
     pub validated_for_gating: bool,
 }
 
+/// Runtime-owned disposition for learned physical predictions.
+///
+/// Model bytes are always decoded as shadow evidence. Only a simulation
+/// session that has separately bound the exact model digest may request
+/// `SimulationCaution`, and even then predictions can only raise severity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PredictionUse {
+    ShadowOnly,
+    SimulationCaution { model_version: u64 },
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SafetyContext {
     pub expected_policy_revision: u64,
@@ -176,6 +187,30 @@ impl SafetySupervisor {
         context: SafetyContext,
         predictions: &[PhysicalPrediction],
         current_tick: u64,
+    ) -> Result<SafetyDecision, SafetyError> {
+        self.evaluate_with_prediction_use(
+            adapters,
+            domain,
+            twin,
+            command,
+            context,
+            predictions,
+            current_tick,
+            PredictionUse::ShadowOnly,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn evaluate_with_prediction_use(
+        &self,
+        adapters: &AdapterRegistry,
+        domain: &DomainRegistry,
+        twin: &OperationalTwin,
+        command: &AdapterCommand,
+        context: SafetyContext,
+        predictions: &[PhysicalPrediction],
+        current_tick: u64,
+        prediction_use: PredictionUse,
     ) -> Result<SafetyDecision, SafetyError> {
         if predictions.len() > MAX_PHYSICAL_PREDICTIONS {
             return Ok(blocked_decision(
@@ -351,7 +386,14 @@ impl SafetySupervisor {
                 );
                 continue;
             }
-            if prediction.validated_for_gating {
+            let simulation_caution = matches!(
+                prediction_use,
+                PredictionUse::SimulationCaution { model_version }
+                    if prediction.source == PredictionSource::PhysicalJepa
+                        && prediction.model_version == model_version
+                        && !prediction.validated_for_gating
+            );
+            if simulation_caution {
                 decision.maximum_validated_risk_permille = decision
                     .maximum_validated_risk_permille
                     .max(prediction.risk_permille);
@@ -369,6 +411,15 @@ impl SafetySupervisor {
                     );
                 }
             } else {
+                // A prediction may not self-promote through a serialized or
+                // caller-supplied flag. Promotion belongs to the OS session.
+                if prediction.validated_for_gating {
+                    add_reason(
+                        &mut decision,
+                        SafetyVerdict::Block,
+                        SafetyReason::InvalidPrediction,
+                    );
+                }
                 decision.maximum_shadow_risk_permille = decision
                     .maximum_shadow_risk_permille
                     .max(prediction.risk_permille);
@@ -692,7 +743,7 @@ mod tests {
     }
 
     #[test]
-    fn validated_prediction_can_only_add_caution() {
+    fn simulation_prediction_can_only_add_caution_when_os_authorizes_its_model_version() {
         let (mut domain, adapters, mut twin) = setup();
         prime_twin(&mut domain, &mut twin);
         let mut supervisor = SafetySupervisor::new();
@@ -701,6 +752,36 @@ mod tests {
             effect: EffectKind::Move,
             risk_permille: 900,
             uncertainty_permille: 100,
+            source: PredictionSource::PhysicalJepa,
+            model_version: 1,
+            validated_for_gating: false,
+        };
+        let decision = supervisor
+            .evaluate_with_prediction_use(
+                &adapters,
+                &domain,
+                &twin,
+                &motion(1, &twin),
+                context(&twin),
+                &[prediction],
+                100,
+                PredictionUse::SimulationCaution { model_version: 1 },
+            )
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Block);
+        assert!(decision.reasons.contains(&SafetyReason::PredictiveBlock));
+    }
+
+    #[test]
+    fn caller_supplied_gating_flag_fails_closed() {
+        let (mut domain, adapters, mut twin) = setup();
+        prime_twin(&mut domain, &mut twin);
+        let mut supervisor = SafetySupervisor::new();
+        supervisor.install_policy(policy()).unwrap();
+        let prediction = PhysicalPrediction {
+            effect: EffectKind::Move,
+            risk_permille: 0,
+            uncertainty_permille: 0,
             source: PredictionSource::PhysicalJepa,
             model_version: 1,
             validated_for_gating: true,
@@ -717,7 +798,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(decision.verdict, SafetyVerdict::Block);
-        assert!(decision.reasons.contains(&SafetyReason::PredictiveBlock));
+        assert!(decision.reasons.contains(&SafetyReason::InvalidPrediction));
     }
 
     #[test]

@@ -25,6 +25,7 @@ use crate::safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyError,
     SafetyPolicy, SafetyVerdict,
 };
+use crate::session::{EvidenceKind, SessionDescriptor};
 use crate::twin::{AssetTelemetry, SensorKind, SensorReading};
 use crate::work::{
     ActorConstraint, DispatchError, JobId, JobState, Priority, TaskId, TaskStatus, WorkOrder,
@@ -49,6 +50,19 @@ pub struct MaintenanceDemoReport {
     pub privacy_representation: Representation,
     pub reliability: ReliabilitySnapshot,
     pub retained_twin_events: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SimulationCautionDemoReport {
+    pub rules_only_allowed: bool,
+    pub shadow_only_allowed: bool,
+    pub rules_plus_jepa_blocked: bool,
+    pub rejected_command_received_permit: bool,
+    pub bounded_safe_command_delivered: bool,
+    pub risky_prediction_permille: u16,
+    pub safe_prediction_permille: u16,
+    pub evidence_records: usize,
+    pub evidence_checksum: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -209,8 +223,120 @@ pub fn run_maintenance_demo_with_predictions(
     })
 }
 
+/// Exercises the promoted learned-caution path without weakening physical
+/// authority. The same safe present-state command is evaluated under rules,
+/// shadow JEPA, and the session-bound combined policy. A risky learned rollout
+/// may block only the simulator command; a rejected command receives no permit.
+pub fn run_simulation_caution_demo(
+    risky_prediction: PhysicalPrediction,
+    safe_prediction: PhysicalPrediction,
+    model_sha256: [u8; 32],
+) -> Result<SimulationCautionDemoReport, MaintenanceDemoError> {
+    if risky_prediction.validated_for_gating
+        || safe_prediction.validated_for_gating
+        || risky_prediction.source != PredictionSource::PhysicalJepa
+        || safe_prediction.source != PredictionSource::PhysicalJepa
+        || risky_prediction.model_version == 0
+        || risky_prediction.model_version != safe_prediction.model_version
+    {
+        return Err(MaintenanceDemoError::Invariant);
+    }
+    let mut descriptor = SessionDescriptor::simulator(2, 1, 42);
+    descriptor.model_sha256 = model_sha256;
+    let (mut runtime, mut driver) = build_runtime_with_session(descriptor)?;
+    runtime
+        .ingest_adapter_frame(proximity_frame(1, 900, 100), 100, 0)
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let context = current_context(&runtime);
+
+    let rules_only = runtime
+        .preview_command(&motion_command(10, 2_010, context, 100), context, &[], 100)
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let shadow_only = runtime
+        .preview_command(
+            &motion_command(11, 2_011, context, 100),
+            context,
+            &[risky_prediction],
+            100,
+        )
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let grant = runtime
+        .simulation_caution_grant(model_sha256, risky_prediction.model_version)
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let combined = runtime
+        .preview_command_with_simulation_caution(
+            &motion_command(12, 2_012, context, 100),
+            context,
+            &[risky_prediction],
+            100,
+            grant,
+        )
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let permits_before = runtime
+        .evidence()
+        .records()
+        .iter()
+        .filter(|record| record.kind == EvidenceKind::PermitIssued)
+        .count();
+    let rejected = runtime.authorize_and_queue_command_with_simulation_caution(
+        motion_command(13, 2_013, context, 100),
+        context,
+        &[risky_prediction],
+        100,
+        grant,
+    ) == Err(RuntimeError::Safety(SafetyError::Blocked));
+    let permits_after_rejection = runtime
+        .evidence()
+        .records()
+        .iter()
+        .filter(|record| record.kind == EvidenceKind::PermitIssued)
+        .count();
+
+    let safe_context = current_context(&runtime);
+    let routed = runtime
+        .authorize_and_queue_command_with_simulation_caution(
+            motion_command(14, 2_014, safe_context, 100),
+            safe_context,
+            &[safe_prediction],
+            100,
+            grant,
+        )
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let delivered = runtime
+        .deliver_next(AdapterId(1), &mut driver, 100)
+        .map_err(MaintenanceDemoError::Runtime)?;
+    let report = SimulationCautionDemoReport {
+        rules_only_allowed: rules_only.verdict == SafetyVerdict::Allow,
+        shadow_only_allowed: shadow_only.verdict == SafetyVerdict::Allow,
+        rules_plus_jepa_blocked: rejected && combined.verdict == SafetyVerdict::Block,
+        rejected_command_received_permit: permits_after_rejection != permits_before,
+        bounded_safe_command_delivered: delivered == Some(routed) && driver.commands().len() == 1,
+        risky_prediction_permille: risky_prediction.risk_permille,
+        safe_prediction_permille: safe_prediction.risk_permille,
+        evidence_records: runtime.evidence().records().len(),
+        evidence_checksum: runtime.evidence().final_checksum(),
+    };
+    if !report.rules_only_allowed
+        || !report.shadow_only_allowed
+        || !report.rules_plus_jepa_blocked
+        || report.rejected_command_received_permit
+        || !report.bounded_safe_command_delivered
+        || runtime.evidence().verify().is_err()
+    {
+        return Err(MaintenanceDemoError::Invariant);
+    }
+    Ok(report)
+}
+
 fn build_runtime() -> Result<(PhysicalRuntime, SimulatedAdapter), MaintenanceDemoError> {
-    let mut runtime = PhysicalRuntime::new();
+    build_runtime_with_session(SessionDescriptor::simulator(1, 1, 42))
+}
+
+fn build_runtime_with_session(
+    descriptor: SessionDescriptor,
+) -> Result<(PhysicalRuntime, SimulatedAdapter), MaintenanceDemoError> {
+    let mut runtime =
+        PhysicalRuntime::new_with_session(descriptor).map_err(MaintenanceDemoError::Runtime)?;
     runtime
         .domain_mut()
         .register_site(Site {
@@ -573,5 +699,29 @@ mod tests {
         assert_eq!(report.reliability.task_successes, 5);
         assert_eq!(report.reliability.safety_interventions, 1);
         assert!(report.retained_twin_events >= 13);
+    }
+
+    #[test]
+    fn simulator_caution_changes_only_the_combined_verdict_and_never_mints_a_rejected_permit() {
+        let risky = PhysicalPrediction {
+            effect: EffectKind::Move,
+            risk_permille: 900,
+            uncertainty_permille: 20,
+            source: PredictionSource::PhysicalJepa,
+            model_version: 1,
+            validated_for_gating: false,
+        };
+        let safe = PhysicalPrediction {
+            risk_permille: 0,
+            ..risky
+        };
+        let report = run_simulation_caution_demo(risky, safe, [9; 32]).unwrap();
+        assert!(report.rules_only_allowed);
+        assert!(report.shadow_only_allowed);
+        assert!(report.rules_plus_jepa_blocked);
+        assert!(!report.rejected_command_received_permit);
+        assert!(report.bounded_safe_command_delivered);
+        assert!(report.evidence_records > 0);
+        assert_ne!(report.evidence_checksum, 0);
     }
 }

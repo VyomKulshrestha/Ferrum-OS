@@ -67,14 +67,15 @@ pub use replay::{
     ReplayCursor, ReplayError, ReplayManifest, ReplayOutcome, ReplayStep, MAX_ACTIVE_FAULTS,
     MAX_REPLAY_STEPS,
 };
-pub use runtime::{PhysicalRuntime, RuntimeError};
+pub use runtime::{PhysicalRuntime, RuntimeError, SimulationCautionGrant};
 pub use safety::{
     EffectKind, Geofence, PhysicalPrediction, PredictionSource, SafetyContext, SafetyDecision,
     SafetyError, SafetyPolicy, SafetyReason, SafetySupervisor, SafetyVerdict,
 };
 pub use scenario::{
-    run_maintenance_demo, run_maintenance_demo_with_predictions, MaintenanceDemoError,
-    MaintenanceDemoReport, MAINTENANCE_ASSET_ID, MAINTENANCE_JOB_ID, MAINTENANCE_SITE_ID,
+    run_maintenance_demo, run_maintenance_demo_with_predictions, run_simulation_caution_demo,
+    MaintenanceDemoError, MaintenanceDemoReport, SimulationCautionDemoReport, MAINTENANCE_ASSET_ID,
+    MAINTENANCE_JOB_ID, MAINTENANCE_SITE_ID,
 };
 pub use session::{
     EvidenceKind, EvidenceLog, EvidenceRecord, SessionDescriptor, SessionError, SessionMode,

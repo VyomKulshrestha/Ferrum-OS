@@ -345,7 +345,7 @@ impl<'a> PhysicalTransitionModel<'a> {
                 risk_permille: physical_risk_permille(state, action, &next),
                 uncertainty_permille: (self.normalized_h3_error * 1_000.0).clamp(0.0, 1_000.0)
                     as u16,
-                source: PredictionSource::Simulator,
+                source: PredictionSource::PhysicalJepa,
                 model_version: 1,
                 // Simulator bytes cannot promote themselves into authority.
                 validated_for_gating: false,
