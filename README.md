@@ -293,12 +293,24 @@ real-hardware or certified industrial deployment.
 - Model bytes cannot self-promote: a serialized flag never grants authority.
   Ferrum binds the exact checkpoint digest to a simulation session, where its
   forecast can raise `Allow` to approval/block but cannot issue a permit.
-  HIL and live sessions cannot obtain that grant until a separately registered
-  real-device protocol passes, and the deterministic supervisor alone issues
-  permits. Only
+  A research-informed four-stage qualification contract now names the exact
+  software, actuator-disabled HIL, low-energy robot-trial, and bounded-live
+  evidence requirements. Unqualified `Live` delivery is structurally rejected
+  before a physical driver is called; no current artifact satisfies the
+  external HIL, robot-trial, or independent-assessment stages. The deterministic
+  supervisor alone issues permits. Only
   telemetry-confirmed execution can enter the bounded transition-fit
   experience stream; refusals, uncertain deliveries, and simulated predictions
   remain audit-only.
+- A pre-registered 12-family systematic boundary sweep evaluates 12,288 new
+  simulator cases. Rules + JEPA reduce false negatives from 289 to 12 at a
+  7.02% false-positive rate. A separate validation-only calibration selects a
+  0.20 predicted-clearance caution margin; its single unseen 12,288-case test
+  records 4 false negatives and a 7.15% false-positive rate. This changed the
+  simulator caution policy, not the immutable JEPA weights, because the frozen
+  model gates passed and did not justify retraining.
+  The conditions, sources, results, and remaining external gates are documented
+  in [the physical-deployment qualification report](docs/research/PHYSICAL_DEPLOYMENT_QUALIFICATION.md).
 - A transport-neutral host bridge implements deterministic scripted tests plus
   optional Gazebo/ROS 2 and Webots connectors. ROS 2, MQTT, and CAN conformance
   rules cover bounded QoS, mTLS/ACL, expiry, retained-message rejection,
@@ -317,6 +329,7 @@ python scripts/verify_physical_incident_sources.py
 python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_jepa_robustness.py
 python scripts/verify_physical_simulation_caution.py
+python scripts/verify_physical_deployment_qualification.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs
@@ -326,8 +339,8 @@ The demo requires `confirm_simulation=true`, routes provider-equivalent and
 direct RPC calls through the same service, and compares rules-only, ordinary
 shadow, and rules + JEPA on the same rules-safe command. The digest-bound JEPA
 blocks the risky simulator rollout without receiving a permit; a bounded safe
-control is still delivered. HIL/live learned use remains unpromoted pending
-measured real-device evidence. The
+control is still delivered. Unqualified live delivery is disabled, and HIL/live
+learned use remains unpromoted pending measured real-device evidence. The
 repository now implements and tests ROS 2/MQTT/CAN and simulator-facing
 software contracts; it does not claim a running third-party deployment,
 wearable gateway, field

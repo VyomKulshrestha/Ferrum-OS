@@ -832,6 +832,16 @@ work order -> typed actor dispatch -> canonical adapter command
   publish/send without execution acknowledgement is `Uncertain`, never success.
   `HardwareInLoopActuatorDisabled` records a distinct acknowledgement and cannot
   be paired with a physical execution driver.
+- **Deployment qualification**: `qualification.rs` evaluates cumulative
+  evidence for software simulation, actuator-disabled HIL, supervised
+  low-energy trials, and bounded live operation. The latter stages require
+  application risk assessment, measured hardware timing and stopping behavior,
+  contact-force assessment or justified exclusion, an independent emergency
+  stop, safety-control validation, representative robot trials, independent
+  assessment, and update-regression rules. This evaluator reports completeness;
+  it is not a certificate or an authority source. Until an authenticated
+  external qualification service exists, `PhysicalRuntime` rejects every
+  `Live` delivery before invoking a physical driver.
 - **End-to-end reference vertical**: `physical_status` exposes model provenance
   and horizon plus separate simulator/live learned modes.
   `physical_maintenance_demo` requires explicit simulation confirmation, then
@@ -851,7 +861,13 @@ error. H=5 remains available for analysis but is not promoted because its
 compounding error is higher on every registered split and no separate test
 shows an incremental safety catch. All results are deterministic simulator
 evidence; model bytes cannot self-promote, and HIL/live learned gating requires
-a future registered real-device evaluation.
+a future registered real-device evaluation. A later, non-selecting 12,288-row
+systematic boundary challenge records 12 false negatives versus 289 for rules
+alone. A disjoint validation/test calibration then selects a 0.20 predicted
+clearance caution threshold; the unseen test records 4 false negatives and a
+7.15% false-positive rate. The artifact weights remain unchanged because the
+registered challenge passed; only the monotonic simulator caution margin was
+updated.
 
 The implemented simulator-backed reference platform includes these software
 contracts. It does not demonstrate deployment work: installing and operating actual
