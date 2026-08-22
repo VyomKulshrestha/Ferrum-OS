@@ -146,6 +146,8 @@ def fit_signal_jepa(
     hidden_size: int,
     seed: int,
     epochs: int,
+    window: int = 5,
+    sample_step: int = 3,
 ) -> dict:
     import torch
     from torch import nn
@@ -162,9 +164,9 @@ def fit_signal_jepa(
     contexts = []
     targets = []
     for trace in traces:
-        x, y = signal_examples(normalize(trace.values, center, scale))
-        contexts.append(x[::3])
-        targets.append(y[::3])
+        x, y = signal_examples(normalize(trace.values, center, scale), window)
+        contexts.append(x[::sample_step])
+        targets.append(y[::sample_step])
     x = np.concatenate(contexts)
     y = np.concatenate(targets)
     order = np.arange(len(x))
@@ -316,6 +318,8 @@ def fit_signal_jepa(
         "predictor": numpy_state(best["predictor"]),
         "delta_head": numpy_state(best["delta_head"]),
         "fit_examples": len(x),
+        "context_seconds": window,
+        "fit_sample_step": sample_step,
     }
 
 
