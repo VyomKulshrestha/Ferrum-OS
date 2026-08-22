@@ -213,6 +213,10 @@ impl<'a> PhysicalTransitionModel<'a> {
         self.normalized_h3_error
     }
 
+    pub const fn per_action_mean_h3_error(&self) -> f32 {
+        self.per_action_mean_h3_error
+    }
+
     pub fn predict_shadow(
         &self,
         state: PhysicalState,
@@ -471,6 +475,29 @@ mod tests {
             .unwrap();
         assert!(forecast.evidence.risk_permille >= 900);
         assert!(!forecast.evidence.validated_for_gating);
+    }
+
+    #[test]
+    fn incident_checkpoint_separates_bounded_safe_and_clearance_risk_rollouts() {
+        let model = PhysicalTransitionModel::from_bytes(ARTIFACT).unwrap();
+        let action = PhysicalAction {
+            kind: PhysicalActionKind::Move,
+            features: [0.1, 0.1, 0.15],
+        };
+        let safe = model
+            .predict_shadow_horizon(safe_state(), action, 3)
+            .unwrap();
+        let mut unsafe_state = safe_state();
+        unsafe_state.values[2] = 0.1;
+        unsafe_state.values[3] = 0.25;
+        let unsafe_forecast = model
+            .predict_shadow_horizon(unsafe_state, action, 3)
+            .unwrap();
+
+        assert!(safe.evidence.risk_permille < 900);
+        assert!(unsafe_forecast.evidence.risk_permille >= 900);
+        assert!(!safe.evidence.validated_for_gating);
+        assert!(!unsafe_forecast.evidence.validated_for_gating);
     }
 
     #[test]

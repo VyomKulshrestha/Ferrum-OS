@@ -14,7 +14,7 @@ use ferrum_physical_runtime::{
 
 static PHYSICAL_MODEL_BYTES: &[u8] = include_bytes!("../physical_world_model.bin");
 
-pub const PHYSICAL_SCHEMA_VERSION: u32 = 1;
+pub const PHYSICAL_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Default)]
 pub struct PhysicalService {
@@ -37,10 +37,23 @@ impl PhysicalService {
             .last_report
             .as_ref()
             .is_some_and(|report| report.job_completed);
+        let (training_samples, normalized_h3_error_ppm, mean_h3_error_ppm) = self
+            .model
+            .map(|model| {
+                (
+                    model.training_samples(),
+                    (model.normalized_h3_error() * 1_000_000.0) as u32,
+                    (model.per_action_mean_h3_error() * 1_000_000.0) as u32,
+                )
+            })
+            .unwrap_or((0, 0, 0));
         format!(
-            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
+            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"shadow_only\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"model_revision\":\"physical-jepa-incident-v1\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"training_samples\":{},\"normalized_h3_error_ppm\":{},\"per_action_mean_h3_error_ppm\":{},\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
             PHYSICAL_SCHEMA_VERSION,
             self.model.is_some(),
+            training_samples,
+            normalized_h3_error_ppm,
+            mean_h3_error_ppm,
             self.completed_simulations,
             last_completed
         )
@@ -50,7 +63,10 @@ impl PhysicalService {
         let model = self.model.ok_or("physical model artifact rejected")?;
         let action = PhysicalAction {
             kind: PhysicalActionKind::Move,
-            features: [0.1, 0.1, 0.3],
+            // The reference vertical uses a deliberately bounded low-speed
+            // move. The unsafe probe still crosses the clearance threshold,
+            // while the safe probe remains below the advisory risk threshold.
+            features: [0.1, 0.1, 0.15],
         };
         let unsafe_forecast = model
             .predict_shadow_horizon(maintenance_observation(0.1, 0.25).into(), action, 3)

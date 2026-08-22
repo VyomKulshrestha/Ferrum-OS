@@ -459,13 +459,17 @@ try {
   const physicalBefore = await rpcMethod(125, "physical_status", {});
   check(
     "physical runtime and embedded transition model are available in the booted daemon",
-    physicalBefore?.result?.schema_version === 1
+    physicalBefore?.result?.schema_version === 2
       && physicalBefore?.result?.available === true
       && physicalBefore?.result?.mode === "simulator"
       && physicalBefore?.result?.learned_gate === "shadow_only"
       && physicalBefore?.result?.physical_model_loaded === true
       && physicalBefore?.result?.physical_model === "ema_target_jepa"
       && physicalBefore?.result?.artifact_format === "PJE1"
+      && physicalBefore?.result?.model_revision === "physical-jepa-incident-v1"
+      && physicalBefore?.result?.training_samples === 18900
+      && physicalBefore?.result?.normalized_h3_error_ppm === 10074
+      && physicalBefore?.result?.per_action_mean_h3_error_ppm === 42816
       && physicalBefore?.result?.lookahead_horizon === 3
       && physicalBefore?.result?.os_jepa_reused === false
       && physicalBefore?.result?.completed_simulations === 0,
