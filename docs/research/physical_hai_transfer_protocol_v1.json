@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-hai-transfer-v1",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "dataset": {
+    "name": "HAI 23.05",
+    "publisher": "Affiliated Institute of ETRI",
+    "repository": "https://github.com/icsdataset/hai",
+    "license": "CC BY-SA 4.0 as stated by the dataset repository",
+    "sampling_period_seconds": 1,
+    "trace_kind": "recorded realistic ICS testbed augmented with hardware-in-the-loop simulation",
+    "train_files": [
+      {"name": "hai-train1.csv", "sha256": "53007b0ba604fbf338e7ac2e08cd81d874b5d1388f3aecb213ddcba5bf2bec4a", "bytes": 162418984},
+      {"name": "hai-train2.csv", "sha256": "0e520e82bf78a661ab19ce4967f3c766bd809820f457a9c90c365102d4534c56", "bytes": 169121615},
+      {"name": "hai-train3.csv", "sha256": "bfcec2dc05adea103e7491546b0e28268faaa26d3cc717d10f4595c94b81e85d", "bytes": 72774793}
+    ],
+    "normal_calibration_file": {"name": "hai-train4.csv", "sha256": "56658c83657d42a65db982b864362e0d0ffeb96d1f7b357d5e76e3a5c522d940", "bytes": 114494940},
+    "validation_files": [
+      {"name": "hai-test1.csv", "sha256": "78c7f1d4de1f2ab9ccc2f8c719f80f831033543adb0c81d0d78f84f40838d4be", "bytes": 31255559},
+      {"name": "label-test1.csv", "sha256": "eaf69edb9c5834bc393afd7bf658b5e408d34fd7bfc3261f80516765fb818fbc", "bytes": 1242017, "attack_windows": 14}
+    ],
+    "final_test_files": [
+      {"name": "hai-test2.csv", "sha256": "b2b8dd295aefd87e39260fe43cb4c73ee86d6264b0ac4b0761e7efb0c2b545c3", "bytes": 132946575},
+      {"name": "label-test2.csv", "sha256": "8090c44981176e39b0f01a7126a80248ac0b93355c00f9db4d4e2f2106452b92", "bytes": 4500018, "attack_windows": 38}
+    ],
+    "technical_manual": {"name": "hai_dataset_technical_details.pdf", "sha256": "0668345c4e80331b918fe17c81f8f363b13bd22886831d286e761bc62b71a556"},
+    "raw_files_committed": false,
+    "download_policy": "Raw third-party files stay outside git. A verifier must download from the official repository and reject any size or digest mismatch."
+  },
+  "split_policy": {
+    "fit": "hai-train1.csv through hai-train3.csv only; these files contain normal operation",
+    "normal_calibration": "hai-train4.csv only; used for robust normalization and alert threshold calibration without attack labels",
+    "model_selection": "hai-test1.csv plus label-test1.csv only",
+    "final_test": "hai-test2.csv plus label-test2.csv opened exactly once after candidate and threshold selection",
+    "no_row_shuffle_across_files": true,
+    "test_open_count": 1
+  },
+  "projection": {
+    "output_schema": "Ferrum PhysicalState v1 with an explicit availability mask",
+    "available_dimensions": {
+      "health": "one minus a robust aggregate deviation of documented physical process measurements from normal-training envelopes",
+      "progress": "normalized aggregate process activity from measured flow and load channels",
+      "vibration": "maximum absolute P2_VIBTR01..04 displacement normalized by the documented P2_VTR01..04 limits",
+      "fault": "documented physical measurement outside its training-derived robust safety envelope; attack labels are never an input",
+      "online": "one only when the timestamp is continuous and all required projected channels are finite",
+      "payload": "normalized physical load/demand from documented P4 load and P2 speed-demand channels",
+      "velocity": "P2_SIT01 measured turbine RPM normalized by the documented 0..3200 RPM range",
+      "geofence_margin": "minimum normalized margin to documented physical ranges for projected pressure, level, speed, and vibration channels"
+    },
+    "unavailable_dimensions": {
+      "position_x": 0.0,
+      "position_y": 0.0,
+      "clearance": 1.0,
+      "human_occupancy": 0.0,
+      "battery": 1.0,
+      "link_quality": 1.0,
+      "emergency_stop": 0.0,
+      "approval": 0.0
+    },
+    "error_mask_indices": [6, 8, 9, 10, 11, 12, 13, 14],
+    "forbidden_inputs": ["label", "attack window", "scenario identity", "future samples"],
+    "normalization": "Median and interquartile range are fitted on fit files only, clipped to the 0.5th and 99.5th fit percentiles, and then frozen."
+  },
+  "transition_contract": {
+    "horizons_seconds": [1, 3, 5],
+    "model_input": "current masked projected state plus contemporaneous documented actuator/setpoint deltas",
+    "control_features": [
+      "largest normalized actuator/setpoint delta",
+      "second-largest normalized actuator/setpoint delta",
+      "aggregate normalized actuator/setpoint delta"
+    ],
+    "action_proxy": "move for a material control delta, stop for a documented emergency/trip transition or demand-to-zero transition, inspect for passive observation; no diagnose/approve/repair/verify action is invented",
+    "action_coverage_must_be_reported": true
+  },
+  "candidate_families": [
+    "persistence",
+    "per-proxy-action mean delta",
+    "ridge autoregression",
+    "matched raw-state MLP transition predictor",
+    "HAI-specific EMA-target JEPA transition predictor",
+    "frozen Ferrum simulator-JEPA encoder plus a HAI transition probe"
+  ],
+  "selection": {
+    "primary_metric": "validation masked geometric mean normalized MAE across H=1, H=3, and H=5",
+    "secondary_metrics": [
+      "attack-window recall from prediction residual",
+      "point precision, recall, F1, and balanced accuracy",
+      "false alerts per hour",
+      "median and p99 inference latency",
+      "finite predictions and anti-collapse variance"
+    ],
+    "thresholding": "Fit the residual threshold on normal calibration only. An alert requires at least 3 exceedances in a 5-second window and starts a 30-second cooldown.",
+    "selection_tiebreakers": [
+      "higher validation attack-window recall",
+      "lower validation false alerts per hour",
+      "smaller artifact",
+      "lower p99 latency"
+    ]
+  },
+  "minimum_validation_gates": {
+    "all_predictions_finite": true,
+    "beats_persistence_geometric_error_relative": 0.05,
+    "beats_per_action_mean_geometric_error_relative": 0.02,
+    "attack_window_recall": 0.70,
+    "false_alerts_per_hour_max": 2.0,
+    "point_balanced_accuracy": 0.60,
+    "anti_collapse_variance_ratio_min": 0.10
+  },
+  "final_test_reporting": {
+    "report_all_registered_candidates": true,
+    "report_confusion_counts": true,
+    "report_attack_window_counts": true,
+    "report_bootstrap_95_percent_intervals_by_attack_window": true,
+    "report_failed_gates_without_reselection": true,
+    "no_retraining_after_test_open": true
+  },
+  "authority_boundary": "The HAI model is a domain-specific diagnostic world model. It may produce advisory evidence after an observed transition, but it cannot grant permits, block commands, issue approvals, invoke adapters, or actuate hardware. The existing deterministic supervisor remains the only authority path."
+}

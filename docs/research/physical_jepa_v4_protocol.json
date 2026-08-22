@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-real-evidence-v4",
+  "registered_before_test_open": true,
+  "registration_date": "2026-08-22",
+  "baseline_artifact_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+  "immutable_predecessor": "physical-jepa-stress-curriculum-v3",
+  "incident_catalog": "physical_incident_sources_v2.json",
+  "hil_transfer_protocol": "physical_hai_transfer_protocol_v1.json",
+  "incident_dataset": {
+    "steps_per_episode": 8,
+    "train_episodes_per_source": 1000,
+    "validation_episodes_per_source": 320,
+    "test_episodes_per_source": 320,
+    "seed": 20260822,
+    "source_families_disjoint": true,
+    "narrative_sources_supply_transitions": false,
+    "simulator_supplies_transitions_and_danger_labels": true
+  },
+  "simulator_candidate_selection": {
+    "uses": [
+      "published v3 base validation",
+      "v2-catalog incident train",
+      "v2-catalog source-family-disjoint incident validation",
+      "published v3 valid-edge validation",
+      "published v3 anti-collapse metrics"
+    ],
+    "excludes": [
+      "published v3 base test",
+      "v2-catalog incident test",
+      "published v3 valid-edge test",
+      "published v3 registered OOD test",
+      "HAI test2 final test"
+    ],
+    "test_open_count": 1
+  },
+  "simulator_candidates_if_baseline_fails": [
+    {"latent": 128, "hidden": 256, "epochs": 10000, "training_seed": 42},
+    {"latent": 128, "hidden": 256, "epochs": 10000, "training_seed": 17},
+    {"latent": 160, "hidden": 320, "epochs": 12000, "training_seed": 91},
+    {"latent": 160, "hidden": 320, "epochs": 12000, "training_seed": 137}
+  ],
+  "simulator_promotion_requirements": [
+    "all predictions finite",
+    "no published v3 base-test horizon regresses by more than two percent",
+    "v2-catalog incident-test geometric H1/H3/H5 error improves by at least five percent",
+    "v2-catalog incident-test false negatives do not increase",
+    "published v3 stress and OOD false negatives do not increase",
+    "false-positive rate remains within two percentage points",
+    "anti-collapse variance ratio remains at least 0.10"
+  ],
+  "integration_policy": {
+    "simulator_model": "Replace the deployed PJE1 artifact only if every simulator promotion requirement passes.",
+    "hil_model": "Keep the HAI diagnostic artifact separate from the simulator PJE1 artifact and bind it to its projection schema, dataset digests, and evaluation record.",
+    "authority": "Neither model may grant permits or invoke physical adapters. Only deterministic policy, capability, confirmation, session, and external qualification gates may authorize delivery."
+  },
+  "claim_boundary": [
+    "Incident-derived results are simulator evidence informed by real reports, not real incident replay.",
+    "HAI results are external recorded HIL/testbed evidence, not field deployment or Ferrum-operated hardware.",
+    "A passing v4 benchmark supports a cyber-physical research-system claim; it does not support market-ready safety, certified control, or autonomous actuation claims."
+  ]
+}
