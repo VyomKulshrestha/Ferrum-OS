@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-stress-curriculum-v3",
+  "registered_before_test_open": true,
+  "baseline_artifact_sha256": "b1900179c91a80c6933272c41787fa16e72d39cbb815edbe1a82fc4dac7a5800",
+  "base_dataset": {
+    "episodes": 12000,
+    "steps": 8,
+    "seed": 20260824
+  },
+  "incident_dataset": {
+    "validation_episodes_per_source": 240,
+    "test_episodes_per_source": 240,
+    "source_families_disjoint": true
+  },
+  "stress_curriculum": {
+    "train_episodes": 3000,
+    "validation_episodes": 1000,
+    "test_episodes": 2000,
+    "seed": 20260826,
+    "valid_edge_state_families": 12
+  },
+  "registered_ood": {
+    "protocol": "v2",
+    "rows": 4096,
+    "seed": 20260825,
+    "invalid_observations_fail_closed": true,
+    "invalid_rows_excluded_from_transition_error": true
+  },
+  "selection": {
+    "uses": [
+      "base_validation",
+      "source_family_disjoint_incident_validation",
+      "valid_edge_state_stress_validation",
+      "anti_collapse_metrics"
+    ],
+    "excludes": [
+      "base_test",
+      "incident_test",
+      "stress_test",
+      "registered_ood"
+    ],
+    "test_open_count": 1
+  },
+  "candidates": [
+    {
+      "incident_train_episodes_per_source": 750,
+      "stress_train_episodes": 3000,
+      "latent": 96,
+      "hidden": 192,
+      "epochs": 8000,
+      "training_seed": 42
+    },
+    {
+      "incident_train_episodes_per_source": 750,
+      "stress_train_episodes": 3000,
+      "latent": 96,
+      "hidden": 192,
+      "epochs": 8000,
+      "training_seed": 17
+    },
+    {
+      "incident_train_episodes_per_source": 1000,
+      "stress_train_episodes": 3000,
+      "latent": 128,
+      "hidden": 256,
+      "epochs": 9000,
+      "training_seed": 42
+    },
+    {
+      "incident_train_episodes_per_source": 1000,
+      "stress_train_episodes": 3000,
+      "latent": 128,
+      "hidden": 256,
+      "epochs": 9000,
+      "training_seed": 91
+    }
+  ],
+  "promotion_requirements": [
+    "all predictions finite",
+    "no original-test horizon regresses by more than two percent",
+    "incident-test geometric H1/H3/H5 error improves by at least ten percent",
+    "stress-test geometric H1/H3/H5 error improves by at least ten percent",
+    "no incident or stress horizon regresses",
+    "incident-test false negatives do not increase",
+    "registered-OOD one-step error improves by at least five percent",
+    "registered-OOD false negatives do not increase",
+    "false-positive rate remains within two percentage points"
+  ],
+  "claim_boundary": "Valid simulator edge states train and evaluate the JEPA. Semantically inconsistent observations are rejected deterministically and excluded from transition-error claims. This remains software evidence, not physical-device certification."
+}

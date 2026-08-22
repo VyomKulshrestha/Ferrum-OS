@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import evaluate_physical_jepa_robustness as robustness  # noqa: E402
 import physical_incident_scenarios as incidents  # noqa: E402
+import physical_stress_scenarios as stress  # noqa: E402
 import train_physical_jepa as jepa  # noqa: E402
 import train_physical_world_model as simulator  # noqa: E402
 
@@ -82,7 +83,7 @@ def geometric(values) -> float:
     return math.exp(sum(math.log(max(value, 1e-12)) for value in values) / len(values))
 
 
-def validation_decision(candidate, current_original, current_incident) -> dict:
+def validation_decision(candidate, current_original, current_incident, current_stress=None) -> dict:
     original_ratios = {
         horizon: candidate["original_validation"]["rollout"][horizon]
         / current_original["rollout"][horizon]
@@ -109,6 +110,15 @@ def validation_decision(candidate, current_original, current_incident) -> dict:
         "effective_rank": anti["effective_rank"] >= 4.0,
         "action_sensitivity": anti["action_sensitivity"] >= 0.005,
     }
+    stress_ratios = None
+    if current_stress is not None:
+        stress_ratios = {
+            horizon: candidate["stress_validation"]["rollout"][horizon]
+            / current_stress["rollout"][horizon]
+            for horizon in ("h1", "h3", "h5")
+        }
+        checks["stress_validation_geometric_improvement_at_least_5_percent"] = geometric(list(stress_ratios.values())) <= 0.95
+        checks["stress_validation_no_horizon_regression"] = all(ratio <= 1.0 for ratio in stress_ratios.values())
     return {
         "checks": checks,
         "accepted": all(checks.values()),
@@ -119,8 +129,10 @@ def validation_decision(candidate, current_original, current_incident) -> dict:
                 *incident_ratios.values(),
                 *incident_ratios.values(),
                 *original_ratios.values(),
+                *(stress_ratios.values() if stress_ratios else ()),
             ]
         ),
+        "stress_ratios": stress_ratios,
     }
 
 
@@ -169,11 +181,22 @@ def promotion_decision(candidate, current) -> dict:
         and candidate["incident_test"]["diagnostics"]["all_predictions_finite"]
         and candidate["ood_test"]["all_predictions_finite"],
     }
+    stress_ratios = None
+    if "stress_test" in candidate:
+        stress_ratios = {
+            horizon: candidate["stress_test"]["rollout"][horizon]
+            / current["stress_test"]["rollout"][horizon]
+            for horizon in ("h1", "h3", "h5")
+        }
+        checks["stress_test_geometric_improvement_at_least_10_percent"] = geometric(list(stress_ratios.values())) <= 0.90
+        checks["stress_test_no_horizon_regression"] = all(ratio <= 1.0 for ratio in stress_ratios.values())
+        checks["all_predictions_finite"] = checks["all_predictions_finite"] and candidate["stress_test"]["diagnostics"]["all_predictions_finite"]
     return {
         "checks": checks,
         "passed": all(checks.values()),
         "original_test_ratios": base_ratios,
         "incident_test_ratios": incident_ratios,
+        "stress_test_ratios": stress_ratios,
     }
 
 
@@ -215,6 +238,11 @@ def main() -> int:
     )
     parser.add_argument("--ood-count", type=int, default=512)
     parser.add_argument("--ood-seed", type=int, default=73_119)
+    parser.add_argument("--ood-protocol", choices=("v1", "v2"), default="v1")
+    parser.add_argument("--stress-train-episodes", type=int, default=0)
+    parser.add_argument("--stress-validation-episodes", type=int, default=0)
+    parser.add_argument("--stress-test-episodes", type=int, default=0)
+    parser.add_argument("--stress-seed", type=int, default=91_337)
     args = parser.parse_args()
 
     if args.base_episodes < 20:
@@ -264,6 +292,13 @@ def main() -> int:
     current_weights = robustness.load_artifact(args.current_artifact)
     current_original_validation = evaluation(base_validation, current_weights)
     current_incident_validation = evaluation(incident_validation, current_weights)
+    stress_validation = stress_validation_metadata = None
+    current_stress_validation = None
+    if args.stress_validation_episodes:
+        stress_validation, stress_validation_metadata = stress.generate_partition(
+            "validation", args.stress_validation_episodes, args.steps, args.stress_seed
+        )
+        current_stress_validation = evaluation(stress_validation, current_weights)
 
     candidates = []
     candidate_weights = []
@@ -276,6 +311,15 @@ def main() -> int:
         )
         train_rows = [*base_train, *incident_train]
         validation_rows = [*base_validation, *incident_validation]
+        stress_train = stress_train_metadata = None
+        stress_train_episodes = int(config.get("stress_train_episodes", args.stress_train_episodes))
+        if stress_train_episodes:
+            stress_train, stress_train_metadata = stress.generate_partition(
+                "train", stress_train_episodes, args.steps, args.stress_seed
+            )
+            train_rows.extend(stress_train)
+        if stress_validation is not None:
+            validation_rows.extend(stress_validation)
         weights, training_validation, epochs_completed = jepa.train(
             train_rows,
             validation_rows,
@@ -286,6 +330,7 @@ def main() -> int:
         )
         result = {
             **config,
+            "stress_train_episodes": stress_train_episodes,
             "latent": config["latent"],
             "hidden": config["hidden"],
             "epochs_completed": epochs_completed,
@@ -298,8 +343,12 @@ def main() -> int:
             "incident_validation": evaluation(incident_validation, weights),
             "anti_collapse": jepa.representation_metrics(validation_rows, weights),
         }
+        if stress_train is not None:
+            result["stress_training"] = stress.summarize(stress_train, stress_train_metadata)
+        if stress_validation is not None:
+            result["stress_validation"] = evaluation(stress_validation, weights)
         result["selection"] = validation_decision(
-            result, current_original_validation, current_incident_validation
+            result, current_original_validation, current_incident_validation, current_stress_validation
         )
         candidates.append(result)
         candidate_weights.append(weights)
@@ -326,17 +375,33 @@ def main() -> int:
     incident_test, incident_test_metadata = incidents.generate_partition(
         "test", args.incident_test_per_source, args.steps, args.data_seed
     )
-    ood_test = robustness.ood_rows(args.ood_count, args.ood_seed)
+    ood_test = (
+        robustness.ood_v2_rows(args.ood_count, args.ood_seed)
+        if args.ood_protocol == "v2"
+        else robustness.ood_rows(args.ood_count, args.ood_seed)
+    )
+    stress_test = stress_test_metadata = None
+    if args.stress_test_episodes:
+        stress_test, stress_test_metadata = stress.generate_partition(
+            "test", args.stress_test_episodes, args.steps, args.stress_seed
+        )
     current_test = {
         "original_test": evaluation(base_test, current_weights),
         "incident_test": evaluation(incident_test, current_weights),
-        "ood_test": robustness.diagnostics(ood_test, current_weights),
+        "ood_test": robustness.diagnostics(
+            ood_test, current_weights, fail_closed_invalid=args.ood_protocol == "v2"
+        ),
     }
     candidate_test = {
         "original_test": evaluation(base_test, selected_weights),
         "incident_test": evaluation(incident_test, selected_weights),
-        "ood_test": robustness.diagnostics(ood_test, selected_weights),
+        "ood_test": robustness.diagnostics(
+            ood_test, selected_weights, fail_closed_invalid=args.ood_protocol == "v2"
+        ),
     }
+    if stress_test is not None:
+        current_test["stress_test"] = evaluation(stress_test, current_weights)
+        candidate_test["stress_test"] = evaluation(stress_test, selected_weights)
     promotion = promotion_decision(candidate_test, current_test)
 
     selected_incident_train, selected_train_metadata = incidents.generate_partition(
@@ -346,6 +411,11 @@ def main() -> int:
         args.data_seed,
     )
     selected_train_rows = [*base_train, *selected_incident_train]
+    if selected["stress_train_episodes"]:
+        selected_stress_train, _ = stress.generate_partition(
+            "train", selected["stress_train_episodes"], args.steps, args.stress_seed
+        )
+        selected_train_rows.extend(selected_stress_train)
     mean_predictor = mean_delta_predictor(selected_train_rows)
     mean_h3 = simulator.rollout_error(base_test, mean_predictor, 3)
     args.artifact.parent.mkdir(parents=True, exist_ok=True)
@@ -400,7 +470,13 @@ def main() -> int:
             incident_validation, incident_validation_metadata
         ),
         "incident_test": incidents.summarize(incident_test, incident_test_metadata),
-        "registered_ood": {"rows": args.ood_count, "seed": args.ood_seed},
+        "registered_ood": {"protocol": args.ood_protocol, "rows": args.ood_count, "seed": args.ood_seed},
+        "stress_validation": stress.summarize(stress_validation, stress_validation_metadata)
+        if stress_validation is not None
+        else None,
+        "stress_test": stress.summarize(stress_test, stress_test_metadata)
+        if stress_test is not None
+        else None,
         "current_validation": {
             "original": current_original_validation,
             "incident": current_incident_validation,
@@ -411,6 +487,7 @@ def main() -> int:
             key: selected[key]
             for key in (
                 "incident_train_episodes_per_source",
+                "stress_train_episodes",
                 "latent",
                 "hidden",
                 "epochs",
