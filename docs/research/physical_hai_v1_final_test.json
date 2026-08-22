@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-hai-transfer-v1",
+  "selection_commit": "01f797a",
+  "selection_report_sha256": "6aac22f99fce8f181e00c8f2fba5bb36229d9562fa660bd643b099c61b87a5a5",
+  "selected_artifact_sha256": "dc3ec230f9223fe35d7f78389a18d1e9171308a67f95b50ee033154d0d9a0f36",
+  "final_test_open_count": 1,
+  "evaluation_execution": {
+    "completed_attempt": 2,
+    "attempt_1": "Aborted before report creation because the official test2 label timestamps have minute rather than second precision; no model, score or threshold was changed.",
+    "attempt_2": "Same frozen artifact and score with deterministic row-and-minute label alignment."
+  },
+  "final_files": [
+    {
+      "name": "hai-test2.csv",
+      "bytes": 132946575,
+      "sha256": "b2b8dd295aefd87e39260fe43cb4c73ee86d6264b0ac4b0761e7efb0c2b545c3"
+    },
+    {
+      "name": "label-test2.csv",
+      "bytes": 4500018,
+      "sha256": "8090c44981176e39b0f01a7126a80248ac0b93355c00f9db4d4e2f2106452b92"
+    }
+  ],
+  "label_alignment": {
+    "method": "row order with minute-resolution timestamp equality",
+    "reason": "The official label-test2.csv repeats minute timestamps for its per-second rows, unlike label-test1.csv. Row counts are equal and every label timestamp equals the corresponding signal timestamp floored to the minute.",
+    "rows": 230400
+  },
+  "evidence": {
+    "recorded_seconds": 230400,
+    "recorded_hours": 64.0,
+    "attack_seconds": 8403,
+    "attack_windows": 38,
+    "source": "HAI 23.05 recorded realistic ICS testbed with hardware-in-the-loop simulation"
+  },
+  "locked_score": {
+    "top_k": 20,
+    "ewma_span_seconds": 120,
+    "threshold": 7.904014587402344
+  },
+  "detection": {
+    "tp": 3867,
+    "fp": 11051,
+    "tn": 210940,
+    "fn": 4536,
+    "precision": 0.2592170532242928,
+    "recall": 0.46019278828989646,
+    "f1": 0.3316324342866944,
+    "balanced_accuracy": 0.7052057454249551,
+    "attack_windows": 38,
+    "detected_attack_windows": 25,
+    "attack_window_recall": 0.6578947368421053,
+    "detected_attack_ids": [
+      "A201",
+      "A202",
+      "A203",
+      "A204",
+      "A205",
+      "A206",
+      "A207",
+      "A208",
+      "A209",
+      "A210",
+      "A211",
+      "A212",
+      "A218",
+      "A219",
+      "A223",
+      "A224",
+      "A225",
+      "A226",
+      "A227",
+      "A228",
+      "A230",
+      "A231",
+      "A232",
+      "A233",
+      "A235"
+    ],
+    "missed_attack_ids": [
+      "A213",
+      "A214",
+      "A215",
+      "A216",
+      "A217",
+      "A220",
+      "A221",
+      "A222",
+      "A229",
+      "A234",
+      "A236",
+      "A237",
+      "A238"
+    ],
+    "false_alert_events": 121,
+    "false_alerts_per_hour": 1.8906742363082372,
+    "false_alert_seconds_per_hour": 172.67637178051513
+  },
+  "attack_window_recall_wilson_95": {
+    "lower": 0.4989210355178308,
+    "upper": 0.7878758482004058,
+    "confidence": 0.95
+  },
+  "attack_second_recall_wilson_95": {
+    "lower": 0.4495567609047455,
+    "upper": 0.47086519503709445,
+    "confidence": 0.95
+  },
+  "normal_second_specificity_wilson_95": {
+    "lower": 0.9493061429970087,
+    "upper": 0.9511156807104524,
+    "confidence": 0.95
+  },
+  "masked_transition": {
+    "persistence": {
+      "rollout": {
+        "h1_normalized_mae": 0.005474642850458622,
+        "h3_normalized_mae": 0.010119509883224964,
+        "h5_normalized_mae": 0.013479786925017834
+      },
+      "geometric_h1_h3_h5_error": 0.009072620941016065
+    },
+    "per_proxy_action_mean": {
+      "rollout": {
+        "h1_normalized_mae": 0.005501515697687864,
+        "h3_normalized_mae": 0.010153296403586864,
+        "h5_normalized_mae": 0.013521785847842693
+      },
+      "geometric_h1_h3_h5_error": 0.009106982280014227
+    },
+    "selected_temporal_ridge": {
+      "rollout": {
+        "h1_normalized_mae": 0.005669140722602606,
+        "h3_normalized_mae": 0.009234599769115448,
+        "h5_normalized_mae": 0.012084540911018848
+      },
+      "geometric_h1_h3_h5_error": 0.008584634786121904
+    },
+    "relative_error_reduction_vs_persistence": 0.05378667951264704,
+    "relative_error_reduction_vs_per_proxy_action_mean": 0.057356814566186465,
+    "anti_collapse_variance_ratio": 14.658823013305664
+  },
+  "final_requirements": {
+    "all_predictions_finite": true,
+    "beats_persistence_geometric_error_relative": true,
+    "beats_per_action_mean_geometric_error_relative": true,
+    "attack_window_recall": false,
+    "false_alerts_per_hour": true,
+    "point_balanced_accuracy": true,
+    "anti_collapse_variance_ratio": true
+  },
+  "all_registered_gates_pass_on_final_test": false,
+  "no_retraining_after_final_test_open": true,
+  "claim_boundary": [
+    "This is the one registered evaluation of the committed model on HAI test2.",
+    "The threshold, model weights, projection and score were frozen before test2 was downloaded.",
+    "HAI is external recorded HIL/testbed evidence; this is not a Ferrum hardware trial, field deployment, independent safety assessment or certification.",
+    "The result measures anomaly prediction and transition forecasting, not proof that every dangerous cyber-physical action is prevented.",
+    "The model remains advisory and has no permit, block, approval, adapter or actuation authority."
+  ]
+}
