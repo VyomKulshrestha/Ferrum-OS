@@ -11,7 +11,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Published OS world-model study | Rules + JEPA: 81.40% balanced accuracy; rules + per-action mean: 81.20% | JEPA superiority, formal safety, or natural-use prevalence |
 | Current Ring-3 preview | Three runs, 100 previews per H=1..5 per run; zero heap growth | Provider, action execution, or approval latency |
 | Paired preview queue | 96/96 responses in every run; median batch 13.517 s after optimization | Parallel inference; the daemon intentionally serializes previews |
-| Physical JEPA | 99.44% balanced accuracy, 1 FN, 16 FP | Real robot safety; the artifact is shadow-only |
+| Physical JEPA | 16 incident/research sources inform simulator priors; 99.53% balanced accuracy, 0 FN, 16 FP on the original held-out split | Reports are not trajectories; no real-robot safety claim and the artifact is shadow-only |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
 | Cyber-physical software tier | 152 contract tests and 32 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
@@ -47,7 +47,7 @@ Every optimized run returned 96/96 correlated responses, produced zero execution
 
 ## Post-paper physical and neural evidence
 
-The physical JEPA uses 15,000 transitions from 2,500 deterministic simulator episodes. Rules + JEPA record 99.44% balanced accuracy with 1 false negative and 16 false positives. Its artifact is `validated_for_gating=false`; it cannot issue permits or invoke adapters.
+The physical JEPA uses 28,440 transitions from 4,740 deterministic simulator episodes, with 18,900 transitions in the episode-disjoint training split. A catalog of 16 government reports, company postmortems, standards, and research papers supplies defensive state-distribution priors only; the deterministic simulator creates every transition and danger label. After incident augmentation, original held-out H=3 error changes from 1.05% to 1.01%, source-family-disjoint incident-challenge H=3 error changes from 1.53% to 1.00%, and incident-challenge false negatives change from 11 to 1. Registered OOD false negatives change from 42 to 41. On the original held-out split, rules + JEPA record 99.53% balanced accuracy with 0 false negatives and 16 false positives. Its artifact is `validated_for_gating=false`; it cannot issue permits or invoke adapters.
 
 The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 600 accepted signal trials at 100.00% accuracy, 400 artifact trials at 100.00% abstention, and zero emitted candidates in 10,000 no-control windows. OS commit still requires pairing, calibration, non-neural arming, a signed preview, and revision checks.
 
@@ -61,6 +61,8 @@ This is local software regression evidence. It is not a live Gazebo/Webots deplo
 
 ```powershell
 python scripts/verify_world_model_paper_evaluation.py
+python scripts/verify_physical_incident_sources.py
+python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_world_model.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v

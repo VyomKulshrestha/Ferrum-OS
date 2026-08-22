@@ -43,7 +43,8 @@ def main() -> int:
 
     opening = readme[:7000].lower()
     for phrase in (
-        "rust ai-native os",
+        "rust ai-native",
+        "simulator-backed cyber-physical research os",
         "jepa safety gate",
         "proof center",
         "evidence snapshot",

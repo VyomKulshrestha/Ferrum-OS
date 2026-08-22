@@ -776,21 +776,29 @@ work order -> typed actor dispatch -> canonical adapter command
   predictor, and state-delta head. The EMA target encoder, reconstruction head,
   and action head are training-only anti-collapse components. The 41-action OS
   JEPA and its weights are never reused.
-- **Selection and evaluation**: 15,000 deterministic simulator transitions from
-  2,500 episodes are split 70/15/15 by complete episode. Four capacities are
-  selected using validation delta/H1/H3/H5 regression gates and latent standard
-  deviation, effective-rank, and action-sensitivity checks. Candidate records
-  contain no test metrics; the held-out split opens only after capacity freeze.
-  The selected 64-latent/128-hidden checkpoint records H1/H3/H5 errors of
-  0.45%/1.05%/1.55%, improving on the matched supervised MLP's
-  0.60%/1.28%/1.78%. A fixed-data three-training-seed audit reports mean H3
-  error 1.05% (sample SD 0.005 percentage points).
-- **Safety arms and failure analysis**: on 2,250 held-out transitions, rules
-  record TP/FP/TN/FN 514/14/1701/21; JEPA-only records 533/4/1711/2; their
-  monotonic union records 534/16/1699/1. The remaining miss is an action-noise
-  clearance crossing: the true next clearance is 0.154 while the forecast is
-  0.188. This miss, simulator provenance, and absence of real hardware evidence
-  are sufficient to prohibit learned gating.
+- **Incident-informed data boundary**: sixteen government reports, company
+  postmortems, standards, and research papers contribute coarse defensive
+  state-distribution priors. Exploit procedures, credentials, payloads, ports,
+  and reproduction steps are excluded. The sources are not trajectories and
+  provide no labels; Ferrum's deterministic simulator generates every state
+  transition and danger label. Source families are disjoint across training,
+  validation, and incident-challenge test partitions.
+- **Selection and evaluation**: the augmented corpus contains 28,440 simulator
+  transitions from 4,740 episodes, with 18,900 transitions in the training
+  split and no episode overlap. Five data/epoch/seed candidates are selected
+  using the original and incident-family validation sets plus regression and
+  anti-collapse gates. Candidate records contain no original, incident, or OOD
+  test metrics; those tests open only after selection. The selected
+  64-latent/128-hidden checkpoint improves original held-out H1/H3/H5 error
+  from 0.454%/1.049%/1.546% to 0.425%/1.007%/1.475%.
+- **Safety arms and failure analysis**: on the original 2,250 held-out
+  transitions, rules record TP/FP/TN/FN 514/14/1701/21; JEPA-only records
+  534/4/1711/1; their monotonic union records 535/16/1699/0. On the
+  source-family-disjoint incident challenge, H3 error improves from 1.529% to
+  0.995% and combined false negatives fall from 11 to 1. Registered OOD false
+  negatives fall from 42 to 41 while false positives remain 4. The remaining
+  incident miss is a clearance case; simulator provenance and the absence of
+  real-hardware evidence prohibit learned gating.
 - **Planner and safety boundary**: `predict_shadow_horizon` supports bounded
   H=1..5 recurrence and the maintenance service uses H=3. It returns worst-step
   advisory risk with horizon-scaled uncertainty. Deterministic geofence,

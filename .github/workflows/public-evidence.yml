@@ -32,6 +32,8 @@ jobs:
         run: |
           python scripts/verify_world_model_paper_evaluation.py
           python scripts/verify_world_model_research_sources.py
+          python scripts/verify_physical_incident_sources.py
+          python scripts/verify_physical_incident_dataset.py
           python scripts/verify_physical_world_model.py
           python scripts/evaluate_neural_simulator.py --output "$env:RUNNER_TEMP\neural-synthetic.json"
           python -m unittest discover -s tools/neurod -p "test_*.py" -v

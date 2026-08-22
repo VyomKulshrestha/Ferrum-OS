@@ -62,7 +62,7 @@ The report, software, and dataset are separate artifacts; use the
 | OS world-model study | Rules + JEPA: **81.4%** balanced accuracy; rules + per-action mean: **81.2%** on the authored 500-episode fixture | No material JEPA safety advantage established |
 | Ring-3 preview | **1.29-1.57 ms** run-mean range across H=1..5; **0 bytes** heap growth in three runs | Excludes provider, action, and approval latency |
 | Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
-| Physical JEPA | **99.44%** balanced accuracy, 1 FN, 16 FP on a deterministic simulator | Permanently shadow-only; no actuator authority |
+| Physical JEPA | **99.53%** balanced accuracy, 0 FN, 16 FP on the original held-out simulator split; incident challenge FN improved 11 to 1 | Permanently shadow-only; reports are priors, not trajectories |
 | Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
 | Cyber-physical software | **152/152** deterministic contract tests and **32/32** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
 
@@ -267,15 +267,24 @@ real-hardware or certified industrial deployment.
   revision races. Ambiguous delivery becomes `Uncertain` and is never blindly
   retried.
 - A separate 16-state/7-action physical EMA-target JEPA (`PJE1`), trained on
-  15,000 transitions from 2,500 deterministic simulator episodes. It uses
-  reconstruction and action auxiliaries, episode-disjoint splits,
-  validation-only capacity selection, anti-collapse gates, H=1..5 evaluation,
-  and bounded H=3 runtime lookahead. It does not reuse the 41-action OS JEPA.
-- The selected checkpoint records held-out normalized rollout error of 0.45% at
-  H=1, 1.05% at H=3, and 1.55% at H=5; the supervised transition MLP records
-  0.60%, 1.28%, and 1.78% on those same horizons. Rules + physical JEPA reduce
-  simulator false negatives from 21 to 1, with 16 false positives. A three-seed
-  audit and the remaining clearance miss are committed under `docs/research/`.
+  18,900 episode-disjoint training transitions within 28,440 transitions from
+  4,740 deterministic simulator episodes. It uses reconstruction and action
+  auxiliaries, validation-only selection, anti-collapse gates, H=1..5
+  evaluation, and bounded H=3 runtime lookahead. It does not reuse the
+  41-action OS JEPA.
+- Sixteen government reports, company postmortems, standards, and research
+  papers provide coarse defensive state-distribution priors. They are not raw
+  incident telemetry or Ferrum trajectories; the simulator generates every
+  transition and danger label. Source families are disjoint across training,
+  validation, and the incident-challenge test.
+- Compared with the immutable pre-incident checkpoint, the selected model
+  improves original held-out H=3 error from 1.049% to 1.007%, incident-challenge
+  H=3 error from 1.529% to 0.995%, incident false negatives from 11 to 1, and
+  registered OOD false negatives from 42 to 41 without additional OOD false
+  positives. On the original held-out split, rules + JEPA record 0 false
+  negatives and 16 false positives. The source catalog, selection sweep,
+  robustness report, and remaining incident clearance miss are committed under
+  `docs/research/`.
 - Simulator-trained evidence is permanently `shadow_only`: serialized model
   bytes cannot promote it into gating authority. Only telemetry-confirmed
   execution can enter the bounded transition-fit experience stream; refusals,
@@ -294,6 +303,8 @@ Run the model reproduction and the booted maintenance vertical with:
 
 ```powershell
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_incident_sources.py
+python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_jepa_robustness.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc

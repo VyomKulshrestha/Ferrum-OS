@@ -163,6 +163,35 @@ def main() -> int:
         benchmarks["physical_simulator_jepa"]["validated_for_gating"] is False,
         "physical simulator artifact remains shadow-only",
     )
+    physical = benchmarks["physical_simulator_jepa"]
+    require(
+        physical["incident_source_count"] >= 15
+        and physical["incident_sources_are_trajectory_data"] is False,
+        "physical incident corpus is broad and is not represented as trajectory data",
+    )
+    require(
+        physical["post_incident_original_h3_error"]
+        < physical["pre_incident_original_h3_error"]
+        and physical["post_incident_challenge_h3_error"]
+        < physical["pre_incident_challenge_h3_error"],
+        "incident augmentation improves original and incident-challenge H=3 error",
+    )
+    require(
+        physical["post_incident_challenge_false_negatives"]
+        < physical["pre_incident_challenge_false_negatives"]
+        and physical["post_incident_ood_false_negatives"]
+        < physical["pre_incident_ood_false_negatives"],
+        "incident augmentation reduces challenge and registered OOD false negatives",
+    )
+    benchmark_paths = {entry["path"] for entry in benchmarks["provenance"]["inputs"]}
+    require(
+        {
+            "docs/research/physical_incident_sources.json",
+            "docs/research/physical_incident_jepa_improvement.json",
+            "docs/research/physical_jepa_robustness.json",
+        }.issubset(benchmark_paths),
+        "public benchmark provenance binds incident sources, selection, and robustness",
+    )
     require(
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,
         "neural no-control soak remains zero",
