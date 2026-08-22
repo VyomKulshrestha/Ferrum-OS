@@ -1,0 +1,514 @@
+{
+  "artifact": "userland/heliox-daemon/physical_world_model.bin",
+  "artifact_bytes": 290928,
+  "artifact_format": "PJE1",
+  "artifact_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+  "baseline_report_sha256": "578a6a6ab22b3e0932eb30a84bb56ab916bf2aeb4b88939fdb9a19b287da33f2",
+  "baselines": {
+    "artifact": "target/physical_world_model/v3_candidate.bin",
+    "artifact_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+    "capacity": {
+      "hidden": 256,
+      "latent": 128
+    },
+    "claim_boundary": "Baselines are trained after candidate selection and do not alter promotion. All results are deterministic simulator evidence.",
+    "comparisons": {
+      "incident": {
+        "jepa": {
+          "rollout": {
+            "h1": 0.0034723863936960697,
+            "h2": 0.00605624308809638,
+            "h3": 0.008310026489198208,
+            "h4": 0.010332235135138035,
+            "h5": 0.012210527434945107
+          },
+          "safety": {
+            "balanced_accuracy": 0.994522277054945,
+            "false_negative_rate": 0.00042319085907744394,
+            "false_positive_rate": 0.010532255031032537,
+            "fn": 1,
+            "fp": 56,
+            "tn": 5261,
+            "tp": 2362
+          }
+        },
+        "matched_autoencoder": {
+          "rollout": {
+            "h1": 0.004915671423077583,
+            "h2": 0.008126559667289257,
+            "h3": 0.010959158651530743,
+            "h4": 0.013573026284575462,
+            "h5": 0.01601218245923519
+          },
+          "safety": {
+            "balanced_accuracy": 0.9948749095734973,
+            "false_negative_rate": 0.0008463817181548879,
+            "false_positive_rate": 0.009403799134850479,
+            "fn": 2,
+            "fp": 50,
+            "tn": 5267,
+            "tp": 2361
+          }
+        },
+        "per_action_mean": {
+          "rollout": {
+            "h1": 0.020189067348837852,
+            "h2": 0.03533991426229477,
+            "h3": 0.04866990074515343,
+            "h4": 0.06025276333093643,
+            "h5": 0.07015206664800644
+          }
+        },
+        "rows": 7680,
+        "zero_delta": {
+          "rollout": {
+            "h1": 0.022542918100953102,
+            "h2": 0.03831664100289345,
+            "h3": 0.05450371652841568,
+            "h4": 0.06930236518383026,
+            "h5": 0.08389948308467865
+          }
+        }
+      },
+      "original": {
+        "jepa": {
+          "rollout": {
+            "h1": 0.0034764406736940145,
+            "h2": 0.006061977706849575,
+            "h3": 0.008253809995949268,
+            "h4": 0.010231785476207733,
+            "h5": 0.01206787396222353
+          },
+          "safety": {
+            "balanced_accuracy": 0.9927726800203123,
+            "false_negative_rate": 0.002335084646818447,
+            "false_positive_rate": 0.012119555312556953,
+            "fn": 8,
+            "fp": 133,
+            "tn": 10841,
+            "tp": 3418
+          }
+        },
+        "matched_autoencoder": {
+          "rollout": {
+            "h1": 0.00479859858751297,
+            "h2": 0.008001882582902908,
+            "h3": 0.010828645899891853,
+            "h4": 0.013472981750965118,
+            "h5": 0.01599898561835289
+          },
+          "safety": {
+            "balanced_accuracy": 0.9931656642974303,
+            "false_negative_rate": 0.0,
+            "false_positive_rate": 0.01366867140513942,
+            "fn": 0,
+            "fp": 150,
+            "tn": 10824,
+            "tp": 3426
+          }
+        },
+        "per_action_mean": {
+          "rollout": {
+            "h1": 0.020379938185214996,
+            "h2": 0.035128913819789886,
+            "h3": 0.04779438674449921,
+            "h4": 0.058725930750370026,
+            "h5": 0.06816854327917099
+          }
+        },
+        "rows": 14400,
+        "zero_delta": {
+          "rollout": {
+            "h1": 0.023495353758335114,
+            "h2": 0.039097849279642105,
+            "h3": 0.054257508367300034,
+            "h4": 0.06904788315296173,
+            "h5": 0.08363109081983566
+          }
+        }
+      },
+      "stress": {
+        "jepa": {
+          "rollout": {
+            "h1": 0.0037998107727617025,
+            "h2": 0.0068566929548978806,
+            "h3": 0.009593477472662926,
+            "h4": 0.01207524724304676,
+            "h5": 0.014390234835445881
+          },
+          "safety": {
+            "balanced_accuracy": 0.9955939177644468,
+            "false_negative_rate": 0.00023685457129322596,
+            "false_positive_rate": 0.008575309899813211,
+            "fn": 1,
+            "fp": 101,
+            "tn": 11677,
+            "tp": 4221
+          }
+        },
+        "matched_autoencoder": {
+          "rollout": {
+            "h1": 0.005175404716283083,
+            "h2": 0.008746935054659843,
+            "h3": 0.011785993352532387,
+            "h4": 0.014582550153136253,
+            "h5": 0.017174003645777702
+          },
+          "safety": {
+            "balanced_accuracy": 0.9964340295466123,
+            "false_negative_rate": 0.0,
+            "false_positive_rate": 0.007131940906775344,
+            "fn": 0,
+            "fp": 84,
+            "tn": 11694,
+            "tp": 4222
+          }
+        },
+        "per_action_mean": {
+          "rollout": {
+            "h1": 0.021080883219838142,
+            "h2": 0.03900010511279106,
+            "h3": 0.05488769710063934,
+            "h4": 0.0688595324754715,
+            "h5": 0.0806887224316597
+          }
+        },
+        "rows": 16000,
+        "zero_delta": {
+          "rollout": {
+            "h1": 0.02625955268740654,
+            "h2": 0.048832282423973083,
+            "h3": 0.07067982852458954,
+            "h4": 0.09226144850254059,
+            "h5": 0.11344830691814423
+          }
+        }
+      }
+    },
+    "matched_autoencoder": {
+      "epochs_completed": 5100,
+      "epochs_requested": 9000,
+      "latent_target_prediction_loss": false,
+      "validation": {
+        "action_cross_entropy": 4.429339969647117e-05,
+        "delta_mse": 0.0002760311763267964,
+        "latent_prediction_mse": 0.23459650576114655,
+        "objective": 0.0002784764433370583,
+        "reconstruction_mse": 2.4408376702922396e-05
+      }
+    },
+    "protocol_id": "physical-jepa-v3-post-selection-baselines",
+    "registered_ood": {
+      "jepa": {
+        "all_predictions_finite": true,
+        "invalid_observations_rejected": 682,
+        "normalized_one_step_error": 0.003382848587714236,
+        "p95_normalized_one_step_error": 0.005927396402694284,
+        "rows": 4096,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9956289460903351,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.008742107819329771,
+          "fn": 0,
+          "fp": 18,
+          "tn": 2041,
+          "tp": 2037
+        }
+      },
+      "matched_autoencoder": {
+        "all_predictions_finite": true,
+        "invalid_observations_rejected": 682,
+        "normalized_one_step_error": 0.005024587415715523,
+        "p95_normalized_one_step_error": 0.008603198267519475,
+        "rows": 4096,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9958717824186498,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.00825643516270034,
+          "fn": 0,
+          "fp": 17,
+          "tn": 2042,
+          "tp": 2037
+        }
+      }
+    },
+    "schema_version": 1,
+    "selection_report": "target/physical_world_model/v3_candidate_selection.json",
+    "selection_report_sha256": "f12793f39b943ef4a85e2c301bbd04966ad27e5f760f22340d5c49ed13ed730b",
+    "test_metrics_used_for_selection": false,
+    "training_transitions": 123200
+  },
+  "claim_boundary": "Valid simulator edge states train and evaluate the JEPA. Semantically inconsistent observations are rejected deterministically and excluded from transition-error claims. This remains software evidence, not physical-device certification.",
+  "dangerous_transitions": 49594,
+  "deployed_baseline_test_metrics": {
+    "incident_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.00439833273937135,
+        "p95_normalized_one_step_error": 0.00950542734935879,
+        "rows": 7680,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9950394661093527,
+          "false_negative_rate": 0.0012695725772323319,
+          "false_positive_rate": 0.008651495204062441,
+          "fn": 3,
+          "fp": 46,
+          "tn": 5271,
+          "tp": 2360
+        }
+      },
+      "rollout": {
+        "h1": 0.004398332443088293,
+        "h2": 0.007555323652923107,
+        "h3": 0.010247759521007538,
+        "h4": 0.012699696235358715,
+        "h5": 0.014943892136216164
+      }
+    },
+    "ood_test": {
+      "all_predictions_finite": true,
+      "invalid_observations_rejected": 682,
+      "normalized_one_step_error": 0.003976211113470329,
+      "p95_normalized_one_step_error": 0.007829912402667099,
+      "rows": 4096,
+      "rules_plus_jepa": {
+        "balanced_accuracy": 0.9958717824186498,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.00825643516270034,
+        "fn": 0,
+        "fp": 17,
+        "tn": 2042,
+        "tp": 2037
+      }
+    },
+    "original_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.004538676171359839,
+        "p95_normalized_one_step_error": 0.010026139160618178,
+        "rows": 14400,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9925996871446185,
+          "false_negative_rate": 0.0020431990659661413,
+          "false_positive_rate": 0.012757426644796793,
+          "fn": 7,
+          "fp": 140,
+          "tn": 10834,
+          "tp": 3419
+        }
+      },
+      "rollout": {
+        "h1": 0.004538675770163536,
+        "h2": 0.007770095486193895,
+        "h3": 0.010545458644628525,
+        "h4": 0.013055440038442612,
+        "h5": 0.015385386534035206
+      }
+    },
+    "stress_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.005536146011298115,
+        "p95_normalized_one_step_error": 0.014547412190586325,
+        "rows": 16000,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9933705857430842,
+          "false_negative_rate": 0.005447655139744197,
+          "false_positive_rate": 0.007811173374087281,
+          "fn": 23,
+          "fp": 92,
+          "tn": 11686,
+          "tp": 4199
+        }
+      },
+      "rollout": {
+        "h1": 0.005536145996302366,
+        "h2": 0.009792709723114967,
+        "h3": 0.013426661491394043,
+        "h4": 0.016729548573493958,
+        "h5": 0.01979004591703415
+      }
+    }
+  },
+  "episode_overlap": 0,
+  "episode_split": {
+    "test": 4760,
+    "train": 15400,
+    "validation": 3520
+  },
+  "episodes": 23680,
+  "horizon_decision": "H=3 remains the runtime horizon because H=5 has higher compounding error on every registered test split and no separately registered incremental safety catch.",
+  "permit_authority": "deterministic_supervisor",
+  "promotion": {
+    "checks": {
+      "all_predictions_finite": true,
+      "incident_test_false_negatives_not_increased": true,
+      "incident_test_false_positive_rate_within_2_points": true,
+      "incident_test_geometric_improvement_at_least_10_percent": true,
+      "incident_test_no_horizon_regression": true,
+      "ood_false_negatives_not_increased": true,
+      "ood_false_positive_rate_within_2_points": true,
+      "ood_one_step_error_improves_at_least_5_percent": true,
+      "original_test_no_regression_over_2_percent": true,
+      "stress_test_geometric_improvement_at_least_10_percent": true,
+      "stress_test_no_horizon_regression": true
+    },
+    "incident_test_ratios": {
+      "h1": 0.7894779302443838,
+      "h3": 0.8109115433634985,
+      "h5": 0.8170915129501762
+    },
+    "original_test_ratios": {
+      "h1": 0.7659592466480046,
+      "h3": 0.7826885746836114,
+      "h5": 0.7843724910990861
+    },
+    "passed": true,
+    "stress_test_ratios": {
+      "h1": 0.6863639028485926,
+      "h3": 0.714509521135389,
+      "h5": 0.7271450958615302
+    }
+  },
+  "protocol_id": "physical-jepa-stress-curriculum-v3",
+  "runtime_authority": "digest_bound_simulation_caution_only",
+  "runtime_horizon": 3,
+  "schema_version": 3,
+  "selected_candidate": {
+    "epochs": 9000,
+    "epochs_completed": 8175,
+    "hidden": 256,
+    "incident_train_episodes_per_source": 1000,
+    "latent": 128,
+    "selection": {
+      "accepted": true,
+      "checks": {
+        "action_sensitivity": true,
+        "effective_rank": true,
+        "incident_validation_geometric_improvement_at_least_5_percent": true,
+        "incident_validation_no_horizon_regression": true,
+        "latent_standard_deviation": true,
+        "original_validation_no_regression_over_2_percent": true,
+        "stress_validation_geometric_improvement_at_least_5_percent": true,
+        "stress_validation_no_horizon_regression": true
+      },
+      "incident_ratios": {
+        "h1": 0.7686554131170569,
+        "h3": 0.7864518631237845,
+        "h5": 0.7976435644284541
+      },
+      "original_ratios": {
+        "h1": 0.7594399532328168,
+        "h3": 0.7742445848030596,
+        "h5": 0.7719608094997804
+      },
+      "selection_score": 0.7636087233138625,
+      "stress_ratios": {
+        "h1": 0.6874024380706876,
+        "h3": 0.7235502432389654,
+        "h5": 0.7488219007762321
+      }
+    },
+    "stress_train_episodes": 3000,
+    "training_seed": 91,
+    "training_transitions": 123200
+  },
+  "selection_report_sha256": "f12793f39b943ef4a85e2c301bbd04966ad27e5f760f22340d5c49ed13ed730b",
+  "test_metrics": {
+    "incident_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.003472386297138049,
+        "p95_normalized_one_step_error": 0.007300494518131016,
+        "rows": 7680,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.994522277054945,
+          "false_negative_rate": 0.00042319085907744394,
+          "false_positive_rate": 0.010532255031032537,
+          "fn": 1,
+          "fp": 56,
+          "tn": 5261,
+          "tp": 2362
+        }
+      },
+      "rollout": {
+        "h1": 0.0034723863936960697,
+        "h2": 0.00605624308809638,
+        "h3": 0.008310026489198208,
+        "h4": 0.010332235135138035,
+        "h5": 0.012210527434945107
+      }
+    },
+    "ood_test": {
+      "all_predictions_finite": true,
+      "invalid_observations_rejected": 682,
+      "normalized_one_step_error": 0.003382848587714236,
+      "p95_normalized_one_step_error": 0.005927396402694284,
+      "rows": 4096,
+      "rules_plus_jepa": {
+        "balanced_accuracy": 0.9956289460903351,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.008742107819329771,
+        "fn": 0,
+        "fp": 18,
+        "tn": 2041,
+        "tp": 2037
+      }
+    },
+    "original_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.003476440668738279,
+        "p95_normalized_one_step_error": 0.006468412932008503,
+        "rows": 14400,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9927726800203123,
+          "false_negative_rate": 0.002335084646818447,
+          "false_positive_rate": 0.012119555312556953,
+          "fn": 8,
+          "fp": 133,
+          "tn": 10841,
+          "tp": 3418
+        }
+      },
+      "rollout": {
+        "h1": 0.0034764406736940145,
+        "h2": 0.006061977706849575,
+        "h3": 0.008253809995949268,
+        "h4": 0.010231785476207733,
+        "h5": 0.01206787396222353
+      }
+    },
+    "stress_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.0037998109746113186,
+        "p95_normalized_one_step_error": 0.007336846552789211,
+        "rows": 16000,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9955939177644468,
+          "false_negative_rate": 0.00023685457129322596,
+          "false_positive_rate": 0.008575309899813211,
+          "fn": 1,
+          "fp": 101,
+          "tn": 11677,
+          "tp": 4221
+        }
+      },
+      "rollout": {
+        "h1": 0.0037998107727617025,
+        "h2": 0.0068566929548978806,
+        "h3": 0.009593477472662926,
+        "h4": 0.01207524724304676,
+        "h5": 0.014390234835445881
+      }
+    }
+  },
+  "transition_split": {
+    "test": 38080,
+    "train": 123200,
+    "validation": 28160
+  },
+  "transitions": 189440,
+  "validated_for_gating": false
+}

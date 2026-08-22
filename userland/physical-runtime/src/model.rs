@@ -11,8 +11,8 @@ pub const PHYSICAL_ACTION_COUNT: usize = 7;
 pub const PHYSICAL_ACTION_FEATURE_SIZE: usize = 3;
 const PHYSICAL_ACTION_INPUT_SIZE: usize = PHYSICAL_ACTION_COUNT + PHYSICAL_ACTION_FEATURE_SIZE;
 const HEADER_SIZE: usize = 48;
-const MAX_LATENT_SIZE: usize = 64;
-const MAX_HIDDEN_SIZE: usize = 128;
+const MAX_LATENT_SIZE: usize = 128;
+const MAX_HIDDEN_SIZE: usize = 256;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PhysicalState {
@@ -461,7 +461,7 @@ mod tests {
     #[test]
     fn committed_artifact_loads_and_beats_recorded_mean_baseline() {
         let model = PhysicalTransitionModel::from_bytes(ARTIFACT).unwrap();
-        assert_eq!(model.training_samples(), 18_900);
+        assert_eq!(model.training_samples(), 123_200);
         let forecast = model
             .predict_shadow(
                 safe_state(),
