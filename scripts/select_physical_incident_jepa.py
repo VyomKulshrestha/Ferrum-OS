@@ -114,7 +114,11 @@ def geometric(values) -> float:
 
 
 def validation_decision(
-    candidate, current_original, current_incident, current_stress=None
+    candidate,
+    current_original,
+    current_incident,
+    current_stress=None,
+    stress_geometric_limit=0.95,
 ) -> dict:
     original_ratios = {
         horizon: candidate["original_validation"]["rollout"][horizon]
@@ -149,8 +153,13 @@ def validation_decision(
             / current_stress["rollout"][horizon]
             for horizon in ("h1", "h3", "h5")
         }
-        checks["stress_validation_geometric_improvement_at_least_5_percent"] = (
-            geometric(list(stress_ratios.values())) <= 0.95
+        stress_geometric_check = (
+            "stress_validation_geometric_no_regression"
+            if stress_geometric_limit == 1.0
+            else "stress_validation_geometric_improvement_at_least_5_percent"
+        )
+        checks[stress_geometric_check] = (
+            geometric(list(stress_ratios.values())) <= stress_geometric_limit
         )
         checks["stress_validation_no_horizon_regression"] = all(
             ratio <= 1.0 for ratio in stress_ratios.values()
@@ -243,6 +252,68 @@ def promotion_decision(candidate, current) -> dict:
     }
 
 
+def v4_promotion_decision(candidate, current, anti_collapse) -> dict:
+    base_ratios = {
+        horizon: candidate["original_test"]["rollout"][horizon]
+        / current["original_test"]["rollout"][horizon]
+        for horizon in ("h1", "h3", "h5")
+    }
+    incident_ratios = {
+        horizon: candidate["incident_test"]["rollout"][horizon]
+        / current["incident_test"]["rollout"][horizon]
+        for horizon in ("h1", "h3", "h5")
+    }
+    candidate_incident = candidate["incident_test"]["diagnostics"]["rules_plus_jepa"]
+    current_incident = current["incident_test"]["diagnostics"]["rules_plus_jepa"]
+    candidate_stress = candidate["stress_test"]["diagnostics"]["rules_plus_jepa"]
+    current_stress = current["stress_test"]["diagnostics"]["rules_plus_jepa"]
+    candidate_ood = candidate["ood_test"]["rules_plus_jepa"]
+    current_ood = current["ood_test"]["rules_plus_jepa"]
+    checks = {
+        "original_test_no_regression_over_2_percent": all(
+            ratio <= 1.02 for ratio in base_ratios.values()
+        ),
+        "incident_test_geometric_improvement_at_least_5_percent": geometric(
+            list(incident_ratios.values())
+        )
+        <= 0.95,
+        "incident_test_false_negatives_not_increased": candidate_incident["fn"]
+        <= current_incident["fn"],
+        "stress_test_false_negatives_not_increased": candidate_stress["fn"]
+        <= current_stress["fn"],
+        "ood_false_negatives_not_increased": candidate_ood["fn"] <= current_ood["fn"],
+        "incident_test_false_positive_rate_within_2_points": candidate_incident[
+            "false_positive_rate"
+        ]
+        <= current_incident["false_positive_rate"] + 0.02,
+        "stress_test_false_positive_rate_within_2_points": candidate_stress[
+            "false_positive_rate"
+        ]
+        <= current_stress["false_positive_rate"] + 0.02,
+        "ood_false_positive_rate_within_2_points": candidate_ood[
+            "false_positive_rate"
+        ]
+        <= current_ood["false_positive_rate"] + 0.02,
+        "anti_collapse_variance_ratio": anti_collapse["prediction_variance_ratio"]
+        >= 0.10,
+        "all_predictions_finite": all(
+            (
+                candidate["original_test"]["diagnostics"]["all_predictions_finite"],
+                candidate["incident_test"]["diagnostics"]["all_predictions_finite"],
+                candidate["stress_test"]["diagnostics"]["all_predictions_finite"],
+                candidate["ood_test"]["all_predictions_finite"],
+            )
+        ),
+    }
+    return {
+        "checks": checks,
+        "passed": all(checks.values()),
+        "original_test_ratios": base_ratios,
+        "incident_test_ratios": incident_ratios,
+        "stress_test_ratios": None,
+    }
+
+
 def mean_delta_predictor(rows):
     values = np.zeros((simulator.ACTION_COUNT, simulator.STATE_SIZE), dtype=np.float32)
     for action in range(simulator.ACTION_COUNT):
@@ -255,6 +326,12 @@ def mean_delta_predictor(rows):
     return predictor
 
 
+def prediction_variance_ratio(rows, weights) -> float:
+    state, actions, actual_delta, _ = jepa.state_arrays(rows)
+    predicted_delta = jepa.forward(state, actions, weights)[9]
+    return float(np.var(predicted_delta) / max(float(np.var(actual_delta)), 1e-12))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--current-artifact", type=Path, default=CURRENT_ARTIFACT)
@@ -264,6 +341,10 @@ def main() -> int:
     parser.add_argument("--base-episodes", type=int, default=DATA_EPISODES)
     parser.add_argument("--steps", type=int, default=DATA_STEPS)
     parser.add_argument("--data-seed", type=int, default=DATA_SEED)
+    parser.add_argument("--incident-seed", type=int)
+    parser.add_argument(
+        "--incident-catalog", type=Path, default=incidents.DEFAULT_CATALOG
+    )
     parser.add_argument(
         "--incident-validation-per-source",
         type=int,
@@ -303,8 +384,22 @@ def main() -> int:
     if args.candidate_config:
         config_document = json.loads(args.candidate_config.read_text(encoding="utf-8"))
         candidate_protocol = config_document["protocol_id"]
-        candidate_configs = config_document["candidates"]
+        candidate_configs = config_document.get(
+            "candidates", config_document.get("simulator_candidates_if_baseline_fails")
+        )
+        default_incident_train = config_document.get("incident_dataset", {}).get(
+            "train_episodes_per_source"
+        )
+        if default_incident_train is not None:
+            candidate_configs = [
+                {
+                    "incident_train_episodes_per_source": default_incident_train,
+                    **candidate,
+                }
+                for candidate in candidate_configs
+            ]
         candidate_config_sha256 = digest(args.candidate_config)
+    is_v4 = candidate_protocol == "physical-jepa-real-evidence-v4"
     if not candidate_configs:
         parser.error("candidate configuration must contain at least one candidate")
     required_candidate_fields = {
@@ -321,6 +416,7 @@ def main() -> int:
         if min(int(config[field]) for field in required_candidate_fields) < 1:
             parser.error(f"candidate {index} contains a non-positive value")
 
+    incident_seed = args.data_seed if args.incident_seed is None else args.incident_seed
     current_artifact_sha256 = digest(args.current_artifact)
     base_rows = simulator.generate(args.base_episodes, args.steps, args.data_seed)
     _, _, base_train, base_validation, base_test = jepa.split_rows(
@@ -330,7 +426,8 @@ def main() -> int:
         "validation",
         args.incident_validation_per_source,
         args.steps,
-        args.data_seed,
+        incident_seed,
+        args.incident_catalog,
     )
     current_weights = robustness.load_artifact(args.current_artifact)
     current_original_validation = evaluation(base_validation, current_weights)
@@ -350,7 +447,8 @@ def main() -> int:
             "train",
             config["incident_train_episodes_per_source"],
             args.steps,
-            args.data_seed,
+            incident_seed,
+            args.incident_catalog,
         )
         train_rows = [*base_train, *incident_train]
         validation_rows = [*base_validation, *incident_validation]
@@ -386,7 +484,12 @@ def main() -> int:
             "training_validation": training_validation,
             "original_validation": evaluation(base_validation, weights),
             "incident_validation": evaluation(incident_validation, weights),
-            "anti_collapse": jepa.representation_metrics(validation_rows, weights),
+            "anti_collapse": {
+                **jepa.representation_metrics(validation_rows, weights),
+                "prediction_variance_ratio": prediction_variance_ratio(
+                    validation_rows, weights
+                ),
+            },
         }
         if stress_train is not None:
             result["stress_training"] = stress.summarize(
@@ -399,7 +502,18 @@ def main() -> int:
             current_original_validation,
             current_incident_validation,
             current_stress_validation,
+            stress_geometric_limit=1.0 if is_v4 else 0.95,
         )
+        if is_v4:
+            result["selection"]["checks"]["prediction_variance_ratio"] = (
+                result["anti_collapse"]["prediction_variance_ratio"] >= 0.10
+            )
+            result["selection"]["checks"]["runtime_artifact_compatible"] = (
+                result["latent"] <= 128 and result["hidden"] <= 256
+            )
+            result["selection"]["accepted"] = all(
+                result["selection"]["checks"].values()
+            )
         candidates.append(result)
         candidate_weights.append(weights)
 
@@ -423,7 +537,11 @@ def main() -> int:
 
     # Test partitions are generated only after the candidate index is frozen.
     incident_test, incident_test_metadata = incidents.generate_partition(
-        "test", args.incident_test_per_source, args.steps, args.data_seed
+        "test",
+        args.incident_test_per_source,
+        args.steps,
+        incident_seed,
+        args.incident_catalog,
     )
     ood_test = (
         robustness.ood_v2_rows(args.ood_count, args.ood_seed)
@@ -452,13 +570,18 @@ def main() -> int:
     if stress_test is not None:
         current_test["stress_test"] = evaluation(stress_test, current_weights)
         candidate_test["stress_test"] = evaluation(stress_test, selected_weights)
-    promotion = promotion_decision(candidate_test, current_test)
+    promotion = (
+        v4_promotion_decision(candidate_test, current_test, selected["anti_collapse"])
+        if is_v4
+        else promotion_decision(candidate_test, current_test)
+    )
 
     selected_incident_train, selected_train_metadata = incidents.generate_partition(
         "train",
         selected["incident_train_episodes_per_source"],
         args.steps,
-        args.data_seed,
+        incident_seed,
+        args.incident_catalog,
     )
     selected_train_rows = [*base_train, *selected_incident_train]
     if selected["stress_train_episodes"]:
@@ -504,8 +627,8 @@ def main() -> int:
         "candidate_artifact": repository_path(args.artifact),
         "candidate_artifact_sha256": digest(args.artifact),
         "candidate_artifact_bytes": args.artifact.stat().st_size,
-        "catalog": str(incidents.DEFAULT_CATALOG.relative_to(ROOT)).replace("\\", "/"),
-        "catalog_sha256": incidents.catalog_sha256(),
+        "catalog": repository_path(args.incident_catalog),
+        "catalog_sha256": incidents.catalog_sha256(args.incident_catalog),
         "dataset": repository_path(args.dataset),
         "dataset_sha256": digest(args.dataset),
         "base_dataset": {
@@ -519,6 +642,7 @@ def main() -> int:
         "incident_validation": incidents.summarize(
             incident_validation, incident_validation_metadata
         ),
+        "incident_seed": incident_seed,
         "incident_test": incidents.summarize(incident_test, incident_test_metadata),
         "registered_ood": {
             "protocol": args.ood_protocol,

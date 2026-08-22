@@ -16,6 +16,7 @@ BASE_CATALOG = RESEARCH / "physical_incident_sources.json"
 V2_CATALOG = RESEARCH / "physical_incident_sources_v2.json"
 HAI_PROTOCOL = RESEARCH / "physical_hai_transfer_protocol_v1.json"
 V4_PROTOCOL = RESEARCH / "physical_jepa_v4_protocol.json"
+V4_AMENDMENT = RESEARCH / "physical_jepa_v4_amendment1.json"
 DEPLOYED_ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 PARTITIONS = {"train", "validation", "test"}
 
@@ -34,6 +35,7 @@ def main() -> None:
     extension = read_json(V2_CATALOG)
     hai = read_json(HAI_PROTOCOL)
     v4 = read_json(V4_PROTOCOL)
+    amendment = read_json(V4_AMENDMENT)
     require(extension["extends"] == BASE_CATALOG.name, "v2 must extend immutable v1")
     sources = [*base["sources"], *extension["additional_sources"]]
 
@@ -91,6 +93,24 @@ def main() -> None:
     require(v4["registered_before_test_open"], "v4 was not registered before test open")
     require(v4["simulator_candidate_selection"]["test_open_count"] == 1, "simulator test may open only once")
     require("Neither model may grant permits" in v4["integration_policy"]["authority"], "authority boundary weakened")
+    require(
+        amendment["parent_protocol"] == V4_PROTOCOL.name,
+        "v4 execution amendment is not bound to the protocol",
+    )
+    require(
+        amendment["registered_before_incident_v2_test_generation"]
+        and amendment["incident_v2_test_open_count"] == 0,
+        "v4 execution amendment was not registered before test generation",
+    )
+    require(
+        amendment["incident_partition"]["catalog"] == V2_CATALOG.name
+        and amendment["incident_partition"]["seed"] == v4["incident_dataset"]["seed"],
+        "v4 incident execution settings drifted",
+    )
+    require(
+        amendment["inherited_fixed_partitions"]["ood"]["protocol"] == "v2",
+        "v4 must retain the registered fail-closed OOD protocol",
+    )
 
     print(
         "PASS physical v4 protocol: "

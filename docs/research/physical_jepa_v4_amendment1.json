@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-jepa-real-evidence-v4-execution-amendment1",
+  "parent_protocol": "physical_jepa_v4_protocol.json",
+  "registration_date": "2026-08-22",
+  "registered_before_incident_v2_test_generation": true,
+  "incident_v2_test_open_count": 0,
+  "inherited_fixed_partitions": {
+    "base": {"episodes": 12000, "steps": 8, "seed": 20260824},
+    "stress": {
+      "train_episodes": 3000,
+      "validation_episodes": 1000,
+      "test_episodes": 2000,
+      "seed": 20260826
+    },
+    "ood": {"protocol": "v2", "rows": 4096, "seed": 20260825}
+  },
+  "incident_partition": {
+    "catalog": "physical_incident_sources_v2.json",
+    "train_episodes_per_source": 1000,
+    "validation_episodes_per_source": 320,
+    "test_episodes_per_source": 320,
+    "steps": 8,
+    "seed": 20260822
+  },
+  "candidate_training": "Each candidate uses the inherited base train partition, incident-v2 train families and inherited v3 stress train partition.",
+  "validation_acceptance": [
+    "no base-validation H1, H3 or H5 regression greater than two percent",
+    "incident-v2 validation geometric H1/H3/H5 error improves by at least five percent with no individual-horizon regression",
+    "stress-validation geometric H1/H3/H5 error does not regress and is included in the selection score",
+    "latent standard deviation is at least 0.02, effective rank is at least 4.0 and action sensitivity is at least 0.005",
+    "the serialized candidate fits the deployed PJE1 limits of at most 128 latent and 256 hidden units"
+  ],
+  "selection": "Among validation-accepted candidates, select the lowest weighted geometric ratio with incident-v2 validation counted twice. If none pass, retain the lowest-score candidate only for an honest final diagnostic; it is not promotion eligible.",
+  "final_promotion": [
+    "all predictions finite",
+    "no base-test H1, H3 or H5 regression greater than two percent",
+    "incident-v2 test geometric H1/H3/H5 error improves by at least five percent",
+    "incident-v2 test false negatives do not increase",
+    "stress-test false negatives do not increase",
+    "registered-OOD false negatives do not increase",
+    "incident-v2, stress and OOD false-positive rates each remain within two percentage points of the baseline",
+    "selected validation anti-collapse variance ratio remains at least 0.10"
+  ],
+  "unchanged_authority": "A promoted PJE1 artifact may add caution only in a digest-bound simulation session. It cannot grant a permit, approve a command or invoke an adapter."
+}
