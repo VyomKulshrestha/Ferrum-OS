@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "accessed_at": "2026-08-22",
+  "purpose": "Previously unseen source-family test catalog for the baseline-anchored physical decoder study.",
+  "allowed_hazard_tags": [
+    "availability_loss",
+    "logic_or_configuration_tamper",
+    "loss_of_control",
+    "loss_of_view",
+    "manual_fallback",
+    "process_divergence",
+    "recovery_inhibition",
+    "safety_interlock_compromise",
+    "sensor_or_view_deception",
+    "unauthorized_actuation",
+    "unsafe_command_sequence"
+  ],
+  "claim_boundary": [
+    "Sources select defensive simulator priors only; they do not provide transition targets or labels.",
+    "No exploit instructions, credentials, payloads, network addresses or operational intrusion steps are retained.",
+    "The generated test remains Ferrum simulator evidence informed by real incidents, not replay of the reported systems.",
+    "Every family in this catalog was absent from the v1 and v2 incident catalogs when v5 was registered."
+  ],
+  "sources": [
+    {
+      "id": "doj_bexar_water_tampering_2025",
+      "title": "Bexar County Man Indicted for Tampering with Public Water Systems",
+      "url": "https://www.justice.gov/usao-wdtx/pr/bexar-county-man-indicted-tampering-public-water-systems",
+      "source_kind": "government_incident_report",
+      "source_family": "bexar_water_tampering_2025",
+      "hazard_tags": ["unauthorized_actuation", "logic_or_configuration_tamper"],
+      "defensive_abstraction": "Model unauthorized well and pump control as an unapproved actuator request against degraded process state.",
+      "limitations": "The cited indictment contains allegations, not an adjudicated technical reconstruction.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_brunswick_cyber_2023",
+      "title": "Brunswick Corporation Current Report on Form 8-K, June 2023",
+      "url": "https://www.sec.gov/Archives/edgar/data/14930/000001493023000134/bcorp-20230613.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "brunswick_cyber_2023",
+      "hazard_tags": ["availability_loss", "manual_fallback"],
+      "defensive_abstraction": "Model paused operations across affected facilities as controller unavailability with bounded fallback.",
+      "limitations": "The filing reports facility disruption but does not expose physical-control telemetry.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_sensata_ransomware_2025",
+      "title": "Sensata Technologies Current Report on Form 8-K, April 2025",
+      "url": "https://www.sec.gov/Archives/edgar/data/1477294/000147729425000047/st-20250406.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "sensata_ransomware_2025",
+      "hazard_tags": ["availability_loss", "manual_fallback"],
+      "defensive_abstraction": "Model temporary shipping, receiving and manufacturing loss as offline control with bounded manual fallback.",
+      "limitations": "The filing reports business impact, not control-loop measurements.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_artivion_cyber_2024",
+      "title": "Artivion Current Report on Form 8-K, December 2024",
+      "url": "https://www.sec.gov/Archives/edgar/data/784199/000078419924000253/aort-20241209.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "artivion_cyber_2024",
+      "hazard_tags": ["availability_loss", "recovery_inhibition"],
+      "defensive_abstraction": "Model order and shipping disruption as partial service loss with constrained recovery actions.",
+      "limitations": "The filing does not establish compromise of physical controllers.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_americold_cyber_2023",
+      "title": "Americold Realty Trust Current Report on Form 8-K, April 2023",
+      "url": "https://www.sec.gov/Archives/edgar/data/1455863/000162828023014332/art-20230426.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "americold_cyber_2023",
+      "hazard_tags": ["availability_loss", "loss_of_view", "manual_fallback"],
+      "defensive_abstraction": "Model intentionally offlined facility systems as stale visibility with manual continuity constraints.",
+      "limitations": "The filing gives facility-level impact but no sensor-level trace.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_johnson_controls_ransomware_2023",
+      "title": "Johnson Controls Current Report on Form 8-K, November 2023",
+      "url": "https://www.sec.gov/Archives/edgar/data/833444/000083344423000038/jci-20231113.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "johnson_controls_ransomware_2023",
+      "hazard_tags": ["availability_loss", "loss_of_view"],
+      "defensive_abstraction": "Model application outages as reduced link quality and incomplete supervisory visibility.",
+      "limitations": "The filing describes enterprise disruption and does not attribute physical actuator movement.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_mks_ransomware_2023",
+      "title": "MKS Instruments Current Report on Form 8-K, February 2023",
+      "url": "https://www.sec.gov/Archives/edgar/data/1049502/000119312523034334/d464518d8k.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "mks_ransomware_2023",
+      "hazard_tags": ["availability_loss", "recovery_inhibition"],
+      "defensive_abstraction": "Model affected facilities as offline assets whose recovery commands require verified state and approval.",
+      "limitations": "The filing does not publish process telemetry or a controller event sequence.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    },
+    {
+      "id": "sec_steel_partners_cyber_2022",
+      "title": "Steel Partners Holdings Annual Report, Cybersecurity Incident",
+      "url": "https://www.sec.gov/Archives/edgar/data/90168/000009016824000060/sif-20240930.htm",
+      "source_kind": "regulatory_filing",
+      "source_family": "steel_partners_cyber_2022",
+      "hazard_tags": ["availability_loss", "manual_fallback"],
+      "defensive_abstraction": "Model production and shipment delay as controller unavailability with conservative fallback.",
+      "limitations": "The later annual filing aggregates impact and does not expose second-by-second operations.",
+      "use_for_scenario_generation": true,
+      "training_partition": "test"
+    }
+  ]
+}
