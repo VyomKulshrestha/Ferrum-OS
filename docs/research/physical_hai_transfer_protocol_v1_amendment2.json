@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-transfer-v1-multivariate-amendment2",
+  "parent_amendment": "physical_hai_transfer_protocol_v1_amendment1.json",
+  "parent_amendment_sha256": "99765eebbb0d7f03839428fe9deebc0745372e9fda05a9981f86900e4c1f5038",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "final_test_open_count": 0,
+  "status": "validation-informed amendment",
+  "triggering_validation_analysis": {
+    "memoryless_result": "Every registered memoryless arm failed the original validation gates.",
+    "temporal_projection_result": "A five-second temporal ridge reduced masked H1/H3/H5 geometric transition error by 12.33% relative to persistence, but residual scores over the eight-dimensional Ferrum projection did not reach 10/14 attack-window recall.",
+    "root_cause": "The registered projection compressed 86 HAI signals into eight aggregate state dimensions and omitted the x100 setpoint channels. Controller-specific manipulation and sensor/controller disagreement could therefore disappear before scoring.",
+    "manual_mapping": {
+      "x1001_15_ASSIGN_OUT": "P1_B2016 pressure demand for thermal power output control",
+      "x1002_08_SETPOINT_OUT": "P1_B3005 discharge-flow setpoint, inferred from the documented 950-1050 l/h operating range and HAI signal values"
+    },
+    "exploratory_scope_disclosure": "HAI test1 labels were used to diagnose this representation failure and compare the candidate grid below. Results on test1 are model-selection evidence, not final-test evidence."
+  },
+  "permitted_change": "Add a separate all-signal temporal prediction residual to the HAI-specific diagnostic candidate. Preserve the original masked Ferrum transition target, file split, labels, final-test policy, simulator PJE1 artifact and authority boundary.",
+  "all_signal_predictor": {
+    "inputs": "all 86 documented HAI 23.05 signals available at or before the prediction time",
+    "forbidden_inputs": [
+      "future signals",
+      "attack labels",
+      "attack-window boundaries",
+      "scenario identity"
+    ],
+    "normalization": "Per-signal median and 0.5/99.5 percentile range fitted on hai-train1 through hai-train3 only; normalized values clipped to [-5, 5].",
+    "causal_features": [
+      "current normalized signal vector",
+      "one-second backward difference",
+      "five-second backward slope"
+    ],
+    "target": "one-second future normalized signal delta",
+    "fit_sampling": "Every third eligible transition from each fit file",
+    "candidate_families": [
+      "multivariate temporal ridge",
+      "temporal EMA-target JEPA with a signal-delta prediction head"
+    ],
+    "ridge_alpha": 0.01,
+    "jepa_grid": [
+      {
+        "latent_size": 64,
+        "hidden_size": 128,
+        "seed": 42
+      },
+      {
+        "latent_size": 64,
+        "hidden_size": 128,
+        "seed": 17
+      },
+      {
+        "latent_size": 96,
+        "hidden_size": 192,
+        "seed": 91
+      }
+    ],
+    "jepa_objective": "Predict the EMA target encoding of the next normalized signal vector from past-only context, with an auxiliary next-signal-delta head and variance regularization.",
+    "jepa_epochs_max": 40,
+    "jepa_early_stopping_patience": 6
+  },
+  "fixed_candidate_grid": {
+    "per_row_aggregation_top_k": [1, 3, 5, 10, 20],
+    "ewma_spans_seconds": [1, 3, 5, 15, 30, 60, 120],
+    "residual_standardization": "Per-signal absolute prediction residual standardized by median absolute deviation on normal hai-train4 only.",
+    "threshold_grid": "First threshold in the original quantile grid whose normal-calibration alert-event rate is at most two per hour.",
+    "alert_rule": "At least three threshold exceedances in the trailing five seconds; event starts separated by the unchanged 30-second cooldown."
+  },
+  "selection_policy": {
+    "eligibility": "Every original transition, detection, finite-output and anti-collapse validation gate must pass.",
+    "primary": "Lowest masked Ferrum-state geometric H1/H3/H5 transition error.",
+    "score_tie_breakers": [
+      "higher attack-window recall",
+      "higher point balanced accuracy",
+      "lower false alert events per hour",
+      "shorter EWMA span",
+      "smaller top-k"
+    ],
+    "final_test_open_count": 1,
+    "no_retraining_after_final_test_open": true
+  },
+  "unchanged_minimum_validation_gates": {
+    "all_predictions_finite": true,
+    "beats_persistence_geometric_error_relative": 0.05,
+    "beats_per_action_mean_geometric_error_relative": 0.02,
+    "attack_window_recall": 0.70,
+    "false_alerts_per_hour_max": 2.0,
+    "point_balanced_accuracy": 0.60,
+    "anti_collapse_variance_ratio_min": 0.10
+  },
+  "reporting_additions": [
+    "false-alert seconds per hour",
+    "detected and missed attack-window identifiers",
+    "per-family attack-window recall",
+    "model artifact size and inference latency"
+  ],
+  "authority_boundary": "This HAI branch remains advisory evidence. It cannot grant permits, block commands, approve goals, invoke adapters or actuate hardware. Passing recorded HIL tests is not independent certification or proof of safety on Ferrum hardware."
+}
