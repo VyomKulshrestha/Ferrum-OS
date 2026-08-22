@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-cross-version-v2-normal-cdf-amendment2",
+  "parent_amendment": "physical_hai_v2_cross_version_amendment1.json",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "final_test_open_count": 0,
+  "triggering_known-data_result": {
+    "best_attack_window_recall": "31/52 (59.62%)",
+    "best_point_balanced_accuracy": "70.21%",
+    "normal_calibration_false_alert_events_per_hour": 1.9925,
+    "failure": "No absolute-score threshold candidate reached the unchanged 70% attack-window gate.",
+    "diagnosis": "Residual magnitudes remain release-specific after per-signal normalization, so applying one numeric score threshold across HAI 21.03 and HAI 23.05 is not domain invariant."
+  },
+  "permitted_change": "Calibrate each release's scalar anomaly score through its own normal empirical cumulative distribution, then apply one shared percentile threshold. No attack labels, attack windows or final-test values may enter either empirical normal distribution.",
+  "normal_cdf_sources": {
+    "hai_23_05_selection_domain": "hai-train4.csv normal calibration trace",
+    "hai_21_03_final_domain": "train3.csv.gz normal calibration trace"
+  },
+  "shared_threshold_policy": "Search the original registered percentile grid and choose the first percentile whose HAI 21.03 normal calibration alert-event rate is at most two per hour. The identical percentile is applied to HAI 23.05 through its own normal empirical score distribution for selection metrics.",
+  "deployment_interpretation": "A new physical installation must collect a registered normal calibration trace before this diagnostic is enabled. The model score is interpreted as normal-tail rarity for that installation, not as an absolute cross-device unit.",
+  "unchanged": [
+    "model weights and candidate families",
+    "75-channel canonical schema",
+    "causal input restriction",
+    "three-of-five alert rule and 30-second cooldown",
+    "all seven eligibility gates",
+    "one-shot final-test rule",
+    "advisory-only authority boundary"
+  ],
+  "claim_boundary": "Normal-CDF calibration is unsupervised domain adaptation. It does not demonstrate safety, authorize physical action or permit label-informed threshold tuning."
+}
