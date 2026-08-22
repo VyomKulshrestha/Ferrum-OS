@@ -183,6 +183,11 @@ def main() -> int:
         "selection_report_sha256": temporal.sha256(SELECTION_REPORT),
         "selected_artifact_sha256": temporal.sha256(ARTIFACT),
         "final_test_open_count": 1,
+        "evaluation_execution": {
+            "completed_attempt": 2,
+            "attempt_1": "Aborted before report creation because the official test2 label timestamps have minute rather than second precision; no model, score or threshold was changed.",
+            "attempt_2": "Same frozen artifact and score with deterministic row-and-minute label alignment.",
+        },
         "final_files": [
             {
                 "name": item["name"],
