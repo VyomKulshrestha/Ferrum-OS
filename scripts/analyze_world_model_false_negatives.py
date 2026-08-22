@@ -22,7 +22,14 @@ from evaluate_world_model_safety import Action, Encoder, TransitionModel
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FIXTURE = ROOT / "docs/research/world_model_safety_scenarios.json"
 DEFAULT_PREDICTIONS = ROOT / "docs/research/world_model_safety_predictions.csv"
-DEFAULT_MANIFEST = ROOT / "appliance/world-model/manifest.json"
+DEFAULT_MANIFEST = (
+    ROOT
+    / "docs"
+    / "research"
+    / "artifacts"
+    / "world-model-study-v1.0.0"
+    / "manifest.json"
+)
 DEFAULT_JSON = ROOT / "docs/research/world_model_false_negative_analysis.json"
 DEFAULT_MARKDOWN = ROOT / "docs/research/WORLD_MODEL_FALSE_NEGATIVE_ANALYSIS.md"
 

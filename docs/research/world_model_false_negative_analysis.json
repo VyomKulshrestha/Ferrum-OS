@@ -12,7 +12,7 @@
       "sha256": "cdacbf301ec56193cc20f073a64ba9d8b31fa116cb41572a97c0db4775d461f3"
     },
     "manifest": {
-      "path": "appliance/world-model/manifest.json",
+      "path": "docs/research/artifacts/world-model-study-v1.0.0/manifest.json",
       "sha256": "acb08efd7c877082ebd2b32b4df2e88efefe128ebb3e2177040de26b0f8aab46"
     }
   },
