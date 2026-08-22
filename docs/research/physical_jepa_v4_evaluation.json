@@ -1,0 +1,1321 @@
+{
+  "base_dataset": {
+    "episodes": 12000,
+    "seed": 20260824,
+    "steps": 8,
+    "test_transitions": 14400,
+    "train_transitions": 67200,
+    "validation_transitions": 14400
+  },
+  "candidate_artifact": "target/physical_world_model/v4_candidate.bin",
+  "candidate_artifact_bytes": 290928,
+  "candidate_artifact_sha256": "db0d5b16576490acde44bdfb60b884616b669a03aa3c3056dc28845a3b248b64",
+  "candidate_config": "docs/research/physical_jepa_v4_protocol.json",
+  "candidate_config_sha256": "e587f24418966d843cdc9a1413492427b07825676119920047bb33143ce51a07",
+  "candidate_test": {
+    "incident_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.004715710408879659,
+        "p95_normalized_one_step_error": 0.00951823075301945,
+        "rows": 20480,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9952504888674514,
+          "false_negative_rate": 0.001131648434552999,
+          "false_positive_rate": 0.008367373830544209,
+          "fn": 6,
+          "fp": 127,
+          "tn": 15051,
+          "tp": 5296
+        }
+      },
+      "rollout": {
+        "h1": 0.004715710412710905,
+        "h2": 0.008229446597397327,
+        "h3": 0.01140616275370121,
+        "h4": 0.014556276611983776,
+        "h5": 0.017617691308259964
+      }
+    },
+    "ood_test": {
+      "all_predictions_finite": true,
+      "invalid_observations_rejected": 682,
+      "normalized_one_step_error": 0.004748430149609253,
+      "p95_normalized_one_step_error": 0.009310869220644233,
+      "rows": 4096,
+      "rules_plus_jepa": {
+        "balanced_accuracy": 0.9946549780970453,
+        "false_negative_rate": 0.0004909180166912126,
+        "false_positive_rate": 0.010199125789218067,
+        "fn": 1,
+        "fp": 21,
+        "tn": 2038,
+        "tp": 2036
+      }
+    },
+    "original_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.0046945840641597495,
+        "p95_normalized_one_step_error": 0.009497887082397932,
+        "rows": 14400,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9913502764215498,
+          "false_negative_rate": 0.004086398131932283,
+          "false_positive_rate": 0.013213049024968107,
+          "fn": 14,
+          "fp": 145,
+          "tn": 10829,
+          "tp": 3412
+        }
+      },
+      "rollout": {
+        "h1": 0.00469458382576704,
+        "h2": 0.008168209344148636,
+        "h3": 0.011283481493592262,
+        "h4": 0.014182506129145622,
+        "h5": 0.01693623885512352
+      }
+    },
+    "stress_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.005231762451359827,
+        "p95_normalized_one_step_error": 0.011946306517347691,
+        "rows": 16000,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9955782521411629,
+          "false_negative_rate": 0.0009474182851729038,
+          "false_positive_rate": 0.007896077432501274,
+          "fn": 4,
+          "fp": 93,
+          "tn": 11685,
+          "tp": 4218
+        }
+      },
+      "rollout": {
+        "h1": 0.005231762304902077,
+        "h2": 0.009327481500804424,
+        "h3": 0.012888974510133266,
+        "h4": 0.01603475771844387,
+        "h5": 0.01893107034265995
+      }
+    }
+  },
+  "candidates": [
+    {
+      "anti_collapse": {
+        "action_sensitivity": 0.0525575615465641,
+        "effective_rank": 18.688879013061523,
+        "latent_standard_deviation": 0.24451860785484314,
+        "prediction_variance_ratio": 1.00734281539917
+      },
+      "epochs": 10000,
+      "epochs_completed": 4925,
+      "hidden": 256,
+      "incident_train_episodes_per_source": 1000,
+      "incident_training": {
+        "action_transition_counts": {
+          "approve": 15362,
+          "diagnose": 15011,
+          "inspect": 3475,
+          "move": 9175,
+          "repair": 16513,
+          "stop": 21417,
+          "verify": 15047
+        },
+        "dangerous_transitions": 19641,
+        "episodes": 12000,
+        "hazard_tag_episode_counts": {
+          "availability_loss": 2338,
+          "logic_or_configuration_tamper": 1334,
+          "loss_of_control": 1334,
+          "loss_of_view": 3004,
+          "manual_fallback": 2999,
+          "process_divergence": 333,
+          "recovery_inhibition": 2664,
+          "safety_interlock_compromise": 334,
+          "unauthorized_actuation": 1001,
+          "unsafe_command_sequence": 667
+        },
+        "source_episode_counts": {
+          "cisa_triton_2017": 1000,
+          "cisa_ukraine_power_2015": 1000,
+          "cisa_unitronics_2023": 1000,
+          "cisa_water_kansas_insider_2019": 1000,
+          "clorox_cyber_2023": 1000,
+          "doj_bowman_dam_2013": 1000,
+          "doj_discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "hydro_ransomware_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "source_family_episode_counts": {
+          "bowman_dam_2013": 1000,
+          "clorox_cyber_2023": 1000,
+          "discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "kansas_water_insider_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "norsk_hydro_2019": 1000,
+          "triton_2017": 1000,
+          "ukraine_power_2015": 1000,
+          "unitronics_2023": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "transitions": 96000
+      },
+      "incident_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.004479723699831892,
+          "p95_normalized_one_step_error": 0.009124435484409325,
+          "rows": 23040,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.996779047760463,
+            "false_negative_rate": 0.0006212466349140609,
+            "false_positive_rate": 0.005820657844160123,
+            "fn": 3,
+            "fp": 106,
+            "tn": 18105,
+            "tp": 4826
+          }
+        },
+        "rollout": {
+          "h1": 0.004479723982512951,
+          "h2": 0.00785226933658123,
+          "h3": 0.01090046763420105,
+          "h4": 0.013932796195149422,
+          "h5": 0.016779592260718346
+        }
+      },
+      "latent": 128,
+      "original_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.004645038278524427,
+          "p95_normalized_one_step_error": 0.00938705848529935,
+          "rows": 14400,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9910404239706903,
+            "false_negative_rate": 0.005047505938242281,
+            "false_positive_rate": 0.012871646120377086,
+            "fn": 17,
+            "fp": 142,
+            "tn": 10890,
+            "tp": 3351
+          }
+        },
+        "rollout": {
+          "h1": 0.004645038396120071,
+          "h2": 0.008070155046880245,
+          "h3": 0.011179151944816113,
+          "h4": 0.014065511524677277,
+          "h5": 0.01679423823952675
+        }
+      },
+      "selection": {
+        "accepted": false,
+        "checks": {
+          "action_sensitivity": true,
+          "effective_rank": true,
+          "incident_validation_geometric_improvement_at_least_5_percent": false,
+          "incident_validation_no_horizon_regression": false,
+          "latent_standard_deviation": true,
+          "original_validation_no_regression_over_2_percent": false,
+          "prediction_variance_ratio": true,
+          "runtime_artifact_compatible": true,
+          "stress_validation_geometric_no_regression": false,
+          "stress_validation_no_horizon_regression": false
+        },
+        "incident_ratios": {
+          "h1": 1.1724384283401477,
+          "h3": 1.1641338625516382,
+          "h5": 1.1853591910823793
+        },
+        "original_ratios": {
+          "h1": 1.362162512039943,
+          "h3": 1.3905879267287204,
+          "h5": 1.4301769182762096
+        },
+        "selection_score": 1.2669925129403452,
+        "stress_ratios": {
+          "h1": 1.374355798169347,
+          "h3": 1.344507198300729,
+          "h5": 1.3059400822879392
+        }
+      },
+      "stress_train_episodes": 3000,
+      "stress_training": {
+        "action_transition_counts": {
+          "approve": 3429,
+          "diagnose": 3430,
+          "inspect": 3427,
+          "move": 2855,
+          "repair": 3999,
+          "stop": 3430,
+          "verify": 3430
+        },
+        "case_episode_counts": {
+          "compound_motion_hazard": 250,
+          "emergency_stop": 250,
+          "geofence_edge": 250,
+          "heavy_payload": 250,
+          "high_vibration": 250,
+          "human_proximity": 250,
+          "low_battery": 250,
+          "low_clearance": 250,
+          "offline_controller": 250,
+          "recovery_state": 250,
+          "repair_without_approval": 250,
+          "weak_link": 250
+        },
+        "dangerous_transitions": 6292,
+        "episodes": 3000,
+        "transitions": 24000
+      },
+      "stress_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.005282252206263365,
+          "p95_normalized_one_step_error": 0.011819965345785003,
+          "rows": 8000,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9956112852664577,
+            "false_negative_rate": 0.0013636363636363637,
+            "false_positive_rate": 0.007413793103448276,
+            "fn": 3,
+            "fp": 43,
+            "tn": 5757,
+            "tp": 2197
+          }
+        },
+        "rollout": {
+          "h1": 0.005282252095639706,
+          "h2": 0.009386304765939713,
+          "h3": 0.012988067232072353,
+          "h4": 0.016172681003808975,
+          "h5": 0.01902182772755623
+        }
+      },
+      "training_seed": 42,
+      "training_transitions": 187200,
+      "training_validation": {
+        "action_cross_entropy": 0.0043111518025398254,
+        "delta_mse": 0.00045352469896897674,
+        "latent_prediction_mse": 0.0018539819866418839,
+        "objective": 0.0009209021519869566,
+        "reconstruction_mse": 3.450841177254915e-05
+      }
+    },
+    {
+      "anti_collapse": {
+        "action_sensitivity": 0.05583971366286278,
+        "effective_rank": 18.975988388061523,
+        "latent_standard_deviation": 0.2516089379787445,
+        "prediction_variance_ratio": 1.001226544380188
+      },
+      "epochs": 10000,
+      "epochs_completed": 4725,
+      "hidden": 256,
+      "incident_train_episodes_per_source": 1000,
+      "incident_training": {
+        "action_transition_counts": {
+          "approve": 15362,
+          "diagnose": 15011,
+          "inspect": 3475,
+          "move": 9175,
+          "repair": 16513,
+          "stop": 21417,
+          "verify": 15047
+        },
+        "dangerous_transitions": 19641,
+        "episodes": 12000,
+        "hazard_tag_episode_counts": {
+          "availability_loss": 2338,
+          "logic_or_configuration_tamper": 1334,
+          "loss_of_control": 1334,
+          "loss_of_view": 3004,
+          "manual_fallback": 2999,
+          "process_divergence": 333,
+          "recovery_inhibition": 2664,
+          "safety_interlock_compromise": 334,
+          "unauthorized_actuation": 1001,
+          "unsafe_command_sequence": 667
+        },
+        "source_episode_counts": {
+          "cisa_triton_2017": 1000,
+          "cisa_ukraine_power_2015": 1000,
+          "cisa_unitronics_2023": 1000,
+          "cisa_water_kansas_insider_2019": 1000,
+          "clorox_cyber_2023": 1000,
+          "doj_bowman_dam_2013": 1000,
+          "doj_discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "hydro_ransomware_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "source_family_episode_counts": {
+          "bowman_dam_2013": 1000,
+          "clorox_cyber_2023": 1000,
+          "discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "kansas_water_insider_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "norsk_hydro_2019": 1000,
+          "triton_2017": 1000,
+          "ukraine_power_2015": 1000,
+          "unitronics_2023": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "transitions": 96000
+      },
+      "incident_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.005228724126527595,
+          "p95_normalized_one_step_error": 0.009864605264738193,
+          "rows": 23040,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.995921631203331,
+            "false_negative_rate": 0.0004141644232760406,
+            "false_positive_rate": 0.00774257317006205,
+            "fn": 2,
+            "fp": 141,
+            "tn": 18070,
+            "tp": 4827
+          }
+        },
+        "rollout": {
+          "h1": 0.005228723865002394,
+          "h2": 0.00910139363259077,
+          "h3": 0.012544642202556133,
+          "h4": 0.0157490074634552,
+          "h5": 0.018741462379693985
+        }
+      },
+      "latent": 128,
+      "original_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.005375166323275254,
+          "p95_normalized_one_step_error": 0.009850719757378099,
+          "rows": 14400,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9920967334930644,
+            "false_negative_rate": 0.0014845605700712589,
+            "false_positive_rate": 0.014321972443799855,
+            "fn": 5,
+            "fp": 158,
+            "tn": 10874,
+            "tp": 3363
+          }
+        },
+        "rollout": {
+          "h1": 0.0053751664236187935,
+          "h2": 0.009507117792963982,
+          "h3": 0.013232075609266758,
+          "h4": 0.016680534929037094,
+          "h5": 0.019904442131519318
+        }
+      },
+      "selection": {
+        "accepted": false,
+        "checks": {
+          "action_sensitivity": true,
+          "effective_rank": true,
+          "incident_validation_geometric_improvement_at_least_5_percent": false,
+          "incident_validation_no_horizon_regression": false,
+          "latent_standard_deviation": true,
+          "original_validation_no_regression_over_2_percent": false,
+          "prediction_variance_ratio": true,
+          "runtime_artifact_compatible": true,
+          "stress_validation_geometric_no_regression": false,
+          "stress_validation_no_horizon_regression": false
+        },
+        "incident_ratios": {
+          "h1": 1.368467524882892,
+          "h3": 1.3397262641989705,
+          "h5": 1.3239514012567462
+        },
+        "original_ratios": {
+          "h1": 1.576273342400175,
+          "h3": 1.645953528374786,
+          "h5": 1.6950381018571061
+        },
+        "selection_score": 1.4434945200939264,
+        "stress_ratios": {
+          "h1": 1.5627041692647372,
+          "h3": 1.4664478433634953,
+          "h5": 1.378365821988072
+        }
+      },
+      "stress_train_episodes": 3000,
+      "stress_training": {
+        "action_transition_counts": {
+          "approve": 3429,
+          "diagnose": 3430,
+          "inspect": 3427,
+          "move": 2855,
+          "repair": 3999,
+          "stop": 3430,
+          "verify": 3430
+        },
+        "case_episode_counts": {
+          "compound_motion_hazard": 250,
+          "emergency_stop": 250,
+          "geofence_edge": 250,
+          "heavy_payload": 250,
+          "high_vibration": 250,
+          "human_proximity": 250,
+          "low_battery": 250,
+          "low_clearance": 250,
+          "offline_controller": 250,
+          "recovery_state": 250,
+          "repair_without_approval": 250,
+          "weak_link": 250
+        },
+        "dangerous_transitions": 6292,
+        "episodes": 3000,
+        "transitions": 24000
+      },
+      "stress_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.006006157414638437,
+          "p95_normalized_one_step_error": 0.012692890875041472,
+          "rows": 8000,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.994255485893417,
+            "false_negative_rate": 0.00045454545454545455,
+            "false_positive_rate": 0.011034482758620689,
+            "fn": 1,
+            "fp": 64,
+            "tn": 5736,
+            "tp": 2199
+          }
+        },
+        "rollout": {
+          "h1": 0.006006157491356134,
+          "h2": 0.010484668426215649,
+          "h3": 0.014166025444865227,
+          "h4": 0.017368532717227936,
+          "h5": 0.020076753571629524
+        }
+      },
+      "training_seed": 17,
+      "training_transitions": 187200,
+      "training_validation": {
+        "action_cross_entropy": 0.004633673932403326,
+        "delta_mse": 0.00038334535202011466,
+        "latent_prediction_mse": 0.0018030143110081553,
+        "objective": 0.0008393177393707447,
+        "reconstruction_mse": 4.755442205350846e-05
+      }
+    },
+    {
+      "anti_collapse": {
+        "action_sensitivity": 0.05551515147089958,
+        "effective_rank": 20.610078811645508,
+        "latent_standard_deviation": 0.23713552951812744,
+        "prediction_variance_ratio": 0.9506133794784546
+      },
+      "epochs": 12000,
+      "epochs_completed": 4425,
+      "hidden": 320,
+      "incident_train_episodes_per_source": 1000,
+      "incident_training": {
+        "action_transition_counts": {
+          "approve": 15362,
+          "diagnose": 15011,
+          "inspect": 3475,
+          "move": 9175,
+          "repair": 16513,
+          "stop": 21417,
+          "verify": 15047
+        },
+        "dangerous_transitions": 19641,
+        "episodes": 12000,
+        "hazard_tag_episode_counts": {
+          "availability_loss": 2338,
+          "logic_or_configuration_tamper": 1334,
+          "loss_of_control": 1334,
+          "loss_of_view": 3004,
+          "manual_fallback": 2999,
+          "process_divergence": 333,
+          "recovery_inhibition": 2664,
+          "safety_interlock_compromise": 334,
+          "unauthorized_actuation": 1001,
+          "unsafe_command_sequence": 667
+        },
+        "source_episode_counts": {
+          "cisa_triton_2017": 1000,
+          "cisa_ukraine_power_2015": 1000,
+          "cisa_unitronics_2023": 1000,
+          "cisa_water_kansas_insider_2019": 1000,
+          "clorox_cyber_2023": 1000,
+          "doj_bowman_dam_2013": 1000,
+          "doj_discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "hydro_ransomware_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "source_family_episode_counts": {
+          "bowman_dam_2013": 1000,
+          "clorox_cyber_2023": 1000,
+          "discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "kansas_water_insider_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "norsk_hydro_2019": 1000,
+          "triton_2017": 1000,
+          "ukraine_power_2015": 1000,
+          "unitronics_2023": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "transitions": 96000
+      },
+      "incident_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.0049310587748348355,
+          "p95_normalized_one_step_error": 0.011167545989155769,
+          "rows": 23040,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9959067405242832,
+            "false_negative_rate": 0.0008283288465520812,
+            "false_positive_rate": 0.007358190104881665,
+            "fn": 4,
+            "fp": 134,
+            "tn": 18077,
+            "tp": 4825
+          }
+        },
+        "rollout": {
+          "h1": 0.0049310592003166676,
+          "h2": 0.00855206698179245,
+          "h3": 0.011986996047198772,
+          "h4": 0.015392566099762917,
+          "h5": 0.018604042008519173
+        }
+      },
+      "latent": 160,
+      "original_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.005099111467780959,
+          "p95_normalized_one_step_error": 0.010858761938288804,
+          "rows": 14400,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9912638078128149,
+            "false_negative_rate": 0.0029691211401425177,
+            "false_positive_rate": 0.014503263234227702,
+            "fn": 10,
+            "fp": 160,
+            "tn": 10872,
+            "tp": 3358
+          }
+        },
+        "rollout": {
+          "h1": 0.00509911123663187,
+          "h2": 0.008735757321119308,
+          "h3": 0.012069953605532646,
+          "h4": 0.015205156058073044,
+          "h5": 0.01819811575114727
+        }
+      },
+      "selection": {
+        "accepted": false,
+        "checks": {
+          "action_sensitivity": true,
+          "effective_rank": true,
+          "incident_validation_geometric_improvement_at_least_5_percent": false,
+          "incident_validation_no_horizon_regression": false,
+          "latent_standard_deviation": true,
+          "original_validation_no_regression_over_2_percent": false,
+          "prediction_variance_ratio": true,
+          "runtime_artifact_compatible": false,
+          "stress_validation_geometric_no_regression": false,
+          "stress_validation_no_horizon_regression": false
+        },
+        "incident_ratios": {
+          "h1": 1.2905623921115736,
+          "h3": 1.2801715006275067,
+          "h5": 1.3142436266289113
+        },
+        "original_ratios": {
+          "h1": 1.4953198615243533,
+          "h3": 1.5013957984364417,
+          "h5": 1.5497294210197512
+        },
+        "selection_score": 1.4209708921132271,
+        "stress_ratios": {
+          "h1": 1.6141650769292373,
+          "h3": 1.5957359342751103,
+          "h5": 1.603917232256647
+        }
+      },
+      "stress_train_episodes": 3000,
+      "stress_training": {
+        "action_transition_counts": {
+          "approve": 3429,
+          "diagnose": 3430,
+          "inspect": 3427,
+          "move": 2855,
+          "repair": 3999,
+          "stop": 3430,
+          "verify": 3430
+        },
+        "case_episode_counts": {
+          "compound_motion_hazard": 250,
+          "emergency_stop": 250,
+          "geofence_edge": 250,
+          "heavy_payload": 250,
+          "high_vibration": 250,
+          "human_proximity": 250,
+          "low_battery": 250,
+          "low_clearance": 250,
+          "offline_controller": 250,
+          "recovery_state": 250,
+          "repair_without_approval": 250,
+          "weak_link": 250
+        },
+        "dangerous_transitions": 6292,
+        "episodes": 3000,
+        "transitions": 24000
+      },
+      "stress_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.0062039441668166545,
+          "p95_normalized_one_step_error": 0.0178508618846535,
+          "rows": 8000,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9955485893416928,
+            "false_negative_rate": 0.00045454545454545455,
+            "false_positive_rate": 0.008448275862068965,
+            "fn": 1,
+            "fp": 49,
+            "tn": 5751,
+            "tp": 2199
+          }
+        },
+        "rollout": {
+          "h1": 0.006203944329172373,
+          "h2": 0.011044963262975216,
+          "h3": 0.01541496068239212,
+          "h4": 0.019508933648467064,
+          "h5": 0.0233620498329401
+        }
+      },
+      "training_seed": 91,
+      "training_transitions": 187200,
+      "training_validation": {
+        "action_cross_entropy": 0.004365014843642712,
+        "delta_mse": 0.0003986166266258806,
+        "latent_prediction_mse": 0.0018183528445661068,
+        "objective": 0.0008561447590705939,
+        "reconstruction_mse": 2.5034198188222945e-05
+      }
+    },
+    {
+      "anti_collapse": {
+        "action_sensitivity": 0.05361597239971161,
+        "effective_rank": 21.342662811279297,
+        "latent_standard_deviation": 0.2757416367530823,
+        "prediction_variance_ratio": 0.9809703826904297
+      },
+      "epochs": 12000,
+      "epochs_completed": 4650,
+      "hidden": 320,
+      "incident_train_episodes_per_source": 1000,
+      "incident_training": {
+        "action_transition_counts": {
+          "approve": 15362,
+          "diagnose": 15011,
+          "inspect": 3475,
+          "move": 9175,
+          "repair": 16513,
+          "stop": 21417,
+          "verify": 15047
+        },
+        "dangerous_transitions": 19641,
+        "episodes": 12000,
+        "hazard_tag_episode_counts": {
+          "availability_loss": 2338,
+          "logic_or_configuration_tamper": 1334,
+          "loss_of_control": 1334,
+          "loss_of_view": 3004,
+          "manual_fallback": 2999,
+          "process_divergence": 333,
+          "recovery_inhibition": 2664,
+          "safety_interlock_compromise": 334,
+          "unauthorized_actuation": 1001,
+          "unsafe_command_sequence": 667
+        },
+        "source_episode_counts": {
+          "cisa_triton_2017": 1000,
+          "cisa_ukraine_power_2015": 1000,
+          "cisa_unitronics_2023": 1000,
+          "cisa_water_kansas_insider_2019": 1000,
+          "clorox_cyber_2023": 1000,
+          "doj_bowman_dam_2013": 1000,
+          "doj_discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "hydro_ransomware_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "source_family_episode_counts": {
+          "bowman_dam_2013": 1000,
+          "clorox_cyber_2023": 1000,
+          "discovery_bay_2021": 1000,
+          "hse_conti_2021": 1000,
+          "kansas_water_insider_2019": 1000,
+          "maersk_notpetya_2017": 1000,
+          "molson_coors_cyber_2021": 1000,
+          "norsk_hydro_2019": 1000,
+          "triton_2017": 1000,
+          "ukraine_power_2015": 1000,
+          "unitronics_2023": 1000,
+          "west_pharma_cyber_2026": 1000
+        },
+        "transitions": 96000
+      },
+      "incident_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.004714464681071857,
+          "p95_normalized_one_step_error": 0.010229561198502778,
+          "rows": 23040,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9968951541204613,
+            "false_negative_rate": 0.0008283288465520812,
+            "false_positive_rate": 0.005381362912525397,
+            "fn": 4,
+            "fp": 98,
+            "tn": 18113,
+            "tp": 4825
+          }
+        },
+        "rollout": {
+          "h1": 0.004714464768767357,
+          "h2": 0.007932948879897594,
+          "h3": 0.010867520235478878,
+          "h4": 0.013647879473865032,
+          "h5": 0.01624152436852455
+        }
+      },
+      "latent": 160,
+      "original_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.005021946424684656,
+          "p95_normalized_one_step_error": 0.010001578647643316,
+          "rows": 14400,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9923140886628232,
+            "false_negative_rate": 0.003859857482185273,
+            "false_positive_rate": 0.011511965192168239,
+            "fn": 13,
+            "fp": 127,
+            "tn": 10905,
+            "tp": 3355
+          }
+        },
+        "rollout": {
+          "h1": 0.0050219460390508175,
+          "h2": 0.00865266565233469,
+          "h3": 0.011945587582886219,
+          "h4": 0.015015699900686741,
+          "h5": 0.01790972426533699
+        }
+      },
+      "selection": {
+        "accepted": false,
+        "checks": {
+          "action_sensitivity": true,
+          "effective_rank": true,
+          "incident_validation_geometric_improvement_at_least_5_percent": false,
+          "incident_validation_no_horizon_regression": false,
+          "latent_standard_deviation": true,
+          "original_validation_no_regression_over_2_percent": false,
+          "prediction_variance_ratio": true,
+          "runtime_artifact_compatible": false,
+          "stress_validation_geometric_no_regression": false,
+          "stress_validation_no_horizon_regression": false
+        },
+        "incident_ratios": {
+          "h1": 1.2338750524664983,
+          "h3": 1.1606151894247048,
+          "h5": 1.1473485105170738
+        },
+        "original_ratios": {
+          "h1": 1.472691084232251,
+          "h3": 1.485925761850385,
+          "h5": 1.5251703525731393
+        },
+        "selection_score": 1.3098848819906699,
+        "stress_ratios": {
+          "h1": 1.468978326928041,
+          "h3": 1.4069678633240679,
+          "h5": 1.3701284601331636
+        }
+      },
+      "stress_train_episodes": 3000,
+      "stress_training": {
+        "action_transition_counts": {
+          "approve": 3429,
+          "diagnose": 3430,
+          "inspect": 3427,
+          "move": 2855,
+          "repair": 3999,
+          "stop": 3430,
+          "verify": 3430
+        },
+        "case_episode_counts": {
+          "compound_motion_hazard": 250,
+          "emergency_stop": 250,
+          "geofence_edge": 250,
+          "heavy_payload": 250,
+          "high_vibration": 250,
+          "human_proximity": 250,
+          "low_battery": 250,
+          "low_clearance": 250,
+          "offline_controller": 250,
+          "recovery_state": 250,
+          "repair_without_approval": 250,
+          "weak_link": 250
+        },
+        "dangerous_transitions": 6292,
+        "episodes": 3000,
+        "transitions": 24000
+      },
+      "stress_validation": {
+        "diagnostics": {
+          "all_predictions_finite": true,
+          "normalized_one_step_error": 0.005645927736070007,
+          "p95_normalized_one_step_error": 0.012507467716932286,
+          "rows": 8000,
+          "rules_plus_jepa": {
+            "balanced_accuracy": 0.9954075235109718,
+            "false_negative_rate": 0.0009090909090909091,
+            "false_positive_rate": 0.008275862068965517,
+            "fn": 2,
+            "fp": 48,
+            "tn": 5752,
+            "tp": 2198
+          }
+        },
+        "rollout": {
+          "h1": 0.005645927973091602,
+          "h2": 0.009876249358057976,
+          "h3": 0.013591443188488483,
+          "h4": 0.016919365152716637,
+          "h5": 0.019956771284341812
+        }
+      },
+      "training_seed": 137,
+      "training_transitions": 187200,
+      "training_validation": {
+        "action_cross_entropy": 0.004184073302894831,
+        "delta_mse": 0.00038789547397755086,
+        "latent_prediction_mse": 0.0019006632501259446,
+        "objective": 0.0008663350697359419,
+        "reconstruction_mse": 2.855375896615442e-05
+      }
+    }
+  ],
+  "catalog": "docs/research/physical_incident_sources_v2.json",
+  "catalog_sha256": "1b2b9c8e8d28ae32156564cf31444fa5e3b71feed330cf0294e51cf465cb7fa5",
+  "claim_boundary": [
+    "Incident sources provide defensive state-distribution priors, not measured Ferrum trajectories.",
+    "Every transition and danger label is generated by the deterministic Ferrum simulator.",
+    "The test partitions were not used to select a candidate.",
+    "The artifact remains shadow-only and cannot control physical equipment."
+  ],
+  "current_artifact": "userland/heliox-daemon/physical_world_model.bin",
+  "current_artifact_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+  "current_test": {
+    "incident_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.00404650609468149,
+        "p95_normalized_one_step_error": 0.0077028201892971986,
+        "rows": 20480,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.995462992929024,
+          "false_negative_rate": 0.0003772161448509996,
+          "false_positive_rate": 0.008696797997101068,
+          "fn": 2,
+          "fp": 132,
+          "tn": 15046,
+          "tp": 5300
+        }
+      },
+      "rollout": {
+        "h1": 0.0040465062484145164,
+        "h2": 0.0070326440036296844,
+        "h3": 0.009760228917002678,
+        "h4": 0.012219030410051346,
+        "h5": 0.0145779550075531
+      }
+    },
+    "ood_test": {
+      "all_predictions_finite": true,
+      "invalid_observations_rejected": 682,
+      "normalized_one_step_error": 0.003382848587714236,
+      "p95_normalized_one_step_error": 0.005927396402694284,
+      "rows": 4096,
+      "rules_plus_jepa": {
+        "balanced_accuracy": 0.9956289460903351,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.008742107819329771,
+        "fn": 0,
+        "fp": 18,
+        "tn": 2041,
+        "tp": 2037
+      }
+    },
+    "original_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.003476440668738279,
+        "p95_normalized_one_step_error": 0.006468412932008503,
+        "rows": 14400,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9927726800203123,
+          "false_negative_rate": 0.002335084646818447,
+          "false_positive_rate": 0.012119555312556953,
+          "fn": 8,
+          "fp": 133,
+          "tn": 10841,
+          "tp": 3418
+        }
+      },
+      "rollout": {
+        "h1": 0.0034764406736940145,
+        "h2": 0.006061977706849575,
+        "h3": 0.008253809995949268,
+        "h4": 0.010231785476207733,
+        "h5": 0.01206787396222353
+      }
+    },
+    "stress_test": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.0037998109746113186,
+        "p95_normalized_one_step_error": 0.007336846552789211,
+        "rows": 16000,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9955939177644468,
+          "false_negative_rate": 0.00023685457129322596,
+          "false_positive_rate": 0.008575309899813211,
+          "fn": 1,
+          "fp": 101,
+          "tn": 11677,
+          "tp": 4221
+        }
+      },
+      "rollout": {
+        "h1": 0.0037998107727617025,
+        "h2": 0.0068566929548978806,
+        "h3": 0.009593477472662926,
+        "h4": 0.01207524724304676,
+        "h5": 0.014390234835445881
+      }
+    }
+  },
+  "current_validation": {
+    "incident": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.0038208608951562284,
+        "p95_normalized_one_step_error": 0.00729782881680876,
+        "rows": 23040,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.9964307286804679,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.007138542639064302,
+          "fn": 0,
+          "fp": 130,
+          "tn": 18081,
+          "tp": 4829
+        }
+      },
+      "rollout": {
+        "h1": 0.0038208607584238052,
+        "h2": 0.006729200016707182,
+        "h3": 0.009363586083054543,
+        "h4": 0.011860545724630356,
+        "h5": 0.014155702665448189
+      }
+    },
+    "original": {
+      "diagnostics": {
+        "all_predictions_finite": true,
+        "normalized_one_step_error": 0.0034100470708411496,
+        "p95_normalized_one_step_error": 0.006301395990885793,
+        "rows": 14400,
+        "rules_plus_jepa": {
+          "balanced_accuracy": 0.99301567540939,
+          "false_negative_rate": 0.0011876484560570072,
+          "false_positive_rate": 0.012781000725163161,
+          "fn": 4,
+          "fp": 141,
+          "tn": 10891,
+          "tp": 3364
+        }
+      },
+      "rollout": {
+        "h1": 0.0034100471530109644,
+        "h2": 0.005915940273553133,
+        "h3": 0.008039155043661594,
+        "h4": 0.009947479702532291,
+        "h5": 0.011742769740521908
+      }
+    }
+  },
+  "dataset": "target/physical_world_model/v4_incident_trajectories.jsonl",
+  "dataset_sha256": "b6ce9336c4fd5980001a685c7f40c6ac54500809ad417bf8d21d867d05c8d2b9",
+  "incident_seed": 20260822,
+  "incident_test": {
+    "action_transition_counts": {
+      "approve": 3041,
+      "diagnose": 3162,
+      "inspect": 1191,
+      "move": 3074,
+      "repair": 2775,
+      "stop": 3948,
+      "verify": 3289
+    },
+    "dangerous_transitions": 5302,
+    "episodes": 2560,
+    "hazard_tag_episode_counts": {
+      "availability_loss": 214,
+      "logic_or_configuration_tamper": 85,
+      "loss_of_control": 299,
+      "loss_of_view": 85,
+      "manual_fallback": 514,
+      "process_divergence": 940,
+      "recovery_inhibition": 318,
+      "safety_interlock_compromise": 107,
+      "sensor_or_view_deception": 213,
+      "unauthorized_actuation": 428,
+      "unsafe_command_sequence": 213
+    },
+    "source_episode_counts": {
+      "aurora_generator_2007": 320,
+      "bsi_steel_mill_2014": 320,
+      "cisa_wastewater_overflow_2014": 320,
+      "doj_carr_critical_infrastructure_2024": 320,
+      "fbi_water_plc_2026": 320,
+      "gao_colonial_pipeline_2021": 320,
+      "ieee_stuxnet_2011": 320,
+      "simpson_manufacturing_cyber_2023": 320
+    },
+    "source_family_episode_counts": {
+      "aurora_experiment_2007": 320,
+      "carr_critical_infrastructure_2024": 320,
+      "colonial_pipeline_2021": 320,
+      "german_steel_mill_2014": 320,
+      "simpson_manufacturing_cyber_2023": 320,
+      "stuxnet": 320,
+      "us_water_plc_2026": 320,
+      "wastewater_overflow_2014": 320
+    },
+    "transitions": 20480
+  },
+  "incident_validation": {
+    "action_transition_counts": {
+      "approve": 3784,
+      "diagnose": 3473,
+      "inspect": 1139,
+      "move": 2782,
+      "repair": 3248,
+      "stop": 5094,
+      "verify": 3520
+    },
+    "dangerous_transitions": 4829,
+    "episodes": 2880,
+    "hazard_tag_episode_counts": {
+      "availability_loss": 641,
+      "logic_or_configuration_tamper": 106,
+      "loss_of_control": 320,
+      "loss_of_view": 534,
+      "manual_fallback": 532,
+      "process_divergence": 642,
+      "recovery_inhibition": 320,
+      "sensor_or_view_deception": 213,
+      "unauthorized_actuation": 321,
+      "unsafe_command_sequence": 214
+    },
+    "source_episode_counts": {
+      "cisa_california_water_ransomware_2021": 320,
+      "cisa_crashoverride_2016": 320,
+      "cisa_oldsmar_water_2021": 320,
+      "nature_swat_wadi_2025": 320,
+      "ncsc_viasat_2022": 320,
+      "qao_maroochy_2000": 320,
+      "uscg_mtsa_ryuk_2019": 320,
+      "uscg_vessel_malware_2019": 320,
+      "vestas_cyber_2021": 320
+    },
+    "source_family_episode_counts": {
+      "california_water_ghost_2021": 320,
+      "maroochy_2000": 320,
+      "mtsa_ryuk_2019": 320,
+      "oldsmar_water_2021": 320,
+      "swat_wadi_ghl": 320,
+      "ukraine_power_2016": 320,
+      "us_vessel_malware_2019": 320,
+      "vestas_cyber_2021": 320,
+      "viasat_ka_sat_2022": 320
+    },
+    "transitions": 23040
+  },
+  "promotion": {
+    "checks": {
+      "all_predictions_finite": true,
+      "anti_collapse_variance_ratio": true,
+      "incident_test_false_negatives_not_increased": false,
+      "incident_test_false_positive_rate_within_2_points": true,
+      "incident_test_geometric_improvement_at_least_5_percent": false,
+      "ood_false_negatives_not_increased": false,
+      "ood_false_positive_rate_within_2_points": true,
+      "original_test_no_regression_over_2_percent": false,
+      "stress_test_false_negatives_not_increased": false,
+      "stress_test_false_positive_rate_within_2_points": true
+    },
+    "incident_test_ratios": {
+      "h1": 1.1653782604582887,
+      "h3": 1.1686368066461283,
+      "h5": 1.208515961198393
+    },
+    "original_test_ratios": {
+      "h1": 1.3503995225031828,
+      "h3": 1.3670633924369315,
+      "h5": 1.4034152915533917
+    },
+    "passed": false,
+    "stress_test_ratios": null
+  },
+  "protocol_id": "physical-jepa-real-evidence-v4",
+  "registered_ood": {
+    "protocol": "v2",
+    "rows": 4096,
+    "seed": 20260825
+  },
+  "schema_version": 1,
+  "selected_candidate": {
+    "epochs": 10000,
+    "epochs_completed": 4925,
+    "hidden": 256,
+    "incident_train_episodes_per_source": 1000,
+    "latent": 128,
+    "selection": {
+      "accepted": false,
+      "checks": {
+        "action_sensitivity": true,
+        "effective_rank": true,
+        "incident_validation_geometric_improvement_at_least_5_percent": false,
+        "incident_validation_no_horizon_regression": false,
+        "latent_standard_deviation": true,
+        "original_validation_no_regression_over_2_percent": false,
+        "prediction_variance_ratio": true,
+        "runtime_artifact_compatible": true,
+        "stress_validation_geometric_no_regression": false,
+        "stress_validation_no_horizon_regression": false
+      },
+      "incident_ratios": {
+        "h1": 1.1724384283401477,
+        "h3": 1.1641338625516382,
+        "h5": 1.1853591910823793
+      },
+      "original_ratios": {
+        "h1": 1.362162512039943,
+        "h3": 1.3905879267287204,
+        "h5": 1.4301769182762096
+      },
+      "selection_score": 1.2669925129403452,
+      "stress_ratios": {
+        "h1": 1.374355798169347,
+        "h3": 1.344507198300729,
+        "h5": 1.3059400822879392
+      }
+    },
+    "stress_train_episodes": 3000,
+    "training_seed": 42,
+    "training_transitions": 187200
+  },
+  "selected_candidate_index": 0,
+  "selection_protocol": "validation_only_then_single_untouched_test_open",
+  "stress_test": {
+    "action_transition_counts": {
+      "approve": 2287,
+      "diagnose": 2286,
+      "inspect": 2284,
+      "move": 1905,
+      "repair": 2664,
+      "stop": 2287,
+      "verify": 2287
+    },
+    "case_episode_counts": {
+      "compound_motion_hazard": 166,
+      "emergency_stop": 167,
+      "geofence_edge": 167,
+      "heavy_payload": 167,
+      "high_vibration": 167,
+      "human_proximity": 167,
+      "low_battery": 167,
+      "low_clearance": 167,
+      "offline_controller": 166,
+      "recovery_state": 166,
+      "repair_without_approval": 166,
+      "weak_link": 167
+    },
+    "dangerous_transitions": 4222,
+    "episodes": 2000,
+    "transitions": 16000
+  },
+  "stress_validation": {
+    "action_transition_counts": {
+      "approve": 1144,
+      "diagnose": 1143,
+      "inspect": 1142,
+      "move": 952,
+      "repair": 1332,
+      "stop": 1144,
+      "verify": 1143
+    },
+    "case_episode_counts": {
+      "compound_motion_hazard": 83,
+      "emergency_stop": 83,
+      "geofence_edge": 84,
+      "heavy_payload": 83,
+      "high_vibration": 83,
+      "human_proximity": 84,
+      "low_battery": 84,
+      "low_clearance": 84,
+      "offline_controller": 83,
+      "recovery_state": 83,
+      "repair_without_approval": 83,
+      "weak_link": 83
+    },
+    "dangerous_transitions": 2200,
+    "episodes": 1000,
+    "transitions": 8000
+  },
+  "test_metrics_used_for_selection": false,
+  "validated_for_gating": false
+}
