@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-transfer-v1-temporal-amendment1",
+  "parent_protocol": "physical_hai_transfer_protocol_v1.json",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "triggering_validation_record": {
+    "path": "physical_hai_v1_selection.json",
+    "sha256": "eb0051291bcb642b3a7ac65efc343a4eb11c2624faf05febbce70836606234e6",
+    "final_test_open_count": 0,
+    "observed_gap": "Every memoryless candidate failed the frozen gates. Persistence achieved 0.8289% geometric H1/H3/H5 error, the deployed simulator JEPA reached 5.1696%, and the best attack-window result was 4/14. Increasing instantaneous-model capacity did not solve temporal process dynamics."
+  },
+  "permitted_change": "Add past-only temporal context to the HAI-specific diagnostic branch. Do not change the deployed simulator PJE1 artifact, HAI projection, file split, raw labels, final-test policy, or authority boundary.",
+  "context_candidates_seconds": [5, 15, 30],
+  "candidate_families": [
+    "temporal ridge autoregression",
+    "matched temporal MLP transition predictor",
+    "HAI-specific temporal EMA-target JEPA transition predictor"
+  ],
+  "temporal_input": {
+    "allowed": [
+      "the current and preceding masked projected states",
+      "past and contemporaneous registered control features",
+      "past and contemporaneous action proxies"
+    ],
+    "forbidden": [
+      "future state or control values",
+      "attack labels",
+      "attack-window boundaries",
+      "scenario identity"
+    ]
+  },
+  "residual_score_candidates": [
+    "maximum per-dimension residual standardized by normal-calibration median absolute deviation",
+    "mean of the three largest standardized per-dimension residuals",
+    "five-second exponentially weighted mean of the mean-top-three score",
+    "thirty-second exponentially weighted mean of the mean-top-three score"
+  ],
+  "threshold_policy": "Each candidate score calibrates its threshold on hai-train4 normal data only. HAI test1 labels may select the context/model/score candidate. Alert persistence and the two-alerts-per-hour ceiling remain unchanged.",
+  "selection_policy": {
+    "primary": "lowest validation geometric H1/H3/H5 masked transition error among candidates passing every original validation gate",
+    "tie_breakers": [
+      "higher validation attack-window recall",
+      "lower validation false alerts per hour",
+      "shorter context",
+      "smaller artifact"
+    ],
+    "reopen_memoryless_candidates": false,
+    "final_test_open_count": 1,
+    "no_retraining_after_final_test_open": true
+  },
+  "unchanged_minimum_validation_gates": {
+    "all_predictions_finite": true,
+    "beats_persistence_geometric_error_relative": 0.05,
+    "beats_per_action_mean_geometric_error_relative": 0.02,
+    "attack_window_recall": 0.70,
+    "false_alerts_per_hour_max": 2.0,
+    "point_balanced_accuracy": 0.60,
+    "anti_collapse_variance_ratio_min": 0.10
+  },
+  "authority_boundary": "The temporal HAI model remains a separate, advisory diagnostic branch. It cannot grant permits, block commands, approve goals, invoke adapters, or actuate hardware."
+}
