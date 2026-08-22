@@ -39,11 +39,11 @@ DATA_SEED = 42
 INCIDENT_VALIDATION_EPISODES_PER_SOURCE = 120
 INCIDENT_TEST_EPISODES_PER_SOURCE = 120
 CANDIDATES = (
-    {"incident_train_episodes_per_source": 150, "epochs": 4_000, "training_seed": 42},
-    {"incident_train_episodes_per_source": 250, "epochs": 5_000, "training_seed": 42},
-    {"incident_train_episodes_per_source": 350, "epochs": 6_000, "training_seed": 42},
-    {"incident_train_episodes_per_source": 250, "epochs": 5_000, "training_seed": 17},
-    {"incident_train_episodes_per_source": 350, "epochs": 6_000, "training_seed": 17},
+    {"incident_train_episodes_per_source": 150, "latent": 64, "hidden": 128, "epochs": 4_000, "training_seed": 42},
+    {"incident_train_episodes_per_source": 250, "latent": 64, "hidden": 128, "epochs": 5_000, "training_seed": 42},
+    {"incident_train_episodes_per_source": 350, "latent": 64, "hidden": 128, "epochs": 6_000, "training_seed": 42},
+    {"incident_train_episodes_per_source": 250, "latent": 64, "hidden": 128, "epochs": 5_000, "training_seed": 17},
+    {"incident_train_episodes_per_source": 350, "latent": 64, "hidden": 128, "epochs": 6_000, "training_seed": 17},
 )
 
 
@@ -195,18 +195,71 @@ def main() -> int:
     parser.add_argument("--artifact", type=Path, default=DEFAULT_ARTIFACT)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
+    parser.add_argument("--base-episodes", type=int, default=DATA_EPISODES)
+    parser.add_argument("--steps", type=int, default=DATA_STEPS)
+    parser.add_argument("--data-seed", type=int, default=DATA_SEED)
+    parser.add_argument(
+        "--incident-validation-per-source",
+        type=int,
+        default=INCIDENT_VALIDATION_EPISODES_PER_SOURCE,
+    )
+    parser.add_argument(
+        "--incident-test-per-source",
+        type=int,
+        default=INCIDENT_TEST_EPISODES_PER_SOURCE,
+    )
+    parser.add_argument(
+        "--candidate-config",
+        type=Path,
+        help="JSON file containing a fixed candidates array and optional protocol id",
+    )
+    parser.add_argument("--ood-count", type=int, default=512)
+    parser.add_argument("--ood-seed", type=int, default=73_119)
     args = parser.parse_args()
 
+    if args.base_episodes < 20:
+        parser.error("--base-episodes must be at least 20")
+    if args.steps < 5:
+        parser.error("--steps must be at least 5 for H=1..5 evaluation")
+    if args.incident_validation_per_source < 1 or args.incident_test_per_source < 1:
+        parser.error("incident validation/test counts must be positive")
+    if args.ood_count < 1:
+        parser.error("--ood-count must be positive")
+
+    candidate_protocol = "physical-jepa-incident-simulator-v1"
+    candidate_config_sha256 = None
+    candidate_configs = list(CANDIDATES)
+    if args.candidate_config:
+        config_document = json.loads(args.candidate_config.read_text(encoding="utf-8"))
+        candidate_protocol = config_document["protocol_id"]
+        candidate_configs = config_document["candidates"]
+        candidate_config_sha256 = digest(args.candidate_config)
+    if not candidate_configs:
+        parser.error("candidate configuration must contain at least one candidate")
+    required_candidate_fields = {
+        "incident_train_episodes_per_source",
+        "latent",
+        "hidden",
+        "epochs",
+        "training_seed",
+    }
+    for index, config in enumerate(candidate_configs):
+        missing = required_candidate_fields.difference(config)
+        if missing:
+            parser.error(f"candidate {index} is missing: {', '.join(sorted(missing))}")
+        if min(int(config[field]) for field in required_candidate_fields) < 1:
+            parser.error(f"candidate {index} contains a non-positive value")
+
     current_artifact_sha256 = digest(args.current_artifact)
-    base_rows = simulator.generate(DATA_EPISODES, DATA_STEPS, DATA_SEED)
+    base_rows = simulator.generate(args.base_episodes, args.steps, args.data_seed)
     _, _, base_train, base_validation, base_test = jepa.split_rows(
-        base_rows, DATA_EPISODES, DATA_SEED
+        base_rows, args.base_episodes, args.data_seed
     )
     incident_validation, incident_validation_metadata = incidents.generate_partition(
         "validation",
-        INCIDENT_VALIDATION_EPISODES_PER_SOURCE,
-        DATA_STEPS,
-        DATA_SEED,
+        args.incident_validation_per_source,
+        args.steps,
+        args.data_seed,
     )
     current_weights = robustness.load_artifact(args.current_artifact)
     current_original_validation = evaluation(base_validation, current_weights)
@@ -214,27 +267,27 @@ def main() -> int:
 
     candidates = []
     candidate_weights = []
-    for config in CANDIDATES:
+    for config in candidate_configs:
         incident_train, incident_train_metadata = incidents.generate_partition(
             "train",
             config["incident_train_episodes_per_source"],
-            DATA_STEPS,
-            DATA_SEED,
+            args.steps,
+            args.data_seed,
         )
         train_rows = [*base_train, *incident_train]
         validation_rows = [*base_validation, *incident_validation]
         weights, training_validation, epochs_completed = jepa.train(
             train_rows,
             validation_rows,
-            latent=64,
-            hidden=128,
+            latent=config["latent"],
+            hidden=config["hidden"],
             epochs=config["epochs"],
             seed=config["training_seed"],
         )
         result = {
             **config,
-            "latent": 64,
-            "hidden": 128,
+            "latent": config["latent"],
+            "hidden": config["hidden"],
             "epochs_completed": epochs_completed,
             "training_transitions": len(train_rows),
             "incident_training": incidents.summarize(
@@ -271,9 +324,9 @@ def main() -> int:
 
     # Test partitions are generated only after the candidate index is frozen.
     incident_test, incident_test_metadata = incidents.generate_partition(
-        "test", INCIDENT_TEST_EPISODES_PER_SOURCE, DATA_STEPS, DATA_SEED
+        "test", args.incident_test_per_source, args.steps, args.data_seed
     )
-    ood_test = robustness.ood_rows()
+    ood_test = robustness.ood_rows(args.ood_count, args.ood_seed)
     current_test = {
         "original_test": evaluation(base_test, current_weights),
         "incident_test": evaluation(incident_test, current_weights),
@@ -289,8 +342,8 @@ def main() -> int:
     selected_incident_train, selected_train_metadata = incidents.generate_partition(
         "train",
         selected["incident_train_episodes_per_source"],
-        DATA_STEPS,
-        DATA_SEED,
+        args.steps,
+        args.data_seed,
     )
     selected_train_rows = [*base_train, *selected_incident_train]
     mean_predictor = mean_delta_predictor(selected_train_rows)
@@ -302,8 +355,8 @@ def main() -> int:
         len(selected_train_rows),
         candidate_test["original_test"]["rollout"]["h3"],
         mean_h3,
-        64,
-        128,
+        selected["latent"],
+        selected["hidden"],
     )
 
     all_incident_rows = [
@@ -319,6 +372,11 @@ def main() -> int:
     incidents.write_jsonl(args.dataset, all_incident_rows, all_incident_metadata)
     report = {
         "schema_version": 1,
+        "protocol_id": candidate_protocol,
+        "candidate_config": repository_path(args.candidate_config)
+        if args.candidate_config
+        else None,
+        "candidate_config_sha256": candidate_config_sha256,
         "selection_protocol": "validation_only_then_single_untouched_test_open",
         "test_metrics_used_for_selection": False,
         "current_artifact": repository_path(args.current_artifact),
@@ -331,9 +389,9 @@ def main() -> int:
         "dataset": repository_path(args.dataset),
         "dataset_sha256": digest(args.dataset),
         "base_dataset": {
-            "episodes": DATA_EPISODES,
-            "steps": DATA_STEPS,
-            "seed": DATA_SEED,
+            "episodes": args.base_episodes,
+            "steps": args.steps,
+            "seed": args.data_seed,
             "train_transitions": len(base_train),
             "validation_transitions": len(base_validation),
             "test_transitions": len(base_test),
@@ -342,6 +400,7 @@ def main() -> int:
             incident_validation, incident_validation_metadata
         ),
         "incident_test": incidents.summarize(incident_test, incident_test_metadata),
+        "registered_ood": {"rows": args.ood_count, "seed": args.ood_seed},
         "current_validation": {
             "original": current_original_validation,
             "incident": current_incident_validation,

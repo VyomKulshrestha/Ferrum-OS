@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-large-simulator-v2",
+  "registered_before_test_open": true,
+  "baseline_artifact_sha256": "b1900179c91a80c6933272c41787fa16e72d39cbb815edbe1a82fc4dac7a5800",
+  "base_dataset": {
+    "episodes": 10000,
+    "steps": 8,
+    "seed": 20260822
+  },
+  "incident_dataset": {
+    "validation_episodes_per_source": 240,
+    "test_episodes_per_source": 240,
+    "source_families_disjoint": true
+  },
+  "registered_ood": {
+    "rows": 2048,
+    "seed": 20260823
+  },
+  "selection": {
+    "uses": [
+      "base_validation",
+      "source_family_disjoint_incident_validation",
+      "anti_collapse_metrics"
+    ],
+    "excludes": [
+      "base_test",
+      "incident_test",
+      "registered_ood"
+    ],
+    "test_open_count": 1
+  },
+  "candidates": [
+    {
+      "incident_train_episodes_per_source": 500,
+      "latent": 64,
+      "hidden": 128,
+      "epochs": 6000,
+      "training_seed": 42
+    },
+    {
+      "incident_train_episodes_per_source": 750,
+      "latent": 96,
+      "hidden": 192,
+      "epochs": 7000,
+      "training_seed": 42
+    },
+    {
+      "incident_train_episodes_per_source": 1000,
+      "latent": 128,
+      "hidden": 256,
+      "epochs": 8000,
+      "training_seed": 42
+    },
+    {
+      "incident_train_episodes_per_source": 750,
+      "latent": 96,
+      "hidden": 192,
+      "epochs": 7000,
+      "training_seed": 17
+    },
+    {
+      "incident_train_episodes_per_source": 1000,
+      "latent": 128,
+      "hidden": 256,
+      "epochs": 8000,
+      "training_seed": 17
+    },
+    {
+      "incident_train_episodes_per_source": 1000,
+      "latent": 128,
+      "hidden": 256,
+      "epochs": 8000,
+      "training_seed": 91
+    }
+  ],
+  "promotion_requirements": [
+    "all predictions finite",
+    "no original-test horizon regresses by more than two percent",
+    "incident-test geometric H1/H3/H5 error improves by at least ten percent",
+    "incident-test false negatives do not increase",
+    "registered-OOD one-step error improves by at least five percent",
+    "registered-OOD false negatives do not increase",
+    "false-positive rate remains within two percentage points"
+  ],
+  "claim_boundary": "This protocol can establish simulator transition and screening improvements. It cannot establish physical-device safety, field reliability, hard-real-time behavior, or certification."
+}
