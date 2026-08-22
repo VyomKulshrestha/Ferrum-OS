@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-cross-version-v2-canonical-signals-amendment1",
+  "parent_protocol": "physical_hai_v2_cross_version_protocol.json",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "final_test_open_count": 0,
+  "trigger": "The permitted HAI 21.03 normal headers use historical names for signals that the HAI technical manual identifies as the same physical quantities in HAI 23.05. Using a literal name intersection would discard setpoints and vibration channels that are central to the documented attacks.",
+  "permitted_change": "Replace the literal-name intersection with the ordered canonical map below. No final-file header, value or label has been accessed.",
+  "direct_intersection_count": 59,
+  "canonical_signal_count": 75,
+  "canonical_aliases": {
+    "P1_B2004": {
+      "hai_21_03": "P1_B2004",
+      "hai_23_05": "x1001_05_SETPOINT_OUT",
+      "basis": "matching 0-10 bar setpoint role and observed normal range"
+    },
+    "P1_B2016": {
+      "hai_21_03": "P1_B2016",
+      "hai_23_05": "x1001_15_ASSIGN_OUT",
+      "basis": "explicit HAI manual duplicate-point mapping"
+    },
+    "P1_B3004": {
+      "hai_21_03": "P1_B3004",
+      "hai_23_05": "x1002_07_SETPOINT_OUT",
+      "basis": "matching water-level setpoint role and 300-400 mm normal range"
+    },
+    "P1_B3005": {
+      "hai_21_03": "P1_B3005",
+      "hai_23_05": "x1002_08_SETPOINT_OUT",
+      "basis": "matching discharge-flow setpoint role and 950-1050 l/h normal range"
+    },
+    "P1_B4002": {
+      "hai_21_03": "P1_B4002",
+      "hai_23_05": "x1003_24_SUM_OUT",
+      "basis": "matching outlet-temperature setpoint role and 28-33 degree normal range"
+    },
+    "P1_B400B": {
+      "hai_21_03": "P1_B400B",
+      "hai_23_05": "x1003_10_SETPOINT_OUT",
+      "basis": "matching water-outflow setpoint role and 0-3190 l/h range"
+    },
+    "P1_B4022": {
+      "hai_21_03": "P1_B4022",
+      "hai_23_05": "x1003_18_SETPOINT_OUT",
+      "basis": "matching thermal-power temperature demand and 25-28 degree normal range"
+    },
+    "P2_ASD": {
+      "hai_21_03": "P2_ASD",
+      "hai_23_05": "P2_AutoSD",
+      "basis": "HAI manual historical name for auto speed demand"
+    },
+    "P2_MSD": {
+      "hai_21_03": "P2_MSD",
+      "hai_23_05": "P2_ManualSD",
+      "basis": "HAI manual historical name for manual speed demand"
+    },
+    "P2_CO_rpm": {
+      "hai_21_03": "P2_CO_rpm",
+      "hai_23_05": "P2_SCO",
+      "basis": "speed-controller output"
+    },
+    "P2_VYT02": {
+      "hai_21_03": "P2_VYT02",
+      "hai_23_05": "P2_VIBTR01",
+      "basis": "explicit HAI manual historical vibration-channel name"
+    },
+    "P2_VXT02": {
+      "hai_21_03": "P2_VXT02",
+      "hai_23_05": "P2_VIBTR02",
+      "basis": "explicit HAI manual historical vibration-channel name"
+    },
+    "P2_VYT03": {
+      "hai_21_03": "P2_VYT03",
+      "hai_23_05": "P2_VIBTR03",
+      "basis": "explicit HAI manual historical vibration-channel name"
+    },
+    "P2_VXT03": {
+      "hai_21_03": "P2_VXT03",
+      "hai_23_05": "P2_VIBTR04",
+      "basis": "explicit HAI manual historical vibration-channel name"
+    },
+    "P3_LH": {
+      "hai_21_03": "P3_LH",
+      "hai_23_05": "P3_LH01",
+      "basis": "high water-level setpoint"
+    },
+    "P3_LL": {
+      "hai_21_03": "P3_LL",
+      "hai_23_05": "P3_LL01",
+      "basis": "low water-level setpoint"
+    }
+  },
+  "excluded_non_equivalences": [
+    "P4_HT_LD is not aliased to total load P4_LD",
+    "P2_HILout and P2_SIT02 have no documented HAI 23.05 equivalent",
+    "P1_B4005 has no sufficiently supported HAI 23.05 alias"
+  ],
+  "normal_data_verification": {
+    "train1_rows": 216001,
+    "train2_rows": 226801,
+    "train3_rows": 478801,
+    "attack_label_sum": 0,
+    "all_registered_git_blobs_verified": true
+  },
+  "authority_boundary": "Canonicalization changes only the evidence model input schema. It does not change runtime authority or convert recorded HIL evidence into certification."
+}
