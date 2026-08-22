@@ -161,7 +161,15 @@ def main() -> int:
     )
     require(
         benchmarks["physical_simulator_jepa"]["validated_for_gating"] is False,
-        "physical simulator artifact remains shadow-only",
+        "physical simulator artifact cannot self-promote",
+    )
+    require(
+        benchmarks["physical_simulator_jepa"]["runtime_simulation_caution"] is True
+        and benchmarks["physical_simulator_jepa"]["runtime_live_learned_gate"]
+        == "shadow_only"
+        and benchmarks["physical_simulator_jepa"]["permit_authority"]
+        == "deterministic_supervisor",
+        "physical runtime separates simulator caution from live and permit authority",
     )
     physical = benchmarks["physical_simulator_jepa"]
     require(
@@ -208,13 +216,13 @@ def main() -> int:
     )
     cyber = benchmarks["cyber_physical_software"]
     require(
-        cyber["contract_tests_passed"] == 152 and cyber["contract_tests_failed"] == 0,
-        "cyber-physical software contract records 152 passing tests",
+        cyber["contract_tests_passed"] == 157 and cyber["contract_tests_failed"] == 0,
+        "cyber-physical software contract records 157 passing tests",
     )
     require(
-        cyber["model_and_decoder_gates_passed"] == 32
+        cyber["model_and_decoder_gates_passed"] == 47
         and cyber["model_and_decoder_gates_failed"] == 0,
-        "cyber-physical model and decoder checks record 32 passing gates",
+        "cyber-physical model and decoder checks record 47 passing gates",
     )
     require(
         "does not prove" in cyber["claim_boundary"],

@@ -28,8 +28,10 @@ The report, software, and dataset are separate artifacts; use the
 
 > [!IMPORTANT]
 > FerrumOS v0.1.1 targets a documented QEMU/Bochs profile. Camera input is
-> synthetic, physical-world learning is simulator-only and shadow-only, and
-> neural results use deterministic synthetic EEG fixtures. Broad physical-PC,
+> synthetic, and physical-world learning is simulator-only. The selected
+> physical JEPA may add caution only in a digest-bound simulation session;
+> hardware-in-the-loop and live sessions remain shadow-only. Neural results use
+> deterministic synthetic EEG fixtures. Broad physical-PC,
 > live-EEG, medical, robot-deployment, and formal-safety claims are out of
 > scope. ROS 2, MQTT, CAN, Gazebo, Webots, and actuator-disabled interfaces are
 > software-tested contracts, not evidence of installed infrastructure or
@@ -62,9 +64,9 @@ The report, software, and dataset are separate artifacts; use the
 | OS world-model study | Rules + JEPA: **81.4%** balanced accuracy; rules + per-action mean: **81.2%** on the authored 500-episode fixture | No material JEPA safety advantage established |
 | Ring-3 preview | **1.29-1.57 ms** run-mean range across H=1..5; **0 bytes** heap growth in three runs | Excludes provider, action, and approval latency |
 | Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
-| Physical JEPA | **99.53%** balanced accuracy, 0 FN, 16 FP on the original held-out simulator split; incident challenge FN improved 11 to 1 | Permanently shadow-only; reports are priors, not trajectories |
+| Physical JEPA | **99.53%** balanced accuracy, 0 FN, 16 FP on the original held-out simulator split; incident challenge FN improved 11 to 1 | May add simulator-only caution; HIL/live remain shadow-only; reports are priors, not trajectories |
 | Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
-| Cyber-physical software | **152/152** deterministic contract tests and **32/32** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
+| Cyber-physical software | **157/157** deterministic contract tests and **47/47** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
 
 Every value above is derived and checked by
 `scripts/generate_public_evidence.py`; protocols, raw results, commit IDs, and
@@ -285,10 +287,14 @@ real-hardware or certified industrial deployment.
   negatives and 16 false positives. The source catalog, selection sweep,
   robustness report, and remaining incident clearance miss are committed under
   `docs/research/`.
-- Simulator-trained evidence is permanently `shadow_only`: serialized model
-  bytes cannot promote it into gating authority. Only telemetry-confirmed
-  execution can enter the bounded transition-fit experience stream; refusals,
-  uncertain deliveries, and simulated predictions remain audit-only.
+- Simulator-trained model bytes remain `shadow_only`: a serialized flag cannot
+  promote them into authority. Ferrum may bind the exact checkpoint digest to
+  a simulation session, where its forecast can only raise a verdict from
+  `Allow` to approval/block. HIL and live sessions cannot obtain that grant,
+  and the deterministic supervisor alone issues permits. Only
+  telemetry-confirmed execution can enter the bounded transition-fit
+  experience stream; refusals, uncertain deliveries, and simulated predictions
+  remain audit-only.
 - A transport-neutral host bridge implements deterministic scripted tests plus
   optional Gazebo/ROS 2 and Webots connectors. ROS 2, MQTT, and CAN conformance
   rules cover bounded QoS, mTLS/ACL, expiry, retained-message rejection,
@@ -306,16 +312,20 @@ python scripts/verify_physical_world_model.py
 python scripts/verify_physical_incident_sources.py
 python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_jepa_robustness.py
+python scripts/verify_physical_simulation_caution.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs
 ```
 
 The demo requires `confirm_simulation=true`, routes provider-equivalent and
-direct RPC calls through the same service, blocks unsafe motion with the
-deterministic supervisor, and completes safe delivery in QEMU. The repository
-now implements and tests ROS 2/MQTT/CAN and simulator-facing software contracts;
-it does not claim a running third-party deployment, wearable gateway, field
+direct RPC calls through the same service, and compares rules-only, ordinary
+shadow, and rules + JEPA on the same rules-safe command. The digest-bound JEPA
+blocks the risky simulator rollout without receiving a permit; a bounded safe
+control is still delivered. HIL/live learned use remains shadow-only. The
+repository now implements and tests ROS 2/MQTT/CAN and simulator-facing
+software contracts; it does not claim a running third-party deployment,
+wearable gateway, field
 telemetry, physical emergency controller, robot execution, or natural-use
 validation.
 
@@ -660,7 +670,7 @@ returning its expected prompt and no unknown-command or kernel-fault signature.
 | `execute_tool` | Run a public agent operation by name with args |
 | `agent_step` | Run one provider-backed ReAct cycle for a supplied goal and return its actions |
 | `world_model_preview` | Predict risk, lookahead depth, reason, and safer suggestion without executing the action |
-| `physical_status` | Read physical-runtime, simulator, and shadow-model status |
+| `physical_status` | Read physical-runtime, simulator-caution, live-shadow, and model provenance status |
 | `physical_maintenance_demo` | Run the explicitly confirmed simulator maintenance reference workflow |
 | `neural_status` | Read paired neural session, arm, pending-preview, and bounded fusion status |
 | `neural_calibrate` | Bind a stream descriptor and calibration to the paired session |

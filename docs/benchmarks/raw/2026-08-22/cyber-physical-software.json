@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.1.0",
+  "protocol_id": "cyber-physical-software-regression-2026-08-22",
+  "snapshot_date": "2026-08-22",
+  "source_commit": "db8d633",
+  "environment": {
+    "host_os": "Microsoft Windows NT 10.0.26220.0",
+    "rust_target": "x86_64-pc-windows-msvc",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
+    "python_runtime": "CPython 3.12.6"
+  },
+  "contract_suites": [
+    {
+      "component": "ferrum-physical-runtime",
+      "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "passed": 122,
+      "failed": 0
+    },
+    {
+      "component": "ferrum-neural-protocol",
+      "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "component": "neurod",
+      "command": "python -m unittest discover -s tools/neurod -p test_*.py",
+      "exit_code": 0,
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "component": "physical-simulator-bridge",
+      "command": "python -m unittest tools.physical_sim_bridge.test_bridge",
+      "exit_code": 0,
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "model_and_decoder_gates": [
+    {
+      "component": "physical-world-model",
+      "command": "python scripts/verify_physical_world_model.py --quick",
+      "exit_code": 0,
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "component": "physical-jepa-robustness",
+      "command": "python scripts/verify_physical_jepa_robustness.py",
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "component": "physical-simulation-caution",
+      "command": "python scripts/verify_physical_simulation_caution.py",
+      "exit_code": 0,
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "component": "neural-simulator",
+      "command": "python scripts/evaluate_neural_simulator.py --output target/neural-simulator-audit.json",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0
+    }
+  ],
+  "system_suites": [
+    {
+      "component": "ferrumos-build",
+      "command": ".\\build.ps1 build",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "component": "booted-heliox-bridge",
+      "command": "node scripts/verify_bridge.mjs",
+      "exit_code": 0,
+      "passed": 50,
+      "failed": 0
+    }
+  ],
+  "contract_tests_passed": 157,
+  "contract_tests_failed": 0,
+  "model_and_decoder_gates_passed": 47,
+  "model_and_decoder_gates_failed": 0,
+  "system_checks_passed": 51,
+  "system_checks_failed": 0,
+  "covered_software_boundaries": [
+    "versioned provenance and logical clocks",
+    "deterministic sessions replay and fault injection",
+    "virtual sensor actuator EEG watchdog and stop contracts",
+    "scripted Gazebo ROS 2 and Webots bridge boundaries",
+    "deterministic supervisor watchdog recovery and stop priority",
+    "ROS 2 MQTT and CAN transport conformance",
+    "actuator-disabled delivery",
+    "bounded neural intent and proposal-only physical goals",
+    "digest-bound simulator-only physical JEPA caution",
+    "shadow-only physical JEPA in HIL and live sessions",
+    "deterministic-only permit issuance",
+    "host-managed agent-cell contract",
+    "privacy retention reliability and incident primitives"
+  ],
+  "claim_boundary": "Local deterministic software and QEMU regression on the named implementation commit. Simulator-only learned caution is not physical deployment evidence. This does not prove installed Gazebo or Webots, real ROS 2/MQTT/CAN infrastructure, physical clocks, actuator hardware, robot safety, live EEG, hard-real-time behavior, native hypervisor containment, certification, or independent replication."
+}

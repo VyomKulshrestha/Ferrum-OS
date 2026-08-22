@@ -162,14 +162,20 @@ def main() -> int:
     )
     require(
         benchmarks["physical_simulator_jepa"]["validated_for_gating"] is False,
-        "physical model remains shadow-only",
+        "physical model artifact cannot self-promote",
+    )
+    require(
+        benchmarks["physical_simulator_jepa"]["runtime_simulation_caution"] is True
+        and benchmarks["physical_simulator_jepa"]["runtime_live_learned_gate"]
+        == "shadow_only",
+        "simulator-only learned caution is discoverable without a live claim",
     )
     require(
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,
         "neural no-control count remains zero",
     )
     require(
-        benchmarks["cyber_physical_software"]["contract_tests_passed"] == 152,
+        benchmarks["cyber_physical_software"]["contract_tests_passed"] == 157,
         "cyber-physical contract evidence is discoverable",
     )
     require(

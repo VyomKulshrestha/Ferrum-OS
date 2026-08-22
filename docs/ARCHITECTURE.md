@@ -741,7 +741,8 @@ work order -> typed actor dispatch -> canonical adapter command
            -> deterministic physical supervisor -> single-use permit
            -> fleet journal -> adapter delivery -> observed twin event
                          ^
-                         | advisory H=3 physical JEPA forecast
+                         | H=3 physical JEPA: shadow, or digest-bound
+                         | simulator-only caution
 ```
 
 - **Observation and twin**: versioned adapter frames update an event-sourced
@@ -797,14 +798,19 @@ work order -> typed actor dispatch -> canonical adapter command
   source-family-disjoint incident challenge, H3 error improves from 1.529% to
   0.995% and combined false negatives fall from 11 to 1. Registered OOD false
   negatives fall from 42 to 41 while false positives remain 4. The remaining
-  incident miss is a clearance case; simulator provenance and the absence of
-  real-hardware evidence prohibit learned gating.
+  incident miss is a clearance case. This evidence supports evaluation and
+  monotonic learned caution inside the simulator; it does not support learned
+  gating in HIL or live physical sessions.
 - **Planner and safety boundary**: `predict_shadow_horizon` supports bounded
   H=1..5 recurrence and the maintenance service uses H=3. It returns worst-step
   advisory risk with horizon-scaled uncertainty. Deterministic geofence,
   proximity, occupancy, emergency-stop, approval, telemetry freshness, policy
   revision, and twin revision checks remain authoritative. A serialized gating
-  flag is ignored, and model failure cannot disable deterministic enforcement.
+  flag is ignored. The runtime can mint a `SimulationCautionGrant` only when a
+  `Simulation` session descriptor binds the exact selected-model SHA-256. That
+  grant lets a matching physical-JEPA forecast raise `Allow` to approval/block;
+  it cannot reduce severity, grant a permit, cross into actuator-disabled HIL
+  or live mode, or disable deterministic enforcement.
 - **Deterministic supervisor**: `AuthoritySeverity` is a monotonic
   `Allow < RequireApproval < Block < EmergencyStop` lattice. A bounded priority
   queue prevents ordinary goals from starving stop/health traffic; command-rate,
@@ -824,18 +830,23 @@ work order -> typed actor dispatch -> canonical adapter command
   `HardwareInLoopActuatorDisabled` records a distinct acknowledgement and cannot
   be paired with a physical execution driver.
 - **End-to-end reference vertical**: `physical_status` exposes model provenance
-  and horizon. `physical_maintenance_demo` requires explicit simulation
-  confirmation, then coordinates AI/robot/human tasks, blocks unsafe motion,
-  queues and acknowledges safe motion, verifies work, and publishes reliability
-  and twin evidence. Provider-equivalent tool calls and direct JSON-RPC calls
-  share the same service owner, preventing a second execution path or race.
+  and horizon plus separate simulator/live learned modes.
+  `physical_maintenance_demo` requires explicit simulation confirmation, then
+  evaluates one rules-safe command under rules-only, shadow-only, and
+  rules + JEPA. The combined arm rejects the risky rollout before any permit;
+  a bounded safe control still receives the deterministic permit and delivery.
+  It then coordinates AI/robot/human tasks, verifies work, and publishes
+  checksummed reliability/twin evidence. Provider-equivalent tool calls and
+  direct JSON-RPC calls share the same service owner, preventing a second
+  execution path or race.
 
 The physical robustness report adds 256 counterfactual pairs, 535 rare-hazard
 cases, 512 registered synthetic OOD cases, calibration diagnostics, a
-250--1,750-episode scaling curve, and a matched autoencoder. The selected JEPA's
-held-out H=3 rollout error is 1.05% versus 1.75% for that autoencoder, while the
-OOD fixture still records 42 false negatives. All results are deterministic
-simulator evidence, never checkpoint-selection or execution authority.
+250--1,750-episode scaling curve, and a matched autoencoder. The incident-
+augmented checkpoint records 1.007% original held-out H=3 error, 0.995%
+incident-challenge H=3 error, and 41 false negatives on the registered OOD
+fixture. All results are deterministic simulator evidence; the model artifact
+cannot self-promote and the live learned path remains shadow-only.
 
 The implemented simulator-backed reference platform includes these software
 contracts. It does not demonstrate deployment work: installing and operating actual

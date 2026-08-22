@@ -11,10 +11,10 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Published OS world-model study | Rules + JEPA: 81.40% balanced accuracy; rules + per-action mean: 81.20% | JEPA superiority, formal safety, or natural-use prevalence |
 | Current Ring-3 preview | Three runs, 100 previews per H=1..5 per run; zero heap growth | Provider, action execution, or approval latency |
 | Paired preview queue | 96/96 responses in every run; median batch 13.517 s after optimization | Parallel inference; the daemon intentionally serializes previews |
-| Physical JEPA | 16 incident/research sources inform simulator priors; 99.53% balanced accuracy, 0 FN, 16 FP on the original held-out split | Reports are not trajectories; no real-robot safety claim and the artifact is shadow-only |
+| Physical JEPA | 16 incident/research sources inform simulator priors; 99.53% balanced accuracy, 0 FN, 16 FP on the original held-out split | Simulator-only learned caution; HIL/live remain shadow-only; reports are not trajectories |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
-| Cyber-physical software tier | 152 contract tests and 32 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
+| Cyber-physical software tier | 157 contract tests and 47 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
 
 ## Published world-model study
 
@@ -53,7 +53,7 @@ The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 60
 
 ## Simulator-backed cyber-physical software tier
 
-At source `039ccd1`, 152 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 32 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+At source `db8d633`, 157 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 47 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
 
 This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
 
