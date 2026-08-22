@@ -459,7 +459,7 @@ try {
   const physicalBefore = await rpcMethod(125, "physical_status", {});
   check(
     "physical runtime and embedded transition model are available in the booted daemon",
-    physicalBefore?.result?.schema_version === 3
+    physicalBefore?.result?.schema_version === 4
       && physicalBefore?.result?.available === true
       && physicalBefore?.result?.mode === "simulator"
       && physicalBefore?.result?.learned_gate === "simulation_caution"
@@ -469,16 +469,24 @@ try {
       && physicalBefore?.result?.physical_model_loaded === true
       && physicalBefore?.result?.physical_model === "ema_target_jepa"
       && physicalBefore?.result?.artifact_format === "PJE1"
-      && physicalBefore?.result?.model_revision === "physical-jepa-incident-v1"
-      && physicalBefore?.result?.training_samples === 18900
-      && physicalBefore?.result?.normalized_h3_error_ppm === 10074
-      && physicalBefore?.result?.per_action_mean_h3_error_ppm === 42816
-      && physicalBefore?.result?.held_out_rows === 2250
-      && physicalBefore?.result?.held_out_false_negatives === 0
-      && physicalBefore?.result?.held_out_false_positives === 16
-      && physicalBefore?.result?.ood_rows === 512
-      && physicalBefore?.result?.ood_false_negatives === 41
-      && physicalBefore?.result?.ood_false_positives === 4
+      && physicalBefore?.result?.model_revision === "physical-jepa-stress-v3"
+      && physicalBefore?.result?.model_sha256 === "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60"
+      && physicalBefore?.result?.training_samples === 123200
+      && physicalBefore?.result?.normalized_h3_error_ppm === 8253
+      && physicalBefore?.result?.per_action_mean_h3_error_ppm === 47794
+      && physicalBefore?.result?.held_out_rows === 14400
+      && physicalBefore?.result?.held_out_false_negatives === 8
+      && physicalBefore?.result?.held_out_false_positives === 133
+      && physicalBefore?.result?.incident_rows === 7680
+      && physicalBefore?.result?.incident_false_negatives === 1
+      && physicalBefore?.result?.incident_false_positives === 56
+      && physicalBefore?.result?.stress_rows === 16000
+      && physicalBefore?.result?.stress_false_negatives === 1
+      && physicalBefore?.result?.stress_false_positives === 101
+      && physicalBefore?.result?.ood_rows === 4096
+      && physicalBefore?.result?.ood_invalid_observations_rejected === 682
+      && physicalBefore?.result?.ood_false_negatives === 0
+      && physicalBefore?.result?.ood_false_positives === 18
       && physicalBefore?.result?.lookahead_horizon === 3
       && physicalBefore?.result?.os_jepa_reused === false
       && physicalBefore?.result?.completed_simulations === 0,
