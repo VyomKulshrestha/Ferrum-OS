@@ -52,6 +52,7 @@ pub enum RuntimeError {
     Session(SessionError),
     Replay(ReplayError),
     DriverModeMismatch,
+    DeploymentUnqualified,
     Supervisor(SupervisorError),
     SimulationCautionUnavailable,
     SequenceExhausted,
@@ -798,14 +799,20 @@ impl PhysicalRuntime {
         if driver.identity().id != adapter_id {
             return Err(RuntimeError::Adapter(AdapterError::EndpointMismatch));
         }
+        let session_mode = self.evidence.descriptor().mode;
+        if session_mode == SessionMode::Live {
+            // No authenticated real-device qualification authority exists yet.
+            // Keeping this path structurally closed prevents an enum match from
+            // being mistaken for deployment approval.
+            return Err(RuntimeError::DeploymentUnqualified);
+        }
         let driver_allowed = matches!(
-            (self.evidence.descriptor().mode, driver.execution_mode()),
+            (session_mode, driver.execution_mode()),
             (SessionMode::Simulation, DriverExecutionMode::Simulation)
                 | (
                     SessionMode::HardwareInLoopActuatorDisabled,
                     DriverExecutionMode::ActuatorDisabled
                 )
-                | (SessionMode::Live, DriverExecutionMode::Physical)
         );
         if !driver_allowed {
             return Err(RuntimeError::DriverModeMismatch);
@@ -1616,6 +1623,63 @@ mod tests {
         assert_eq!(
             runtime.evidence().records().back().unwrap().kind,
             EvidenceKind::ActuatorDisabledAcknowledged
+        );
+    }
+
+    #[test]
+    fn live_session_cannot_reach_a_physical_driver_without_qualification_authority() {
+        struct PhysicalDriver {
+            identity: AdapterIdentity,
+        }
+
+        impl AdapterDriver for PhysicalDriver {
+            fn identity(&self) -> &AdapterIdentity {
+                &self.identity
+            }
+
+            fn execution_mode(&self) -> DriverExecutionMode {
+                DriverExecutionMode::Physical
+            }
+
+            fn poll_frame(&mut self) -> Option<AdapterFrame> {
+                None
+            }
+
+            fn submit(&mut self, _: RoutedCommand) -> Result<(), AdapterError> {
+                panic!("unqualified live delivery must fail before driver submission")
+            }
+        }
+
+        let mut descriptor = SessionDescriptor::simulator(10, 5, 43);
+        descriptor.mode = SessionMode::Live;
+        descriptor.topology_sha256 = [1; 32];
+        descriptor.policy_sha256 = [2; 32];
+        descriptor.model_sha256 = [3; 32];
+        let mut runtime = configured_runtime_with(descriptor, AdapterProtocol::Mqtt);
+        let mut input = frame(1, 900, 100);
+        input.metadata.evidence_class = crate::contract::EvidenceClass::Live;
+        input.metadata.integrity =
+            crate::contract::IntegrityEvidence::TransportAuthenticated([4; 32]);
+        runtime.ingest_adapter_frame(input, 100, 0).unwrap();
+        let context = SafetyContext {
+            expected_policy_revision: 1,
+            expected_twin_event_id: runtime.twin().snapshot().latest_event_id,
+            human_approved: true,
+            requesting_actor_id: None,
+        };
+        runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        let mut driver = PhysicalDriver {
+            identity: runtime.adapters().adapter(AdapterId(1)).unwrap().clone(),
+        };
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 100),
+            Err(RuntimeError::DeploymentUnqualified)
+        );
+        assert_eq!(
+            runtime.fleet().command_claim(1).unwrap().state,
+            CommandDeliveryState::Queued
         );
     }
 

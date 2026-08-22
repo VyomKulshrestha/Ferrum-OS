@@ -10,6 +10,7 @@ pub mod fleet;
 pub mod isolation;
 pub mod model;
 pub mod privacy;
+pub mod qualification;
 pub mod reliability;
 pub mod replay;
 pub mod runtime;
@@ -51,12 +52,16 @@ pub use isolation::{
 pub use model::{
     PhysicalAction, PhysicalActionKind, PhysicalForecast, PhysicalModelError, PhysicalObservation,
     PhysicalState, PhysicalTransitionModel, PHYSICAL_ACTION_COUNT, PHYSICAL_ACTION_FEATURE_SIZE,
-    PHYSICAL_STATE_SIZE,
+    PHYSICAL_CLEARANCE_CAUTION_THRESHOLD, PHYSICAL_STATE_SIZE,
 };
 pub use privacy::{
     ConsentGrant, DataAccessRequest, DataKind, DataKindSet, PrivacyAuditEvent, PrivacyDecision,
     PrivacyError, PrivacyGuard, PrivacyReason, ProcessingPurpose, PurposeSet, Representation,
     RetentionPolicy, TenantId,
+};
+pub use qualification::{
+    assess as assess_deployment_qualification, required_evidence, DeploymentEvidenceSet,
+    DeploymentStage, QualificationAssessment, QualificationCondition,
 };
 pub use reliability::{
     ReliabilityError, ReliabilityEvent, ReliabilityEventKind, ReliabilityMonitor,
