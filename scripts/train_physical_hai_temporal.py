@@ -534,7 +534,9 @@ def attack_windows(labels: np.ndarray) -> list[tuple[int, int]]:
     )
 
 
-def detection_metrics(scores, labels, threshold, duration_hours) -> dict:
+def detection_metrics(
+    scores, labels, threshold, duration_hours, attack_ids: tuple[str, ...] = ATTACK_IDS
+) -> dict:
     alerts = rolling_alerts(scores, threshold)
     labels = labels.astype(bool)
     tp = int(np.sum(alerts & labels))
@@ -542,12 +544,16 @@ def detection_metrics(scores, labels, threshold, duration_hours) -> dict:
     tn = int(np.sum(~alerts & ~labels))
     fn = int(np.sum(~alerts & labels))
     windows = attack_windows(labels)
+    if windows and len(attack_ids) != len(windows):
+        raise ValueError(
+            f"expected {len(attack_ids)} attack windows, observed {len(windows)}"
+        )
     detected_mask = [bool(np.any(alerts[start:end])) for start, end in windows]
     detected_ids = [
-        ATTACK_IDS[index] for index, value in enumerate(detected_mask) if value
+        attack_ids[index] for index, value in enumerate(detected_mask) if value
     ]
     missed_ids = [
-        ATTACK_IDS[index] for index, value in enumerate(detected_mask) if not value
+        attack_ids[index] for index, value in enumerate(detected_mask) if not value
     ]
     false_starts = sum(not labels[index] for index in event_starts(alerts))
     recall = tp / max(1, tp + fn)
