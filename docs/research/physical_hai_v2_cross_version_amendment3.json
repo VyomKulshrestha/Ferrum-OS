@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-cross-version-v2-site-adaptation-amendment3",
+  "parent_amendment": "physical_hai_v2_cross_version_amendment2.json",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "final_test_open_count": 0,
+  "triggering_known-data_result": {
+    "shared_absolute_threshold_best": "31/52 windows (59.62%)",
+    "normal_cdf_best": "34/52 windows (65.38%)",
+    "unchanged_gate": "at least 70% attack-window recall",
+    "diagnosis": "Forcing one joint weight matrix and the 75-channel intersection removes release-specific observations and compromises both domains."
+  },
+  "deployment_model": "Fixed algorithm and hyperparameters with per-installation self-supervised commissioning on a normal trace. Model dimensions, weights, robust scaling, residual scaling and the numeric threshold are fitted locally without attack labels.",
+  "selection_domain": {
+    "schema": "all 86 non-label HAI 23.05 signals",
+    "normal_fit": "hai-train1.csv through hai-train3.csv",
+    "normal_calibration": "hai-train4.csv",
+    "known_attack_selection": "hai-test1.csv and the now-known hai-test2.csv",
+    "purpose": "Select only algorithmic hyperparameters: context, predictor family, reconstruction rank, residual aggregation, EWMA span and threshold percentile."
+  },
+  "final_domain": {
+    "schema": "all 79 non-label HAI 21.03 signals",
+    "normal_fit": "train1.csv.gz and train2.csv.gz",
+    "normal_calibration": "train3.csv.gz",
+    "sealed_final": "test1.csv.gz through test5.csv.gz",
+    "purpose": "Fit target weights and a numeric threshold using normal data only, then commit both before the sealed tests are downloaded."
+  },
+  "fairness_constraints": [
+    "The same selected predictor family, temporal context, reconstruction rank, residual aggregation and EWMA span must be used in both releases.",
+    "No final-domain attack label, test header or test value may influence target weights, scaling or threshold.",
+    "The threshold percentile is selected on HAI 23.05 known attacks subject to both domains' normal two-events-per-hour ceiling; the HAI 21.03 numeric threshold is then fixed from train3 only.",
+    "A candidate must pass every unchanged gate on the combined 52-window HAI 23.05 selection set before target weights may be committed.",
+    "Final tests are opened together once and no retraining or retuning follows."
+  ],
+  "claim_change": "The v2 experiment tests whether a fixed self-supervised commissioning procedure transfers across releases, not whether one fixed checkpoint transfers zero-shot.",
+  "unchanged": [
+    "candidate family grid",
+    "causal next-second objective",
+    "all seven gates",
+    "three-of-five alert rule and 30-second cooldown",
+    "one-shot final-test policy",
+    "advisory-only authority boundary"
+  ],
+  "authority_boundary": "A locally fitted diagnostic still cannot authorize or actuate. Normal-only commissioning is not safety certification."
+}
