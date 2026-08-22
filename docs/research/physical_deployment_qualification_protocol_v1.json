@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "protocol_id": "ferrumos-physical-deployment-qualification-v1",
+  "registered_on": "2026-08-22",
+  "purpose": "Define evidence required to progress from deterministic simulation to actuator-disabled HIL, supervised low-energy trials, and bounded live operation without treating simulator metrics as physical safety proof.",
+  "authority_boundary": {
+    "learned_model": "predict_and_add_caution_only",
+    "deterministic_supervisor": "sole_permit_authority",
+    "current_live_delivery": "fail_closed_until_authenticated_external_qualification_exists",
+    "certification_claim": false
+  },
+  "stages": [
+    {
+      "id": "software_simulation",
+      "rust_stage": "SoftwareSimulation",
+      "required_conditions": [
+        "hazard_register",
+        "deterministic_safety_authority",
+        "model_cannot_issue_permits",
+        "immutable_configuration_identity",
+        "scenario_falsification",
+        "fault_injection_and_replay",
+        "deadline_freshness_and_liveliness",
+        "actuator_disabled_hil_path"
+      ],
+      "current_status": "software_evidence_available"
+    },
+    {
+      "id": "hardware_in_loop_actuator_disabled",
+      "rust_stage": "HardwareInLoopActuatorDisabled",
+      "inherits": "software_simulation",
+      "required_conditions": [
+        "application_risk_assessment",
+        "measured_hardware_timing",
+        "independent_emergency_stop"
+      ],
+      "current_status": "external_evidence_required"
+    },
+    {
+      "id": "supervised_low_energy_trial",
+      "rust_stage": "SupervisedLowEnergyTrial",
+      "inherits": "hardware_in_loop_actuator_disabled",
+      "required_conditions": [
+        "measured_stopping_performance",
+        "contact_force_pressure_assessed",
+        "safety_control_performance_verified",
+        "representative_robot_trials"
+      ],
+      "current_status": "external_evidence_required"
+    },
+    {
+      "id": "bounded_live_operation",
+      "rust_stage": "BoundedLiveOperation",
+      "inherits": "supervised_low_energy_trial",
+      "required_conditions": [
+        "independent_safety_assessment",
+        "post_update_regression_plan"
+      ],
+      "current_status": "external_evidence_required"
+    }
+  ],
+  "condition_definitions": {
+    "hazard_register": "Every identified hazard has a severity, operating mode, mitigation, verification method, owner, and residual-risk decision.",
+    "deterministic_safety_authority": "Geofence, proximity, occupancy, stale-data, emergency-stop, approval, watchdog, policy, and revision checks remain independent of learned output.",
+    "model_cannot_issue_permits": "Model bytes and predictions cannot grant authority, lower severity, invoke an adapter, or self-promote.",
+    "immutable_configuration_identity": "Topology, policy, model, adapter, firmware, simulator, and evidence identities are digest-bound.",
+    "scenario_falsification": "Systematic parameter sweeps and counterexample-directed simulation cover nominal, boundary, misuse, and compound-hazard cases.",
+    "fault_injection_and_replay": "Omission, frozen, delayed, inverted, oscillating, corrupted, replayed, stale, bus-off, stuck-actuator, watchdog, and emergency-stop faults are reproducible.",
+    "deadline_freshness_and_liveliness": "Observation age, command deadline, sequence, clock uncertainty, transport lifespan, and source liveliness fail closed.",
+    "actuator_disabled_hil_path": "The full permit and delivery path can be exercised while actuator execution is structurally unavailable.",
+    "application_risk_assessment": "The exact robot application and reasonably foreseeable misuse receive a documented lifecycle risk assessment; generic Ferrum tests are insufficient.",
+    "measured_hardware_timing": "Real controller, sensor, network, and adapter latency/jitter are measured under representative and worst-case load against declared deadlines.",
+    "measured_stopping_performance": "Worst-case protective-stop time and distance are measured for the exact robot, payload, speed, controller, tooling, and environment.",
+    "contact_force_pressure_assessed": "Human-contact force and pressure are measured with an appropriate method, or a documented risk assessment proves contact is excluded and the condition inapplicable.",
+    "independent_emergency_stop": "A physical emergency-stop and energy-removal path is demonstrated independently of Ferrum, the learned model, and ordinary networking.",
+    "safety_control_performance_verified": "Safety-related control functions are validated to the application-required performance level or integrity target by competent assessors.",
+    "representative_robot_trials": "The exact configuration completes predeclared nominal, boundary, fault, misuse, recovery, and update-regression trials with raw logs and no unresolved critical hazards.",
+    "independent_safety_assessment": "A technically, managerially, and financially independent competent party reviews the safety case, implementation, raw evidence, residual risk, and claim scope.",
+    "post_update_regression_plan": "Each model, policy, firmware, topology, tool, or controller change has impact analysis, evidence invalidation rules, and required regression tests."
+  },
+  "model_boundary_challenge": {
+    "protocol": "systematic-boundary-sweep-v1",
+    "registered_before_challenge_open": true,
+    "rows": 12288,
+    "seed": 20260901,
+    "selection_enabled": false,
+    "checkpoint_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+    "frozen_gates": {
+      "all_predictions_finite": true,
+      "maximum_normalized_one_step_error": 0.015,
+      "maximum_false_negative_rate": 0.01,
+      "minimum_rules_false_negative_reduction": 0.9,
+      "maximum_false_positive_rate": 0.3
+    },
+    "decision_rule": "If every gate passes, retain the checkpoint and record that retraining is not justified by this challenge. If any gate fails, register a new train/validation/test protocol before fitting a replacement."
+  },
+  "primary_sources": [
+    {
+      "id": "iso-12100-2010",
+      "url": "https://www.iso.org/standard/51528.html",
+      "use": "lifecycle hazard identification, risk assessment, risk reduction, documentation and verification"
+    },
+    {
+      "id": "iso-10218-1-2025",
+      "url": "https://www.iso.org/standard/73933.html",
+      "use": "industrial robot safety requirements and foreseeable misuse boundary"
+    },
+    {
+      "id": "iso-10218-2-2025",
+      "url": "https://www.iso.org/standard/73934.html",
+      "use": "application integration, commissioning, operation, maintenance and decommissioning"
+    },
+    {
+      "id": "iso-ts-15066-2016",
+      "url": "https://www.iso.org/standard/62996.html",
+      "use": "collaborative operation, monitored stop, speed/separation monitoring and power/force limiting"
+    },
+    {
+      "id": "iso-pas-5672-2023",
+      "url": "https://www.iso.org/standard/82488.html",
+      "use": "contact force and pressure measurement methods"
+    },
+    {
+      "id": "iso-13849-1-2023",
+      "url": "https://www.iso.org/standard/73481.html",
+      "use": "safety-related control-system design and integration methodology"
+    },
+    {
+      "id": "iec-61508-1-2010",
+      "url": "https://webstore.iec.ch/publication/5515",
+      "use": "functional-safety lifecycle and assessment independence"
+    },
+    {
+      "id": "ul-4600-edition-3",
+      "url": "https://www.ul.com/news/ul-4600-edition-3-updates-incorporate-autonomous-trucking",
+      "use": "claim-based safety case combining analysis, simulation, closed-course and operational evidence"
+    },
+    {
+      "id": "nist-response-robot-tests",
+      "url": "https://www.nist.gov/el/intelligent-systems-division-73500/standard-test-methods-response-robots/ground-robot-tests",
+      "use": "repeatable apparatus, procedure, metric and exact-configuration reporting"
+    },
+    {
+      "id": "ros2-qos",
+      "url": "https://docs.ros.org/en/humble/Concepts/Intermediate/About-Quality-of-Service-Settings.html",
+      "use": "deadline, lifespan and liveliness transport conditions"
+    },
+    {
+      "id": "ros2-real-time",
+      "url": "https://docs.ros.org/en/eloquent/Tutorials/Real-Time-Programming.html",
+      "use": "measured deadline latency/jitter and avoidance of nondeterministic control-path operations"
+    },
+    {
+      "id": "verifai-cav-2019",
+      "url": "https://people.eecs.berkeley.edu/~sseshia/pubs/b2hd-verifai-cav19.html",
+      "use": "simulation-guided falsification, systematic fuzzing, counterexample analysis and dataset augmentation"
+    },
+    {
+      "id": "scenic-pldi-2019",
+      "url": "https://www-cad.eecs.berkeley.edu/~sseshia/pubs/b2hd-fremont-pldi19.html",
+      "use": "probabilistic scenario distributions for rare-event training and test generation"
+    },
+    {
+      "id": "nasa-software-assurance",
+      "url": "https://sma.nasa.gov/sma-disciplines/software-assurance-and-software-safety",
+      "use": "systematic software safety and independent verification and validation lifecycle"
+    }
+  ],
+  "limitations": [
+    "This protocol is an engineering checklist informed by sources; it is not a statement of ISO, IEC, UL, NIST, NASA or ROS compliance.",
+    "Applicability and required performance levels depend on the exact robot, application, jurisdiction and hazards.",
+    "Simulation falsification can find counterexamples but cannot prove physical safety.",
+    "No current repository artifact satisfies the external HIL, robot-trial or independent-assessment conditions."
+  ]
+}

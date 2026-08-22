@@ -9,6 +9,8 @@ use crate::safety::{EffectKind, PhysicalPrediction, PredictionSource};
 pub const PHYSICAL_STATE_SIZE: usize = 16;
 pub const PHYSICAL_ACTION_COUNT: usize = 7;
 pub const PHYSICAL_ACTION_FEATURE_SIZE: usize = 3;
+/// Validation-selected simulator caution margin for predicted clearance.
+pub const PHYSICAL_CLEARANCE_CAUTION_THRESHOLD: f32 = 0.20;
 const PHYSICAL_ACTION_INPUT_SIZE: usize = PHYSICAL_ACTION_COUNT + PHYSICAL_ACTION_FEATURE_SIZE;
 const HEADER_SIZE: usize = 48;
 const MAX_LATENT_SIZE: usize = 128;
@@ -391,8 +393,8 @@ fn validate_state_bounds(state: PhysicalState) -> Result<(), PhysicalModelError>
 
 fn validate_observation(state: PhysicalState) -> Result<(), PhysicalModelError> {
     validate_state_bounds(state)?;
-    let expected_margin = (1.0 - state.values[0].abs().max(state.values[1].abs()))
-        .clamp(-0.25, 1.0);
+    let expected_margin =
+        (1.0 - state.values[0].abs().max(state.values[1].abs())).clamp(-0.25, 1.0);
     if (state.values[14] - expected_margin).abs() > 0.02
         || [7usize, 10, 11, 15].iter().any(|index| {
             let value = state.values[*index];
@@ -412,7 +414,7 @@ fn physical_risk_permille(
 ) -> u16 {
     let moving = action.kind == PhysicalActionKind::Move && action.features[2] > 0.1;
     let mut risk = 0u16;
-    if moving && next[2] < 0.18 {
+    if moving && next[2] < PHYSICAL_CLEARANCE_CAUTION_THRESHOLD {
         risk = risk.max(900);
     }
     if moving && state.values[3] > 0.0 && next[13] > 0.16 {

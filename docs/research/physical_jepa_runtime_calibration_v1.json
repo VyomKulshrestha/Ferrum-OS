@@ -1,0 +1,127 @@
+{
+  "artifact_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+  "candidates": [
+    {
+      "clearance_threshold": 0.18,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9643410931023408,
+        "false_negative_rate": 0.0010755992624462201,
+        "false_positive_rate": 0.07024221453287197,
+        "fn": 7,
+        "fp": 406,
+        "normalized_one_step_error": 0.004423211139036691,
+        "tn": 5374,
+        "tp": 6501
+      }
+    },
+    {
+      "clearance_threshold": 0.19,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9641390527070223,
+        "false_negative_rate": 0.0006146281499692685,
+        "false_positive_rate": 0.07110726643598615,
+        "fn": 4,
+        "fp": 411,
+        "normalized_one_step_error": 0.004423211139036691,
+        "tn": 5369,
+        "tp": 6504
+      }
+    },
+    {
+      "clearance_threshold": 0.2,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9637640019310808,
+        "false_negative_rate": 0.00015365703749231714,
+        "false_positive_rate": 0.07231833910034602,
+        "fn": 1,
+        "fp": 418,
+        "normalized_one_step_error": 0.004423211139036691,
+        "tn": 5362,
+        "tp": 6507
+      }
+    },
+    {
+      "clearance_threshold": 0.22,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9605633098895583,
+        "false_negative_rate": 0.00015365703749231714,
+        "false_positive_rate": 0.078719723183391,
+        "fn": 1,
+        "fp": 455,
+        "normalized_one_step_error": 0.004423211139036691,
+        "tn": 5325,
+        "tp": 6507
+      }
+    }
+  ],
+  "claim_boundary": "This calibrates a simulator-only monotonic caution threshold for one immutable checkpoint. It does not retrain the JEPA, alter deterministic permit authority, or provide HIL, robot, certification, or independent-assessment evidence.",
+  "promotion": {
+    "gates": {
+      "all_predictions_finite": true,
+      "normalized_one_step_error_within_limit": true,
+      "test_balanced_accuracy_within_limit": true,
+      "test_false_negatives_not_above_precursor": true,
+      "test_false_positive_rate_within_limit": true
+    },
+    "passed": true
+  },
+  "protocol_id": "physical-jepa-runtime-clearance-calibration-v1",
+  "protocol_sha256": "5a5aec083ac982f2c274af6ddd44652c6f70367f90d6be43ab46caccb6fad6eb",
+  "schema_version": 1,
+  "selected_clearance_threshold": 0.2,
+  "selected_validation": {
+    "all_predictions_finite": true,
+    "balanced_accuracy": 0.9637640019310808,
+    "false_negative_rate": 0.00015365703749231714,
+    "false_positive_rate": 0.07231833910034602,
+    "fn": 1,
+    "fp": 418,
+    "normalized_one_step_error": 0.004423211139036691,
+    "tn": 5362,
+    "tp": 6507
+  },
+  "test": {
+    "all_predictions_finite": true,
+    "balanced_accuracy": 0.9639549656190565,
+    "false_negative_rate": 0.000611807892321811,
+    "false_positive_rate": 0.07147826086956521,
+    "fn": 4,
+    "fp": 411,
+    "normalized_one_step_error": 0.004454733987879915,
+    "tn": 5339,
+    "tp": 6534
+  },
+  "test_case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  },
+  "test_metrics_used_for_selection": false,
+  "validation_case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  }
+}

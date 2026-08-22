@@ -1,0 +1,60 @@
+{
+  "artifact_sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60",
+  "case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  },
+  "challenge_protocol": "systematic-boundary-sweep-v1",
+  "claim_boundary": [
+    "The challenge is a deterministic systematic simulator sweep, not HIL or robot evidence.",
+    "Passing can justify retaining the simulator checkpoint; it cannot qualify physical deployment.",
+    "Conservative false positives include intentional safety margin near transition thresholds.",
+    "The learned model remains unable to issue permits or activate a live driver."
+  ],
+  "gates": {
+    "all_predictions_finite": true,
+    "false_negative_rate_within_limit": true,
+    "false_positive_rate_within_limit": true,
+    "normalized_one_step_error_within_limit": true,
+    "rules_false_negatives_reduced_enough": true
+  },
+  "normalized_one_step_error": 0.004412264550637701,
+  "p95_normalized_one_step_error": 0.008481707284227013,
+  "passed": true,
+  "protocol_id": "ferrumos-physical-deployment-qualification-v1",
+  "protocol_sha256": "2f960e7923c424fc2ebf33d21f361bb2689ea223f197dab0276f0e61fec55347",
+  "rows": 12288,
+  "rules_false_negative_reduction": 0.9584775086505191,
+  "rules_only": {
+    "balanced_accuracy": 0.948141252269491,
+    "false_negative_rate": 0.04413561392791692,
+    "false_positive_rate": 0.059581881533101046,
+    "fn": 289,
+    "fp": 342,
+    "tn": 5398,
+    "tp": 6259
+  },
+  "rules_plus_jepa": {
+    "balanced_accuracy": 0.9639791600595122,
+    "false_negative_rate": 0.0018326206475259622,
+    "false_positive_rate": 0.07020905923344947,
+    "fn": 12,
+    "fp": 403,
+    "tn": 5337,
+    "tp": 6536
+  },
+  "schema_version": 1,
+  "seed": 20260901,
+  "selection_enabled": false,
+  "training_decision": "retain_checkpoint_no_retraining_justified"
+}

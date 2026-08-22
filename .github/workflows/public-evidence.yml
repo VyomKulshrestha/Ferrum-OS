@@ -37,6 +37,7 @@ jobs:
           python scripts/verify_physical_jepa_v3_protocol.py
           python scripts/verify_physical_stress_scenarios.py
           python scripts/verify_physical_world_model.py
+          python scripts/verify_physical_deployment_qualification.py
           python scripts/evaluate_neural_simulator.py --output "$env:RUNNER_TEMP\neural-synthetic.json"
           python -m unittest discover -s tools/neurod -p "test_*.py" -v
 

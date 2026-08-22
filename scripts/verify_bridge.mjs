@@ -459,11 +459,13 @@ try {
   const physicalBefore = await rpcMethod(125, "physical_status", {});
   check(
     "physical runtime and embedded transition model are available in the booted daemon",
-    physicalBefore?.result?.schema_version === 4
+    physicalBefore?.result?.schema_version === 5
       && physicalBefore?.result?.available === true
       && physicalBefore?.result?.mode === "simulator"
       && physicalBefore?.result?.learned_gate === "simulation_caution"
       && physicalBefore?.result?.live_learned_gate === "shadow_only"
+      && physicalBefore?.result?.live_delivery === "disabled_until_authenticated_external_qualification"
+      && physicalBefore?.result?.qualification_stage === "software_simulation"
       && physicalBefore?.result?.learned_authority === "increase_severity_only"
       && physicalBefore?.result?.permit_authority === "deterministic_supervisor"
       && physicalBefore?.result?.physical_model_loaded === true
@@ -487,6 +489,11 @@ try {
       && physicalBefore?.result?.ood_invalid_observations_rejected === 682
       && physicalBefore?.result?.ood_false_negatives === 0
       && physicalBefore?.result?.ood_false_positives === 18
+      && physicalBefore?.result?.qualification_rows === 12288
+      && physicalBefore?.result?.runtime_calibration === "physical-jepa-runtime-clearance-calibration-v1"
+      && physicalBefore?.result?.clearance_caution_milli === 200
+      && physicalBefore?.result?.calibration_test_false_negatives === 4
+      && physicalBefore?.result?.calibration_test_false_positives === 411
       && physicalBefore?.result?.lookahead_horizon === 3
       && physicalBefore?.result?.os_jepa_reused === false
       && physicalBefore?.result?.completed_simulations === 0,
