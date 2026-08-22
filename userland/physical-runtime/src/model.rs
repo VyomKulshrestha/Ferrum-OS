@@ -237,6 +237,7 @@ impl<'a> PhysicalTransitionModel<'a> {
         if !(1..=5).contains(&steps) {
             return Err(PhysicalModelError::InvalidHorizon);
         }
+        validate_observation(state)?;
         let mut current = state;
         let mut worst: Option<PhysicalPrediction> = None;
         for _ in 0..steps {
@@ -268,7 +269,7 @@ impl<'a> PhysicalTransitionModel<'a> {
         state: PhysicalState,
         action: PhysicalAction,
     ) -> Result<PhysicalForecast, PhysicalModelError> {
-        validate_state(state)?;
+        validate_state_bounds(state)?;
         if action
             .features
             .iter()
@@ -373,7 +374,7 @@ impl PhysicalActionKind {
     }
 }
 
-fn validate_state(state: PhysicalState) -> Result<(), PhysicalModelError> {
+fn validate_state_bounds(state: PhysicalState) -> Result<(), PhysicalModelError> {
     if state.values.iter().any(|value| !value.is_finite())
         || state.values[0] < -1.25
         || state.values[0] > 1.25
@@ -382,6 +383,22 @@ fn validate_state(state: PhysicalState) -> Result<(), PhysicalModelError> {
         || state.values[2..]
             .iter()
             .any(|value| *value < 0.0 || *value > 1.0)
+    {
+        return Err(PhysicalModelError::InvalidState);
+    }
+    Ok(())
+}
+
+fn validate_observation(state: PhysicalState) -> Result<(), PhysicalModelError> {
+    validate_state_bounds(state)?;
+    let expected_margin = (1.0 - state.values[0].abs().max(state.values[1].abs()))
+        .clamp(-0.25, 1.0);
+    if (state.values[14] - expected_margin).abs() > 0.02
+        || [7usize, 10, 11, 15].iter().any(|index| {
+            let value = state.values[*index];
+            value.abs().min((value - 1.0).abs()) > 1e-6
+        })
+        || (state.values[7] > 0.5 && state.values[13] > 0.01)
     {
         return Err(PhysicalModelError::InvalidState);
     }
@@ -565,5 +582,29 @@ mod tests {
             PhysicalTransitionModel::from_bytes(&corrupt),
             Err(PhysicalModelError::InvalidWeights)
         ));
+    }
+
+    #[test]
+    fn inconsistent_observations_fail_closed_before_learned_inference() {
+        let model = PhysicalTransitionModel::from_bytes(ARTIFACT).unwrap();
+        let action = PhysicalAction {
+            kind: PhysicalActionKind::Stop,
+            features: [0.0; PHYSICAL_ACTION_FEATURE_SIZE],
+        };
+
+        let mut stale_margin = safe_state();
+        stale_margin.values[0] = 1.2;
+        assert_eq!(
+            model.predict_shadow_horizon(stale_margin, action, 3),
+            Err(PhysicalModelError::InvalidState)
+        );
+
+        let mut moving_under_estop = safe_state();
+        moving_under_estop.values[7] = 1.0;
+        moving_under_estop.values[13] = 0.4;
+        assert_eq!(
+            model.predict_shadow_horizon(moving_under_estop, action, 3),
+            Err(PhysicalModelError::InvalidState)
+        );
     }
 }

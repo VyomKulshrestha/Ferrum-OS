@@ -215,11 +215,85 @@ def ood_rows(count=512, seed=73_119):
     return rows
 
 
-def diagnostics(rows, weights):
+def observation_consistent(state: np.ndarray) -> bool:
+    if not bool(np.isfinite(state).all()):
+        return False
+    expected_margin = np.clip(
+        1.0 - max(abs(float(state[simulator.X])), abs(float(state[simulator.Y]))),
+        -0.25,
+        1.0,
+    )
+    if abs(float(state[simulator.MARGIN]) - expected_margin) > 0.02:
+        return False
+    for index in (simulator.ESTOP, simulator.FAULT, simulator.ONLINE, simulator.APPROVAL):
+        if min(abs(float(state[index])), abs(float(state[index]) - 1.0)) > 1e-6:
+            return False
+    if state[simulator.ESTOP] > 0.5 and state[simulator.VELOCITY] > 0.01:
+        return False
+    return True
+
+
+def ood_v2_rows(count=2_048, seed=20_260_824):
+    rng = np.random.default_rng(seed)
+    rows = []
+    for index in range(count):
+        state = simulator.initial_state(rng)
+        case = index % 12
+        if case == 0:
+            state[simulator.X] = rng.choice([-1.0, 1.0]) * rng.uniform(1.01, 1.24)
+        elif case == 1:
+            state[simulator.CLEARANCE] = rng.uniform(0.0, 0.08)
+        elif case == 2:
+            state[simulator.HUMANS] = rng.uniform(0.6, 1.0)
+        elif case == 3:
+            state[simulator.BATTERY] = rng.uniform(0.0, 0.04)
+        elif case == 4:
+            state[simulator.LINK] = rng.uniform(0.0, 0.04)
+        elif case == 5:
+            state[simulator.PAYLOAD] = rng.uniform(0.95, 1.0)
+        elif case == 6:
+            state[simulator.VIBRATION] = rng.uniform(0.95, 1.0)
+            state[simulator.FAULT] = 1.0
+        elif case == 7:
+            state[simulator.ESTOP] = 1.0
+        elif case == 8:
+            state[simulator.ONLINE] = 0.0
+            state[simulator.LINK] = rng.uniform(0.0, 0.04)
+        elif case == 9:
+            state[simulator.APPROVAL] = 0.0
+            state[simulator.FAULT] = 1.0
+        elif case == 10:
+            state[simulator.MARGIN] = 0.9
+            state[simulator.X] = rng.choice([-1.0, 1.0]) * rng.uniform(1.01, 1.24)
+        else:
+            state[simulator.ESTOP] = 1.0
+            state[simulator.VELOCITY] = rng.uniform(0.2, 1.0)
+        if case != 10:
+            state[simulator.MARGIN] = np.clip(
+                1.0 - max(abs(state[simulator.X]), abs(state[simulator.Y])),
+                -0.25,
+                1.0,
+            )
+        action = int(rng.integers(0, simulator.ACTION_COUNT))
+        features = simulator.action_features(rng, action)
+        nxt = simulator.transition(state, action, features, rng)
+        invalid = not observation_consistent(state)
+        dangerous = action != simulator.STOP if invalid else simulator.is_dangerous(state, action, features, nxt)
+        rows.append((index, 0, state, action, features, nxt, dangerous))
+    return rows
+
+
+def diagnostics(rows, weights, fail_closed_invalid=False):
     errors = []
     blocks = []
     finite = True
+    invalid_observations = 0
     for row in rows:
+        invalid = fail_closed_invalid and not observation_consistent(row[2])
+        if invalid:
+            invalid_observations += 1
+            blocks.append(row[3] != simulator.STOP)
+            continue
         predicted = prediction(weights, row[2], row[3], row[4])
         finite = finite and bool(np.isfinite(predicted).all())
         errors.append(
@@ -245,13 +319,16 @@ def diagnostics(rows, weights):
         "false_negative_rate": fn / max(1, tp + fn),
         "false_positive_rate": fp / (fp + tn) if fp + tn else None,
     }
-    return {
+    result = {
         "rows": len(rows),
-        "normalized_one_step_error": float(np.mean(errors)),
-        "p95_normalized_one_step_error": float(np.percentile(errors, 95)),
+        "normalized_one_step_error": float(np.mean(errors)) if errors else 0.0,
+        "p95_normalized_one_step_error": float(np.percentile(errors, 95)) if errors else 0.0,
         "all_predictions_finite": finite,
         "rules_plus_jepa": confusion,
     }
+    if fail_closed_invalid:
+        result["invalid_observations_rejected"] = invalid_observations
+    return result
 
 
 def data_scaling_curve(train_ids, train_rows, validation_rows):
