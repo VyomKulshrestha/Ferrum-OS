@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-cross-version-v2-test3-integrity-amendment5",
+  "parent_amendment": "physical_hai_v2_cross_version_amendment4.json",
+  "registration_date": "2026-08-22",
+  "reason": "The registered HAI 21.03 test3 Git blob identity contained a transcription error. The fetcher rejected and deleted the partial download before any final-set evaluation ran.",
+  "final_test_evaluation_count_before_correction": 0,
+  "files_downloaded_before_correction": [
+    "test1.csv.gz",
+    "test2.csv.gz"
+  ],
+  "files_evaluated_before_correction": [],
+  "correction": {
+    "name": "test3.csv.gz",
+    "bytes": 15477098,
+    "registered_git_blob_sha1": "12d16f3c2d59250be667bb8694172a656fe75674",
+    "correct_git_blob_sha1": "12d16f3c2d59250be667bb6a942a85137ccf35b6",
+    "verification_source": "https://api.github.com/repos/icsdataset/hai/contents/hai-21.03/test3.csv.gz",
+    "download_source": "https://raw.githubusercontent.com/icsdataset/hai/master/hai-21.03/test3.csv.gz"
+  },
+  "unchanged": [
+    "selected artifact and its bytes",
+    "predictor family and weights",
+    "normalization and residual scaling",
+    "score configuration and numeric threshold",
+    "attack identifiers",
+    "evaluation metrics and gates",
+    "one-batch final evaluation rule"
+  ],
+  "claim_boundary": "This amendment corrects source-file identity only. It does not use labels, scores or results from any HAI 21.03 final test file."
+}

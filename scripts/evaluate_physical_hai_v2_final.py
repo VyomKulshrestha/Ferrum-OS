@@ -154,7 +154,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     args = parser.parse_args()
-    protocol = json.loads(v2.PROTOCOL.read_text(encoding="utf-8"))
+    protocol = fetch_v2.load_protocol()
     selection = json.loads(SELECTION_REPORT.read_text(encoding="utf-8"))
     if not selection["all_selection_gates_pass"] or selection["final_test_opened"]:
         raise AssertionError("v2 selection is not eligible for final evaluation")
@@ -236,6 +236,7 @@ def main() -> int:
         "selection_commit": SELECTION_COMMIT,
         "selection_report_sha256": v2.sha256(SELECTION_REPORT),
         "selected_artifact_sha256": v2.sha256(ARTIFACT),
+        "file_identity_amendment_sha256": v2.sha256(fetch_v2.INTEGRITY_AMENDMENT),
         "final_test_open_count": 1,
         "final_files": [
             {

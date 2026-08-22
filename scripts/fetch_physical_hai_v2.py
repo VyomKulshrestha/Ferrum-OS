@@ -14,8 +14,32 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "docs" / "research" / "physical_hai_v2_cross_version_protocol.json"
+INTEGRITY_AMENDMENT = (
+    ROOT / "docs" / "research" / "physical_hai_v2_cross_version_amendment5.json"
+)
 DEFAULT_CACHE = ROOT / "target" / "external-data" / "hai-21.03"
 BASE_URL = "https://raw.githubusercontent.com/icsdataset/hai/master/hai-21.03"
+
+
+def load_protocol() -> dict:
+    """Load the frozen protocol plus its explicit file-identity correction."""
+    protocol = json.loads(PROTOCOL.read_text(encoding="utf-8"))
+    amendment = json.loads(INTEGRITY_AMENDMENT.read_text(encoding="utf-8"))
+    correction = amendment["correction"]
+    matches = [
+        item
+        for item in protocol["sealed_final_files"]
+        if item["name"] == correction["name"]
+    ]
+    if len(matches) != 1:
+        raise ValueError("integrity amendment must match exactly one final file")
+    item = matches[0]
+    if item["git_blob_sha1"] != correction["registered_git_blob_sha1"]:
+        raise ValueError("integrity amendment no longer matches the frozen protocol")
+    if item["bytes"] != correction["bytes"]:
+        raise ValueError("integrity amendment changed the registered byte count")
+    item["git_blob_sha1"] = correction["correct_git_blob_sha1"]
+    return protocol
 
 
 def git_blob_sha1(path: Path) -> str:
@@ -72,7 +96,7 @@ def main() -> int:
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
-    protocol = json.loads(PROTOCOL.read_text(encoding="utf-8"))
+    protocol = load_protocol()
     groups = {
         "normal": protocol["target_domain_normal_files"],
         "final": protocol["sealed_final_files"],
