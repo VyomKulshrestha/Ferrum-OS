@@ -10,7 +10,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_v3_protocol.json"
-ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+ARTIFACT = (
+    ROOT
+    / "docs"
+    / "research"
+    / "artifacts"
+    / "physical-jepa-stress-v3"
+    / "incident-v1-baseline.bin"
+)
 
 
 def require(condition: bool, message: str) -> None:
@@ -26,7 +33,7 @@ def main() -> None:
     stress = protocol["stress_curriculum"]
     candidates = protocol["candidates"]
     require(protocol["registered_before_test_open"] is True, "v3 protocol is registered before test open")
-    require(digest == protocol["baseline_artifact_sha256"], "v3 protocol binds the deployed baseline")
+    require(digest == protocol["baseline_artifact_sha256"], "v3 protocol binds the frozen incident-v1 baseline")
     require(base == {"episodes": 12_000, "steps": 8, "seed": 20_260_824}, "new base corpus and split seed are fixed")
     require(stress["train_episodes"] == 3_000 and stress["validation_episodes"] == 1_000 and stress["test_episodes"] == 2_000, "stress curriculum sizes are fixed")
     require(stress["valid_edge_state_families"] == 12, "stress curriculum covers twelve valid edge-state families")

@@ -12,6 +12,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EVALUATOR = ROOT / "scripts" / "evaluate_physical_jepa_robustness.py"
 REPORT = ROOT / "docs" / "research" / "physical_jepa_robustness.json"
+ARTIFACT = (
+    ROOT
+    / "docs"
+    / "research"
+    / "artifacts"
+    / "physical-jepa-stress-v3"
+    / "incident-v1-baseline.bin"
+)
 
 
 def require(condition, message):
@@ -61,7 +69,14 @@ def main():
     with tempfile.TemporaryDirectory(prefix="ferrum-physical-robustness-") as temp:
         output = Path(temp) / "report.json"
         subprocess.run(
-            [sys.executable, str(EVALUATOR), "--output", str(output)],
+            [
+                sys.executable,
+                str(EVALUATOR),
+                "--artifact",
+                str(ARTIFACT),
+                "--output",
+                str(output),
+            ],
             cwd=ROOT,
             check=True,
             stdout=subprocess.DEVNULL,

@@ -407,9 +407,10 @@ def matched_autoencoder_baseline(train_rows, validation_rows, test_rows):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--artifact", type=Path, default=ARTIFACT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
-    weights = load_artifact(ARTIFACT)
+    weights = load_artifact(args.artifact)
     rows = simulator.generate(2500, 6, 42)
     train_ids, _, train_rows, validation_rows, test_rows = jepa.split_rows(
         rows, 2500, 42
@@ -424,7 +425,7 @@ def main():
     autoencoder = matched_autoencoder_baseline(train_rows, validation_rows, test_rows)
     result = {
         "schema_version": 1,
-        "artifact_sha256": hashlib.sha256(ARTIFACT.read_bytes()).hexdigest(),
+        "artifact_sha256": hashlib.sha256(args.artifact.read_bytes()).hexdigest(),
         "source": "deterministic_simulator_shadow_evaluation",
         "checkpoint_selected_by_this_suite": False,
         "validated_for_gating": False,
