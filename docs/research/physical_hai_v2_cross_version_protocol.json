@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-hai-cross-version-v2",
+  "registration_date": "2026-08-22",
+  "registered_before_hai_21_03_download": true,
+  "final_test_open_count": 0,
+  "parent_result": {
+    "path": "physical_hai_v1_final_test.json",
+    "sha256": "1c8652bf7c8fc4d1771650f466357d660266f9528d35aaa73910e9c9555441c8",
+    "commit": "b787475307565b7bff41b552e530f38949435c80",
+    "result": "The frozen v1 model detected 25/38 HAI 23.05 test2 attack windows (65.79%), reached 70.52% point balanced accuracy and 1.891 false alert events/hour. It passed six of seven gates and failed only the 70% attack-window-recall gate.",
+    "failure_clusters": [
+      "P1-CC and P1-TC controller families absent from the 14-window v1 selection split",
+      "internal DCS-function attacks whose manipulated internal tags are not present in the 86-signal HAI view",
+      "combined and long-duration attacks with weak effects in the aggregated Ferrum state projection"
+    ],
+    "immutability": "The v1 artifact and final report remain unchanged. HAI 23.05 test2 is now known diagnostic data and can never again be called a final or unseen split."
+  },
+  "objective": "Test whether a topology-agnostic causal predictor trained on normal traces from two HAI releases generalizes to an untouched older HAI release with broader attack families.",
+  "source": {
+    "publisher": "Affiliated Institute of ETRI",
+    "repository": "https://github.com/icsdataset/hai",
+    "version": "HAI 21.03",
+    "license": "CC BY-SA 4.0 as stated by the repository",
+    "sampling_period_seconds": 1,
+    "integrity": "The official GitHub API byte size and Git blob SHA-1 were recorded before download. Downloaded gzip files must reproduce both."
+  },
+  "target_domain_normal_files": [
+    {
+      "name": "train1.csv.gz",
+      "bytes": 30651421,
+      "git_blob_sha1": "2940eeeb2018c68fc01586da77986a5771b12585",
+      "role": "unsupervised target-domain fit"
+    },
+    {
+      "name": "train2.csv.gz",
+      "bytes": 31430645,
+      "git_blob_sha1": "4810e976c30ff9a15c2cadb69319bd7e9fe922e7",
+      "role": "unsupervised target-domain fit"
+    },
+    {
+      "name": "train3.csv.gz",
+      "bytes": 67961579,
+      "git_blob_sha1": "207e4b9f4c157505d5cb4a66e8ebe84d03575dab",
+      "role": "normal threshold calibration only"
+    }
+  ],
+  "sealed_final_files": [
+    {
+      "name": "test1.csv.gz",
+      "bytes": 6149549,
+      "git_blob_sha1": "7dee74e72e440cbf2d18fd61fc8de3a7066dda29"
+    },
+    {
+      "name": "test2.csv.gz",
+      "bytes": 16765328,
+      "git_blob_sha1": "bef13733742259bbd54912cde2ee6ec5fcb2fe54"
+    },
+    {
+      "name": "test3.csv.gz",
+      "bytes": 15477098,
+      "git_blob_sha1": "12d16f3c2d59250be667bb8694172a656fe75674"
+    },
+    {
+      "name": "test4.csv.gz",
+      "bytes": 5602841,
+      "git_blob_sha1": "9c9c5ae3a6a0586dc8398006cc31d1023fbbbce2"
+    },
+    {
+      "name": "test5.csv.gz",
+      "bytes": 13199829,
+      "git_blob_sha1": "a63954461979734ca056e2f6aee3abf0397e36b4"
+    }
+  ],
+  "partition_policy": {
+    "model_fit": [
+      "HAI 23.05 train1 through train3 normal traces",
+      "HAI 21.03 train1 and train2 normal traces"
+    ],
+    "threshold_calibration": "HAI 21.03 train3 normal trace only",
+    "model_and_score_selection": [
+      "HAI 23.05 test1 with 14 known attack windows",
+      "HAI 23.05 test2 with 38 now-known attack windows"
+    ],
+    "final_test": "All five HAI 21.03 test files, opened together exactly once after candidate selection is committed",
+    "no_retraining_after_final_open": true
+  },
+  "schema_policy": {
+    "signals": "Ordered intersection of non-label signals in the HAI 23.05 header and HAI 21.03 normal-training header. Final-file headers may only be checked after candidate selection is committed.",
+    "labels_excluded_from_inputs": [
+      "attack",
+      "attack_P1",
+      "attack_P2",
+      "attack_P3"
+    ],
+    "per_domain_normalization": "Each release uses medians and 0.5/99.5 percentile ranges fitted only on its registered normal fit files. This is unsupervised domain calibration, not attack-label training.",
+    "causality": "Only current and past signal/state values may predict the next second. No future values, labels, attack identities or window boundaries may enter a model input."
+  },
+  "candidate_families": [
+    "multivariate temporal ridge over the common signal set",
+    "temporal EMA-target JEPA over the common signal set",
+    "hybrid score combining causal prediction residual and cross-signal reconstruction residual"
+  ],
+  "fixed_candidate_grid": {
+    "temporal_context_seconds": [5, 15, 30],
+    "residual_top_k": [1, 3, 5, 10, 20],
+    "ewma_seconds": [1, 3, 5, 15, 30, 60, 120],
+    "reconstruction_rank": [8, 16, 32],
+    "combined_prediction_weight": [0.5, 0.75, 1.0],
+    "threshold": "First registered quantile whose HAI 21.03 train3 false-alert event rate is at most two per hour",
+    "alert_rule": "At least three threshold exceedances in the trailing five seconds with a 30-second event cooldown"
+  },
+  "selection_policy": {
+    "primary": "Highest combined HAI 23.05 test1+test2 attack-window recall among candidates passing every gate",
+    "tie_breakers": [
+      "higher point balanced accuracy",
+      "lower normal-calibration false-alert events per hour",
+      "lower false-alert seconds per hour",
+      "lower masked H1/H3/H5 transition error",
+      "smaller artifact"
+    ]
+  },
+  "unchanged_gates": {
+    "all_predictions_finite": true,
+    "beats_persistence_geometric_error_relative": 0.05,
+    "beats_per_action_mean_geometric_error_relative": 0.02,
+    "attack_window_recall": 0.70,
+    "false_alert_events_per_hour_max": 2.0,
+    "point_balanced_accuracy": 0.60,
+    "anti_collapse_variance_ratio_min": 0.10
+  },
+  "required_reporting": [
+    "validation and final metrics separately",
+    "95% Wilson interval for attack-window recall",
+    "detected and missed attack IDs",
+    "false-alert events and seconds per hour",
+    "transition baselines and relative error reductions",
+    "per-file metrics and aggregate metrics",
+    "all preprocessing, retry and dataset-format deviations"
+  ],
+  "authority_boundary": "Any v2 model remains advisory. Recorded HIL performance cannot grant permits, block commands, approve goals, invoke adapters or actuate hardware, and is not a Ferrum hardware trial or safety certification."
+}
