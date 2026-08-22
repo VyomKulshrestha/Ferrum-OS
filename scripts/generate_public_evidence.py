@@ -295,7 +295,9 @@ def aggregate_benchmarks() -> dict:
     paper_mean = paper["baselines"]["rules_plus_mean_delta"]
     physical_before = physical["deployed_baseline_test_metrics"]
     physical_after = physical["test_metrics"]
-    physical_combined = physical_after["original_test"]["diagnostics"]["rules_plus_jepa"]
+    physical_combined = physical_after["original_test"]["diagnostics"][
+        "rules_plus_jepa"
+    ]
 
     summary = {
         "$schema": BENCHMARK_SCHEMA_URL,
@@ -416,15 +418,27 @@ def aggregate_benchmarks() -> dict:
                 "rules_plus_jepa"
             ]["fn"],
             "stress_rows": physical_after["stress_test"]["diagnostics"]["rows"],
-            "stress_false_negatives": physical_after["stress_test"]["diagnostics"]["rules_plus_jepa"]["fn"],
-            "stress_false_positives": physical_after["stress_test"]["diagnostics"]["rules_plus_jepa"]["fp"],
+            "stress_false_negatives": physical_after["stress_test"]["diagnostics"][
+                "rules_plus_jepa"
+            ]["fn"],
+            "stress_false_positives": physical_after["stress_test"]["diagnostics"][
+                "rules_plus_jepa"
+            ]["fp"],
             "stress_h3_error": physical_after["stress_test"]["rollout"]["h3"],
             "registered_ood_rows": physical_after["ood_test"]["rows"],
-            "registered_ood_invalid_observations_rejected": physical_after["ood_test"]["invalid_observations_rejected"],
-            "registered_ood_false_positives": physical_after["ood_test"]["rules_plus_jepa"]["fp"],
+            "registered_ood_invalid_observations_rejected": physical_after["ood_test"][
+                "invalid_observations_rejected"
+            ],
+            "registered_ood_false_positives": physical_after["ood_test"][
+                "rules_plus_jepa"
+            ]["fp"],
             "registered_ood_passed": physical_selection["promotion"]["passed"],
-            "matched_autoencoder_h3_error": physical_baselines["comparisons"]["original"]["matched_autoencoder"]["rollout"]["h3"],
-            "per_action_mean_h3_error": physical_baselines["comparisons"]["original"]["per_action_mean"]["rollout"]["h3"],
+            "matched_autoencoder_h3_error": physical_baselines["comparisons"][
+                "original"
+            ]["matched_autoencoder"]["rollout"]["h3"],
+            "per_action_mean_h3_error": physical_baselines["comparisons"]["original"][
+                "per_action_mean"
+            ]["rollout"]["h3"],
             "validated_for_gating": physical["validated_for_gating"],
             "runtime_simulation_caution": True,
             "runtime_hil_learned_gate": "shadow_only",

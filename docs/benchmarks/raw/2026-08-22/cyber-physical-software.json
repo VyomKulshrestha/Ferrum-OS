@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "protocol_id": "cyber-physical-software-regression-2026-08-22",
   "snapshot_date": "2026-08-22",
-  "source_commit": "db8d633",
+  "source_commit": "24db9ee",
   "environment": {
     "host_os": "Microsoft Windows NT 10.0.26220.0",
     "rust_target": "x86_64-pc-windows-msvc",
@@ -15,7 +15,7 @@
       "component": "ferrum-physical-runtime",
       "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
       "exit_code": 0,
-      "passed": 122,
+      "passed": 123,
       "failed": 0
     },
     {
@@ -45,7 +45,7 @@
       "component": "physical-world-model",
       "command": "python scripts/verify_physical_world_model.py --quick",
       "exit_code": 0,
-      "passed": 24,
+      "passed": 17,
       "failed": 0
     },
     {
@@ -59,7 +59,21 @@
       "component": "physical-simulation-caution",
       "command": "python scripts/verify_physical_simulation_caution.py",
       "exit_code": 0,
-      "passed": 12,
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "component": "physical-jepa-v3-protocol",
+      "command": "python scripts/verify_physical_jepa_v3_protocol.py",
+      "exit_code": 0,
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "component": "physical-stress-scenarios",
+      "command": "python scripts/verify_physical_stress_scenarios.py",
+      "exit_code": 0,
+      "passed": 17,
       "failed": 0
     },
     {
@@ -86,9 +100,9 @@
       "failed": 0
     }
   ],
-  "contract_tests_passed": 157,
+  "contract_tests_passed": 158,
   "contract_tests_failed": 0,
-  "model_and_decoder_gates_passed": 47,
+  "model_and_decoder_gates_passed": 69,
   "model_and_decoder_gates_failed": 0,
   "system_checks_passed": 51,
   "system_checks_failed": 0,
@@ -102,7 +116,7 @@
     "actuator-disabled delivery",
     "bounded neural intent and proposal-only physical goals",
     "digest-bound simulator-only physical JEPA caution",
-    "shadow-only physical JEPA in HIL and live sessions",
+    "unpromoted physical JEPA in HIL and live sessions pending real-device evidence",
     "deterministic-only permit issuance",
     "host-managed agent-cell contract",
     "privacy retention reliability and incident primitives"

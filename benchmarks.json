@@ -150,7 +150,7 @@
         "component": "ferrum-physical-runtime",
         "exit_code": 0,
         "failed": 0,
-        "passed": 122
+        "passed": 123
       },
       {
         "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
@@ -175,7 +175,7 @@
       }
     ],
     "contract_tests_failed": 0,
-    "contract_tests_passed": 157,
+    "contract_tests_passed": 158,
     "covered_software_boundaries": [
       "versioned provenance and logical clocks",
       "deterministic sessions replay and fault injection",
@@ -186,7 +186,7 @@
       "actuator-disabled delivery",
       "bounded neural intent and proposal-only physical goals",
       "digest-bound simulator-only physical JEPA caution",
-      "shadow-only physical JEPA in HIL and live sessions",
+      "unpromoted physical JEPA in HIL and live sessions pending real-device evidence",
       "deterministic-only permit issuance",
       "host-managed agent-cell contract",
       "privacy retention reliability and incident primitives"
@@ -205,7 +205,7 @@
         "component": "physical-world-model",
         "exit_code": 0,
         "failed": 0,
-        "passed": 24
+        "passed": 17
       },
       {
         "command": "python scripts/verify_physical_jepa_robustness.py",
@@ -219,7 +219,21 @@
         "component": "physical-simulation-caution",
         "exit_code": 0,
         "failed": 0,
-        "passed": 12
+        "passed": 13
+      },
+      {
+        "command": "python scripts/verify_physical_jepa_v3_protocol.py",
+        "component": "physical-jepa-v3-protocol",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 11
+      },
+      {
+        "command": "python scripts/verify_physical_stress_scenarios.py",
+        "component": "physical-stress-scenarios",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 17
       },
       {
         "command": "python scripts/evaluate_neural_simulator.py --output target/neural-simulator-audit.json",
@@ -230,9 +244,9 @@
       }
     ],
     "model_and_decoder_gates_failed": 0,
-    "model_and_decoder_gates_passed": 47,
+    "model_and_decoder_gates_passed": 69,
     "protocol_id": "cyber-physical-software-regression-2026-08-22",
-    "source_commit": "db8d633"
+    "source_commit": "24db9ee"
   },
   "environment": {
     "accelerator": "WHPX",
@@ -451,7 +465,7 @@
       },
       {
         "path": "docs/benchmarks/raw/2026-08-22/cyber-physical-software.json",
-        "sha256": "9525034c10ecc7c6f698a9357dd2a90e0cfe77e6b1207b15679b56d259224ae1"
+        "sha256": "9f947e863614630c2448d28d7fd70e72c1ad9cf45cd5a3d3c5e11ac8bb786559"
       },
       {
         "path": "docs/research/world_model_paper_evaluation.json",

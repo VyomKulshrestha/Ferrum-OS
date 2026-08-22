@@ -14,7 +14,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Physical JEPA | 123,200 training transitions; H=3 0.83% vs 1.08% matched autoencoder and 4.78% mean-delta | Digest-bound simulator caution; HIL/live are not promoted without real-device evidence |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
-| Cyber-physical software tier | 157 contract tests and 47 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
+| Cyber-physical software tier | 158 contract tests and 69 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
 
 ## Published world-model study
 
@@ -53,7 +53,7 @@ The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 60
 
 ## Simulator-backed cyber-physical software tier
 
-At source `db8d633`, 157 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 47 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+At source `24db9ee`, 158 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 69 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
 
 This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
 

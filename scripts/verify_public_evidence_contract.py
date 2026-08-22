@@ -218,13 +218,13 @@ def main() -> int:
     )
     cyber = benchmarks["cyber_physical_software"]
     require(
-        cyber["contract_tests_passed"] == 157 and cyber["contract_tests_failed"] == 0,
-        "cyber-physical software contract records 157 passing tests",
+        cyber["contract_tests_passed"] == 158 and cyber["contract_tests_failed"] == 0,
+        "cyber-physical software contract records 158 passing tests",
     )
     require(
-        cyber["model_and_decoder_gates_passed"] == 47
+        cyber["model_and_decoder_gates_passed"] == 69
         and cyber["model_and_decoder_gates_failed"] == 0,
-        "cyber-physical model and decoder checks record 47 passing gates",
+        "cyber-physical model and decoder checks record 69 passing gates",
     )
     require(
         "does not prove" in cyber["claim_boundary"],

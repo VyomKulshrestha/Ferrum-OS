@@ -67,7 +67,7 @@ The report, software, and dataset are separate artifacts; use the
 | Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
 | Physical JEPA | **123,200** training transitions; H=3 error **0.83%** vs **1.08%** matched autoencoder and **4.78%** mean-delta | May add simulator-only caution; HIL/live are not promoted without real-device evidence |
 | Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
-| Cyber-physical software | **157/157** deterministic contract tests and **47/47** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
+| Cyber-physical software | **158/158** deterministic contract tests and **69/69** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
 
 Every value above is derived and checked by
 `scripts/generate_public_evidence.py`; protocols, raw results, commit IDs, and
