@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-hai-cross-version-v2-final-grid-amendment4",
+  "parent_amendment": "physical_hai_v2_cross_version_amendment3.json",
+  "registered_before_final_test_download": true,
+  "registration_date": "2026-08-22",
+  "final_test_open_count": 0,
+  "known_source_result": {
+    "model": "HAI 23.05 locally fitted five-second multivariate temporal ridge",
+    "score": "mean top-20 standardized prediction residual with 120-second EWMA",
+    "attack_window_recall": "38/52 (73.08%)",
+    "point_balanced_accuracy": "75.51%",
+    "normal_false_alert_events_per_hour": 1.9637
+  },
+  "exact_predictor_grid": [
+    {
+      "family": "multivariate temporal ridge",
+      "context_seconds": 5,
+      "ridge_alpha": 0.01
+    },
+    {
+      "family": "multivariate temporal ridge",
+      "context_seconds": 15,
+      "ridge_alpha": 0.01
+    },
+    {
+      "family": "multivariate temporal ridge",
+      "context_seconds": 30,
+      "ridge_alpha": 0.01
+    },
+    {
+      "family": "temporal EMA-target JEPA",
+      "context_seconds": 5,
+      "latent_size": 64,
+      "hidden_size": 128,
+      "seed": 17,
+      "epochs_max": 40,
+      "early_stopping_patience": 6
+    },
+    {
+      "family": "temporal EMA-target JEPA",
+      "context_seconds": 15,
+      "latent_size": 64,
+      "hidden_size": 128,
+      "seed": 17,
+      "epochs_max": 40,
+      "early_stopping_patience": 6
+    },
+    {
+      "family": "temporal EMA-target JEPA",
+      "context_seconds": 30,
+      "latent_size": 64,
+      "hidden_size": 128,
+      "seed": 17,
+      "epochs_max": 40,
+      "early_stopping_patience": 6
+    }
+  ],
+  "fit_sampling": "Every fifth eligible transition from each normal fit trace. Source and target releases are fitted separately with identical sampling and hyperparameters.",
+  "score_grid": {
+    "reconstruction_rank": [8, 16, 32],
+    "prediction_weight": [0.5, 0.75, 1.0],
+    "residual_top_k": [1, 3, 5, 10, 20],
+    "ewma_seconds": [1, 3, 5, 15, 30, 60, 120],
+    "normal_percentiles": "the original 190-value 0.90 through 0.99999 grid"
+  },
+  "transition_evaluation": {
+    "target": "next normalized vector over every finite, non-label signal in the release-specific schema",
+    "horizons_seconds": [1, 3, 5],
+    "metric": "geometric mean of per-signal normalized MAE at H=1, H=3 and H=5",
+    "persistence_baseline": "zero signal delta",
+    "per_proxy_action_mean_baseline": "mean signal delta for idle, material-control-change and stop proxy actions fitted on the release's normal fit traces",
+    "material_change": "mean absolute normalized control-signal delta above the normal-fit 90th percentile",
+    "stop": "emergency, trip or on/off transition where the documented signals are available",
+    "anti_collapse": "variance of predicted deltas divided by variance of observed deltas"
+  },
+  "selection": "Choose the source candidate with highest 52-window recall among candidates passing every source gate and both releases' normal false-alert ceiling. Apply the identical algorithmic configuration to the already fitted target-domain checkpoint, then commit target weights, scaling, residual scaling and numeric threshold before final download.",
+  "claim_boundary": "Full-signal transition error is a cross-release predictor metric and is not the eight-dimensional Ferrum-state metric reported in v1. Both must be named explicitly and never compared as if they used the same target space."
+}
