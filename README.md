@@ -30,7 +30,8 @@ The report, software, and dataset are separate artifacts; use the
 > FerrumOS v0.1.1 targets a documented QEMU/Bochs profile. Camera input is
 > synthetic, and physical-world learning is simulator-only. The selected
 > physical JEPA may add caution only in a digest-bound simulation session;
-> hardware-in-the-loop and live sessions remain shadow-only. Neural results use
+> hardware-in-the-loop and live promotion requires measured real-device
+> evidence. Neural results use
 > deterministic synthetic EEG fixtures. Broad physical-PC,
 > live-EEG, medical, robot-deployment, and formal-safety claims are out of
 > scope. ROS 2, MQTT, CAN, Gazebo, Webots, and actuator-disabled interfaces are
@@ -64,7 +65,7 @@ The report, software, and dataset are separate artifacts; use the
 | OS world-model study | Rules + JEPA: **81.4%** balanced accuracy; rules + per-action mean: **81.2%** on the authored 500-episode fixture | No material JEPA safety advantage established |
 | Ring-3 preview | **1.29-1.57 ms** run-mean range across H=1..5; **0 bytes** heap growth in three runs | Excludes provider, action, and approval latency |
 | Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
-| Physical JEPA | **99.53%** balanced accuracy, 0 FN, 16 FP on the original held-out simulator split; incident challenge FN improved 11 to 1 | May add simulator-only caution; HIL/live remain shadow-only; reports are priors, not trajectories |
+| Physical JEPA | **123,200** training transitions; H=3 error **0.83%** vs **1.08%** matched autoencoder and **4.78%** mean-delta | May add simulator-only caution; HIL/live are not promoted without real-device evidence |
 | Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
 | Cyber-physical software | **157/157** deterministic contract tests and **47/47** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
 
@@ -269,8 +270,9 @@ real-hardware or certified industrial deployment.
   revision races. Ambiguous delivery becomes `Uncertain` and is never blindly
   retried.
 - A separate 16-state/7-action physical EMA-target JEPA (`PJE1`), trained on
-  18,900 episode-disjoint training transitions within 28,440 transitions from
-  4,740 deterministic simulator episodes. It uses reconstruction and action
+  123,200 episode-disjoint training transitions within 189,440 transitions
+  from 23,680 deterministic simulator episodes. The selected 128-latent,
+  256-hidden checkpoint uses reconstruction and action
   auxiliaries, validation-only selection, anti-collapse gates, H=1..5
   evaluation, and bounded H=3 runtime lookahead. It does not reuse the
   41-action OS JEPA.
@@ -279,19 +281,21 @@ real-hardware or certified industrial deployment.
   incident telemetry or Ferrum trajectories; the simulator generates every
   transition and danger label. Source families are disjoint across training,
   validation, and the incident-challenge test.
-- Compared with the immutable pre-incident checkpoint, the selected model
-  improves original held-out H=3 error from 1.049% to 1.007%, incident-challenge
-  H=3 error from 1.529% to 0.995%, incident false negatives from 11 to 1, and
-  registered OOD false negatives from 42 to 41 without additional OOD false
-  positives. On the original held-out split, rules + JEPA record 0 false
-  negatives and 16 false positives. The source catalog, selection sweep,
-  robustness report, and remaining incident clearance miss are committed under
-  `docs/research/`.
-- Simulator-trained model bytes remain `shadow_only`: a serialized flag cannot
-  promote them into authority. Ferrum may bind the exact checkpoint digest to
-  a simulation session, where its forecast can only raise a verdict from
-  `Allow` to approval/block. HIL and live sessions cannot obtain that grant,
-  and the deterministic supervisor alone issues permits. Only
+- Compared with the immutable incident-v1 checkpoint, the selected model
+  improves original held-out H=3 error from 1.055% to 0.825%, incident H=3
+  error from 1.025% to 0.831%, and valid-edge stress H=3 error from 1.343% to
+  0.959%. On matched data and capacity, its original H=3 error is 0.825%
+  versus 1.083% for the autoencoder and 4.779% for the per-action mean. The
+  incident split records 1 FN/56 FP, the stress split 1 FN/101 FP, and the
+  registered OOD split 0 FN/18 FP while 682 inconsistent observations fail
+  closed. The eight ordinary and two challenge misses are committed and
+  decomposed as clearance cases under `docs/research/`.
+- Model bytes cannot self-promote: a serialized flag never grants authority.
+  Ferrum binds the exact checkpoint digest to a simulation session, where its
+  forecast can raise `Allow` to approval/block but cannot issue a permit.
+  HIL and live sessions cannot obtain that grant until a separately registered
+  real-device protocol passes, and the deterministic supervisor alone issues
+  permits. Only
   telemetry-confirmed execution can enter the bounded transition-fit
   experience stream; refusals, uncertain deliveries, and simulated predictions
   remain audit-only.
@@ -322,7 +326,8 @@ The demo requires `confirm_simulation=true`, routes provider-equivalent and
 direct RPC calls through the same service, and compares rules-only, ordinary
 shadow, and rules + JEPA on the same rules-safe command. The digest-bound JEPA
 blocks the risky simulator rollout without receiving a permit; a bounded safe
-control is still delivered. HIL/live learned use remains shadow-only. The
+control is still delivered. HIL/live learned use remains unpromoted pending
+measured real-device evidence. The
 repository now implements and tests ROS 2/MQTT/CAN and simulator-facing
 software contracts; it does not claim a running third-party deployment,
 wearable gateway, field

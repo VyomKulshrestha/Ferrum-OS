@@ -225,15 +225,15 @@ def aggregate_benchmarks() -> dict:
     )
     paper_path = ROOT / "docs" / "research" / "world_model_paper_evaluation.json"
     training_path = ROOT / "docs" / "research" / "world_model_training_config.json"
-    physical_path = ROOT / "docs" / "research" / "physical_world_model_evaluation.json"
-    physical_incident_path = (
-        ROOT / "docs" / "research" / "physical_incident_jepa_improvement.json"
+    physical_path = ROOT / "docs" / "research" / "physical_jepa_v3_evaluation.json"
+    physical_selection_path = (
+        ROOT / "docs" / "research" / "physical_jepa_v3_selection.json"
+    )
+    physical_baselines_path = (
+        ROOT / "docs" / "research" / "physical_jepa_v3_baselines.json"
     )
     physical_sources_path = (
         ROOT / "docs" / "research" / "physical_incident_sources.json"
-    )
-    physical_robustness_path = (
-        ROOT / "docs" / "research" / "physical_jepa_robustness.json"
     )
     evidence_paths = [
         manifest_path,
@@ -246,9 +246,9 @@ def aggregate_benchmarks() -> dict:
         paper_path,
         training_path,
         physical_path,
-        physical_incident_path,
+        physical_selection_path,
+        physical_baselines_path,
         physical_sources_path,
-        physical_robustness_path,
     ]
 
     manifest = load_json(manifest_path)
@@ -261,9 +261,9 @@ def aggregate_benchmarks() -> dict:
     paper = load_json(paper_path)
     training = load_json(training_path)
     physical = load_json(physical_path)
-    physical_incident = load_json(physical_incident_path)
+    physical_selection = load_json(physical_selection_path)
+    physical_baselines = load_json(physical_baselines_path)
     physical_sources = load_json(physical_sources_path)
-    physical_robustness = load_json(physical_robustness_path)
 
     horizons = []
     for horizon in range(1, 6):
@@ -293,9 +293,9 @@ def aggregate_benchmarks() -> dict:
     full_pipeline = training["full_pipeline_seed_evaluation"]
     paper_combined = paper["baselines"]["rules_plus_jepa"]
     paper_mean = paper["baselines"]["rules_plus_mean_delta"]
-    physical_combined = physical["safety"]["rules_plus_jepa"]
-    physical_before = physical_incident["current_test"]
-    physical_after = physical_incident["candidate_test"]
+    physical_before = physical["deployed_baseline_test_metrics"]
+    physical_after = physical["test_metrics"]
+    physical_combined = physical_after["original_test"]["diagnostics"]["rules_plus_jepa"]
 
     summary = {
         "$schema": BENCHMARK_SCHEMA_URL,
@@ -380,7 +380,7 @@ def aggregate_benchmarks() -> dict:
         },
         "physical_simulator_jepa": {
             "evidence_grade": "deterministic-simulator",
-            "protocol_id": "physical-jepa-incident-simulator-v2",
+            "protocol_id": physical["protocol_id"],
             "episodes": physical["episodes"],
             "transitions": physical["transitions"],
             "training_transitions": physical["transition_split"]["train"],
@@ -390,7 +390,7 @@ def aggregate_benchmarks() -> dict:
             "rules_plus_jepa_balanced_accuracy": physical_combined["balanced_accuracy"],
             "false_negatives": physical_combined["fn"],
             "false_positives": physical_combined["fp"],
-            "normalized_rollout_error": physical["normalized_rollout_error"],
+            "normalized_rollout_error": physical_after["original_test"]["rollout"],
             "pre_incident_original_h3_error": physical_before["original_test"][
                 "rollout"
             ]["h3"],
@@ -415,13 +415,22 @@ def aggregate_benchmarks() -> dict:
             "post_incident_ood_false_negatives": physical_after["ood_test"][
                 "rules_plus_jepa"
             ]["fn"],
-            "registered_ood_passed": physical_robustness["passed"],
+            "stress_rows": physical_after["stress_test"]["diagnostics"]["rows"],
+            "stress_false_negatives": physical_after["stress_test"]["diagnostics"]["rules_plus_jepa"]["fn"],
+            "stress_false_positives": physical_after["stress_test"]["diagnostics"]["rules_plus_jepa"]["fp"],
+            "stress_h3_error": physical_after["stress_test"]["rollout"]["h3"],
+            "registered_ood_rows": physical_after["ood_test"]["rows"],
+            "registered_ood_invalid_observations_rejected": physical_after["ood_test"]["invalid_observations_rejected"],
+            "registered_ood_false_positives": physical_after["ood_test"]["rules_plus_jepa"]["fp"],
+            "registered_ood_passed": physical_selection["promotion"]["passed"],
+            "matched_autoencoder_h3_error": physical_baselines["comparisons"]["original"]["matched_autoencoder"]["rollout"]["h3"],
+            "per_action_mean_h3_error": physical_baselines["comparisons"]["original"]["per_action_mean"]["rollout"]["h3"],
             "validated_for_gating": physical["validated_for_gating"],
             "runtime_simulation_caution": True,
             "runtime_hil_learned_gate": "shadow_only",
             "runtime_live_learned_gate": "shadow_only",
             "permit_authority": "deterministic_supervisor",
-            "claim_boundary": "Reports and papers provide defensive state-distribution priors, not Ferrum trajectories or danger labels. Every transition and label is generated by the deterministic simulator. The artifact cannot self-promote or issue a permit; current runtime use may add caution only in a digest-bound simulation session, while HIL and live remain shadow-only.",
+            "claim_boundary": "Reports and papers provide defensive state-distribution priors, not Ferrum trajectories or danger labels. Every transition and label is generated by the deterministic simulator. The artifact cannot self-promote or issue a permit; current runtime use may add caution only in a digest-bound simulation session, while HIL and live require real-device evidence before promotion.",
         },
         "neural_synthetic": {
             "evidence_grade": "deterministic-synthetic-signal",
@@ -542,7 +551,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Published OS world-model study | Rules + JEPA: {percent(paper["rules_plus_jepa_balanced_accuracy"])} balanced accuracy; rules + per-action mean: {percent(paper["rules_plus_mean_balanced_accuracy"])} | JEPA superiority, formal safety, or natural-use prevalence |
 | Current Ring-3 preview | Three runs, 100 previews per H=1..5 per run; zero heap growth | Provider, action execution, or approval latency |
 | Paired preview queue | 96/96 responses in every run; median batch {queue["optimized_median_batch_milliseconds"] / 1000:.3f} s after optimization | Parallel inference; the daemon intentionally serializes previews |
-| Physical JEPA | {physical["incident_source_count"]} incident/research sources inform simulator priors; {percent(physical["rules_plus_jepa_balanced_accuracy"])} balanced accuracy, {physical["false_negatives"]} FN, {physical["false_positives"]} FP on the original held-out split | Simulator-only learned caution; HIL/live remain shadow-only; reports are not trajectories |
+| Physical JEPA | {physical["training_transitions"]:,} training transitions; H=3 {percent(physical["post_incident_original_h3_error"])} vs {percent(physical["matched_autoencoder_h3_error"])} matched autoencoder and {percent(physical["per_action_mean_h3_error"])} mean-delta | Digest-bound simulator caution; HIL/live are not promoted without real-device evidence |
 | Neural decoder | {neural["signal_trials"]}/{neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]}/{neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Broad physical-PC compatibility or independent replication |
 | Cyber-physical software tier | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
@@ -574,7 +583,7 @@ Every optimized run returned 96/96 correlated responses, produced zero execution
 
 ## Post-paper physical and neural evidence
 
-The physical JEPA uses {physical["transitions"]:,} transitions from {physical["episodes"]:,} deterministic simulator episodes, with {physical["training_transitions"]:,} transitions in the episode-disjoint training split. A catalog of {physical["incident_source_count"]} government reports, company postmortems, standards, and research papers supplies defensive state-distribution priors only; the deterministic simulator creates every transition and danger label. After incident augmentation, original held-out H=3 error changes from {percent(physical["pre_incident_original_h3_error"])} to {percent(physical["post_incident_original_h3_error"])}, source-family-disjoint incident-challenge H=3 error changes from {percent(physical["pre_incident_challenge_h3_error"])} to {percent(physical["post_incident_challenge_h3_error"])}, and incident-challenge false negatives change from {physical["pre_incident_challenge_false_negatives"]} to {physical["post_incident_challenge_false_negatives"]}. Registered OOD false negatives change from {physical["pre_incident_ood_false_negatives"]} to {physical["post_incident_ood_false_negatives"]}. On the original held-out split, rules + JEPA record {percent(physical["rules_plus_jepa_balanced_accuracy"])} balanced accuracy with {physical["false_negatives"]} false negatives and {physical["false_positives"]} false positives. Its artifact is `validated_for_gating=false`; it cannot issue permits or invoke adapters.
+The physical JEPA uses {physical["transitions"]:,} transitions from {physical["episodes"]:,} deterministic simulator episodes, with {physical["training_transitions"]:,} transitions in the episode-disjoint training split. A catalog of {physical["incident_source_count"]} government reports, company postmortems, standards, and research papers supplies defensive state-distribution priors only; the deterministic simulator creates every transition and danger label. Relative to the previously deployed checkpoint, original held-out H=3 error changes from {percent(physical["pre_incident_original_h3_error"])} to {percent(physical["post_incident_original_h3_error"])}, source-family-disjoint incident H=3 error changes from {percent(physical["pre_incident_challenge_h3_error"])} to {percent(physical["post_incident_challenge_h3_error"])}, and incident false negatives change from {physical["pre_incident_challenge_false_negatives"]} to {physical["post_incident_challenge_false_negatives"]}. On matched data and capacity, JEPA H=3 error is {percent(physical["post_incident_original_h3_error"])} versus {percent(physical["matched_autoencoder_h3_error"])} for the autoencoder and {percent(physical["per_action_mean_h3_error"])} for the per-action mean. The valid-edge stress split records {physical["stress_false_negatives"]} FN/{physical["stress_false_positives"]} FP across {physical["stress_rows"]:,} transitions; registered OOD records {physical["post_incident_ood_false_negatives"]} FN/{physical["registered_ood_false_positives"]} FP and deterministically rejects {physical["registered_ood_invalid_observations_rejected"]} inconsistent observations. The checkpoint may only add caution in a digest-bound simulation session; model bytes cannot issue permits or invoke adapters, and HIL/live promotion requires measured real-device evidence.
 
 The neural decoder evaluation is deterministic synthetic SSVEP evidence only: {neural["signal_trials"]} accepted signal trials at {percent(neural["accepted_signal_accuracy"])} accuracy, {neural["artifact_trials"]} artifact trials at {percent(neural["artifact_abstention_rate"])} abstention, and zero emitted candidates in {neural["no_control_windows"]:,} no-control windows. OS commit still requires pairing, calibration, non-neural arming, a signed preview, and revision checks.
 
@@ -627,7 +636,7 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | OS world model | Published fixture: {percent(paper["rules_plus_jepa_balanced_accuracy"])} rules + JEPA vs {percent(paper["rules_plus_mean_balanced_accuracy"])} rules + mean baseline |
 | Ring-3 preview | Three H=1..5 runs, 100 measured previews per horizon, zero heap growth |
 | Preview queue | 96/96 responses in every run; {queue["median_improvement_percent"]:.2f}% median batch improvement after cadence optimization |
-| Physical model | {physical["incident_source_count"]} incident/research sources inform deterministic simulator priors; {percent(physical["rules_plus_jepa_balanced_accuracy"])} original-split balanced accuracy; simulator-only caution, HIL/live shadow-only |
+| Physical model | {physical["training_transitions"]:,} training transitions; H=3 {percent(physical["post_incident_original_h3_error"])} vs {percent(physical["matched_autoencoder_h3_error"])} matched autoencoder; digest-bound simulator caution |
 | Neural input | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, zero candidates in {neural["no_control_windows"]:,} no-control windows |
 | QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries for OS source `{qemu["os_source_commit"][:7]}` |
 | Cyber-physical software | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed at source `{cyber["source_commit"][:7]}` |
@@ -700,7 +709,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `{paper["protocol_id"]}` | Rules + JEPA {percent(paper["rules_plus_jepa_balanced_accuracy"])}; rules + per-action mean {percent(paper["rules_plus_mean_balanced_accuracy"])} balanced accuracy | Authored balanced fixture; no material JEPA advantage established |
 | `{runtime["protocol_id"]}` | {runtime["runs"]} WHPX runs, 100 previews per H=1..5, zero heap growth | Excludes provider, execution, and approval latency |
 | `{queue["protocol_id"]}` | 96/96 responses each run; {queue["median_improvement_percent"]:.2f}% median batch improvement | Serialized queue responsiveness, not parallel inference |
-| `{physical["protocol_id"]}` | {physical["incident_source_count"]} incident/research sources; incident H=3 {percent(physical["pre_incident_challenge_h3_error"])} to {percent(physical["post_incident_challenge_h3_error"])}; incident FN {physical["pre_incident_challenge_false_negatives"]} to {physical["post_incident_challenge_false_negatives"]} | Sources are defensive priors, not trajectories; digest-bound simulator caution only; HIL/live shadow-only |
+| `{physical["protocol_id"]}` | {physical["training_transitions"]:,} training transitions; incident H=3 {percent(physical["pre_incident_challenge_h3_error"])} to {percent(physical["post_incident_challenge_h3_error"])}; stress FN {physical["stress_false_negatives"]}; OOD FN {physical["post_incident_ood_false_negatives"]} | Simulator evidence; HIL/live promotion still requires real-device measurements |
 | `{neural["protocol_id"]}` | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | No live EEG, human, medical, or usability claim |
 | `{qemu["protocol_id"]}` | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
 | `{cyber["protocol_id"]}` | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |

@@ -784,23 +784,26 @@ work order -> typed actor dispatch -> canonical adapter command
   provide no labels; Ferrum's deterministic simulator generates every state
   transition and danger label. Source families are disjoint across training,
   validation, and incident-challenge test partitions.
-- **Selection and evaluation**: the augmented corpus contains 28,440 simulator
-  transitions from 4,740 episodes, with 18,900 transitions in the training
-  split and no episode overlap. Five data/epoch/seed candidates are selected
-  using the original and incident-family validation sets plus regression and
-  anti-collapse gates. Candidate records contain no original, incident, or OOD
-  test metrics; those tests open only after selection. The selected
-  64-latent/128-hidden checkpoint improves original held-out H1/H3/H5 error
-  from 0.454%/1.049%/1.546% to 0.425%/1.007%/1.475%.
-- **Safety arms and failure analysis**: on the original 2,250 held-out
-  transitions, rules record TP/FP/TN/FN 514/14/1701/21; JEPA-only records
-  534/4/1711/1; their monotonic union records 535/16/1699/0. On the
-  source-family-disjoint incident challenge, H3 error improves from 1.529% to
-  0.995% and combined false negatives fall from 11 to 1. Registered OOD false
-  negatives fall from 42 to 41 while false positives remain 4. The remaining
-  incident miss is a clearance case. This evidence supports evaluation and
-  monotonic learned caution inside the simulator; it does not support learned
-  gating in HIL or live physical sessions.
+- **Selection and evaluation**: the v3 corpus contains 189,440 simulator
+  transitions from 23,680 episodes, with 123,200 training, 28,160 validation,
+  and 38,080 test transitions and no episode overlap. Four registered
+  capacity/seed candidates are selected using ordinary, incident-family, and
+  valid-edge stress validation plus anti-collapse gates. Candidate records
+  contain no ordinary, incident, stress, or OOD test metrics; those frozen
+  tests open once after selection. The selected 128-latent/256-hidden seed-91
+  checkpoint improves ordinary H1/H3/H5 error from
+  0.454%/1.055%/1.539% to 0.348%/0.825%/1.207%.
+- **Baselines and failure analysis**: on identical data and 128/256 capacity,
+  ordinary H=3 rollout error is 0.825% for JEPA, 1.083% for the matched
+  autoencoder, 4.779% for the per-action mean, and 5.426% for zero delta. The
+  source-family-disjoint incident split improves from 1.025% to 0.831% and
+  false negatives fall from 3 to 1. The valid-edge stress split improves from
+  1.343% to 0.959% and false negatives fall from 23 to 1. Registered OOD has
+  zero false negatives and 18 false positives; 682 semantically inconsistent
+  observations are rejected deterministically and excluded from transition
+  error. Eight ordinary, one incident, and one stress false negative remain;
+  every miss is a clearance case and is retained in the evidence bundle. This
+  supports monotonic learned caution inside the simulator, not HIL/live safety.
 - **Planner and safety boundary**: `predict_shadow_horizon` supports bounded
   H=1..5 recurrence and the maintenance service uses H=3. It returns worst-step
   advisory risk with horizon-scaled uncertainty. Deterministic geofence,
@@ -840,13 +843,15 @@ work order -> typed actor dispatch -> canonical adapter command
   direct JSON-RPC calls share the same service owner, preventing a second
   execution path or race.
 
-The physical robustness report adds 256 counterfactual pairs, 535 rare-hazard
-cases, 512 registered synthetic OOD cases, calibration diagnostics, a
-250--1,750-episode scaling curve, and a matched autoencoder. The incident-
-augmented checkpoint records 1.007% original held-out H=3 error, 0.995%
-incident-challenge H=3 error, and 41 false negatives on the registered OOD
-fixture. All results are deterministic simulator evidence; the model artifact
-cannot self-promote and the live learned path remains shadow-only.
+The v3 protocol adds 12 valid edge-state stress families, 4,096 registered OOD
+cases, malformed-observation rejection, multi-capacity/seed selection, and
+matched autoencoder, per-action-mean, and zero-delta baselines. The promoted
+checkpoint records 0.825% ordinary, 0.831% incident, and 0.959% stress H=3
+error. H=5 remains available for analysis but is not promoted because its
+compounding error is higher on every registered split and no separate test
+shows an incremental safety catch. All results are deterministic simulator
+evidence; model bytes cannot self-promote, and HIL/live learned gating requires
+a future registered real-device evaluation.
 
 The implemented simulator-backed reference platform includes these software
 contracts. It does not demonstrate deployment work: installing and operating actual

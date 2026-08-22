@@ -9,7 +9,7 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | OS world model | Published fixture: 81.40% rules + JEPA vs 81.20% rules + mean baseline |
 | Ring-3 preview | Three H=1..5 runs, 100 measured previews per horizon, zero heap growth |
 | Preview queue | 96/96 responses in every run; 10.40% median batch improvement after cadence optimization |
-| Physical model | 16 incident/research sources inform deterministic simulator priors; 99.53% original-split balanced accuracy; simulator-only caution, HIL/live shadow-only |
+| Physical model | 123,200 training transitions; H=3 0.83% vs 1.08% matched autoencoder; digest-bound simulator caution |
 | Neural input | 600 synthetic signals, 400 artifact abstentions, zero candidates in 10,000 no-control windows |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries for OS source `c92056d` |
 | Cyber-physical software | 157 contract tests and 47 model/decoder gates passed at source `db8d633` |

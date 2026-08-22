@@ -188,17 +188,19 @@ def main() -> int:
         physical["post_incident_challenge_false_negatives"]
         < physical["pre_incident_challenge_false_negatives"]
         and physical["post_incident_ood_false_negatives"]
-        < physical["pre_incident_ood_false_negatives"],
-        "incident augmentation reduces challenge and registered OOD false negatives",
+        <= physical["pre_incident_ood_false_negatives"]
+        and physical["post_incident_ood_false_negatives"] == 0,
+        "v3 reduces incident false negatives and retains zero registered OOD misses",
     )
     benchmark_paths = {entry["path"] for entry in benchmarks["provenance"]["inputs"]}
     require(
         {
             "docs/research/physical_incident_sources.json",
-            "docs/research/physical_incident_jepa_improvement.json",
-            "docs/research/physical_jepa_robustness.json",
+            "docs/research/physical_jepa_v3_selection.json",
+            "docs/research/physical_jepa_v3_baselines.json",
+            "docs/research/physical_jepa_v3_evaluation.json",
         }.issubset(benchmark_paths),
-        "public benchmark provenance binds incident sources, selection, and robustness",
+        "public benchmark provenance binds v3 sources, selection, baselines, and evaluation",
     )
     require(
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,
