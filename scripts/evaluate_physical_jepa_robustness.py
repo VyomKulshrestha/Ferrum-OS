@@ -225,7 +225,12 @@ def observation_consistent(state: np.ndarray) -> bool:
     )
     if abs(float(state[simulator.MARGIN]) - expected_margin) > 0.02:
         return False
-    for index in (simulator.ESTOP, simulator.FAULT, simulator.ONLINE, simulator.APPROVAL):
+    for index in (
+        simulator.ESTOP,
+        simulator.FAULT,
+        simulator.ONLINE,
+        simulator.APPROVAL,
+    ):
         if min(abs(float(state[index])), abs(float(state[index]) - 1.0)) > 1e-6:
             return False
     if state[simulator.ESTOP] > 0.5 and state[simulator.VELOCITY] > 0.01:
@@ -278,7 +283,11 @@ def ood_v2_rows(count=2_048, seed=20_260_824):
         features = simulator.action_features(rng, action)
         nxt = simulator.transition(state, action, features, rng)
         invalid = not observation_consistent(state)
-        dangerous = action != simulator.STOP if invalid else simulator.is_dangerous(state, action, features, nxt)
+        dangerous = (
+            action != simulator.STOP
+            if invalid
+            else simulator.is_dangerous(state, action, features, nxt)
+        )
         rows.append((index, 0, state, action, features, nxt, dangerous))
     return rows
 
@@ -322,7 +331,9 @@ def diagnostics(rows, weights, fail_closed_invalid=False):
     result = {
         "rows": len(rows),
         "normalized_one_step_error": float(np.mean(errors)) if errors else 0.0,
-        "p95_normalized_one_step_error": float(np.percentile(errors, 95)) if errors else 0.0,
+        "p95_normalized_one_step_error": float(np.percentile(errors, 95))
+        if errors
+        else 0.0,
         "all_predictions_finite": finite,
         "rules_plus_jepa": confusion,
     }

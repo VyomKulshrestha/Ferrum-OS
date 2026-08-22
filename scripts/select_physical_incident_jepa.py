@@ -40,11 +40,41 @@ DATA_SEED = 42
 INCIDENT_VALIDATION_EPISODES_PER_SOURCE = 120
 INCIDENT_TEST_EPISODES_PER_SOURCE = 120
 CANDIDATES = (
-    {"incident_train_episodes_per_source": 150, "latent": 64, "hidden": 128, "epochs": 4_000, "training_seed": 42},
-    {"incident_train_episodes_per_source": 250, "latent": 64, "hidden": 128, "epochs": 5_000, "training_seed": 42},
-    {"incident_train_episodes_per_source": 350, "latent": 64, "hidden": 128, "epochs": 6_000, "training_seed": 42},
-    {"incident_train_episodes_per_source": 250, "latent": 64, "hidden": 128, "epochs": 5_000, "training_seed": 17},
-    {"incident_train_episodes_per_source": 350, "latent": 64, "hidden": 128, "epochs": 6_000, "training_seed": 17},
+    {
+        "incident_train_episodes_per_source": 150,
+        "latent": 64,
+        "hidden": 128,
+        "epochs": 4_000,
+        "training_seed": 42,
+    },
+    {
+        "incident_train_episodes_per_source": 250,
+        "latent": 64,
+        "hidden": 128,
+        "epochs": 5_000,
+        "training_seed": 42,
+    },
+    {
+        "incident_train_episodes_per_source": 350,
+        "latent": 64,
+        "hidden": 128,
+        "epochs": 6_000,
+        "training_seed": 42,
+    },
+    {
+        "incident_train_episodes_per_source": 250,
+        "latent": 64,
+        "hidden": 128,
+        "epochs": 5_000,
+        "training_seed": 17,
+    },
+    {
+        "incident_train_episodes_per_source": 350,
+        "latent": 64,
+        "hidden": 128,
+        "epochs": 6_000,
+        "training_seed": 17,
+    },
 )
 
 
@@ -83,7 +113,9 @@ def geometric(values) -> float:
     return math.exp(sum(math.log(max(value, 1e-12)) for value in values) / len(values))
 
 
-def validation_decision(candidate, current_original, current_incident, current_stress=None) -> dict:
+def validation_decision(
+    candidate, current_original, current_incident, current_stress=None
+) -> dict:
     original_ratios = {
         horizon: candidate["original_validation"]["rollout"][horizon]
         / current_original["rollout"][horizon]
@@ -117,8 +149,12 @@ def validation_decision(candidate, current_original, current_incident, current_s
             / current_stress["rollout"][horizon]
             for horizon in ("h1", "h3", "h5")
         }
-        checks["stress_validation_geometric_improvement_at_least_5_percent"] = geometric(list(stress_ratios.values())) <= 0.95
-        checks["stress_validation_no_horizon_regression"] = all(ratio <= 1.0 for ratio in stress_ratios.values())
+        checks["stress_validation_geometric_improvement_at_least_5_percent"] = (
+            geometric(list(stress_ratios.values())) <= 0.95
+        )
+        checks["stress_validation_no_horizon_regression"] = all(
+            ratio <= 1.0 for ratio in stress_ratios.values()
+        )
     return {
         "checks": checks,
         "accepted": all(checks.values()),
@@ -188,9 +224,16 @@ def promotion_decision(candidate, current) -> dict:
             / current["stress_test"]["rollout"][horizon]
             for horizon in ("h1", "h3", "h5")
         }
-        checks["stress_test_geometric_improvement_at_least_10_percent"] = geometric(list(stress_ratios.values())) <= 0.90
-        checks["stress_test_no_horizon_regression"] = all(ratio <= 1.0 for ratio in stress_ratios.values())
-        checks["all_predictions_finite"] = checks["all_predictions_finite"] and candidate["stress_test"]["diagnostics"]["all_predictions_finite"]
+        checks["stress_test_geometric_improvement_at_least_10_percent"] = (
+            geometric(list(stress_ratios.values())) <= 0.90
+        )
+        checks["stress_test_no_horizon_regression"] = all(
+            ratio <= 1.0 for ratio in stress_ratios.values()
+        )
+        checks["all_predictions_finite"] = (
+            checks["all_predictions_finite"]
+            and candidate["stress_test"]["diagnostics"]["all_predictions_finite"]
+        )
     return {
         "checks": checks,
         "passed": all(checks.values()),
@@ -312,7 +355,9 @@ def main() -> int:
         train_rows = [*base_train, *incident_train]
         validation_rows = [*base_validation, *incident_validation]
         stress_train = stress_train_metadata = None
-        stress_train_episodes = int(config.get("stress_train_episodes", args.stress_train_episodes))
+        stress_train_episodes = int(
+            config.get("stress_train_episodes", args.stress_train_episodes)
+        )
         if stress_train_episodes:
             stress_train, stress_train_metadata = stress.generate_partition(
                 "train", stress_train_episodes, args.steps, args.stress_seed
@@ -344,11 +389,16 @@ def main() -> int:
             "anti_collapse": jepa.representation_metrics(validation_rows, weights),
         }
         if stress_train is not None:
-            result["stress_training"] = stress.summarize(stress_train, stress_train_metadata)
+            result["stress_training"] = stress.summarize(
+                stress_train, stress_train_metadata
+            )
         if stress_validation is not None:
             result["stress_validation"] = evaluation(stress_validation, weights)
         result["selection"] = validation_decision(
-            result, current_original_validation, current_incident_validation, current_stress_validation
+            result,
+            current_original_validation,
+            current_incident_validation,
+            current_stress_validation,
         )
         candidates.append(result)
         candidate_weights.append(weights)
@@ -470,8 +520,14 @@ def main() -> int:
             incident_validation, incident_validation_metadata
         ),
         "incident_test": incidents.summarize(incident_test, incident_test_metadata),
-        "registered_ood": {"protocol": args.ood_protocol, "rows": args.ood_count, "seed": args.ood_seed},
-        "stress_validation": stress.summarize(stress_validation, stress_validation_metadata)
+        "registered_ood": {
+            "protocol": args.ood_protocol,
+            "rows": args.ood_count,
+            "seed": args.ood_seed,
+        },
+        "stress_validation": stress.summarize(
+            stress_validation, stress_validation_metadata
+        )
         if stress_validation is not None
         else None,
         "stress_test": stress.summarize(stress_test, stress_test_metadata)

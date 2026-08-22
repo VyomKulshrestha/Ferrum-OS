@@ -19,10 +19,7 @@ SELECTOR = ROOT / "scripts" / "select_physical_incident_jepa.py"
 PROMOTER = ROOT / "scripts" / "promote_physical_jepa_v3.py"
 ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 BASELINE_ARTIFACT = (
-    RESEARCH
-    / "artifacts"
-    / "physical-jepa-stress-v3"
-    / "incident-v1-baseline.bin"
+    RESEARCH / "artifacts" / "physical-jepa-stress-v3" / "incident-v1-baseline.bin"
 )
 PROTOCOL = RESEARCH / "physical_jepa_v3_protocol.json"
 SELECTION = RESEARCH / "physical_jepa_v3_selection.json"
@@ -77,7 +74,20 @@ def verify_committed() -> tuple[dict, dict, dict, dict, dict]:
         "PJE1 artifact size is recorded exactly",
     )
     header = struct.unpack("<4sIIIIIIIIffI", artifact[:48])
-    magic, version, state, actions, features, latent, hidden, samples, action_input, h3, mean_h3, gating = header
+    (
+        magic,
+        version,
+        state,
+        actions,
+        features,
+        latent,
+        hidden,
+        samples,
+        action_input,
+        h3,
+        mean_h3,
+        gating,
+    ) = header
     require(
         (magic, version, state, actions, features, action_input)
         == (b"PJE1", 1, 16, 7, 3, 10),
@@ -177,29 +187,50 @@ def reproduce(protocol: dict, selection: dict) -> None:
         command = [
             sys.executable,
             str(SELECTOR),
-            "--current-artifact", str(BASELINE_ARTIFACT),
-            "--artifact", str(artifact),
-            "--report", str(report),
-            "--dataset", str(dataset),
-            "--base-episodes", str(base["episodes"]),
-            "--steps", str(base["steps"]),
-            "--data-seed", str(base["seed"]),
-            "--incident-validation-per-source", str(incident["validation_episodes_per_source"]),
-            "--incident-test-per-source", str(incident["test_episodes_per_source"]),
-            "--candidate-config", str(PROTOCOL),
-            "--ood-count", str(ood["rows"]),
-            "--ood-seed", str(ood["seed"]),
-            "--ood-protocol", str(ood["protocol"]),
-            "--stress-train-episodes", str(stress["train_episodes"]),
-            "--stress-validation-episodes", str(stress["validation_episodes"]),
-            "--stress-test-episodes", str(stress["test_episodes"]),
-            "--stress-seed", str(stress["seed"]),
+            "--current-artifact",
+            str(BASELINE_ARTIFACT),
+            "--artifact",
+            str(artifact),
+            "--report",
+            str(report),
+            "--dataset",
+            str(dataset),
+            "--base-episodes",
+            str(base["episodes"]),
+            "--steps",
+            str(base["steps"]),
+            "--data-seed",
+            str(base["seed"]),
+            "--incident-validation-per-source",
+            str(incident["validation_episodes_per_source"]),
+            "--incident-test-per-source",
+            str(incident["test_episodes_per_source"]),
+            "--candidate-config",
+            str(PROTOCOL),
+            "--ood-count",
+            str(ood["rows"]),
+            "--ood-seed",
+            str(ood["seed"]),
+            "--ood-protocol",
+            str(ood["protocol"]),
+            "--stress-train-episodes",
+            str(stress["train_episodes"]),
+            "--stress-validation-episodes",
+            str(stress["validation_episodes"]),
+            "--stress-test-episodes",
+            str(stress["test_episodes"]),
+            "--stress-seed",
+            str(stress["seed"]),
         ]
         subprocess.run(command, cwd=ROOT, check=True)
         reproduced = load(report)
-        require(sha256(artifact) == sha256(ARTIFACT), "full sweep reproduces the deployed checkpoint")
         require(
-            reproduced["selected_candidate_index"] == selection["selected_candidate_index"]
+            sha256(artifact) == sha256(ARTIFACT),
+            "full sweep reproduces the deployed checkpoint",
+        )
+        require(
+            reproduced["selected_candidate_index"]
+            == selection["selected_candidate_index"]
             and reproduced["promotion"] == selection["promotion"],
             "full sweep reproduces selection and all promotion decisions",
         )

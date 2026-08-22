@@ -82,12 +82,44 @@ def apply_case(state: np.ndarray, case: str, rng: np.random.Generator) -> None:
 
 
 def action_for_step(case: str, episode: int, step: int) -> int:
-    if case in {"geofence_edge", "low_clearance", "human_proximity", "low_battery", "weak_link", "heavy_payload", "compound_motion_hazard"}:
-        plan = (simulator.MOVE, simulator.STOP, simulator.INSPECT, simulator.DIAGNOSE, simulator.APPROVE, simulator.REPAIR, simulator.VERIFY)
+    if case in {
+        "geofence_edge",
+        "low_clearance",
+        "human_proximity",
+        "low_battery",
+        "weak_link",
+        "heavy_payload",
+        "compound_motion_hazard",
+    }:
+        plan = (
+            simulator.MOVE,
+            simulator.STOP,
+            simulator.INSPECT,
+            simulator.DIAGNOSE,
+            simulator.APPROVE,
+            simulator.REPAIR,
+            simulator.VERIFY,
+        )
     elif case in {"repair_without_approval", "recovery_state"}:
-        plan = (simulator.REPAIR, simulator.STOP, simulator.DIAGNOSE, simulator.APPROVE, simulator.REPAIR, simulator.VERIFY, simulator.INSPECT)
+        plan = (
+            simulator.REPAIR,
+            simulator.STOP,
+            simulator.DIAGNOSE,
+            simulator.APPROVE,
+            simulator.REPAIR,
+            simulator.VERIFY,
+            simulator.INSPECT,
+        )
     else:
-        plan = (simulator.STOP, simulator.DIAGNOSE, simulator.INSPECT, simulator.MOVE, simulator.APPROVE, simulator.REPAIR, simulator.VERIFY)
+        plan = (
+            simulator.STOP,
+            simulator.DIAGNOSE,
+            simulator.INSPECT,
+            simulator.MOVE,
+            simulator.APPROVE,
+            simulator.REPAIR,
+            simulator.VERIFY,
+        )
     return plan[(episode + step) % len(plan)]
 
 
@@ -95,7 +127,9 @@ def generate_partition(partition: str, episodes: int, steps: int, seed: int):
     if partition not in PARTITION_OFFSETS:
         raise ValueError(f"unsupported stress partition: {partition}")
     if episodes < 1 or steps < 5:
-        raise ValueError("stress partitions require positive episodes and at least five steps")
+        raise ValueError(
+            "stress partitions require positive episodes and at least five steps"
+        )
     rng = np.random.default_rng(seed + PARTITION_SEED_OFFSETS[partition])
     rows = []
     metadata = {}
@@ -109,7 +143,17 @@ def generate_partition(partition: str, episodes: int, steps: int, seed: int):
             action = action_for_step(case, local_episode, step)
             features = simulator.action_features(rng, action)
             nxt = simulator.transition(state, action, features, rng)
-            rows.append((episode, step, state, action, features, nxt, simulator.is_dangerous(state, action, features, nxt)))
+            rows.append(
+                (
+                    episode,
+                    step,
+                    state,
+                    action,
+                    features,
+                    nxt,
+                    simulator.is_dangerous(state, action, features, nxt),
+                )
+            )
             state = nxt
     return rows, metadata
 
@@ -119,6 +163,10 @@ def summarize(rows, metadata) -> dict:
         "episodes": len(metadata),
         "transitions": len(rows),
         "dangerous_transitions": sum(bool(row[6]) for row in rows),
-        "case_episode_counts": dict(sorted(Counter(item["case"] for item in metadata.values()).items())),
-        "action_transition_counts": dict(sorted(Counter(simulator.ACTION_NAMES[row[3]] for row in rows).items())),
+        "case_episode_counts": dict(
+            sorted(Counter(item["case"] for item in metadata.values()).items())
+        ),
+        "action_transition_counts": dict(
+            sorted(Counter(simulator.ACTION_NAMES[row[3]] for row in rows).items())
+        ),
     }

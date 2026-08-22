@@ -34,9 +34,9 @@ def rollout(rows, predictor) -> dict:
 
 
 def learned_predictor(weights):
-    return lambda state, action, features: robustness.prediction(
-        weights, state, action, features
-    ) - state
+    return lambda state, action, features: (
+        robustness.prediction(weights, state, action, features) - state
+    )
 
 
 def main() -> None:
@@ -61,20 +61,32 @@ def main() -> None:
         base_rows, base["episodes"], base["seed"]
     )
     incident_train, _ = incidents.generate_partition(
-        "train", selected["incident_train_episodes_per_source"], base["steps"], base["seed"]
+        "train",
+        selected["incident_train_episodes_per_source"],
+        base["steps"],
+        base["seed"],
     )
     incident_validation, _ = incidents.generate_partition(
-        "validation", protocol["incident_dataset"]["validation_episodes_per_source"], base["steps"], base["seed"]
+        "validation",
+        protocol["incident_dataset"]["validation_episodes_per_source"],
+        base["steps"],
+        base["seed"],
     )
     incident_test, _ = incidents.generate_partition(
-        "test", protocol["incident_dataset"]["test_episodes_per_source"], base["steps"], base["seed"]
+        "test",
+        protocol["incident_dataset"]["test_episodes_per_source"],
+        base["steps"],
+        base["seed"],
     )
     stress_spec = protocol["stress_curriculum"]
     stress_train, _ = stress.generate_partition(
         "train", stress_spec["train_episodes"], base["steps"], stress_spec["seed"]
     )
     stress_validation, _ = stress.generate_partition(
-        "validation", stress_spec["validation_episodes"], base["steps"], stress_spec["seed"]
+        "validation",
+        stress_spec["validation_episodes"],
+        base["steps"],
+        stress_spec["seed"],
     )
     stress_test, _ = stress.generate_partition(
         "test", stress_spec["test_episodes"], base["steps"], stress_spec["seed"]
@@ -93,9 +105,10 @@ def main() -> None:
         validation_latent_weight=0.0,
     )
     mean = selector.mean_delta_predictor(train_rows)
-    zero = lambda _state, _action, _features: np.zeros(
-        simulator.STATE_SIZE, dtype=np.float32
-    )
+
+    def zero(_state, _action, _features):
+        return np.zeros(simulator.STATE_SIZE, dtype=np.float32)
+
     candidate = robustness.load_artifact(args.artifact)
     test_sets = {
         "original": base_test,
@@ -146,8 +159,19 @@ def main() -> None:
         "claim_boundary": "Baselines are trained after candidate selection and do not alter promotion. All results are deterministic simulator evidence.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"output": str(args.output), "training_transitions": len(train_rows), "autoencoder_epochs_completed": completed}, indent=2))
+    args.output.write_text(
+        json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {
+                "output": str(args.output),
+                "training_transitions": len(train_rows),
+                "autoencoder_epochs_completed": completed,
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

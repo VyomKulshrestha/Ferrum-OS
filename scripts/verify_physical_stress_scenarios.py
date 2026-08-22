@@ -28,15 +28,43 @@ def main() -> None:
         for name in ("train", "validation", "test")
     }
     ids = {name: set(metadata) for name, (_, metadata) in partitions.items()}
-    require(not (ids["train"] & ids["validation"] or ids["train"] & ids["test"] or ids["validation"] & ids["test"]), "stress episode identifiers are split-disjoint")
+    require(
+        not (
+            ids["train"] & ids["validation"]
+            or ids["train"] & ids["test"]
+            or ids["validation"] & ids["test"]
+        ),
+        "stress episode identifiers are split-disjoint",
+    )
     for name, (rows, metadata) in partitions.items():
-        require(len(rows) == 960 and len(metadata) == 120, f"{name} has eight transitions per episode")
-        require({item["case"] for item in metadata.values()} == set(stress.CASES), f"{name} covers all twelve stress families")
-        require({row[3] for row in rows} == set(range(simulator.ACTION_COUNT)), f"{name} covers every physical action")
-        require(all(robustness.observation_consistent(row[2]) for row in rows), f"{name} contains only semantically valid observations")
-        require(all(np.isfinite(row[5]).all() for row in rows), f"{name} next states remain finite")
+        require(
+            len(rows) == 960 and len(metadata) == 120,
+            f"{name} has eight transitions per episode",
+        )
+        require(
+            {item["case"] for item in metadata.values()} == set(stress.CASES),
+            f"{name} covers all twelve stress families",
+        )
+        require(
+            {row[3] for row in rows} == set(range(simulator.ACTION_COUNT)),
+            f"{name} covers every physical action",
+        )
+        require(
+            all(robustness.observation_consistent(row[2]) for row in rows),
+            f"{name} contains only semantically valid observations",
+        )
+        require(
+            all(np.isfinite(row[5]).all() for row in rows),
+            f"{name} next states remain finite",
+        )
     train_again = stress.generate_partition("train", 120, 8, 20_260_826)[0]
-    require(all(np.array_equal(left[2], right[2]) and np.array_equal(left[5], right[5]) for left, right in zip(partitions["train"][0], train_again, strict=True)), "stress generation is deterministic")
+    require(
+        all(
+            np.array_equal(left[2], right[2]) and np.array_equal(left[5], right[5])
+            for left, right in zip(partitions["train"][0], train_again, strict=True)
+        ),
+        "stress generation is deterministic",
+    )
     print("\nPhysical stress-scenario verification passed: 17/17 checks.")
 
 

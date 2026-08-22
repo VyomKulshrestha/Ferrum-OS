@@ -39,10 +39,22 @@ def main() -> None:
     stress = tests["stress_test"]["diagnostics"]
     ood = tests["ood_test"]
 
-    require(digest == report["artifact_sha256"], "selected checkpoint digest matches the registered candidate")
-    require(report["promotion"]["passed"] is True, "pre-registered simulator promotion checks passed")
-    require(selection["test_metrics_used_for_selection"] is False, "test partitions did not select the checkpoint")
-    require(report["validated_for_gating"] is False, "model bytes remain unable to self-promote")
+    require(
+        digest == report["artifact_sha256"],
+        "selected checkpoint digest matches the registered candidate",
+    )
+    require(
+        report["promotion"]["passed"] is True,
+        "pre-registered simulator promotion checks passed",
+    )
+    require(
+        selection["test_metrics_used_for_selection"] is False,
+        "test partitions did not select the checkpoint",
+    )
+    require(
+        report["validated_for_gating"] is False,
+        "model bytes remain unable to self-promote",
+    )
     require(
         held_out["rows"] == 14400
         and held_out["rules_plus_jepa"]["fn"] == 8
