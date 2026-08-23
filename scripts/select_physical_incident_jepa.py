@@ -290,9 +290,7 @@ def v4_promotion_decision(candidate, current, anti_collapse) -> dict:
             "false_positive_rate"
         ]
         <= current_stress["false_positive_rate"] + 0.02,
-        "ood_false_positive_rate_within_2_points": candidate_ood[
-            "false_positive_rate"
-        ]
+        "ood_false_positive_rate_within_2_points": candidate_ood["false_positive_rate"]
         <= current_ood["false_positive_rate"] + 0.02,
         "anti_collapse_variance_ratio": anti_collapse["prediction_variance_ratio"]
         >= 0.10,

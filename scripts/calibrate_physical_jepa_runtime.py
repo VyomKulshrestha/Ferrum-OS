@@ -97,18 +97,23 @@ def main() -> int:
         ]
     if not eligible:
         raise SystemExit("no registered threshold satisfies validation eligibility")
-    if selection.get("mode") == "validation_budgeted_false_positive":
-        selection_key = lambda candidate: (
-            candidate["validation"]["false_positive_rate"],
+    budget_false_positive = (
+        selection.get("mode") == "validation_budgeted_false_positive"
+    )
+
+    def selection_key(candidate):
+        if budget_false_positive:
+            return (
+                candidate["validation"]["false_positive_rate"],
+                candidate["validation"]["fn"],
+                candidate["clearance_threshold"],
+            )
+        return (
             candidate["validation"]["fn"],
+            candidate["validation"]["false_positive_rate"],
             candidate["clearance_threshold"],
         )
-    else:
-        selection_key = lambda candidate: (
-            candidate["validation"]["fn"],
-            candidate["validation"]["false_positive_rate"],
-            candidate["clearance_threshold"],
-        )
+
     selected = min(eligible, key=selection_key)
 
     test_rows, test_cases = scenarios.generate(

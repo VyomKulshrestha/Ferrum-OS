@@ -13,9 +13,7 @@ QUALIFICATION_PROTOCOL = RESEARCH / "physical_deployment_qualification_protocol_
 QUALIFICATION_RESULT = RESEARCH / "physical_deployment_qualification_evaluation_v1.json"
 CALIBRATION_PROTOCOL = RESEARCH / "physical_jepa_runtime_calibration_v4_protocol.json"
 CALIBRATION_RESULT = RESEARCH / "physical_jepa_runtime_calibration_v4.json"
-BASELINE_ARTIFACT = (
-    RESEARCH / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
-)
+BASELINE_ARTIFACT = RESEARCH / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 RUNTIME_ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 QUALIFICATION_SOURCE = (
     ROOT / "userland" / "physical-runtime" / "src" / "qualification.rs"
