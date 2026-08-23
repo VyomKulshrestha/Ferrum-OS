@@ -16,7 +16,7 @@ V2 = RESEARCH / "physical_incident_sources_v2.json"
 V5_SOURCES = RESEARCH / "physical_incident_v5_test_sources.json"
 PROTOCOL = RESEARCH / "physical_jepa_v5_protocol.json"
 V4_RESULT = RESEARCH / "physical_jepa_v4_evaluation.json"
-DEPLOYED = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+DEPLOYED = RESEARCH / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 
 
 def read(path: Path) -> dict:

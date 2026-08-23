@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RESEARCH = ROOT / "docs" / "research"
 SELECTOR = ROOT / "scripts" / "select_physical_incident_jepa.py"
 PROMOTER = ROOT / "scripts" / "promote_physical_jepa_v3.py"
-ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+ARTIFACT = RESEARCH / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 BASELINE_ARTIFACT = (
     RESEARCH / "artifacts" / "physical-jepa-stress-v3" / "incident-v1-baseline.bin"
 )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the selected v5 decoder artifact while its final set stays sealed."""
+"""Verify the frozen v5 decoder selection before or after final evaluation."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import evaluate_physical_jepa_robustness as robustness  # noqa: E402
 
 PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_v5_protocol.json"
 REPORT = ROOT / "docs" / "research" / "physical_jepa_v5_selection.json"
-BASELINE = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+BASELINE = ROOT / "docs" / "research" / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 FINAL_REPORT = ROOT / "docs" / "research" / "physical_jepa_v5_final_test.json"
 
 
@@ -39,7 +39,16 @@ def main() -> None:
     require(report["protocol_sha256"] == sha256(PROTOCOL), "protocol hash drift")
     require(report["baseline_artifact_sha256"] == sha256(BASELINE), "baseline drift")
     require(not report["final_test_opened"], "selection opened final test")
-    require(not FINAL_REPORT.exists(), "v5 final report exists during selection")
+    if FINAL_REPORT.exists():
+        final_report = json.loads(FINAL_REPORT.read_text(encoding="utf-8"))
+        require(
+            final_report["selection_report_sha256"] == sha256(REPORT),
+            "post-final selection report drift",
+        )
+        require(
+            final_report["no_retraining_after_final_test_open"],
+            "post-final retraining was disclosed",
+        )
     accepted = [
         index
         for index, candidate in enumerate(report["candidates"])
@@ -86,7 +95,7 @@ def main() -> None:
     )
     print(
         "PASS physical v5 selection: 28/30 arms accepted; decoder-only candidate "
-        f"{report['selected_artifact_sha256'][:12]} remains final-test sealed"
+        f"{report['selected_artifact_sha256'][:12]} remains frozen"
     )
 
 

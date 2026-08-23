@@ -16,10 +16,10 @@ use ferrum_physical_runtime::{
 
 static PHYSICAL_MODEL_BYTES: &[u8] = include_bytes!("../physical_world_model.bin");
 
-pub const PHYSICAL_SCHEMA_VERSION: u32 = 5;
+pub const PHYSICAL_SCHEMA_VERSION: u32 = 6;
 const PHYSICAL_MODEL_SHA256: [u8; 32] = [
-    0xf2, 0x67, 0xdc, 0x09, 0x2f, 0x9f, 0xb2, 0xab, 0x75, 0x2b, 0x6d, 0x5e, 0xf6, 0xc5, 0xdc, 0x60,
-    0xcb, 0x79, 0x9e, 0x15, 0xca, 0x67, 0x9d, 0xa5, 0x2b, 0xc5, 0xe7, 0x07, 0xcc, 0x66, 0xee, 0x60,
+    0x23, 0xa0, 0x6f, 0x37, 0xd6, 0x68, 0xee, 0x3f, 0x32, 0x3b, 0xb8, 0x86, 0x8d, 0xba, 0x4e, 0xed,
+    0x2b, 0xae, 0xde, 0xf6, 0x42, 0xfc, 0x32, 0xab, 0x64, 0x10, 0xd4, 0xee, 0x1d, 0xa6, 0xe8, 0x64,
 ];
 
 #[derive(Debug, Default)]
@@ -54,7 +54,7 @@ impl PhysicalService {
             })
             .unwrap_or((0, 0, 0));
         format!(
-            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"simulation_caution\",\"live_learned_gate\":\"shadow_only\",\"live_delivery\":\"disabled_until_authenticated_external_qualification\",\"qualification_stage\":\"software_simulation\",\"learned_authority\":\"increase_severity_only\",\"permit_authority\":\"deterministic_supervisor\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"model_revision\":\"physical-jepa-stress-v3\",\"runtime_calibration\":\"physical-jepa-runtime-clearance-calibration-v1\",\"clearance_caution_milli\":200,\"model_sha256\":\"f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"training_samples\":{},\"normalized_h3_error_ppm\":{},\"per_action_mean_h3_error_ppm\":{},\"held_out_rows\":14400,\"held_out_false_negatives\":8,\"held_out_false_positives\":133,\"incident_rows\":7680,\"incident_false_negatives\":1,\"incident_false_positives\":56,\"stress_rows\":16000,\"stress_false_negatives\":1,\"stress_false_positives\":101,\"ood_rows\":4096,\"ood_invalid_observations_rejected\":682,\"ood_false_negatives\":0,\"ood_false_positives\":18,\"qualification_rows\":12288,\"calibration_test_false_negatives\":4,\"calibration_test_false_positives\":411,\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
+            "{{\"schema_version\":{},\"available\":true,\"mode\":\"simulator\",\"learned_gate\":\"simulation_caution\",\"live_learned_gate\":\"shadow_only\",\"live_delivery\":\"disabled_until_authenticated_external_qualification\",\"qualification_stage\":\"software_simulation\",\"learned_authority\":\"increase_severity_only\",\"permit_authority\":\"deterministic_supervisor\",\"physical_model\":\"ema_target_jepa\",\"artifact_format\":\"PJE1\",\"model_revision\":\"physical-jepa-baseline-anchored-v5\",\"runtime_calibration\":\"physical-jepa-runtime-clearance-calibration-v4\",\"clearance_caution_milli\":200,\"model_sha256\":\"23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864\",\"lookahead_horizon\":3,\"physical_model_loaded\":{},\"training_samples\":{},\"normalized_h3_error_ppm\":{},\"per_action_mean_h3_error_ppm\":{},\"held_out_rows\":14400,\"held_out_false_negatives\":7,\"held_out_false_positives\":138,\"incident_rows\":20480,\"incident_false_negatives\":0,\"incident_false_positives\":39,\"stress_rows\":16000,\"stress_false_negatives\":1,\"stress_false_positives\":96,\"ood_rows\":4096,\"ood_invalid_observations_rejected\":682,\"ood_false_negatives\":0,\"ood_false_positives\":17,\"qualification_rows\":12288,\"calibration_test_false_negatives\":4,\"calibration_test_false_positives\":380,\"os_jepa_reused\":false,\"completed_simulations\":{},\"last_job_completed\":{}}}",
             PHYSICAL_SCHEMA_VERSION,
             self.model.is_some(),
             training_samples,

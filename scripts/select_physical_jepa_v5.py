@@ -25,7 +25,7 @@ import train_physical_world_model as simulator  # noqa: E402
 
 
 PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_v5_protocol.json"
-BASELINE = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+BASELINE = ROOT / "docs" / "research" / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 INCIDENT_CATALOG = ROOT / "docs" / "research" / "physical_incident_sources_v2.json"
 DEFAULT_REPORT = ROOT / "docs" / "research" / "physical_jepa_v5_selection.json"
 DEFAULT_ARTIFACT = ROOT / "target" / "physical_world_model" / "v5_candidate.bin"

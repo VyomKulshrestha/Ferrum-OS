@@ -17,7 +17,7 @@ import physical_incident_scenarios as incidents  # noqa: E402
 REPORT = ROOT / "docs" / "research" / "physical_jepa_v4_evaluation.json"
 PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_v4_protocol.json"
 CATALOG = ROOT / "docs" / "research" / "physical_incident_sources_v2.json"
-DEPLOYED = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+DEPLOYED = ROOT / "docs" / "research" / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 
 
 def sha256(path: Path) -> str:

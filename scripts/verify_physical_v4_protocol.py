@@ -17,7 +17,9 @@ V2_CATALOG = RESEARCH / "physical_incident_sources_v2.json"
 HAI_PROTOCOL = RESEARCH / "physical_hai_transfer_protocol_v1.json"
 V4_PROTOCOL = RESEARCH / "physical_jepa_v4_protocol.json"
 V4_AMENDMENT = RESEARCH / "physical_jepa_v4_amendment1.json"
-DEPLOYED_ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+DEPLOYED_ARTIFACT = (
+    RESEARCH / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
+)
 PARTITIONS = {"train", "validation", "test"}
 
 

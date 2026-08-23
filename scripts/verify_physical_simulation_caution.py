@@ -10,8 +10,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
-EVALUATION = ROOT / "docs" / "research" / "physical_jepa_v3_evaluation.json"
-SELECTION = ROOT / "docs" / "research" / "physical_jepa_v3_selection.json"
+EVALUATION = ROOT / "docs" / "research" / "physical_jepa_v5_final_test.json"
+SELECTION = ROOT / "docs" / "research" / "physical_jepa_v5_selection.json"
+CALIBRATION = ROOT / "docs" / "research" / "physical_jepa_runtime_calibration_v4.json"
 RUNTIME = ROOT / "userland" / "physical-runtime" / "src" / "runtime.rs"
 SAFETY = ROOT / "userland" / "physical-runtime" / "src" / "safety.rs"
 SERVICE = ROOT / "userland" / "heliox-daemon" / "src" / "physical.rs"
@@ -27,58 +28,67 @@ def require(condition: bool, message: str) -> None:
 def main() -> None:
     report = json.loads(EVALUATION.read_text(encoding="utf-8"))
     selection = json.loads(SELECTION.read_text(encoding="utf-8"))
+    calibration = json.loads(CALIBRATION.read_text(encoding="utf-8"))
     runtime = RUNTIME.read_text(encoding="utf-8")
     safety = SAFETY.read_text(encoding="utf-8")
     service = SERVICE.read_text(encoding="utf-8")
     bridge = BRIDGE.read_text(encoding="utf-8")
     digest = hashlib.sha256(ARTIFACT.read_bytes()).hexdigest()
 
-    tests = report["test_metrics"]
-    held_out = tests["original_test"]["diagnostics"]
-    incident = tests["incident_test"]["diagnostics"]
-    stress = tests["stress_test"]["diagnostics"]
-    ood = tests["ood_test"]
+    regressions = report["known_regression_suites"]
+    held_out = regressions["base_test"]["candidate"]["diagnostics"]
+    incident = report["candidate_final"]["diagnostics"]
+    stress = regressions["stress_test"]["candidate"]["diagnostics"]
+    ood = regressions["registered_ood_v2"]["candidate"]
 
     require(
-        digest == report["artifact_sha256"],
+        digest == report["candidate_artifact_sha256"],
         "selected checkpoint digest matches the registered candidate",
     )
     require(
-        report["promotion"]["passed"] is True,
+        report["all_model_evidence_gates_pass"] is True,
         "pre-registered simulator promotion checks passed",
     )
     require(
-        selection["test_metrics_used_for_selection"] is False,
+        selection["final_test_opened"] is False,
         "test partitions did not select the checkpoint",
     )
     require(
-        report["validated_for_gating"] is False,
+        report["no_retraining_after_final_test_open"] is True,
         "model bytes remain unable to self-promote",
     )
     require(
         held_out["rows"] == 14400
-        and held_out["rules_plus_jepa"]["fn"] == 8
-        and held_out["rules_plus_jepa"]["fp"] == 133,
-        "ordinary held-out union records 14400 rows, 8 FN, and 133 FP",
+        and held_out["rules_plus_jepa"]["fn"] == 7
+        and held_out["rules_plus_jepa"]["fp"] == 138,
+        "ordinary held-out union records 14400 rows, 7 FN, and 138 FP",
     )
     require(
-        incident["rows"] == 7680
-        and incident["rules_plus_jepa"]["fn"] == 1
-        and incident["rules_plus_jepa"]["fp"] == 56,
-        "source-family-disjoint incident challenge records 7680 rows, 1 FN, and 56 FP",
+        incident["rows"] == 20480
+        and incident["rules_plus_jepa"]["fn"] == 0
+        and incident["rules_plus_jepa"]["fp"] == 39,
+        "unseen source-family incident challenge records 20480 rows, 0 FN, and 39 FP",
     )
     require(
         stress["rows"] == 16000
         and stress["rules_plus_jepa"]["fn"] == 1
-        and stress["rules_plus_jepa"]["fp"] == 101,
-        "valid edge-state stress test records 16000 rows, 1 FN, and 101 FP",
+        and stress["rules_plus_jepa"]["fp"] == 96,
+        "valid edge-state stress test records 16000 rows, 1 FN, and 96 FP",
     )
     require(
         ood["rows"] == 4096
         and ood["invalid_observations_rejected"] == 682
         and ood["rules_plus_jepa"]["fn"] == 0
-        and ood["rules_plus_jepa"]["fp"] == 18,
-        "registered OOD fixture records 4096 rows, 682 rejects, 0 FN, and 18 FP",
+        and ood["rules_plus_jepa"]["fp"] == 17,
+        "registered OOD fixture records 4096 rows, 682 rejects, 0 FN, and 17 FP",
+    )
+    require(
+        calibration["artifact_sha256"] == digest
+        and calibration["selected_clearance_threshold"] == 0.2
+        and calibration["test"]["fn"] == 4
+        and calibration["test"]["fp"] == 380
+        and calibration["promotion"]["passed"] is True,
+        "checkpoint-bound runtime calibration passes on its fresh final split",
     )
     require(
         "descriptor.mode != SessionMode::Simulation" in runtime
@@ -109,7 +119,7 @@ def main() -> None:
         and "bounded_safe_command_delivered" in bridge,
         "QEMU verifier checks incremental blocking, no rejected permit, and a safe control",
     )
-    print("\nSimulator-only learned-caution contract verified: 13/13 checks passed.")
+    print("\nSimulator-only learned-caution contract verified: 14/14 checks passed.")
 
 
 if __name__ == "__main__":
