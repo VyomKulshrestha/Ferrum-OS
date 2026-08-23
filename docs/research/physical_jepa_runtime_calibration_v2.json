@@ -1,0 +1,141 @@
+{
+  "artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "candidates": [
+    {
+      "clearance_threshold": 0.16,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9651111616675953,
+        "false_negative_rate": 0.003076449776957391,
+        "false_positive_rate": 0.06670122688785209,
+        "fn": 20,
+        "fp": 386,
+        "normalized_one_step_error": 0.003533469116729767,
+        "tn": 5401,
+        "tp": 6481
+      }
+    },
+    {
+      "clearance_threshold": 0.18,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9651511124539678,
+        "false_negative_rate": 0.0009229349330872173,
+        "false_positive_rate": 0.06877484015897702,
+        "fn": 6,
+        "fp": 398,
+        "normalized_one_step_error": 0.003533469116729767,
+        "tn": 5389,
+        "tp": 6495
+      }
+    },
+    {
+      "clearance_threshold": 0.19,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9649688220395012,
+        "false_negative_rate": 0.0007691124442393477,
+        "false_positive_rate": 0.06929324347675825,
+        "fn": 5,
+        "fp": 401,
+        "normalized_one_step_error": 0.003533469116729767,
+        "tn": 5386,
+        "tp": 6496
+      }
+    },
+    {
+      "clearance_threshold": 0.2,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9643450395516773,
+        "false_negative_rate": 0.00046146746654360867,
+        "false_positive_rate": 0.07084845343010195,
+        "fn": 3,
+        "fp": 410,
+        "normalized_one_step_error": 0.003533469116729767,
+        "tn": 5377,
+        "tp": 6498
+      }
+    },
+    {
+      "clearance_threshold": 0.22,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9607931275716325,
+        "false_negative_rate": 0.00030764497769573913,
+        "false_positive_rate": 0.07810609987903923,
+        "fn": 2,
+        "fp": 452,
+        "normalized_one_step_error": 0.003533469116729767,
+        "tn": 5335,
+        "tp": 6499
+      }
+    }
+  ],
+  "claim_boundary": "This calibrates simulator-only monotonic caution for the immutable v5 checkpoint on new deterministic splits. It cannot validate physical equipment, grant permits, weaken deterministic interlocks, replace an independent emergency stop, or provide certification.",
+  "promotion": {
+    "gates": {
+      "all_predictions_finite": true,
+      "normalized_one_step_error_within_limit": true,
+      "test_balanced_accuracy_within_limit": false,
+      "test_false_negatives_not_above_precursor": true,
+      "test_false_positive_rate_within_limit": false
+    },
+    "passed": false
+  },
+  "protocol_id": "physical-jepa-runtime-clearance-calibration-v2",
+  "protocol_sha256": "b550844f92356374a13e16605e5473e135c125781a68308433d03c29feee62d4",
+  "schema_version": 1,
+  "selected_clearance_threshold": 0.22,
+  "selected_validation": {
+    "all_predictions_finite": true,
+    "balanced_accuracy": 0.9607931275716325,
+    "false_negative_rate": 0.00030764497769573913,
+    "false_positive_rate": 0.07810609987903923,
+    "fn": 2,
+    "fp": 452,
+    "normalized_one_step_error": 0.003533469116729767,
+    "tn": 5335,
+    "tp": 6499
+  },
+  "test": {
+    "all_predictions_finite": true,
+    "balanced_accuracy": 0.9610375348640177,
+    "false_negative_rate": 0.0003057169061449098,
+    "false_positive_rate": 0.0776192133658197,
+    "fn": 2,
+    "fp": 446,
+    "normalized_one_step_error": 0.003509927153864112,
+    "tn": 5300,
+    "tp": 6540
+  },
+  "test_case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  },
+  "test_metrics_used_for_selection": false,
+  "validation_case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  }
+}
