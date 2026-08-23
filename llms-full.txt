@@ -75,8 +75,8 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `physical-jepa-baseline-anchored-decoder-v5` | 187,200 training transitions; unseen-family H=3 0.75% to 0.36%; final FN 0; stress FN 1; OOD FN 0 | Simulator evidence; learned execution authority still requires real-device qualification |
 | `physical-hai-site-adapted-v2-final` | 48/50 HAI windows; 0.555 false alerts/hour | External recorded testbed evidence; separate advisory model, not Ferrum hardware or certification |
 | `neural-ssvep-synthetic-v1` | 600 synthetic signals, 400 artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG, human, medical, or usability claim |
-| `ferrumos-qemu-command-audit-v1` | 101/101 focused cases and 81/81 exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
-| `cyber-physical-software-regression-2026-08-22` | 158 contract tests and 69 model/decoder gates passed | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
+| `ferrumos-qemu-command-audit-v2` | 101/101 focused cases, 81/81 exhaustive entries, 3/3 cold-restart checks | Exact-image dated QEMU evidence, not broad physical-PC coverage |
+| `cyber-physical-software-regression-2026-08-23` | 163 contract tests, 91 model/decoder gates, 259 build/QEMU checks | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
 
 The seven evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 

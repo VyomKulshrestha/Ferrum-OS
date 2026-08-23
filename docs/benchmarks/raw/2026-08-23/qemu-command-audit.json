@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "protocol": "ferrumos-qemu-command-audit-v2",
+  "snapshot_date": "2026-08-23",
+  "os_source_commit": "f326e5500cc9446ddc56c6173125d5a9b6d6a0fe",
+  "audit_source_commit": "f326e5500cc9446ddc56c6173125d5a9b6d6a0fe",
+  "environment": {
+    "host_os": "Microsoft Windows NT 10.0.26220.0",
+    "qemu_version": "9.2.0 (v9.2.0-12071-g3dd0aeb44b)",
+    "accelerator": "WHPX",
+    "guest_ram_mb": 2048
+  },
+  "harness": {
+    "entrypoint": "node scripts/verify_all_audits.mjs",
+    "command_sweep": {
+      "path": "scripts/command_sweep.mjs",
+      "sha256": "0773e2d9d444af1f7f793ae32a920dcdfe4fb9329665f3cfb6fd277938bc3273",
+      "git_blob_sha1": "a68c0bc58c72d6d758d579a3915ca8fa5654aeb0",
+      "cases": 101,
+      "passed": 101,
+      "failed": 0,
+      "final_one_way_check": "ring3 init"
+    },
+    "exhaustive_catalog": {
+      "path": "scripts/audit_all_commands.mjs",
+      "sha256": "89035f7695735ce5571ff56b5f9291217f46da45b2e298b70392f3f8d534ac45",
+      "git_blob_sha1": "e47c4376d67d95e5d3617e70991b71343a93e933",
+      "entries": 81,
+      "passed": 81,
+      "failed": 0,
+      "prompt_returns": 81,
+      "unknown_command_paths": 0,
+      "persistent_io_success_assertions": 6,
+      "ata_errors_fail_the_audit": true
+    },
+    "ata_cold_restart": {
+      "path": "scripts/verify_ata_pio_persistence.mjs",
+      "sha256": "c05057b9f8bd7d7b66cc8e1cbce500692e46c2a4f997e6e5adcd66cd3fa4e21a",
+      "git_blob_sha1": "5aefc3cad2eb3518d18cd4fd7e1c4ad75ca698c4",
+      "boots": 2,
+      "checks": 3,
+      "passed": 3,
+      "failed": 0,
+      "source_disk_is_copied_before_test": true
+    }
+  },
+  "artifacts": {
+    "boot_image_sha256": "a52d36932be72d57554373b63a07d1802364197bde7bd4294d26bff0f2edbbc2",
+    "appliance_disk_sha256": "80ebbe08ca33200fee69aab7d66c915b7572b89b070b8be68de50fba1d840bea",
+    "command_serial_sha256": "40b4cf3e3d41d216008a720bb8e6660fa9917dfc0f205c2fa2d95a135e3d24ff",
+    "catalog_serial_sha256": "8d1518dbd49c6e85fe00af15649e34a94afc13f10339c8cdee99bf8446610b10",
+    "catalog_summary_sha256": "d5e28d0c4ea617bafb2177504161ccd0389f4dde88e6b6dc1688caa9f7d7ed12",
+    "ata_write_serial_sha256": "4fb5659e67a7e112b31024712b1ad8cd28f08625d08160cf24cdf70d2b16cfef",
+    "ata_reboot_serial_sha256": "fdd351b2c06403be721223ad8fdbbea68ea3d72d9e51ebe8bfe9abbf2827ed6f"
+  },
+  "claim_boundary": "This is a dated emulator command and copied-disk persistence audit for the named source commit and exact boot-image hash. It is not evidence of broad physical-PC compatibility, hardware timing, live EEG performance, formal safety, certification, or independent replication."
+}

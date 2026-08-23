@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.2.0",
+  "protocol_id": "cyber-physical-software-regression-2026-08-23",
+  "snapshot_date": "2026-08-23",
+  "source_commit": "f326e55",
+  "environment": {
+    "host_os": "Microsoft Windows NT 10.0.26220.0",
+    "rust_target": "x86_64-pc-windows-msvc",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
+    "kernel_toolchain": "nightly-2026-05-08 with rust-src and llvm-tools-preview",
+    "python_runtime": "CPython 3.12.6"
+  },
+  "contract_suites": [
+    {
+      "component": "ferrum-physical-runtime",
+      "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "passed": 128,
+      "failed": 0
+    },
+    {
+      "component": "ferrum-neural-protocol",
+      "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "component": "neurod",
+      "command": "python -m unittest discover -s tools/neurod -p test_*.py -v",
+      "exit_code": 0,
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "component": "physical-simulator-bridge",
+      "command": "python -m unittest tools.physical_sim_bridge.test_bridge -v",
+      "exit_code": 0,
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "model_and_decoder_gates": [
+    {"component": "physical-world-model-v3-history", "command": "python scripts/verify_physical_world_model.py --quick", "exit_code": 0, "passed": 17, "failed": 0},
+    {"component": "physical-jepa-robustness", "command": "python scripts/verify_physical_jepa_robustness.py", "exit_code": 0, "passed": 8, "failed": 0},
+    {"component": "physical-simulation-caution-v5", "command": "python scripts/verify_physical_simulation_caution.py", "exit_code": 0, "passed": 14, "failed": 0},
+    {"component": "physical-jepa-v3-protocol", "command": "python scripts/verify_physical_jepa_v3_protocol.py", "exit_code": 0, "passed": 11, "failed": 0},
+    {"component": "physical-jepa-v4-protocol", "command": "python scripts/verify_physical_v4_protocol.py", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "physical-jepa-v4-negative-result", "command": "python scripts/verify_physical_v4_result.py", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "physical-jepa-v5-protocol", "command": "python scripts/verify_physical_v5_protocol.py", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "physical-jepa-v5-selection", "command": "python scripts/verify_physical_jepa_v5_selection.py", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "physical-jepa-v5-final", "command": "python scripts/verify_physical_jepa_v5_final.py", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "physical-jepa-v5-runtime", "command": "python scripts/verify_physical_jepa_v5_runtime.py", "exit_code": 0, "passed": 15, "failed": 0},
+    {"component": "physical-hai-v2-external-evidence", "command": "python scripts/verify_physical_hai_v2_evidence.py", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "physical-stress-scenarios", "command": "python scripts/verify_physical_stress_scenarios.py", "exit_code": 0, "passed": 17, "failed": 0},
+    {"component": "neural-simulator", "command": "python scripts/evaluate_neural_simulator.py --output target/neural-simulator-audit.json", "exit_code": 0, "passed": 3, "failed": 0}
+  ],
+  "system_suites": [
+    {"component": "ferrumos-build", "command": ".\\build.ps1 build", "exit_code": 0, "passed": 1, "failed": 0},
+    {"component": "qemu-shell-command-audits", "command": "node scripts/verify_all_audits.mjs", "exit_code": 0, "passed": 182, "failed": 0},
+    {"component": "qemu-ata-cold-restart", "command": "node scripts/verify_ata_pio_persistence.mjs", "exit_code": 0, "passed": 3, "failed": 0},
+    {"component": "booted-heliox-bridge", "command": "node scripts/verify_bridge.mjs", "exit_code": 0, "passed": 50, "failed": 0},
+    {"component": "os-world-model-rules", "command": "node scripts/verify_world_model.mjs", "exit_code": 0, "passed": 10, "failed": 0},
+    {"component": "os-world-model-learned", "command": "node scripts/verify_world_model_learned.mjs", "exit_code": 0, "passed": 6, "failed": 0},
+    {"component": "embedded-local-language-model", "command": "node scripts/verify_real_model.mjs", "exit_code": 0, "passed": 7, "failed": 0}
+  ],
+  "contract_tests_passed": 163,
+  "contract_tests_failed": 0,
+  "model_and_decoder_gates_passed": 91,
+  "model_and_decoder_gates_failed": 0,
+  "system_checks_passed": 259,
+  "system_checks_failed": 0,
+  "covered_software_boundaries": [
+    "versioned provenance and logical clocks",
+    "deterministic sessions replay and fault injection",
+    "virtual sensor actuator EEG watchdog and stop contracts",
+    "scripted Gazebo ROS 2 and Webots bridge boundaries",
+    "deterministic supervisor watchdog recovery and stop priority",
+    "ROS 2 MQTT and CAN transport conformance",
+    "actuator-disabled delivery",
+    "bounded neural intent and proposal-only physical goals",
+    "digest-bound simulator-only physical JEPA caution",
+    "external recorded HAI HIL/testbed diagnostic evidence kept separate and advisory",
+    "unpromoted physical JEPA in HIL and live sessions pending real-device evidence",
+    "deterministic-only permit issuance",
+    "provider-equivalent dispatch through one physical supervisor",
+    "ATA PIO write completion and ext2 persistence across a cold QEMU restart",
+    "host-managed agent-cell contract",
+    "privacy retention reliability and incident primitives"
+  ],
+  "claim_boundary": "Local deterministic software, exact-artifact QEMU regression, incident-informed simulator evaluation, and separate external recorded HIL/testbed evaluation on the named implementation commit. It does not prove installed Gazebo or Webots, real ROS 2/MQTT/CAN infrastructure, Ferrum-controlled hardware, robot or field safety, live EEG, hard-real-time behavior, native hypervisor containment, certification, market readiness, or independent replication."
+}

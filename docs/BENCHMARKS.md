@@ -14,8 +14,8 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Physical simulator JEPA | 187,200 training transitions; unseen-family H=3 0.36% vs 0.75% frozen baseline; 0 FN/39 FP | Digest-bound simulator caution; no execution or permit authority |
 | External HIL diagnostic | HAI: 48/50 attack windows, 0.555 false alerts/hour | Separate advisory model; not Ferrum hardware, field deployment, certification, or runtime authority |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
-| QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
-| Cyber-physical software tier | 158 contract tests and 69 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
+| QEMU command paths | 101/101 focused cases, 81/81 exhaustive entries, and 3/3 copied-disk cold-restart checks | Broad physical-PC compatibility or independent replication |
+| Cyber-physical software tier | 163 contract tests, 91 model/decoder gates, and 259 build/QEMU checks passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
 
 ## Published world-model study
 
@@ -56,7 +56,7 @@ The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 60
 
 ## Simulator-backed cyber-physical software tier
 
-At source `24db9ee`, 158 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 69 physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+At source `f326e55`, 163 deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; 91 physical-model, robustness, HAI-evidence, and neural-decoder gates also passed. Another 259 build/QEMU checks cover the exact boot image, both command audits, ATA cold-restart persistence, the booted bridge, OS world-model rules and learned checkpoints, and the embedded local language model. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
 
 This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
 
@@ -75,6 +75,9 @@ python -m unittest discover -s tools/neurod -p "test_*.py" -v
 python -m unittest tools.physical_sim_bridge.test_bridge -v
 python scripts/verify_physical_jepa_robustness.py
 python scripts/verify_qemu_command_evidence.py
+node scripts/verify_all_audits.mjs
+node scripts/verify_ata_pio_persistence.mjs
+node scripts/verify_bridge.mjs
 node scripts/benchmark_world_model_runtime.mjs --iterations 100
 node scripts/verify_world_model_preview_concurrency.mjs
 python scripts/generate_public_evidence.py --check

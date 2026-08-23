@@ -225,15 +225,29 @@ def main() -> int:
         and qemu["unknown_command_paths"] == 0,
         "dated QEMU catalog audit records 81 passing entries",
     )
-    cyber = benchmarks["cyber_physical_software"]
     require(
-        cyber["contract_tests_passed"] == 158 and cyber["contract_tests_failed"] == 0,
-        "cyber-physical software contract records 158 passing tests",
+        qemu["persistent_io_success_assertions"] == 6
+        and qemu["ata_cold_restart_checks"] == qemu["ata_cold_restart_passed"] == 3,
+        "dated QEMU evidence records explicit persistent I/O and cold-restart checks",
     )
     require(
-        cyber["model_and_decoder_gates_passed"] == 69
+        len(qemu["boot_image_sha256"]) == 64,
+        "dated QEMU evidence binds the exact boot-image digest",
+    )
+    cyber = benchmarks["cyber_physical_software"]
+    require(
+        cyber["contract_tests_passed"] == 163 and cyber["contract_tests_failed"] == 0,
+        "cyber-physical software contract records 163 passing tests",
+    )
+    require(
+        cyber["model_and_decoder_gates_passed"] == 91
         and cyber["model_and_decoder_gates_failed"] == 0,
-        "cyber-physical model and decoder checks record 69 passing gates",
+        "cyber-physical model and decoder checks record 91 passing gates",
+    )
+    require(
+        cyber["system_checks_passed"] == 259
+        and cyber["system_checks_failed"] == 0,
+        "cyber-physical system checks record 259 passing checks",
     )
     require(
         "does not prove" in cyber["claim_boundary"],

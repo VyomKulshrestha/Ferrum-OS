@@ -143,14 +143,14 @@
     "warmup_previews_per_run": 64
   },
   "cyber_physical_software": {
-    "claim_boundary": "Local deterministic software and QEMU regression on the named implementation commit. Simulator-only learned caution is not physical deployment evidence. This does not prove installed Gazebo or Webots, real ROS 2/MQTT/CAN infrastructure, physical clocks, actuator hardware, robot safety, live EEG, hard-real-time behavior, native hypervisor containment, certification, or independent replication.",
+    "claim_boundary": "Local deterministic software, exact-artifact QEMU regression, incident-informed simulator evaluation, and separate external recorded HIL/testbed evaluation on the named implementation commit. It does not prove installed Gazebo or Webots, real ROS 2/MQTT/CAN infrastructure, Ferrum-controlled hardware, robot or field safety, live EEG, hard-real-time behavior, native hypervisor containment, certification, market readiness, or independent replication.",
     "contract_suites": [
       {
         "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
         "component": "ferrum-physical-runtime",
         "exit_code": 0,
         "failed": 0,
-        "passed": 123
+        "passed": 128
       },
       {
         "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
@@ -160,14 +160,14 @@
         "passed": 9
       },
       {
-        "command": "python -m unittest discover -s tools/neurod -p test_*.py",
+        "command": "python -m unittest discover -s tools/neurod -p test_*.py -v",
         "component": "neurod",
         "exit_code": 0,
         "failed": 0,
         "passed": 15
       },
       {
-        "command": "python -m unittest tools.physical_sim_bridge.test_bridge",
+        "command": "python -m unittest tools.physical_sim_bridge.test_bridge -v",
         "component": "physical-simulator-bridge",
         "exit_code": 0,
         "failed": 0,
@@ -175,7 +175,7 @@
       }
     ],
     "contract_tests_failed": 0,
-    "contract_tests_passed": 158,
+    "contract_tests_passed": 163,
     "covered_software_boundaries": [
       "versioned provenance and logical clocks",
       "deterministic sessions replay and fault injection",
@@ -186,14 +186,18 @@
       "actuator-disabled delivery",
       "bounded neural intent and proposal-only physical goals",
       "digest-bound simulator-only physical JEPA caution",
+      "external recorded HAI HIL/testbed diagnostic evidence kept separate and advisory",
       "unpromoted physical JEPA in HIL and live sessions pending real-device evidence",
       "deterministic-only permit issuance",
+      "provider-equivalent dispatch through one physical supervisor",
+      "ATA PIO write completion and ext2 persistence across a cold QEMU restart",
       "host-managed agent-cell contract",
       "privacy retention reliability and incident primitives"
     ],
     "environment": {
       "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
       "host_os": "Microsoft Windows NT 10.0.26220.0",
+      "kernel_toolchain": "nightly-2026-05-08 with rust-src and llvm-tools-preview",
       "python_runtime": "CPython 3.12.6",
       "rust_target": "x86_64-pc-windows-msvc",
       "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)"
@@ -202,7 +206,7 @@
     "model_and_decoder_gates": [
       {
         "command": "python scripts/verify_physical_world_model.py --quick",
-        "component": "physical-world-model",
+        "component": "physical-world-model-v3-history",
         "exit_code": 0,
         "failed": 0,
         "passed": 17
@@ -216,10 +220,10 @@
       },
       {
         "command": "python scripts/verify_physical_simulation_caution.py",
-        "component": "physical-simulation-caution",
+        "component": "physical-simulation-caution-v5",
         "exit_code": 0,
         "failed": 0,
-        "passed": 13
+        "passed": 14
       },
       {
         "command": "python scripts/verify_physical_jepa_v3_protocol.py",
@@ -227,6 +231,55 @@
         "exit_code": 0,
         "failed": 0,
         "passed": 11
+      },
+      {
+        "command": "python scripts/verify_physical_v4_protocol.py",
+        "component": "physical-jepa-v4-protocol",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 1
+      },
+      {
+        "command": "python scripts/verify_physical_v4_result.py",
+        "component": "physical-jepa-v4-negative-result",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 1
+      },
+      {
+        "command": "python scripts/verify_physical_v5_protocol.py",
+        "component": "physical-jepa-v5-protocol",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 1
+      },
+      {
+        "command": "python scripts/verify_physical_jepa_v5_selection.py",
+        "component": "physical-jepa-v5-selection",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 1
+      },
+      {
+        "command": "python scripts/verify_physical_jepa_v5_final.py",
+        "component": "physical-jepa-v5-final",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 1
+      },
+      {
+        "command": "python scripts/verify_physical_jepa_v5_runtime.py",
+        "component": "physical-jepa-v5-runtime",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 15
+      },
+      {
+        "command": "python scripts/verify_physical_hai_v2_evidence.py",
+        "component": "physical-hai-v2-external-evidence",
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 1
       },
       {
         "command": "python scripts/verify_physical_stress_scenarios.py",
@@ -244,9 +297,11 @@
       }
     ],
     "model_and_decoder_gates_failed": 0,
-    "model_and_decoder_gates_passed": 69,
-    "protocol_id": "cyber-physical-software-regression-2026-08-22",
-    "source_commit": "24db9ee"
+    "model_and_decoder_gates_passed": 91,
+    "protocol_id": "cyber-physical-software-regression-2026-08-23",
+    "source_commit": "f326e55",
+    "system_checks_failed": 0,
+    "system_checks_passed": 259
   },
   "environment": {
     "accelerator": "WHPX",
@@ -492,12 +547,12 @@
         "sha256": "251996d01847f20f4ac17ae964c4b9ca72e27e0a89908407c6761c9a88b2bb79"
       },
       {
-        "path": "docs/benchmarks/raw/2026-08-13/qemu-command-audit.json",
-        "sha256": "374182fd18f13d3184e89c6ed4297aa54748ea4fb7b6495886bcb57c434830c2"
+        "path": "docs/benchmarks/raw/2026-08-23/qemu-command-audit.json",
+        "sha256": "69bb5ecee74e6cdb6b98e7aa0054f4599e1cb14202bc189e4989efdfcb04b39e"
       },
       {
-        "path": "docs/benchmarks/raw/2026-08-22/cyber-physical-software.json",
-        "sha256": "9f947e863614630c2448d28d7fd70e72c1ad9cf45cd5a3d3c5e11ac8bb786559"
+        "path": "docs/benchmarks/raw/2026-08-23/cyber-physical-software.json",
+        "sha256": "40d409cf644ff06eacf559d72b37406b94c38720232a6ca30a016bcfaf910959"
       },
       {
         "path": "docs/research/world_model_paper_evaluation.json",
@@ -558,15 +613,19 @@
     ]
   },
   "qemu_command_audit": {
-    "audit_source_commit": "45e369cececfc81e341c8772e295c4a00cba4bf1",
+    "ata_cold_restart_checks": 3,
+    "ata_cold_restart_passed": 3,
+    "audit_source_commit": "f326e5500cc9446ddc56c6173125d5a9b6d6a0fe",
+    "boot_image_sha256": "a52d36932be72d57554373b63a07d1802364197bde7bd4294d26bff0f2edbbc2",
     "catalog_entries": 81,
     "catalog_passed": 81,
-    "claim_boundary": "This is a dated emulator command-path audit for the named source commit and artifact hashes. It is not evidence of broad physical-PC compatibility, hardware accuracy, live EEG performance, formal safety, or independent replication.",
+    "claim_boundary": "This is a dated emulator command and copied-disk persistence audit for the named source commit and exact boot-image hash. It is not evidence of broad physical-PC compatibility, hardware timing, live EEG performance, formal safety, certification, or independent replication.",
     "command_sweep_cases": 101,
     "command_sweep_passed": 101,
     "evidence_grade": "dated-emulator-measurement",
-    "os_source_commit": "c92056d8635af5e4ee2a81351350b1b25cfd4861",
-    "protocol_id": "ferrumos-qemu-command-audit-v1",
+    "os_source_commit": "f326e5500cc9446ddc56c6173125d5a9b6d6a0fe",
+    "persistent_io_success_assertions": 6,
+    "protocol_id": "ferrumos-qemu-command-audit-v2",
     "unknown_command_paths": 0
   },
   "schema_version": "2.1.0",

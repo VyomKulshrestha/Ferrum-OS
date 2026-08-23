@@ -220,9 +220,11 @@ def aggregate_benchmarks() -> dict:
         RAW_DIR / f"concurrency-optimized-run-{index}.json" for index in range(1, 4)
     ]
     neural_path = RAW_DIR / "neural-synthetic.json"
-    qemu_command_path = RAW_DIR / "qemu-command-audit.json"
+    qemu_command_path = (
+        BENCHMARK_DIR / "raw" / "2026-08-23" / "qemu-command-audit.json"
+    )
     cyber_physical_path = (
-        BENCHMARK_DIR / "raw" / "2026-08-22" / "cyber-physical-software.json"
+        BENCHMARK_DIR / "raw" / "2026-08-23" / "cyber-physical-software.json"
     )
     paper_path = ROOT / "docs" / "research" / "world_model_paper_evaluation.json"
     training_path = ROOT / "docs" / "research" / "world_model_training_config.json"
@@ -576,6 +578,16 @@ def aggregate_benchmarks() -> dict:
             "unknown_command_paths": qemu_command["harness"]["exhaustive_catalog"][
                 "unknown_command_paths"
             ],
+            "persistent_io_success_assertions": qemu_command["harness"][
+                "exhaustive_catalog"
+            ]["persistent_io_success_assertions"],
+            "ata_cold_restart_checks": qemu_command["harness"]["ata_cold_restart"][
+                "checks"
+            ],
+            "ata_cold_restart_passed": qemu_command["harness"]["ata_cold_restart"][
+                "passed"
+            ],
+            "boot_image_sha256": qemu_command["artifacts"]["boot_image_sha256"],
             "claim_boundary": qemu_command["claim_boundary"],
         },
         "cyber_physical_software": {
@@ -593,6 +605,8 @@ def aggregate_benchmarks() -> dict:
             "model_and_decoder_gates_failed": cyber_physical[
                 "model_and_decoder_gates_failed"
             ],
+            "system_checks_passed": cyber_physical["system_checks_passed"],
+            "system_checks_failed": cyber_physical["system_checks_failed"],
             "covered_software_boundaries": cyber_physical[
                 "covered_software_boundaries"
             ],
@@ -674,8 +688,8 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Physical simulator JEPA | {physical["training_transitions"]:,} training transitions; unseen-family H=3 {percent(physical["final_rollout_error"]["h3"])} vs {percent(physical["final_baseline_rollout_error"]["h3"])} frozen baseline; {physical["final_false_negatives"]} FN/{physical["final_false_positives"]} FP | Digest-bound simulator caution; no execution or permit authority |
 | External HIL diagnostic | HAI: {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} attack windows, {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alerts/hour | Separate advisory model; not Ferrum hardware, field deployment, certification, or runtime authority |
 | Neural decoder | {neural["signal_trials"]}/{neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]}/{neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | Live EEG accuracy, usability, or medical performance |
-| QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Broad physical-PC compatibility or independent replication |
-| Cyber-physical software tier | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
+| QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases, {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries, and {qemu["ata_cold_restart_passed"]}/{qemu["ata_cold_restart_checks"]} copied-disk cold-restart checks | Broad physical-PC compatibility or independent replication |
+| Cyber-physical software tier | {cyber["contract_tests_passed"]} contract tests, {cyber["model_and_decoder_gates_passed"]} model/decoder gates, and {cyber["system_checks_passed"]} build/QEMU checks passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
 
 ## Published world-model study
 
@@ -712,7 +726,7 @@ The neural decoder evaluation is deterministic synthetic SSVEP evidence only: {n
 
 ## Simulator-backed cyber-physical software tier
 
-At source `{cyber["source_commit"][:7]}`, {cyber["contract_tests_passed"]} deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; {cyber["model_and_decoder_gates_passed"]} physical-model, robustness, and neural-decoder gates also passed. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
+At source `{cyber["source_commit"][:7]}`, {cyber["contract_tests_passed"]} deterministic contract tests passed across the physical runtime, signed neural protocol, `neurod`, and the simulator bridge; {cyber["model_and_decoder_gates_passed"]} physical-model, robustness, HAI-evidence, and neural-decoder gates also passed. Another {cyber["system_checks_passed"]} build/QEMU checks cover the exact boot image, both command audits, ATA cold-restart persistence, the booted bridge, OS world-model rules and learned checkpoints, and the embedded local language model. The covered software boundary includes versioned provenance, deterministic replay/faults, virtual devices, simulator connectors, watchdog/recovery rules, ROS 2/MQTT/CAN conformance, actuator-disabled delivery, bounded neural proposals, host-managed agent-cell contracts, and privacy/reliability primitives.
 
 This is local software regression evidence. It is not a live Gazebo/Webots deployment, real ROS 2/MQTT/CAN infrastructure, physical-clock or robot evidence, live EEG, native hypervisor containment, hard-real-time proof, certification, or independent replication.
 
@@ -731,6 +745,9 @@ python -m unittest discover -s tools/neurod -p "test_*.py" -v
 python -m unittest tools.physical_sim_bridge.test_bridge -v
 python scripts/verify_physical_jepa_robustness.py
 python scripts/verify_qemu_command_evidence.py
+node scripts/verify_all_audits.mjs
+node scripts/verify_ata_pio_persistence.mjs
+node scripts/verify_bridge.mjs
 node scripts/benchmark_world_model_runtime.mjs --iterations 100
 node scripts/verify_world_model_preview_concurrency.mjs
 python scripts/generate_public_evidence.py --check
@@ -765,8 +782,8 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | Physical model | {physical["training_transitions"]:,} training transitions; unseen-family H=3 {percent(physical["final_rollout_error"]["h3"])} vs {percent(physical["final_baseline_rollout_error"]["h3"])} frozen baseline; digest-bound simulator caution |
 | External HIL diagnostic | HAI {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} windows at {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alerts/hour; advisory and not runtime-loaded |
 | Neural input | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, zero candidates in {neural["no_control_windows"]:,} no-control windows |
-| QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries for OS source `{qemu["os_source_commit"][:7]}` |
-| Cyber-physical software | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed at source `{cyber["source_commit"][:7]}` |
+| QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases, {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries, and {qemu["ata_cold_restart_passed"]}/{qemu["ata_cold_restart_checks"]} cold-restart persistence checks for OS source `{qemu["os_source_commit"][:7]}` |
+| Cyber-physical software | {cyber["contract_tests_passed"]} contract tests, {cyber["model_and_decoder_gates_passed"]} model/decoder gates, and {cyber["system_checks_passed"]} build/QEMU checks passed at source `{cyber["source_commit"][:7]}` |
 
 Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [full agent-readable context](llms-full.txt), [citation guide](docs/CITATION.md), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
 
@@ -839,8 +856,8 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `{physical["protocol_id"]}` | {physical["training_transitions"]:,} training transitions; unseen-family H=3 {percent(physical["final_baseline_rollout_error"]["h3"])} to {percent(physical["final_rollout_error"]["h3"])}; final FN {physical["final_false_negatives"]}; stress FN {physical["stress_false_negatives"]}; OOD FN {physical["registered_ood_false_negatives"]} | Simulator evidence; learned execution authority still requires real-device qualification |
 | `{physical["external_hil_diagnostic"]["evidence_id"]}` | {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} HAI windows; {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alerts/hour | External recorded testbed evidence; separate advisory model, not Ferrum hardware or certification |
 | `{neural["protocol_id"]}` | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | No live EEG, human, medical, or usability claim |
-| `{qemu["protocol_id"]}` | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
-| `{cyber["protocol_id"]}` | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
+| `{qemu["protocol_id"]}` | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases, {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries, {qemu["ata_cold_restart_passed"]}/{qemu["ata_cold_restart_checks"]} cold-restart checks | Exact-image dated QEMU evidence, not broad physical-PC coverage |
+| `{cyber["protocol_id"]}` | {cyber["contract_tests_passed"]} contract tests, {cyber["model_and_decoder_gates_passed"]} model/decoder gates, {cyber["system_checks_passed"]} build/QEMU checks | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
 
 The seven evidence sections use different protocols and are not directly comparable. Passing them is evidence for their named fixtures, not formal safety proof or independent replication.
 

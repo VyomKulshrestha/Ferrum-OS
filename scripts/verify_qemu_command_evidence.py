@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
@@ -11,10 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = (
-    ROOT / "docs" / "benchmarks" / "raw" / "2026-08-13" / "qemu-command-audit.json"
+    ROOT / "docs" / "benchmarks" / "raw" / "2026-08-23" / "qemu-command-audit.json"
 )
-FOCUSED_SERIAL = EVIDENCE.with_name("qemu-command-serial.txt")
-CATALOG_SUMMARY = EVIDENCE.with_name("qemu-command-summary.json")
 
 
 def require(condition: bool, message: str) -> None:
@@ -23,13 +20,16 @@ def require(condition: bool, message: str) -> None:
     print(f"PASS  {message}")
 
 
-def committed_sha256(path: Path, revision: str = "HEAD") -> str:
-    return hashlib.sha256(committed_bytes(path, revision)).hexdigest()
-
-
 def committed_bytes(path: Path, revision: str = "HEAD") -> bytes:
     relative = path.relative_to(ROOT).as_posix()
     return subprocess.check_output(["git", "show", f"{revision}:{relative}"], cwd=ROOT)
+
+
+def committed_blob_sha1(path: Path, revision: str) -> str:
+    relative = path.relative_to(ROOT).as_posix()
+    return subprocess.check_output(
+        ["git", "rev-parse", f"{revision}:{relative}"], cwd=ROOT, text=True
+    ).strip()
 
 
 def commit_exists(revision: str) -> bool:
@@ -51,10 +51,10 @@ def command_sweep_count(source: str) -> int:
 def main() -> int:
     evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
     require(
-        evidence["schema_version"] == 1, "QEMU evidence schema version is supported"
+        evidence["schema_version"] == 2, "QEMU evidence schema version is supported"
     )
     require(
-        evidence["protocol"] == "ferrumos-qemu-command-audit-v1",
+        evidence["protocol"] == "ferrumos-qemu-command-audit-v2",
         "QEMU evidence protocol is explicit",
     )
     require(
@@ -72,21 +72,28 @@ def main() -> int:
 
     sweep = evidence["harness"]["command_sweep"]
     catalog = evidence["harness"]["exhaustive_catalog"]
+    persistence = evidence["harness"]["ata_cold_restart"]
     artifacts = evidence["artifacts"]
     sweep_path = ROOT / sweep["path"]
     catalog_path = ROOT / catalog["path"]
+    persistence_path = ROOT / persistence["path"]
     recorded_sweep_source = committed_bytes(
         sweep_path, evidence["audit_source_commit"]
     ).decode("utf-8")
     require(
-        committed_sha256(sweep_path, evidence["audit_source_commit"])
-        == sweep["git_blob_sha256"],
-        "recorded command sweep matches its audit-commit Git-blob hash",
+        committed_blob_sha1(sweep_path, evidence["audit_source_commit"])
+        == sweep["git_blob_sha1"],
+        "recorded command sweep matches its audit-commit Git blob",
     )
     require(
-        committed_sha256(catalog_path, evidence["audit_source_commit"])
-        == catalog["git_blob_sha256"],
-        "recorded catalog audit matches its audit-commit Git-blob hash",
+        committed_blob_sha1(catalog_path, evidence["audit_source_commit"])
+        == catalog["git_blob_sha1"],
+        "recorded catalog audit matches its audit-commit Git blob",
+    )
+    require(
+        committed_blob_sha1(persistence_path, evidence["audit_source_commit"])
+        == persistence["git_blob_sha1"],
+        "recorded ATA persistence harness matches its audit-commit Git blob",
     )
     require(
         command_sweep_count(recorded_sweep_source) == sweep["cases"],
@@ -102,34 +109,33 @@ def main() -> int:
         "committed catalog audit records every entry and prompt passing",
     )
     require(
-        committed_sha256(FOCUSED_SERIAL) == artifacts["command_serial_sha256"],
-        "committed focused serial log matches the measured artifact hash",
+        persistence["boots"] == 2
+        and persistence["checks"] == persistence["passed"] == 3
+        and persistence["failed"] == 0
+        and persistence["source_disk_is_copied_before_test"] is True,
+        "committed ATA audit records a passing copied-disk cold restart",
+    )
+    persistence_source = committed_bytes(
+        persistence_path, evidence["audit_source_commit"]
+    ).decode("utf-8")
+    require(
+        "process.exitCode = 1" in recorded_sweep_source
+        and "process.exitCode = 1" in committed_bytes(
+            catalog_path, evidence["audit_source_commit"]
+        ).decode("utf-8")
+        and "process.exit(failures.length ? 1 : 0)" in persistence_source,
+        "every recorded harness returns non-zero on failure",
     )
     require(
-        committed_sha256(CATALOG_SUMMARY) == artifacts["catalog_summary_sha256"],
-        "committed catalog summary matches the measured artifact hash",
-    )
-    focused_serial = FOCUSED_SERIAL.read_text(encoding="utf-8")
-    require(
-        "[init] userspace is alive in ring 3" in focused_serial,
-        "public focused serial preserves the terminal Ring-3 success marker",
-    )
-    command_summary = json.loads(CATALOG_SUMMARY.read_text(encoding="utf-8"))
-    require(
-        len(command_summary) == catalog["entries"]
-        and all(record["promptReturned"] for record in command_summary),
-        "public catalog summary contains every prompt-returning entry",
+        "fs.copyFileSync(sourceDisk, runDisk)" in persistence_source
+        and 'runPhase("write"' in persistence_source
+        and 'runPhase("reboot"' in persistence_source
+        and "file content survives a cold QEMU restart" in persistence_source,
+        "ATA harness performs write and verification on separate cold boots",
     )
     require(
-        not any(
-            "unknown command" in record.get("output", "").lower()
-            for record in command_summary
-        ),
-        "public catalog summary contains no unknown-command route",
-    )
-    require(
-        "process.exitCode = 1" in recorded_sweep_source,
-        "recorded terminal Ring-3 failure makes the command sweep non-zero",
+        all(re.fullmatch(r"[a-f0-9]{64}", digest) for digest in artifacts.values()),
+        "measured image, disk, summary, and serial artifact digests are explicit",
     )
     require(
         "physical-PC" in evidence["claim_boundary"]

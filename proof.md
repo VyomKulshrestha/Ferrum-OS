@@ -12,8 +12,8 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | Physical model | 187,200 training transitions; unseen-family H=3 0.36% vs 0.75% frozen baseline; digest-bound simulator caution |
 | External HIL diagnostic | HAI 48/50 windows at 0.555 false alerts/hour; advisory and not runtime-loaded |
 | Neural input | 600 synthetic signals, 400 artifact abstentions, zero candidates in 10,000 no-control windows |
-| QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries for OS source `c92056d` |
-| Cyber-physical software | 158 contract tests and 69 model/decoder gates passed at source `24db9ee` |
+| QEMU command paths | 101/101 focused cases, 81/81 exhaustive entries, and 3/3 cold-restart persistence checks for OS source `f326e55` |
+| Cyber-physical software | 163 contract tests, 91 model/decoder gates, and 259 build/QEMU checks passed at source `f326e55` |
 
 Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine-readable benchmark summary](benchmarks.json), [capability catalog](capabilities.json), [full agent-readable context](llms-full.txt), [citation guide](docs/CITATION.md), [architecture](docs/ARCHITECTURE.md), [security policy](SECURITY.md), and [published research release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0).
 

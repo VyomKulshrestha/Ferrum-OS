@@ -175,7 +175,7 @@ def main() -> int:
         "neural no-control count remains zero",
     )
     require(
-        benchmarks["cyber_physical_software"]["contract_tests_passed"] == 158,
+        benchmarks["cyber_physical_software"]["contract_tests_passed"] == 163,
         "cyber-physical contract evidence is discoverable",
     )
     require(
