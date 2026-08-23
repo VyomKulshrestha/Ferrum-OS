@@ -27,9 +27,11 @@ The report, software, and dataset are separate artifacts; use the
 [citation guide](docs/CITATION.md) for the one you relied on.
 
 > [!IMPORTANT]
-> FerrumOS v0.1.1 targets a documented QEMU/Bochs profile. Camera input is
-> synthetic, and physical-world learning is simulator-only. The selected
+> The latest tagged release is v0.1.1; current-main evidence targets a
+> documented QEMU/Bochs profile. Camera input is synthetic. The runtime-loaded
 > physical JEPA may add caution only in a digest-bound simulation session;
+> a separate external recorded HIL/testbed diagnostic remains advisory and is
+> not loaded by FerrumOS. Both learned paths lack permit and adapter authority;
 > hardware-in-the-loop and live promotion requires measured real-device
 > evidence. Neural results use
 > deterministic synthetic EEG fixtures. Broad physical-PC,
@@ -65,9 +67,11 @@ The report, software, and dataset are separate artifacts; use the
 | OS world-model study | Rules + JEPA: **81.4%** balanced accuracy; rules + per-action mean: **81.2%** on the authored 500-episode fixture | No material JEPA safety advantage established |
 | Ring-3 preview | **1.29-1.57 ms** run-mean range across H=1..5; **0 bytes** heap growth in three runs | Excludes provider, action, and approval latency |
 | Paired preview queue | **96/96** responses in every run; median batch improved **10.4%** after cadence optimization | Serialized previews, not parallel inference |
-| Physical JEPA | **123,200** training transitions; H=3 error **0.83%** vs **1.08%** matched autoencoder and **4.78%** mean-delta | May add simulator-only caution; HIL/live are not promoted without real-device evidence |
+| Physical JEPA | **187,200** training transitions; unseen-family H=3 error **0.36%** vs **0.75%** frozen baseline; **0 FN/39 FP** | May add simulator-only caution; HIL/live are not promoted without real-device evidence |
+| External HIL diagnostic | HAI: **48/50** attack windows across **111.668 h**, **0.555** false alerts/hour | Separate advisory artifact; not runtime-loaded or a Ferrum hardware trial |
 | Neural decoder | **600/600** synthetic signals, **400/400** artifact abstentions, 0 candidates in 10,000 no-control windows | No live EEG or human accuracy claim |
-| Cyber-physical software | **158/158** deterministic contract tests and **69/69** model/decoder gates | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
+| QEMU command/storage paths | **101/101** focused, **81/81** exhaustive, **3/3** copied-disk cold-restart checks | Exact-image emulator evidence, not broad physical-PC coverage |
+| Cyber-physical software | **163/163** contracts, **91/91** model/decoder gates, **259/259** build/QEMU checks | Local software evidence; no installed simulator/transport, robot, hard-real-time, certification, or independent-replication claim |
 
 Every value above is derived and checked by
 `scripts/generate_public_evidence.py`; protocols, raw results, commit IDs, and
@@ -269,27 +273,30 @@ real-hardware or certified industrial deployment.
   occupancy, emergency stops, approval, stale telemetry, and policy/twin
   revision races. Ambiguous delivery becomes `Uncertain` and is never blindly
   retried.
-- A separate 16-state/7-action physical EMA-target JEPA (`PJE1`), trained on
-  123,200 episode-disjoint training transitions within 189,440 transitions
-  from 23,680 deterministic simulator episodes. The selected 128-latent,
-  256-hidden checkpoint uses reconstruction and action
-  auxiliaries, validation-only selection, anti-collapse gates, H=1..5
-  evaluation, and bounded H=3 runtime lookahead. It does not reuse the
-  41-action OS JEPA.
-- Sixteen government reports, company postmortems, standards, and research
-  papers provide coarse defensive state-distribution priors. They are not raw
-  incident telemetry or Ferrum trajectories; the simulator generates every
-  transition and danger label. Source families are disjoint across training,
-  validation, and the incident-challenge test.
-- Compared with the immutable incident-v1 checkpoint, the selected model
-  improves original held-out H=3 error from 1.055% to 0.825%, incident H=3
-  error from 1.025% to 0.831%, and valid-edge stress H=3 error from 1.343% to
-  0.959%. On matched data and capacity, its original H=3 error is 0.825%
-  versus 1.083% for the autoencoder and 4.779% for the per-action mean. The
-  incident split records 1 FN/56 FP, the stress split 1 FN/101 FP, and the
-  registered OOD split 0 FN/18 FP while 682 inconsistent observations fail
-  closed. The eight ordinary and two challenge misses are committed and
-  decomposed as clearance cases under `docs/research/`.
+- A separate 16-state/7-action physical EMA-target JEPA (`PJE1`). The current
+  v5 checkpoint retains the selected v3 representation and predictor, then
+  fits a domain-balanced, baseline-regularized decoder on 187,200 deterministic
+  simulator transitions. Its immutable SHA-256 is
+  `23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864`.
+  It does not reuse the 41-action OS JEPA.
+- Forty-eight authoritative incident reports, regulatory filings, standards,
+  postmortems, and papers provide coarse defensive state-distribution priors.
+  They are not raw incident telemetry or Ferrum trajectories; the simulator
+  generates every transition and danger label. The final test contains 2,560
+  episodes and 20,480 transitions from eight wholly unseen source families.
+- On that once-opened final set, v5 reduces H=3 rollout error from 0.75% for
+  the frozen baseline to 0.36%; the geometric H1/H3/H5 error ratio is 0.4842.
+  Binary safety records 0 FN/39 FP. Known base, stress, and OOD suites record
+  7, 1, and 0 false negatives respectively; OOD records 17 false positives
+  while rejecting 682 inconsistent observations. These results improve the
+  simulator model without converting it into a physical-safety authority.
+- Separately, a site-adapted diagnostic evaluated 111.668 hours of external
+  recorded HAI 21.03 realistic ICS/HIL-testbed telemetry. It detects 48/50
+  attack windows, reaches 87.38% point balanced accuracy, and records 0.555
+  false alerts/hour. Its geometric H1/H3/H5 transition error is 2.30% versus
+  2.98% persistence and 3.00% per-action mean. This NPZ artifact is not PJE1
+  compatible, is not runtime-loaded, and cannot block, approve, permit, invoke
+  an adapter, or actuate hardware.
 - Model bytes cannot self-promote: a serialized flag never grants authority.
   Ferrum binds the exact checkpoint digest to a simulation session, where its
   forecast can raise `Allow` to approval/block but cannot issue a permit.
@@ -302,13 +309,11 @@ real-hardware or certified industrial deployment.
   telemetry-confirmed execution can enter the bounded transition-fit
   experience stream; refusals, uncertain deliveries, and simulated predictions
   remain audit-only.
-- A pre-registered 12-family systematic boundary sweep evaluates 12,288 new
-  simulator cases. Rules + JEPA reduce false negatives from 289 to 12 at a
-  7.02% false-positive rate. A separate validation-only calibration selects a
-  0.20 predicted-clearance caution margin; its single unseen 12,288-case test
-  records 4 false negatives and a 7.15% false-positive rate. This changed the
-  simulator caution policy, not the immutable JEPA weights, because the frozen
-  model gates passed and did not justify retraining.
+- A fresh validation-only calibration retains a 0.20 predicted-clearance
+  caution margin. Its single unseen 12,288-case test records 4 false negatives
+  and a 6.63% false-positive rate. This changes only monotonic simulator
+  caution; the immutable v5 weights and all deterministic interlocks remain
+  unchanged.
   The conditions, sources, results, and remaining external gates are documented
   in [the physical-deployment qualification report](docs/research/PHYSICAL_DEPLOYMENT_QUALIFICATION.md).
 - A transport-neutral host bridge implements deterministic scripted tests plus
@@ -329,10 +334,15 @@ python scripts/verify_physical_incident_sources.py
 python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_jepa_robustness.py
 python scripts/verify_physical_simulation_caution.py
+python scripts/verify_physical_jepa_v5_final.py
+python scripts/verify_physical_jepa_v5_runtime.py
+python scripts/verify_physical_hai_v2_evidence.py
 python scripts/verify_physical_deployment_qualification.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs
+node scripts/verify_all_audits.mjs
+node scripts/verify_ata_pio_persistence.mjs
 ```
 
 The demo requires `confirm_simulation=true`, routes provider-equivalent and

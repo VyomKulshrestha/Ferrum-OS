@@ -294,6 +294,14 @@ invalid Rust strings or weakening per-process filesystem capability checks.
 - Block and inode allocation bitmaps
 - Sync writes back to ATA disk
 
+PIO writes wait for the device to finish the final data phase and surface
+`ERR`/`DF` before issuing `FLUSH CACHE`; drive selection also includes the ATA
+settling delay. The dated persistence harness copies the appliance disk, writes
+and syncs through FerrumOS, cold-boots the same copy, verifies and overwrites
+the file, then removes it. It records 3/3 checks and confirms `/disk` is
+reported as the writable `ata.primary.slave` Ext2 mount. This is QEMU evidence,
+not a claim about arbitrary physical ATA controllers.
+
 ## Hardware Drivers
 
 ### RTL8139 NIC
@@ -777,33 +785,40 @@ work order -> typed actor dispatch -> canonical adapter command
   predictor, and state-delta head. The EMA target encoder, reconstruction head,
   and action head are training-only anti-collapse components. The 41-action OS
   JEPA and its weights are never reused.
-- **Incident-informed data boundary**: sixteen government reports, company
-  postmortems, standards, and research papers contribute coarse defensive
+- **Incident-informed data boundary**: forty-eight authoritative incident
+  reports, regulatory filings, company postmortems, standards, and papers
+  contribute coarse defensive
   state-distribution priors. Exploit procedures, credentials, payloads, ports,
   and reproduction steps are excluded. The sources are not trajectories and
   provide no labels; Ferrum's deterministic simulator generates every state
   transition and danger label. Source families are disjoint across training,
   validation, and incident-challenge test partitions.
-- **Selection and evaluation**: the v3 corpus contains 189,440 simulator
-  transitions from 23,680 episodes, with 123,200 training, 28,160 validation,
-  and 38,080 test transitions and no episode overlap. Four registered
-  capacity/seed candidates are selected using ordinary, incident-family, and
-  valid-edge stress validation plus anti-collapse gates. Candidate records
-  contain no ordinary, incident, stress, or OOD test metrics; those frozen
-  tests open once after selection. The selected 128-latent/256-hidden seed-91
-  checkpoint improves ordinary H1/H3/H5 error from
-  0.454%/1.055%/1.539% to 0.348%/0.825%/1.207%.
-- **Baselines and failure analysis**: on identical data and 128/256 capacity,
-  ordinary H=3 rollout error is 0.825% for JEPA, 1.083% for the matched
-  autoencoder, 4.779% for the per-action mean, and 5.426% for zero delta. The
-  source-family-disjoint incident split improves from 1.025% to 0.831% and
-  false negatives fall from 3 to 1. The valid-edge stress split improves from
-  1.343% to 0.959% and false negatives fall from 23 to 1. Registered OOD has
-  zero false negatives and 18 false positives; 682 semantically inconsistent
-  observations are rejected deterministically and excluded from transition
-  error. Eight ordinary, one incident, and one stress false negative remain;
-  every miss is a clearance case and is retained in the evidence bundle. This
-  supports monotonic learned caution inside the simulator, not HIL/live safety.
+- **Selection and evaluation**: v5 preserves the selected v3 encoder and JEPA
+  predictor, then fits a domain-balanced, baseline-regularized decoder on
+  67,200 base, 96,000 incident-informed, and 24,000 valid-edge stress training
+  transitions. Selection uses only disjoint base, incident-v2, and stress
+  validation partitions. The final catalog is generated and opened only after
+  selection and contains 2,560 episodes/20,480 transitions from eight source
+  families absent from all earlier incident catalogs. The selected artifact
+  digest is
+  `23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864`.
+- **Baselines and failure analysis**: on the once-opened v5 final set, H1/H3/H5
+  error is 0.157%/0.356%/0.511% versus 0.284%/0.752%/1.174% for the frozen
+  baseline. The geometric error ratio is 0.4842, and binary safety records
+  0 false negatives/39 false positives. Known base, stress, and OOD suites
+  retain 7, 1, and 0 false negatives respectively; OOD has 17 false positives
+  and rejects 682 inconsistent observations. The fresh 12,288-case calibration
+  test records 4 false negatives and 6.63% FPR at the retained 0.20 clearance
+  margin. This supports monotonic learned caution inside the simulator, not
+  HIL/live safety.
+- **Separate external recorded evidence**: a site-adapted diagnostic is tested
+  on 111.668 hours of HAI 21.03 realistic ICS/HIL-testbed telemetry containing
+  50 attack windows. It detects 48 windows, has 87.38% point balanced accuracy,
+  and produces 0.555 false alerts/hour. Its geometric H1/H3/H5 transition error
+  is 2.30% versus 2.98% persistence and 3.00% per-action mean. This artifact is
+  not PJE1-compatible or runtime-loaded and has advisory-diagnostic authority
+  only; it is not a Ferrum-controlled HIL run, field trial, independent safety
+  assessment, certification, or market-readiness result.
 - **Planner and safety boundary**: `predict_shadow_horizon` supports bounded
   H=1..5 recurrence and the maintenance service uses H=3. It returns worst-step
   advisory risk with horizon-scaled uncertainty. Deterministic geofence,
@@ -853,21 +868,16 @@ work order -> typed actor dispatch -> canonical adapter command
   direct JSON-RPC calls share the same service owner, preventing a second
   execution path or race.
 
-The v3 protocol adds 12 valid edge-state stress families, 4,096 registered OOD
-cases, malformed-observation rejection, multi-capacity/seed selection, and
-matched autoencoder, per-action-mean, and zero-delta baselines. The promoted
-checkpoint records 0.825% ordinary, 0.831% incident, and 0.959% stress H=3
-error. H=5 remains available for analysis but is not promoted because its
-compounding error is higher on every registered split and no separate test
-shows an incremental safety catch. All results are deterministic simulator
-evidence; model bytes cannot self-promote, and HIL/live learned gating requires
-a future registered real-device evaluation. A later, non-selecting 12,288-row
-systematic boundary challenge records 12 false negatives versus 289 for rules
-alone. A disjoint validation/test calibration then selects a 0.20 predicted
-clearance caution threshold; the unseen test records 4 false negatives and a
-7.15% false-positive rate. The artifact weights remain unchanged because the
-registered challenge passed; only the monotonic simulator caution margin was
-updated.
+The v3 protocol remains the immutable representation baseline and historical
+matched-autoencoder/per-action-mean comparison. The later v4 full retraining
+failed its registered regression gates and was not promoted. V5 was registered
+after that negative result and changed only the state-delta decoder while
+retaining the stronger representation and predictor. It passed every selection,
+unseen-family, historical non-regression, malformed-observation, runtime-load,
+and authority-boundary gate. H=5 remains available for analysis, while the
+maintenance service uses the registered H=3 horizon. All runtime-loaded results
+remain deterministic simulator evidence; model bytes cannot self-promote, and
+HIL/live learned gating requires a future registered real-device evaluation.
 
 The implemented simulator-backed reference platform includes these software
 contracts. It does not demonstrate deployment work: installing and operating actual
@@ -1105,11 +1115,19 @@ The release harness has two layers:
 
 - `node scripts/verify_all_audits.mjs` runs the 101-case shell command sweep and
   the independent 81-entry exhaustive command catalog sequentially, failing on
-  the first non-zero child result.
-- The 76 `scripts/verify_*.mjs` verification scripts are available individually
+  the first non-zero child result. Persistent filesystem cases require explicit
+  success output and fail on ATA timeout, write, or flush errors.
+- `node scripts/verify_ata_pio_persistence.mjs` verifies a write/sync and a
+  second cold boot against the same copied Ext2 disk (3/3 checks).
+- The 77 `scripts/verify_*.mjs` verification scripts are available individually
   for isolated QEMU evidence across Ring-3, scheduling, GUI apps, networking,
   storage, accounts, Heliox, real/synthetic inference, voice/fusion, and both
   rule-based and learned world-model safety paths.
+
+The dated current-main cyber-physical snapshot records 163/163 component
+contracts, 91/91 model/decoder gates, and 259/259 build/QEMU checks on the exact
+boot-image digest. These totals combine different named protocols; they are
+regression evidence, not independent replication or a safety certificate.
 
 The current release baseline also includes focused verifiers for desktop power
 actions, live System Monitor telemetry, legacy wait-any behavior, physical-frame
