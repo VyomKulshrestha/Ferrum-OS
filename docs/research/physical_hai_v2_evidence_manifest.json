@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "evidence_id": "physical-hai-site-adapted-v2-final",
+  "dataset": {
+    "name": "HAI 21.03",
+    "evidence_class": "external-recorded-hil-testbed",
+    "files": 5,
+    "recorded_seconds": 402005,
+    "recorded_hours": 111.66805555555555,
+    "attack_seconds": 8947,
+    "attack_windows": 50
+  },
+  "artifacts": {
+    "protocol": {
+      "path": "docs/research/physical_hai_v2_cross_version_protocol.json",
+      "sha256": "7b6f29c2dd8ad03853032879b4437cd9bcaf1ace7e8c270da1052da9ba4dd25c"
+    },
+    "selection": {
+      "path": "docs/research/physical_hai_v2_selection.json",
+      "sha256": "14960f14314e1ba0c22727510032fdc8132941f5ba84ca6fd50843d3f81efd8f"
+    },
+    "final_test": {
+      "path": "docs/research/physical_hai_v2_final_test.json",
+      "sha256": "459f78db6a65aa465fd422e085672c35c14533e61995ae80423542a78df9fe39"
+    },
+    "model": {
+      "path": "docs/research/artifacts/physical-hai-v2/selected_model.npz",
+      "sha256": "c3ffe77f17fc73ea5937dbef2487349bb9460549326d6d9af4a8d8a8590bb386",
+      "runtime_loaded": false,
+      "pje1_compatible": false
+    }
+  },
+  "final_metrics": {
+    "detected_attack_windows": 48,
+    "attack_window_recall": 0.96,
+    "point_balanced_accuracy": 0.8738069484898465,
+    "false_alert_events": 62,
+    "false_alerts_per_hour": 0.5552584115927607,
+    "transition_geometric_h1_h3_h5_error": 0.022992395905873195,
+    "persistence_geometric_h1_h3_h5_error": 0.029785377177613682,
+    "per_action_mean_geometric_h1_h3_h5_error": 0.029958610560180537,
+    "all_registered_gates_passed": true
+  },
+  "authority": {
+    "mode": "advisory-diagnostic-only",
+    "may_grant_permits": false,
+    "may_block_commands": false,
+    "may_issue_approvals": false,
+    "may_invoke_adapters": false,
+    "may_actuate_hardware": false
+  },
+  "claim_boundary": "External recorded HIL/testbed evidence is not a Ferrum hardware trial, field deployment, independent safety assessment, certification, or market-ready physical-safety evidence."
+}

@@ -11,7 +11,8 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Published OS world-model study | Rules + JEPA: 81.40% balanced accuracy; rules + per-action mean: 81.20% | JEPA superiority, formal safety, or natural-use prevalence |
 | Current Ring-3 preview | Three runs, 100 previews per H=1..5 per run; zero heap growth | Provider, action execution, or approval latency |
 | Paired preview queue | 96/96 responses in every run; median batch 13.517 s after optimization | Parallel inference; the daemon intentionally serializes previews |
-| Physical JEPA | 123,200 training transitions; H=3 0.83% vs 1.08% matched autoencoder and 4.78% mean-delta | Digest-bound simulator caution; HIL/live are not promoted without real-device evidence |
+| Physical simulator JEPA | 187,200 training transitions; unseen-family H=3 0.36% vs 0.75% frozen baseline; 0 FN/39 FP | Digest-bound simulator caution; no execution or permit authority |
+| External HIL diagnostic | HAI: 48/50 attack windows, 0.555 false alerts/hour | Separate advisory model; not Ferrum hardware, field deployment, certification, or runtime authority |
 | Neural decoder | 600/600 synthetic signals, 400/400 artifact abstentions, 0 candidates in 10,000 no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | 101/101 focused cases and 81/81 exhaustive entries | Broad physical-PC compatibility or independent replication |
 | Cyber-physical software tier | 158 contract tests and 69 model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
@@ -47,7 +48,9 @@ Every optimized run returned 96/96 correlated responses, produced zero execution
 
 ## Post-paper physical and neural evidence
 
-The physical JEPA uses 189,440 transitions from 23,680 deterministic simulator episodes, with 123,200 transitions in the episode-disjoint training split. A catalog of 16 government reports, company postmortems, standards, and research papers supplies defensive state-distribution priors only; the deterministic simulator creates every transition and danger label. Relative to the previously deployed checkpoint, original held-out H=3 error changes from 1.05% to 0.83%, source-family-disjoint incident H=3 error changes from 1.02% to 0.83%, and incident false negatives change from 3 to 1. On matched data and capacity, JEPA H=3 error is 0.83% versus 1.08% for the autoencoder and 4.78% for the per-action mean. The valid-edge stress split records 1 FN/101 FP across 16,000 transitions; registered OOD records 0 FN/18 FP and deterministically rejects 682 inconsistent observations. A separate 12-family, 12,288-row systematic boundary sweep records 12 learned-union false negatives, and validation-only runtime calibration selects a 0.20 clearance margin with 4 false negatives on its single unseen test split. The checkpoint may only add caution in a digest-bound simulation session; model bytes cannot issue permits or invoke adapters. Unqualified live delivery is structurally disabled, while measured HIL, robot trials, and independent assessment remain external requirements.
+The current physical PJE1 checkpoint fits a domain-balanced decoder over 187,200 deterministic simulator transitions while freezing the previous encoder and predictor. A catalog of 48 authoritative incident reports, regulatory filings, standards, postmortems, and papers supplies defensive state-distribution priors only; the simulator creates every transition and danger label. On the once-opened eight-family final set (20,480 transitions), H=3 error falls from 0.75% to 0.36% and the geometric H1/H3/H5 error ratio is 0.4842; the paired 10,000-resample H=3 reduction interval is [0.39%, 0.40%]. The final set records 0 FN/39 FP. Known base, stress, and OOD suites record 7, 1, and 0 false negatives respectively; OOD also rejects 682 inconsistent observations. Fresh calibration retains a 0.20 clearance margin with 4 false negatives and 6.63% FPR on 12,288 test rows.
+
+Separately, the HAI site-adapted diagnostic is evaluated on 111.668 hours of external recorded realistic ICS/HIL-testbed telemetry containing 50 attack windows. It detects 48/50 windows, reaches 87.38% point balanced accuracy, and produces 0.555 false alert events/hour. Its geometric H1/H3/H5 transition error is 2.30% versus 2.98% persistence and 3.00% per-action mean. This is separate advisory evidence, not a runtime-loaded PJE1 model, Ferrum-controlled hardware, a field trial, independent assessment, or certification. The deployed PJE1 may only add caution in a digest-bound simulation session; neither learned artifact can issue permits or invoke adapters, and unqualified live delivery remains structurally disabled.
 
 The neural decoder evaluation is deterministic synthetic SSVEP evidence only: 600 accepted signal trials at 100.00% accuracy, 400 artifact trials at 100.00% abstention, and zero emitted candidates in 10,000 no-control windows. OS commit still requires pairing, calibration, non-neural arming, a signed preview, and revision checks.
 
@@ -64,6 +67,9 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_incident_sources.py
 python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_v5_final.py
+python scripts/verify_physical_jepa_v5_runtime.py
+python scripts/verify_physical_hai_v2_evidence.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v
 python -m unittest tools.physical_sim_bridge.test_bridge -v

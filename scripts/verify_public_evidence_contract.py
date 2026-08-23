@@ -178,19 +178,24 @@ def main() -> int:
         "physical incident corpus is broad and is not represented as trajectory data",
     )
     require(
-        physical["post_incident_original_h3_error"]
-        < physical["pre_incident_original_h3_error"]
-        and physical["post_incident_challenge_h3_error"]
-        < physical["pre_incident_challenge_h3_error"],
-        "incident augmentation improves original and incident-challenge H=3 error",
+        physical["final_rollout_error"]["h3"]
+        < physical["final_baseline_rollout_error"]["h3"]
+        and physical["final_geometric_h1_h3_h5_ratio"] < 0.50,
+        "v5 improves registered unseen-family rollout error",
     )
     require(
-        physical["post_incident_challenge_false_negatives"]
-        < physical["pre_incident_challenge_false_negatives"]
-        and physical["post_incident_ood_false_negatives"]
-        <= physical["pre_incident_ood_false_negatives"]
-        and physical["post_incident_ood_false_negatives"] == 0,
-        "v3 reduces incident false negatives and retains zero registered OOD misses",
+        physical["final_false_negatives"] == 0
+        and physical["registered_ood_false_negatives"] == 0
+        and physical["all_registered_model_gates_passed"] is True,
+        "v5 retains zero final and registered OOD misses",
+    )
+    hil = physical["external_hil_diagnostic"]
+    require(
+        hil["detected_attack_windows"] == 48
+        and hil["attack_windows"] == 50
+        and hil["runtime_loaded"] is False
+        and hil["authority"] == "advisory-diagnostic-only",
+        "external HIL evidence remains accurate, separate, and advisory",
     )
     benchmark_paths = {entry["path"] for entry in benchmarks["provenance"]["inputs"]}
     require(
@@ -199,8 +204,12 @@ def main() -> int:
             "docs/research/physical_jepa_v3_selection.json",
             "docs/research/physical_jepa_v3_baselines.json",
             "docs/research/physical_jepa_v3_evaluation.json",
+            "docs/research/physical_jepa_v5_selection.json",
+            "docs/research/physical_jepa_v5_final_test.json",
+            "docs/research/physical_jepa_runtime_calibration_v4.json",
+            "docs/research/physical_hai_v2_evidence_manifest.json",
         }.issubset(benchmark_paths),
-        "public benchmark provenance binds v3 sources, selection, baselines, and evaluation",
+        "public benchmark provenance binds historical v3, current v5, and HAI evidence",
     )
     require(
         benchmarks["neural_synthetic"]["emitted_intents"] == 0,

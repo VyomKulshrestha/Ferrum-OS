@@ -18,6 +18,7 @@ WEBSITE_URL = "https://ferrum-os.vercel.app"
 RAW_MAIN_URL = "https://raw.githubusercontent.com/VyomKulshrestha/Ferrum-OS/main"
 CAPABILITY_SCHEMA_URL = f"{RAW_MAIN_URL}/schemas/capabilities.schema.json"
 BENCHMARK_SCHEMA_URL = f"{RAW_MAIN_URL}/schemas/benchmarks.schema.json"
+CURRENT_EVIDENCE_DATE = "2026-08-23"
 
 ACTION_CATEGORIES = {
     "ipc_send": "interprocess-communication",
@@ -244,6 +245,24 @@ def aggregate_benchmarks() -> dict:
     physical_calibration_path = (
         ROOT / "docs" / "research" / "physical_jepa_runtime_calibration_v1.json"
     )
+    physical_v5_selection_path = (
+        ROOT / "docs" / "research" / "physical_jepa_v5_selection.json"
+    )
+    physical_v5_final_path = (
+        ROOT / "docs" / "research" / "physical_jepa_v5_final_test.json"
+    )
+    physical_v5_calibration_path = (
+        ROOT / "docs" / "research" / "physical_jepa_runtime_calibration_v4.json"
+    )
+    physical_sources_v2_path = (
+        ROOT / "docs" / "research" / "physical_incident_sources_v2.json"
+    )
+    physical_sources_v5_path = (
+        ROOT / "docs" / "research" / "physical_incident_v5_test_sources.json"
+    )
+    physical_hai_manifest_path = (
+        ROOT / "docs" / "research" / "physical_hai_v2_evidence_manifest.json"
+    )
     evidence_paths = [
         manifest_path,
         *runtime_paths,
@@ -260,6 +279,12 @@ def aggregate_benchmarks() -> dict:
         physical_sources_path,
         physical_qualification_path,
         physical_calibration_path,
+        physical_v5_selection_path,
+        physical_v5_final_path,
+        physical_v5_calibration_path,
+        physical_sources_v2_path,
+        physical_sources_v5_path,
+        physical_hai_manifest_path,
     ]
 
     manifest = load_json(manifest_path)
@@ -277,6 +302,12 @@ def aggregate_benchmarks() -> dict:
     physical_sources = load_json(physical_sources_path)
     physical_qualification = load_json(physical_qualification_path)
     physical_calibration = load_json(physical_calibration_path)
+    physical_v5_selection = load_json(physical_v5_selection_path)
+    physical_v5_final = load_json(physical_v5_final_path)
+    physical_v5_calibration = load_json(physical_v5_calibration_path)
+    physical_sources_v2 = load_json(physical_sources_v2_path)
+    physical_sources_v5 = load_json(physical_sources_v5_path)
+    physical_hai = load_json(physical_hai_manifest_path)
 
     horizons = []
     for horizon in range(1, 6):
@@ -311,12 +342,21 @@ def aggregate_benchmarks() -> dict:
     physical_combined = physical_after["original_test"]["diagnostics"][
         "rules_plus_jepa"
     ]
+    physical_v5_current = physical_v5_final["candidate_final"]
+    physical_v5_base = physical_v5_final["known_regression_suites"]["base_test"]
+    physical_v5_stress = physical_v5_final["known_regression_suites"]["stress_test"]
+    physical_v5_ood = physical_v5_final["known_regression_suites"]["registered_ood_v2"]
+    physical_source_count = (
+        len(physical_sources["sources"])
+        + len(physical_sources_v2["additional_sources"])
+        + len(physical_sources_v5["sources"])
+    )
 
     summary = {
         "$schema": BENCHMARK_SCHEMA_URL,
         "schema_version": "2.1.0",
         "canonical_url": f"{REPOSITORY_URL}/blob/main/benchmarks.json",
-        "snapshot_date": cyber_physical["snapshot_date"],
+        "snapshot_date": CURRENT_EVIDENCE_DATE,
         "benchmark_scope": {
             "source_channel": "current main evidence plus frozen research artifacts",
             "latest_tagged_software_release": "v0.1.1",
@@ -394,85 +434,123 @@ def aggregate_benchmarks() -> dict:
             "limitation": queue_after[0]["limitation"],
         },
         "physical_simulator_jepa": {
-            "evidence_grade": "deterministic-simulator",
-            "protocol_id": physical["protocol_id"],
-            "episodes": physical["episodes"],
-            "transitions": physical["transitions"],
-            "training_transitions": physical["transition_split"]["train"],
-            "artifact_sha256": physical["artifact_sha256"],
-            "incident_source_count": len(physical_sources["sources"]),
+            "evidence_grade": "deterministic-simulator-with-separate-external-recorded-hil",
+            "protocol_id": physical_v5_final["protocol_id"],
+            "artifact_sha256": physical_v5_final["candidate_artifact_sha256"],
+            "training_transitions": (
+                physical_v5_selection["fit"]["base_transitions"]
+                + physical_v5_selection["fit"]["incident"]["transitions"]
+                + physical_v5_selection["fit"]["stress"]["transitions"]
+            ),
+            "final_unseen_family_episodes": physical_v5_final["final_evidence"]["episodes"],
+            "final_unseen_family_transitions": physical_v5_final["final_evidence"]["transitions"],
+            "final_unseen_families": len(
+                physical_v5_final["final_evidence"]["source_family_episode_counts"]
+            ),
+            "incident_source_count": physical_source_count,
             "incident_sources_are_trajectory_data": False,
-            "rules_plus_jepa_balanced_accuracy": physical_combined["balanced_accuracy"],
-            "false_negatives": physical_combined["fn"],
-            "false_positives": physical_combined["fp"],
-            "normalized_rollout_error": physical_after["original_test"]["rollout"],
-            "pre_incident_original_h3_error": physical_before["original_test"][
-                "rollout"
-            ]["h3"],
-            "post_incident_original_h3_error": physical_after["original_test"][
-                "rollout"
-            ]["h3"],
-            "pre_incident_challenge_h3_error": physical_before["incident_test"][
-                "rollout"
-            ]["h3"],
-            "post_incident_challenge_h3_error": physical_after["incident_test"][
-                "rollout"
-            ]["h3"],
-            "pre_incident_challenge_false_negatives": physical_before["incident_test"][
+            "final_rules_plus_jepa_balanced_accuracy": physical_v5_current[
                 "diagnostics"
-            ]["rules_plus_jepa"]["fn"],
-            "post_incident_challenge_false_negatives": physical_after["incident_test"][
-                "diagnostics"
-            ]["rules_plus_jepa"]["fn"],
-            "pre_incident_ood_false_negatives": physical_before["ood_test"][
+            ]["rules_plus_jepa"]["balanced_accuracy"],
+            "final_false_negatives": physical_v5_current["diagnostics"][
                 "rules_plus_jepa"
             ]["fn"],
-            "post_incident_ood_false_negatives": physical_after["ood_test"][
-                "rules_plus_jepa"
-            ]["fn"],
-            "stress_rows": physical_after["stress_test"]["diagnostics"]["rows"],
-            "stress_false_negatives": physical_after["stress_test"]["diagnostics"][
-                "rules_plus_jepa"
-            ]["fn"],
-            "stress_false_positives": physical_after["stress_test"]["diagnostics"][
+            "final_false_positives": physical_v5_current["diagnostics"][
                 "rules_plus_jepa"
             ]["fp"],
-            "stress_h3_error": physical_after["stress_test"]["rollout"]["h3"],
-            "registered_ood_rows": physical_after["ood_test"]["rows"],
-            "registered_ood_invalid_observations_rejected": physical_after["ood_test"][
-                "invalid_observations_rejected"
+            "final_rollout_error": physical_v5_current["rollout"],
+            "final_baseline_rollout_error": physical_v5_final["baseline_final"][
+                "rollout"
             ],
-            "registered_ood_false_positives": physical_after["ood_test"][
+            "final_geometric_h1_h3_h5_ratio": physical_v5_final[
+                "candidate_to_baseline_rollout_ratios"
+            ]["geometric_h1_h3_h5"],
+            "final_h3_bootstrap_absolute_reduction": physical_v5_final[
+                "h3_paired_bootstrap"
+            ]["mean_absolute_normalized_error_reduction"],
+            "final_h3_bootstrap_95_interval": physical_v5_final[
+                "h3_paired_bootstrap"
+            ]["percentile_95_interval"],
+            "base_test_rows": physical_v5_base["candidate"]["diagnostics"]["rows"],
+            "base_test_false_negatives": physical_v5_base["candidate"]["diagnostics"][
+                "rules_plus_jepa"
+            ]["fn"],
+            "base_test_false_positives": physical_v5_base["candidate"]["diagnostics"][
                 "rules_plus_jepa"
             ]["fp"],
-            "registered_ood_passed": physical_selection["promotion"]["passed"],
-            "matched_autoencoder_h3_error": physical_baselines["comparisons"][
-                "original"
-            ]["matched_autoencoder"]["rollout"]["h3"],
-            "per_action_mean_h3_error": physical_baselines["comparisons"]["original"][
-                "per_action_mean"
-            ]["rollout"]["h3"],
-            "validated_for_gating": physical["validated_for_gating"],
+            "base_test_h3_error": physical_v5_base["candidate"]["rollout"]["h3"],
+            "stress_rows": physical_v5_stress["candidate"]["diagnostics"]["rows"],
+            "stress_false_negatives": physical_v5_stress["candidate"]["diagnostics"][
+                "rules_plus_jepa"
+            ]["fn"],
+            "stress_false_positives": physical_v5_stress["candidate"]["diagnostics"][
+                "rules_plus_jepa"
+            ]["fp"],
+            "stress_h3_error": physical_v5_stress["candidate"]["rollout"]["h3"],
+            "registered_ood_rows": physical_v5_ood["candidate"]["rows"],
+            "registered_ood_invalid_observations_rejected": physical_v5_ood[
+                "candidate"
+            ]["invalid_observations_rejected"],
+            "registered_ood_false_negatives": physical_v5_ood["candidate"][
+                "rules_plus_jepa"
+            ]["fn"],
+            "registered_ood_false_positives": physical_v5_ood["candidate"][
+                "rules_plus_jepa"
+            ]["fp"],
+            "all_registered_model_gates_passed": physical_v5_final[
+                "all_model_evidence_gates_pass"
+            ],
+            "validated_for_gating": False,
+            "validated_for_execution_authority": False,
             "runtime_simulation_caution": True,
             "runtime_hil_learned_gate": "shadow_only",
             "runtime_live_learned_gate": "shadow_only",
             "runtime_live_delivery": "disabled_until_authenticated_external_qualification",
-            "qualification_challenge_rows": physical_qualification["rows"],
-            "qualification_challenge_false_negatives": physical_qualification[
-                "rules_plus_jepa"
-            ]["fn"],
-            "qualification_challenge_false_positive_rate": physical_qualification[
-                "rules_plus_jepa"
-            ]["false_positive_rate"],
-            "runtime_clearance_caution_threshold": physical_calibration[
+            "runtime_clearance_caution_threshold": physical_v5_calibration[
                 "selected_clearance_threshold"
             ],
-            "calibration_test_false_negatives": physical_calibration["test"]["fn"],
-            "calibration_test_false_positive_rate": physical_calibration["test"][
+            "calibration_test_rows": sum(
+                physical_v5_calibration["test_case_counts"].values()
+            ),
+            "calibration_test_false_negatives": physical_v5_calibration["test"]["fn"],
+            "calibration_test_false_positive_rate": physical_v5_calibration["test"][
                 "false_positive_rate"
             ],
             "permit_authority": "deterministic_supervisor",
-            "claim_boundary": "Reports, standards, and papers provide defensive priors and qualification conditions, not Ferrum robot evidence. Every model transition and label is generated by the deterministic simulator. The artifact cannot self-promote or issue a permit; current runtime use may add caution only in a digest-bound simulation session, while unqualified live delivery is structurally disabled and HIL, robot trials, and independent assessment remain external.",
+            "external_hil_diagnostic": {
+                "evidence_id": physical_hai["evidence_id"],
+                "evidence_grade": physical_hai["dataset"]["evidence_class"],
+                "recorded_hours": physical_hai["dataset"]["recorded_hours"],
+                "attack_seconds": physical_hai["dataset"]["attack_seconds"],
+                "attack_windows": physical_hai["dataset"]["attack_windows"],
+                "detected_attack_windows": physical_hai["final_metrics"][
+                    "detected_attack_windows"
+                ],
+                "attack_window_recall": physical_hai["final_metrics"][
+                    "attack_window_recall"
+                ],
+                "balanced_accuracy": physical_hai["final_metrics"][
+                    "point_balanced_accuracy"
+                ],
+                "false_alerts_per_hour": physical_hai["final_metrics"][
+                    "false_alerts_per_hour"
+                ],
+                "transition_geometric_h1_h3_h5_error": physical_hai[
+                    "final_metrics"
+                ]["transition_geometric_h1_h3_h5_error"],
+                "persistence_geometric_h1_h3_h5_error": physical_hai[
+                    "final_metrics"
+                ]["persistence_geometric_h1_h3_h5_error"],
+                "per_action_mean_geometric_h1_h3_h5_error": physical_hai[
+                    "final_metrics"
+                ]["per_action_mean_geometric_h1_h3_h5_error"],
+                "runtime_loaded": physical_hai["artifacts"]["model"][
+                    "runtime_loaded"
+                ],
+                "authority": physical_hai["authority"]["mode"],
+                "claim_boundary": physical_hai["claim_boundary"],
+            },
+            "claim_boundary": "The 48-source catalog informs deterministic simulator priors; it does not provide real trajectories or labels. The separate HAI result uses external recorded HIL/testbed telemetry but is not a Ferrum hardware trial. Learned artifacts cannot grant permits, block commands, invoke adapters or actuate hardware; unqualified live delivery remains disabled, and robot trials plus independent assessment remain external.",
         },
         "neural_synthetic": {
             "evidence_grade": "deterministic-synthetic-signal",
@@ -593,7 +671,8 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 | Published OS world-model study | Rules + JEPA: {percent(paper["rules_plus_jepa_balanced_accuracy"])} balanced accuracy; rules + per-action mean: {percent(paper["rules_plus_mean_balanced_accuracy"])} | JEPA superiority, formal safety, or natural-use prevalence |
 | Current Ring-3 preview | Three runs, 100 previews per H=1..5 per run; zero heap growth | Provider, action execution, or approval latency |
 | Paired preview queue | 96/96 responses in every run; median batch {queue["optimized_median_batch_milliseconds"] / 1000:.3f} s after optimization | Parallel inference; the daemon intentionally serializes previews |
-| Physical JEPA | {physical["training_transitions"]:,} training transitions; H=3 {percent(physical["post_incident_original_h3_error"])} vs {percent(physical["matched_autoencoder_h3_error"])} matched autoencoder and {percent(physical["per_action_mean_h3_error"])} mean-delta | Digest-bound simulator caution; HIL/live are not promoted without real-device evidence |
+| Physical simulator JEPA | {physical["training_transitions"]:,} training transitions; unseen-family H=3 {percent(physical["final_rollout_error"]["h3"])} vs {percent(physical["final_baseline_rollout_error"]["h3"])} frozen baseline; {physical["final_false_negatives"]} FN/{physical["final_false_positives"]} FP | Digest-bound simulator caution; no execution or permit authority |
+| External HIL diagnostic | HAI: {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} attack windows, {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alerts/hour | Separate advisory model; not Ferrum hardware, field deployment, certification, or runtime authority |
 | Neural decoder | {neural["signal_trials"]}/{neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]}/{neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | Live EEG accuracy, usability, or medical performance |
 | QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Broad physical-PC compatibility or independent replication |
 | Cyber-physical software tier | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Installed simulators or transports, hardware, hard-real-time behavior, certification, or independent replication |
@@ -625,7 +704,9 @@ Every optimized run returned 96/96 correlated responses, produced zero execution
 
 ## Post-paper physical and neural evidence
 
-The physical JEPA uses {physical["transitions"]:,} transitions from {physical["episodes"]:,} deterministic simulator episodes, with {physical["training_transitions"]:,} transitions in the episode-disjoint training split. A catalog of {physical["incident_source_count"]} government reports, company postmortems, standards, and research papers supplies defensive state-distribution priors only; the deterministic simulator creates every transition and danger label. Relative to the previously deployed checkpoint, original held-out H=3 error changes from {percent(physical["pre_incident_original_h3_error"])} to {percent(physical["post_incident_original_h3_error"])}, source-family-disjoint incident H=3 error changes from {percent(physical["pre_incident_challenge_h3_error"])} to {percent(physical["post_incident_challenge_h3_error"])}, and incident false negatives change from {physical["pre_incident_challenge_false_negatives"]} to {physical["post_incident_challenge_false_negatives"]}. On matched data and capacity, JEPA H=3 error is {percent(physical["post_incident_original_h3_error"])} versus {percent(physical["matched_autoencoder_h3_error"])} for the autoencoder and {percent(physical["per_action_mean_h3_error"])} for the per-action mean. The valid-edge stress split records {physical["stress_false_negatives"]} FN/{physical["stress_false_positives"]} FP across {physical["stress_rows"]:,} transitions; registered OOD records {physical["post_incident_ood_false_negatives"]} FN/{physical["registered_ood_false_positives"]} FP and deterministically rejects {physical["registered_ood_invalid_observations_rejected"]} inconsistent observations. A separate 12-family, {physical["qualification_challenge_rows"]:,}-row systematic boundary sweep records {physical["qualification_challenge_false_negatives"]} learned-union false negatives, and validation-only runtime calibration selects a {physical["runtime_clearance_caution_threshold"]:.2f} clearance margin with {physical["calibration_test_false_negatives"]} false negatives on its single unseen test split. The checkpoint may only add caution in a digest-bound simulation session; model bytes cannot issue permits or invoke adapters. Unqualified live delivery is structurally disabled, while measured HIL, robot trials, and independent assessment remain external requirements.
+The current physical PJE1 checkpoint fits a domain-balanced decoder over {physical["training_transitions"]:,} deterministic simulator transitions while freezing the previous encoder and predictor. A catalog of {physical["incident_source_count"]} authoritative incident reports, regulatory filings, standards, postmortems, and papers supplies defensive state-distribution priors only; the simulator creates every transition and danger label. On the once-opened eight-family final set ({physical["final_unseen_family_transitions"]:,} transitions), H=3 error falls from {percent(physical["final_baseline_rollout_error"]["h3"])} to {percent(physical["final_rollout_error"]["h3"])} and the geometric H1/H3/H5 error ratio is {physical["final_geometric_h1_h3_h5_ratio"]:.4f}; the paired 10,000-resample H=3 reduction interval is [{percent(physical["final_h3_bootstrap_95_interval"][0])}, {percent(physical["final_h3_bootstrap_95_interval"][1])}]. The final set records {physical["final_false_negatives"]} FN/{physical["final_false_positives"]} FP. Known base, stress, and OOD suites record {physical["base_test_false_negatives"]}, {physical["stress_false_negatives"]}, and {physical["registered_ood_false_negatives"]} false negatives respectively; OOD also rejects {physical["registered_ood_invalid_observations_rejected"]} inconsistent observations. Fresh calibration retains a {physical["runtime_clearance_caution_threshold"]:.2f} clearance margin with {physical["calibration_test_false_negatives"]} false negatives and {percent(physical["calibration_test_false_positive_rate"])} FPR on {physical["calibration_test_rows"]:,} test rows.
+
+Separately, the HAI site-adapted diagnostic is evaluated on {physical["external_hil_diagnostic"]["recorded_hours"]:.3f} hours of external recorded realistic ICS/HIL-testbed telemetry containing {physical["external_hil_diagnostic"]["attack_windows"]} attack windows. It detects {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} windows, reaches {percent(physical["external_hil_diagnostic"]["balanced_accuracy"])} point balanced accuracy, and produces {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alert events/hour. Its geometric H1/H3/H5 transition error is {percent(physical["external_hil_diagnostic"]["transition_geometric_h1_h3_h5_error"])} versus {percent(physical["external_hil_diagnostic"]["persistence_geometric_h1_h3_h5_error"])} persistence and {percent(physical["external_hil_diagnostic"]["per_action_mean_geometric_h1_h3_h5_error"])} per-action mean. This is separate advisory evidence, not a runtime-loaded PJE1 model, Ferrum-controlled hardware, a field trial, independent assessment, or certification. The deployed PJE1 may only add caution in a digest-bound simulation session; neither learned artifact can issue permits or invoke adapters, and unqualified live delivery remains structurally disabled.
 
 The neural decoder evaluation is deterministic synthetic SSVEP evidence only: {neural["signal_trials"]} accepted signal trials at {percent(neural["accepted_signal_accuracy"])} accuracy, {neural["artifact_trials"]} artifact trials at {percent(neural["artifact_abstention_rate"])} abstention, and zero emitted candidates in {neural["no_control_windows"]:,} no-control windows. OS commit still requires pairing, calibration, non-neural arming, a signed preview, and revision checks.
 
@@ -642,6 +723,9 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_incident_sources.py
 python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_v5_final.py
+python scripts/verify_physical_jepa_v5_runtime.py
+python scripts/verify_physical_hai_v2_evidence.py
 python scripts/evaluate_neural_simulator.py --output target/neural.json
 python -m unittest discover -s tools/neurod -p "test_*.py" -v
 python -m unittest tools.physical_sim_bridge.test_bridge -v
@@ -678,7 +762,8 @@ FerrumOS is a bootable x86_64 Rust research OS with a deterministic kernel, a Ri
 | OS world model | Published fixture: {percent(paper["rules_plus_jepa_balanced_accuracy"])} rules + JEPA vs {percent(paper["rules_plus_mean_balanced_accuracy"])} rules + mean baseline |
 | Ring-3 preview | Three H=1..5 runs, 100 measured previews per horizon, zero heap growth |
 | Preview queue | 96/96 responses in every run; {queue["median_improvement_percent"]:.2f}% median batch improvement after cadence optimization |
-| Physical model | {physical["training_transitions"]:,} training transitions; H=3 {percent(physical["post_incident_original_h3_error"])} vs {percent(physical["matched_autoencoder_h3_error"])} matched autoencoder; digest-bound simulator caution |
+| Physical model | {physical["training_transitions"]:,} training transitions; unseen-family H=3 {percent(physical["final_rollout_error"]["h3"])} vs {percent(physical["final_baseline_rollout_error"]["h3"])} frozen baseline; digest-bound simulator caution |
+| External HIL diagnostic | HAI {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} windows at {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alerts/hour; advisory and not runtime-loaded |
 | Neural input | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, zero candidates in {neural["no_control_windows"]:,} no-control windows |
 | QEMU command paths | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries for OS source `{qemu["os_source_commit"][:7]}` |
 | Cyber-physical software | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed at source `{cyber["source_commit"][:7]}` |
@@ -690,7 +775,7 @@ Read the [full benchmark protocol and limitations](docs/BENCHMARKS.md), [machine
 - The current release targets a documented QEMU/Bochs device profile, not broad physical-PC compatibility.
 - Camera frames are synthetic; physical camera, gaze, and gesture accuracy are not claimed.
 - Neural results are synthetic software evidence, not live EEG or medical evidence.
-- Physical incident reports and papers supply defensive priors, not Ferrum trajectories or labels; all physical-world results use a deterministic simulator and the learned artifact has no actuator authority.
+- Physical incident reports and papers supply defensive priors, not Ferrum trajectories or labels. Simulator results and the separate external recorded HIL diagnostic have distinct protocols; neither learned artifact has actuator authority.
 - Simulator connectors and ROS 2/MQTT/CAN contracts are software-tested boundaries, not evidence of installed infrastructure or physical delivery.
 - Host-managed agent cells define an isolation contract; Ferrum does not claim a native hypervisor or measured microVM containment.
 - The published 500-episode safety fixture is authored and balanced; it is not natural-use prevalence.
@@ -751,7 +836,8 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `{paper["protocol_id"]}` | Rules + JEPA {percent(paper["rules_plus_jepa_balanced_accuracy"])}; rules + per-action mean {percent(paper["rules_plus_mean_balanced_accuracy"])} balanced accuracy | Authored balanced fixture; no material JEPA advantage established |
 | `{runtime["protocol_id"]}` | {runtime["runs"]} WHPX runs, 100 previews per H=1..5, zero heap growth | Excludes provider, execution, and approval latency |
 | `{queue["protocol_id"]}` | 96/96 responses each run; {queue["median_improvement_percent"]:.2f}% median batch improvement | Serialized queue responsiveness, not parallel inference |
-| `{physical["protocol_id"]}` | {physical["training_transitions"]:,} training transitions; incident H=3 {percent(physical["pre_incident_challenge_h3_error"])} to {percent(physical["post_incident_challenge_h3_error"])}; stress FN {physical["stress_false_negatives"]}; OOD FN {physical["post_incident_ood_false_negatives"]} | Simulator evidence; HIL/live promotion still requires real-device measurements |
+| `{physical["protocol_id"]}` | {physical["training_transitions"]:,} training transitions; unseen-family H=3 {percent(physical["final_baseline_rollout_error"]["h3"])} to {percent(physical["final_rollout_error"]["h3"])}; final FN {physical["final_false_negatives"]}; stress FN {physical["stress_false_negatives"]}; OOD FN {physical["registered_ood_false_negatives"]} | Simulator evidence; learned execution authority still requires real-device qualification |
+| `{physical["external_hil_diagnostic"]["evidence_id"]}` | {physical["external_hil_diagnostic"]["detected_attack_windows"]}/{physical["external_hil_diagnostic"]["attack_windows"]} HAI windows; {physical["external_hil_diagnostic"]["false_alerts_per_hour"]:.3f} false alerts/hour | External recorded testbed evidence; separate advisory model, not Ferrum hardware or certification |
 | `{neural["protocol_id"]}` | {neural["signal_trials"]} synthetic signals, {neural["artifact_trials"]} artifact abstentions, {neural["emitted_intents"]} candidates in {neural["no_control_windows"]:,} no-control windows | No live EEG, human, medical, or usability claim |
 | `{qemu["protocol_id"]}` | {qemu["command_sweep_passed"]}/{qemu["command_sweep_cases"]} focused cases and {qemu["catalog_passed"]}/{qemu["catalog_entries"]} exhaustive entries | Dated QEMU evidence, not broad physical-PC coverage |
 | `{cyber["protocol_id"]}` | {cyber["contract_tests_passed"]} contract tests and {cyber["model_and_decoder_gates_passed"]} model/decoder gates passed | Local deterministic software regression; no installed simulator/transport, hardware, real-time, certification, or independent-replication claim |
@@ -784,6 +870,9 @@ python scripts/verify_world_model_paper_evaluation.py
 python scripts/verify_physical_incident_sources.py
 python scripts/verify_physical_incident_dataset.py
 python scripts/verify_physical_world_model.py
+python scripts/verify_physical_jepa_v5_final.py
+python scripts/verify_physical_jepa_v5_runtime.py
+python scripts/verify_physical_hai_v2_evidence.py
 python scripts/verify_physical_jepa_robustness.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 python scripts/evaluate_neural_simulator.py --output target/neural.json
