@@ -11,9 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 RESEARCH = ROOT / "docs" / "research"
 QUALIFICATION_PROTOCOL = RESEARCH / "physical_deployment_qualification_protocol_v1.json"
 QUALIFICATION_RESULT = RESEARCH / "physical_deployment_qualification_evaluation_v1.json"
-CALIBRATION_PROTOCOL = RESEARCH / "physical_jepa_runtime_calibration_v1_protocol.json"
-CALIBRATION_RESULT = RESEARCH / "physical_jepa_runtime_calibration_v1.json"
-ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
+CALIBRATION_PROTOCOL = RESEARCH / "physical_jepa_runtime_calibration_v4_protocol.json"
+CALIBRATION_RESULT = RESEARCH / "physical_jepa_runtime_calibration_v4.json"
+BASELINE_ARTIFACT = (
+    RESEARCH / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
+)
+RUNTIME_ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 QUALIFICATION_SOURCE = (
     ROOT / "userland" / "physical-runtime" / "src" / "qualification.rs"
 )
@@ -87,9 +90,9 @@ def main() -> None:
     )
     require(
         result["protocol_sha256"] == sha256(QUALIFICATION_PROTOCOL)
-        and result["artifact_sha256"] == sha256(ARTIFACT)
+        and result["artifact_sha256"] == sha256(BASELINE_ARTIFACT)
         and result["selection_enabled"] is False,
-        "boundary challenge is bound to the registered protocol and immutable artifact",
+        "historical boundary challenge remains bound to its registered protocol and archived v3 artifact",
     )
     require(
         result["rows"] == 12_288
@@ -106,9 +109,9 @@ def main() -> None:
 
     require(
         calibration["protocol_sha256"] == sha256(CALIBRATION_PROTOCOL)
-        and calibration["artifact_sha256"] == sha256(ARTIFACT)
+        and calibration["artifact_sha256"] == sha256(RUNTIME_ARTIFACT)
         and calibration["test_metrics_used_for_selection"] is False,
-        "runtime calibration keeps validation selection separate from the single test open",
+        "v5 runtime calibration is artifact-bound and keeps validation separate from its single test open",
     )
     require(
         calibration["selected_clearance_threshold"] == 0.2
