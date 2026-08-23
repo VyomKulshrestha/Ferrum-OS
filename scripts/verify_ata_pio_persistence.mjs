@@ -130,6 +130,7 @@ try {
     ["sync", "Filesystems synchronized successfully."],
   ]);
   await runPhase("reboot", basePort + 1, [
+    ["mounts", "ata.primary.slave on /disk type ext2 (rw)"],
     ["cat /disk/ata_verify_dir/state.txt", "ferrum_persisted"],
     ["write /disk/ata_verify_dir/state.txt ferrum_after_reboot", "Written to /disk/ata_verify_dir/state.txt"],
     ["sync", "Filesystems synchronized successfully."],

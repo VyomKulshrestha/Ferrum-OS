@@ -396,7 +396,7 @@ pub fn mounts() -> Vec<Mount> {
         let flags = if mi.fs_type == "ramfs" {
             String::from("rw,volatile")
         } else if mi.fs_type == "ext2" {
-            String::from("ro")
+            String::from("rw")
         } else {
             String::from("rw")
         };
