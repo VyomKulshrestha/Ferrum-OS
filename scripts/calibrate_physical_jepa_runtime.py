@@ -78,21 +78,38 @@ def main() -> int:
     for threshold in protocol["candidate_clearance_thresholds"]:
         metrics = evaluate(validation_rows, weights, threshold)
         candidates.append({"clearance_threshold": threshold, "validation": metrics})
-    eligible = [
-        candidate
-        for candidate in candidates
-        if candidate["validation"]["false_positive_rate"] <= 0.10
-    ]
+    selection = protocol["selection"]
+    if selection.get("mode") == "validation_budgeted_false_positive":
+        eligibility = selection["eligibility"]
+        eligible = [
+            candidate
+            for candidate in candidates
+            if candidate["validation"]["fn"]
+            <= eligibility["validation_false_negatives_maximum"]
+            and candidate["validation"]["false_positive_rate"]
+            <= eligibility["validation_false_positive_rate_maximum"]
+        ]
+    else:
+        eligible = [
+            candidate
+            for candidate in candidates
+            if candidate["validation"]["false_positive_rate"] <= 0.10
+        ]
     if not eligible:
         raise SystemExit("no registered threshold satisfies validation eligibility")
-    selected = min(
-        eligible,
-        key=lambda candidate: (
+    if selection.get("mode") == "validation_budgeted_false_positive":
+        selection_key = lambda candidate: (
+            candidate["validation"]["false_positive_rate"],
+            candidate["validation"]["fn"],
+            candidate["clearance_threshold"],
+        )
+    else:
+        selection_key = lambda candidate: (
             candidate["validation"]["fn"],
             candidate["validation"]["false_positive_rate"],
             candidate["clearance_threshold"],
-        ),
-    )
+        )
+    selected = min(eligible, key=selection_key)
 
     test_rows, test_cases = scenarios.generate(
         protocol["test"]["rows"], protocol["test"]["seed"]

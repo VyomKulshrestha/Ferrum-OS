@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-runtime-clearance-calibration-v3",
+  "registered_on": "2026-08-23",
+  "registered_before_validation_and_test_open": true,
+  "artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "failed_predecessor": {
+    "protocol": "physical-jepa-runtime-clearance-calibration-v2",
+    "failure": "The lexicographic validation rule minimized false negatives first and selected 0.22, which missed the independently registered false-positive and balanced-accuracy gates.",
+    "test_reused": false
+  },
+  "hypothesis": "Choose the lowest-validation-false-positive threshold among candidates that already meet the predecessor false-negative budget, instead of minimizing false negatives without a precision budget.",
+  "validation": {
+    "rows": 12288,
+    "seed": 20260906
+  },
+  "test": {
+    "rows": 12288,
+    "seed": 20260907,
+    "open_count": 1
+  },
+  "candidate_clearance_thresholds": [
+    0.16,
+    0.18,
+    0.19,
+    0.2,
+    0.22
+  ],
+  "fixed_rules": {
+    "moving_speed_threshold": 0.1,
+    "human_velocity_threshold": 0.16,
+    "geofence_margin_threshold": 0.01,
+    "battery_threshold": 0.08,
+    "link_threshold": 0.08
+  },
+  "selection": {
+    "mode": "validation_budgeted_false_positive",
+    "eligibility": {
+      "validation_false_negatives_maximum": 4,
+      "validation_false_positive_rate_maximum": 0.075
+    },
+    "order": [
+      "lowest validation false-positive rate",
+      "fewest validation false negatives",
+      "smallest clearance threshold"
+    ],
+    "test_metrics_used_for_selection": false
+  },
+  "promotion_gates": {
+    "test_false_negatives_not_above_precursor": 4,
+    "test_false_positive_rate_maximum": 0.075,
+    "test_balanced_accuracy_minimum": 0.96,
+    "all_predictions_finite": true,
+    "normalized_one_step_error_maximum": 0.015
+  },
+  "claim_boundary": "This is a new validation and test split after the v2 calibration failure. It calibrates simulator-only monotonic caution for one immutable checkpoint and cannot establish physical safety, field reliability, certification, or execution authority."
+}
