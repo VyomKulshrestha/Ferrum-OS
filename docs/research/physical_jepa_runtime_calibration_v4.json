@@ -1,0 +1,141 @@
+{
+  "artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "candidates": [
+    {
+      "clearance_threshold": 0.16,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.967619699191248,
+        "false_negative_rate": 0.0022932273352698363,
+        "false_positive_rate": 0.06246737428223421,
+        "fn": 15,
+        "fp": 359,
+        "normalized_one_step_error": 0.0035222018501173125,
+        "tn": 5388,
+        "tp": 6526
+      }
+    },
+    {
+      "clearance_threshold": 0.18,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.96752465016545,
+        "false_negative_rate": 0.0009172909341079345,
+        "false_positive_rate": 0.06403340873499216,
+        "fn": 6,
+        "fp": 368,
+        "normalized_one_step_error": 0.0035222018501173125,
+        "tn": 5379,
+        "tp": 6535
+      }
+    },
+    {
+      "clearance_threshold": 0.19,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9668180738502467,
+        "false_negative_rate": 0.0007644091117566122,
+        "false_positive_rate": 0.06559944318775013,
+        "fn": 5,
+        "fp": 377,
+        "normalized_one_step_error": 0.0035222018501173125,
+        "tn": 5370,
+        "tp": 6536
+      }
+    },
+    {
+      "clearance_threshold": 0.2,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9665148240966546,
+        "false_negative_rate": 0.00015288182235132243,
+        "false_positive_rate": 0.06681746998433966,
+        "fn": 1,
+        "fp": 384,
+        "normalized_one_step_error": 0.0035222018501173125,
+        "tn": 5363,
+        "tp": 6540
+      }
+    },
+    {
+      "clearance_threshold": 0.22,
+      "validation": {
+        "all_predictions_finite": true,
+        "balanced_accuracy": 0.9635461980163564,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.07290760396728728,
+        "fn": 0,
+        "fp": 419,
+        "normalized_one_step_error": 0.0035222018501173125,
+        "tn": 5328,
+        "tp": 6541
+      }
+    }
+  ],
+  "claim_boundary": "This is a new validation and test split after two preserved calibration failures. Passing supports only monotonic simulator caution for the immutable checkpoint; it is not physical safety validation, certification, field evidence, or execution authority.",
+  "promotion": {
+    "gates": {
+      "all_predictions_finite": true,
+      "normalized_one_step_error_within_limit": true,
+      "test_balanced_accuracy_within_limit": true,
+      "test_false_negatives_not_above_precursor": true,
+      "test_false_positive_rate_within_limit": true
+    },
+    "passed": true
+  },
+  "protocol_id": "physical-jepa-runtime-clearance-calibration-v4",
+  "protocol_sha256": "9f47dba26bd3efc337bf65388a23e03e75483e455900090413afeae275e16ebe",
+  "schema_version": 1,
+  "selected_clearance_threshold": 0.2,
+  "selected_validation": {
+    "all_predictions_finite": true,
+    "balanced_accuracy": 0.9665148240966546,
+    "false_negative_rate": 0.00015288182235132243,
+    "false_positive_rate": 0.06681746998433966,
+    "fn": 1,
+    "fp": 384,
+    "normalized_one_step_error": 0.0035222018501173125,
+    "tn": 5363,
+    "tp": 6540
+  },
+  "test": {
+    "all_predictions_finite": true,
+    "balanced_accuracy": 0.9665419550666214,
+    "false_negative_rate": 0.0006100350770169285,
+    "false_positive_rate": 0.06630605478974001,
+    "fn": 4,
+    "fp": 380,
+    "normalized_one_step_error": 0.003495433680636021,
+    "tn": 5351,
+    "tp": 6553
+  },
+  "test_case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  },
+  "test_metrics_used_for_selection": false,
+  "validation_case_counts": {
+    "battery_boundary": 1024,
+    "compound_motion_hazard": 1024,
+    "emergency_stop": 1024,
+    "geofence_boundary": 1024,
+    "human_motion_boundary": 1024,
+    "link_liveliness_boundary": 1024,
+    "nominal_safe_control": 1024,
+    "payload_health_disturbance": 1024,
+    "protective_stop_boundary": 1024,
+    "recovery_control": 1024,
+    "repair_authorization": 1024,
+    "speed_separation_boundary": 1024
+  }
+}
