@@ -327,6 +327,8 @@ impl AtaChannel {
         let drive_sel = if drive_num == 0 { 0xE0 } else { 0xF0 };
         self.drive_head
             .write(drive_sel | ((lba >> 24) as u8 & 0x0F));
+        self.io_delay();
+        self.wait_not_busy()?;
 
         // Write sector count and LBA
         let sc = if count == 256 { 0u8 } else { count as u8 };
@@ -385,6 +387,8 @@ impl AtaChannel {
         let drive_sel = if drive_num == 0 { 0xE0 } else { 0xF0 };
         self.drive_head
             .write(drive_sel | ((lba >> 24) as u8 & 0x0F));
+        self.io_delay();
+        self.wait_not_busy()?;
 
         // Write sector count and LBA
         let sc = if count == 256 { 0u8 } else { count as u8 };
@@ -407,12 +411,22 @@ impl AtaChannel {
             }
         }
 
-        // Flush the write cache
+        // After the final data word the device asserts BSY while committing
+        // the sector. Issuing FLUSH during that phase can be ignored and
+        // leave the channel permanently busy under QEMU's IDE emulation.
+        self.wait_not_busy()?;
+        let status = self.read_status();
+        if status & (STATUS_ERR | STATUS_DF) != 0 {
+            return Err(String::from("ATA: write error"));
+        }
+
+        // Flush only after the sector command has completed.
         self.command.write(CMD_FLUSH_CACHE);
+        self.io_delay();
         self.wait_not_busy()?;
 
         let status = self.read_status();
-        if status & STATUS_ERR != 0 {
+        if status & (STATUS_ERR | STATUS_DF) != 0 {
             return Err(String::from("ATA: write error"));
         }
 
@@ -424,9 +438,10 @@ impl AtaChannel {
         self.select_drive(drive_num);
         self.wait_not_busy()?;
         self.command.write(CMD_FLUSH_CACHE);
+        self.io_delay();
         self.wait_not_busy()?;
         let status = self.read_status();
-        if status & STATUS_ERR != 0 {
+        if status & (STATUS_ERR | STATUS_DF) != 0 {
             return Err(String::from("ATA: flush error"));
         }
         Ok(())
