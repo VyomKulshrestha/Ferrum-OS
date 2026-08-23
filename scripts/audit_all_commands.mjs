@@ -106,6 +106,12 @@ async function sendText(t, waitMs = 180) {
 
 const commandLog = [];
 const requiredOutput = new Map([
+  ["mkdir /disk/audit_test_dir", "Directory created: /disk/audit_test_dir"],
+  ["touch /disk/audit_test_file.txt", "Created: /disk/audit_test_file.txt"],
+  ["write /disk/audit_test_file.txt hello_audit", "Written to /disk/audit_test_file.txt"],
+  ["cat /disk/audit_test_file.txt", "hello_audit"],
+  ["sync", "Filesystems synchronized successfully."],
+  ["rm /disk/audit_test_file.txt", "Removed: /disk/audit_test_file.txt"],
   ["pkg remove notes", "removed notes"],
   ["spawn audit_task", "Spawned task 'audit_task'"],
   ["useradd audituser user", "created account 'audituser'"],
@@ -141,6 +147,9 @@ async function runCmd(cmd, waitSeconds = 8, verifyContiguousEcho = true) {
   console.log(`[audit] ran: ${cmd}  (prompt returned: ${!!got})`);
   if (/Unknown command:|(?:pkg|heliox): unknown subcommand/.test(output)) {
     throw new Error(`unexpected unknown command path while sending: ${cmd}`);
+  }
+  if (/ATA timeout|ATA: (?:write|flush) error/.test(output)) {
+    throw new Error(`ATA persistence failure while sending: ${cmd}`);
   }
   const expected = requiredOutput.get(cmd);
   if (expected && !output.includes(expected)) {
