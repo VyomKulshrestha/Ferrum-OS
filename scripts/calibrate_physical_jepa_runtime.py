@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import sys
@@ -60,11 +61,16 @@ def evaluate(rows, weights, clearance_threshold: float) -> dict:
 
 
 def main() -> int:
-    protocol = json.loads(PROTOCOL.read_text(encoding="utf-8"))
-    digest = hashlib.sha256(ARTIFACT.read_bytes()).hexdigest()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--protocol", type=Path, default=PROTOCOL)
+    parser.add_argument("--artifact", type=Path, default=ARTIFACT)
+    parser.add_argument("--output", type=Path, default=OUTPUT)
+    args = parser.parse_args()
+    protocol = json.loads(args.protocol.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(args.artifact.read_bytes()).hexdigest()
     if digest != protocol["artifact_sha256"]:
         raise SystemExit("artifact digest differs from registered calibration")
-    weights = robustness.load_artifact(ARTIFACT)
+    weights = robustness.load_artifact(args.artifact)
     validation_rows, validation_cases = scenarios.generate(
         protocol["validation"]["rows"], protocol["validation"]["seed"]
     )
@@ -108,7 +114,7 @@ def main() -> int:
     result = {
         "schema_version": 1,
         "protocol_id": protocol["protocol_id"],
-        "protocol_sha256": hashlib.sha256(PROTOCOL.read_bytes()).hexdigest(),
+        "protocol_sha256": hashlib.sha256(args.protocol.read_bytes()).hexdigest(),
         "artifact_sha256": digest,
         "test_metrics_used_for_selection": False,
         "validation_case_counts": validation_cases,
@@ -120,13 +126,13 @@ def main() -> int:
         "promotion": {"gates": gates, "passed": all(gates.values())},
         "claim_boundary": protocol["claim_boundary"],
     }
-    OUTPUT.write_text(
+    args.output.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     print(
         json.dumps(
             {
-                "output": str(OUTPUT),
+                "output": str(args.output),
                 "selected_clearance_threshold": selected["clearance_threshold"],
                 "test_fn": test["fn"],
                 "test_fp": test["fp"],
