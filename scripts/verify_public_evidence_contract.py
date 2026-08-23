@@ -245,8 +245,7 @@ def main() -> int:
         "cyber-physical model and decoder checks record 91 passing gates",
     )
     require(
-        cyber["system_checks_passed"] == 259
-        and cyber["system_checks_failed"] == 0,
+        cyber["system_checks_passed"] == 259 and cyber["system_checks_failed"] == 0,
         "cyber-physical system checks record 259 passing checks",
     )
     require(

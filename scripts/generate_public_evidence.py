@@ -220,9 +220,7 @@ def aggregate_benchmarks() -> dict:
         RAW_DIR / f"concurrency-optimized-run-{index}.json" for index in range(1, 4)
     ]
     neural_path = RAW_DIR / "neural-synthetic.json"
-    qemu_command_path = (
-        BENCHMARK_DIR / "raw" / "2026-08-23" / "qemu-command-audit.json"
-    )
+    qemu_command_path = BENCHMARK_DIR / "raw" / "2026-08-23" / "qemu-command-audit.json"
     cyber_physical_path = (
         BENCHMARK_DIR / "raw" / "2026-08-23" / "cyber-physical-software.json"
     )
@@ -298,12 +296,7 @@ def aggregate_benchmarks() -> dict:
     cyber_physical = load_json(cyber_physical_path)
     paper = load_json(paper_path)
     training = load_json(training_path)
-    physical = load_json(physical_path)
-    physical_selection = load_json(physical_selection_path)
-    physical_baselines = load_json(physical_baselines_path)
     physical_sources = load_json(physical_sources_path)
-    physical_qualification = load_json(physical_qualification_path)
-    physical_calibration = load_json(physical_calibration_path)
     physical_v5_selection = load_json(physical_v5_selection_path)
     physical_v5_final = load_json(physical_v5_final_path)
     physical_v5_calibration = load_json(physical_v5_calibration_path)
@@ -339,11 +332,6 @@ def aggregate_benchmarks() -> dict:
     full_pipeline = training["full_pipeline_seed_evaluation"]
     paper_combined = paper["baselines"]["rules_plus_jepa"]
     paper_mean = paper["baselines"]["rules_plus_mean_delta"]
-    physical_before = physical["deployed_baseline_test_metrics"]
-    physical_after = physical["test_metrics"]
-    physical_combined = physical_after["original_test"]["diagnostics"][
-        "rules_plus_jepa"
-    ]
     physical_v5_current = physical_v5_final["candidate_final"]
     physical_v5_base = physical_v5_final["known_regression_suites"]["base_test"]
     physical_v5_stress = physical_v5_final["known_regression_suites"]["stress_test"]
@@ -444,8 +432,12 @@ def aggregate_benchmarks() -> dict:
                 + physical_v5_selection["fit"]["incident"]["transitions"]
                 + physical_v5_selection["fit"]["stress"]["transitions"]
             ),
-            "final_unseen_family_episodes": physical_v5_final["final_evidence"]["episodes"],
-            "final_unseen_family_transitions": physical_v5_final["final_evidence"]["transitions"],
+            "final_unseen_family_episodes": physical_v5_final["final_evidence"][
+                "episodes"
+            ],
+            "final_unseen_family_transitions": physical_v5_final["final_evidence"][
+                "transitions"
+            ],
             "final_unseen_families": len(
                 physical_v5_final["final_evidence"]["source_family_episode_counts"]
             ),
@@ -470,9 +462,9 @@ def aggregate_benchmarks() -> dict:
             "final_h3_bootstrap_absolute_reduction": physical_v5_final[
                 "h3_paired_bootstrap"
             ]["mean_absolute_normalized_error_reduction"],
-            "final_h3_bootstrap_95_interval": physical_v5_final[
-                "h3_paired_bootstrap"
-            ]["percentile_95_interval"],
+            "final_h3_bootstrap_95_interval": physical_v5_final["h3_paired_bootstrap"][
+                "percentile_95_interval"
+            ],
             "base_test_rows": physical_v5_base["candidate"]["diagnostics"]["rows"],
             "base_test_false_negatives": physical_v5_base["candidate"]["diagnostics"][
                 "rules_plus_jepa"
@@ -537,18 +529,16 @@ def aggregate_benchmarks() -> dict:
                 "false_alerts_per_hour": physical_hai["final_metrics"][
                     "false_alerts_per_hour"
                 ],
-                "transition_geometric_h1_h3_h5_error": physical_hai[
-                    "final_metrics"
-                ]["transition_geometric_h1_h3_h5_error"],
-                "persistence_geometric_h1_h3_h5_error": physical_hai[
-                    "final_metrics"
-                ]["persistence_geometric_h1_h3_h5_error"],
+                "transition_geometric_h1_h3_h5_error": physical_hai["final_metrics"][
+                    "transition_geometric_h1_h3_h5_error"
+                ],
+                "persistence_geometric_h1_h3_h5_error": physical_hai["final_metrics"][
+                    "persistence_geometric_h1_h3_h5_error"
+                ],
                 "per_action_mean_geometric_h1_h3_h5_error": physical_hai[
                     "final_metrics"
                 ]["per_action_mean_geometric_h1_h3_h5_error"],
-                "runtime_loaded": physical_hai["artifacts"]["model"][
-                    "runtime_loaded"
-                ],
+                "runtime_loaded": physical_hai["artifacts"]["model"]["runtime_loaded"],
                 "authority": physical_hai["authority"]["mode"],
                 "claim_boundary": physical_hai["claim_boundary"],
             },

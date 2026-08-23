@@ -120,9 +120,10 @@ def main() -> int:
     ).decode("utf-8")
     require(
         "process.exitCode = 1" in recorded_sweep_source
-        and "process.exitCode = 1" in committed_bytes(
-            catalog_path, evidence["audit_source_commit"]
-        ).decode("utf-8")
+        and "process.exitCode = 1"
+        in committed_bytes(catalog_path, evidence["audit_source_commit"]).decode(
+            "utf-8"
+        )
         and "process.exit(failures.length ? 1 : 0)" in persistence_source,
         "every recorded harness returns non-zero on failure",
     )
