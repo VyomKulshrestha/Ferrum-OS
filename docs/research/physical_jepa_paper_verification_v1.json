@@ -25,7 +25,11 @@
     "deployment_digest_unchanged_by_integration": true,
     "deployed_digest_matches_registered_v5": true,
     "manuscript_contains_claim_boundary": true,
+    "contribution_wording_is_unambiguous": true,
+    "pybullet_wilson_intervals_are_reported": true,
+    "zero_event_claim_is_statistically_bounded": true,
     "submission_identity_is_present": true,
+    "paper_is_frozen_submission_candidate": true,
     "paper_pdf_is_submission_length": true
   },
   "all_checks_pass": true,
@@ -37,8 +41,8 @@
     "blinded_v1_sha256": "0e618215143a1dd6ebe8721e3bcf7b9de1b47e4e98d64b67c6bb99c66de55fe4",
     "blinded_v2_sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69",
     "blinded_v2_verification_sha256": "56db574eaaa8228684e23b5607826ed697f10466fe468dec6d7797ccab83b694",
-    "manuscript_sha256": "bde37dab64ec1b067f0b9d8d4cf8d3f2a545a23b910df91d75ba72746c22d1a2",
-    "pdf_sha256": "4d1bbd2552becc712a7f86faaffa4eed698bac7646fcf066ab1e7075af055d4f",
+    "manuscript_sha256": "5e6314bfd81c6551eef3ebe96aac715ce186644d99835eeff05e41eb86760cb6",
+    "pdf_sha256": "0a2869e4d89189808a5a947ca00bf29c171d763cbd59c101d962760f24a0cbc2",
     "deployed_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
   },
   "claim_boundary": "Verification covers deterministic reproduction, document integrity, and simulated bridge evidence only; it is not HIL, physical deployment, certification, or independent assessment."

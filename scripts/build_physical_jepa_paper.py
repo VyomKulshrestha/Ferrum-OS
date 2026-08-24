@@ -30,7 +30,7 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority.md"
-DEFAULT_OUTPUT = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority_v0.1.pdf"
+DEFAULT_OUTPUT = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority_v1.0.pdf"
 
 
 def inline(text: str) -> str:
@@ -286,6 +286,7 @@ def parse(source: Path, document_width: float):
                 "Independent Researcher,",
                 "github.com/VyomKulshrestha/",
                 "Draft v",
+                "Submission candidate v",
             )
         ):
             story.append(Paragraph(inline(line), style["author"]))
@@ -323,7 +324,7 @@ def page(canvas, document):
     canvas.line(document.leftMargin, height - 0.48 * inch, width - document.rightMargin, height - 0.48 * inch)
     canvas.setFont("Helvetica", 7.5)
     canvas.setFillColor(colors.HexColor("#667788"))
-    canvas.drawString(document.leftMargin, height - 0.38 * inch, "LEARNED CAUTION, DETERMINISTIC AUTHORITY - DRAFT v0.1")
+    canvas.drawString(document.leftMargin, height - 0.38 * inch, "LEARNED CAUTION, DETERMINISTIC AUTHORITY - SUBMISSION CANDIDATE v1.0")
     canvas.drawRightString(width - document.rightMargin, 0.38 * inch, str(document.page))
     canvas.restoreState()
 

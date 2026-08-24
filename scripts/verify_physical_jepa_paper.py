@@ -22,13 +22,30 @@ BLINDED_V1 = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v1_re
 BLINDED_V2 = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v2_result.json"
 BLINDED_V2_VERIFICATION = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v2_verification.json"
 SOURCE = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority.md"
-PDF = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority_v0.1.pdf"
+PDF = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority_v1.0.pdf"
 DEPLOYED = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 DEFAULT_OUTPUT = ROOT / "docs" / "research" / "physical_jepa_paper_verification_v1.json"
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def wilson_interval(successes: int, trials: int) -> tuple[float, float]:
+    z = 1.959963984540054
+    proportion = successes / trials
+    denominator = 1.0 + z * z / trials
+    center = (proportion + z * z / (2.0 * trials)) / denominator
+    half_width = z * math.sqrt(
+        proportion * (1.0 - proportion) / trials
+        + z * z / (4.0 * trials * trials)
+    ) / denominator
+    return center - half_width, center + half_width
+
+
+def formatted_interval(successes: int, trials: int) -> str:
+    lower, upper = wilson_interval(successes, trials)
+    return f"[{100.0 * lower:.2f}%, {100.0 * upper:.2f}%]"
 
 
 def main() -> int:
@@ -150,6 +167,15 @@ def main() -> int:
         == protocol["artifacts"]["v5"]["sha256"],
         "manuscript_contains_claim_boundary": "not a robotics-deployment or safety-guarantee claim"
         in manuscript,
+        "contribution_wording_is_unambiguous": "An integration executed through the third-party PyBullet physics engine, with every observation explicitly labelled simulated and physical actuator authority disabled."
+        in manuscript
+        and "independently executed third-party" not in manuscript,
+        "pybullet_wilson_intervals_are_reported": all(
+            formatted_interval(successes, 512) in manuscript
+            for successes in (429, 83, 0)
+        ),
+        "zero_event_claim_is_statistically_bounded": "No shielded collisions were observed in 512 trials; this does not establish a zero underlying collision probability."
+        in manuscript,
         "submission_identity_is_present": all(
             value in manuscript
             for value in (
@@ -159,6 +185,8 @@ def main() -> int:
             )
         )
         and pdf.metadata.author == "Vyom Kulshrestha",
+        "paper_is_frozen_submission_candidate": "Submission candidate v1.0 - 25 August 2026"
+        in manuscript,
         "paper_pdf_is_submission_length": 8 <= len(pdf.pages) <= 9,
     }
     evidence = {
