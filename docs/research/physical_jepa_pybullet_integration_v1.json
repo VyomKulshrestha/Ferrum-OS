@@ -1,0 +1,4039 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-posthoc-paper-analysis-v1",
+  "protocol_sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd",
+  "backend": {
+    "name": "PyBullet",
+    "version": "3.2.7",
+    "connection_mode": "DIRECT",
+    "topology_sha256": "575c9b7fb3ae5143c749dd56d1fef151b613183d1a79e331b326d6ca04ca3573",
+    "actuator_enabled": false,
+    "evidence_class": "simulated"
+  },
+  "seed": 20260824,
+  "episodes": 200,
+  "artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "summary": {
+    "blocked_commands": 192,
+    "allowed_commands": 8,
+    "unshielded_collisions": 118,
+    "shielded_collisions": 0,
+    "allowed_collisions": 0,
+    "blocked_counterfactual_collisions": 118,
+    "all_acknowledgements_accepted_by_simulator": true,
+    "all_observations_marked_simulated": true
+  },
+  "deployment_integrity": {
+    "before_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "after_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "unchanged": true
+  },
+  "cases": [
+    {
+      "case": 0,
+      "obstacle_xy_m": [
+        -0.190931576099944,
+        0.13430379672960974
+      ],
+      "target_xy_m": [
+        -0.22430167213921898,
+        0.22822962094248486
+      ],
+      "initial_clearance_m": 0.07343602180480957,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 1,
+      "obstacle_xy_m": [
+        -0.3084406192812338,
+        -0.11221041746265273
+      ],
+      "target_xy_m": [
+        -0.013457481463151068,
+        -0.3197169000735947
+      ],
+      "initial_clearance_m": 0.16821759939193726,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 2,
+      "obstacle_xy_m": [
+        -0.014424367938066715,
+        -0.45804356882016317
+      ],
+      "target_xy_m": [
+        -0.05578431555922795,
+        -0.31510015889806925
+      ],
+      "initial_clearance_m": 0.29827064275741577,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 3,
+      "obstacle_xy_m": [
+        -0.31679357995350943,
+        -0.02523737552261257
+      ],
+      "target_xy_m": [
+        -0.19058023537407273,
+        0.2570586973528868
+      ],
+      "initial_clearance_m": 0.15779726207256317,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 4,
+      "obstacle_xy_m": [
+        -0.28707636062924285,
+        -0.3676024333069785
+      ],
+      "target_xy_m": [
+        -0.3124791216054823,
+        -0.0689695480677247
+      ],
+      "initial_clearance_m": 0.3064165413379669,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 5,
+      "obstacle_xy_m": [
+        -0.19945324762156574,
+        -0.37416383099632267
+      ],
+      "target_xy_m": [
+        -0.27345879877482476,
+        -0.16619351784179162
+      ],
+      "initial_clearance_m": 0.2640049159526825,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 6,
+      "obstacle_xy_m": [
+        0.186695111615472,
+        -0.3472515441725901
+      ],
+      "target_xy_m": [
+        0.29088438569436165,
+        -0.1333651909578127
+      ],
+      "initial_clearance_m": 0.23425714671611786,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 7,
+      "obstacle_xy_m": [
+        -0.12425548892585113,
+        -0.14811275047788952
+      ],
+      "target_xy_m": [
+        0.013243769039217153,
+        -0.3197258240768735
+      ],
+      "initial_clearance_m": 0.03333083912730217,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 8,
+      "obstacle_xy_m": [
+        0.14194136445708933,
+        -0.0992749479550089
+      ],
+      "target_xy_m": [
+        0.3195729807177573,
+        -0.0165260399118458
+      ],
+      "initial_clearance_m": 0.013213355094194412,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 9,
+      "obstacle_xy_m": [
+        -0.16284495318384642,
+        -0.26958248141308283
+      ],
+      "target_xy_m": [
+        -0.04202769386987439,
+        -0.3172281086977951
+      ],
+      "initial_clearance_m": 0.15494951605796814,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 10,
+      "obstacle_xy_m": [
+        -0.2051037798183657,
+        -0.24074240363472615
+      ],
+      "target_xy_m": [
+        -0.2556848112781061,
+        -0.1924195345636177
+      ],
+      "initial_clearance_m": 0.156266450881958,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 11,
+      "obstacle_xy_m": [
+        -0.11701375678346101,
+        -0.1986823027710919
+      ],
+      "target_xy_m": [
+        -0.3014562188265085,
+        -0.10735058514430282
+      ],
+      "initial_clearance_m": 0.07057943940162659,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 12,
+      "obstacle_xy_m": [
+        -0.23062944541469055,
+        -0.029604167841148554
+      ],
+      "target_xy_m": [
+        -0.3156523073409581,
+        0.05257015189562732
+      ],
+      "initial_clearance_m": 0.07252171635627747,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 13,
+      "obstacle_xy_m": [
+        -0.07255788651624437,
+        -0.26229481350420414
+      ],
+      "target_xy_m": [
+        -0.04993461805020628,
+        -0.31607994862088296
+      ],
+      "initial_clearance_m": 0.11214558035135269,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 14,
+      "obstacle_xy_m": [
+        0.3300334621310099,
+        0.38157561085617137
+      ],
+      "target_xy_m": [
+        0.3014632418015121,
+        0.10733086155679095
+      ],
+      "initial_clearance_m": 0.3445017635822296,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 15,
+      "obstacle_xy_m": [
+        -0.15965798695868344,
+        -0.2383590059957702
+      ],
+      "target_xy_m": [
+        -0.29221617627352203,
+        -0.13042126484619718
+      ],
+      "initial_clearance_m": 0.1268896758556366,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 16,
+      "obstacle_xy_m": [
+        0.2766237706301497,
+        -0.16593298503160442
+      ],
+      "target_xy_m": [
+        0.29335161883920735,
+        -0.12784689172763014
+      ],
+      "initial_clearance_m": 0.16257473826408386,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 17,
+      "obstacle_xy_m": [
+        0.23819776804255555,
+        0.08297702528846027
+      ],
+      "target_xy_m": [
+        0.2577006987874439,
+        0.1897112275129311
+      ],
+      "initial_clearance_m": 0.0922367200255394,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 18,
+      "obstacle_xy_m": [
+        -0.4169652942690353,
+        0.20654505614910207
+      ],
+      "target_xy_m": [
+        -0.1543866662573551,
+        0.2802940550242549
+      ],
+      "initial_clearance_m": 0.30531808733940125,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 19,
+      "obstacle_xy_m": [
+        0.37104862315210485,
+        0.10759437944331994
+      ],
+      "target_xy_m": [
+        0.31269410046993495,
+        0.06798823082930039
+      ],
+      "initial_clearance_m": 0.22633357346057892,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 20,
+      "obstacle_xy_m": [
+        0.30243101113377113,
+        0.16594890226174924
+      ],
+      "target_xy_m": [
+        0.17957785686152863,
+        0.2648618381817591
+      ],
+      "initial_clearance_m": 0.18496891856193542,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 21,
+      "obstacle_xy_m": [
+        -0.2751195614789752,
+        -0.24576603354600524
+      ],
+      "target_xy_m": [
+        -0.29378964939723007,
+        -0.1268370683477532
+      ],
+      "initial_clearance_m": 0.2089061141014099,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 22,
+      "obstacle_xy_m": [
+        -0.24643537045571845,
+        -0.1303928999014653
+      ],
+      "target_xy_m": [
+        -0.3125686305119756,
+        -0.06856275388188611
+      ],
+      "initial_clearance_m": 0.11880584806203842,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 23,
+      "obstacle_xy_m": [
+        -0.4071830020937949,
+        0.071210140443624
+      ],
+      "target_xy_m": [
+        -0.30775474324192986,
+        0.08767564092776191
+      ],
+      "initial_clearance_m": 0.25336289405822754,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 24,
+      "obstacle_xy_m": [
+        -0.27771020969464244,
+        -0.13669705251422054
+      ],
+      "target_xy_m": [
+        -0.28968386527516826,
+        0.13595314707368192
+      ],
+      "initial_clearance_m": 0.14953036606311798,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 25,
+      "obstacle_xy_m": [
+        -0.13316819610135366,
+        -0.04769428525778997
+      ],
+      "target_xy_m": [
+        -0.23483070242643553,
+        -0.2173810966894474
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 26,
+      "obstacle_xy_m": [
+        0.4232264931258748,
+        -0.3127982545595278
+      ],
+      "target_xy_m": [
+        0.31996687835209714,
+        -0.004603993659234283
+      ],
+      "initial_clearance_m": 0.3662731349468231,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 27,
+      "obstacle_xy_m": [
+        -0.0003813590523815691,
+        -0.4451063184282127
+      ],
+      "target_xy_m": [
+        -0.13958978585802856,
+        -0.2879491130115002
+      ],
+      "initial_clearance_m": 0.28510648012161255,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 28,
+      "obstacle_xy_m": [
+        -0.19168940397352252,
+        -0.31074080339305027
+      ],
+      "target_xy_m": [
+        -0.3150725286296245,
+        -0.05594016180647384
+      ],
+      "initial_clearance_m": 0.2051091194152832,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 29,
+      "obstacle_xy_m": [
+        0.4157879263603659,
+        0.2741826407151966
+      ],
+      "target_xy_m": [
+        0.3123671566827649,
+        0.06947488341785844
+      ],
+      "initial_clearance_m": 0.3380519151687622,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 30,
+      "obstacle_xy_m": [
+        -0.21603565659845403,
+        0.1649120630101807
+      ],
+      "target_xy_m": [
+        -0.19120334119335483,
+        0.25659556176305454
+      ],
+      "initial_clearance_m": 0.11178556829690933,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 31,
+      "obstacle_xy_m": [
+        0.20156251016497334,
+        -0.33077216076602023
+      ],
+      "target_xy_m": [
+        0.104131877546539,
+        -0.3025831325084606
+      ],
+      "initial_clearance_m": 0.22734695672988892,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 32,
+      "obstacle_xy_m": [
+        0.22983585216933755,
+        0.31191782517770184
+      ],
+      "target_xy_m": [
+        0.055511404321656674,
+        0.31514835235209077
+      ],
+      "initial_clearance_m": 0.2274496704339981,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 33,
+      "obstacle_xy_m": [
+        -0.4126578553275031,
+        0.2836264577515165
+      ],
+      "target_xy_m": [
+        -0.317149555109226,
+        -0.042616425167064965
+      ],
+      "initial_clearance_m": 0.3407299518585205,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 34,
+      "obstacle_xy_m": [
+        -0.020899655035951287,
+        0.22595191841833023
+      ],
+      "target_xy_m": [
+        -0.193991937959974,
+        0.25449386634363824
+      ],
+      "initial_clearance_m": 0.06691642850637436,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 35,
+      "obstacle_xy_m": [
+        0.25829585069344374,
+        0.03567213642518112
+      ],
+      "target_xy_m": [
+        0.2990153066129665,
+        0.11397300737961433
+      ],
+      "initial_clearance_m": 0.1007474809885025,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 36,
+      "obstacle_xy_m": [
+        -0.03896695829413544,
+        -0.3025429525493915
+      ],
+      "target_xy_m": [
+        0.05218714636445537,
+        -0.31571585603883584
+      ],
+      "initial_clearance_m": 0.1450420618057251,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 37,
+      "obstacle_xy_m": [
+        0.3450646448068036,
+        0.1778973379021207
+      ],
+      "target_xy_m": [
+        0.2852534294425525,
+        -0.1450188987382774
+      ],
+      "initial_clearance_m": 0.22822296619415283,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 38,
+      "obstacle_xy_m": [
+        -0.3625062072864624,
+        0.3381918272555403
+      ],
+      "target_xy_m": [
+        -0.3138268765707275,
+        0.06255151110773724
+      ],
+      "initial_clearance_m": 0.3357665538787842,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 39,
+      "obstacle_xy_m": [
+        -0.35358289813278365,
+        0.29595358497368573
+      ],
+      "target_xy_m": [
+        -0.24284440336577104,
+        0.20839048863593249
+      ],
+      "initial_clearance_m": 0.3010958433151245,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 40,
+      "obstacle_xy_m": [
+        0.17784852442642518,
+        -0.4555976452979275
+      ],
+      "target_xy_m": [
+        -0.03421860131299198,
+        -0.31816518873720695
+      ],
+      "initial_clearance_m": 0.32908007502555847,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 41,
+      "obstacle_xy_m": [
+        0.23203672549187004,
+        -0.104836877987119
+      ],
+      "target_xy_m": [
+        0.288622046050896,
+        0.1381930335921261
+      ],
+      "initial_clearance_m": 0.09462092071771622,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 42,
+      "obstacle_xy_m": [
+        0.4390355774356644,
+        0.200320903398016
+      ],
+      "target_xy_m": [
+        0.3167716879821403,
+        0.04533980252433368
+      ],
+      "initial_clearance_m": 0.3225771486759186,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 43,
+      "obstacle_xy_m": [
+        0.007694216914403543,
+        0.1895966545476623
+      ],
+      "target_xy_m": [
+        0.11660429277985701,
+        0.2979990585644683
+      ],
+      "initial_clearance_m": 0.029752714559435844,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 44,
+      "obstacle_xy_m": [
+        0.2348839837214808,
+        0.37428495607382223
+      ],
+      "target_xy_m": [
+        0.31427034239946844,
+        0.06028392727851145
+      ],
+      "initial_clearance_m": 0.28188201785087585,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 45,
+      "obstacle_xy_m": [
+        0.22721534427734377,
+        -0.26696717456011176
+      ],
+      "target_xy_m": [
+        0.2442610343303314,
+        -0.2067281962091206
+      ],
+      "initial_clearance_m": 0.19056852161884308,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 46,
+      "obstacle_xy_m": [
+        -0.26040253359186283,
+        0.39250669257145787
+      ],
+      "target_xy_m": [
+        -0.29792057876089156,
+        0.11680466065519564
+      ],
+      "initial_clearance_m": 0.3110318183898926,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 47,
+      "obstacle_xy_m": [
+        0.06150711308139695,
+        0.4353377518699794
+      ],
+      "target_xy_m": [
+        -0.13575778450387516,
+        0.28977547160965744
+      ],
+      "initial_clearance_m": 0.2796613276004791,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 48,
+      "obstacle_xy_m": [
+        0.26322163770152274,
+        0.03211898231991253
+      ],
+      "target_xy_m": [
+        0.2714019932252621,
+        -0.16953158429435733
+      ],
+      "initial_clearance_m": 0.10517401993274689,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 49,
+      "obstacle_xy_m": [
+        0.23617457436663947,
+        -0.15361306152780765
+      ],
+      "target_xy_m": [
+        0.10000855922204588,
+        -0.30397086716053984
+      ],
+      "initial_clearance_m": 0.12173640727996826,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 50,
+      "obstacle_xy_m": [
+        -0.4592682022879081,
+        -0.19267781191210948
+      ],
+      "target_xy_m": [
+        -0.2501740919719574,
+        -0.19953176114595547
+      ],
+      "initial_clearance_m": 0.33804821968078613,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 51,
+      "obstacle_xy_m": [
+        -0.06536144316849163,
+        -0.4027694331299427
+      ],
+      "target_xy_m": [
+        0.18905758385499705,
+        -0.2581806150486724
+      ],
+      "initial_clearance_m": 0.2480383962392807,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 52,
+      "obstacle_xy_m": [
+        0.21348243181929066,
+        -0.3285369986365951
+      ],
+      "target_xy_m": [
+        0.17734073472821815,
+        -0.2663649072345225
+      ],
+      "initial_clearance_m": 0.23180519044399261,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 53,
+      "obstacle_xy_m": [
+        -0.08601871586361157,
+        -0.5227473033593075
+      ],
+      "target_xy_m": [
+        0.10631202200550491,
+        -0.3018240447298741
+      ],
+      "initial_clearance_m": 0.36977726221084595,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 54,
+      "obstacle_xy_m": [
+        0.07405215117424135,
+        -0.10526600981542482
+      ],
+      "target_xy_m": [
+        0.1123008593741632,
+        -0.2996473210022483
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 55,
+      "obstacle_xy_m": [
+        0.24155650374654175,
+        -0.3412932700862015
+      ],
+      "target_xy_m": [
+        -0.10429467165075301,
+        -0.30252705906292354
+      ],
+      "initial_clearance_m": 0.2581275403499603,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 56,
+      "obstacle_xy_m": [
+        -0.30862442399726203,
+        0.4137057277922147
+      ],
+      "target_xy_m": [
+        0.008545007160497086,
+        0.3198858903619024
+      ],
+      "initial_clearance_m": 0.35614094138145447,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 57,
+      "obstacle_xy_m": [
+        0.15684395120825,
+        -0.10795068142825721
+      ],
+      "target_xy_m": [
+        0.1911151630645601,
+        -0.2566612445360745
+      ],
+      "initial_clearance_m": 0.03040318936109543,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 58,
+      "obstacle_xy_m": [
+        -0.1698638854823245,
+        -0.1152727240815442
+      ],
+      "target_xy_m": [
+        -0.3008090169198082,
+        0.10915097498299563
+      ],
+      "initial_clearance_m": 0.04528404772281647,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 59,
+      "obstacle_xy_m": [
+        0.22710581884190706,
+        -0.2724021895514507
+      ],
+      "target_xy_m": [
+        0.31873171803175765,
+        -0.028462113774702924
+      ],
+      "initial_clearance_m": 0.19465476274490356,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 60,
+      "obstacle_xy_m": [
+        0.4166906924127782,
+        0.18880321687346693
+      ],
+      "target_xy_m": [
+        0.3050697612477719,
+        0.0966045587548924
+      ],
+      "initial_clearance_m": 0.297468900680542,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 61,
+      "obstacle_xy_m": [
+        0.12843609265565598,
+        0.3382476948618661
+      ],
+      "target_xy_m": [
+        0.1933620520426377,
+        0.25497277664460627
+      ],
+      "initial_clearance_m": 0.20181117951869965,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 62,
+      "obstacle_xy_m": [
+        0.392972036663059,
+        0.06966103252010798
+      ],
+      "target_xy_m": [
+        0.30600687070119054,
+        -0.09359377694945793
+      ],
+      "initial_clearance_m": 0.23909857869148254,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 63,
+      "obstacle_xy_m": [
+        0.10698296157214027,
+        0.19692762489957272
+      ],
+      "target_xy_m": [
+        0.2999928378722855,
+        0.11137458069655148
+      ],
+      "initial_clearance_m": 0.06411123275756836,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 64,
+      "obstacle_xy_m": [
+        -0.3396546849202825,
+        0.23458968933259577
+      ],
+      "target_xy_m": [
+        -0.18886168748832644,
+        0.25832394972023354
+      ],
+      "initial_clearance_m": 0.25279247760772705,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 65,
+      "obstacle_xy_m": [
+        -0.20072263250412398,
+        0.06834193135533607
+      ],
+      "target_xy_m": [
+        -0.24601667199288874,
+        0.20463576691659596
+      ],
+      "initial_clearance_m": 0.05203819274902344,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 66,
+      "obstacle_xy_m": [
+        -0.3366822497044686,
+        0.28951468353330156
+      ],
+      "target_xy_m": [
+        -0.3147661016316799,
+        0.05763940721064856
+      ],
+      "initial_clearance_m": 0.28404244780540466,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 67,
+      "obstacle_xy_m": [
+        0.2140946858457582,
+        0.1149230118444282
+      ],
+      "target_xy_m": [
+        0.2940525760876281,
+        -0.12622631459497533
+      ],
+      "initial_clearance_m": 0.08298936486244202,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 68,
+      "obstacle_xy_m": [
+        0.03999824537359315,
+        -0.3064985296348392
+      ],
+      "target_xy_m": [
+        -0.0375866589560953,
+        -0.31778490063015613
+      ],
+      "initial_clearance_m": 0.14909741282463074,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 69,
+      "obstacle_xy_m": [
+        0.3245297383939416,
+        0.1986316587857937
+      ],
+      "target_xy_m": [
+        0.1632795107919631,
+        0.2752086505826756
+      ],
+      "initial_clearance_m": 0.2204919010400772,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 70,
+      "obstacle_xy_m": [
+        0.2676018856418327,
+        0.3202035666229355
+      ],
+      "target_xy_m": [
+        0.26102657981590105,
+        0.18510841317890722
+      ],
+      "initial_clearance_m": 0.2573021650314331,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 71,
+      "obstacle_xy_m": [
+        -0.191359936639312,
+        -0.5080539878092806
+      ],
+      "target_xy_m": [
+        -0.25371362535502373,
+        -0.19501127226191484
+      ],
+      "initial_clearance_m": 0.382897287607193,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 72,
+      "obstacle_xy_m": [
+        -0.2532588229969374,
+        0.41657514821845737
+      ],
+      "target_xy_m": [
+        -0.27541065147254823,
+        0.16293855607395868
+      ],
+      "initial_clearance_m": 0.32751911878585815,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 73,
+      "obstacle_xy_m": [
+        0.37278713162665156,
+        0.17999354794699057
+      ],
+      "target_xy_m": [
+        0.27948019785780054,
+        -0.155855121845144
+      ],
+      "initial_clearance_m": 0.2539660930633545,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 74,
+      "obstacle_xy_m": [
+        0.45420688882756766,
+        -0.043101533950673065
+      ],
+      "target_xy_m": [
+        0.21001585878380738,
+        -0.24144013556014227
+      ],
+      "initial_clearance_m": 0.29624733328819275,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 75,
+      "obstacle_xy_m": [
+        0.21937093214724745,
+        -0.32054153782138395
+      ],
+      "target_xy_m": [
+        0.08261413935738039,
+        -0.30915191084358407
+      ],
+      "initial_clearance_m": 0.22842049598693848,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 76,
+      "obstacle_xy_m": [
+        -0.21957894917097787,
+        -0.3526756835502328
+      ],
+      "target_xy_m": [
+        -0.024442963109041295,
+        -0.3190651055105369
+      ],
+      "initial_clearance_m": 0.25544559955596924,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 77,
+      "obstacle_xy_m": [
+        -0.11186478717666938,
+        -0.4654163194894973
+      ],
+      "target_xy_m": [
+        -0.06494194242563324,
+        -0.31334093909667426
+      ],
+      "initial_clearance_m": 0.31867116689682007,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 78,
+      "obstacle_xy_m": [
+        0.029358395462840053,
+        0.4173108113257943
+      ],
+      "target_xy_m": [
+        0.16809617219002046,
+        0.27229336549953437
+      ],
+      "initial_clearance_m": 0.2583422362804413,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 79,
+      "obstacle_xy_m": [
+        0.4453558289836313,
+        0.25655339943315014
+      ],
+      "target_xy_m": [
+        0.17548025694839275,
+        0.26759424399886866
+      ],
+      "initial_clearance_m": 0.3539664149284363,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 80,
+      "obstacle_xy_m": [
+        -0.14703751671480506,
+        0.21619587000421098
+      ],
+      "target_xy_m": [
+        -0.3166660142840233,
+        0.04607206743213022
+      ],
+      "initial_clearance_m": 0.10145876556634903,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 81,
+      "obstacle_xy_m": [
+        -0.403328717796769,
+        -0.003325550290328466
+      ],
+      "target_xy_m": [
+        -0.3164299139478126,
+        0.04766665038556751
+      ],
+      "initial_clearance_m": 0.24334242939949036,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 82,
+      "obstacle_xy_m": [
+        0.13719883777726127,
+        -0.30597805751613727
+      ],
+      "target_xy_m": [
+        0.2690180486081461,
+        -0.1732896116997933
+      ],
+      "initial_clearance_m": 0.17532983422279358,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 83,
+      "obstacle_xy_m": [
+        0.0018141558726262746,
+        -0.1487168895938107
+      ],
+      "target_xy_m": [
+        0.029104658654716526,
+        -0.3186736870916588
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 84,
+      "obstacle_xy_m": [
+        -0.2603895549084026,
+        -0.02907926121663014
+      ],
+      "target_xy_m": [
+        -0.27465440268801095,
+        -0.16421010652238166
+      ],
+      "initial_clearance_m": 0.10200825333595276,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 85,
+      "obstacle_xy_m": [
+        0.4728834143201403,
+        0.083739396133952
+      ],
+      "target_xy_m": [
+        0.29536902998950687,
+        0.12311432135644415
+      ],
+      "initial_clearance_m": 0.3202405869960785,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 86,
+      "obstacle_xy_m": [
+        0.3048691048335308,
+        -0.13287896006659705
+      ],
+      "target_xy_m": [
+        0.29889300819609416,
+        0.11429334911310271
+      ],
+      "initial_clearance_m": 0.17256876826286316,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 87,
+      "obstacle_xy_m": [
+        0.07352930537848605,
+        -0.28988863076648796
+      ],
+      "target_xy_m": [
+        0.2921025799442035,
+        -0.13067548656859931
+      ],
+      "initial_clearance_m": 0.13906851410865784,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 88,
+      "obstacle_xy_m": [
+        0.2396713329416556,
+        0.1877827128283546
+      ],
+      "target_xy_m": [
+        0.1547096683805622,
+        0.2801159019220017
+      ],
+      "initial_clearance_m": 0.14447446167469025,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 89,
+      "obstacle_xy_m": [
+        0.15304118689190743,
+        0.09951562372885524
+      ],
+      "target_xy_m": [
+        0.3174307628592614,
+        -0.04046863959397865
+      ],
+      "initial_clearance_m": 0.022551264613866806,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 90,
+      "obstacle_xy_m": [
+        0.24435946257988939,
+        -0.15168083935255464
+      ],
+      "target_xy_m": [
+        0.19905680496988,
+        -0.2505521670135446
+      ],
+      "initial_clearance_m": 0.12760846316814423,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 91,
+      "obstacle_xy_m": [
+        0.4913139550414847,
+        -0.22857574938816758
+      ],
+      "target_xy_m": [
+        0.3167097871428506,
+        0.04577019475521467
+      ],
+      "initial_clearance_m": 0.3818821609020233,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 92,
+      "obstacle_xy_m": [
+        0.29502494944331786,
+        -0.2496774023451332
+      ],
+      "target_xy_m": [
+        0.315151753830733,
+        -0.05549209004365475
+      ],
+      "initial_clearance_m": 0.2264951765537262,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 93,
+      "obstacle_xy_m": [
+        0.18638283012156667,
+        -0.46101516318820857
+      ],
+      "target_xy_m": [
+        -0.10330909589769009,
+        -0.30286503711191537
+      ],
+      "initial_clearance_m": 0.33726605772972107,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 94,
+      "obstacle_xy_m": [
+        -0.30327979514907033,
+        0.0982530264171004
+      ],
+      "target_xy_m": [
+        -0.2855581994423479,
+        0.14441784768941912
+      ],
+      "initial_clearance_m": 0.1587982028722763,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 95,
+      "obstacle_xy_m": [
+        0.1737236540354153,
+        0.23568791036078196
+      ],
+      "target_xy_m": [
+        -0.1456961716822537,
+        0.28490810019572144
+      ],
+      "initial_clearance_m": 0.13279463350772858,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 96,
+      "obstacle_xy_m": [
+        0.24033660082356492,
+        -0.39131805325467683
+      ],
+      "target_xy_m": [
+        0.2726191453855445,
+        -0.16756730459506522
+      ],
+      "initial_clearance_m": 0.299229234457016,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 97,
+      "obstacle_xy_m": [
+        -0.18651979387872678,
+        0.11614477241955762
+      ],
+      "target_xy_m": [
+        -0.2950676653745651,
+        0.12383486120799628
+      ],
+      "initial_clearance_m": 0.05972537770867348,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 98,
+      "obstacle_xy_m": [
+        -0.20293743522099608,
+        0.04325006650467937
+      ],
+      "target_xy_m": [
+        -0.31461556919416317,
+        -0.05845548409373347
+      ],
+      "initial_clearance_m": 0.04749498888850212,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 99,
+      "obstacle_xy_m": [
+        -0.44284824806142786,
+        -0.002024268055111106
+      ],
+      "target_xy_m": [
+        -0.23674515399790955,
+        -0.21529452398634316
+      ],
+      "initial_clearance_m": 0.2828528881072998,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 100,
+      "obstacle_xy_m": [
+        0.16052451450493854,
+        0.33172644497163484
+      ],
+      "target_xy_m": [
+        -0.12007676451422958,
+        0.29661687515007346
+      ],
+      "initial_clearance_m": 0.20852483808994293,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 101,
+      "obstacle_xy_m": [
+        0.16738897127617158,
+        0.24140220862725428
+      ],
+      "target_xy_m": [
+        0.2377336215270749,
+        0.21420253312139312
+      ],
+      "initial_clearance_m": 0.1337585598230362,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 102,
+      "obstacle_xy_m": [
+        -0.2548004239162917,
+        -0.10722327937185096
+      ],
+      "target_xy_m": [
+        -0.3189639394161437,
+        -0.025729464668636282
+      ],
+      "initial_clearance_m": 0.11644183099269867,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 103,
+      "obstacle_xy_m": [
+        0.3000925849964691,
+        0.41591014983631835
+      ],
+      "target_xy_m": [
+        -0.01873129101676666,
+        0.319451308867009
+      ],
+      "initial_clearance_m": 0.3528711497783661,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 104,
+      "obstacle_xy_m": [
+        -0.43389036431514433,
+        -0.0006694257231586141
+      ],
+      "target_xy_m": [
+        -0.31938699683824234,
+        0.019797632450588538
+      ],
+      "initial_clearance_m": 0.273890882730484,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 105,
+      "obstacle_xy_m": [
+        -0.30367763938947234,
+        -0.331216480407455
+      ],
+      "target_xy_m": [
+        -0.2522562586138194,
+        -0.19689281345482845
+      ],
+      "initial_clearance_m": 0.28936007618904114,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 106,
+      "obstacle_xy_m": [
+        -0.17522334097599437,
+        -0.28344740781032074
+      ],
+      "target_xy_m": [
+        0.16301991674052538,
+        -0.2753625006167546
+      ],
+      "initial_clearance_m": 0.17323513329029083,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 107,
+      "obstacle_xy_m": [
+        0.3378828464289476,
+        0.21130651773640563
+      ],
+      "target_xy_m": [
+        0.28542891168912027,
+        0.1446732054388939
+      ],
+      "initial_clearance_m": 0.23851633071899414,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 108,
+      "obstacle_xy_m": [
+        0.25136732994859967,
+        0.07083505804282644
+      ],
+      "target_xy_m": [
+        0.2706107308772565,
+        -0.17079178063969314
+      ],
+      "initial_clearance_m": 0.1011573076248169,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 109,
+      "obstacle_xy_m": [
+        0.4219961637568907,
+        0.299209533349133
+      ],
+      "target_xy_m": [
+        0.3199672952514227,
+        -0.00457492835888071
+      ],
+      "initial_clearance_m": 0.3573075532913208,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 110,
+      "obstacle_xy_m": [
+        0.2464898898980789,
+        -0.5088614820662113
+      ],
+      "target_xy_m": [
+        -0.06163892917014468,
+        -0.3140073922868025
+      ],
+      "initial_clearance_m": 0.405417799949646,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 111,
+      "obstacle_xy_m": [
+        0.167466785942435,
+        0.23300264507261897
+      ],
+      "target_xy_m": [
+        0.3175012664132877,
+        0.039911725419462196
+      ],
+      "initial_clearance_m": 0.12694138288497925,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 112,
+      "obstacle_xy_m": [
+        0.1663363099926431,
+        0.08598975335305574
+      ],
+      "target_xy_m": [
+        0.27293261988170786,
+        0.16705623306092826
+      ],
+      "initial_clearance_m": 0.02724851295351982,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 113,
+      "obstacle_xy_m": [
+        -0.2681955144384903,
+        -0.33270232062180705
+      ],
+      "target_xy_m": [
+        -0.08444636037977596,
+        -0.30865646310843553
+      ],
+      "initial_clearance_m": 0.26734021306037903,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 114,
+      "obstacle_xy_m": [
+        -0.23437265913386027,
+        0.22643998862930237
+      ],
+      "target_xy_m": [
+        -0.0987222131071311,
+        0.3043910718783161
+      ],
+      "initial_clearance_m": 0.16589201986789703,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 115,
+      "obstacle_xy_m": [
+        -0.24732227176631214,
+        -0.38729468992779315
+      ],
+      "target_xy_m": [
+        -0.12263088727315354,
+        -0.2955700686581764
+      ],
+      "initial_clearance_m": 0.29952746629714966,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 116,
+      "obstacle_xy_m": [
+        -0.5204390304637909,
+        -0.22204874900711813
+      ],
+      "target_xy_m": [
+        -0.17558800634321933,
+        -0.26752355415629026
+      ],
+      "initial_clearance_m": 0.40582898259162903,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 117,
+      "obstacle_xy_m": [
+        -0.317431376337959,
+        -0.30712876566339437
+      ],
+      "target_xy_m": [
+        -0.31779309097874986,
+        -0.03751734700337993
+      ],
+      "initial_clearance_m": 0.2816908061504364,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 118,
+      "obstacle_xy_m": [
+        0.14078382243704418,
+        0.09251479014896892
+      ],
+      "target_xy_m": [
+        0.31893320529370855,
+        -0.02610767245621767
+      ],
+      "initial_clearance_m": 0.008460888639092445,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 119,
+      "obstacle_xy_m": [
+        -0.4939636676052774,
+        -0.18229463054034545
+      ],
+      "target_xy_m": [
+        -0.30595999940557245,
+        0.09374688668826357
+      ],
+      "initial_clearance_m": 0.3665277063846588,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 120,
+      "obstacle_xy_m": [
+        -0.13072725721031692,
+        0.16524079630599262
+      ],
+      "target_xy_m": [
+        0.05650303676386462,
+        0.31497207310563485
+      ],
+      "initial_clearance_m": 0.05069915950298309,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 121,
+      "obstacle_xy_m": [
+        0.11822346781220054,
+        0.3272829892029139
+      ],
+      "target_xy_m": [
+        -0.07831273549220664,
+        0.31026942398458746
+      ],
+      "initial_clearance_m": 0.1879812330007553,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 122,
+      "obstacle_xy_m": [
+        0.33248772969291995,
+        0.23275757785566048
+      ],
+      "target_xy_m": [
+        0.04710330476231674,
+        0.3165142629968961
+      ],
+      "initial_clearance_m": 0.24586226046085358,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 123,
+      "obstacle_xy_m": [
+        0.0342411691143613,
+        -0.2993258094654561
+      ],
+      "target_xy_m": [
+        0.043095403354275946,
+        -0.317084824943945
+      ],
+      "initial_clearance_m": 0.14127793908119202,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 124,
+      "obstacle_xy_m": [
+        -0.20769433953820876,
+        0.25599245560367956
+      ],
+      "target_xy_m": [
+        -0.26952100564285025,
+        0.17250631152878634
+      ],
+      "initial_clearance_m": 0.16964992880821228,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 125,
+      "obstacle_xy_m": [
+        0.24376646074528968,
+        0.35567546530703087
+      ],
+      "target_xy_m": [
+        0.1324774213026902,
+        0.2912897747003652
+      ],
+      "initial_clearance_m": 0.27119266986846924,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 126,
+      "obstacle_xy_m": [
+        0.2102964436927798,
+        -0.06751480104594906
+      ],
+      "target_xy_m": [
+        0.20784319038306026,
+        -0.24331298405837484
+      ],
+      "initial_clearance_m": 0.06086838245391846,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 127,
+      "obstacle_xy_m": [
+        0.04513000471868572,
+        -0.351046726698668
+      ],
+      "target_xy_m": [
+        0.19915693589378852,
+        -0.2504725831012197
+      ],
+      "initial_clearance_m": 0.19393575191497803,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 128,
+      "obstacle_xy_m": [
+        0.36643040371759505,
+        0.002955801389474655
+      ],
+      "target_xy_m": [
+        0.3079374598191829,
+        -0.08703172318246435
+      ],
+      "initial_clearance_m": 0.20644232630729675,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 129,
+      "obstacle_xy_m": [
+        0.25091101789101167,
+        0.2210756010266288
+      ],
+      "target_xy_m": [
+        0.2789195870818086,
+        0.15685618872748827
+      ],
+      "initial_clearance_m": 0.17441105842590332,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 130,
+      "obstacle_xy_m": [
+        -0.22418133251368233,
+        -0.11377171835785277
+      ],
+      "target_xy_m": [
+        -0.31176357177362213,
+        -0.07213511845802699
+      ],
+      "initial_clearance_m": 0.09139863401651382,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 131,
+      "obstacle_xy_m": [
+        0.058984392269226534,
+        -0.13208725558580908
+      ],
+      "target_xy_m": [
+        0.2372570211632882,
+        -0.2147303097113284
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 132,
+      "obstacle_xy_m": [
+        0.2650367156354848,
+        -0.2508616029763223
+      ],
+      "target_xy_m": [
+        0.3053800172422518,
+        0.09561927143166284
+      ],
+      "initial_clearance_m": 0.20493288338184357,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 133,
+      "obstacle_xy_m": [
+        0.08989499659580841,
+        0.4565528694936915
+      ],
+      "target_xy_m": [
+        0.13479319064167533,
+        0.29022542231278947
+      ],
+      "initial_clearance_m": 0.3053188621997833,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 134,
+      "obstacle_xy_m": [
+        -0.3963382842354889,
+        -0.2520369693495649
+      ],
+      "target_xy_m": [
+        -0.30219215028969,
+        -0.1052611243683698
+      ],
+      "initial_clearance_m": 0.30968785285949707,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 135,
+      "obstacle_xy_m": [
+        -0.2831930667726968,
+        0.2962938495900803
+      ],
+      "target_xy_m": [
+        0.008054048993068516,
+        0.3198986281540095
+      ],
+      "initial_clearance_m": 0.24986383318901062,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 136,
+      "obstacle_xy_m": [
+        0.3519929720094248,
+        -0.002606841460053494
+      ],
+      "target_xy_m": [
+        0.25016798505365484,
+        0.19953941779556822
+      ],
+      "initial_clearance_m": 0.19200262427330017,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 137,
+      "obstacle_xy_m": [
+        0.09017553747849821,
+        0.4694314579973774
+      ],
+      "target_xy_m": [
+        0.2481074633156031,
+        0.20209573634071717
+      ],
+      "initial_clearance_m": 0.31801414489746094,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 138,
+      "obstacle_xy_m": [
+        -0.3846232033734811,
+        0.09532253232479182
+      ],
+      "target_xy_m": [
+        -0.31816972195660215,
+        -0.0341764250625851
+      ],
+      "initial_clearance_m": 0.23625925183296204,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 139,
+      "obstacle_xy_m": [
+        0.24776862052469883,
+        -0.29507632730644306
+      ],
+      "target_xy_m": [
+        0.02234415758569349,
+        -0.3192189509126701
+      ],
+      "initial_clearance_m": 0.22530420124530792,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 140,
+      "obstacle_xy_m": [
+        -0.23592789769848777,
+        0.10675524379632335
+      ],
+      "target_xy_m": [
+        -0.27888202963891756,
+        -0.15692295416693477
+      ],
+      "initial_clearance_m": 0.09895686060190201,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 141,
+      "obstacle_xy_m": [
+        -0.1676590996905609,
+        -0.13333003564359122
+      ],
+      "target_xy_m": [
+        -0.26569457488657827,
+        -0.1783434688342706
+      ],
+      "initial_clearance_m": 0.05421127751469612,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 142,
+      "obstacle_xy_m": [
+        0.3463419683989298,
+        0.17548081788838907
+      ],
+      "target_xy_m": [
+        0.29057182340191406,
+        0.1340448262518433
+      ],
+      "initial_clearance_m": 0.2282605767250061,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 143,
+      "obstacle_xy_m": [
+        -0.12680430606040557,
+        0.39181045270170034
+      ],
+      "target_xy_m": [
+        -0.11481945180061624,
+        0.29869130132664723
+      ],
+      "initial_clearance_m": 0.25181883573532104,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 144,
+      "obstacle_xy_m": [
+        -0.31672935683576875,
+        0.4287017574139801
+      ],
+      "target_xy_m": [
+        -0.052878732667268065,
+        0.31560075987155606
+      ],
+      "initial_clearance_m": 0.37301284074783325,
+      "rules_block": false,
+      "learned_block": false,
+      "shield_command": "move_to",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 145,
+      "obstacle_xy_m": [
+        -0.076185500927135,
+        -0.15484641167638227
+      ],
+      "target_xy_m": [
+        -0.2972175659236007,
+        -0.11858211714440785
+      ],
+      "initial_clearance_m": 0.012573583982884884,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 146,
+      "obstacle_xy_m": [
+        0.12049080139381525,
+        -0.37136988921792996
+      ],
+      "target_xy_m": [
+        -0.1333029612998931,
+        -0.2909129088037848
+      ],
+      "initial_clearance_m": 0.23042748868465424,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 147,
+      "obstacle_xy_m": [
+        0.14569885631431195,
+        0.1434459651299815
+      ],
+      "target_xy_m": [
+        0.31696739242325433,
+        0.043950792261376784
+      ],
+      "initial_clearance_m": 0.04446246847510338,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 148,
+      "obstacle_xy_m": [
+        -0.34641810854099264,
+        -0.23590889152277253
+      ],
+      "target_xy_m": [
+        -0.2069301134184734,
+        -0.2440900001241709
+      ],
+      "initial_clearance_m": 0.25911635160446167,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 149,
+      "obstacle_xy_m": [
+        0.2825525119919902,
+        -0.25668550917525434
+      ],
+      "target_xy_m": [
+        0.2924478136216693,
+        -0.12990102504562998
+      ],
+      "initial_clearance_m": 0.2217373102903366,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 150,
+      "obstacle_xy_m": [
+        -0.10385438185681918,
+        0.0781732736417828
+      ],
+      "target_xy_m": [
+        -0.23016785890948938,
+        0.2223122954877246
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 151,
+      "obstacle_xy_m": [
+        -0.11941258031398277,
+        -0.3571461380242672
+      ],
+      "target_xy_m": [
+        0.06406834869917552,
+        -0.31352072769589073
+      ],
+      "initial_clearance_m": 0.21658030152320862,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 152,
+      "obstacle_xy_m": [
+        -0.3595291671302753,
+        0.06816363162386782
+      ],
+      "target_xy_m": [
+        -0.3059902260943988,
+        -0.09364817955891469
+      ],
+      "initial_clearance_m": 0.20593373477458954,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 153,
+      "obstacle_xy_m": [
+        -0.37828011296432273,
+        0.14263764644076055
+      ],
+      "target_xy_m": [
+        -0.28671073369459377,
+        -0.1421159920076123
+      ],
+      "initial_clearance_m": 0.24427878856658936,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 154,
+      "obstacle_xy_m": [
+        0.04722857966893734,
+        -0.4543435329719535
+      ],
+      "target_xy_m": [
+        0.15863307088598697,
+        -0.2779128439300376
+      ],
+      "initial_clearance_m": 0.29679161310195923,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 155,
+      "obstacle_xy_m": [
+        -0.11507219953576893,
+        0.21544203060212622
+      ],
+      "target_xy_m": [
+        -0.3170904724978071,
+        0.04305382969164803
+      ],
+      "initial_clearance_m": 0.08424758166074753,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 156,
+      "obstacle_xy_m": [
+        0.258957208196871,
+        0.30388089996335144
+      ],
+      "target_xy_m": [
+        0.2753269487925782,
+        0.1630799536073304
+      ],
+      "initial_clearance_m": 0.23925234377384186,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 157,
+      "obstacle_xy_m": [
+        -0.10897688291825251,
+        -0.1287118948647894
+      ],
+      "target_xy_m": [
+        -0.20201743365102623,
+        -0.2481712241599602
+      ],
+      "initial_clearance_m": 0.0086496751755476,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 158,
+      "obstacle_xy_m": [
+        0.12425273330375658,
+        0.14719467613190107
+      ],
+      "target_xy_m": [
+        -0.056216525768152524,
+        0.3150233360095068
+      ],
+      "initial_clearance_m": 0.032626617699861526,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 159,
+      "obstacle_xy_m": [
+        0.2312000833676327,
+        0.19235744638547334
+      ],
+      "target_xy_m": [
+        0.15896843016054318,
+        0.2777211518993332
+      ],
+      "initial_clearance_m": 0.14075715839862823,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 160,
+      "obstacle_xy_m": [
+        -0.2363160629275687,
+        -0.2534951002127076
+      ],
+      "target_xy_m": [
+        -0.3077217833354334,
+        0.08779125275823674
+      ],
+      "initial_clearance_m": 0.18656174838542938,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 161,
+      "obstacle_xy_m": [
+        0.39859380388966176,
+        -0.14139910923040622
+      ],
+      "target_xy_m": [
+        0.17471386241570858,
+        -0.26809525598149786
+      ],
+      "initial_clearance_m": 0.26293110847473145,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 162,
+      "obstacle_xy_m": [
+        0.352727204966534,
+        0.0016662973514500745
+      ],
+      "target_xy_m": [
+        0.27425280769041865,
+        -0.1648799486715176
+      ],
+      "initial_clearance_m": 0.19273114204406738,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 163,
+      "obstacle_xy_m": [
+        0.1777579352916595,
+        -0.4228356691791515
+      ],
+      "target_xy_m": [
+        -0.08733537856234012,
+        -0.30785147661067463
+      ],
+      "initial_clearance_m": 0.2986806035041809,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 164,
+      "obstacle_xy_m": [
+        0.17346585459942662,
+        -0.1089251212325966
+      ],
+      "target_xy_m": [
+        0.2971626393253789,
+        -0.11871969419255927
+      ],
+      "initial_clearance_m": 0.04482940584421158,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 165,
+      "obstacle_xy_m": [
+        -0.3385019416730132,
+        0.03814046714075134
+      ],
+      "target_xy_m": [
+        -0.24327882095234707,
+        0.20788317699139547
+      ],
+      "initial_clearance_m": 0.18064388632774353,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 166,
+      "obstacle_xy_m": [
+        -0.2103650864447718,
+        0.2363427610957322
+      ],
+      "target_xy_m": [
+        -0.14854150507472047,
+        0.28343503888922555
+      ],
+      "initial_clearance_m": 0.1564038097858429,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 167,
+      "obstacle_xy_m": [
+        -0.3682466673393986,
+        -0.06424629415834421
+      ],
+      "target_xy_m": [
+        -0.3077153844316516,
+        -0.08781367879824238
+      ],
+      "initial_clearance_m": 0.2138090282678604,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 168,
+      "obstacle_xy_m": [
+        -0.2684999740308387,
+        0.20274688568739302
+      ],
+      "target_xy_m": [
+        -0.314369423543536,
+        0.05976508630383533
+      ],
+      "initial_clearance_m": 0.17644989490509033,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 169,
+      "obstacle_xy_m": [
+        0.23820044339737012,
+        0.2565661205846982
+      ],
+      "target_xy_m": [
+        0.31999923238324396,
+        0.0007009095053091815
+      ],
+      "initial_clearance_m": 0.1900937408208847,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 170,
+      "obstacle_xy_m": [
+        0.18950331154607067,
+        -0.1585124828752896
+      ],
+      "target_xy_m": [
+        0.31960914673170854,
+        -0.015811177230971397
+      ],
+      "initial_clearance_m": 0.08705811202526093,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 171,
+      "obstacle_xy_m": [
+        -0.14402142917549804,
+        -0.3432885387889496
+      ],
+      "target_xy_m": [
+        -0.07391450316805902,
+        -0.3113465050733973
+      ],
+      "initial_clearance_m": 0.2122756987810135,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 172,
+      "obstacle_xy_m": [
+        0.29854725592964526,
+        0.2506552521100704
+      ],
+      "target_xy_m": [
+        0.20262477834894305,
+        0.24767559265911065
+      ],
+      "initial_clearance_m": 0.22981856763362885,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 173,
+      "obstacle_xy_m": [
+        0.11588125233904165,
+        0.2113953145657615
+      ],
+      "target_xy_m": [
+        -0.09376892637320905,
+        0.3059532455242397
+      ],
+      "initial_clearance_m": 0.08107352256774902,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 174,
+      "obstacle_xy_m": [
+        -0.15257917933952642,
+        -0.0369442883710221
+      ],
+      "target_xy_m": [
+        -0.2938507152305921,
+        0.12669552935470726
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 175,
+      "obstacle_xy_m": [
+        0.14172954754230624,
+        0.3334050355580711
+      ],
+      "target_xy_m": [
+        0.23235045168739263,
+        0.22003015157169853
+      ],
+      "initial_clearance_m": 0.20227915048599243,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 176,
+      "obstacle_xy_m": [
+        -0.21713188185544563,
+        0.4149817784968425
+      ],
+      "target_xy_m": [
+        0.042627388708158576,
+        0.31714808170935477
+      ],
+      "initial_clearance_m": 0.3083547055721283,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 177,
+      "obstacle_xy_m": [
+        -0.27189889812704143,
+        0.08843531455164941
+      ],
+      "target_xy_m": [
+        -0.04021339597242835,
+        0.3174631991024545
+      ],
+      "initial_clearance_m": 0.12591925263404846,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 178,
+      "obstacle_xy_m": [
+        0.18268536816982628,
+        -0.009072731514324195
+      ],
+      "target_xy_m": [
+        0.24015366676491018,
+        0.2114857355458483
+      ],
+      "initial_clearance_m": 0.022910520434379578,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 179,
+      "obstacle_xy_m": [
+        -0.3360141905664186,
+        -0.09436695151605755
+      ],
+      "target_xy_m": [
+        -0.313763449182705,
+        -0.06286889498768142
+      ],
+      "initial_clearance_m": 0.18901383876800537,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 180,
+      "obstacle_xy_m": [
+        0.1594965199384893,
+        0.16554358396794072
+      ],
+      "target_xy_m": [
+        0.26890677784938116,
+        0.1734622288184479
+      ],
+      "initial_clearance_m": 0.06987783312797546,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 181,
+      "obstacle_xy_m": [
+        0.20293745474455366,
+        -0.29849680468606504
+      ],
+      "target_xy_m": [
+        -0.06390324648548468,
+        -0.31355442125509153
+      ],
+      "initial_clearance_m": 0.20094868540763855,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 182,
+      "obstacle_xy_m": [
+        0.27923246865254897,
+        -0.21960758534254837
+      ],
+      "target_xy_m": [
+        0.29850040314293863,
+        -0.11531482698900054
+      ],
+      "initial_clearance_m": 0.1952439546585083,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 183,
+      "obstacle_xy_m": [
+        -0.37048742945814717,
+        -0.02602596291743789
+      ],
+      "target_xy_m": [
+        -0.2522449071377055,
+        0.19690735593951375
+      ],
+      "initial_clearance_m": 0.21140043437480927,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 184,
+      "obstacle_xy_m": [
+        0.09236320354591704,
+        -0.09097181585667635
+      ],
+      "target_xy_m": [
+        0.20424758007831734,
+        -0.2463390469092372
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 185,
+      "obstacle_xy_m": [
+        0.023875908664428833,
+        0.3460138349958666
+      ],
+      "target_xy_m": [
+        -0.05571000166150605,
+        0.31511330615331845
+      ],
+      "initial_clearance_m": 0.1868366152048111,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 186,
+      "obstacle_xy_m": [
+        0.1406693598302752,
+        0.3111413249725669
+      ],
+      "target_xy_m": [
+        0.06438579769547413,
+        0.3134556891414119
+      ],
+      "initial_clearance_m": 0.18146272003650665,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 187,
+      "obstacle_xy_m": [
+        -0.234213150445025,
+        0.28390903049793764
+      ],
+      "target_xy_m": [
+        -0.14553595291684523,
+        0.2849899759791312
+      ],
+      "initial_clearance_m": 0.20804910361766815,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 188,
+      "obstacle_xy_m": [
+        -0.14848117694226456,
+        -0.016843015667716735
+      ],
+      "target_xy_m": [
+        -0.3197082636676191,
+        -0.013661117913119284
+      ],
+      "initial_clearance_m": 0.0,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 189,
+      "obstacle_xy_m": [
+        0.11389722663739575,
+        0.29538908488725557
+      ],
+      "target_xy_m": [
+        -0.18609889120593295,
+        0.26032134505630217
+      ],
+      "initial_clearance_m": 0.15658694505691528,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 190,
+      "obstacle_xy_m": [
+        -0.06948310427479937,
+        0.23724160761663846
+      ],
+      "target_xy_m": [
+        0.21840947666462074,
+        0.23387454009166217
+      ],
+      "initial_clearance_m": 0.0872073695063591,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 191,
+      "obstacle_xy_m": [
+        -0.35403305375884736,
+        -0.039470400455928395
+      ],
+      "target_xy_m": [
+        -0.2319109812277136,
+        0.22049330326792033
+      ],
+      "initial_clearance_m": 0.19622649252414703,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 192,
+      "obstacle_xy_m": [
+        -0.3875940984271379,
+        -0.23149965377715465
+      ],
+      "target_xy_m": [
+        -0.11866745157386686,
+        -0.29718350549275774
+      ],
+      "initial_clearance_m": 0.291465699672699,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 193,
+      "obstacle_xy_m": [
+        -0.40499326747820696,
+        0.1583356061759817
+      ],
+      "target_xy_m": [
+        -0.31415770783502517,
+        -0.06086817401436467
+      ],
+      "initial_clearance_m": 0.2748444676399231,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 194,
+      "obstacle_xy_m": [
+        0.2407531553290732,
+        0.4368605593559206
+      ],
+      "target_xy_m": [
+        0.25355083457502864,
+        0.19522288361333684
+      ],
+      "initial_clearance_m": 0.3388078212738037,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 195,
+      "obstacle_xy_m": [
+        -0.4188207847253057,
+        0.07864466416034913
+      ],
+      "target_xy_m": [
+        -0.31807171859027056,
+        -0.03507679907049296
+      ],
+      "initial_clearance_m": 0.2661406397819519,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 196,
+      "obstacle_xy_m": [
+        -0.1676224887588924,
+        -0.19850732160271234
+      ],
+      "target_xy_m": [
+        -0.24382005799432652,
+        -0.20724811053334904
+      ],
+      "initial_clearance_m": 0.0998123437166214,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 197,
+      "obstacle_xy_m": [
+        0.18627244257773332,
+        -0.3375729151948996
+      ],
+      "target_xy_m": [
+        -0.06913820387359913,
+        -0.3124418486136783
+      ],
+      "initial_clearance_m": 0.22555531561374664,
+      "rules_block": false,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 198,
+      "obstacle_xy_m": [
+        -0.15786458939636674,
+        -0.0390673920582678
+      ],
+      "target_xy_m": [
+        -0.2715829149965047,
+        -0.1692416032835936
+      ],
+      "initial_clearance_m": 0.002626841887831688,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": true,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    },
+    {
+      "case": 199,
+      "obstacle_xy_m": [
+        0.08989998763753668,
+        0.3295956615416221
+      ],
+      "target_xy_m": [
+        -0.20850757891863286,
+        0.2427438764078099
+      ],
+      "initial_clearance_m": 0.18163621425628662,
+      "rules_block": true,
+      "learned_block": true,
+      "shield_command": "stop",
+      "unshielded_collision": false,
+      "shielded_collision": false,
+      "unshielded_ack": "accepted",
+      "shielded_ack": "accepted",
+      "observations_simulated": true
+    }
+  ],
+  "claim_boundary": [
+    "PyBullet DIRECT is a third-party software physics execution, not Ferrum's deterministic transition generator.",
+    "The bridge hello has actuator_enabled=false and every observation is marked simulated.",
+    "This is not hardware-in-the-loop, physical robot deployment, real-time validation, certification, or independent assessment.",
+    "Collision counts characterize only this registered box-body scenario distribution."
+  ]
+}

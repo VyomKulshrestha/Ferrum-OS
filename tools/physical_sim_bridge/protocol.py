@@ -153,7 +153,9 @@ class BridgeHello:
             run_id=_integer(value["run_id"], "run_id", 1),
             simulator_epoch=_integer(value["simulator_epoch"], "simulator_epoch", 1),
             backend=_text(
-                value["backend"], "backend", {"scripted", "gazebo_ros2", "webots"}
+                value["backend"],
+                "backend",
+                {"scripted", "gazebo_ros2", "webots", "pybullet"},
             ),
             source_clock_id=_integer(value["source_clock_id"], "source_clock_id", 1),
             topology_sha256=_sha256(value["topology_sha256"], "topology_sha256"),

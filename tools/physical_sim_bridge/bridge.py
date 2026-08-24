@@ -1,4 +1,4 @@
-"""Backend-neutral bridge for scripted, Gazebo/ROS 2, Webots, and HIL sessions."""
+"""Backend-neutral bridge for scripted, physics-simulator, and HIL sessions."""
 
 from __future__ import annotations
 
@@ -81,6 +81,149 @@ class ActuatorDisabledBackend:
 
     def close(self) -> None:
         self.wrapped.close()
+
+
+class PyBulletBackend:
+    """Headless PyBullet DIRECT backend for independently executed simulation."""
+
+    def __init__(
+        self,
+        run_id: int,
+        simulator_epoch: int = 1,
+        source_clock_id: int = 1,
+    ) -> None:
+        try:
+            import pybullet
+        except ImportError as error:
+            raise BridgeError("PyBullet backend requires pybullet") from error
+        self._p = pybullet
+        self._client = pybullet.connect(pybullet.DIRECT)
+        if self._client < 0:
+            raise BridgeError("PyBullet DIRECT connection failed")
+        self.run_id = run_id
+        self.simulator_epoch = simulator_epoch
+        self.source_clock_id = source_clock_id
+        self._sequence = 0
+        self._tick = 0
+        self._queue: deque[BridgeObservation] = deque()
+        self._robot = -1
+        self._obstacle = -1
+        self.collision_detected = False
+        self.commands: list[BridgeCommand] = []
+        self.reset_scene((0.0, 0.0), (0.5, 0.0))
+
+    def reset_scene(
+        self,
+        robot_xy: tuple[float, float],
+        obstacle_xy: tuple[float, float],
+    ) -> None:
+        p = self._p
+        p.resetSimulation(physicsClientId=self._client)
+        p.setTimeStep(1.0 / 240.0, physicsClientId=self._client)
+        robot_shape = p.createCollisionShape(
+            p.GEOM_BOX, halfExtents=[0.08, 0.08, 0.08], physicsClientId=self._client
+        )
+        obstacle_shape = p.createCollisionShape(
+            p.GEOM_BOX, halfExtents=[0.08, 0.08, 0.08], physicsClientId=self._client
+        )
+        self._robot = p.createMultiBody(
+            baseMass=1.0,
+            baseCollisionShapeIndex=robot_shape,
+            basePosition=[robot_xy[0], robot_xy[1], 0.08],
+            physicsClientId=self._client,
+        )
+        self._obstacle = p.createMultiBody(
+            baseMass=0.0,
+            baseCollisionShapeIndex=obstacle_shape,
+            basePosition=[obstacle_xy[0], obstacle_xy[1], 0.08],
+            physicsClientId=self._client,
+        )
+        self.collision_detected = False
+        self._queue.clear()
+        self._emit_actor_observation()
+
+    def _emit_actor_observation(self) -> None:
+        position, _ = self._p.getBasePositionAndOrientation(
+            self._robot, physicsClientId=self._client
+        )
+        self._sequence += 1
+        self._queue.append(
+            BridgeObservation(
+                run_id=self.run_id,
+                simulator_epoch=self.simulator_epoch,
+                adapter_id=1,
+                endpoint_id=1,
+                session_epoch=1,
+                sequence=self._sequence,
+                observed_at_tick=self._tick,
+                source_clock_id=self.source_clock_id,
+                clock_uncertainty_ticks=0,
+                frame_id=self._sequence,
+                expires_at_tick=self._tick + 240,
+                evidence_class="simulated",
+                fault_manifest_id=0,
+                fault_code=0,
+                payload={
+                    "type": "actor",
+                    "actor_id": 1,
+                    "zone_id": 1,
+                    "x_mm": int(round(position[0] * 1000)),
+                    "y_mm": int(round(position[1] * 1000)),
+                    "z_mm": int(round(position[2] * 1000)),
+                    "battery_permille": 1000,
+                    "load_permille": 0,
+                    "state": "available",
+                },
+            )
+        )
+
+    def poll_observation(self) -> BridgeObservation | None:
+        return self._queue.popleft() if self._queue else None
+
+    def submit_command(self, command: BridgeCommand) -> dict[str, Any]:
+        self.commands.append(command)
+        if command.kind == "stop":
+            self._p.resetBaseVelocity(
+                self._robot, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], self._client
+            )
+        elif command.kind == "move_to":
+            position, _ = self._p.getBasePositionAndOrientation(
+                self._robot, physicsClientId=self._client
+            )
+            target = (command.arguments[0] / 1000.0, command.arguments[1] / 1000.0)
+            velocity = [target[0] - position[0], target[1] - position[1], 0.0]
+            self._p.resetBaseVelocity(
+                self._robot, linearVelocity=velocity, physicsClientId=self._client
+            )
+            for _ in range(240):
+                self._p.stepSimulation(physicsClientId=self._client)
+                self._tick += 1
+                if self._p.getContactPoints(
+                    self._robot, self._obstacle, physicsClientId=self._client
+                ):
+                    self.collision_detected = True
+            self._p.resetBaseVelocity(
+                self._robot, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], self._client
+            )
+        else:
+            return {
+                "command_id": command.command_id,
+                "executed": False,
+                "delivery_state": "uncertain",
+                "reason": "unsupported_pybullet_command",
+            }
+        self._emit_actor_observation()
+        return {
+            "command_id": command.command_id,
+            "executed": True,
+            "delivery_state": "accepted",
+            "reason": "pybullet_direct_simulation",
+        }
+
+    def close(self) -> None:
+        if self._client >= 0:
+            self._p.disconnect(self._client)
+            self._client = -1
 
 
 class GazeboRos2Backend:

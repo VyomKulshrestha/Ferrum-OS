@@ -9,6 +9,7 @@ from tools.physical_sim_bridge.bridge import (
     BridgePump,
     BridgeSession,
     GazeboRos2Backend,
+    PyBulletBackend,
     ScriptedBackend,
     WebotsBackend,
 )
@@ -179,6 +180,21 @@ class BridgeSessionTests(unittest.TestCase):
             WebotsBackend()
         except BridgeError as error:
             self.assertIn("Webots", str(error))
+
+    def test_pybullet_direct_executes_only_a_simulated_command(self) -> None:
+        backend = PyBulletBackend(run_id=7, simulator_epoch=3, source_clock_id=9)
+        session = BridgeSession(
+            BridgeHello(7, 3, "pybullet", 9, "ab" * 32, False), backend
+        )
+        try:
+            first = session.poll()
+            self.assertEqual(first.evidence_class, "simulated")
+            result = session.submit(command(), 20)
+            self.assertTrue(result["executed"])
+            self.assertEqual(result["reason"], "pybullet_direct_simulation")
+            self.assertIsNotNone(session.poll())
+        finally:
+            session.close()
 
     def test_transport_neutral_pump_uses_only_canonical_bytes(self) -> None:
         pump = BridgePump(BridgeSession(hello(), ScriptedBackend([observation()])))

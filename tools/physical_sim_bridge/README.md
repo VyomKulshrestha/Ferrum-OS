@@ -9,6 +9,7 @@ Supported software boundaries:
 - `ScriptedBackend` for deterministic tests and record/replay fixtures.
 - `GazeboRos2Backend` for canonical JSON envelopes carried on ROS 2 topics.
 - `WebotsBackend` for canonical envelopes carried by a Webots Receiver/Emitter.
+- `PyBulletBackend` for headless, independently executed PyBullet DIRECT runs.
 - `ActuatorDisabledBackend` for hardware-in-the-loop sessions that must record but
   cannot energize an actuator.
 - `BridgePump` as the transport-neutral canonical byte boundary for a vsock, TCP,
@@ -37,6 +38,11 @@ payloads.
 
 Webots requires its Python `controller` module and a world exposing Receiver
 `ferrum_rx` and Emitter `ferrum_tx` devices.
+
+PyBullet requires the research dependency pinned in `requirements-research.txt`.
+It executes only simulated bodies in a headless DIRECT client. A bridge hello for
+this backend keeps `actuator_enabled=false`; an accepted acknowledgement proves
+only that PyBullet executed the simulated command.
 
 These connectors complete the software contract and test boundary. They are not
 evidence of a live Gazebo/Webots installation, physical hardware, real-time behavior,
