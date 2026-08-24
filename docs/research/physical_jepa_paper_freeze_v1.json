@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "freeze_id": "learned-caution-deterministic-authority-v1.0",
+  "status": "frozen_submission_candidate",
+  "frozen_on": "2026-08-25",
+  "author": "Vyom Kulshrestha",
+  "mutation_policy": "Do not overwrite a frozen artifact. Any manuscript or evidence change must produce a new version and freeze record.",
+  "artifacts": {
+    "manuscript": {
+      "path": "docs/research/paper/learned_caution_deterministic_authority.md",
+      "sha256": "5e6314bfd81c6551eef3ebe96aac715ce186644d99835eeff05e41eb86760cb6"
+    },
+    "pdf": {
+      "path": "docs/research/paper/learned_caution_deterministic_authority_v1.0.pdf",
+      "sha256": "0a2869e4d89189808a5a947ca00bf29c171d763cbd59c101d962760f24a0cbc2"
+    },
+    "paper_protocol": {
+      "path": "docs/research/physical_jepa_paper_protocol_v1.json",
+      "sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd"
+    },
+    "paper_results": {
+      "path": "docs/research/physical_jepa_paper_results_v1.json",
+      "sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7"
+    },
+    "ablation_table": {
+      "path": "docs/research/physical_jepa_paper_ablation_v1.csv",
+      "sha256": "4bf797b80b7f4a667dc3d0d926d54d493ef484f85bb48169baa95ac32122b7e8"
+    },
+    "blinded_benchmark_result": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v2_result.json",
+      "sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69"
+    },
+    "blinded_benchmark_verification": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v2_verification.json",
+      "sha256": "56db574eaaa8228684e23b5607826ed697f10466fe468dec6d7797ccab83b694"
+    },
+    "v5_protocol": {
+      "path": "docs/research/physical_jepa_v5_protocol.json",
+      "sha256": "68f93d8b94bc6ce0881601729e734a986881eac267d1cee64fbf2eca9a951378"
+    },
+    "v5_selection": {
+      "path": "docs/research/physical_jepa_v5_selection.json",
+      "sha256": "d3bf2f482424a852a65cae09ba4c076fd72d0f719986986cd8ad2a2c90248c8f"
+    },
+    "v5_selection_verification": {
+      "path": "docs/research/physical_jepa_v5_selection_verification.json",
+      "sha256": "5eb5cb8e4cd0f060b5ab96cbd7a48f6524b176594a3aead3f2718a490799ea92"
+    },
+    "v5_final_test": {
+      "path": "docs/research/physical_jepa_v5_final_test.json",
+      "sha256": "721a99e98029ac17fd615d55f5fd6c9ca4bfc8afa8544800efd40aa41089431d"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "pybullet_wilson_95_percent": {
+    "method": "Wilson score interval without continuity correction",
+    "z": 1.959963984540054,
+    "trials": 512,
+    "completion": {
+      "successes": 429,
+      "estimate": 0.837890625,
+      "lower": 0.8034705415897391,
+      "upper": 0.8672781818475316
+    },
+    "intervention": {
+      "successes": 83,
+      "estimate": 0.162109375,
+      "lower": 0.1327218181524684,
+      "upper": 0.19652945841026095
+    },
+    "shielded_collision": {
+      "successes": 0,
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.007446975722882739
+    }
+  },
+  "claim_boundary": "This freeze binds locally executed simulated evidence with physical actuator authority disabled. It is not HIL, physical deployment, certification, independent execution, or independent assessment."
+}
