@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-sealed-pybullet-utility-v2",
+  "checks": {
+    "protocol_registered_before_v2_artifacts": true,
+    "v1_failure_known_and_retained": true,
+    "base_runner_is_frozen": true,
+    "commitment_binds_protocol_and_catalog": true,
+    "catalog_binds_protocol": true,
+    "catalog_precedes_selection_and_withholds_cases": true,
+    "selector_has_no_catalog_reference": true,
+    "selection_binds_commitment": true,
+    "selection_binds_current_sources": true,
+    "result_binds_full_lineage": true,
+    "single_final_open_without_retuning": true,
+    "registered_episode_and_family_counts": true,
+    "summary_counts_recompute": true,
+    "summary_rates_recompute": true,
+    "controller_budget_and_completion_are_exact": true,
+    "all_sealed_gates_pass": true,
+    "simulator_boundary_is_explicit": true,
+    "all_bridge_evidence_is_simulated_and_accepted": true,
+    "deployment_unchanged": true,
+    "deployed_and_evaluated_artifacts_match_registration": true,
+    "claim_boundary_rejects_hil_and_physical_deployment": true
+  },
+  "all_checks_pass": true,
+  "artifacts": {
+    "protocol_sha256": "9dbbaf5b8c9cab35970a7d8cbd1fa49031062be7b0497e74789483e50ac7f609",
+    "catalog_sha256": "a76ebda4df646233d471d6750a81f659cc9220b348b3466351c5311cc6a2aa21",
+    "commitment_sha256": "b380341c780ae15c5eed33e38f0ff03c6c6f862ea4ffe885a7cd5779740c1136",
+    "selection_sha256": "5d97bd30cbffe5ff793bcb3fffddd2481c5f7e4adeda2872fca624c4698e533c",
+    "result_sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69",
+    "runner_sha256": "eca4882203df654dddad46632913094bada3b8254410b061e5a0a1eb63a5df9a",
+    "base_runner_sha256": "d3ca671646cef3bd0cd2e952f6e456983743abec9bf1d2efca2b03c4a808c9c0",
+    "v1_negative_result_sha256": "0e618215143a1dd6ebe8721e3bcf7b9de1b47e4e98d64b67c6bb99c66de55fe4",
+    "deployed_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "primary_metrics": {
+    "task_completion_rate": 0.837890625,
+    "intervention_rate": 0.162109375,
+    "unshielded_collisions": 79,
+    "shielded_collisions": 0,
+    "collision_reduction": 1.0
+  },
+  "claim_boundary": "Locally executed, selection-blinded PyBullet evidence with a retained failed v1 run; not independent, HIL, physical deployment, or certification evidence."
+}

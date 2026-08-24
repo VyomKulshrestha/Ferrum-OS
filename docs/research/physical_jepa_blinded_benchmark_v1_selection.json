@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-sealed-pybullet-utility-v1",
+  "protocol_sha256": "7630a743a1d0cbeb91f20298b3df366465ed5ea692189016c6e69d23ec758486",
+  "commitment_sha256": "93ccfbbb8988ccada8c2fad7af3d47dd35b11ac7437c7d055699cfda059cf832",
+  "committed_catalog_sha256": "98499b6ee6f443f20305c8e07ae95bd4c719d73c348fbe8d7552900e77c21b40",
+  "selector_sha256": "d3ca671646cef3bd0cd2e952f6e456983743abec9bf1d2efca2b03c4a808c9c0",
+  "blind_catalog_opened": false,
+  "blind_seed_seen": false,
+  "candidate_count": 187,
+  "passing_candidate_count": 89,
+  "selected_policy": {
+    "deterministic_buffer_m": 0.0,
+    "learned_relevance_envelope_m": 0.001,
+    "learned_margin_threshold": 0.0
+  },
+  "development_metrics": {
+    "episodes": 384,
+    "task_completions": 320,
+    "task_completion_rate": 0.8333333333333334,
+    "interventions": 64,
+    "intervention_rate": 0.16666666666666666,
+    "unshielded_collisions": 57,
+    "shielded_collisions": 0,
+    "collision_reduction": 1.0,
+    "learned_collision_recall": 0.9473684210526315,
+    "incremental_learned_interventions": 4,
+    "analytic_family_counts": {
+      "collision_course": 60,
+      "boundary_safe": 96,
+      "near_safe": 96,
+      "clear_safe": 132
+    },
+    "pybullet_collision_family_counts": {
+      "collision_course": 57,
+      "boundary_safe": 0,
+      "near_safe": 0,
+      "clear_safe": 0
+    }
+  },
+  "selection_order": [
+    "pass every development gate",
+    "maximize learned recall on collision counterfactuals",
+    "minimize intervention rate",
+    "maximize task completion rate",
+    "minimize deterministic buffer",
+    "minimize learned relevance envelope",
+    "maximize learned threshold"
+  ]
+}

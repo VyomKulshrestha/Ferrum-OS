@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-sealed-pybullet-utility-v1",
+  "protocol_sha256": "7630a743a1d0cbeb91f20298b3df366465ed5ea692189016c6e69d23ec758486",
+  "catalog_path": "docs/research/physical_jepa_blinded_benchmark_v1_catalog.json",
+  "catalog_sha256": "98499b6ee6f443f20305c8e07ae95bd4c719d73c348fbe8d7552900e77c21b40",
+  "episodes": 512,
+  "seed_withheld_from_selector": true,
+  "cases_withheld_from_selector": true,
+  "generated_before_policy_selection": true
+}

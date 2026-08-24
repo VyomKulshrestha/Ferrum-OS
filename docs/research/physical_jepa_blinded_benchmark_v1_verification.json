@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-sealed-pybullet-utility-v1",
+  "checks": {
+    "protocol_was_registered_before_artifacts": true,
+    "commitment_binds_protocol": true,
+    "commitment_binds_catalog": true,
+    "catalog_binds_protocol": true,
+    "catalog_was_committed_before_selection": true,
+    "seed_and_cases_withheld_from_selector": true,
+    "selector_has_no_catalog_reference": true,
+    "selection_binds_commitment": true,
+    "selection_binds_current_source": true,
+    "result_binds_full_lineage": true,
+    "single_final_open_without_retuning": true,
+    "registered_episode_count": true,
+    "family_counts_match_protocol": true,
+    "summary_counts_recompute": true,
+    "summary_rates_recompute": true,
+    "sealed_gate_outcome_is_consistent": true,
+    "failed_completion_gate_is_preserved": true,
+    "simulator_boundary_is_explicit": true,
+    "all_bridge_evidence_is_simulated": true,
+    "all_acknowledgements_accepted": true,
+    "deployment_unchanged": true,
+    "deployed_and_evaluated_artifacts_match_registration": true,
+    "claim_boundary_rejects_hil_and_physical_deployment": true
+  },
+  "all_checks_pass": true,
+  "artifacts": {
+    "protocol_sha256": "7630a743a1d0cbeb91f20298b3df366465ed5ea692189016c6e69d23ec758486",
+    "catalog_sha256": "98499b6ee6f443f20305c8e07ae95bd4c719d73c348fbe8d7552900e77c21b40",
+    "commitment_sha256": "93ccfbbb8988ccada8c2fad7af3d47dd35b11ac7437c7d055699cfda059cf832",
+    "selection_sha256": "c452cbc2f29ed76fd1e0af2dbfabb8791b93bd1c929e74543ff7c342b76acf87",
+    "result_sha256": "0e618215143a1dd6ebe8721e3bcf7b9de1b47e4e98d64b67c6bb99c66de55fe4",
+    "runner_sha256": "d3ca671646cef3bd0cd2e952f6e456983743abec9bf1d2efca2b03c4a808c9c0",
+    "deployed_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "primary_metrics": {
+    "task_completion_rate": 0.275390625,
+    "intervention_rate": 0.162109375,
+    "unshielded_collisions": 77,
+    "shielded_collisions": 0,
+    "collision_reduction": 1.0
+  },
+  "claim_boundary": "Prospective selection-blinded, locally executed PyBullet evidence only; not independent, HIL, physical deployment, or certification evidence."
+}

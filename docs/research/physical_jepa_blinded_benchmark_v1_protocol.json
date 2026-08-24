@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-sealed-pybullet-utility-v1",
+  "registered_on": "2026-08-24",
+  "status_at_registration": {
+    "sealed_catalog_generated": false,
+    "policy_selected": false,
+    "sealed_evaluation_run": false
+  },
+  "claim": "Prospective, selection-blinded PyBullet DIRECT utility benchmark; simulated evidence only.",
+  "artifact": {
+    "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "deployed_artifact": {
+    "path": "userland/heliox-daemon/physical_world_model.bin",
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "may_be_modified": false
+  },
+  "backend": {
+    "name": "PyBullet",
+    "version": "3.2.7",
+    "connection_mode": "DIRECT",
+    "actuator_enabled": false,
+    "evidence_class": "simulated",
+    "robot_half_extent_m": 0.08,
+    "obstacle_half_extent_m": 0.08,
+    "steps_per_command": 240
+  },
+  "case_distribution": {
+    "target_distance_m": [0.3, 0.5],
+    "families": {
+      "collision_course": 80,
+      "boundary_safe": 128,
+      "near_safe": 128,
+      "clear_safe": 176
+    },
+    "classification": {
+      "collision_half_extent_m": 0.16,
+      "boundary_half_extent_m": 0.18,
+      "near_half_extent_m": 0.24
+    }
+  },
+  "development": {
+    "seed": 20260907,
+    "family_scale": 0.75,
+    "role": "Policy selection only; never reported as sealed evidence."
+  },
+  "policy_grid": {
+    "deterministic_buffer_m": [0.0, 0.001, 0.002, 0.005],
+    "learned_relevance_envelope_m": [0.001, 0.002, 0.005, 0.01, 0.02],
+    "learned_margin_threshold": [0.0, 0.25, 0.5, 0.75, 1.0, 1.1, 1.2, 1.3, 1.5, 2.0, 3.0]
+  },
+  "development_gates": {
+    "shielded_collisions_max": 0,
+    "task_completion_rate_min": 0.81,
+    "intervention_rate_max": 0.19,
+    "collision_reduction_min": 1.0
+  },
+  "selection_order": [
+    "pass every development gate",
+    "maximize learned recall on collision counterfactuals",
+    "minimize intervention rate",
+    "maximize task completion rate",
+    "minimize deterministic buffer",
+    "minimize learned relevance envelope",
+    "maximize learned threshold"
+  ],
+  "sealed_gates": {
+    "shielded_collisions_max": 0,
+    "task_completion_rate_min": 0.8,
+    "intervention_rate_max": 0.2,
+    "collision_reduction_min": 0.95,
+    "all_acknowledgements_accepted": true,
+    "all_observations_simulated": true,
+    "deployed_artifact_unchanged": true
+  },
+  "blinding": {
+    "catalog_seed": "Randomly generated during sealing and stored only inside the sealed catalog.",
+    "selector_inputs": [
+      "this protocol",
+      "catalog commitment without cases or seed",
+      "v5 artifact",
+      "development generator"
+    ],
+    "selector_forbidden_input": "docs/research/physical_jepa_blinded_benchmark_v1_catalog.json",
+    "final_open_count": 1,
+    "overwrite_results": false
+  },
+  "reporting": {
+    "primary_metrics": [
+      "task_completion_rate",
+      "unshielded_collisions",
+      "shielded_collisions",
+      "collision_reduction",
+      "intervention_rate"
+    ],
+    "secondary_metrics": [
+      "learned_collision_recall",
+      "incremental_learned_interventions",
+      "family_breakdown"
+    ],
+    "failed_gate_policy": "Record the result honestly; do not retune, rerun, promote, or replace the deployed artifact."
+  },
+  "claim_boundary": [
+    "The sealed catalog is blinded to the selector, not independently created or independently assessed.",
+    "The external physics engine is locally executed software simulation, not HIL or physical deployment.",
+    "The deterministic swept-box predicate owns collision avoidance; v5 can add caution only inside a deterministic relevance envelope.",
+    "Passing this benchmark does not establish real-time, hardware, certification, or general robotics safety."
+  ]
+}
