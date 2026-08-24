@@ -279,7 +279,15 @@ def parse(source: Path, document_width: float):
             story.append(Paragraph(inline(line[2:]), style["quote"]))
             index += 1
             continue
-        if line.startswith("Anonymous authors") or line.startswith("Draft v"):
+        if line.startswith(
+            (
+                "Anonymous authors",
+                "Vyom Kulshrestha",
+                "Independent Researcher,",
+                "github.com/VyomKulshrestha/",
+                "Draft v",
+            )
+        ):
             story.append(Paragraph(inline(line), style["author"]))
             if line.startswith("Draft v"):
                 story.append(Spacer(1, 10))
@@ -334,7 +342,7 @@ def main() -> None:
         topMargin=0.76 * inch,
         bottomMargin=0.62 * inch,
         title="Learned Caution, Deterministic Authority",
-        author="Anonymous authors",
+        author="Vyom Kulshrestha",
         subject="Calibration-first runtime boundary for action-conditioned latent world models",
     )
     story = parse(args.source, document.width)

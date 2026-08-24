@@ -17,7 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_paper_protocol_v1.json"
 RESULTS = ROOT / "docs" / "research" / "physical_jepa_paper_results_v1.json"
 TABLE = ROOT / "docs" / "research" / "physical_jepa_paper_ablation_v1.csv"
-INTEGRATION = ROOT / "docs" / "research" / "physical_jepa_pybullet_integration_v1.json"
+BLINDED_PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v2_protocol.json"
+BLINDED_V1 = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v1_result.json"
+BLINDED_V2 = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v2_result.json"
+BLINDED_V2_VERIFICATION = ROOT / "docs" / "research" / "physical_jepa_blinded_benchmark_v2_verification.json"
 SOURCE = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority.md"
 PDF = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority_v0.1.pdf"
 DEPLOYED = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
@@ -34,7 +37,14 @@ def main() -> int:
     args = parser.parse_args()
     protocol = json.loads(PROTOCOL.read_text(encoding="utf-8"))
     results = json.loads(RESULTS.read_text(encoding="utf-8"))
-    integration = json.loads(INTEGRATION.read_text(encoding="utf-8"))
+    blinded_protocol = json.loads(BLINDED_PROTOCOL.read_text(encoding="utf-8"))
+    blinded_v1 = json.loads(BLINDED_V1.read_text(encoding="utf-8"))
+    integration = json.loads(BLINDED_V2.read_text(encoding="utf-8"))
+    blinded_verification = json.loads(
+        BLINDED_V2_VERIFICATION.read_text(encoding="utf-8")
+    )
+    manuscript = SOURCE.read_text(encoding="utf-8")
+    pdf = PdfReader(str(PDF))
     expected_methods = {
         "rules_only",
         "ordinary_supervised_mlp",
@@ -52,8 +62,8 @@ def main() -> int:
         ]
         == "not_run",
         "result_binds_exact_protocol": results["protocol_sha256"] == sha256(PROTOCOL),
-        "integration_binds_exact_protocol": integration["protocol_sha256"]
-        == sha256(PROTOCOL),
+        "blinded_v2_binds_exact_protocol": integration["protocol_sha256"]
+        == sha256(BLINDED_PROTOCOL),
         "all_artifact_digests_match": all(
             sha256(ROOT / spec["path"]) == spec["sha256"]
             for spec in protocol["artifacts"].values()
@@ -110,26 +120,46 @@ def main() -> int:
         == "DIRECT"
         and integration["backend"]["evidence_class"] == "simulated"
         and not integration["backend"]["actuator_enabled"],
-        "pybullet_episode_count_is_registered": integration["episodes"]
-        == protocol["simulator_integration"]["episodes"],
+        "pybullet_episode_count_is_registered": integration["summary"]["episodes"]
+        == sum(blinded_protocol["case_distribution"]["families"].values()),
         "all_bridge_evidence_is_simulated": integration["summary"][
-            "all_observations_marked_simulated"
+            "all_observations_simulated"
         ],
         "all_simulator_acks_are_accepted": integration["summary"][
-            "all_acknowledgements_accepted_by_simulator"
+            "all_acknowledgements_accepted"
         ],
-        "integration_records_excessive_conservatism": integration["summary"][
-            "blocked_commands"
+        "failed_v1_is_retained": not blinded_v1["all_sealed_gates_pass"]
+        and not blinded_v1["sealed_gates"]["task_completion_rate"],
+        "blinded_v2_passes_every_frozen_gate": integration["all_sealed_gates_pass"]
+        and all(integration["sealed_gates"].values())
+        and blinded_verification["all_checks_pass"],
+        "blinded_v2_has_high_completion_and_low_intervention": integration["summary"][
+            "task_completion_rate"
         ]
-        == 192,
+        >= 0.8
+        and integration["summary"]["intervention_rate"] <= 0.2,
+        "blinded_v2_preserves_collision_avoidance": integration["summary"][
+            "shielded_collisions"
+        ]
+        == 0
+        and integration["summary"]["unshielded_collisions"] > 0,
         "deployment_digest_unchanged_by_integration": integration[
             "deployment_integrity"
         ]["unchanged"],
         "deployed_digest_matches_registered_v5": sha256(DEPLOYED)
         == protocol["artifacts"]["v5"]["sha256"],
         "manuscript_contains_claim_boundary": "not a robotics-deployment or safety-guarantee claim"
-        in SOURCE.read_text(encoding="utf-8"),
-        "paper_pdf_has_eight_pages": len(PdfReader(str(PDF)).pages) == 8,
+        in manuscript,
+        "submission_identity_is_present": all(
+            value in manuscript
+            for value in (
+                "Vyom Kulshrestha",
+                "Independent Researcher, India",
+                "vyomkulshrestha2004@gmail.com",
+            )
+        )
+        and pdf.metadata.author == "Vyom Kulshrestha",
+        "paper_pdf_is_submission_length": 8 <= len(pdf.pages) <= 9,
     }
     evidence = {
         "schema_version": 1,
@@ -140,7 +170,10 @@ def main() -> int:
             "protocol_sha256": sha256(PROTOCOL),
             "results_sha256": sha256(RESULTS),
             "table_sha256": sha256(TABLE),
-            "integration_sha256": sha256(INTEGRATION),
+            "blinded_protocol_sha256": sha256(BLINDED_PROTOCOL),
+            "blinded_v1_sha256": sha256(BLINDED_V1),
+            "blinded_v2_sha256": sha256(BLINDED_V2),
+            "blinded_v2_verification_sha256": sha256(BLINDED_V2_VERIFICATION),
             "manuscript_sha256": sha256(SOURCE),
             "pdf_sha256": sha256(PDF),
             "deployed_artifact_sha256": sha256(DEPLOYED),

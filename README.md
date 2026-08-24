@@ -330,10 +330,11 @@ real-hardware or certified industrial deployment.
   in [the physical-deployment qualification report](docs/research/PHYSICAL_DEPLOYMENT_QUALIFICATION.md).
 - A transport-neutral host bridge implements deterministic scripted tests,
   headless PyBullet DIRECT execution, plus optional Gazebo/ROS 2 and Webots
-  connectors. The registered 200-case PyBullet run blocks 192 commands and
-  produces 0 operational collisions against 118 paired unshielded collisions.
-  Its 96% stop rate is explicitly excessive conservatism, not robotics
-  deployment evidence. ROS 2, MQTT, and CAN conformance
+  connectors. A selection-blinded 512-case benchmark retains a failed v1 run,
+  then passes every controller-amended v2 gate with 83.79% task completion,
+  16.21% intervention, and 0 shielded collisions against 79 paired unshielded
+  collisions. This remains local simulation, not robotics deployment evidence.
+  ROS 2, MQTT, and CAN conformance
   rules cover bounded QoS, mTLS/ACL, expiry, retained-message rejection,
   CRC/counter checks, bus-off, replay, and common-state semantics.
 - Watchdogs, stop-priority queues, bounded resources/rates, recovery latches,
@@ -356,6 +357,8 @@ python scripts/verify_physical_hai_v2_evidence.py
 python scripts/verify_physical_deployment_qualification.py
 python scripts/evaluate_physical_jepa_paper.py
 python scripts/run_physical_jepa_pybullet_integration.py
+python scripts/verify_physical_jepa_blinded_benchmark.py
+python scripts/verify_physical_jepa_blinded_benchmark_v2.py
 python scripts/verify_physical_jepa_paper.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc

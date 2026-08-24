@@ -4,7 +4,7 @@
   "checks": {
     "protocol_registered_as_posthoc_before_analysis": true,
     "result_binds_exact_protocol": true,
-    "integration_binds_exact_protocol": true,
+    "blinded_v2_binds_exact_protocol": true,
     "all_artifact_digests_match": true,
     "six_registered_methods_present": true,
     "csv_matches_registered_methods": true,
@@ -18,20 +18,27 @@
     "pybullet_episode_count_is_registered": true,
     "all_bridge_evidence_is_simulated": true,
     "all_simulator_acks_are_accepted": true,
-    "integration_records_excessive_conservatism": true,
+    "failed_v1_is_retained": true,
+    "blinded_v2_passes_every_frozen_gate": true,
+    "blinded_v2_has_high_completion_and_low_intervention": true,
+    "blinded_v2_preserves_collision_avoidance": true,
     "deployment_digest_unchanged_by_integration": true,
     "deployed_digest_matches_registered_v5": true,
     "manuscript_contains_claim_boundary": true,
-    "paper_pdf_has_eight_pages": true
+    "submission_identity_is_present": true,
+    "paper_pdf_is_submission_length": true
   },
   "all_checks_pass": true,
   "artifacts": {
     "protocol_sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd",
     "results_sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7",
     "table_sha256": "4bf797b80b7f4a667dc3d0d926d54d493ef484f85bb48169baa95ac32122b7e8",
-    "integration_sha256": "f5aee8fe0de23a9b0857c93b16acc02456a4370c620f775fcf3af7126f550445",
-    "manuscript_sha256": "18ba3834d6bc7fb93056efe9be57175fff6d2d0c7d0768ed49fd4527c5f9d203",
-    "pdf_sha256": "b47c51eb20eaa66d8f61ce62864c3c6154af6eeb58b0fb7675b6c6f4a018ed32",
+    "blinded_protocol_sha256": "9dbbaf5b8c9cab35970a7d8cbd1fa49031062be7b0497e74789483e50ac7f609",
+    "blinded_v1_sha256": "0e618215143a1dd6ebe8721e3bcf7b9de1b47e4e98d64b67c6bb99c66de55fe4",
+    "blinded_v2_sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69",
+    "blinded_v2_verification_sha256": "56db574eaaa8228684e23b5607826ed697f10466fe468dec6d7797ccab83b694",
+    "manuscript_sha256": "bde37dab64ec1b067f0b9d8d4cf8d3f2a545a23b910df91d75ba72746c22d1a2",
+    "pdf_sha256": "4d1bbd2552becc712a7f86faaffa4eed698bac7646fcf066ab1e7075af055d4f",
     "deployed_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
   },
   "claim_boundary": "Verification covers deterministic reproduction, document integrity, and simulated bridge evidence only; it is not HIL, physical deployment, certification, or independent assessment."

@@ -2,13 +2,17 @@
 
 ## A Calibration-First Runtime Boundary for Action-Conditioned Latent World Models in Cyber-Physical Systems
 
-Anonymous authors
+Vyom Kulshrestha
+
+Independent Researcher, India
+
+github.com/VyomKulshrestha/Ferrum-OS | vyomkulshrestha2004@gmail.com
 
 Draft v0.1 - 24 August 2026
 
 ### Abstract
 
-Learned world models can predict unsafe consequences before an action executes, but prediction quality is not authority. This paper presents a small action-conditioned joint-embedding predictive architecture (JEPA) integrated as a caution-only component in a cyber-physical runtime: the learned model may reject or escalate an action, while deterministic rules, confirmation provenance, replay protection, deadlines, and a digest-bound command bridge retain all authority to permit delivery. The empirical study preserves a complete model lineage, including a failed v4 checkpoint, and uses a validation-only v5 selection over 30 candidates followed by one frozen final evaluation. On 20,480 source-informed deterministic-simulator transitions from eight held-out incident families, v5 reduces normalized H=3 rollout error from 0.007515 to 0.003560 and the geometric H1/H3/H5 error ratio to 0.4842. At a false-positive operating point selected on a separate validation partition, learned-only v5 records 5 false negatives and 14 false positives on the final set, with ECE 0.000443 and Brier score 0.000827. A fixed-rules-plus-v5 union reduces rules-only false negatives from 46 to 18 without increasing its final false-positive count of 35, but is less sensitive than learned-only v5 at this constrained operating point. Finally, a PyBullet 3.2.7 DIRECT bridge executes 200 paired software-simulation cases with physical actuation disabled: the operational union blocks 192 cases, avoids all 118 paired collision counterfactuals, and permits eight non-colliding moves. That intervention rate is evidence of excessive conservatism, not deployment readiness. The contribution is therefore a reproducible safety-runtime and systems result, not a robotics-deployment or safety-guarantee claim.
+Learned world models can predict unsafe consequences before an action executes, but prediction quality is not authority. This paper presents a small action-conditioned joint-embedding predictive architecture (JEPA) integrated as a caution-only component in a cyber-physical runtime: the learned model may reject or escalate an action, while deterministic rules, confirmation provenance, replay protection, deadlines, and a digest-bound command bridge retain all authority to permit delivery. The empirical study preserves a complete model lineage, including a failed v4 checkpoint, and uses a validation-only v5 selection over 30 candidates followed by one frozen final evaluation. On 20,480 source-informed deterministic-simulator transitions from eight held-out incident families, v5 reduces normalized H=3 rollout error from 0.007515 to 0.003560 and the geometric H1/H3/H5 error ratio to 0.4842. At a false-positive operating point selected on a separate validation partition, learned-only v5 records 5 false negatives and 14 false positives on the final set, with ECE 0.000443 and Brier score 0.000827. A fixed-rules-plus-v5 union reduces rules-only false negatives from 46 to 18 without increasing its final false-positive count of 35. A new selection-blinded 512-case PyBullet DIRECT benchmark then records 429 completed tasks (83.79%), 83 interventions (16.21%), 79 unshielded collisions, and zero shielded collisions. A preregistered first attempt that failed completion is retained; the passing run changes only a two-cycle command budget. The contribution is a reproducible safety-runtime and systems result, not a robotics-deployment or safety-guarantee claim.
 
 ### 1. Introduction
 
@@ -85,9 +89,9 @@ Each model produces a signed violation margin: the maximum normalized margin ove
 
 Rules-only FPR on that partition, 0.003954, is the reference operating point. For every learned-only method we select the probability threshold whose validation FPR is closest to this reference, breaking ties by lower FNR and then the higher threshold. Rules+v5 keeps the deterministic rules fixed and selects only the v5 threshold; the union therefore cannot erase a rules decision. Final FPR is allowed to move under distribution shift and is reported without retuning.
 
-#### 4.4 PyBullet integration
+#### 4.4 Selection-blinded PyBullet benchmark
 
-The PyBullet protocol fixes version 3.2.7, DIRECT mode, 200 episodes, and seed 20260824. A dynamic box body receives routed `move_to` or `stop` commands while a static box acts as an obstacle. Initial obstacle positions are sampled relative to a 0.32 m move. Each episode is paired: an unshielded session executes the move, while a second session executes the operational rules+v5 decision. Both traverse the same canonical bridge. The scenario is deliberately small; it tests integration and authority plumbing, not robotics competence.
+A prospective protocol commits a 512-case catalog by SHA-256 before policy selection; the selector receives the commitment but neither cases nor random seed. Four fixed families cover collision courses, boundary-safe paths, near-safe paths, and clear paths. Each case is paired through PyBullet 3.2.7 DIRECT: an unshielded session moves, while a shielded session executes `stop` or `move_to`. The frozen gate requires at least 80% task completion, at most 20% intervention, at least 95% collision reduction, zero shielded collisions, simulated evidence, accepted bridge acknowledgements, and an unchanged deployed digest. v1 retained zero collisions and 16.21% intervention but failed completion because one open-loop command undershot many targets. Before a new catalog was sealed, v2 amended only the fixed command budget from one to two cycles; policy thresholds were selected again on development cases and never retuned after the final open.
 
 ### 5. Results
 
@@ -140,20 +144,19 @@ Figure 1. Held-out equal-mass reliability curves and FPR/FNR sensitivity. Thresh
 
 Figure 2. Validation-matched operating points transferred to the v5 final partition. Final FPR differs because the source-family distribution changes.
 
-#### 5.4 PyBullet bridge execution
+#### 5.4 Selection-blinded PyBullet utility
 
-| Quantity | Count |
-|---|---:|
-| Paired episodes | 200 |
-| Operational stops | 192 |
-| Operational moves | 8 |
-| Unshielded collisions | 118 |
-| Operational collisions | 0 |
-| Blocked cases with a paired collision counterfactual | 118 |
-| Simulator acknowledgements accepted | 400/400 |
-| Observation envelopes marked simulated | 800/800 |
+| Quantity | Sealed v1 | Sealed v2 |
+|---|---:|---:|
+| Paired episodes | 512 | 512 |
+| Task completions | 141 (27.54%) | 429 (83.79%) |
+| Interventions | 83 (16.21%) | 83 (16.21%) |
+| Unshielded collisions | 77 | 79 |
+| Shielded collisions | 0 | 0 |
+| Collision reduction | 100% | 100% |
+| Frozen gates passed | No | Yes |
 
-The integration meets its narrow purpose: a third-party physics engine executes commands routed through the canonical boundary; v5 has no route around deterministic checks; all evidence is typed as simulated; and the deployed artifact digest is identical before and after the run. The 96% stop rate is the dominant finding. Zero collisions under a policy that almost always stops is not a meaningful robotics achievement. The experiment demonstrates wiring and fail-closed authority, while exposing the threshold and scenario-design work required before a deployment claim.
+v2 materially changes the utility result relative to the original 96%-stop integration: 429 targets complete while every paired unshielded collision is avoided. The learned alert agrees with 94.94% of v2 collision counterfactuals and adds three interventions beyond the deterministic swept-box predicate. Collision avoidance is therefore credited to the deterministic path rule, not to v5. The v1 failure remains informative: command acceptance was not equivalent to task completion, and a controller-budget amendment required a new sealed catalog rather than post-hoc relabeling. Both runs remain local software simulation with no actuator authority.
 
 ### 6. Discussion
 
@@ -173,11 +176,11 @@ The closest recent work already combines calibrated learned risk with determinis
 
 First, all main-model transitions and danger labels come from a deterministic simulator. Incident reports influence only initial-state priors. The study does not replay or reconstruct the cited facilities.
 
-Second, the paper calibration protocol is post-hoc. Although thresholds use a separate validation partition and are not tuned on the final set, the existence and aggregate results of the final set were known before the paper analysis was registered. A new blinded benchmark is needed for a stronger submission.
+Second, the paper calibration protocol remains post-hoc. Although thresholds use a separate validation partition and are not tuned on the final set, the existence and aggregate results of the main-model final set were known before the paper analysis was registered. The new blinded simulator benchmark strengthens task-utility evidence but does not retroactively blind that model result.
 
 Third, Platt scaling assumes a stable monotone relationship between violation margin and danger probability. The very low ECE values may partly reflect deterministic labels and limited simulator diversity. Calibration should be repeated under simulator, sensor, and embodiment shift, with confidence intervals.
 
-Fourth, the PyBullet environment is a two-body planar box scenario. It is locally executed through an external physics package but not independently designed or assessed by another group. It is not HIL. The 96% intervention rate shows excessive conservatism and prevents any claim of useful closed-loop task performance.
+Fourth, the PyBullet environment remains a two-body planar box scenario, locally executed and not independently designed or assessed. The v2 utility gain depends on a swept-box predicate and two-cycle controller, and its 16.21% intervention rate is distribution-specific. It is not HIL and does not establish robotics competence.
 
 Fifth, the deterministic rules are engineering predicates, not formally verified invariant sets. The runtime authority boundary has extensive unit and no_std tests, but the paper does not prove continuous-time safety.
 
@@ -185,19 +188,19 @@ Finally, physical timing, sensor latency, actuator saturation, calibration drift
 
 ### 8. Reproducibility and Artifact Integrity
 
-The repository records the v5 selection protocol, selector, verifier, selected artifact, single final result, post-hoc paper protocol, ablation/calibration evaluator, figures, PyBullet backend, bridge tests, integration cases, and this manuscript. Every model input to the paper table is identified by SHA-256. The ordinary MLP is reproducible to its historical digest. The v5 artifact digest is `23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864`. The PyBullet run records the same digest before and after and makes no deployment write.
+The repository records the v5 selection protocol, selector, verifier, selected artifact, single final result, post-hoc paper protocol, ablation/calibration evaluator, figures, PyBullet backend, bridge tests, both sealed benchmark attempts, and this manuscript. Every model input to the paper table is identified by SHA-256. The ordinary MLP is reproducible to its historical digest. The v5 artifact digest is `23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864`. Both PyBullet runs record the same deployed digest before and after and make no deployment write.
 
 Reproduction has three layers:
 
 1. Run the validation-only v5 selector and its verifier without opening the final catalog.
 2. Run `scripts/evaluate_physical_jepa_paper.py` to reproduce the post-hoc table and calibration figures from frozen artifacts.
-3. Install `requirements-research.txt`, run the bridge unit tests, then run `scripts/run_physical_jepa_pybullet_integration.py` for the paired DIRECT cases.
+3. Install `requirements-research.txt`, run the bridge tests, then verify the retained v1 failure and passing v2 sealed benchmark; final artifacts refuse overwrite.
 
 The paper result is deliberately not a promotion gate. Failed paper analyses must remain reportable without changing the deployed binary.
 
 ### 9. Conclusion
 
-This study supports a constrained claim: a compact action-conditioned latent model can improve predictive caution inside a cyber-physical runtime while deterministic software retains command authority. v5 materially improves frozen simulator rollout error, leads the matched-FPR learned baselines on final FNR and calibration, and integrates through a typed PyBullet bridge without mutating the deployed artifact. The same evidence also rejects a stronger claim. The calibration analysis is post-hoc, the labels remain simulator-generated, and the PyBullet policy stops 96% of cases. The work is ready as an artifact-backed CPS/safety-runtime preprint or workshop submission. A serious robotics venue requires a new blinded benchmark plus actuator-disabled HIL or a richer independently executed simulator study with closed-loop task utility and a materially lower intervention rate.
+This study supports a constrained claim: a compact action-conditioned latent model can improve predictive caution inside a cyber-physical runtime while deterministic software retains command authority. v5 improves frozen simulator rollout error, leads the matched-FPR learned baselines on final FNR and calibration, and integrates through a typed PyBullet bridge without mutating the deployed artifact. The new sealed benchmark raises completion to 83.79%, reduces intervention from the earlier 96% to 16.21%, and preserves zero shielded collisions against 79 paired collisions. The retained v1 failure and controller-only v2 amendment make that claim auditable. The work is ready as an artifact-backed CPS/safety-runtime submission; robotics-deployment claims still require actuator-disabled HIL or independent, richer simulator assessment.
 
 ### References
 
