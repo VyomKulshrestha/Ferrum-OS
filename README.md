@@ -26,6 +26,12 @@ Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/
 The report, software, and dataset are separate artifacts; use the
 [citation guide](docs/CITATION.md) for the one you relied on.
 
+**Physical-runtime paper draft:** [Read *Learned Caution, Deterministic
+Authority: A Calibration-First Runtime Boundary for Action-Conditioned Latent
+World Models in Cyber-Physical Systems*](docs/research/paper/learned_caution_deterministic_authority_v0.1.pdf).
+It is an artifact-backed CPS/safety-runtime draft, not a robotics-deployment or
+safety-guarantee claim.
+
 > [!IMPORTANT]
 > The latest tagged release is v0.1.1; current-main evidence targets a
 > documented QEMU/Bochs profile. Camera input is synthetic. The runtime-loaded
@@ -56,7 +62,7 @@ The report, software, and dataset are separate artifacts; use the
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [physical-runtime paper](docs/research/paper/learned_caution_deterministic_authority_v0.1.pdf), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 
@@ -290,6 +296,12 @@ real-hardware or certified industrial deployment.
   7, 1, and 0 false negatives respectively; OOD records 17 false positives
   while rejecting 682 inconsistent observations. These results improve the
   simulator model without converting it into a physical-safety authority.
+- A separately registered post-hoc paper analysis compares rules-only, the
+  historical supervised MLP, v3, failed v4, v5, and rules+v5 at the rules-only
+  validation FPR. On the v5 final partition, learned-only v5 records 5 FN/14 FP,
+  ECE 0.000443, and Brier 0.000827. Rules+v5 records 18 FN/35 FP versus 46 FN/35
+  FP for rules-only. The final set was already open before this paper protocol;
+  these metrics are characterization, not a new blinded promotion gate.
 - Separately, a site-adapted diagnostic evaluated 111.668 hours of external
   recorded HAI 21.03 realistic ICS/HIL-testbed telemetry. It detects 48/50
   attack windows, reaches 87.38% point balanced accuracy, and records 0.555
@@ -316,8 +328,12 @@ real-hardware or certified industrial deployment.
   unchanged.
   The conditions, sources, results, and remaining external gates are documented
   in [the physical-deployment qualification report](docs/research/PHYSICAL_DEPLOYMENT_QUALIFICATION.md).
-- A transport-neutral host bridge implements deterministic scripted tests plus
-  optional Gazebo/ROS 2 and Webots connectors. ROS 2, MQTT, and CAN conformance
+- A transport-neutral host bridge implements deterministic scripted tests,
+  headless PyBullet DIRECT execution, plus optional Gazebo/ROS 2 and Webots
+  connectors. The registered 200-case PyBullet run blocks 192 commands and
+  produces 0 operational collisions against 118 paired unshielded collisions.
+  Its 96% stop rate is explicitly excessive conservatism, not robotics
+  deployment evidence. ROS 2, MQTT, and CAN conformance
   rules cover bounded QoS, mTLS/ACL, expiry, retained-message rejection,
   CRC/counter checks, bus-off, replay, and common-state semantics.
 - Watchdogs, stop-priority queues, bounded resources/rates, recovery latches,
@@ -338,11 +354,22 @@ python scripts/verify_physical_jepa_v5_final.py
 python scripts/verify_physical_jepa_v5_runtime.py
 python scripts/verify_physical_hai_v2_evidence.py
 python scripts/verify_physical_deployment_qualification.py
+python scripts/evaluate_physical_jepa_paper.py
+python scripts/run_physical_jepa_pybullet_integration.py
+python scripts/verify_physical_jepa_paper.py
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs
 node scripts/verify_all_audits.mjs
 node scripts/verify_ata_pio_persistence.mjs
+```
+
+Reproduce the frozen v5 validation-only selection without reading its final
+catalog or targeting the deployed checkpoint:
+
+```powershell
+python scripts/select_physical_jepa_v5.py --report target/physical_world_model/v5-research-reproduction/selection.json --artifact target/physical_world_model/v5-research-reproduction/selected_candidate.bin
+python scripts/verify_physical_jepa_v5_selection.py --report target/physical_world_model/v5-research-reproduction/selection.json --result target/physical_world_model/v5-research-reproduction/verification.json
 ```
 
 The demo requires `confirm_simulation=true`, routes provider-equivalent and

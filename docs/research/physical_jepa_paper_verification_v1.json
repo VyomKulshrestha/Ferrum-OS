@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-posthoc-paper-analysis-v1",
+  "checks": {
+    "protocol_registered_as_posthoc_before_analysis": true,
+    "result_binds_exact_protocol": true,
+    "integration_binds_exact_protocol": true,
+    "all_artifact_digests_match": true,
+    "six_registered_methods_present": true,
+    "csv_matches_registered_methods": true,
+    "validation_fpr_is_matched": true,
+    "calibration_metrics_are_finite_probabilistic_scores": true,
+    "v5_is_best_learned_only_final_fnr": true,
+    "v5_is_best_learned_only_ece": true,
+    "rules_plus_v5_does_not_exceed_rules_final_fpr": true,
+    "rules_plus_v5_reduces_rules_final_fn": true,
+    "pybullet_is_direct_simulation_without_actuator_authority": true,
+    "pybullet_episode_count_is_registered": true,
+    "all_bridge_evidence_is_simulated": true,
+    "all_simulator_acks_are_accepted": true,
+    "integration_records_excessive_conservatism": true,
+    "deployment_digest_unchanged_by_integration": true,
+    "deployed_digest_matches_registered_v5": true,
+    "manuscript_contains_claim_boundary": true,
+    "paper_pdf_has_eight_pages": true
+  },
+  "all_checks_pass": true,
+  "artifacts": {
+    "protocol_sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd",
+    "results_sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7",
+    "table_sha256": "4bf797b80b7f4a667dc3d0d926d54d493ef484f85bb48169baa95ac32122b7e8",
+    "integration_sha256": "f5aee8fe0de23a9b0857c93b16acc02456a4370c620f775fcf3af7126f550445",
+    "manuscript_sha256": "18ba3834d6bc7fb93056efe9be57175fff6d2d0c7d0768ed49fd4527c5f9d203",
+    "pdf_sha256": "b47c51eb20eaa66d8f61ce62864c3c6154af6eeb58b0fb7675b6c6f4a018ed32",
+    "deployed_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "claim_boundary": "Verification covers deterministic reproduction, document integrity, and simulated bridge evidence only; it is not HIL, physical deployment, certification, or independent assessment."
+}

@@ -811,6 +811,13 @@ work order -> typed actor dispatch -> canonical adapter command
   test records 4 false negatives and 6.63% FPR at the retained 0.20 clearance
   margin. This supports monotonic learned caution inside the simulator, not
   HIL/live safety.
+- **Paper ablation and calibration**: a separate post-hoc protocol fits Platt
+  scaling and matched-FPR thresholds only on incident-v2 validation, then
+  reports the already-opened v5 final partition without retuning. It preserves
+  rules-only, a reproduced historical supervised MLP, v3, failed v4, v5, and
+  rules+v5. Learned-only v5 has the best final FNR, ECE, and Brier score among
+  the learned baselines. The analysis is not a promotion input and its post-hoc
+  relationship to the final set is recorded as a validity limitation.
 - **Separate external recorded evidence**: a site-adapted diagnostic is tested
   on 111.668 hours of HAI 21.03 realistic ICS/HIL-testbed telemetry containing
   50 attack windows. It detects 48 windows, has 87.38% point balanced accuracy,
@@ -843,7 +850,10 @@ work order -> typed actor dispatch -> canonical adapter command
   of deployed native gateways, and none owns the fast motor-control loop.
 - **Physics bridge and HIL boundary**: `tools/physical_sim_bridge` provides a
   canonical JSON-lines bridge, deterministic scripted backend, optional
-  Gazebo/ROS 2 and Webots connectors, and an actuator-disabled backend. A
+  Gazebo/ROS 2 and Webots connectors, a PyBullet DIRECT backend, and an
+  actuator-disabled backend. PyBullet acknowledgements prove only execution of
+  simulated bodies and every observation remains `simulated`; the registered
+  200-case paired run exposes a 96% stop rate and is not called HIL. A
   publish/send without execution acknowledgement is `Uncertain`, never success.
   `HardwareInLoopActuatorDisabled` records a distinct acknowledgement and cannot
   be paired with a physical execution driver.
