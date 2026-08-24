@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "workflow": "physical_jepa_v5_validation_only_selection",
+  "verified_at_utc": "2026-08-24T12:38:19.317971+00:00",
+  "protocol_id": "physical-jepa-baseline-anchored-decoder-v5",
+  "protocol_sha256": "68f93d8b94bc6ce0881601729e734a986881eac267d1cee64fbf2eca9a951378",
+  "selector_sha256": "0d0cf01f3818e749f2c83d0268051e6d75d5445c406b64fcfdcae8a435b50cd7",
+  "verifier_sha256": "9ce693040440c6ea356541bd2f52b681029d66ca55833f0471383d46f3ac833f",
+  "selection_report": "target/physical_world_model/v5-research-reproduction/selection.json",
+  "selection_report_sha256": "24c65400e0c796f8eaf71f34fb9bf7692c37c23106467abef64c2c144f1c8ad4",
+  "reference_selection_report": "docs/research/physical_jepa_v5_selection.json",
+  "reference_selection_report_sha256": "d3bf2f482424a852a65cae09ba4c076fd72d0f719986986cd8ad2a2c90248c8f",
+  "reproduces_frozen_selection": true,
+  "candidate_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "candidate_count": 30,
+  "accepted_candidate_count": 28,
+  "selected_candidate_index": 4,
+  "frozen_selection_gates": {
+    "original_validation_no_regression_over_2_percent": true,
+    "incident_validation_geometric_improvement_at_least_5_percent": true,
+    "incident_validation_no_horizon_regression": true,
+    "stress_validation_geometric_no_regression": true,
+    "stress_validation_no_horizon_regression": true,
+    "all_predictions_finite": true,
+    "incident_validation_false_negatives_not_increased": true,
+    "stress_validation_false_negatives_not_increased": true,
+    "prediction_variance_ratio": true
+  },
+  "all_frozen_selection_gates_passed": true,
+  "final_catalog_access": {
+    "path": "docs/research/physical_incident_v5_test_sources.json",
+    "preexisting_in_checkout": true,
+    "guard": "python_audit_hook_fail_closed",
+    "access_attempted": false,
+    "opened": false
+  },
+  "final_promotion_gates": {
+    "evaluated": false,
+    "passed": null,
+    "promotion_eligibility": "not_evaluated_validation_only"
+  },
+  "deployment": {
+    "attempted": false,
+    "artifact": "userland/heliox-daemon/physical_world_model.bin",
+    "sha256_before": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "sha256_after": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "unchanged": true,
+    "final_promotion_gates_evaluated": false,
+    "promotion_eligibility": "not_evaluated_validation_only"
+  },
+  "runtime": {
+    "python": "3.12.6",
+    "numpy": "2.2.6"
+  },
+  "claim_boundary": [
+    "This reproduces deterministic simulator selection evidence, not physical or independently replicated evidence.",
+    "The final catalog was preexisting in this post-final checkout but was blocked from access by the selection process.",
+    "No final-promotion gate was evaluated and no deployment action was authorized or attempted."
+  ]
+}

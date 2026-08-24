@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -27,12 +28,42 @@ import train_physical_world_model as simulator  # noqa: E402
 PROTOCOL = ROOT / "docs" / "research" / "physical_jepa_v5_protocol.json"
 BASELINE = ROOT / "docs" / "research" / "artifacts" / "physical-jepa-v5" / "baseline_v3.bin"
 INCIDENT_CATALOG = ROOT / "docs" / "research" / "physical_incident_sources_v2.json"
+FINAL_CATALOG = ROOT / "docs" / "research" / "physical_incident_v5_test_sources.json"
+DEPLOYED_ARTIFACT = ROOT / "userland" / "heliox-daemon" / "physical_world_model.bin"
 DEFAULT_REPORT = ROOT / "docs" / "research" / "physical_jepa_v5_selection.json"
 DEFAULT_ARTIFACT = ROOT / "target" / "physical_world_model" / "v5_candidate.bin"
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def repository_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(ROOT)).replace("\\", "/")
+    except ValueError:
+        return str(resolved).replace("\\", "/")
+
+
+def install_final_catalog_guard() -> dict[str, bool]:
+    """Fail closed if this validation-only process tries to open the final catalog."""
+    protected = FINAL_CATALOG.resolve()
+    state = {"attempted": False}
+
+    def audit(event: str, arguments: tuple) -> None:
+        if event != "open" or not arguments or not isinstance(arguments[0], (str, bytes)):
+            return
+        try:
+            opened = Path(os.fsdecode(arguments[0])).resolve()
+        except (OSError, TypeError, ValueError):
+            return
+        if opened == protected:
+            state["attempted"] = True
+            raise PermissionError("v5 final catalog access is forbidden during selection")
+
+    sys.addaudithook(audit)
+    return state
 
 
 def predicted_latent(rows, weights) -> tuple[np.ndarray, np.ndarray]:
@@ -304,6 +335,12 @@ def validation_result(candidate, current) -> dict:
         stress_geometric_limit=1.0,
     )
     checks = decision["checks"]
+    for inherited_gate in (
+        "latent_standard_deviation",
+        "effective_rank",
+        "action_sensitivity",
+    ):
+        checks.pop(inherited_gate)
     checks.update(
         {
             "all_predictions_finite": all(
@@ -333,28 +370,72 @@ def main() -> int:
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--artifact", type=Path, default=DEFAULT_ARTIFACT)
     args = parser.parse_args()
+    if args.artifact.resolve() == DEPLOYED_ARTIFACT.resolve():
+        parser.error("validation-only selection cannot target the deployed artifact")
+
+    catalog_guard = install_final_catalog_guard()
+    final_catalog_preexisting = FINAL_CATALOG.is_file()
+    deployed_sha_before = sha256(DEPLOYED_ARTIFACT)
     protocol = json.loads(PROTOCOL.read_text(encoding="utf-8"))
     if not protocol["registered_before_v5_test_generation"]:
         raise AssertionError("v5 protocol is not registered")
+    if protocol["v5_test_open_count"] != 0:
+        raise AssertionError("registered v5 protocol did not seal the final test")
     if protocol["baseline_artifact_sha256"] != sha256(BASELINE):
         raise AssertionError("v5 baseline artifact drifted")
+    registered_final_catalog = PROTOCOL.parent / protocol["final_test"]["catalog"]
+    if registered_final_catalog.resolve() != FINAL_CATALOG.resolve():
+        raise AssertionError("v5 final catalog path drifted")
     baseline = robustness.load_artifact(BASELINE)
 
-    base_rows = simulator.generate(12000, 8, 20260824)
+    fit = protocol["fit_partitions"]
+    validation = protocol["selection_partitions"]
+    for domain in ("base", "incident_v2", "stress"):
+        for key in ("steps", "seed"):
+            if fit[domain][key] != validation[domain][key]:
+                raise AssertionError(f"v5 {domain} {key} drifted between fit and validation")
+    if fit["base"]["episodes"] != validation["base"]["episodes"]:
+        raise AssertionError("v5 base episode count drifted between fit and validation")
+    if fit["incident_v2"]["catalog"] != validation["incident_v2"]["catalog"]:
+        raise AssertionError("v5 incident catalog drifted between fit and validation")
+    incident_catalog = PROTOCOL.parent / fit["incident_v2"]["catalog"]
+    if incident_catalog.resolve() != INCIDENT_CATALOG.resolve():
+        raise AssertionError("v5 incident fit catalog is not the registered v2 catalog")
+
+    base = fit["base"]
+    base_rows = simulator.generate(base["episodes"], base["steps"], base["seed"])
     _, _, base_train, base_validation, _ = jepa.split_rows(
-        base_rows, 12000, 20260824
+        base_rows, base["episodes"], base["seed"]
     )
+    incident_fit = fit["incident_v2"]
     incident_train, incident_train_metadata = incidents.generate_partition(
-        "train", 1000, 8, 20260822, INCIDENT_CATALOG
+        incident_fit["partition"],
+        incident_fit["episodes_per_source"],
+        incident_fit["steps"],
+        incident_fit["seed"],
+        incident_catalog,
     )
+    incident_select = validation["incident_v2"]
     incident_validation, incident_validation_metadata = incidents.generate_partition(
-        "validation", 320, 8, 20260822, INCIDENT_CATALOG
+        incident_select["partition"],
+        incident_select["episodes_per_source"],
+        incident_select["steps"],
+        incident_select["seed"],
+        incident_catalog,
     )
+    stress_fit = fit["stress"]
     stress_train, stress_train_metadata = stress.generate_partition(
-        "train", 3000, 8, 20260826
+        stress_fit["partition"],
+        stress_fit["episodes"],
+        stress_fit["steps"],
+        stress_fit["seed"],
     )
+    stress_select = validation["stress"]
     stress_validation, stress_validation_metadata = stress.generate_partition(
-        "validation", 1000, 8, 20260826
+        stress_select["partition"],
+        stress_select["episodes"],
+        stress_select["steps"],
+        stress_select["seed"],
     )
     verify_batched_equivalence(base_validation, baseline)
     prepared = {
@@ -423,12 +504,23 @@ def main() -> int:
         )
         artifact_sha = sha256(args.artifact)
 
+    deployed_sha_after = sha256(DEPLOYED_ARTIFACT)
+    if deployed_sha_after != deployed_sha_before:
+        raise AssertionError("deployed artifact changed during validation-only selection")
+
     report = {
         "schema_version": 1,
         "protocol_id": protocol["protocol_id"],
         "protocol_sha256": sha256(PROTOCOL),
         "baseline_artifact_sha256": sha256(BASELINE),
         "final_test_opened": False,
+        "final_catalog_access": {
+            "path": repository_path(FINAL_CATALOG),
+            "preexisting_in_checkout": final_catalog_preexisting,
+            "guard": "python_audit_hook_fail_closed",
+            "access_attempted": catalog_guard["attempted"],
+            "opened": False,
+        },
         "fit": {
             "base_transitions": len(base_train),
             "incident": incidents.summarize(incident_train, incident_train_metadata),
@@ -446,11 +538,20 @@ def main() -> int:
         "candidates": candidates,
         "accepted_candidate_indices": accepted,
         "selected_candidate_index": selected_index,
-        "selected_artifact": str(args.artifact.relative_to(ROOT)).replace("\\", "/")
+        "selected_artifact": repository_path(args.artifact)
         if selected_index is not None
         else None,
         "selected_artifact_sha256": artifact_sha,
         "selection_passed": selected_index is not None,
+        "deployment": {
+            "attempted": False,
+            "artifact": repository_path(DEPLOYED_ARTIFACT),
+            "sha256_before": deployed_sha_before,
+            "sha256_after": deployed_sha_after,
+            "unchanged": True,
+            "final_promotion_gates_evaluated": False,
+            "promotion_eligibility": "not_evaluated_validation_only",
+        },
         "claim_boundary": [
             "The v5 final catalog was not generated or evaluated during selection.",
             "Only the PJE1 state decoder changed; the deployed encoder and predictor remained fixed.",
