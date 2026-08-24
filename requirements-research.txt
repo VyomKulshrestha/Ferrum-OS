@@ -1,2 +1,6 @@
 numpy==2.2.6
 matplotlib==3.10.3
+scipy==1.15.3
+pybullet==3.2.7
+reportlab==4.4.4
+pypdf==6.15.0

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-posthoc-paper-analysis-v1",
+  "registration_date": "2026-08-24",
+  "analysis_status_at_registration": "not_run",
+  "relationship_to_v5_protocol": "Post-hoc characterization only. The v5 final catalog was opened by the completed frozen evaluation before this protocol was written. This protocol cannot select, promote, replace, or deploy an artifact.",
+  "artifacts": {
+    "ordinary_supervised_mlp": {
+      "path": "docs/research/artifacts/physical-jepa-paper/ordinary_supervised_mlp.bin",
+      "sha256": "f8f081d1c250de1194330e7c412d268c83a6e58a879afb17775d280cf9a74b29",
+      "reproduction": "Deterministically regenerated with train_physical_world_model.py defaults; digest and all historical metrics match physical_world_model_evaluation.json."
+    },
+    "v3": {
+      "path": "docs/research/artifacts/physical-jepa-v5/baseline_v3.bin",
+      "sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60"
+    },
+    "failed_v4": {
+      "path": "target/physical_world_model/v4_candidate.bin",
+      "sha256": "db0d5b16576490acde44bdfb60b884616b669a03aa3c3056dc28845a3b248b64"
+    },
+    "v5": {
+      "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "calibration_partition": {
+    "generator": "physical_incident_scenarios.generate_partition",
+    "partition": "validation",
+    "catalog": "docs/research/physical_incident_sources_v2.json",
+    "episodes_per_source": 320,
+    "steps": 8,
+    "seed": 20260822,
+    "used_for_model_training": false,
+    "used_for_probability_calibration_and_threshold_selection": true
+  },
+  "paper_test_partition": {
+    "generator": "physical_incident_scenarios.generate_partition",
+    "partition": "test",
+    "catalog": "docs/research/physical_incident_v5_test_sources.json",
+    "episodes_per_source": 320,
+    "steps": 8,
+    "seed": 20260829,
+    "known_open_count_before_this_analysis": 1,
+    "used_for_selection": false
+  },
+  "risk_score": "Maximum signed violation margin across forecast clearance, human-motion, geofence, battery, link, emergency-stop, and repair-approval predicates. Positive values indicate predicted violation.",
+  "probability_calibration": {
+    "method": "L2-regularized Platt logistic scaling",
+    "fit_partition": "calibration_partition",
+    "regularization": 0.0001,
+    "reliability_bins": 10,
+    "binning": "equal_mass",
+    "reported_metrics": ["ECE", "Brier score", "negative log likelihood"]
+  },
+  "matched_fpr": {
+    "reference": "rules-only false-positive rate on the calibration partition",
+    "selection": "For each adjustable method, choose the calibrated-probability threshold with calibration FPR closest to the reference; break ties by lower FNR, then higher threshold.",
+    "threshold_candidates": "All unique calibrated probabilities plus one value above the maximum.",
+    "test_role": "Report transfer FPR/FNR on the paper test partition without retuning."
+  },
+  "threshold_sensitivity": {
+    "grid": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+    "partition": "paper_test_partition"
+  },
+  "simulator_integration": {
+    "backend": "PyBullet 3.2.7 DIRECT",
+    "mode": "headless third-party software simulation",
+    "actuator_enabled": false,
+    "episodes": 200,
+    "seed": 20260824,
+    "claim": "Independent simulator execution only; not actuator-disabled HIL and not physical deployment."
+  },
+  "frozen_boundaries": [
+    "Do not alter physical_jepa_v5_protocol.json.",
+    "Do not overwrite physical_jepa_v5_final_test.json.",
+    "Do not replace userland/heliox-daemon/physical_world_model.bin.",
+    "Do not promote any checkpoint from this analysis.",
+    "Report failed or unfavorable results without suppression."
+  ]
+}
