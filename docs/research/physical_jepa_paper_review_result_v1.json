@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-paper-review-audit-v1",
+  "protocol_sha256": "fa22a7d0ecd590e0cc4a919c7609757a44a12cf0800123a1f46dcb2e2314d3a5",
+  "analysis_role": "Post-hoc reviewer-requested uncertainty and marginal-attribution audit. This protocol cannot select, promote, replace, or deploy an artifact.",
+  "inputs": {
+    "paper_protocol": {
+      "path": "docs/research/physical_jepa_paper_protocol_v1.json",
+      "sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd"
+    },
+    "paper_results": {
+      "path": "docs/research/physical_jepa_paper_results_v1.json",
+      "sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7"
+    },
+    "blinded_benchmark_v1": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v1_result.json",
+      "sha256": "0e618215143a1dd6ebe8721e3bcf7b9de1b47e4e98d64b67c6bb99c66de55fe4"
+    },
+    "blinded_benchmark_v2": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v2_result.json",
+      "sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "matched_fpr_uncertainty": {
+    "methods": {
+      "ordinary_supervised_mlp": {
+        "false_negatives": 8,
+        "dangerous_transitions": 2834,
+        "false_negative_rate": 0.0028228652081863093,
+        "wilson_95_percent": {
+          "lower": 0.0014310866225544687,
+          "upper": 0.00556065661208681
+        }
+      },
+      "v5": {
+        "false_negatives": 5,
+        "dangerous_transitions": 2834,
+        "false_negative_rate": 0.0017642907551164433,
+        "wilson_95_percent": {
+          "lower": 0.000753827670237148,
+          "upper": 0.004123632547870365
+        }
+      }
+    },
+    "paired_exact_mcnemar": {
+      "ordinary_supervised_mlp_miss_v5_catch": 5,
+      "v5_miss_ordinary_supervised_mlp_catch": 2,
+      "both_miss": 3,
+      "discordant": 7,
+      "two_sided_p_value": 0.453125,
+      "separable_at_alpha_0_05": false
+    }
+  },
+  "pybullet_marginal_audit": {
+    "sealed_v1": {
+      "catalog_sha256": "98499b6ee6f443f20305c8e07ae95bd4c719d73c348fbe8d7552900e77c21b40",
+      "episodes": 512,
+      "family_sizes": {
+        "boundary_safe": 128,
+        "clear_safe": 176,
+        "collision_course": 80,
+        "near_safe": 128
+      },
+      "interventions": 83,
+      "learned_only_interventions": 3,
+      "learned_only_intervention_families": {
+        "boundary_safe": 3
+      },
+      "learned_only_collisions_avoided": 0,
+      "learned_missed_collisions_caught_by_rule": 2,
+      "unshielded_collisions": 77,
+      "shielded_collisions": 0
+    },
+    "sealed_v2": {
+      "catalog_sha256": "a76ebda4df646233d471d6750a81f659cc9220b348b3466351c5311cc6a2aa21",
+      "episodes": 512,
+      "family_sizes": {
+        "boundary_safe": 128,
+        "clear_safe": 176,
+        "collision_course": 80,
+        "near_safe": 128
+      },
+      "interventions": 83,
+      "learned_only_interventions": 3,
+      "learned_only_intervention_families": {
+        "boundary_safe": 3
+      },
+      "learned_only_collisions_avoided": 0,
+      "learned_missed_collisions_caught_by_rule": 4,
+      "unshielded_collisions": 79,
+      "shielded_collisions": 0
+    }
+  },
+  "checks": {
+    "frozen_inputs_match": true,
+    "mlp_and_v5_counts_reproduce": true,
+    "v5_point_estimate_is_not_significantly_separable_from_mlp": true,
+    "both_catalogs_have_structural_83_interventions": true,
+    "v2_learned_path_avoids_no_incremental_collision": true,
+    "v2_rule_catches_four_learned_misses": true,
+    "deployed_artifact_unchanged": true
+  },
+  "all_checks_pass": true,
+  "claim_boundary": "Post-hoc statistical and attribution audit of frozen deterministic-simulator and third-party software-simulation evidence; not model selection, promotion, HIL, physical deployment, certification, or independent assessment."
+}

@@ -175,12 +175,12 @@ def styles():
             "Reference",
             parent=sample["BodyText"],
             fontName="Times-Roman",
-            fontSize=8.5,
-            leading=11.5,
+            fontSize=8.2,
+            leading=10.5,
             leftIndent=12,
             firstLineIndent=-12,
             alignment=TA_LEFT,
-            spaceAfter=4,
+            spaceAfter=2,
         ),
     }
 
@@ -288,12 +288,15 @@ def parse(source: Path, document_width: float, status_line: str | None = None):
                 "github.com/VyomKulshrestha/",
                 "Draft v",
                 "Submission candidate v",
+                "Technical Report v",
             )
         ):
-            if status_line is not None and line.startswith(("Draft v", "Submission candidate v")):
+            if status_line is not None and line.startswith(
+                ("Draft v", "Submission candidate v", "Technical Report v")
+            ):
                 line = status_line
             story.append(Paragraph(inline(line), style["author"]))
-            if line.startswith("Draft v"):
+            if line.startswith(("Draft v", "Technical Report v")):
                 story.append(Spacer(1, 10))
             index += 1
             continue
