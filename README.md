@@ -29,9 +29,10 @@ The report, software, and dataset are separate artifacts; use the
 **Physical-runtime technical report:** [Read *Learned Caution, Deterministic
 Authority: A Calibration-First Runtime Boundary for Action-Conditioned Latent
 World Models in Cyber-Physical Systems*](docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf).
-Version 1.1 adds reviewer-requested uncertainty and explicit marginal PyBullet
-attribution. It is an artifact-backed CPS/safety-runtime technical report, not
-a robotics-deployment or safety-guarantee claim.
+Version 1.1 adds reviewer-requested uncertainty, a shared-catalog ordinary-MLP
+rollout comparison, and explicit marginal PyBullet attribution. It is an
+artifact-backed CPS/safety-runtime technical report, not a robotics-deployment
+or safety-guarantee claim.
 
 > [!IMPORTANT]
 > The latest tagged release is v0.1.1; current-main evidence targets a
@@ -358,6 +359,7 @@ python scripts/verify_physical_hai_v2_evidence.py
 python scripts/verify_physical_deployment_qualification.py
 python scripts/evaluate_physical_jepa_paper.py
 python scripts/evaluate_physical_jepa_paper_review.py
+python scripts/evaluate_physical_jepa_paper_dynamics_calibration.py
 python scripts/run_physical_jepa_pybullet_integration.py
 python scripts/verify_physical_jepa_blinded_benchmark.py
 python scripts/verify_physical_jepa_blinded_benchmark_v2.py

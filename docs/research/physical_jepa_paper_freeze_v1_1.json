@@ -7,15 +7,28 @@
   "status_line": "Technical Report v1.1 - 25 August 2026",
   "running_header": "TECHNICAL REPORT v1.1",
   "expected_pages": 8,
-  "mutation_policy": "Do not overwrite a frozen artifact. Any manuscript or evidence change must produce a new version and freeze record.",
+  "amendment": {
+    "scope": "Pre-publication v1.1 amendment at the author's explicit instruction; no v1.0 artifact was changed.",
+    "reason": "Add a shared-catalog ordinary-MLP dynamics comparison, calibration uncertainty, and the retained audit-gate repair without lengthening the report beyond eight pages.",
+    "superseded_freeze_commit": "ced68e719ee384b7c00fda99cb6535023741399c",
+    "superseded_freeze_sha256": "02042d82c5d5a50c5bab7772db999ac96092f28dd63fb90e636a47ea23d6315d",
+    "superseded_manuscript_sha256": "665e9cada0fe9907d91565730de8e58f186af249dc302eeb3264a959ff7d20ce",
+    "superseded_pdf_sha256": "c301b78f6631014f909d2160e6d29f826da059be7f4fb107613d0b51980e4979",
+    "preservation": "The superseded bytes and freeze record remain addressable in Git at the recorded commit."
+  },
+  "mutation_policy": "Do not overwrite this amended pre-publication freeze. Any later manuscript or evidence change must produce a new version and freeze record.",
   "artifacts": {
     "manuscript": {
       "path": "docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.md",
-      "sha256": "665e9cada0fe9907d91565730de8e58f186af249dc302eeb3264a959ff7d20ce"
+      "sha256": "c09592a1be72c303ac71e2c188cff5f3247c9a8f06c272a20abe12b2e503d19f"
     },
     "pdf": {
       "path": "docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf",
-      "sha256": "c301b78f6631014f909d2160e6d29f826da059be7f4fb107613d0b51980e4979"
+      "sha256": "404c4237c952e8e75e30e6e79984598bcccc8c3932c3e147754b5bd1748cae56"
+    },
+    "pdf_builder": {
+      "path": "scripts/build_physical_jepa_paper.py",
+      "sha256": "ea9efd6e976e28b878c873a233ce854131032de7e1b7010eedde3fef049d65eb"
     },
     "paper_protocol": {
       "path": "docs/research/physical_jepa_paper_protocol_v1.json",
@@ -36,6 +49,22 @@
     "review_result": {
       "path": "docs/research/physical_jepa_paper_review_result_v1.json",
       "sha256": "7ff6bd100cc91dfbd0d01ef3b7a6e74a38d38c06ea6bec7728a5094e89e3a3ac"
+    },
+    "dynamics_calibration_protocol_v1": {
+      "path": "docs/research/physical_jepa_paper_dynamics_calibration_protocol_v1.json",
+      "sha256": "02734c62c71a6548886eed1c4073082be08e31212f37871a1ff4077485ae71ba"
+    },
+    "dynamics_calibration_failed_gate_result_v1": {
+      "path": "docs/research/physical_jepa_paper_dynamics_calibration_result_v1.json",
+      "sha256": "7d5edd9eb251398199deeb2a146a06a9cd60821217100a2aeaf6f132b6c4b262"
+    },
+    "dynamics_calibration_protocol_v2": {
+      "path": "docs/research/physical_jepa_paper_dynamics_calibration_protocol_v2.json",
+      "sha256": "734d91d247dee7969d2fdf9fbb278a63ebc1a5e61abdec58afa98a02ada83b48"
+    },
+    "dynamics_calibration_result_v2": {
+      "path": "docs/research/physical_jepa_paper_dynamics_calibration_result_v2.json",
+      "sha256": "29b1d3373af42e42f8e2bba2e3485ad62c980de01e80c97061f7209cc80e4673"
     },
     "blinded_benchmark_result": {
       "path": "docs/research/physical_jepa_blinded_benchmark_v2_result.json",
@@ -93,6 +122,9 @@
     "not statistically separable from the supervised baseline at this sample size",
     "v5 avoids no collision not already prevented by the deterministic predicate",
     "This benchmark therefore demonstrates typed integration, monotone deterministic authority, and intervention cost - not incremental learned collision-avoidance value.",
+    "v5 is therefore separably better than this MLP for simulator rollout",
+    "paired v5-minus-MLP interval",
+    "failed an overly strict `1e-12` scalar-versus-batched reproduction gate",
     "K. Zhong, T. Liu, and Y. Wang.",
     "L. Yang, B. Werner, R. K. Cosner, D. Fridovich-Keil, P. Culbertson, and A. D. Ames."
   ],

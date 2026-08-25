@@ -12,7 +12,7 @@ Technical Report v1.1 - 25 August 2026
 
 ### Abstract
 
-Learned world models can predict unsafe consequences before an action executes, but prediction quality is not authority. This paper presents a small action-conditioned joint-embedding predictive architecture (JEPA) integrated as a caution-only component in a cyber-physical runtime: the learned model may reject or escalate an action, while deterministic rules, confirmation provenance, replay protection, deadlines, and a digest-bound command bridge retain all authority to permit delivery. The empirical study preserves a complete model lineage, including a failed v4 checkpoint, and uses a validation-only v5 selection over 30 candidates followed by one frozen final evaluation. On 20,480 source-informed deterministic-simulator transitions from eight held-out incident families, v5 reduces normalized H=3 rollout error from 0.007515 to 0.003560 and the geometric H1/H3/H5 error ratio to 0.4842. At a false-positive operating point selected on a separate validation partition, learned-only v5 records 5 false negatives and 14 false positives on the final set, with ECE 0.000443 and Brier score 0.000827. A fixed-rules-plus-v5 union reduces rules-only false negatives from 46 to 18 without increasing its final false-positive count of 35. A new selection-blinded 512-case PyBullet DIRECT benchmark records 429 completed tasks (83.79%), 83 interventions (16.21%), 79 unshielded collisions, and zero shielded collisions. The deterministic rule accounts for all observed collision avoidance; v5 adds three conservative stops and no incremental collision avoidance on that benchmark. A preregistered first attempt that failed completion is retained. The contribution is a reproducible safety-runtime and systems result, not a robotics-deployment or safety-guarantee claim.
+Learned world models can predict unsafe consequences before an action executes, but prediction quality is not authority. This paper presents a small action-conditioned joint-embedding predictive architecture (JEPA) integrated as a caution-only component in a cyber-physical runtime: the learned model may reject or escalate an action, while deterministic rules, confirmation provenance, replay protection, deadlines, and a digest-bound command bridge retain all authority to permit delivery. The empirical study preserves a complete model lineage, including a failed v4 checkpoint, and uses a validation-only v5 selection over 30 candidates followed by one frozen final evaluation. On 20,480 source-informed deterministic-simulator transitions from eight held-out incident families, v5 reduces normalized H=3 rollout error from 0.007515 (v3) and 0.017119 (ordinary MLP) to 0.003560; the paired MLP-minus-v5 reduction has 95% interval `[0.013364, 0.013758]`. At a false-positive operating point selected on a separate validation partition, learned-only v5 records 5 false negatives and 14 false positives on the final set, with ECE 0.000443 and Brier score 0.000827. A fixed-rules-plus-v5 union reduces rules-only false negatives from 46 to 18 without increasing its final false-positive count of 35. A new selection-blinded 512-case PyBullet DIRECT benchmark records 429 completed tasks (83.79%), 83 interventions (16.21%), 79 unshielded collisions, and zero shielded collisions. The deterministic rule accounts for all observed collision avoidance; v5 adds three conservative stops and no incremental collision avoidance on that benchmark. A preregistered first attempt that failed completion is retained; the passing run changes only the fixed command budget from one to two cycles. The contribution is a reproducible safety-runtime and systems result, not a robotics-deployment or safety-guarantee claim.
 
 ### 1. Introduction
 
@@ -81,7 +81,7 @@ The final test contains 20,480 transitions: 320 eight-step episodes for each of 
 
 The ablation and calibration analysis is registered separately after the final set had already been opened. This is an important limitation. The protocol fixes artifact digests, an incident-v2 validation partition for calibration and threshold selection, the existing v5 final partition for reporting, Platt scaling with L2 regularization `1e-4`, ten equal-mass reliability bins, and a threshold grid from 0.05 to 0.95.
 
-The ordinary learned baseline is not retrained for this table. It is the historical supervised action-conditioned MLP deterministically reproduced from the original trainer defaults; its SHA-256 digest and historical rollout and safety metrics match the recorded report. v3, v4, and v5 are the preserved PJE1 artifacts. A second post-hoc protocol, registered before the reviewer-requested audit ran, fixes Wilson intervals, an exact paired McNemar test, and case-level PyBullet attribution definitions.
+The ordinary baseline is the historical supervised action-conditioned MLP, deterministically reproduced from the original trainer defaults rather than retrained for this paper. v3, v4, and v5 are preserved PJE1 artifacts. A second protocol fixes Wilson intervals, an exact paired McNemar test, and PyBullet attribution. A third fixes a shared-catalog PWM1 shim and 5,000 paired, source-stratified episode bootstraps for rollout, ECE, and Brier uncertainty. Its retained v1 output produced every estimate but failed an overly strict `1e-12` scalar-versus-batched reproduction gate; registered v2 changed only that tolerance to the established `1e-8`, required exact estimate reproduction, and passes.
 
 #### 4.3 Risk score and matched FPR
 
@@ -97,16 +97,13 @@ A prospective protocol commits a 512-case catalog by SHA-256 before policy selec
 
 #### 5.1 Frozen v5 final result
 
-| Metric | v3 baseline | v5 | Ratio or change |
+| Metric | Ordinary MLP | v3 baseline | v5 |
 |---|---:|---:|---:|
-| H=1 normalized rollout error | 0.002843 | 0.001566 | 0.5508 |
-| H=3 normalized rollout error | 0.007515 | 0.003560 | 0.4737 |
-| H=5 normalized rollout error | 0.011739 | 0.005107 | 0.4350 |
-| Geometric H1/H3/H5 ratio | - | - | 0.4842 |
-| False negatives, operational predicate | 2 | 0 | -2 |
-| False positives, operational predicate | 40 | 39 | -1 |
+| H=1 normalized rollout error | 0.007880 | 0.002843 | 0.001566 |
+| H=3 normalized rollout error | 0.017119 | 0.007515 | 0.003560 |
+| H=5 normalized rollout error | 0.023362 | 0.011739 | 0.005107 |
 
-The paired H=3 mean absolute normalized-error reduction is 0.003955. A 10,000-resample episode bootstrap gives a 95% percentile interval `[0.003914, 0.003997]`, excluding zero. All frozen model gates pass. This establishes improvement on the registered simulator distribution; it does not establish real-world safety.
+The preregistered v5:v3 geometric H1/H3/H5 ratio is 0.4842; paired H=3 reduction is 0.003955 with 10,000-resample 95% interval `[0.003914, 0.003997]`. In the 5,000-resample shared-catalog audit, MLP-minus-v5 reductions are 0.006314 at H=1 (`[0.006241, 0.006387]`), 0.013558 at H=3 (`[0.013364, 0.013758]`), and 0.018255 at H=5 (`[0.017943, 0.018574]`); all exclude zero. The frozen operational predicate records v3/v5 FN 2/0 and FP 40/39. v5 is therefore separably better than this MLP for simulator rollout, while Section 5.2's thresholded risk decisions are not separable. Neither result establishes real-world safety.
 
 #### 5.2 Matched-FPR ablation
 
@@ -136,7 +133,7 @@ Rules+v5 reduces the rules-only final FN count from 46 to 18 without increasing 
 | v5 | **0.000443** | **0.000827** | **0.003600** |
 | Rules + v5 union score | 0.000761 | 0.002830 | 0.015970 |
 
-Platt-scaled v5 has the best point estimate on all three held-out calibration metrics. These small differences remain descriptive because confidence intervals were not estimated for the calibration metrics. The union is less well calibrated than learned-only v5 because the hard rule score creates a discontinuous intervention surface. A low ECE should not be read in isolation: danger is common in these source-informed simulator partitions, labels are deterministic, and the same simulator family defines both calibration and final data. Reliability and threshold-sensitivity plots are shown in Figure 1.
+v5 has the best point estimate on all three metrics. With 5,000 resamples, its ECE is 0.000443 (`[0.000310, 0.000995]`) versus MLP 0.000510 (`[0.000433, 0.001215]`); paired v5-minus-MLP interval `[-0.000616, 0.000235]` includes zero. Its Brier score is 0.000827 (`[0.000610, 0.001082]`) versus MLP 0.001196 (`[0.000865, 0.001595]`); paired difference -0.000369 has interval `[-0.000665, -0.000128]`. Brier improvements over v3 and failed v4 also exclude zero; learned-baseline ECE comparisons do not. The hard-rule union is less calibrated than learned-only v5. Low ECE remains distribution-specific: labels are deterministic and the same simulator family defines calibration and final data. Figure 1 shows reliability and threshold sensitivity.
 
 ![Calibration and threshold sensitivity](../figures/physical_jepa_paper/calibration_and_threshold_sensitivity.png)
 
@@ -182,7 +179,7 @@ First, all main-model transitions and danger labels come from a deterministic si
 
 Second, the paper calibration protocol remains post-hoc. Although thresholds use a separate validation partition and are not tuned on the final set, the existence and aggregate results of the main-model final set were known before the paper analysis was registered. The new blinded simulator benchmark strengthens task-utility evidence but does not retroactively blind that model result.
 
-Third, Platt scaling assumes a stable monotone relationship between violation margin and danger probability. The very low ECE values may partly reflect deterministic labels and limited simulator diversity. Calibration should be repeated under simulator, sensor, and embodiment shift, with confidence intervals.
+Third, Platt scaling assumes a stable monotone relationship between violation margin and danger probability. The very low ECE values may partly reflect deterministic labels and limited simulator diversity; their paired intervals do not separate v5 from the learned baselines. Calibration should be repeated under simulator, sensor, and embodiment shift.
 
 Fourth, the PyBullet environment remains a two-body planar box scenario, locally executed and not independently designed or assessed. The v2 utility gain depends on a swept-box predicate and two-cycle controller, and its 16.21% intervention rate is distribution-specific. It is not HIL and does not establish robotics competence.
 
@@ -194,18 +191,19 @@ Finally, physical timing, sensor latency, actuator saturation, calibration drift
 
 The repository records the v5 selection and final evidence, post-hoc paper and reviewer-audit protocols and results, figures, PyBullet backend, bridge tests, both sealed benchmark attempts, and this manuscript. Every model input is identified by SHA-256. The v5 artifact digest is `23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864`. Both PyBullet runs record the same deployed digest before and after and make no deployment write.
 
-Reproduction has four layers:
+Reproduction has five layers:
 
 1. Run the validation-only v5 selector and its verifier without opening the final catalog.
 2. Run `scripts/evaluate_physical_jepa_paper.py` to reproduce the post-hoc table and calibration figures from frozen artifacts.
 3. Run `scripts/evaluate_physical_jepa_paper_review.py` to reproduce the Wilson intervals, paired exact test, and case-level PyBullet attribution audit.
-4. Install `requirements-research.txt`, run the bridge tests, then verify the retained v1 failure and passing v2 sealed benchmark; final artifacts refuse overwrite.
+4. Run `scripts/evaluate_physical_jepa_paper_dynamics_calibration.py` to reproduce the shared-catalog MLP rollout comparison and episode-bootstrap calibration intervals; the failed-gate v1 and passing gate-repair v2 results are both retained.
+5. Install `requirements-research.txt`, run the bridge tests, then verify the retained v1 failure and passing v2 sealed benchmark; final artifacts refuse overwrite.
 
 The paper result is deliberately not a promotion gate. Failed paper analyses must remain reportable without changing the deployed binary.
 
 ### 9. Conclusion
 
-This study supports a constrained claim: a compact action-conditioned latent model can improve predictive caution while deterministic software retains command authority. v5 improves frozen rollout error. At matched FPR it leads the MLP in final FNR point estimate but is not statistically separable at this sample size. The sealed PyBullet benchmark reaches 83.79% completion and 16.21% intervention with no observed shielded collisions against 79 paired unshielded collisions. Collision avoidance there is attributable to the deterministic predicate; v5 adds three conservative stops and no incremental collision avoidance. This is an artifact-backed CPS/safety-runtime report; robotics-deployment claims require actuator-disabled HIL or independent, richer simulator assessment.
+This study supports a constrained claim: a compact action-conditioned latent model can improve predictive caution while deterministic software retains command authority. On the shared simulator catalog, v5's multi-horizon rollout error is separably lower than both v3 and the ordinary supervised MLP. At matched FPR it leads the MLP in final FNR point estimate but is not statistically separable at this sample size; its Brier improvement is separable while its ECE advantage is not. The sealed PyBullet benchmark reaches 83.79% completion and 16.21% intervention with no observed shielded collisions against 79 paired unshielded collisions. Collision avoidance there is attributable to the deterministic predicate; v5 adds three conservative stops and no incremental collision avoidance. This is an artifact-backed CPS/safety-runtime report; robotics-deployment claims require actuator-disabled HIL or independent, richer simulator assessment.
 
 ### References
 

@@ -233,7 +233,13 @@ def parse(source: Path, document_width: float, status_line: str | None = None):
             if match:
                 image_path = (source.parent / match.group(2)).resolve()
                 image = Image(str(image_path))
-                image._restrictSize(document_width, 4.4 * inch)
+                width_scale = (
+                    0.62
+                    if match.group(1) == "Calibration and threshold sensitivity"
+                    else 0.82
+                )
+                image._restrictSize(document_width * width_scale, 3.6 * inch)
+                image.hAlign = "CENTER"
                 story.extend([Spacer(1, 4), image, Spacer(1, 3)])
             index += 1
             continue

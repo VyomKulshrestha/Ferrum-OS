@@ -145,6 +145,42 @@ def main() -> int:
             }
         )
 
+    if "dynamics_calibration_result_v2" in artifacts:
+        dynamics = json.loads(
+            (ROOT / artifacts["dynamics_calibration_result_v2"]["path"]).read_text(
+                encoding="utf-8"
+            )
+        )
+        failed_gate = json.loads(
+            (
+                ROOT
+                / artifacts["dynamics_calibration_failed_gate_result_v1"]["path"]
+            ).read_text(encoding="utf-8")
+        )
+        checks.update(
+            {
+                "dynamics_calibration_audit_passes": dynamics["all_checks_pass"]
+                and all(dynamics["checks"].values()),
+                "dynamics_calibration_audit_binds_gate_repair_protocol": dynamics[
+                    "protocol_sha256"
+                ]
+                == artifacts["dynamics_calibration_protocol_v2"]["sha256"],
+                "failed_dynamics_gate_is_retained": not failed_gate[
+                    "all_checks_pass"
+                ]
+                and not failed_gate["checks"][
+                    "v3_and_v5_dynamics_reproduce_frozen_final_test"
+                ],
+                "gate_repair_reproduces_all_estimates": dynamics["checks"][
+                    "statistical_estimates_reproduce_failed_gate_v1"
+                ],
+                "dynamics_audit_preserves_deployed_artifact": dynamics["inputs"][
+                    "deployed_artifact"
+                ]["sha256"]
+                == artifacts["deployed_artifact"]["sha256"],
+            }
+        )
+
     pdf = PdfReader(str(ROOT / artifacts["pdf"]["path"]))
     first_page = pdf.pages[0].extract_text()
     checks["pdf_identity_and_length_match"] = (
