@@ -1,7 +1,7 @@
 {
   "schema_version": "physical-jepa-zenodo-reservations-v1",
   "reserved_at": "2026-08-25",
-  "publication_state": "draft_not_published",
+  "publication_state": "published",
   "dataset": {
     "title": "FerrumOS Physical JEPA Safety-Runtime Simulation Evidence Dataset v1.0.0",
     "version": "1.0.0",
@@ -22,5 +22,6 @@
     "dataset": "is supplement to technical report",
     "technical_report": "is supplemented by dataset"
   },
-  "note": "These identifiers are reserved Zenodo draft DOIs. They are not registered public records until the corresponding drafts are published."
+  "publication_evidence": "docs/research/physical_jepa_zenodo_publication_v1.json",
+  "note": "These identifiers were reserved before publication so the two records could be linked reciprocally. Both records were subsequently published and publicly verified."
 }

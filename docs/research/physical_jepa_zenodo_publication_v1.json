@@ -1,0 +1,117 @@
+{
+  "schema_version": "physical-jepa-zenodo-publication-v1",
+  "published_at": "2026-08-25T08:26:52.2807293Z",
+  "publication_state": "published_and_publicly_verified",
+  "community_state": {
+    "new_records": "no community selected",
+    "old_report_request": {
+      "record_doi": "10.5281/zenodo.21829808",
+      "request_id": "d91885ca-829c-4542-bd26-8f58fb6f297c",
+      "status": "cancelled"
+    },
+    "old_dataset_open_request_observed": false,
+    "note": "No old or new record was left with an open community-inclusion request. Community selection was deferred."
+  },
+  "dataset": {
+    "title": "FerrumOS Physical JEPA Safety-Runtime Simulation Evidence Dataset v1.0.0",
+    "version": "1.0.0",
+    "doi": "10.5281/zenodo.22092320",
+    "public_url": "https://zenodo.org/records/22092320",
+    "license": "MIT",
+    "relation": {
+      "type": "isSupplementTo",
+      "identifier": "10.5281/zenodo.22092356",
+      "scheme": "doi",
+      "resource_type": "publication-report"
+    },
+    "programming_languages": [
+      "Python",
+      "Rust"
+    ],
+    "files": [
+      {
+        "name": "credential_scan_report.json",
+        "bytes": 491,
+        "sha256": "b842458c7add59467bcb16be23043eb132d36dd74fe8288c947fc718c2ce2c58",
+        "md5": "d2ff2cfa18ea87cda8a720538680c125"
+      },
+      {
+        "name": "DATA_CARD.md",
+        "bytes": 6310,
+        "sha256": "7feafe30a53bb923a90214a74db0840514c316cff12090b38e4eaa7554efaa08",
+        "md5": "0a9772aa5cd92ec9596bd18c99de7311"
+      },
+      {
+        "name": "ferrumos-physical-jepa-safety-runtime-evidence-v1.0.0.zip",
+        "bytes": 4061342,
+        "sha256": "7b579fbef738b69d7771f4ffb0a8ce9b7831f2fce2c57d884dc8f56dcfbd81db",
+        "md5": "4567ff7e2249bb110494273fdb8e8e88"
+      },
+      {
+        "name": "LICENSE",
+        "bytes": 1090,
+        "sha256": "56eea161d339cb1e574a63bb0e5af7d80216ea4a8f36d458f9baebdc29860d53",
+        "md5": "2a7db3b9eb26a247b55feecfc474fca5"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 26303,
+        "sha256": "8c746c4e27972b5c313862993525ce293155cbb4b5857141b18ff589fed02ebf",
+        "md5": "7edba412658cc628ea20676ee6e090dd"
+      },
+      {
+        "name": "README.md",
+        "bytes": 1688,
+        "sha256": "233afb18b574b5ba6e5cfcabab52f746cb335cd983f1b710d04cd6c6fd73ea44",
+        "md5": "725576215474ed9ea358aab92e2e029b"
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 611,
+        "sha256": "90f5a6c0e20cd997cbdcc96d403830967228b749c595be4925d5a395b0aea9e2",
+        "md5": "da79faf24731f0a1d3494321837cbbcc"
+      },
+      {
+        "name": "verify_release.py",
+        "bytes": 12415,
+        "sha256": "146cb67d3c4bbb3136562a64afa4d356844ea639ff256ecc355cc6e29a6c6e7d",
+        "md5": "91443ef3ba862d56a775e61180a49e04"
+      }
+    ]
+  },
+  "technical_report": {
+    "title": "Learned Caution, Deterministic Authority: A Calibration-First Runtime Boundary for Action-Conditioned Latent World Models in Cyber-Physical Systems",
+    "version": "1.1",
+    "doi": "10.5281/zenodo.22092356",
+    "public_url": "https://zenodo.org/records/22092356",
+    "license": "CC-BY-4.0",
+    "relation": {
+      "type": "isSupplementedBy",
+      "identifier": "10.5281/zenodo.22092320",
+      "scheme": "doi",
+      "resource_type": "dataset"
+    },
+    "programming_languages": [
+      "Python",
+      "Rust"
+    ],
+    "file": {
+      "name": "learned_caution_deterministic_authority_technical_report_v1.1.pdf",
+      "bytes": 315610,
+      "sha256": "d611ab8e2ede7fb1ffff2243ef690010be7eaa55a896d2b83a548578e958f2db",
+      "md5": "3fe50dca2d15ef31cc950075f760581e"
+    }
+  },
+  "verification": {
+    "public_landing_pages": "pass",
+    "public_api_status": "published",
+    "reciprocal_doi_relations": "pass",
+    "exact_programming_language_set": "Python and Rust only",
+    "public_redownload_hashes": "pass",
+    "downloaded_dataset_verifier": {
+      "result": "pass",
+      "checks": "12/12"
+    },
+    "claim_boundary": "Publication verification establishes public artifact identity and metadata consistency; it does not add HIL, physical-deployment, formal-safety, certification, independent-execution, or independent-assessment evidence."
+  }
+}
