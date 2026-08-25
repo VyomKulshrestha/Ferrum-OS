@@ -9,22 +9,22 @@
   "expected_pages": 8,
   "amendment": {
     "scope": "Pre-publication v1.1 amendment at the author's explicit instruction; no v1.0 artifact was changed.",
-    "reason": "Restore the v3 bootstrap count, characterize matched-FPR non-separation conservatively under the training-data mismatch, and add that confound to the numbered limitations without lengthening the report beyond eight pages.",
-    "superseded_freeze_commit": "e1b71052f8bdb7ced1e32e0094fa895d8e6fbd61",
-    "superseded_freeze_sha256": "0ee6eaed67cd6ac96768e8634fd49b44e32ff2679ea795852e07ed6628a21e37",
-    "superseded_manuscript_sha256": "febdb68fa3bc1ec4134f3c1f5855760f40f1435ac8d2dbf78f0ecd9e169bd550",
-    "superseded_pdf_sha256": "d34984aa09d0694eaf38590d25fffc3247b98cadacc878983c7bf1b8a3f2965e",
+    "reason": "Replace wording that could imply completed external peer review with accurate registered post-hoc uncertainty and audit language without changing results or lengthening the report beyond eight pages.",
+    "superseded_freeze_commit": "d7a62bec23ccea793126ea102f344ca04d7f27f2",
+    "superseded_freeze_sha256": "71a17e8ef586cbd620a31879dd2469b6168434d30671a5eabc9b0177ca7d2113",
+    "superseded_manuscript_sha256": "de979be6fad38ed02d0b6df0da84248b2ff7ade2229d46dc602c5cb2df5a17c8",
+    "superseded_pdf_sha256": "e6477c6a3cf566288fe8a1a72dc5d2b5b4babebb3d3c66425b785f33c602f994",
     "preservation": "The superseded bytes and freeze record remain addressable in Git at the recorded commit."
   },
   "mutation_policy": "Do not overwrite this amended pre-publication freeze. Any later manuscript or evidence change must produce a new version and freeze record.",
   "artifacts": {
     "manuscript": {
       "path": "docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.md",
-      "sha256": "de979be6fad38ed02d0b6df0da84248b2ff7ade2229d46dc602c5cb2df5a17c8"
+      "sha256": "32d708cef66d33d145c7a0bfb757454b63aade45b0056485832b15093d28c3e5"
     },
     "pdf": {
       "path": "docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf",
-      "sha256": "e6477c6a3cf566288fe8a1a72dc5d2b5b4babebb3d3c66425b785f33c602f994"
+      "sha256": "d611ab8e2ede7fb1ffff2243ef690010be7eaa55a896d2b83a548578e958f2db"
     },
     "pdf_builder": {
       "path": "scripts/build_physical_jepa_paper.py",
@@ -128,6 +128,8 @@
     "10,000-resample 95% interval",
     "non-separation is therefore a conservative null for the preserved lineage",
     "historical ordinary MLP was trained only on base trajectories, whereas the JEPA lineage used incident and stress curricula.",
+    "registered post-hoc uncertainty analysis",
+    "registered audit protocols and results",
     "paired v5-minus-MLP interval",
     "failed an overly strict `1e-12` scalar-versus-batched reproduction gate",
     "K. Zhong, T. Liu, and Y. Wang.",
@@ -136,7 +138,9 @@
   "forbidden_manuscript_strings": [
     "96%-stop",
     "reduces intervention from the earlier 96%",
-    "independently executed third-party"
+    "independently executed third-party",
+    "reviewer-requested",
+    "reviewer-audit"
   ],
   "claim_boundary": "This freeze binds post-hoc deterministic-simulator statistics and locally executed third-party software simulation with physical actuator authority disabled. It is not HIL, physical deployment, certification, independent execution, or independent assessment."
 }
