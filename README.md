@@ -28,11 +28,13 @@ The report, software, and dataset are separate artifacts; use the
 
 **Physical-runtime technical report:** [Read *Learned Caution, Deterministic
 Authority: A Calibration-First Runtime Boundary for Action-Conditioned Latent
-World Models in Cyber-Physical Systems*](docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf).
+World Models in Cyber-Physical Systems*](https://doi.org/10.5281/zenodo.22092356),
+or use its [simulation-evidence dataset](https://doi.org/10.5281/zenodo.22092320).
 Version 1.1 adds registered post-hoc uncertainty, a shared-catalog historical-MLP
 lineage comparison, and explicit marginal PyBullet attribution. It is an
 artifact-backed CPS/safety-runtime technical report, not a robotics-deployment
-or safety-guarantee claim.
+or safety-guarantee claim. The CC BY 4.0 report and MIT dataset are separate,
+reciprocally linked Zenodo records.
 
 > [!IMPORTANT]
 > The latest tagged release is v0.1.1; current-main evidence targets a
@@ -64,7 +66,7 @@ or safety-guarantee claim.
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [physical-runtime paper](docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [OS report DOI](https://doi.org/10.5281/zenodo.21829808), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 

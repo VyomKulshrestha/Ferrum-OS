@@ -124,6 +124,8 @@ The archival dataset is released under the MIT License included in `LICENSE`.
 Creator: Vyom Kulshrestha, Independent Researcher, India, ORCID
 `0009-0009-1434-7148`.
 
-Use the version DOI recorded in the final `MANIFEST.json` when citing these
-exact bytes. The related technical-report DOI identifies the interpretation and
-claim boundaries; cite both records when using the data to reproduce the paper.
+Use dataset version DOI [`10.5281/zenodo.22092320`](https://doi.org/10.5281/zenodo.22092320)
+when citing these exact bytes. The related technical-report version DOI
+[`10.5281/zenodo.22092356`](https://doi.org/10.5281/zenodo.22092356) identifies
+the interpretation and claim boundaries; cite both records when using the data
+to reproduce the paper. The two Zenodo records link to one another explicitly.
