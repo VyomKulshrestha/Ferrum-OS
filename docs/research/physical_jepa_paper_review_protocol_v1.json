@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-paper-review-audit-v1",
+  "registration_date": "2026-08-25",
+  "analysis_status_at_registration": "not_run",
+  "analysis_role": "Post-hoc reviewer-requested uncertainty and marginal-attribution audit. This protocol cannot select, promote, replace, or deploy an artifact.",
+  "inputs": {
+    "paper_protocol": {
+      "path": "docs/research/physical_jepa_paper_protocol_v1.json",
+      "sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd"
+    },
+    "paper_results": {
+      "path": "docs/research/physical_jepa_paper_results_v1.json",
+      "sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7"
+    },
+    "blinded_benchmark_v1": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v1_result.json",
+      "sha256": "0e618215143a1dd6ebe8721e3bcf7b9de1b47e4e98d64b67c6bb99c66de55fe4"
+    },
+    "blinded_benchmark_v2": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v2_result.json",
+      "sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "matched_fpr_uncertainty": {
+    "methods": [
+      "ordinary_supervised_mlp",
+      "v5"
+    ],
+    "partition": "paper_test_partition",
+    "interval": "Wilson 95% score interval without continuity correction for false-negative rate",
+    "paired_test": "Exact two-sided McNemar test on discordant dangerous-transition decisions",
+    "alpha": 0.05
+  },
+  "pybullet_marginal_audit": {
+    "definitions": {
+      "learned_only_intervention": "learned_alert AND NOT deterministic_block",
+      "learned_only_collision_avoidance": "learned_alert AND NOT deterministic_block AND unshielded_collision",
+      "learned_missed_collision_caught_by_rule": "unshielded_collision AND deterministic_block AND NOT learned_alert"
+    },
+    "report_family_sizes": true,
+    "audit_both_sealed_catalogs": true
+  },
+  "frozen_boundaries": [
+    "Do not alter physical_jepa_v5_protocol.json or any v5 selection evidence.",
+    "Do not overwrite the frozen v1.0 manuscript, PDF, or freeze record.",
+    "Do not overwrite either sealed PyBullet result.",
+    "Do not replace userland/heliox-daemon/physical_world_model.bin.",
+    "Report unfavorable or statistically non-separable results without suppression."
+  ]
+}
