@@ -29,8 +29,8 @@ The report, software, and dataset are separate artifacts; use the
 **Physical-runtime technical report:** [Read *Learned Caution, Deterministic
 Authority: A Calibration-First Runtime Boundary for Action-Conditioned Latent
 World Models in Cyber-Physical Systems*](docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf).
-Version 1.1 adds reviewer-requested uncertainty, a shared-catalog ordinary-MLP
-rollout comparison, and explicit marginal PyBullet attribution. It is an
+Version 1.1 adds reviewer-requested uncertainty, a shared-catalog historical-MLP
+lineage comparison, and explicit marginal PyBullet attribution. It is an
 artifact-backed CPS/safety-runtime technical report, not a robotics-deployment
 or safety-guarantee claim.
 

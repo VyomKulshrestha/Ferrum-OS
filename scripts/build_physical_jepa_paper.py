@@ -191,27 +191,44 @@ def table_flowable(lines: list[str], width: float):
     column_count = max(len(row) for row in rows)
     for row in rows:
         row.extend([""] * (column_count - len(row)))
-    data = [[Paragraph(inline(cell), ParagraphStyle("Cell", fontName="Helvetica", fontSize=7.3, leading=9)) for cell in row] for row in rows]
-    first_width = min(2.25 * inch, width * 0.34)
+    bold_cells = []
+    data = []
+    for row_index, row in enumerate(rows):
+        rendered_row = []
+        for column_index, cell in enumerate(row):
+            if cell.startswith("**") and cell.endswith("**"):
+                cell = cell[2:-2]
+                bold_cells.append((column_index, row_index))
+            rendered_row.append(cell)
+        data.append(rendered_row)
+    first_width = min(1.85 * inch, width * 0.29)
     remaining = (width - first_width) / max(1, column_count - 1)
-    table = Table(data, colWidths=[first_width] + [remaining] * (column_count - 1), repeatRows=1, hAlign="LEFT")
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#244d68")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#c5d0d9")),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f6f8")]),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]
-        )
+    table = Table(
+        data,
+        colWidths=[first_width] + [remaining] * (column_count - 1),
+        repeatRows=1,
+        hAlign="LEFT",
     )
-    return table
+    commands = [
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#244d68")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 7.3),
+        ("LEADING", (0, 0), (-1, -1), 9),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#c5d0d9")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f6f8")]),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+    ]
+    commands.extend(
+        ("FONTNAME", cell, cell, "Helvetica-Bold") for cell in bold_cells
+    )
+    table.setStyle(TableStyle(commands))
+    return KeepTogether([table])
 
 
 def parse(source: Path, document_width: float, status_line: str | None = None):
