@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-paper-shared-catalog-dynamics-calibration-v1",
+  "registration_date": "2026-08-25",
+  "analysis_status_at_registration": "not_run",
+  "analysis_role": "post-hoc shared-catalog dynamics comparison and calibration uncertainty without selection or promotion authority",
+  "relationship_to_prior_evidence": "The v5 final catalog was already opened by the frozen v5 evaluation and earlier paper analyses. This registered audit adds a format-correct PWM1 comparison and uncertainty estimates; it cannot alter model selection or deployment.",
+  "inputs": {
+    "evaluator": {
+      "path": "scripts/evaluate_physical_jepa_paper_dynamics_calibration.py",
+      "sha256": "57b7cd257ebff8996487081c5561b60a7924859f2fb2a8222ef4f626394b815e"
+    },
+    "paper_protocol": {
+      "path": "docs/research/physical_jepa_paper_protocol_v1.json",
+      "sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd"
+    },
+    "paper_results": {
+      "path": "docs/research/physical_jepa_paper_results_v1.json",
+      "sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7"
+    },
+    "v5_final_test": {
+      "path": "docs/research/physical_jepa_v5_final_test.json",
+      "sha256": "721a99e98029ac17fd615d55f5fd6c9ca4bfc8afa8544800efd40aa41089431d"
+    },
+    "final_catalog": {
+      "path": "docs/research/physical_incident_v5_test_sources.json",
+      "sha256": "63761521675145cbc92ce2aceae774c172dd37181c40fa080feb097230272d99"
+    },
+    "ordinary_supervised_mlp": {
+      "path": "docs/research/artifacts/physical-jepa-paper/ordinary_supervised_mlp.bin",
+      "sha256": "f8f081d1c250de1194330e7c412d268c83a6e58a879afb17775d280cf9a74b29"
+    },
+    "v3": {
+      "path": "docs/research/artifacts/physical-jepa-v5/baseline_v3.bin",
+      "sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60"
+    },
+    "failed_v4": {
+      "path": "target/physical_world_model/v4_candidate.bin",
+      "sha256": "db0d5b16576490acde44bdfb60b884616b669a03aa3c3056dc28845a3b248b64"
+    },
+    "v5": {
+      "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "paper_evaluator_source": {
+      "path": "scripts/evaluate_physical_jepa_paper.py",
+      "sha256": "230c0c3be365fd07c99b425cf0d7ef1e03321d37370b0b15a4ca036648dccf09"
+    },
+    "robustness_evaluator_source": {
+      "path": "scripts/evaluate_physical_jepa_robustness.py",
+      "sha256": "21ef072bbc7540ea0ae254d97ec232ab80a076d80074c99cac4731704ed9e60a"
+    },
+    "incident_generator_source": {
+      "path": "scripts/physical_incident_scenarios.py",
+      "sha256": "85daecebeada9ec7b228bcf6b824cd9398a63930adb61f8a28f4d8c6f7a9f2f5"
+    },
+    "pwm1_runtime_source": {
+      "path": "scripts/train_physical_world_model.py",
+      "sha256": "60777a079c0a517180a69349fd7845202905d597155fa381aaed9288938def61"
+    },
+    "pje1_runtime_source": {
+      "path": "scripts/train_physical_jepa.py",
+      "sha256": "640240ef348113711deee38206bca40feb86e731a48e34b8d21981529df54668"
+    }
+  },
+  "dynamics": {
+    "partition": "paper_protocol.paper_test_partition",
+    "horizons": [1, 3, 5],
+    "methods": ["ordinary_supervised_mlp", "v3", "v5"],
+    "metric": "mean absolute state error normalized by frozen state ranges, autoregressively rolled out over all valid episode windows",
+    "pwm1_format_shim": "Load PWM1 with load_supervised_mlp and expose its predicted state delta through train_physical_world_model.predict; the shared rollout evaluator adds and clips that delta exactly once.",
+    "pje1_format_path": "Load PJE1 with evaluate_physical_jepa_robustness.load_artifact and expose train_physical_jepa.predict_delta to the shared rollout evaluator.",
+    "comparisons": ["ordinary_supervised_mlp minus v5", "v3 minus v5"]
+  },
+  "calibration": {
+    "partition": "paper_protocol.paper_test_partition",
+    "methods": ["ordinary_supervised_mlp", "v3", "failed_v4", "v5"],
+    "metrics": ["ECE", "Brier score"],
+    "equal_mass_bins": 10,
+    "bootstrap_rule": "Recompute equal-mass ECE inside every resample; compute Brier score over the same resampled transitions.",
+    "paired_v5_comparators": ["ordinary_supervised_mlp", "v3", "failed_v4"]
+  },
+  "bootstrap": {
+    "unit": "episode",
+    "stratification": "source_id",
+    "paired_across_methods": true,
+    "resamples": 5000,
+    "seed": 20260825,
+    "alpha": 0.05,
+    "interval": "percentile"
+  },
+  "reproduction_tolerance": 1e-12,
+  "frozen_boundaries": [
+    "Do not modify physical_jepa_v5_protocol.json or any prior sealed result.",
+    "Do not retrain, select, promote, or replace any model artifact.",
+    "Do not replace userland/heliox-daemon/physical_world_model.bin.",
+    "Do not suppress unfavorable or non-separable results.",
+    "Treat all results as post-hoc deterministic-simulator evidence from an already-opened final catalog."
+  ]
+}
