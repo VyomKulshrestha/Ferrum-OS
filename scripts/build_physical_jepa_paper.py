@@ -31,6 +31,7 @@ from reportlab.platypus import (
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority.md"
 DEFAULT_OUTPUT = ROOT / "docs" / "research" / "paper" / "learned_caution_deterministic_authority_v1.0.pdf"
+DEFAULT_RUNNING_HEADER = "LEARNED CAUTION, DETERMINISTIC AUTHORITY - SUBMISSION CANDIDATE v1.0"
 
 
 def inline(text: str) -> str:
@@ -324,7 +325,7 @@ def page(canvas, document):
     canvas.line(document.leftMargin, height - 0.48 * inch, width - document.rightMargin, height - 0.48 * inch)
     canvas.setFont("Helvetica", 7.5)
     canvas.setFillColor(colors.HexColor("#667788"))
-    canvas.drawString(document.leftMargin, height - 0.38 * inch, "LEARNED CAUTION, DETERMINISTIC AUTHORITY - SUBMISSION CANDIDATE v1.0")
+    canvas.drawString(document.leftMargin, height - 0.38 * inch, document.running_header)
     canvas.drawRightString(width - document.rightMargin, 0.38 * inch, str(document.page))
     canvas.restoreState()
 
@@ -333,6 +334,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--running-header", default=DEFAULT_RUNNING_HEADER)
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     document = SimpleDocTemplate(
@@ -346,6 +348,7 @@ def main() -> None:
         author="Vyom Kulshrestha",
         subject="Calibration-first runtime boundary for action-conditioned latent world models",
     )
+    document.running_header = args.running_header
     story = parse(args.source, document.width)
     document.build(story, onFirstPage=page, onLaterPages=page)
     print(args.output)

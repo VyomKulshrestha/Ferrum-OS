@@ -26,10 +26,10 @@ Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/
 The report, software, and dataset are separate artifacts; use the
 [citation guide](docs/CITATION.md) for the one you relied on.
 
-**Physical-runtime submission candidate:** [Read *Learned Caution, Deterministic
+**Physical-runtime technical report:** [Read *Learned Caution, Deterministic
 Authority: A Calibration-First Runtime Boundary for Action-Conditioned Latent
-World Models in Cyber-Physical Systems*](docs/research/paper/learned_caution_deterministic_authority_v1.0.pdf).
-It is an artifact-backed CPS/safety-runtime submission candidate, not a robotics-deployment or
+World Models in Cyber-Physical Systems*](docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.0.pdf).
+It is an artifact-backed CPS/safety-runtime technical report, not a robotics-deployment or
 safety-guarantee claim.
 
 > [!IMPORTANT]
@@ -62,7 +62,7 @@ safety-guarantee claim.
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [physical-runtime paper](docs/research/paper/learned_caution_deterministic_authority_v1.0.pdf), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [physical-runtime paper](docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.0.pdf), [report DOI](https://doi.org/10.5281/zenodo.21829808), and [dataset DOI](https://doi.org/10.5281/zenodo.21829193) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 
@@ -361,6 +361,7 @@ python scripts/verify_physical_jepa_blinded_benchmark.py
 python scripts/verify_physical_jepa_blinded_benchmark_v2.py
 python scripts/verify_physical_jepa_paper.py
 python scripts/verify_physical_jepa_paper_freeze.py
+python scripts/build_physical_jepa_paper.py --output docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.0.pdf --running-header "LEARNED CAUTION, DETERMINISTIC AUTHORITY - TECHNICAL REPORT v1.0"
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs
