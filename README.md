@@ -361,7 +361,7 @@ python scripts/verify_physical_jepa_blinded_benchmark.py
 python scripts/verify_physical_jepa_blinded_benchmark_v2.py
 python scripts/verify_physical_jepa_paper.py
 python scripts/verify_physical_jepa_paper_freeze.py
-python scripts/build_physical_jepa_paper.py --output docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.0.pdf --running-header "LEARNED CAUTION, DETERMINISTIC AUTHORITY - TECHNICAL REPORT v1.0"
+python scripts/build_physical_jepa_paper.py --output docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.0.pdf --running-header "LEARNED CAUTION, DETERMINISTIC AUTHORITY - TECHNICAL REPORT v1.0" --status-line "Technical Report v1.0 — 25 August 2026"
 python -m unittest tools.physical_sim_bridge.test_bridge
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 node scripts/verify_bridge.mjs

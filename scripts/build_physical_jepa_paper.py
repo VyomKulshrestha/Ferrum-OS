@@ -214,7 +214,7 @@ def table_flowable(lines: list[str], width: float):
     return table
 
 
-def parse(source: Path, document_width: float):
+def parse(source: Path, document_width: float, status_line: str | None = None):
     style = styles()
     lines = source.read_text(encoding="utf-8").splitlines()
     story = []
@@ -290,6 +290,8 @@ def parse(source: Path, document_width: float):
                 "Submission candidate v",
             )
         ):
+            if status_line is not None and line.startswith(("Draft v", "Submission candidate v")):
+                line = status_line
             story.append(Paragraph(inline(line), style["author"]))
             if line.startswith("Draft v"):
                 story.append(Spacer(1, 10))
@@ -335,6 +337,7 @@ def main() -> None:
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--running-header", default=DEFAULT_RUNNING_HEADER)
+    parser.add_argument("--status-line")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     document = SimpleDocTemplate(
@@ -349,7 +352,7 @@ def main() -> None:
         subject="Calibration-first runtime boundary for action-conditioned latent world models",
     )
     document.running_header = args.running_header
-    story = parse(args.source, document.width)
+    story = parse(args.source, document.width, args.status_line)
     document.build(story, onFirstPage=page, onLaterPages=page)
     print(args.output)
 
