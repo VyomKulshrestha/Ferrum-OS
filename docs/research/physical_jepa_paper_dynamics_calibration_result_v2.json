@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-paper-shared-catalog-dynamics-calibration-gate-repair-v2",
+  "protocol_sha256": "734d91d247dee7969d2fdf9fbb278a63ebc1a5e61abdec58afa98a02ada83b48",
+  "analysis_role": "verification-gate repair for the already-computed post-hoc shared-catalog dynamics and calibration analysis",
+  "inputs": {
+    "evaluator": {
+      "path": "scripts/evaluate_physical_jepa_paper_dynamics_calibration.py",
+      "sha256": "5802050db785eb254536b4f41a307db51c3c77d6ed5b9b8c0d08713f6f553e88"
+    },
+    "registered_protocol_v1": {
+      "path": "docs/research/physical_jepa_paper_dynamics_calibration_protocol_v1.json",
+      "sha256": "02734c62c71a6548886eed1c4073082be08e31212f37871a1ff4077485ae71ba"
+    },
+    "failed_gate_result_v1": {
+      "path": "docs/research/physical_jepa_paper_dynamics_calibration_result_v1.json",
+      "sha256": "7d5edd9eb251398199deeb2a146a06a9cd60821217100a2aeaf6f132b6c4b262"
+    },
+    "paper_protocol": {
+      "path": "docs/research/physical_jepa_paper_protocol_v1.json",
+      "sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd"
+    },
+    "paper_results": {
+      "path": "docs/research/physical_jepa_paper_results_v1.json",
+      "sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7"
+    },
+    "v5_final_test": {
+      "path": "docs/research/physical_jepa_v5_final_test.json",
+      "sha256": "721a99e98029ac17fd615d55f5fd6c9ca4bfc8afa8544800efd40aa41089431d"
+    },
+    "final_catalog": {
+      "path": "docs/research/physical_incident_v5_test_sources.json",
+      "sha256": "63761521675145cbc92ce2aceae774c172dd37181c40fa080feb097230272d99"
+    },
+    "ordinary_supervised_mlp": {
+      "path": "docs/research/artifacts/physical-jepa-paper/ordinary_supervised_mlp.bin",
+      "sha256": "f8f081d1c250de1194330e7c412d268c83a6e58a879afb17775d280cf9a74b29"
+    },
+    "v3": {
+      "path": "docs/research/artifacts/physical-jepa-v5/baseline_v3.bin",
+      "sha256": "f267dc092f9fb2ab752b6d5ef6c5dc60cb799e15ca679da52bc5e707cc66ee60"
+    },
+    "failed_v4": {
+      "path": "target/physical_world_model/v4_candidate.bin",
+      "sha256": "db0d5b16576490acde44bdfb60b884616b669a03aa3c3056dc28845a3b248b64"
+    },
+    "v5": {
+      "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "paper_evaluator_source": {
+      "path": "scripts/evaluate_physical_jepa_paper.py",
+      "sha256": "230c0c3be365fd07c99b425cf0d7ef1e03321d37370b0b15a4ca036648dccf09"
+    },
+    "robustness_evaluator_source": {
+      "path": "scripts/evaluate_physical_jepa_robustness.py",
+      "sha256": "21ef072bbc7540ea0ae254d97ec232ab80a076d80074c99cac4731704ed9e60a"
+    },
+    "incident_generator_source": {
+      "path": "scripts/physical_incident_scenarios.py",
+      "sha256": "85daecebeada9ec7b228bcf6b824cd9398a63930adb61f8a28f4d8c6f7a9f2f5"
+    },
+    "pwm1_runtime_source": {
+      "path": "scripts/train_physical_world_model.py",
+      "sha256": "60777a079c0a517180a69349fd7845202905d597155fa381aaed9288938def61"
+    }
+  },
+  "test_evidence": {
+    "episodes": 2560,
+    "transitions": 20480,
+    "dangerous_transitions": 2834,
+    "source_episode_counts": {
+      "doj_bexar_water_tampering_2025": 320,
+      "sec_americold_cyber_2023": 320,
+      "sec_artivion_cyber_2024": 320,
+      "sec_brunswick_cyber_2023": 320,
+      "sec_johnson_controls_ransomware_2023": 320,
+      "sec_mks_ransomware_2023": 320,
+      "sec_sensata_ransomware_2025": 320,
+      "sec_steel_partners_cyber_2022": 320
+    },
+    "source_family_episode_counts": {
+      "americold_cyber_2023": 320,
+      "artivion_cyber_2024": 320,
+      "bexar_water_tampering_2025": 320,
+      "brunswick_cyber_2023": 320,
+      "johnson_controls_ransomware_2023": 320,
+      "mks_ransomware_2023": 320,
+      "sensata_ransomware_2025": 320,
+      "steel_partners_cyber_2022": 320
+    },
+    "hazard_tag_episode_counts": {
+      "availability_loss": 1385,
+      "logic_or_configuration_tamper": 214,
+      "loss_of_view": 428,
+      "manual_fallback": 748,
+      "recovery_inhibition": 428,
+      "unauthorized_actuation": 213
+    },
+    "action_transition_counts": {
+      "approve": 3427,
+      "diagnose": 3190,
+      "inspect": 363,
+      "move": 1058,
+      "repair": 3542,
+      "stop": 5536,
+      "verify": 3364
+    }
+  },
+  "bootstrap": {
+    "unit": "episode",
+    "stratification": "source_id",
+    "paired_across_methods": true,
+    "resamples": 5000,
+    "seed": 20260825,
+    "alpha": 0.05,
+    "interval": "percentile",
+    "source_episode_counts": {
+      "doj_bexar_water_tampering_2025": 320,
+      "sec_americold_cyber_2023": 320,
+      "sec_artivion_cyber_2024": 320,
+      "sec_brunswick_cyber_2023": 320,
+      "sec_johnson_controls_ransomware_2023": 320,
+      "sec_mks_ransomware_2023": 320,
+      "sec_sensata_ransomware_2025": 320,
+      "sec_steel_partners_cyber_2022": 320
+    }
+  },
+  "shared_catalog_dynamics": {
+    "unit": "episode",
+    "methods": {
+      "ordinary_supervised_mlp": {
+        "h1": {
+          "estimate": 0.007879717630385131,
+          "bootstrap_95_percent": {
+            "lower": 0.007801301878132563,
+            "upper": 0.007962376860973563
+          }
+        },
+        "h3": {
+          "estimate": 0.017118545119228657,
+          "bootstrap_95_percent": {
+            "lower": 0.016903152003992544,
+            "upper": 0.017335630715087973
+          }
+        },
+        "h5": {
+          "estimate": 0.023362182668279274,
+          "bootstrap_95_percent": {
+            "lower": 0.02302044340171051,
+            "upper": 0.023705399940554345
+          }
+        }
+      },
+      "v3": {
+        "h1": {
+          "estimate": 0.002842702904945327,
+          "bootstrap_95_percent": {
+            "lower": 0.0028079156488809076,
+            "upper": 0.002877854077929669
+          }
+        },
+        "h3": {
+          "estimate": 0.007515402016542794,
+          "bootstrap_95_percent": {
+            "lower": 0.007421059090347626,
+            "upper": 0.007612297033178948
+          }
+        },
+        "h5": {
+          "estimate": 0.011738820216123713,
+          "bootstrap_95_percent": {
+            "lower": 0.011591498795637561,
+            "upper": 0.011887116830816922
+          }
+        }
+      },
+      "v5": {
+        "h1": {
+          "estimate": 0.0015658946626672331,
+          "bootstrap_95_percent": {
+            "lower": 0.0015321090662831695,
+            "upper": 0.001601131868250718
+          }
+        },
+        "h3": {
+          "estimate": 0.003560077523434302,
+          "bootstrap_95_percent": {
+            "lower": 0.0034693614291336416,
+            "upper": 0.00365695836607415
+          }
+        },
+        "h5": {
+          "estimate": 0.005106694612277351,
+          "bootstrap_95_percent": {
+            "lower": 0.00496564558577802,
+            "upper": 0.005259650109019276
+          }
+        }
+      }
+    },
+    "paired_reductions": {
+      "ordinary_supervised_mlp": {
+        "h1": {
+          "mean_error_reduction_baseline_minus_v5": 0.006313822967717897,
+          "bootstrap_95_percent": {
+            "lower": 0.006240800048360598,
+            "upper": 0.006387435963742974
+          },
+          "interval_excludes_zero": true
+        },
+        "h3": {
+          "mean_error_reduction_baseline_minus_v5": 0.013558467595794354,
+          "bootstrap_95_percent": {
+            "lower": 0.013363948942687784,
+            "upper": 0.013757741748773923
+          },
+          "interval_excludes_zero": true
+        },
+        "h5": {
+          "mean_error_reduction_baseline_minus_v5": 0.018255488056001922,
+          "bootstrap_95_percent": {
+            "lower": 0.017943396335655278,
+            "upper": 0.01857360666148338
+          },
+          "interval_excludes_zero": true
+        }
+      },
+      "v3": {
+        "h1": {
+          "mean_error_reduction_baseline_minus_v5": 0.0012768082422780936,
+          "bootstrap_95_percent": {
+            "lower": 0.0012652828559004093,
+            "upper": 0.001288230401422652
+          },
+          "interval_excludes_zero": true
+        },
+        "h3": {
+          "mean_error_reduction_baseline_minus_v5": 0.003955324493108492,
+          "bootstrap_95_percent": {
+            "lower": 0.0039185461053807555,
+            "upper": 0.003993435961581327
+          },
+          "interval_excludes_zero": true
+        },
+        "h5": {
+          "mean_error_reduction_baseline_minus_v5": 0.006632125603846362,
+          "bootstrap_95_percent": {
+            "lower": 0.006559280103916762,
+            "upper": 0.006703790550731128
+          },
+          "interval_excludes_zero": true
+        }
+      }
+    },
+    "v3_and_v5_reproduce_frozen_final_test": true
+  },
+  "calibration_uncertainty": {
+    "unit": "episode",
+    "methods": {
+      "ordinary_supervised_mlp": {
+        "ece": {
+          "estimate": 0.0005096989994902914,
+          "bootstrap_95_percent": {
+            "lower": 0.00043310798546971013,
+            "upper": 0.001214505121001379
+          }
+        },
+        "brier_score": {
+          "estimate": 0.0011960976692362824,
+          "bootstrap_95_percent": {
+            "lower": 0.000864805154190906,
+            "upper": 0.001594612321205439
+          }
+        }
+      },
+      "v3": {
+        "ece": {
+          "estimate": 0.0006284361501599162,
+          "bootstrap_95_percent": {
+            "lower": 0.0003178468640723091,
+            "upper": 0.0011961474912009925
+          }
+        },
+        "brier_score": {
+          "estimate": 0.0009414695466218898,
+          "bootstrap_95_percent": {
+            "lower": 0.0007021067282497602,
+            "upper": 0.0012174597505121422
+          }
+        }
+      },
+      "failed_v4": {
+        "ece": {
+          "estimate": 0.0005563404857773053,
+          "bootstrap_95_percent": {
+            "lower": 0.0003732514156097553,
+            "upper": 0.0011451849479473366
+          }
+        },
+        "brier_score": {
+          "estimate": 0.0009789995756543407,
+          "bootstrap_95_percent": {
+            "lower": 0.0007231934140872934,
+            "upper": 0.0012882393652348138
+          }
+        }
+      },
+      "v5": {
+        "ece": {
+          "estimate": 0.00044276738402547537,
+          "bootstrap_95_percent": {
+            "lower": 0.0003095708582242395,
+            "upper": 0.0009945048735766977
+          }
+        },
+        "brier_score": {
+          "estimate": 0.0008274432620635135,
+          "bootstrap_95_percent": {
+            "lower": 0.0006095596858135515,
+            "upper": 0.0010824945993549754
+          }
+        }
+      }
+    },
+    "paired_differences": {
+      "ordinary_supervised_mlp": {
+        "ece": {
+          "difference_v5_minus_baseline": -6.6931615464816e-05,
+          "bootstrap_95_percent": {
+            "lower": -0.00061574317367002,
+            "upper": 0.00023473130307697377
+          },
+          "interval_excludes_zero": false
+        },
+        "brier_score": {
+          "difference_v5_minus_baseline": -0.00036865440717276886,
+          "bootstrap_95_percent": {
+            "lower": -0.0006653470122685598,
+            "upper": -0.00012825503815471563
+          },
+          "interval_excludes_zero": true
+        }
+      },
+      "v3": {
+        "ece": {
+          "difference_v5_minus_baseline": -0.00018566876613444083,
+          "bootstrap_95_percent": {
+            "lower": -0.0002583947721765957,
+            "upper": 0.0002034723314700097
+          },
+          "interval_excludes_zero": false
+        },
+        "brier_score": {
+          "difference_v5_minus_baseline": -0.00011402628455837625,
+          "bootstrap_95_percent": {
+            "lower": -0.0001793748745585527,
+            "upper": -5.187328443204991e-05
+          },
+          "interval_excludes_zero": true
+        }
+      },
+      "failed_v4": {
+        "ece": {
+          "difference_v5_minus_baseline": -0.00011357310175182995,
+          "bootstrap_95_percent": {
+            "lower": -0.00022043641255168223,
+            "upper": 3.164059025299033e-05
+          },
+          "interval_excludes_zero": false
+        },
+        "brier_score": {
+          "difference_v5_minus_baseline": -0.0001515563135908272,
+          "bootstrap_95_percent": {
+            "lower": -0.0002526189733247879,
+            "upper": -6.656904768532093e-05
+          },
+          "interval_excludes_zero": true
+        }
+      }
+    }
+  },
+  "checks": {
+    "registered_inputs_match": true,
+    "final_partition_reproduces": true,
+    "source_strata_match": true,
+    "v3_and_v5_dynamics_reproduce_frozen_final_test": true,
+    "statistical_estimates_reproduce_failed_gate_v1": true,
+    "deployed_artifact_unchanged": true
+  },
+  "all_checks_pass": true,
+  "claim_boundary": "Post-hoc deterministic-simulator analysis of an already-opened final catalog; not selection, promotion, replacement, deployment, HIL, physical evidence, certification, or independent assessment."
+}
