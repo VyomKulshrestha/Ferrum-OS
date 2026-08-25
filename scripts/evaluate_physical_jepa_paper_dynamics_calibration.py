@@ -22,7 +22,6 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import evaluate_physical_jepa_paper as paper  # noqa: E402
 import evaluate_physical_jepa_robustness as robustness  # noqa: E402
 import physical_incident_scenarios as incidents  # noqa: E402
-import train_physical_jepa as jepa  # noqa: E402
 import train_physical_world_model as simulator  # noqa: E402
 
 
@@ -103,12 +102,14 @@ def dynamics_audit(rows, metadata, protocol, paper_protocol, final_test, counts)
         "ordinary_supervised_mlp": lambda state, action, features: simulator.predict(
             simulator.make_input(state, action, features), mlp_weights
         )[0],
-        "v3": lambda state, action, features: jepa.predict_delta(
-            state, action, features, jepa_weights["v3"]
-        ),
-        "v5": lambda state, action, features: jepa.predict_delta(
-            state, action, features, jepa_weights["v5"]
-        ),
+        "v3": lambda state, action, features: robustness.prediction(
+            jepa_weights["v3"], state, action, features
+        )
+        - state,
+        "v5": lambda state, action, features: robustness.prediction(
+            jepa_weights["v5"], state, action, features
+        )
+        - state,
     }
     methods = {}
     raw = {}

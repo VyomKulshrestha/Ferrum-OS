@@ -2,13 +2,22 @@
   "schema_version": 1,
   "protocol_id": "physical-jepa-paper-shared-catalog-dynamics-calibration-v1",
   "registration_date": "2026-08-25",
+  "registration_revision": 2,
   "analysis_status_at_registration": "not_run",
+  "pre_result_execution_history": [
+    {
+      "revision": 1,
+      "outcome": "failed_before_any_statistic_or_result_file",
+      "reason": "The training-time PJE1 decoder expected reconstruction weights intentionally absent from the frozen shadow artifact.",
+      "correction": "Use the frozen robustness runtime's clipped next-state prediction minus the current state as the delta consumed by the shared rollout loop."
+    }
+  ],
   "analysis_role": "post-hoc shared-catalog dynamics comparison and calibration uncertainty without selection or promotion authority",
   "relationship_to_prior_evidence": "The v5 final catalog was already opened by the frozen v5 evaluation and earlier paper analyses. This registered audit adds a format-correct PWM1 comparison and uncertainty estimates; it cannot alter model selection or deployment.",
   "inputs": {
     "evaluator": {
       "path": "scripts/evaluate_physical_jepa_paper_dynamics_calibration.py",
-      "sha256": "57b7cd257ebff8996487081c5561b60a7924859f2fb2a8222ef4f626394b815e"
+      "sha256": "7f65e28d16bee6d6e9f19775265343c83e6a9dc888d9cbeb0cf02d0fb4c1d95d"
     },
     "paper_protocol": {
       "path": "docs/research/physical_jepa_paper_protocol_v1.json",
@@ -61,10 +70,6 @@
     "pwm1_runtime_source": {
       "path": "scripts/train_physical_world_model.py",
       "sha256": "60777a079c0a517180a69349fd7845202905d597155fa381aaed9288938def61"
-    },
-    "pje1_runtime_source": {
-      "path": "scripts/train_physical_jepa.py",
-      "sha256": "640240ef348113711deee38206bca40feb86e731a48e34b8d21981529df54668"
     }
   },
   "dynamics": {
@@ -73,7 +78,7 @@
     "methods": ["ordinary_supervised_mlp", "v3", "v5"],
     "metric": "mean absolute state error normalized by frozen state ranges, autoregressively rolled out over all valid episode windows",
     "pwm1_format_shim": "Load PWM1 with load_supervised_mlp and expose its predicted state delta through train_physical_world_model.predict; the shared rollout evaluator adds and clips that delta exactly once.",
-    "pje1_format_path": "Load PJE1 with evaluate_physical_jepa_robustness.load_artifact and expose train_physical_jepa.predict_delta to the shared rollout evaluator.",
+    "pje1_format_path": "Load PJE1 with evaluate_physical_jepa_robustness.load_artifact and subtract the current state from that frozen runtime's clipped next-state prediction; the shared rollout evaluator then adds and clips the delta exactly once.",
     "comparisons": ["ordinary_supervised_mlp minus v5", "v3 minus v5"]
   },
   "calibration": {
