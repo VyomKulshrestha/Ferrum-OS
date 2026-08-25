@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Verify the immutable Physical JEPA submission-candidate v1.0 freeze."""
+"""Verify an immutable Physical JEPA paper freeze."""
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
@@ -12,7 +13,7 @@ from pypdf import PdfReader
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FREEZE = ROOT / "docs" / "research" / "physical_jepa_paper_freeze_v1.json"
+DEFAULT_FREEZE = ROOT / "docs" / "research" / "physical_jepa_paper_freeze_v1.json"
 
 
 def sha256(path: Path) -> str:
@@ -31,7 +32,10 @@ def wilson_interval(successes: int, trials: int, z: float) -> tuple[float, float
 
 
 def main() -> int:
-    freeze = json.loads(FREEZE.read_text(encoding="utf-8"))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--freeze", type=Path, default=DEFAULT_FREEZE)
+    args = parser.parse_args()
+    freeze = json.loads(args.freeze.read_text(encoding="utf-8"))
     artifacts = freeze["artifacts"]
     checks = {
         f"{name}_digest_matches": sha256(ROOT / record["path"])
@@ -52,17 +56,24 @@ def main() -> int:
     )
     checks.update(
         {
-            "freeze_identity_matches": freeze["freeze_id"]
-            == "learned-caution-deterministic-authority-v1.0"
-            and freeze["status"] == "frozen_submission_candidate",
-            "manuscript_is_v1_0_submission_candidate": (
-                "Submission candidate v1.0 - 25 August 2026" in manuscript
-            ),
+            "freeze_identity_matches": freeze["freeze_id"].startswith(
+                "learned-caution-deterministic-authority-"
+            )
+            and freeze["status"]
+            in ("frozen_submission_candidate", "frozen_technical_report"),
+            "manuscript_identity_matches": freeze.get(
+                "status_line", "Submission candidate v1.0 - 25 August 2026"
+            )
+            in manuscript,
             "contribution_is_unambiguous": contribution in manuscript
             and "independently executed third-party" not in manuscript,
             "zero_event_caveat_is_present": caveat in manuscript,
         }
     )
+    for index, required in enumerate(freeze.get("required_manuscript_strings", [])):
+        checks[f"required_manuscript_string_{index}_present"] = required in manuscript
+    for index, forbidden in enumerate(freeze.get("forbidden_manuscript_strings", [])):
+        checks[f"forbidden_manuscript_string_{index}_absent"] = forbidden not in manuscript
 
     benchmark = json.loads(
         (ROOT / artifacts["blinded_benchmark_result"]["path"]).read_text(
@@ -118,12 +129,29 @@ def main() -> int:
         }
     )
 
+    if "review_result" in artifacts:
+        review = json.loads(
+            (ROOT / artifacts["review_result"]["path"]).read_text(encoding="utf-8")
+        )
+        checks.update(
+            {
+                "review_audit_passes": review["all_checks_pass"],
+                "review_audit_binds_registered_protocol": review["protocol_sha256"]
+                == artifacts["review_protocol"]["sha256"],
+                "review_audit_preserves_deployed_artifact": review["inputs"][
+                    "deployed_artifact"
+                ]["sha256"]
+                == artifacts["deployed_artifact"]["sha256"],
+            }
+        )
+
     pdf = PdfReader(str(ROOT / artifacts["pdf"]["path"]))
     first_page = pdf.pages[0].extract_text()
     checks["pdf_identity_and_length_match"] = (
         pdf.metadata.author == freeze["author"]
-        and len(pdf.pages) == 8
-        and "SUBMISSION CANDIDATE v1.0" in first_page
+        and len(pdf.pages) == freeze.get("expected_pages", 8)
+        and freeze.get("running_header", "SUBMISSION CANDIDATE v1.0")
+        in first_page
     )
 
     failed = [name for name, passed in checks.items() if not passed]

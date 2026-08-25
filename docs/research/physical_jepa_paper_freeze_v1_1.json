@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "freeze_id": "learned-caution-deterministic-authority-technical-report-v1.1",
+  "status": "frozen_technical_report",
+  "frozen_on": "2026-08-25",
+  "author": "Vyom Kulshrestha",
+  "status_line": "Technical Report v1.1 - 25 August 2026",
+  "running_header": "TECHNICAL REPORT v1.1",
+  "expected_pages": 8,
+  "mutation_policy": "Do not overwrite a frozen artifact. Any manuscript or evidence change must produce a new version and freeze record.",
+  "artifacts": {
+    "manuscript": {
+      "path": "docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.md",
+      "sha256": "665e9cada0fe9907d91565730de8e58f186af249dc302eeb3264a959ff7d20ce"
+    },
+    "pdf": {
+      "path": "docs/research/paper/learned_caution_deterministic_authority_technical_report_v1.1.pdf",
+      "sha256": "c301b78f6631014f909d2160e6d29f826da059be7f4fb107613d0b51980e4979"
+    },
+    "paper_protocol": {
+      "path": "docs/research/physical_jepa_paper_protocol_v1.json",
+      "sha256": "791f315ae30d813ea23f37e9f000f97be98def428db08546e6642c659645a2fd"
+    },
+    "paper_results": {
+      "path": "docs/research/physical_jepa_paper_results_v1.json",
+      "sha256": "19b10b2dc46e888c8a36139fa28318eb6c1cddd94a7526fb9acc8455564baaa7"
+    },
+    "ablation_table": {
+      "path": "docs/research/physical_jepa_paper_ablation_v1.csv",
+      "sha256": "4bf797b80b7f4a667dc3d0d926d54d493ef484f85bb48169baa95ac32122b7e8"
+    },
+    "review_protocol": {
+      "path": "docs/research/physical_jepa_paper_review_protocol_v1.json",
+      "sha256": "fa22a7d0ecd590e0cc4a919c7609757a44a12cf0800123a1f46dcb2e2314d3a5"
+    },
+    "review_result": {
+      "path": "docs/research/physical_jepa_paper_review_result_v1.json",
+      "sha256": "7ff6bd100cc91dfbd0d01ef3b7a6e74a38d38c06ea6bec7728a5094e89e3a3ac"
+    },
+    "blinded_benchmark_result": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v2_result.json",
+      "sha256": "71db9b994680aa264509e2976e47c7ebf401c1d77ddf5151bbc6ec1d39ea2c69"
+    },
+    "blinded_benchmark_verification": {
+      "path": "docs/research/physical_jepa_blinded_benchmark_v2_verification.json",
+      "sha256": "56db574eaaa8228684e23b5607826ed697f10466fe468dec6d7797ccab83b694"
+    },
+    "v5_protocol": {
+      "path": "docs/research/physical_jepa_v5_protocol.json",
+      "sha256": "68f93d8b94bc6ce0881601729e734a986881eac267d1cee64fbf2eca9a951378"
+    },
+    "v5_selection": {
+      "path": "docs/research/physical_jepa_v5_selection.json",
+      "sha256": "d3bf2f482424a852a65cae09ba4c076fd72d0f719986986cd8ad2a2c90248c8f"
+    },
+    "v5_selection_verification": {
+      "path": "docs/research/physical_jepa_v5_selection_verification.json",
+      "sha256": "5eb5cb8e4cd0f060b5ab96cbd7a48f6524b176594a3aead3f2718a490799ea92"
+    },
+    "v5_final_test": {
+      "path": "docs/research/physical_jepa_v5_final_test.json",
+      "sha256": "721a99e98029ac17fd615d55f5fd6c9ca4bfc8afa8544800efd40aa41089431d"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "pybullet_wilson_95_percent": {
+    "method": "Wilson score interval without continuity correction",
+    "z": 1.959963984540054,
+    "trials": 512,
+    "completion": {
+      "successes": 429,
+      "estimate": 0.837890625,
+      "lower": 0.8034705415897391,
+      "upper": 0.8672781818475316
+    },
+    "intervention": {
+      "successes": 83,
+      "estimate": 0.162109375,
+      "lower": 0.1327218181524684,
+      "upper": 0.19652945841026095
+    },
+    "shielded_collision": {
+      "successes": 0,
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.007446975722882739
+    }
+  },
+  "required_manuscript_strings": [
+    "not statistically separable from the supervised baseline at this sample size",
+    "v5 avoids no collision not already prevented by the deterministic predicate",
+    "This benchmark therefore demonstrates typed integration, monotone deterministic authority, and intervention cost - not incremental learned collision-avoidance value.",
+    "K. Zhong, T. Liu, and Y. Wang.",
+    "L. Yang, B. Werner, R. K. Cosner, D. Fridovich-Keil, P. Culbertson, and A. D. Ames."
+  ],
+  "forbidden_manuscript_strings": [
+    "96%-stop",
+    "reduces intervention from the earlier 96%",
+    "independently executed third-party"
+  ],
+  "claim_boundary": "This freeze binds post-hoc deterministic-simulator statistics and locally executed third-party software simulation with physical actuator authority disabled. It is not HIL, physical deployment, certification, independent execution, or independent assessment."
+}
