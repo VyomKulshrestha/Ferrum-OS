@@ -26,10 +26,10 @@ import train_physical_world_model as simulator  # noqa: E402
 
 
 DEFAULT_PROTOCOL = (
-    ROOT / "docs" / "research" / "physical_jepa_paper_dynamics_calibration_protocol_v1.json"
+    ROOT / "docs" / "research" / "physical_jepa_paper_dynamics_calibration_protocol_v2.json"
 )
 DEFAULT_OUTPUT = (
-    ROOT / "docs" / "research" / "physical_jepa_paper_dynamics_calibration_result_v1.json"
+    ROOT / "docs" / "research" / "physical_jepa_paper_dynamics_calibration_result_v2.json"
 )
 
 
@@ -270,8 +270,11 @@ def main() -> int:
         raise FileExistsError(f"refusing to overwrite evidence: {args.output}")
 
     protocol = json.loads(args.protocol.read_text(encoding="utf-8"))
-    if protocol["analysis_status_at_registration"] != "not_run":
-        raise ValueError("analysis protocol was not registered before execution")
+    if protocol["analysis_status_at_registration"] not in {
+        "not_run",
+        "gate_repair_registered_after_v1_result",
+    }:
+        raise ValueError("unsupported analysis registration status")
     inputs = {}
     for name, record in protocol["inputs"].items():
         path = ROOT / record["path"]
@@ -304,6 +307,20 @@ def main() -> int:
     calibration = calibration_audit(
         rows, episode_ids, protocol, paper_protocol, paper_results, counts
     )
+    reference = None
+    estimates_reproduce_v1 = True
+    if "failed_gate_result_v1" in protocol["inputs"]:
+        reference = json.loads(
+            (ROOT / protocol["inputs"]["failed_gate_result_v1"]["path"]).read_text(
+                encoding="utf-8"
+            )
+        )
+        estimates_reproduce_v1 = (
+            dynamics["methods"] == reference["shared_catalog_dynamics"]["methods"]
+            and dynamics["paired_reductions"]
+            == reference["shared_catalog_dynamics"]["paired_reductions"]
+            and calibration == reference["calibration_uncertainty"]
+        )
     checks = {
         "registered_inputs_match": True,
         "final_partition_reproduces": True,
@@ -311,6 +328,7 @@ def main() -> int:
         "v3_and_v5_dynamics_reproduce_frozen_final_test": dynamics[
             "v3_and_v5_reproduce_frozen_final_test"
         ],
+        "statistical_estimates_reproduce_failed_gate_v1": estimates_reproduce_v1,
         "deployed_artifact_unchanged": sha256(
             ROOT / protocol["inputs"]["deployed_artifact"]["path"]
         )
