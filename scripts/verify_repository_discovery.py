@@ -66,7 +66,10 @@ def main() -> int:
         "full hardware control" not in opening,
         "README opening avoids unbounded hardware claim",
     )
-    require("10.5281/zenodo.22116399" in readme, "README exposes current technical-report DOI")
+    require(
+        "10.5281/zenodo.22116399" in readme,
+        "README exposes current technical-report DOI",
+    )
     require("10.5281/zenodo.21829193" in readme, "README exposes dataset DOI")
 
     require(llms.startswith("# FerrumOS\n"), "llms.txt has canonical project heading")
