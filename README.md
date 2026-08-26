@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust: nightly](https://img.shields.io/badge/rust-nightly-orange.svg)](rust-toolchain.toml)
 [![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
-[![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21829808.svg)](https://doi.org/10.5281/zenodo.21829808)
+[![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22116399.svg)](https://doi.org/10.5281/zenodo.22116399)
 [![Explore FerrumOS](https://img.shields.io/badge/Explore-FerrumOS-29d9c2)](https://ferrum-os.vercel.app)
 [![Sponsor FerrumOS](https://img.shields.io/badge/Sponsor-FerrumOS-EA4AAA?logo=githubsponsors)](https://github.com/sponsors/VyomKulshrestha)
 
@@ -22,7 +22,7 @@ operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
 **Open-access research:** [Read *When Agents Control the Kernel: A JEPA World
-Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.21829808).
+Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.22116399).
 The report, software, and dataset are separate artifacts; use the
 [citation guide](docs/CITATION.md) for the one you relied on.
 
@@ -66,7 +66,7 @@ reciprocally linked Zenodo records.
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [OS report DOI](https://doi.org/10.5281/zenodo.21829808), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [OS report DOI](https://doi.org/10.5281/zenodo.22116399), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 
@@ -504,12 +504,12 @@ DOI is [`10.5281/zenodo.21829192`](https://doi.org/10.5281/zenodo.21829192). A f
 public download matched all ten local release files byte-for-byte and passed the
 standalone release verifier 11/11. The machine-readable publication check is in
 [`world_model_dataset_publication.json`](docs/research/world_model_dataset_publication.json).
-The accompanying technical report is published open access at Zenodo under version
-DOI [`10.5281/zenodo.21829808`](https://doi.org/10.5281/zenodo.21829808); all
+The accompanying Technical Report v1.2 is published open access at Zenodo under
+version DOI [`10.5281/zenodo.22116399`](https://doi.org/10.5281/zenodo.22116399); all
 versions resolve through DOI
 [`10.5281/zenodo.21829807`](https://doi.org/10.5281/zenodo.21829807). This is a
 separate publication identifier from the dataset DOI above. The public record serves
-the DOI-stamped 14-page PDF, and its machine-readable publication state is tracked in
+the frozen 18-page PDF, and its machine-readable publication state is tracked in
 [`world_model_technical_report_publication.json`](docs/research/world_model_technical_report_publication.json).
 Independent human/natural-use results are intentionally not claimed: the repo
 provides privacy-bounded telemetry plus a blinded two-annotator/adjudication workflow,

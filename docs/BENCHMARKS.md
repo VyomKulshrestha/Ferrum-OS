@@ -22,7 +22,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 The frozen `world-model-study-v1.0.0` release accounts for 13,697 rows from 3,639 episodes; 13,270 executed transitions enter episode-disjoint fitting/evaluation. On the authored balanced 500-episode safety fixture, rules + JEPA reach 81.40% balanced accuracy with 20.80% FNR and 16.40% FPR. Rules + a per-action mean reach 81.20%; the report therefore does not establish a material JEPA safety advantage. Five independently trained pipelines average 79.76% balanced accuracy.
 
 - [Technical report release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0)
-- [Technical report DOI](https://doi.org/10.5281/zenodo.21829808)
+- [Technical report DOI](https://doi.org/10.5281/zenodo.22116399)
 - [Dataset DOI](https://doi.org/10.5281/zenodo.21829193)
 - [Reproduction guide](research/WORLD_MODEL_PAPER_EVALUATION.md)
 

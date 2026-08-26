@@ -41,7 +41,7 @@ def main() -> int:
     cargo = (ROOT / "Cargo.toml").read_text(encoding="utf-8")
     funding = (ROOT / ".github" / "FUNDING.yml").read_text(encoding="utf-8")
 
-    opening = readme[:7000].lower()
+    opening = readme[:10000].lower()
     for phrase in (
         "rust ai-native",
         "simulator-backed cyber-physical research os",
@@ -66,7 +66,7 @@ def main() -> int:
         "full hardware control" not in opening,
         "README opening avoids unbounded hardware claim",
     )
-    require("10.5281/zenodo.21829808" in readme, "README exposes technical-report DOI")
+    require("10.5281/zenodo.22116399" in readme, "README exposes current technical-report DOI")
     require("10.5281/zenodo.21829193" in readme, "README exposes dataset DOI")
 
     require(llms.startswith("# FerrumOS\n"), "llms.txt has canonical project heading")
@@ -128,7 +128,7 @@ def main() -> int:
         "software citation does not override GitHub's cite flow with the report",
     )
     require(
-        "10.5281/zenodo.21829808" in citation_guide
+        "10.5281/zenodo.22116399" in citation_guide
         and "10.5281/zenodo.21829193" in citation_guide,
         "citation guide keeps report and dataset identifiers separate",
     )

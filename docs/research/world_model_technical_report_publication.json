@@ -1,20 +1,28 @@
 {
-  "schema_version": "ferrumos-world-model-technical-report-publication-v1",
-  "verified_at_utc": "2026-08-06T22:15:58Z",
+  "schema_version": "ferrumos-world-model-technical-report-publication-v2",
+  "verified_at_utc": "2026-08-26T18:16:12Z",
   "record": {
     "status": "published",
     "access_right": "open",
     "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
-    "subtitle": "A Study of Hybrid Runtime Screening, Strong Baselines, and Failure Modes in FerrumOS",
-    "version": "1.0.0",
+    "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
+    "version": "1.2",
     "resource_type": "Technical report",
-    "publication_date": "2026-08-07",
+    "publication_date": "2026-08-26",
     "publisher": "Zenodo",
     "license": "CC-BY-4.0",
-    "url": "https://zenodo.org/records/21829808",
-    "version_doi": "10.5281/zenodo.21829808",
+    "url": "https://zenodo.org/records/22116399",
+    "version_doi": "10.5281/zenodo.22116399",
     "all_versions_doi": "10.5281/zenodo.21829807"
   },
+  "previous_versions": [
+    {
+      "version": "1.0.0",
+      "publication_date": "2026-08-07",
+      "version_doi": "10.5281/zenodo.21829808",
+      "sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab"
+    }
+  ],
   "author": {
     "name": "Vyom Kulshrestha",
     "affiliation": "Independent Researcher, India",
@@ -26,13 +34,15 @@
     "github_release": "https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0"
   },
   "artifact": {
-    "filename": "FerrumOS_WorldModel_Technical_Report_v1.0.0.pdf",
+    "filename": "FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
     "location_policy": "Downloads folder; not committed to the repository",
-    "page_count": 14,
-    "sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab",
-    "md5": "6764707ae8192a073917269dc87ade77"
+    "page_count": 18,
+    "size_bytes": 645618,
+    "sha256": "6f335f48f915b1a8ffd9194bdb86fb4ed95b37be099463c48b57f74e46230533",
+    "md5": "db65f8ed9f8f295f8ec0a5d5ec8669a8"
   },
   "arxiv_preflight": {
+    "applies_to_version": "1.0.0",
     "status": "ready_for_submission",
     "filename": "FerrumOS_WorldModel_Technical_Report_arXiv.pdf",
     "location_policy": "Downloads folder; not committed to the repository",
@@ -52,12 +62,13 @@
   "verification": {
     "doi_resolves_to_public_record": true,
     "doi_resolution_final_http_status": 200,
-    "api_status": "published",
-    "api_state": "done",
+    "public_record_status": "published",
     "submitted": true,
     "public_file_count": 1,
-    "public_file_byte_identical_to_local_pdf": true,
-    "citation_pagination": "1-14",
-    "dataset_relation": "publicly verified: isSupplementedBy 10.5281/zenodo.21829193 (DOI, Dataset)"
+    "public_file_checksum_matches_local_pdf": true,
+    "checksum_verification_method": "Zenodo-displayed MD5 and byte size matched the local PDF",
+    "citation_pagination": "1-18",
+    "dataset_relation": "publicly verified: isSupplementedBy 10.5281/zenodo.21829193 (DOI, Dataset)",
+    "orcid_work_updated": "0009-0009-1434-7148 now cites version DOI 10.5281/zenodo.22116399"
   }
 }

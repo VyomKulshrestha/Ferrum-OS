@@ -686,7 +686,7 @@ The latest tagged software release is `v0.1.1`, while this evidence page also co
 The frozen `world-model-study-v1.0.0` release accounts for {paper["accepted_rows"]:,} rows from {paper["episodes"]:,} episodes; {paper["eligible_transitions"]:,} executed transitions enter episode-disjoint fitting/evaluation. On the authored balanced {paper["fixture_episodes"]}-episode safety fixture, rules + JEPA reach {percent(paper["rules_plus_jepa_balanced_accuracy"])} balanced accuracy with {percent(paper["rules_plus_jepa_false_negative_rate"])} FNR and {percent(paper["rules_plus_jepa_false_positive_rate"])} FPR. Rules + a per-action mean reach {percent(paper["rules_plus_mean_balanced_accuracy"])}; the report therefore does not establish a material JEPA safety advantage. Five independently trained pipelines average {percent(paper["five_pipeline_balanced_accuracy_mean"])} balanced accuracy.
 
 - [Technical report release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0)
-- [Technical report DOI](https://doi.org/10.5281/zenodo.21829808)
+- [Technical report DOI](https://doi.org/10.5281/zenodo.22116399)
 - [Dataset DOI](https://doi.org/10.5281/zenodo.21829193)
 - [Reproduction guide](research/WORLD_MODEL_PAPER_EVALUATION.md)
 
@@ -864,7 +864,7 @@ The seven evidence sections use different protocols and are not directly compara
 - Architecture: {REPOSITORY_URL}/blob/main/docs/ARCHITECTURE.md
 - Security: {REPOSITORY_URL}/blob/main/SECURITY.md
 - Citation guide: {REPOSITORY_URL}/blob/main/docs/CITATION.md
-- Technical report DOI: https://doi.org/10.5281/zenodo.21829808
+- Technical report DOI: https://doi.org/10.5281/zenodo.22116399
 - Dataset DOI: https://doi.org/10.5281/zenodo.21829193
 
 ## Reproduction entry points

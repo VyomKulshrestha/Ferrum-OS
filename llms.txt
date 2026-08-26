@@ -21,7 +21,7 @@ The latest tagged software release is v0.1.1 and has no prebuilt OS image. The c
 
 ## Published research
 
-- [Technical report DOI](https://doi.org/10.5281/zenodo.21829808): When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition
+- [Technical report DOI](https://doi.org/10.5281/zenodo.22116399): When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition, Technical Report v1.2
 - [Dataset DOI](https://doi.org/10.5281/zenodo.21829193): 13,697 accounted transitions from 3,639 QEMU episodes
 - [Frozen GitHub release](https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0): report, dataset, checksums, evaluation, predictions, and training config
 

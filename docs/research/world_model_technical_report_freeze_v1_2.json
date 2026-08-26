@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "when-agents-control-kernel-technical-report-v1.2",
-  "status": "complete technical report manuscript; not published; v3.4 candidate not deployed",
+  "status": "complete technical report manuscript; published on Zenodo; v3.4 candidate not deployed",
   "date": "2026-08-26",
   "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
   "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
@@ -30,6 +30,16 @@
     "visual_qa_complete": true,
     "all_pages_rendered": true
   },
+  "publication": {
+    "publisher": "Zenodo",
+    "publication_date": "2026-08-26",
+    "record_url": "https://zenodo.org/records/22116399",
+    "version_doi": "10.5281/zenodo.22116399",
+    "all_versions_doi": "10.5281/zenodo.21829807",
+    "dataset_doi": "10.5281/zenodo.21829193",
+    "public_file_md5": "db65f8ed9f8f295f8ec0a5d5ec8669a8",
+    "public_file_size_bytes": 645618
+  },
   "evidence": {
     "protocol": {
       "path": "docs/research/world_model_jepa_v3_4_protocol.json",
@@ -56,6 +66,7 @@
     "learned_result": "untouched-corpus rollout improvement at H=1, H=3, and H=5",
     "promotion_eligible": false,
     "deployment_unchanged": true,
-    "publication_attempted": false
+    "publication_attempted": true,
+    "published": true
   }
 }

@@ -295,10 +295,10 @@ file checksums, and verification result are preserved in
 
 The accompanying report, *When Agents Control the Kernel: A JEPA World Model
 Safety Gate with Empirical False-Negative Decomposition*, is published open access
-under Zenodo Technical Report DOI `10.5281/zenodo.21829808`; all report versions
-resolve through DOI `10.5281/zenodo.21829807`. The report DOI is distinct from the
-dataset DOI. `world_model_technical_report_publication.json` records the public
-record, DOI resolution, citation pagination, and exact DOI-stamped PDF checksums.
+as Technical Report v1.2 under Zenodo DOI `10.5281/zenodo.22116399`; all report
+versions resolve through DOI `10.5281/zenodo.21829807`. The report DOI is distinct
+from the dataset DOI. `world_model_technical_report_publication.json` records the
+public record, DOI resolution, citation pagination, and exact public-file checksums.
 
 FerrumOS also emits privacy-bounded natural-use telemetry without prompts,
 arguments, paths, provider/model identity, screen/audio, or output content.

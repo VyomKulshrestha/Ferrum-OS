@@ -711,9 +711,10 @@ prediction looks dangerous.
   `docs/research/world_model_dataset_publication.json` records the public record,
   all-versions DOI `10.5281/zenodo.21829192`, checksums, and verification result.
 - **Technical-report publication** - the accompanying report keeps its locked title
-  and is published open access under Zenodo DOI `10.5281/zenodo.21829808`; all
+  and Technical Report v1.2 is published open access under Zenodo DOI
+  `10.5281/zenodo.22116399`; all
   versions resolve through DOI `10.5281/zenodo.21829807`. This is intentionally
-  separate from the dataset DOI. The DOI-stamped 14-page PDF stays outside the
+  separate from the dataset DOI. The 18-page PDF stays outside the
   repository in the author's Downloads folder; the repository stores its checksum,
   DOI-resolution evidence, and publication boundary in
   `docs/research/world_model_technical_report_publication.json`.

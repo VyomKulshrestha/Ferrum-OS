@@ -93,7 +93,7 @@ The seven evidence sections use different protocols and are not directly compara
 - Architecture: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/ARCHITECTURE.md
 - Security: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/SECURITY.md
 - Citation guide: https://github.com/VyomKulshrestha/Ferrum-OS/blob/main/docs/CITATION.md
-- Technical report DOI: https://doi.org/10.5281/zenodo.21829808
+- Technical report DOI: https://doi.org/10.5281/zenodo.22116399
 - Dataset DOI: https://doi.org/10.5281/zenodo.21829193
 
 ## Reproduction entry points
