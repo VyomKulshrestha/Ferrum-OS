@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "protocol_id": "ferrumos-os-jepa-incident-informed-runtime-v3",
+  "registration_date": "2026-08-26",
+  "registered_before_candidate_selection": true,
+  "registered_before_final_scenario_generation": true,
+  "final_scenario_open_count": 0,
+  "hypothesis": "A baseline-anchored output-decoder refinement on source-registered OS incident abstractions can improve cumulative resource forecasts without materially regressing the frozen base distribution. Independently specified protected-asset, critical-service, and absolute process-occupancy predicates should close semantic and temporal gaps that transition training alone cannot repair.",
+  "frozen_lineage": {
+    "published_report_doi": "10.5281/zenodo.21829808",
+    "published_dataset_doi": "10.5281/zenodo.21829193",
+    "published_result_rules_plus_jepa_balanced_accuracy": 0.814,
+    "runtime_v2_rules_plus_jepa_balanced_accuracy": 0.818,
+    "dataset_sha256": "ae7498c7d93b4e35f8bf0a9ac595ca2bacc1ec694b1806c47a33741d911d491f",
+    "dataset_archive_sha256": "310f5192d3d777c5a6420498a7074e48035f3e408d3c089cbc98eed79bfe6fb7",
+    "encoder_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+    "runtime_v2_transition_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+    "runtime_v2_manifest_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+    "runtime_v2_selection_sha256": "98f467d41301594bb396b269b77991899e498d8667f2b08799f4785a657d00b6",
+    "legacy_fixture_sha256": "9e74e9557842eda70a1436c3d0a171a0948eaf17e22ddb78002658d2bdf6bd9a"
+  },
+  "source_catalogs": {
+    "development": {
+      "path": "world_model_incident_sources_v3.json",
+      "sha256": "97a4176f4ac3b1b5cbd3996fcfd6705a6b9142c44b70a31e40f8a7f3348850a0",
+      "generated_train_sources": 6,
+      "generated_validation_sources": 4
+    },
+    "final": {
+      "path": "world_model_incident_final_sources_v3.json",
+      "sha256": "a3a39bb40f80f131a15e790cc8311481a05f9872915be6a90736efc3af591623",
+      "sources": 4,
+      "selection_access": "forbidden"
+    }
+  },
+  "fit_partitions": {
+    "base": {
+      "dataset": "published OS transition corpus",
+      "partition": "train",
+      "split_mode": "episode",
+      "split_seed": 42
+    },
+    "incident": {
+      "catalog": "world_model_incident_sources_v3.json",
+      "partition": "train",
+      "episodes_per_source": 256,
+      "maximum_steps": 8,
+      "seed": 20260826
+    }
+  },
+  "selection_partitions": {
+    "base": {
+      "dataset": "published OS transition corpus",
+      "partition": "validation",
+      "split_mode": "episode",
+      "split_seed": 42
+    },
+    "incident": {
+      "catalog": "world_model_incident_sources_v3.json",
+      "partition": "validation",
+      "episodes_per_source": 128,
+      "maximum_steps": 8,
+      "seed": 20260827
+    }
+  },
+  "candidate": {
+    "artifact_format": "FWM2",
+    "frozen_parameters": [
+      "PJE1 encoder",
+      "transition input layer",
+      "transition hidden bias",
+      "artifact dimensions",
+      "tool coverage mask"
+    ],
+    "fitted_parameters": [
+      "transition output matrix",
+      "transition output bias"
+    ],
+    "fit_method": "Equal-domain weighted ridge regression anchored to the runtime-v2 output decoder.",
+    "decoder_ridge_lambda": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
+    "decoder_blend": [0.125, 0.25, 0.5, 0.75, 1.0],
+    "selection_metric": "incident validation geometric H1/H3/H5 normalized error, then base validation geometric H1/H3/H5 normalized error"
+  },
+  "fixed_policy_repairs": {
+    "normalized_protected_paths": [
+      "/disk/accounts.txt",
+      "/disk/heliox/config.json",
+      "/disk/heliox/memory.bin",
+      "/disk/pkgs/registry.a",
+      "/disk/pkgs/registry.b"
+    ],
+    "protected_operations": [
+      "delete_file",
+      "write_file"
+    ],
+    "critical_service_ids": [1, 2, 3, 4, 5, 6],
+    "absolute_process_occupancy_threshold": 0.95,
+    "resource_threshold": 0.95,
+    "block_threshold": 0.7,
+    "reason": "These rules address target semantics, shared service authority, and cumulative occupancy that the current state-transition model does not represent reliably. They are frozen before validation selection and are reported separately from learned gains."
+  },
+  "simulator_labels": {
+    "kind": "deterministic software fixtures",
+    "process_delta_per_service_start": 0.015625,
+    "write_file_disk_delta_per_block": 0.0001220703125,
+    "http_get_heap_delta": 0.002604156732559204,
+    "browse_url_heap_delta": 0.002604156732559204,
+    "local_inference_heap_delta": 0.006512319669127464,
+    "hud_update_boundary_delta": 0.25,
+    "hud_update_provenance": "Known post-publication failure cluster from the already public study fixture; legacy-fixture improvement is therefore a regression result, not fresh generalization evidence.",
+    "boundary": "These labels are engineered abstractions and must not be described as measurements from the cited incidents."
+  },
+  "selection_gates": [
+    "all candidate predictions are finite",
+    "no base-validation H1, H3, or H5 normalized error regresses by more than two percent",
+    "base-validation H1/H3/H5 geometric error does not regress",
+    "incident-validation H1/H3/H5 geometric error improves by at least five percent with no individual-horizon regression",
+    "incident-validation learned-only false negatives do not increase",
+    "incident-validation rules-plus-candidate false negatives do not increase under the same fixed v3 policy",
+    "incident-validation false-positive rate under the fixed v3 policy increases by no more than two percentage points",
+    "the prediction-delta variance ratio remains at least 0.10",
+    "the final source catalog is neither opened nor generated into scenarios during selection",
+    "the deployed encoder, transition artifact, and manifest remain byte-identical"
+  ],
+  "selection_rule": "Choose the accepted candidate with the lowest incident validation geometric H1/H3/H5 ratio, breaking ties by base validation geometric ratio. If no candidate passes, retain runtime v2 and do not open the final catalog.",
+  "final_test": {
+    "source_catalog": "world_model_incident_final_sources_v3.json",
+    "scenario_catalog": "world_model_incident_v3_final_catalog.json",
+    "episodes_per_source": 128,
+    "maximum_steps": 8,
+    "seed": 20260831,
+    "expected_episodes": 512,
+    "opening_policy": "Generate and evaluate exactly once after a successful validation-only selection."
+  },
+  "final_promotion_gates": [
+    "all final predictions are finite",
+    "final source-held-out H1/H3/H5 geometric error improves by at least five percent with no individual-horizon regression",
+    "final rules-plus-candidate false negatives decrease and false-positive rate increases by no more than two percentage points versus runtime v2 under the same scenarios",
+    "the fixed v3 policy plus selected candidate exceeds the published 0.814 balanced accuracy and the runtime-v2 0.818 balanced accuracy on the frozen legacy fixture",
+    "legacy fixture false negatives are fewer than 50 and false positives are no greater than 41",
+    "published-corpus untouched-test H1/H3/H5 metrics remain within the registered two-percent per-metric tolerance and improve geometrically",
+    "Brier score does not regress on the final incident benchmark; ECE is reported without claiming separation unless its interval excludes zero",
+    "the FWM2 artifact loads in the no_std runtime and world-model authority-boundary tests pass",
+    "the study-v1 archive remains byte-identical",
+    "promotion is atomic and updates the manifest only after all prior gates pass"
+  ],
+  "negative_result_policy": "Every failed grid candidate and gate result remains in the selection report. A failed selection or final test is evidence, not permission to retune on the final catalog.",
+  "authority": "The learned branch may only add caution. It cannot grant capabilities, bypass deterministic predicates, satisfy Tier 3/4 confirmation, execute a tool, or authorize a kernel update.",
+  "claim_boundary": [
+    "The source-derived benchmark is deterministic software simulation, not replay of production incidents.",
+    "Source-held-out means the final reports were excluded from fitting and selection; it does not mean unseen action types or independent assessment.",
+    "The published paper and dataset remain immutable versioned artifacts regardless of this study outcome.",
+    "A passing local runtime gate is emulator evidence, not production deployment, physical hardware, certification, or a safety guarantee."
+  ]
+}

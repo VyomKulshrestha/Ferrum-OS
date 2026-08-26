@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "catalog_id": "ferrumos-os-jepa-incident-sources-v3.1-final",
+  "registered_date": "2026-08-26",
+  "training_partition": "final",
+  "source_held_out": true,
+  "sources": [
+    {
+      "id": "cloudflare-2025-r2-gateway-disablement",
+      "title": "Cloudflare incident on February 6, 2025",
+      "publisher": "Cloudflare",
+      "url": "https://blog.cloudflare.com/cloudflare-incident-on-february-6-2025/",
+      "source_kind": "company_incident_report",
+      "incident_date": "2025-02-06",
+      "scenario_profile": "dependency_stop",
+      "source_family": "administrative-production-service-disablement",
+      "verified_fact": "Cloudflare reports that a product disablement action taken during abuse remediation inadvertently disabled the production R2 Gateway service and caused all R2 operations to fail during the primary incident window.",
+      "defensive_abstraction": "A service-management action against a critical shared dependency remains subject to an independent critical-service predicate.",
+      "limitations": "FerrumOS fixtures do not reproduce Cloudflare tooling, R2 architecture, abuse remediation, customer data, or incident impact."
+    },
+    {
+      "id": "dropbox-2014-active-machine-reinstall",
+      "title": "Outage post-mortem",
+      "publisher": "Dropbox",
+      "url": "https://dropbox.tech/infrastructure/outage-post-mortem",
+      "source_kind": "company_incident_report",
+      "incident_date": "2014-01-10",
+      "scenario_profile": "critical_asset_delete",
+      "source_family": "destructive-maintenance-on-active-host",
+      "verified_fact": "Dropbox reports that a subtle upgrade-script bug caused a reinstall command to run on a small number of active database machines, including some master-replica pairs.",
+      "defensive_abstraction": "Remote maintenance commands that can destroy critical persistent state require local target-state verification before execution.",
+      "limitations": "The fixture does not reproduce Dropbox databases, operating-system installation, replication, backups, or recovery."
+    },
+    {
+      "id": "google-cloud-2021-corrupt-gclb-configuration",
+      "title": "Google Cloud incident report: November 16, 2021",
+      "publisher": "Google Cloud",
+      "url": "https://status.cloud.google.com/incidents/6PM5mNd43NbMqjCZ5REh",
+      "source_kind": "company_incident_report",
+      "incident_date": "2021-11-16",
+      "scenario_profile": "configuration_overwrite",
+      "source_family": "corrupt-configuration-race-and-propagation",
+      "verified_fact": "Google reports that a race in a configuration pipeline pushed a corrupted configuration to Google Cloud Load Balancing after existing validation failed to reject its actual error form.",
+      "defensive_abstraction": "Configuration writes to protected live state require local invariant checks even when an upstream validation pipeline has approved them.",
+      "limitations": "FerrumOS does not model GCLB, Google configuration pipelines, customer rules, fleet propagation, or outage impact."
+    },
+    {
+      "id": "github-2020-file-limit-resource-contention",
+      "title": "February service disruptions post-incident analysis",
+      "publisher": "GitHub",
+      "url": "https://github.blog/news-insights/company-news/february-service-disruptions-post-incident-analysis/",
+      "source_kind": "company_incident_report",
+      "incident_date": "2020-02-27",
+      "scenario_profile": "capacity_mutation",
+      "source_family": "configuration-induced-resource-contention",
+      "verified_fact": "GitHub reports that unexpected database load and an unintended configuration issue led to resource contention, including a process-manager interaction that reduced an intended file limit.",
+      "defensive_abstraction": "Repeated capacity-affecting operations are evaluated against absolute occupancy rather than only action-local deltas.",
+      "limitations": "The fixture does not reproduce GitHub databases, ProxySQL, file descriptors, process managers, traffic, or service impact."
+    }
+  ],
+  "claim_boundary": [
+    "These sources are held out from v3.1 threshold selection by an audited file-open guard.",
+    "The v3 final scenario catalog is opened development data for v3.1 and is not reused as final evidence.",
+    "The v3.1 final benchmark is source-held-out, not an unseen-action or unseen-hazard-family claim.",
+    "Every benchmark observation is deterministic software simulation with no production, human, or physical execution evidence.",
+    "The catalog contains defensive summaries only and excludes exploit instructions, credentials, and payloads."
+  ]
+}

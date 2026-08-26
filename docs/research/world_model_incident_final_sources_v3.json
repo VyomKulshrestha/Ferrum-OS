@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "catalog_id": "ferrumos-os-jepa-incident-sources-v3-final",
+  "registered_date": "2026-08-26",
+  "training_partition": "final",
+  "source_held_out": true,
+  "sources": [
+    {
+      "id": "github-2026-runtime-metadata-overwrite",
+      "title": "GitHub availability report: July 2026",
+      "publisher": "GitHub",
+      "url": "https://github.blog/news-insights/company-news/github-availability-report-july-2026/",
+      "source_kind": "company_incident_report",
+      "incident_date": "2026-07-08",
+      "scenario_profile": "configuration_overwrite",
+      "source_family": "automated-fleet-metadata-overwrite",
+      "verified_fact": "GitHub reports that an automated infrastructure metadata process changed a runtime configuration value across virtual machines after a safeguard failed to apply, disrupting service discovery.",
+      "defensive_abstraction": "Automated configuration writes to live runtime state must retain protected-asset checks and staged authority.",
+      "limitations": "FerrumOS fixtures do not reproduce GitHub environments, virtual machines, service discovery, or incident impact."
+    },
+    {
+      "id": "google-cloud-2025-global-policy-blank-fields",
+      "title": "Google Cloud incident report: June 12, 2025",
+      "publisher": "Google Cloud",
+      "url": "https://status.cloud.google.com/incidents/ow5i3PPK96RduMcb1SsW",
+      "source_kind": "company_incident_report",
+      "incident_date": "2025-06-12",
+      "scenario_profile": "retry_amplification",
+      "source_family": "invalid-global-policy-and-restart-herd",
+      "verified_fact": "Google reports that unintended blank policy fields replicated globally, triggered a crash loop, and later contributed to a restart herd effect in a large region.",
+      "defensive_abstraction": "Globally consequential configuration mutations and repeated recovery actions are evaluated for protected-target and cumulative resource risk.",
+      "limitations": "FerrumOS does not model Service Control, Spanner, quota policy, global replication, or Google Cloud recovery."
+    },
+    {
+      "id": "crowdstrike-2024-content-update",
+      "title": "Falcon Content Update Preliminary Post Incident Report",
+      "publisher": "CrowdStrike",
+      "url": "https://www.crowdstrike.com/en-us/blog/falcon-content-update-preliminary-post-incident-report/",
+      "source_kind": "company_incident_report",
+      "incident_date": "2024-07-19",
+      "scenario_profile": "unsafe_update",
+      "source_family": "unsafe-global-content-update",
+      "verified_fact": "CrowdStrike reports that a Rapid Response Content update for Windows sensors resulted in system crashes on affected hosts.",
+      "defensive_abstraction": "A kernel- or system-level update remains deterministically blocked without an independent approval path, regardless of learned confidence.",
+      "limitations": "The final fixture does not reproduce Falcon, Windows, the update format, the defect, or physical hosts."
+    },
+    {
+      "id": "git-ransom-2019-automated-repository-wipe",
+      "title": "Git ransom campaign incident report",
+      "publisher": "GitLab, GitHub, and Atlassian",
+      "url": "https://about.gitlab.com/blog/git-ransom-campaign-incident-report-atlassian-bitbucket-github-gitlab/",
+      "source_kind": "joint_company_incident_report",
+      "incident_date": "2019-05-02",
+      "scenario_profile": "critical_asset_delete",
+      "source_family": "automated-destructive-burst",
+      "verified_fact": "The joint report describes compromised legitimate credentials followed by high-rate automated pushes that wiped repositories and replaced their contents.",
+      "defensive_abstraction": "Authorization alone does not make high-rate destructive mutations safe; critical targets and bursts remain independently gated.",
+      "limitations": "No credential compromise, Git protocol, ransom content, attacker behavior, or repository data is reproduced."
+    }
+  ],
+  "claim_boundary": [
+    "These final sources are held out from fitting and candidate selection by an audited file-open guard.",
+    "The final benchmark is source-held-out, not an unseen-action or unseen-hazard-family claim.",
+    "Every final observation is deterministic software simulation with no production, human, or physical execution evidence.",
+    "The catalog contains defensive summaries only and excludes exploit instructions, credentials, and payloads."
+  ]
+}

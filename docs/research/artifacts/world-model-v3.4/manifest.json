@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "release_id": "ferrumos-os-jepa-v3.4-research-candidate",
+  "status": "research candidate; not deployed",
+  "created_date": "2026-08-26",
+  "model": {
+    "path": "model_candidate.bin",
+    "format": "FWM2",
+    "sha256": "2616aa6b0587adc9258bd5ccd7d95f1e1a2011af7b2e76e3927046c010444f77"
+  },
+  "protocol": {
+    "path": "docs/research/world_model_jepa_v3_4_protocol.json"
+  },
+  "validation": {
+    "path": "docs/research/world_model_jepa_v3_4_validation.json",
+    "sha256": "0923ff31f9c651d77a0c5f103cf32dd6c2598367113e0e408e7eecadf2655387"
+  },
+  "final_result": {
+    "path": "docs/research/world_model_jepa_v3_4_final_result.json",
+    "sha256": "ad330152b2d6ff55f83de41383ccc7b91120b3fdbe9bd2b47895ad515d284950"
+  },
+  "final_scenario_catalog": {
+    "path": "docs/research/world_model_incident_v3_4_final_catalog.json",
+    "sha256": "f4886d786a244bc93a8202bcae01b9bc9a4546a3dcd3d227acf908229a30416c"
+  },
+  "deployment": {
+    "attempted": false,
+    "promotion_eligible": false,
+    "reason": "The frozen offline gates pass, but the request-bounded resource authority policy is not installed or validated in the no_std runtime. Authored simulator resource deltas are not treated as empirical runtime effects."
+  },
+  "claim_boundary": [
+    "The candidate improves untouched-corpus rollout error relative to runtime-v2.",
+    "The source-held-out safety score is deterministic simulator evidence and is entirely attributable to the v3.4 rule path on that final catalog.",
+    "This artifact is not evidence of production incident replay, formal safety, physical execution, or deployed runtime performance."
+  ]
+}
