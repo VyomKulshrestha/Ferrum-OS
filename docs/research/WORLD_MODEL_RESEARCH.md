@@ -28,7 +28,12 @@ effects. The appliance model and manifest remain runtime-v2. Reproduce the
 research result with `scripts/verify_world_model_jepa_v3_4.py --online`; the
 machine-readable verification records 27/27 passing research and non-promotion
 checks. The paper draft is
-`paper/when_agents_control_kernel_v1_1_research_note.md`.
+`paper/when_agents_control_kernel_technical_report_v1_2.md`. It is a full
+consolidated manuscript: the published architecture, corpus, baselines,
+runtime, calibration, and false-negative analysis remain in scope, while the
+v3-v3.4 evidence is integrated as a registered extension. The earlier
+six-page v3.4 research note remains an internal evidence summary and is not a
+replacement publication.
 
 ## Claim and system boundary
 
