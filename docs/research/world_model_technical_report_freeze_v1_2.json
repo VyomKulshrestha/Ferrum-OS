@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "artifact_id": "when-agents-control-kernel-technical-report-v1.2",
+  "status": "complete technical report manuscript; not published; v3.4 candidate not deployed",
+  "date": "2026-08-26",
+  "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition and Request-Bounded Deterministic Authority",
+  "version": "1.2",
+  "author": {
+    "name": "Vyom Kulshrestha",
+    "affiliation": "Independent Researcher, India",
+    "orcid": "0009-0009-1434-7148"
+  },
+  "source": {
+    "path": "docs/research/paper/when_agents_control_kernel_technical_report_v1_2.md",
+    "sha256": "2714fdf31ea81f6cc52428b9f44fc84d37c2d974d6807424ef17c1954e800fbe"
+  },
+  "builder": {
+    "path": "scripts/build_world_model_technical_report_v1_2.py",
+    "sha256": "5e54fb2105093aaaa645a6d2dd8ebbf36dd510d4e717c2612bc2d1d5229008dd"
+  },
+  "pdf": {
+    "filename": "FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
+    "build_output_path": "output/pdf/FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
+    "downloads_path": "C:/Users/marcu/Downloads/FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
+    "pages": 19,
+    "page_size": "A4",
+    "sha256": "aaf083e7e88316ceb27a531d9cd30c6b1e9e750042a0cef995b72e3061028da5",
+    "deterministic_rebuild_verified": true,
+    "visual_qa_complete": true,
+    "all_pages_rendered": true
+  },
+  "evidence": {
+    "protocol": {
+      "path": "docs/research/world_model_jepa_v3_4_protocol.json",
+      "sha256": "6ed7a501274953fc457674eacc29cc54155cf577b428e90ac18234ab7dadab38"
+    },
+    "validation": {
+      "path": "docs/research/world_model_jepa_v3_4_validation.json",
+      "sha256": "0923ff31f9c651d77a0c5f103cf32dd6c2598367113e0e408e7eecadf2655387",
+      "final_opened_during_selection": false
+    },
+    "final_result": {
+      "path": "docs/research/world_model_jepa_v3_4_final_result.json",
+      "sha256": "ad330152b2d6ff55f83de41383ccc7b91120b3fdbe9bd2b47895ad515d284950",
+      "final_open_count": 1
+    },
+    "verification": {
+      "path": "docs/research/world_model_jepa_v3_4_verification.json",
+      "sha256": "a103e555151b4097f887b426d84a7fe49398d7f17d160ad285b867d3dd511560",
+      "checks": "27/27"
+    }
+  },
+  "claim_boundary": {
+    "final_safety_attribution": "deterministic policy only",
+    "learned_result": "untouched-corpus rollout improvement at H=1, H=3, and H=5",
+    "promotion_eligible": false,
+    "deployment_unchanged": true,
+    "publication_attempted": false
+  }
+}
