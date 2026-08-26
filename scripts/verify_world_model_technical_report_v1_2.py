@@ -52,8 +52,12 @@ def main() -> None:
     require(checks, "source hash matches freeze", digest(source_path) == freeze["source"]["sha256"])
     require(checks, "builder hash matches freeze", digest(builder_path) == freeze["builder"]["sha256"])
     require(checks, "PDF hash matches freeze", digest(pdf_path) == freeze["pdf"]["sha256"])
-    require(checks, "PDF has 19 pages", len(reader.pages) == 19 == freeze["pdf"]["pages"])
-    require(checks, "PDF metadata title is correct", reader.metadata.title == "When Agents Control the Kernel")
+    require(checks, "PDF has 18 pages", len(reader.pages) == 18 == freeze["pdf"]["pages"])
+    require(
+        checks,
+        "PDF metadata title is correct",
+        reader.metadata.title == "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
+    )
     require(checks, "PDF metadata author is correct", reader.metadata.author == "Vyom Kulshrestha")
     require(checks, "source is ASCII", source.isascii())
     require(checks, "report is v1.2", "Technical Report v1.2 - 26 August 2026" in pdf_text)

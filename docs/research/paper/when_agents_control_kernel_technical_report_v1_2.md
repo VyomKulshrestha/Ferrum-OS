@@ -1,6 +1,6 @@
-# When Agents Control the Kernel
+# When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition
 
-## A JEPA World Model Safety Gate with Empirical False-Negative Decomposition and Request-Bounded Deterministic Authority
+## A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS
 
 Technical Report v1.2 - 26 August 2026
 
@@ -14,28 +14,19 @@ Published lineage: report DOI 10.5281/zenodo.21829808; dataset DOI 10.5281/zenod
 
 ### Abstract
 
-Autonomous agents that modify files, processes, services, and network state require controls at the point where proposed actions become operating-system effects. FerrumOS normalizes provider output into 41 canonical actions and evaluates an independent deterministic transition branch and an action-conditioned joint-embedding predictive architecture (JEPA) transition branch before capability-gated syscalls. The original study accounted for 13,697 transitions from 3,639 QEMU episodes and reported 81.4% balanced accuracy on a 500-episode authored safety fixture for rules plus the selected JEPA checkpoint. It also found that a per-action mean baseline was nearly tied, complete-pipeline seeds varied substantially, and 52 false negatives clustered into missing semantic assets, process accumulation, and heap underprediction.
+Autonomous agents that modify files, processes, services, and network state require controls where proposed actions become operating-system effects. FerrumOS normalizes provider output into 41 canonical actions and evaluates independent deterministic and action-conditioned JEPA transition branches before capability-gated syscalls. The original study accounted for 13,697 transitions from 3,639 QEMU episodes. On a 500-episode authored fixture, rules plus the selected JEPA reached 81.4% balanced accuracy, but a per-action mean was nearly tied; five complete pipelines varied substantially, and all 52 hybrid false negatives were decomposed into missing semantic assets, process accumulation, and heap underprediction.
 
-This v1.2 report preserves those results and adds a registered v3-v3.4 evaluation. Four failed iterations are retained before the final catalog is opened. The frozen candidate improves normalized rollout error on the untouched published test partition at H=1, H=3, and H=5 by 9.54%, 2.36%, and 0.92%, respectively, for a 4.35% geometric improvement over deployed runtime-v2. On a new 512-episode source-held-out deterministic simulator, request-bounded v3.4 policy records 100% balanced accuracy, no missed simulated hazards, and no blocked safe controls; the paired source-stratified 95% bootstrap interval for improvement over runtime-v2 is +46.35 to +48.82 percentage points. The result is identical for rules-only and rules+JEPA. It therefore demonstrates deterministic authority and integration, not incremental learned safety value. The candidate remains archived and not deployed because runtime authority, timing, and simulator-to-runtime resource effects have not passed the frozen promotion gates.
-
-<!-- PAGE BREAK -->
+Version 1.2 adds a registered v3-v3.4 lineage and retains four failed iterations before opening a source-held-out final catalog. The frozen candidate improves untouched-test rollout error at H=1, H=3, and H=5 by 9.54%, 2.36%, and 0.92%. On a new 512-episode deterministic simulator, request-bounded v3.4 policy records 100% balanced accuracy; the paired source-stratified 95% improvement interval over runtime-v2 is +46.35 to +48.82 points. Rules-only and rules+JEPA are identical, so the final safety result belongs to deterministic authority, not incremental learned safety value. The candidate remains archived and not deployed.
 
 ### 1. Introduction
 
-Language-model agents increasingly convert natural-language goals into state-changing operations. Application-layer refusal can reduce unsafe proposals, but an operating system still needs a mediation point where a canonical action and its arguments are checked before execution. FerrumOS places that point in the ring-3 Heliox daemon immediately above capability-gated syscalls. Learned inference cannot grant authority; kernel validation and physical confirmation remain independent backstops.
+Language-model agents increasingly convert natural-language goals into state-changing operations. Application-layer refusal can reduce unsafe proposals, but an operating system still needs a mediation point where a canonical action and its arguments are checked before execution. FerrumOS places that point in the ring-3 Heliox daemon immediately above capability-gated syscalls. Learned inference cannot grant authority; deterministic kernel validation and operator confirmation remain independent backstops.
 
-The research question is deliberately narrower than "can a neural model make an operating system safe?" The question is whether an action-conditioned forecast can improve prediction of safety-relevant state transitions while deterministic policy, capabilities, and operator confirmation retain execution authority. That distinction prevents a prediction score from silently becoming a privilege decision.
-
-The first study established a reproducible hybrid OS mediation architecture, strong baselines, in-guest runtime measurements, and an exhaustive false-negative decomposition. It did not establish JEPA superiority on thresholded safety decisions. The follow-up study tests a different issue exposed by those failures: whether repeated hypothetical rollout had been allowed to influence authority beyond the single action actually requested.
+The research question is narrower than whether a neural model can make an operating system safe: can an action-conditioned forecast improve safety-relevant state prediction while exact policy, capabilities, and confirmation retain authority? The first study established the mediation architecture, strong baselines, runtime measurements, and failure decomposition; it did not establish JEPA superiority on thresholded safety decisions. The extension asks whether hypothetical repeated rollout had been allowed to influence authority beyond the action actually requested.
 
 #### 1.1 Contributions
 
-1. A provider-independent OS action-mediation architecture with monotonic deterministic-plus-learned screening before capability-gated syscalls.
-2. A fully accounted, episode-disjoint public transition corpus and deterministic release package with public DOI, hashes, and download verification.
-3. Strong original baselines, five complete training pipelines, real ring-3 timing, outstanding-request tests, artifact-failure tests, and exhaustive decomposition of all 52 original hybrid false negatives.
-4. A digest-bound v3-v3.4 lineage with preregistered development and final gates, retained negative results, and file-open audit controls that keep the source-held-out final catalog unavailable during selection.
-5. A request-bounded authority rule: when a canonical action has an exact registered deterministic effect, the authority decision evaluates the requested step rather than unrequested hypothetical repetitions.
-6. A new 512-case source-held-out deterministic simulator with paired source-stratified uncertainty, exact rules-only attribution, and an explicit non-promotion result.
+This report contributes: (1) provider-independent OS action mediation with monotonic deterministic-plus-learned screening; (2) an episode-disjoint public corpus and deterministic release; (3) strong baselines, five complete pipelines, ring-3 timing, failure injection, and exhaustive false-negative decomposition; (4) a digest-bound v3-v3.4 lineage with retained failures and final-catalog access denial during selection; (5) request-bounded authority for exact covered actions; and (6) a 512-case source-held-out simulator with paired uncertainty, exact rules-only attribution, and an explicit non-promotion result.
 
 #### 1.2 Claim boundary
 

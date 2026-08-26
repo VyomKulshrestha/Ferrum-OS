@@ -11,7 +11,7 @@ import re
 from PIL import Image as PILImage
 from reportlab import rl_config
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -61,6 +61,53 @@ def inline(text: str) -> str:
 def make_styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     return {
+        "front_eyebrow": ParagraphStyle(
+            "FrontEyebrow", parent=base["BodyText"], fontName="Helvetica-Oblique",
+            fontSize=8.8, leading=10.5, textColor=MUTED, alignment=TA_CENTER,
+            spaceAfter=2.6 * mm,
+        ),
+        "front_title": ParagraphStyle(
+            "FrontTitle", parent=base["Title"], fontName="Helvetica-Bold",
+            fontSize=20.5, leading=22.2, textColor=NAVY, alignment=TA_LEFT,
+            spaceAfter=2.2 * mm,
+        ),
+        "front_meta": ParagraphStyle(
+            "FrontMeta", parent=base["Normal"], fontName="Helvetica",
+            fontSize=7.0, leading=8.3, textColor=INK,
+        ),
+        "front_abstract_heading": ParagraphStyle(
+            "FrontAbstractHeading", parent=base["Heading2"], fontName="Helvetica-Bold",
+            fontSize=10.5, leading=12.2, textColor=TEAL, alignment=TA_CENTER,
+            spaceBefore=1.5 * mm, spaceAfter=1.2 * mm,
+        ),
+        "front_abstract": ParagraphStyle(
+            "FrontAbstract", parent=base["BodyText"], fontName="Times-Roman",
+            fontSize=7.8, leading=9.65, textColor=INK, alignment=TA_JUSTIFY,
+            spaceAfter=1.2 * mm,
+        ),
+        "front_h1": ParagraphStyle(
+            "FrontH1", parent=base["Heading1"], fontName="Helvetica-Bold",
+            fontSize=13.4, leading=15.2, textColor=NAVY,
+            spaceBefore=2.1 * mm, spaceAfter=1.0 * mm, keepWithNext=True,
+        ),
+        "front_h2": ParagraphStyle(
+            "FrontH2", parent=base["Heading2"], fontName="Helvetica-Bold",
+            fontSize=8.3, leading=9.7, textColor=INK,
+            spaceBefore=1.2 * mm, spaceAfter=0.7 * mm, keepWithNext=True,
+        ),
+        "front_body": ParagraphStyle(
+            "FrontBody", parent=base["BodyText"], fontName="Times-Roman",
+            fontSize=7.75, leading=9.6, textColor=INK, alignment=TA_JUSTIFY,
+            spaceAfter=1.15 * mm,
+        ),
+        "front_claim_label": ParagraphStyle(
+            "FrontClaimLabel", parent=base["BodyText"], fontName="Helvetica-Bold",
+            fontSize=7.0, leading=8.3, textColor=NAVY,
+        ),
+        "front_claim": ParagraphStyle(
+            "FrontClaim", parent=base["BodyText"], fontName="Times-Roman",
+            fontSize=7.0, leading=8.3, textColor=INK,
+        ),
         "title": ParagraphStyle(
             "Title", parent=base["Title"], fontName="Helvetica-Bold",
             fontSize=20, leading=22.5, textColor=NAVY, alignment=TA_LEFT,
@@ -209,7 +256,7 @@ def build(source: Path, output: Path) -> None:
         str(output), pagesize=A4,
         leftMargin=17 * mm, rightMargin=17 * mm,
         topMargin=18.5 * mm, bottomMargin=17 * mm,
-        title="When Agents Control the Kernel",
+        title="When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
         author="Vyom Kulshrestha",
         subject="FerrumOS world-model safety gate Technical Report v1.2",
         keywords="FerrumOS, JEPA, operating systems, autonomous agents, safety runtime",
@@ -217,7 +264,92 @@ def build(source: Path, output: Path) -> None:
     frame = Frame(document.leftMargin, document.bottomMargin, document.width, document.height, id="normal")
     document.addPageTemplates([PageTemplate(id="main", frames=[frame], onPage=header_footer)])
 
-    story = [Spacer(1, 3 * mm)]
+    abstract_index = lines.index("### Abstract")
+    intro_index = lines.index("### 1. Introduction")
+    contributions_index = lines.index("#### 1.1 Contributions")
+    boundary_index = lines.index("#### 1.2 Claim boundary")
+    front_end = next(
+        index for index in range(boundary_index + 1, len(lines))
+        if lines[index] == "<!-- PAGE BREAK -->"
+    )
+
+    def paragraphs_between(start: int, end: int) -> list[str]:
+        values: list[str] = []
+        current: list[str] = []
+        for value in lines[start:end]:
+            if value.strip():
+                current.append(value.strip())
+            elif current:
+                values.append(" ".join(current))
+                current.clear()
+        if current:
+            values.append(" ".join(current))
+        return values
+
+    title = lines[0][2:]
+    subtitle = lines[2][3:]
+    meta = [value for value in lines[4:abstract_index] if value.strip()]
+    abstract_paragraphs = paragraphs_between(abstract_index + 1, intro_index)
+    intro_paragraphs = paragraphs_between(intro_index + 1, contributions_index)
+    contribution_paragraphs = paragraphs_between(contributions_index + 1, boundary_index)
+    claim_paragraphs = paragraphs_between(boundary_index + 1, front_end)
+
+    left_meta = "<b>" + inline(meta[1]) + "</b><br/>" + inline(meta[2]) + "<br/>" + inline(meta[3])
+    right_meta = (
+        inline(meta[0]) + "<br/>" + inline(meta[6]) + "<br/>" +
+        inline(meta[5]) + " | " + inline(meta[4])
+    )
+    meta_table = Table(
+        [[Paragraph(left_meta, styles["front_meta"]), Paragraph(right_meta, styles["front_meta"])]],
+        colWidths=[document.width * 0.31, document.width * 0.69],
+        hAlign="LEFT",
+    )
+    meta_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+
+    claim_table = Table(
+        [[
+            Paragraph("Claim boundary", styles["front_claim_label"]),
+            Paragraph(inline(" ".join(claim_paragraphs)), styles["front_claim"]),
+        ]],
+        colWidths=[document.width * 0.17, document.width * 0.83],
+        hAlign="LEFT",
+    )
+    claim_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), PALE),
+        ("BOX", (0, 0), (-1, -1), 0.55, TEAL),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+
+    story = [
+        Spacer(1, 1.2 * mm),
+        Paragraph(inline(subtitle), styles["front_eyebrow"]),
+        Paragraph(inline(title), styles["front_title"]),
+        meta_table,
+        Spacer(1, 1.1 * mm),
+        Paragraph("ABSTRACT", styles["front_abstract_heading"]),
+    ]
+    story.extend(Paragraph(inline(value), styles["front_abstract"]) for value in abstract_paragraphs)
+    story.extend([
+        Spacer(1, 0.6 * mm),
+        claim_table,
+        Paragraph("1 Introduction", styles["front_h1"]),
+    ])
+    story.extend(Paragraph(inline(value), styles["front_body"]) for value in intro_paragraphs)
+    story.append(Paragraph("Contributions", styles["front_h2"]))
+    story.extend(Paragraph(inline(value), styles["front_body"]) for value in contribution_paragraphs)
+    story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
+
+    lines = lines[front_end + 1:]
     paragraph: list[str] = []
     code_lines: list[str] = []
     in_code = False

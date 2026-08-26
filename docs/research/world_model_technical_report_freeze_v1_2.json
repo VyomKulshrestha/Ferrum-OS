@@ -3,7 +3,8 @@
   "artifact_id": "when-agents-control-kernel-technical-report-v1.2",
   "status": "complete technical report manuscript; not published; v3.4 candidate not deployed",
   "date": "2026-08-26",
-  "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition and Request-Bounded Deterministic Authority",
+  "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
+  "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
   "version": "1.2",
   "author": {
     "name": "Vyom Kulshrestha",
@@ -12,19 +13,19 @@
   },
   "source": {
     "path": "docs/research/paper/when_agents_control_kernel_technical_report_v1_2.md",
-    "sha256": "2714fdf31ea81f6cc52428b9f44fc84d37c2d974d6807424ef17c1954e800fbe"
+    "sha256": "5044a257b32641e87cdcb7e381ade1b453a7b128f264d46dd4854af3c152458c"
   },
   "builder": {
     "path": "scripts/build_world_model_technical_report_v1_2.py",
-    "sha256": "5e54fb2105093aaaa645a6d2dd8ebbf36dd510d4e717c2612bc2d1d5229008dd"
+    "sha256": "ef7c45cacb1b1ce48a5d3f612e2285e4306d43c0403c6e322294291b7ebb2948"
   },
   "pdf": {
     "filename": "FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
     "build_output_path": "output/pdf/FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
     "downloads_path": "C:/Users/marcu/Downloads/FerrumOS_WorldModel_Technical_Report_v1.2.pdf",
-    "pages": 19,
+    "pages": 18,
     "page_size": "A4",
-    "sha256": "aaf083e7e88316ceb27a531d9cd30c6b1e9e750042a0cef995b72e3061028da5",
+    "sha256": "6f335f48f915b1a8ffd9194bdb86fb4ed95b37be099463c48b57f74e46230533",
     "deterministic_rebuild_verified": true,
     "visual_qa_complete": true,
     "all_pages_rendered": true
