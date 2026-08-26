@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "artifact_id": "when-agents-control-kernel-v3.4-research-note-v0.1",
+  "status": "technical research note; not a deployed-runtime report",
+  "date": "2026-08-26",
+  "title": "When Agents Control the Kernel, Revisited: Request-Bounded Deterministic Authority with an Action-Conditioned JEPA Forecast",
+  "author": {
+    "name": "Vyom Kulshrestha",
+    "affiliation": "Independent Researcher, India",
+    "orcid": "0009-0009-1434-7148"
+  },
+  "source": {
+    "path": "docs/research/paper/when_agents_control_kernel_v1_1_research_note.md",
+    "sha256": "f17830d9bc6d840520d6e1401d91052fd62ad99032a1859f56a915c951ffda59"
+  },
+  "builder": {
+    "path": "scripts/build_world_model_v3_4_research_note.py",
+    "sha256": "be4cc1cf4f7eb8a5bd81a15b0ceb198bd12a04c9e458cd51baddd0702c1a36f6"
+  },
+  "pdf": {
+    "filename": "FerrumOS_OS_JEPA_v3.4_Research_Note.pdf",
+    "downloads_path": "C:/Users/marcu/Downloads/FerrumOS_OS_JEPA_v3.4_Research_Note.pdf",
+    "build_output_path": "output/pdf/when_agents_control_kernel_v1_1_research_note.pdf",
+    "pages": 6,
+    "page_size": "A4",
+    "sha256": "41bfb024198f3a8a107f6a0428c82c63c423b5f9c4b32c6038bd8f13d136c147",
+    "visual_qa_complete": true,
+    "text_assertions_passed": 7
+  },
+  "verification": {
+    "path": "docs/research/world_model_jepa_v3_4_verification.json",
+    "sha256": "a103e555151b4097f887b426d84a7fe49398d7f17d160ad285b867d3dd511560",
+    "checks": "27/27",
+    "promotion_eligible": false,
+    "deployment_unchanged": true
+  }
+}

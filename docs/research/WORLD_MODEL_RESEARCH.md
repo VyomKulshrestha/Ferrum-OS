@@ -5,6 +5,31 @@ threat model under which it is evaluated, and the limitations that must remain
 visible in a paper or submission. It is intentionally narrower than “the world
 model makes the OS safe.”
 
+## Registered v3.4 research candidate (not deployed)
+
+The post-publication v3-v3.4 study preserves four negative iterations and a
+separately frozen source-held-out final catalog. The selected FWM2 candidate
+improves normalized rollout error on the untouched published test partition at
+H=1, H=3, and H=5 by 9.54%, 2.36%, and 0.92%, respectively; its geometric error
+ratio to deployed runtime-v2 is 0.956508.
+
+On the new 512-episode deterministic incident-informed simulator, the v3.4
+request-bounded policy records 256 TP, 0 FN, 256 TN, and 0 FP. The paired
+source-stratified balanced-accuracy improvement over runtime-v2 has a
+10,000-resample 95% interval of +46.35 to +48.82 percentage points. Rules-only
+and rules+JEPA are identical on that final catalog, so the final safety result
+is attributed entirely to deterministic policy. It is not evidence of
+incremental learned safety value or production-incident replay.
+
+The candidate is archived under `artifacts/world-model-v3.4/` but is not
+promoted. Runtime-v3.4 authority has not been implemented or tested, and
+authored simulator resource deltas are not treated as empirical FerrumOS
+effects. The appliance model and manifest remain runtime-v2. Reproduce the
+research result with `scripts/verify_world_model_jepa_v3_4.py --online`; the
+machine-readable verification records 27/27 passing research and non-promotion
+checks. The paper draft is
+`paper/when_agents_control_kernel_v1_1_research_note.md`.
+
 ## Claim and system boundary
 
 FerrumOS uses an action-conditioned joint-embedding predictor as one input to a
