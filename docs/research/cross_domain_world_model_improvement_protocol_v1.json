@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "protocol_id": "cross-domain-world-model-improvement-v1",
+  "registered_at": "2026-08-30",
+  "registration_commit_parent": "b2640d9",
+  "status": "prospective_registered",
+  "purpose": "Measure architecture-controlled prediction, uncertainty, temporal causality, learned-only marginal caution, and authority-disabled integration for the FerrumOS and Physical JEPA world models without replacing a deployed artifact.",
+  "claim_boundary": [
+    "All newly generated observations are software or shadow evidence unless an external execution manifest identifies physical hardware and an independent operator.",
+    "A local simulator, PyBullet DIRECT run, replayed sensor trace, or QEMU run is not independent third-party assessment or physical HIL.",
+    "Learned output may add caution or request confirmation. It may not grant permission, remove a deterministic block, execute an actuator command, or expand a capability.",
+    "The study is diagnostic and cannot promote or replace a deployed artifact. A separate frozen promotion protocol would be required after all runtime and authority gates pass."
+  ],
+  "protected_deployed_artifacts": {
+    "ferrumos_encoder": {
+      "path": "appliance/world-model/model_encoder.bin",
+      "sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3"
+    },
+    "ferrumos_transition": {
+      "path": "appliance/world-model/model_learned.bin",
+      "sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8"
+    },
+    "ferrumos_manifest": {
+      "path": "appliance/world-model/manifest.json",
+      "sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7"
+    },
+    "physical_transition": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "frozen_research_inputs": {
+    "ferrumos_base_dataset": {
+      "path": "target/world-model-v3-work/world_model_dataset_release_repaired2.jsonl",
+      "sha256": "ae7498c7d93b4e35f8bf0a9ac595ca2bacc1ec694b1806c47a33741d911d491f",
+      "rows": 13697,
+      "availability": "local reproduction input; public lineage is identified by DOI 10.5281/zenodo.21829193"
+    },
+    "ferrumos_incident_source_catalog": {
+      "path": "docs/research/world_model_incident_sources_v3.json",
+      "sha256": "97a4176f4ac3b1b5cbd3996fcfd6705a6b9142c44b70a31e40f8a7f3348850a0"
+    },
+    "physical_incident_source_catalog": {
+      "path": "docs/research/physical_incident_sources_v2.json",
+      "sha256": "b10da39ce9d7149b850946d2fc9a9e72f8770288421252b2bc7baa856f13ba34"
+    },
+    "ferrumos_v3_4_candidate": {
+      "path": "docs/research/artifacts/world-model-v3.4/model_candidate.bin",
+      "sha256": "2616aa6b0587adc9258bd5ccd7d95f1e1a2011af7b2e76e3927046c010444f77"
+    },
+    "physical_v5_candidate": {
+      "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    }
+  },
+  "architecture_controlled_comparison": {
+    "methods": [
+      "direct_mlp",
+      "action_conditioned_jepa",
+      "gru_dynamics"
+    ],
+    "shared_conditions": {
+      "history_length": 3,
+      "prediction_target": "normalized next-state delta",
+      "training_seeds": [17, 43, 101],
+      "split_seed": 42,
+      "batch_size": 512,
+      "optimizer_updates": 2400,
+      "checkpoint_interval_updates": 100,
+      "checkpoint_rule": "lowest validation Gaussian negative log likelihood; every method completes the full fixed update budget",
+      "optimizer": "AdamW",
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "gradient_norm_clip": 5.0,
+      "trainable_parameter_budget": 100000,
+      "parameter_budget_tolerance_fraction": 0.05,
+      "deterministic_torch_algorithms": true,
+      "device": "cpu",
+      "final_partition_forbidden_during_fitting": true
+    },
+    "ferrumos": {
+      "state_dimensions": 48,
+      "action_dimensions": 57,
+      "training_curriculum": [
+        "episode-disjoint training partition of the frozen base dataset",
+        "training partition generated only from the frozen v3 incident source catalog"
+      ],
+      "calibration_partition": "episode-disjoint base validation plus v3 incident validation",
+      "final_partition": "existing published episode-disjoint base test plus the already-opened v3.4 final catalog",
+      "no_new_final_access_during_selection": true
+    },
+    "physical": {
+      "state_dimensions": 16,
+      "action_dimensions": 10,
+      "training_curriculum": [
+        "base deterministic simulator training partition",
+        "incident-v2 training partition",
+        "stress training partition"
+      ],
+      "calibration_partition": "base, incident-v2, and stress validation partitions",
+      "final_partition": "existing already-opened v5 final partition",
+      "no_new_final_access_during_selection": true
+    },
+    "required_outputs": [
+      "parameter count and fixed optimizer-update count",
+      "H=1, H=3, and H=5 normalized rollout error with paired episode bootstrap intervals",
+      "matched-false-positive-rate false-negative rate",
+      "Brier score, ECE, and reliability bins",
+      "risk-versus-coverage and abstention curves",
+      "epistemic ensemble variance, predicted aleatoric variance, and an OOD distance score",
+      "per-source, per-hazard, and per-action results",
+      "paired architecture comparisons on identical samples"
+    ],
+    "interpretation_rule": "A difference is architecture-controlled only when training rows, curriculum, partitions, update budget, parameter-budget tolerance, and evaluation cases all pass verification. Point-estimate leadership without a paired interval excluding zero is descriptive only."
+  },
+  "temporal_causality": {
+    "required_case_types": [
+      "changing action sequences",
+      "delayed resource exhaustion or delayed physical constraint violation",
+      "interaction effects between state dimensions",
+      "partial observation or sensor dropout",
+      "exogenous recovery or degradation",
+      "counterfactual pairs with the same initial state and different first actions"
+    ],
+    "pairing_rule": "Counterfactual members share the initial state, exogenous schedule, and all random draws except the intervention action.",
+    "metrics": [
+      "paired outcome-direction accuracy",
+      "individual treatment-effect error on represented state dimensions",
+      "multi-action H=3 and H=5 rollout error",
+      "uncertainty under observation masking and exogenous shift"
+    ]
+  },
+  "learned_contribution_benchmarks": {
+    "selection_inputs": "development generator and validation partitions only",
+    "final_catalogs": {
+      "ferrumos": "docs/research/world_model_learned_contribution_final_catalog_v1.json",
+      "physical": "docs/research/physical_jepa_learned_contribution_final_catalog_v1.json"
+    },
+    "final_catalogs_must_not_exist_during_selection": true,
+    "rules_and_thresholds_frozen_before_final_generation": true,
+    "required_arms": [
+      "rules_only",
+      "learned_only",
+      "rules_plus_learned"
+    ],
+    "primary_measure": "additional harmful outcomes avoided by the learned branch at a validation-matched false-positive or intervention rate",
+    "zero_is_reportable": true,
+    "independence_requirement": {
+      "external_design_manifest_required_for_independent_claim": true,
+      "manifest_must_identify": [
+        "designer or organization",
+        "design timestamp",
+        "scenario specification digest",
+        "absence of access to selected model predictions and final thresholds"
+      ],
+      "fallback_label_without_manifest": "researcher-designed blinded software benchmark"
+    }
+  },
+  "runtime_evidence": {
+    "ferrumos": {
+      "mode": "authority-disabled shadow preview",
+      "required": [
+        "canonical natural command sequences or recorded natural telemetry",
+        "independent postcondition computation",
+        "p50, p95, p99, and maximum latency",
+        "peak and retained memory",
+        "concurrent request serialization and failure recovery",
+        "unseen workload and multi-agent contention slices",
+        "proof that no shadow decision reaches execution authority"
+      ]
+    },
+    "physical": {
+      "mode": "actuator-disabled integration",
+      "software_replay_label": "sensor-replay integration",
+      "hil_label_requirements": [
+        "external hardware manifest",
+        "named sensor and controller interfaces",
+        "physical timestamps and clock source",
+        "actuator output electrically or mechanically disabled",
+        "independent emergency-stop path"
+      ],
+      "required_injections": [
+        "latency",
+        "jitter",
+        "noise",
+        "dropout",
+        "actuator saturation model",
+        "contact or collision recovery"
+      ],
+      "required_metrics": [
+        "task completion",
+        "collision or hazard count",
+        "intervention rate",
+        "additional hazards avoided by learning",
+        "end-to-end timing and recovery"
+      ]
+    }
+  },
+  "frozen_safety_invariants": [
+    "rules_plus_learned equals the logical union of independently recorded rule and learned decisions",
+    "a deterministic block cannot be erased by any learned score or uncertainty value",
+    "missing, malformed, non-finite, OOD, or deadline-expired learned output fails to caution or deterministic fallback and never to permit",
+    "selection and evaluation outputs target research-only paths",
+    "protected deployed digests are checked before and after every executable stage",
+    "no promotion, replacement, adapter delivery, or physical actuator authority is available to this protocol"
+  ],
+  "completion_gates": {
+    "architecture_controlled_outputs_verified": true,
+    "uncertainty_and_temporal_outputs_verified": true,
+    "both_blinded_benchmarks_opened_at_most_once": true,
+    "runtime_outputs_have_honest_evidence_class": true,
+    "independent_and_hil_claims_require_external_manifests": true,
+    "protected_deployed_digests_unchanged": true,
+    "promotion_eligible": false
+  }
+}
