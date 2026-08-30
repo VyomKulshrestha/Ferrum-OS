@@ -1,0 +1,29 @@
+{
+  "schema": "physical-jepa-safety-gymnasium-final-recovery-v1",
+  "registered_date": "2026-08-30",
+  "protocol_sha256": "a74d386468fa9c3f3b922db0c005c96dad16177735e65c204b925cc24e915649",
+  "selection_sha256": "d1071c77e1c11315f2b70f134f0e6734dc71d4ad43eb9d1574694339f810e8e1",
+  "failed_attempt": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_final_attempt_v2_failure.json",
+    "sha256": "f17191f1e68f8307a8cff2057b641e4655bacbe9dad0b3f992a0979b841b539f"
+  },
+  "failed_catalog": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_cases_v2.jsonl",
+    "sha256": "d25c5db224474453df7a797daaa1e88a1c1984f4dc53f53240439dbe2d5664bd"
+  },
+  "reason": "All four frozen arms completed, but result serialization failed because a relative output path was compared with the absolute repository root after the raw union catalog had been written.",
+  "only_code_change": "Resolve result and case output paths before repository-relative serialization.",
+  "policy_or_gate_change": false,
+  "failed_catalog_used_for_tuning": false,
+  "authorized_final_seed_access_count": 2,
+  "result_schema": "physical-jepa-safety-gymnasium-result-v3-recovery",
+  "result_path": "docs/research/physical_jepa_safety_gymnasium_result_v3.json",
+  "case_catalog_path": "docs/research/physical_jepa_safety_gymnasium_cases_v3.jsonl",
+  "requirements": [
+    "Use the unchanged v2 protocol and selected candidate.",
+    "Do not inspect or tune from the failed v2 case catalog before replay.",
+    "Retain the failed attempt and catalog unchanged.",
+    "Report final seed access count as two.",
+    "Do not promote or replace any deployed artifact."
+  ]
+}

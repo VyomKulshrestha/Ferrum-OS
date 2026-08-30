@@ -511,6 +511,7 @@ def final(
     protocol: dict,
     protocol_path: Path,
     selection_path: Path,
+    recovery_path: Path | None,
     output: Path,
     cases_output: Path,
 ) -> None:
@@ -523,6 +524,19 @@ def final(
         raise ValueError("selection did not pass")
     if selected_report["protocol"]["sha256"] != sha256(protocol_path):
         raise ValueError("protocol changed after selection")
+    recovery = None
+    if recovery_path is not None:
+        recovery = load_json(recovery_path)
+        if recovery["protocol_sha256"] != sha256(protocol_path):
+            raise ValueError("recovery protocol hash mismatch")
+        if recovery["selection_sha256"] != sha256(selection_path):
+            raise ValueError("recovery selection hash mismatch")
+        failed = ROOT / recovery["failed_attempt"]["path"]
+        if sha256(failed) != recovery["failed_attempt"]["sha256"]:
+            raise ValueError("retained failed-attempt record mismatch")
+        failed_cases = ROOT / recovery["failed_catalog"]["path"]
+        if sha256(failed_cases) != recovery["failed_catalog"]["sha256"]:
+            raise ValueError("retained failed catalog mismatch")
     runtime = runtime_evidence(protocol)
     if not runtime["versions_match"] or not runtime["source_matches"]:
         raise ValueError("external benchmark runtime changed after selection")
@@ -567,14 +581,32 @@ def final(
     )
     avoided = unshielded["actual_hazard_cost_events"] - union["actual_hazard_cost_events"]
     result = {
-        "schema": protocol.get("result_schemas", {}).get(
-            "final", "physical-jepa-safety-gymnasium-result-v1"
+        "schema": (
+            recovery["result_schema"]
+            if recovery is not None
+            else protocol.get("result_schemas", {}).get(
+                "final", "physical-jepa-safety-gymnasium-result-v1"
+            )
         ),
         "protocol": {"path": str(protocol_path.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(protocol_path)},
         "selection": {"path": str(selection_path.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(selection_path)},
         "runtime": runtime,
         "final_seed_range": final_range,
-        "final_seed_access_count": 1,
+        "final_seed_access_count": (
+            recovery["authorized_final_seed_access_count"]
+            if recovery is not None
+            else 1
+        ),
+        "recovery": (
+            None
+            if recovery is None
+            else {
+                "path": str(recovery_path.relative_to(ROOT)).replace("\\", "/"),
+                "sha256": sha256(recovery_path),
+                "reason": recovery["reason"],
+                "only_code_change": recovery["only_code_change"],
+            }
+        ),
         "selected_candidate": selected,
         "arms": arms,
         "headline": {
@@ -634,11 +666,13 @@ def main() -> None:
     parser.add_argument("--mode", choices=("selection", "final"), required=True)
     parser.add_argument("--protocol", type=Path, default=PROTOCOL)
     parser.add_argument("--selection", type=Path, default=SELECTION)
+    parser.add_argument("--recovery", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--cases-output", type=Path, default=FINAL_CASES)
     args = parser.parse_args()
     protocol_path = args.protocol.resolve()
     selection_path = args.selection.resolve()
+    recovery_path = None if args.recovery is None else args.recovery.resolve()
     protocol = load_json(protocol_path)
     if args.mode == "selection":
         selection(protocol, protocol_path, args.output or selection_path)
@@ -647,8 +681,9 @@ def main() -> None:
             protocol,
             protocol_path,
             selection_path,
-            args.output or FINAL_RESULT,
-            args.cases_output,
+            recovery_path,
+            (args.output or FINAL_RESULT).resolve(),
+            args.cases_output.resolve(),
         )
 
 

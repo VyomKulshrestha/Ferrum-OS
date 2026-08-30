@@ -1,0 +1,33 @@
+{
+  "schema": "physical-jepa-safety-gymnasium-final-attempt-failure-v1",
+  "date": "2026-08-30",
+  "protocol": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v2.json",
+    "sha256": "a74d386468fa9c3f3b922db0c005c96dad16177735e65c204b925cc24e915649"
+  },
+  "selection": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_selection_v2.json",
+    "sha256": "d1071c77e1c11315f2b70f134f0e6734dc71d4ad43eb9d1574694339f810e8e1"
+  },
+  "runner_sha256": "3808fee9c2160c02b1867d58e657a640822287fac05c8be6fd447b723b0808e9",
+  "final_seed_range": {"start": 1000, "count": 128},
+  "final_seed_access_count_after_attempt": 1,
+  "all_four_arms_executed": true,
+  "result_written": false,
+  "failure_stage": "result serialization after raw rules_plus_learned catalog write",
+  "exception": "ValueError: relative cases output is not in the subpath of the absolute repository root",
+  "failed_catalog": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_cases_v2.jsonl",
+    "sha256": "d25c5db224474453df7a797daaa1e88a1c1984f4dc53f53240439dbe2d5664bd",
+    "rows": 12082,
+    "bytes": 4365668,
+    "retained_unchanged": true,
+    "not_used_for_tuning_before_recovery_registration": true
+  },
+  "artifact_evidence_after_failure": {
+    "research_artifact_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "deployment_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "unchanged": true
+  },
+  "claim_boundary": "This attempt accessed all final seeds but did not produce a complete result. It is retained as an engineering failure and is not counted as a successful final evaluation."
+}
