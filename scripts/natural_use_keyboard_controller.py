@@ -47,6 +47,7 @@ def send_text(port: int, text: str) -> None:
             time.sleep(0.025)
         time.sleep(0.25)
         monitor.sendall(b"sendkey ret 20\n")
+        time.sleep(0.25)
 
 
 def send_enter(port: int) -> None:
@@ -57,6 +58,7 @@ def send_enter(port: int) -> None:
         except TimeoutError:
             pass
         monitor.sendall(b"sendkey ret 20\n")
+        time.sleep(0.25)
 
 
 def main() -> None:
