@@ -15,9 +15,10 @@ extern crate alloc;
 #[allow(dead_code)]
 
 use spin::Mutex;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 pub static INJECTING_AGENT_KEY: AtomicBool = AtomicBool::new(false);
+static DESKTOP_PHYSICAL_KEY_COUNT: AtomicU64 = AtomicU64::new(0);
 
 /// Internal key token emitted by both hardware keyboard paths for Alt+Tab.
 /// It is consumed by the compositor and is never forwarded to an app window.
@@ -156,7 +157,14 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
     let is_physical = pressed && !INJECTING_AGENT_KEY.load(Ordering::SeqCst);
     if is_physical {
         if crate::scheduler::wake_confirmation_waiters(ascii) {
+            crate::serial_println!("[gui] physical key consumed by confirmation waiter");
             return;
+        }
+        if ascii != 0 && crate::gui::captures_keyboard() {
+            let count = DESKTOP_PHYSICAL_KEY_COUNT.fetch_add(1, Ordering::SeqCst) + 1;
+            if count == 1 || count % 16 == 0 || ascii == b'\n' || ascii == b'\r' {
+                crate::serial_println!("[gui] desktop physical key events={}", count);
+            }
         }
     }
 
