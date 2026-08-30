@@ -1,0 +1,89 @@
+{
+  "artifacts": {
+    "evidence_snapshot": {
+      "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
+      "sha256": "128c0393745a394ee3bcc86364015ae7ff985d5d2274ff36aa2afcb22f056807"
+    },
+    "freeze_manifest": {
+      "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
+      "sha256": "c8214ed7ab2cdf4872f460502b4301a03ca3f1060ff2e7df8cf40a18540ffedd"
+    },
+    "manuscript": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
+      "sha256": "8b2b14536c45382941ca9a9d66de2a3e3f8284eedaef5952c8d8a278452ae7a2"
+    },
+    "pdf": {
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
+      "sha256": "5c14162119c21404b93702664ab4b416e78b4e9cd5b1e856941771a8cffa9597"
+    }
+  },
+  "checks": {
+    "all_figures_nonempty": true,
+    "external_frozen_negative_recomputes": true,
+    "external_result_effective_and_attributed": true,
+    "external_scope_and_nonpromotion_honest": true,
+    "external_verification_confirms_only_gate_failure": true,
+    "forbidden_placeholders_and_review_wording_absent": true,
+    "pdf_author_exact": true,
+    "pdf_has_no_replacement_character": true,
+    "pdf_page_count_is_14": true,
+    "pdf_required_phrases_present": true,
+    "pdf_subject_versioned": true,
+    "pdf_title_exact": true,
+    "protected_deployed_artifacts_unchanged": true,
+    "source_required_phrases_present": true,
+    "umbrella_all_checks_pass": true,
+    "umbrella_binds_external_verification": true,
+    "umbrella_promotion_ineligible": true
+  },
+  "diagnostics": {
+    "forbidden_patterns_absent": {
+      "Submission candidate": true,
+      "\\bTBD\\b": true,
+      "\\bTODO\\b": true,
+      "independently executed third-party": true,
+      "opposite unusable extreme": true,
+      "reviewer-requested": true
+    },
+    "freeze_manifest_sha256": "c8214ed7ab2cdf4872f460502b4301a03ca3f1060ff2e7df8cf40a18540ffedd",
+    "pdf_pages": 14,
+    "pdf_required_phrases": {
+      "Architecture-controlled results": true,
+      "Artifact locator": true,
+      "Claim-to-evidence ledger": true,
+      "Frozen-gate and artifact audit": true,
+      "ORCID: 0009-0009-1434-7148": true,
+      "Prediction Is Not Permission": true,
+      "References": true,
+      "Safety-Gymnasium controller and shield benchmark": true,
+      "Technical Report v1.1": true,
+      "Threats to validity and limitations": true,
+      "Vyom Kulshrestha": true
+    },
+    "pdf_words_extracted": 7839,
+    "source_required_phrases": {
+      "An intervention is counted only when the applied action differs from the proposal.": true,
+      "Appendix A. Claim-to-evidence ledger": true,
+      "Appendix B. Frozen-gate and artifact audit": true,
+      "Appendix C. Artifact locator": true,
+      "Architecture rankings are domain-dependent.": true,
+      "No protected research result was promoted.": true,
+      "Prospective Safety-Gymnasium controller and shield benchmark": true,
+      "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
+      "Safety-Gymnasium supplies the task and costs": true,
+      "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
+      "Technical Report v1.1 - 31 August 2026": true,
+      "controller divergence, not shield intervention": true,
+      "learned alerts require deterministic rule confirmation": true,
+      "no independent replication is claimed": true,
+      "not a claim that v5 produced the hazard-cost reduction": true,
+      "operationally unusable extreme": true,
+      "privileged deterministic planner": true,
+      "selected active union does not pass the frozen joint objective": true
+    }
+  },
+  "overall_pass": true,
+  "promotion_eligible": false,
+  "report_version": "1.1",
+  "schema": "cross-domain-world-model-paper-verification-v1-1"
+}
