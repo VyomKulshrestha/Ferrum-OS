@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-11",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v10.json",
+    "sha256": "fd621cd1cb4039c7cf2c0f52a64182b4610f1fbd1c9c5b3d5fd77b0e5674f927"
+  },
+  "observed_implementation_failure": "A second post-desktop HMP connection could report accepted sendkey commands while the guest received no scancodes.",
+  "changes": [
+    "The visible controller now serializes focus and keyboard actions through one process-lifetime HMP connection.",
+    "No registered prompt text, order, result gate or authority boundary changes."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative, privacy, authority and no-actuation gates"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "transport-lifetime diagnostic only; excluded with zero telemetry records"
+  }
+}

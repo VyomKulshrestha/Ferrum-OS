@@ -42,9 +42,26 @@ def hmp_key(character: str) -> str:
     raise ValueError(f"unsupported character: {character!r}")
 
 
-def send_text(port: int, text: str) -> None:
-    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
-        monitor.settimeout(0.2)
+class HmpController:
+    def __init__(self, port: int) -> None:
+        self.port = port
+        self.monitor: socket.socket | None = None
+        self.lock = threading.Lock()
+
+    def run(self, action) -> None:
+        with self.lock:
+            if self.monitor is None:
+                self.monitor = socket.create_connection(("127.0.0.1", self.port), timeout=5)
+                self.monitor.settimeout(0.2)
+                try:
+                    self.monitor.recv(4096)
+                except TimeoutError:
+                    pass
+            action(self.monitor)
+
+
+def send_text(controller: HmpController, text: str) -> None:
+    def action(monitor: socket.socket) -> None:
         try:
             monitor.recv(4096)
         except TimeoutError:
@@ -57,33 +74,33 @@ def send_text(port: int, text: str) -> None:
         time.sleep(0.25)
         monitor.sendall(f"sendkey ret {KEY_HOLD_MS}\n".encode("ascii"))
         time.sleep(0.25)
+    controller.run(action)
 
 
-def send_enter(port: int) -> None:
-    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
-        monitor.settimeout(0.2)
+def send_enter(controller: HmpController) -> None:
+    def action(monitor: socket.socket) -> None:
         try:
             monitor.recv(4096)
         except TimeoutError:
             pass
         monitor.sendall(f"sendkey ret {KEY_HOLD_MS}\n".encode("ascii"))
         time.sleep(0.25)
+    controller.run(action)
 
 
-def send_alt_tab(port: int) -> None:
-    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
-        monitor.settimeout(0.2)
+def send_alt_tab(controller: HmpController) -> None:
+    def action(monitor: socket.socket) -> None:
         try:
             monitor.recv(4096)
         except TimeoutError:
             pass
         monitor.sendall(b"sendkey alt-tab 500\n")
         time.sleep(0.75)
+    controller.run(action)
 
 
-def claim_desktop_input(port: int) -> None:
-    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
-        monitor.settimeout(0.2)
+def claim_desktop_input(controller: HmpController) -> None:
+    def action(monitor: socket.socket) -> None:
         try:
             monitor.recv(4096)
         except TimeoutError:
@@ -106,6 +123,7 @@ def claim_desktop_input(port: int) -> None:
         time.sleep(0.25)
         monitor.sendall(b"mouse_button 0\n")
         time.sleep(0.25)
+    controller.run(action)
 
 
 def main() -> None:
@@ -113,6 +131,7 @@ def main() -> None:
     parser.add_argument("--runtime", type=Path, required=True)
     args = parser.parse_args()
     runtime = json.loads(args.runtime.read_text(encoding="utf-8"))
+    hmp = HmpController(int(runtime["monitor_port"]))
     runtime["controller_pid"] = os.getpid()
     args.runtime.write_text(json.dumps(runtime, indent=2) + "\n", encoding="utf-8")
     root = Path(__file__).resolve().parents[1]
@@ -148,7 +167,7 @@ def main() -> None:
 
         def worker() -> None:
             try:
-                send_text(int(runtime["monitor_port"]), text)
+                send_text(hmp, text)
                 message = "Sent to visible FerrumOS guest"
             except Exception as error:  # displayed locally; no prompt content logged
                 message = f"Send failed: {error}"
@@ -167,7 +186,7 @@ def main() -> None:
 
         def worker() -> None:
             try:
-                claim_desktop_input(int(runtime["monitor_port"]))
+                claim_desktop_input(hmp)
                 message = "Guest desktop input claimed"
             except Exception as error:
                 message = f"Desktop claim failed: {error}"
@@ -181,7 +200,7 @@ def main() -> None:
         window,
         text="Press Enter only",
         command=lambda: threading.Thread(
-            target=send_enter, args=(int(runtime["monitor_port"]),), daemon=True
+            target=send_enter, args=(hmp,), daemon=True
         ).start(),
         font=("Segoe UI", 10),
     )
@@ -190,7 +209,7 @@ def main() -> None:
         window,
         text="Switch guest window (Alt+Tab)",
         command=lambda: threading.Thread(
-            target=send_alt_tab, args=(int(runtime["monitor_port"]),), daemon=True
+            target=send_alt_tab, args=(hmp,), daemon=True
         ).start(),
         font=("Segoe UI", 10),
     )
