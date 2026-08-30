@@ -21,6 +21,14 @@ systems. The AI brain runs natively as a freestanding userspace process
 operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
+**New cross-domain technical report:** [Read *Prediction Is Not Permission:
+Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.0.pdf),
+with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_0.md)
+and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_0.json).
+The 14-page report compares MLP, JEPA, and GRU dynamics under matched conditions,
+retains the zero learned-contribution result, and does not promote either research
+artifact. No archival DOI is claimed before a record is reserved or published.
+
 **Open-access research:** [Read *When Agents Control the Kernel: A JEPA World
 Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.22116399).
 The report, software, and dataset are separate artifacts; use the
@@ -66,7 +74,7 @@ reciprocally linked Zenodo records.
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [cross-domain matched follow-up](docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md), [OS report DOI](https://doi.org/10.5281/zenodo.22116399), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [cross-domain matched follow-up](docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md), [cross-domain report v1.0](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.0.pdf), [OS report DOI](https://doi.org/10.5281/zenodo.22116399), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 

@@ -1,0 +1,78 @@
+{
+  "artifacts": {
+    "evidence_snapshot": {
+      "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
+      "sha256": "ab4854b92938eb01e2a2c2fbe9e8a13637b6573d9978d800c7e9671b55589e02"
+    },
+    "freeze_manifest": {
+      "path": "docs/research/cross_domain_world_model_paper_freeze_v1_0.json",
+      "sha256": "5360b4539d78d906bf1657321c343ff9b3dd3adfa169b976016206804e714398"
+    },
+    "manuscript": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_0.md",
+      "sha256": "d83af14baee1cddffc92c56c161099bd2345508dea5f60c1a85fa8d6bc846e33"
+    },
+    "pdf": {
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.0.pdf",
+      "sha256": "a8544db19badb28957ee9d37a40b2ea264970647a796547505f2b2fa3381a1ba"
+    }
+  },
+  "checks": {
+    "all_figures_nonempty": true,
+    "forbidden_placeholders_and_review_wording_absent": true,
+    "pdf_author_exact": true,
+    "pdf_has_no_replacement_character": true,
+    "pdf_page_count_is_14": true,
+    "pdf_required_phrases_present": true,
+    "pdf_subject_versioned": true,
+    "pdf_title_exact": true,
+    "protected_deployed_artifacts_unchanged": true,
+    "source_required_phrases_present": true,
+    "umbrella_all_checks_pass": true,
+    "umbrella_promotion_ineligible": true
+  },
+  "diagnostics": {
+    "forbidden_patterns_absent": {
+      "\\bTBD\\b": true,
+      "\\bTODO\\b": true,
+      "independently executed third-party": true,
+      "reviewer-requested": true
+    },
+    "freeze_manifest_sha256": "5360b4539d78d906bf1657321c343ff9b3dd3adfa169b976016206804e714398",
+    "pdf_pages": 14,
+    "pdf_required_phrases": {
+      "Architecture-controlled results": true,
+      "Artifact locator": true,
+      "Claim-to-evidence ledger": true,
+      "FerrumOS authority-disabled runtime evidence": true,
+      "Frozen-gate and artifact audit": true,
+      "ORCID: 0009-0009-1434-7148": true,
+      "Physical evidence and retained negatives": true,
+      "Prediction Is Not Permission": true,
+      "Primary operational result": true,
+      "References": true,
+      "Vyom Kulshrestha": true
+    },
+    "pdf_words_extracted": 7386,
+    "source_required_phrases": {
+      "Actuator delivery attempts and deliveries were both zero.": true,
+      "All 288 cases are stopped by the union policy.": true,
+      "Appendix A. Claim-to-evidence ledger": true,
+      "Appendix B. Frozen-gate and artifact audit": true,
+      "Appendix C. Artifact locator": true,
+      "Architecture rankings are domain-dependent.": true,
+      "Task completion is 0%": true,
+      "The Wilson 95% upper bound for either marginal rate is 1.478%": true,
+      "The learned branch therefore adds zero marginal hazard blocks": true,
+      "The physical MLP-minus-JEPA H=3 difference is 0.010156": true,
+      "The selected research artifacts are not deployed": true,
+      "not live Ferrum hardware-in-the-loop": true,
+      "promotion_eligible` to false": true,
+      "researcher-designed blinded deterministic-software benchmark": true
+    }
+  },
+  "overall_pass": true,
+  "promotion_eligible": false,
+  "report_version": "1.0",
+  "schema": "cross-domain-world-model-paper-verification-v1"
+}

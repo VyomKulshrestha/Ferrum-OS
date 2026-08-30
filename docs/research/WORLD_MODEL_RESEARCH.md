@@ -8,6 +8,15 @@ model makes the OS safe.”
 The post-publication architecture-controlled and cross-domain evidence is
 summarized in
 [`CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md`](CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md).
+The full 14-page synthesis is
+[*Prediction Is Not Permission: Cross-Domain World Models Under Deterministic
+Runtime Authority*](paper/Prediction_Is_Not_Permission_Technical_Report_v1.0.pdf),
+with an [auditable manuscript](paper/prediction_is_not_permission_technical_report_v1_0.md),
+[paper-specific verifier](../../scripts/verify_cross_domain_world_model_paper.py),
+and [freeze manifest](cross_domain_world_model_paper_freeze_v1_0.json). It is a
+research-only report: the operational learned-contribution result is zero at the
+frozen threshold, the 3D stress result is retained as an all-stop failure, and
+deployment promotion remains false.
 
 ## Registered v3.4 research candidate (not deployed)
 

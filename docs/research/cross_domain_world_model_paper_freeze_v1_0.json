@@ -1,0 +1,78 @@
+{
+  "artifacts": {
+    "evidence_snapshot": {
+      "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
+      "sha256": "ab4854b92938eb01e2a2c2fbe9e8a13637b6573d9978d800c7e9671b55589e02"
+    },
+    "figures": [
+      {
+        "bytes": 123678,
+        "path": "docs/research/figures/cross_domain_world_model/authority_factorization.png",
+        "sha256": "2a2f178dd0c60f3079a00017df7432fbb4b7bff1f09f1d2b196069200c03eecb"
+      },
+      {
+        "bytes": 108459,
+        "path": "docs/research/figures/cross_domain_world_model/matched_rollout_results.png",
+        "sha256": "b483c335817e8dd855f7e90f90015450a281422be881b0ec3d3a9313a9211593"
+      },
+      {
+        "bytes": 116969,
+        "path": "docs/research/figures/cross_domain_world_model/evidence_ladder.png",
+        "sha256": "03ea3a315b59b5bc580bd9e7f30250b9dcc15b35ac62249e63c49e48c12a3353"
+      },
+      {
+        "bytes": 145249,
+        "path": "docs/research/figures/cross_domain_world_model/causal_vs_operational.png",
+        "sha256": "7560813b9384a3eac5bc81b2a22384d0fa03437cba8961f519951321c72b52eb"
+      }
+    ],
+    "manuscript": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_0.md",
+      "sha256": "d83af14baee1cddffc92c56c161099bd2345508dea5f60c1a85fa8d6bc846e33"
+    },
+    "pdf": {
+      "pages": 14,
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.0.pdf",
+      "sha256": "a8544db19badb28957ee9d37a40b2ea264970647a796547505f2b2fa3381a1ba"
+    }
+  },
+  "author": "Vyom Kulshrestha",
+  "claim_boundary": [
+    "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
+    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
+    "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+    "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
+    "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
+    "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
+    "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
+    "No protected deployed artifact was promoted or replaced by this study."
+  ],
+  "evidence_frozen_date": "2026-08-30",
+  "orcid": "0009-0009-1434-7148",
+  "promotion_eligible": false,
+  "protected_deployed_artifacts": {
+    "ferrumos_encoder": {
+      "expected_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "observed_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "unchanged": true
+    },
+    "ferrumos_manifest": {
+      "expected_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "observed_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "unchanged": true
+    },
+    "ferrumos_transition": {
+      "expected_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "observed_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "unchanged": true
+    },
+    "physical_transition": {
+      "expected_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "observed_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "unchanged": true
+    }
+  },
+  "report_version": "1.0",
+  "schema": "cross-domain-world-model-paper-freeze-v1",
+  "title": "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
+}
