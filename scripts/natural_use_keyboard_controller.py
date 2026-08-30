@@ -101,7 +101,7 @@ def main() -> None:
 
     window = tk.Tk()
     window.title(f"Ferrum Natural Use Controller {runtime['session']}")
-    window.geometry("760x560")
+    window.geometry("760x640")
     tk.Label(
         window,
         text="Computer Use input -> local QEMU hardware key events (no JSON-RPC execution)",
