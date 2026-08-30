@@ -170,6 +170,7 @@ def fallback_action(
     episode: dict,
     seed: int,
     recovery_sign: float | None,
+    forward: float = 0.0,
 ) -> tuple[np.ndarray, float]:
     start, end = episode["proposal_controller"]["hazards_lidar_slice"]
     hazards = observation[start:end]
@@ -182,7 +183,7 @@ def fallback_action(
             recovery_sign = 1.0 if seed % 2 == 0 else -1.0
         else:
             recovery_sign = -1.0 if angle > 0.0 else 1.0
-    return np.asarray([0.0, recovery_sign], dtype=np.float64), recovery_sign
+    return np.asarray([forward, recovery_sign], dtype=np.float64), recovery_sign
 
 
 def run_episode(
@@ -253,6 +254,7 @@ def run_episode(
                     protocol["episode"],
                     seed,
                     recovery_sign,
+                    policy.get("fallback_forward", 0.0),
                 )
             else:
                 actual = proposed
@@ -442,7 +444,7 @@ def run_policy(
     return episodes, cases
 
 
-def selection(protocol: dict, output: Path) -> None:
+def selection(protocol: dict, protocol_path: Path, output: Path) -> None:
     if output.exists():
         raise FileExistsError(f"selection output already exists: {output}")
     runtime = runtime_evidence(protocol)
@@ -487,8 +489,10 @@ def selection(protocol: dict, output: Path) -> None:
     )
     selected = passing[0] if passing else None
     report = {
-        "schema": "physical-jepa-safety-gymnasium-selection-v1",
-        "protocol": {"path": str(PROTOCOL.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(PROTOCOL)},
+        "schema": protocol.get("result_schemas", {}).get(
+            "selection", "physical-jepa-safety-gymnasium-selection-v1"
+        ),
+        "protocol": {"path": str(protocol_path.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(protocol_path)},
         "runtime": runtime,
         "development_seeds": seeds,
         "final_seed_access_attempted": False,
@@ -503,15 +507,21 @@ def selection(protocol: dict, output: Path) -> None:
         raise SystemExit("no useful-operating-region candidate passed development gates")
 
 
-def final(protocol: dict, output: Path, cases_output: Path) -> None:
+def final(
+    protocol: dict,
+    protocol_path: Path,
+    selection_path: Path,
+    output: Path,
+    cases_output: Path,
+) -> None:
     if output.exists() or cases_output.exists():
         raise FileExistsError("final result or case catalog already exists")
-    if not SELECTION.is_file():
+    if not selection_path.is_file():
         raise FileNotFoundError("selection result is required before final execution")
-    selected_report = load_json(SELECTION)
+    selected_report = load_json(selection_path)
     if not selected_report.get("selection_passed"):
         raise ValueError("selection did not pass")
-    if selected_report["protocol"]["sha256"] != sha256(PROTOCOL):
+    if selected_report["protocol"]["sha256"] != sha256(protocol_path):
         raise ValueError("protocol changed after selection")
     runtime = runtime_evidence(protocol)
     if not runtime["versions_match"] or not runtime["source_matches"]:
@@ -557,9 +567,11 @@ def final(protocol: dict, output: Path, cases_output: Path) -> None:
     )
     avoided = unshielded["actual_hazard_cost_events"] - union["actual_hazard_cost_events"]
     result = {
-        "schema": "physical-jepa-safety-gymnasium-result-v1",
-        "protocol": {"path": str(PROTOCOL.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(PROTOCOL)},
-        "selection": {"path": str(SELECTION.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(SELECTION)},
+        "schema": protocol.get("result_schemas", {}).get(
+            "final", "physical-jepa-safety-gymnasium-result-v1"
+        ),
+        "protocol": {"path": str(protocol_path.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(protocol_path)},
+        "selection": {"path": str(selection_path.relative_to(ROOT)).replace("\\", "/"), "sha256": sha256(selection_path)},
         "runtime": runtime,
         "final_seed_range": final_range,
         "final_seed_access_count": 1,
@@ -620,14 +632,24 @@ def main() -> None:
     warnings.filterwarnings("ignore")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("selection", "final"), required=True)
+    parser.add_argument("--protocol", type=Path, default=PROTOCOL)
+    parser.add_argument("--selection", type=Path, default=SELECTION)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--cases-output", type=Path, default=FINAL_CASES)
     args = parser.parse_args()
-    protocol = load_json(PROTOCOL)
+    protocol_path = args.protocol.resolve()
+    selection_path = args.selection.resolve()
+    protocol = load_json(protocol_path)
     if args.mode == "selection":
-        selection(protocol, args.output or SELECTION)
+        selection(protocol, protocol_path, args.output or selection_path)
     else:
-        final(protocol, args.output or FINAL_RESULT, args.cases_output)
+        final(
+            protocol,
+            protocol_path,
+            selection_path,
+            args.output or FINAL_RESULT,
+            args.cases_output,
+        )
 
 
 if __name__ == "__main__":
