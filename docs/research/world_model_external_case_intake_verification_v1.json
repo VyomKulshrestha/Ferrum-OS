@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "actuator_disabled": true,
+    "artifact_unchanged": true,
+    "external_heldout_cases": true,
+    "no_promotion": true,
+    "protocol_identity": true,
+    "registered_files": true,
+    "registered_revision": true,
+    "result_gates": true,
+    "semantic_boundary": true,
+    "zero_model_inference": true
+  },
+  "claim_boundary": "Externally authored cases remove local case-design dependence, but this researcher-executed audit is not independent assessment. Physical telemetry may establish data suitability and actuator-disabled replay feasibility; it cannot establish live Ferrum HIL, collision avoidance, contact recovery, or deployment safety.",
+  "promotion_eligible": false,
+  "protocol_id": "cross-domain-world-model-external-case-intake-v1",
+  "result": {
+    "path": "docs/research/world_model_external_case_intake_result_v1.json",
+    "sha256": "228b0b4cc74054a0b9c2a50fdcdd1ca1ba2e48667bdd8e9997f4ad4b9e978311"
+  },
+  "schema_version": 1,
+  "verification_passed": true
+}
