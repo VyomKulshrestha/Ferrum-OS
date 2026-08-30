@@ -140,6 +140,19 @@ def main() -> None:
         button.config(state="normal")
         editor.focus_set()
 
+    def claim() -> None:
+        status.set("Claiming guest desktop input...")
+
+        def worker() -> None:
+            try:
+                claim_desktop_input(int(runtime["monitor_port"]))
+                message = "Guest desktop input claimed"
+            except Exception as error:
+                message = f"Desktop claim failed: {error}"
+            window.after(0, lambda: status.set(message))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     button = tk.Button(window, text="Send to FerrumOS", command=send, font=("Segoe UI", 11))
     button.pack(padx=16, pady=8, anchor="w")
     enter_button = tk.Button(
@@ -163,9 +176,7 @@ def main() -> None:
     claim_button = tk.Button(
         window,
         text="Claim guest desktop input (click)",
-        command=lambda: threading.Thread(
-            target=claim_desktop_input, args=(int(runtime["monitor_port"]),), daemon=True
-        ).start(),
+        command=claim,
         font=("Segoe UI", 10),
     )
     claim_button.pack(padx=16, pady=4, anchor="w")
