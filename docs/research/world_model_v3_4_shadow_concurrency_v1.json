@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "protocol": "world-model-preview-concurrency-v1",
+  "accelerator": "whpx",
+  "ram_mb": 4096,
+  "outstanding_requests": 96,
+  "action_classes": 6,
+  "responses_received": 96,
+  "batch_wall_milliseconds": 17352.337,
+  "identical_requests_deterministic": true,
+  "execution_dataset_records_added": 0,
+  "learned_encoder_loaded": true,
+  "learned_transition_loaded": true,
+  "guest_fault_free": true,
+  "authority_disabled": true,
+  "transition": {
+    "role": "research candidate injected into disposable run-disk copy",
+    "path": "target/world-model-v3-work/world_model_jepa_v3_candidate.bin",
+    "sha256": "2616aa6b0587adc9258bd5ccd7d95f1e1a2011af7b2e76e3927046c010444f77"
+  },
+  "packaged_source_disk": {
+    "sha256_before": "80ebbe08ca33200fee69aab7d66c915b7572b89b070b8be68de50fba1d840bea",
+    "sha256_after": "80ebbe08ca33200fee69aab7d66c915b7572b89b070b8be68de50fba1d840bea",
+    "unchanged": true
+  },
+  "serial_sha256": "e8384598a08d828991fb99f2b20f833c0aca500668294594cc468266854a7b04",
+  "limitation": "The single-threaded daemon serializes preview inference; concurrency here means multiple outstanding requests with response correlation, not parallel neural execution."
+}

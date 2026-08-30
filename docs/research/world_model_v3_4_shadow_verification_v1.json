@@ -1,0 +1,56 @@
+{
+  "candidate_sha256": "2616aa6b0587adc9258bd5ccd7d95f1e1a2011af7b2e76e3927046c010444f77",
+  "checks": {
+    "candidate_exists": true,
+    "concurrency_verified": true,
+    "protected_deployed_artifacts_unchanged": true,
+    "runtime_verified": true
+  },
+  "claim_boundary": [
+    "The frozen v3.4 candidate was injected only into disposable run-disk copies.",
+    "The packaged source disk and deployed research artifacts remained byte-identical.",
+    "This is emulator runtime, timing, load, memory, and concurrent-preview evidence; it is not production deployment or natural-use outcome evidence."
+  ],
+  "concurrency_checks": {
+    "all_responses": true,
+    "authority_disabled": true,
+    "candidate_digest": true,
+    "deterministic": true,
+    "finite": true,
+    "guest_fault_free": true,
+    "models_loaded": true,
+    "no_execution_records": true,
+    "source_disk_unchanged": true
+  },
+  "concurrency_report": {
+    "path": "docs/research/world_model_v3_4_shadow_concurrency_v1.json",
+    "sha256": "02fa7ecd5b9cdcc2c8705e57cabc91fd6b98bfe0e0c83c0bf820e91ca536226b"
+  },
+  "evidence_class": "QEMU/WHPX or QEMU/TCG in-guest authority-disabled shadow preview; no action dispatch",
+  "promotion_eligible": false,
+  "protected_deployed_artifacts": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "protocol_id": "ferrumos-os-jepa-v3.4-authority-disabled-shadow-v1",
+  "runtime_checks": {
+    "authority_disabled": true,
+    "candidate_digest": true,
+    "disposable_role": true,
+    "finite": true,
+    "horizons": true,
+    "models_loaded": true,
+    "no_heap_growth": true,
+    "p99_ordered": true,
+    "protocol_v3": true,
+    "source_disk_unchanged": true
+  },
+  "runtime_report": {
+    "path": "docs/research/world_model_v3_4_shadow_runtime_v1.json",
+    "sha256": "2fa5f00b08a25e50de20df1d363881c12c8ba81f6d9c032d2cad7680a19a1c4f"
+  },
+  "schema_version": 1,
+  "verification_passed": true
+}
