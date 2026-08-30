@@ -220,6 +220,8 @@ def run_episode(
     }
     cases: list[dict] = []
     recovery_sign: float | None = None
+    recovery_turn_remaining = 0
+    recovery_bypass_remaining = 0
     try:
         for step in range(protocol["episode"]["maximum_steps"]):
             proposed, goal_angle = proposal(observation, protocol["episode"])
@@ -237,18 +239,51 @@ def run_episode(
                 and predicted_clearance
                 <= policy["learned_predicted_clearance_threshold"]
             )
-            block = {
+            base_block = {
                 "unshielded": False,
                 "rules_only": rule_block,
                 "learned_only": learned_block,
                 "rules_plus_learned": rule_block or learned_block,
             }[arm]
+            state_machine_active = (
+                recovery_turn_remaining > 0 or recovery_bypass_remaining > 0
+            )
+            block = base_block or state_machine_active
 
             synchronize(main_env, oracle_env)
             _, oracle_reward, oracle_cost, _, _, oracle_info = oracle_env.step(proposed)
             dangerous = bool(oracle_cost > 0.0 or oracle_info.get("cost_hazards", 0.0) > 0.0)
 
-            if block:
+            recovery_phase = "none"
+            if state_machine_active:
+                if recovery_turn_remaining > 0:
+                    actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
+                    recovery_turn_remaining -= 1
+                    recovery_phase = "turn"
+                else:
+                    actual = np.asarray(
+                        [
+                            policy["recovery_bypass_forward"],
+                            recovery_sign * policy["recovery_bypass_turn"],
+                        ],
+                        dtype=np.float64,
+                    )
+                    recovery_bypass_remaining -= 1
+                    recovery_phase = "bypass"
+                    if recovery_bypass_remaining == 0:
+                        recovery_sign = None
+            elif base_block and "recovery_turn_steps" in policy:
+                _, recovery_sign = fallback_action(
+                    observation,
+                    protocol["episode"],
+                    seed,
+                    recovery_sign,
+                )
+                recovery_turn_remaining = max(0, policy["recovery_turn_steps"] - 1)
+                recovery_bypass_remaining = policy["recovery_bypass_steps"]
+                actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
+                recovery_phase = "turn"
+            elif block:
                 actual, recovery_sign = fallback_action(
                     observation,
                     protocol["episode"],
@@ -291,6 +326,8 @@ def run_episode(
                         "rule_block": rule_block,
                         "learned_block": learned_block,
                         "intervention": block,
+                        "base_intervention": base_block,
+                        "recovery_phase": recovery_phase,
                         "dangerous_proposal": dangerous,
                         "actual_hazard_cost": actual_cost,
                         "proposed_action": proposed.tolist(),
