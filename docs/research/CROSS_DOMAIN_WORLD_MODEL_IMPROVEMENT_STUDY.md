@@ -81,6 +81,14 @@ Host NumPy batch inference measured 2.239 µs median and 3.303 µs p99 per row; 
 
 Actuator delivery attempts were zero and actuator deliveries were zero. This is researcher-executed replay of externally recorded HIL/testbed data. It is not live Ferrum HIL, a robot trial, independent assessment, contact-dynamics evidence, multi-embodiment evidence, or human-safety evidence.
 
+## Multi-embodiment 3D stress: retained negative result
+
+A separately registered PyBullet DIRECT stress test varies three simulated bodies (box, sphere, and capsule), three obstacle geometries (box, sphere, and cylinder), mass, 3D targets, contact, and a one-second return-to-start recovery. It is locally designed software physics, not a blinded benchmark or hardware evidence.
+
+The run is not practical-value evidence: all 288 cases were stopped and task completion was 0% (Wilson 95% upper bound 1.32%). The unshielded arm contacted an obstacle in 205/288 cases; the union arm had no contacts only because it intervened in 288/288. The learned branch contributed 23 interventions not produced by the rule, 13 of which coincided with an unshielded contact, but these cannot be credited as useful learned safety at a 100% intervention rate. Simulated return-to-start recovery succeeded in 181/205 contact cases (88.29%, Wilson 95% interval [83.17%, 92.01%]).
+
+Retaining this result prevents a diversity checkbox from being mistaken for progress. The test adds software geometry and contact coverage while showing that the current state mapping and thresholds fail the completion-versus-intervention objective under this shift.
+
 ## What changed, and what did not
 
 The study adds:
@@ -90,8 +98,9 @@ The study adds:
 - two new once-opened final catalogs designed to leave simple current-state rules without an automatic advantage;
 - in-guest v3.4 shadow timing, memory, concurrency, and no-execution evidence;
 - actuator-disabled replay with external recorded sensor streams and registered fault injection.
+- a retained negative multi-embodiment 3D contact-and-recovery stress test.
 
-It does not add independent benchmark design, independently operated execution, live HIL, physical timing, actuator dynamics, contact recovery, multiple embodiments, richer 3D interaction, natural-use OS telemetry, or multi-agent field contention. Those require external people, hardware, or data that are not present in this repository and cannot be created honestly by a local script.
+It does not add independent benchmark design, independently operated execution, live HIL, physical timing, physical actuator dynamics, physical contact recovery, physical embodiment transfer, natural-use OS telemetry, or multi-agent field contention. Those require external people, hardware, or data that are not present in this repository and cannot be created honestly by a local script.
 
 ## Reproduction
 
@@ -103,6 +112,7 @@ python scripts/verify_cross_domain_learned_contribution.py
 node scripts/verify_world_model_runtime_benchmark.mjs docs/research/world_model_v3_4_shadow_runtime_v1.json
 python scripts/verify_world_model_v3_4_shadow.py
 python scripts/verify_physical_jepa_recorded_hil_replay.py
+python scripts/verify_physical_jepa_multi_embodiment_3d.py
 python scripts/verify_cross_domain_world_model_improvement_study.py
 ```
 

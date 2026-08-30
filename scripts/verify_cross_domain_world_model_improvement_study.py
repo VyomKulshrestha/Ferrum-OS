@@ -29,6 +29,9 @@ EVIDENCE = {
     "physical_replay_amendment2": "physical_jepa_recorded_hil_replay_protocol_v1_amendment2.json",
     "physical_replay_result": "physical_jepa_recorded_hil_replay_result_v1.json",
     "physical_replay_verification": "physical_jepa_recorded_hil_replay_verification_v1.json",
+    "physical_3d_protocol": "physical_jepa_multi_embodiment_3d_protocol_v1.json",
+    "physical_3d_result": "physical_jepa_multi_embodiment_3d_result_v1.json",
+    "physical_3d_verification": "physical_jepa_multi_embodiment_3d_verification_v1.json",
 }
 
 
@@ -77,6 +80,7 @@ def main() -> int:
     learned = records["learned_result"]
     os_shadow = records["os_shadow_verification"]
     physical_replay = records["physical_replay_result"]
+    physical_3d = records["physical_3d_result"]
     checks = {
         "architecture_selection_never_opened_final": records["architecture_selection"][
             "final_test_opened"
@@ -117,14 +121,27 @@ def main() -> int:
         and physical_replay["authority"]["actuator_deliveries"] == 0,
         "live_hil_not_claimed": "live Ferrum hardware-in-the-loop"
         in physical_replay["unsupported_gaps"],
+        "multi_embodiment_3d_negative_result_verified": records[
+            "physical_3d_verification"
+        ]["verification_passed"]
+        is True
+        and physical_3d["summary"]["intervention_rate"] == 1.0
+        and physical_3d["summary"]["task_completion_rate"] == 0.0,
+        "physical_3d_actuator_authority_zero": physical_3d["authority"][
+            "physical_actuator_attempts"
+        ]
+        == 0
+        and physical_3d["authority"]["physical_actuator_deliveries"] == 0,
         "protected_deployed_artifacts_unchanged": deployed == expected_deployed,
         "all_results_finite": finite(architecture)
         and finite(learned)
-        and finite(physical_replay),
+        and finite(physical_replay)
+        and finite(physical_3d),
         "no_promotion": architecture["promotion_eligible"] is False
         and learned["promotion_eligible"] is False
         and os_shadow["promotion_eligible"] is False
-        and physical_replay["promotion_eligible"] is False,
+        and physical_replay["promotion_eligible"] is False
+        and physical_3d["promotion_eligible"] is False,
     }
     result = {
         "schema_version": 1,
@@ -149,6 +166,9 @@ def main() -> int:
             "marginal_learned_hazards_avoided_physical": 0,
             "os_authority_disabled_shadow": True,
             "physical_actuator_disabled_recorded_sensor_replay": True,
+            "physical_multi_embodiment_3d_stress": True,
+            "physical_3d_stress_task_completion_rate": 0.0,
+            "physical_3d_stress_intervention_rate": 1.0,
             "independent_benchmark": False,
             "live_physical_hil": False,
         },
@@ -156,6 +176,7 @@ def main() -> int:
             "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
             "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
             "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+            "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
             "No protected deployed artifact was promoted or replaced by this study.",
         ],
     }

@@ -10,8 +10,10 @@
     "learned_marginal_result_reported_honestly": true,
     "learned_selection_never_opened_final": true,
     "live_hil_not_claimed": true,
+    "multi_embodiment_3d_negative_result_verified": true,
     "no_promotion": true,
     "os_shadow_verified": true,
+    "physical_3d_actuator_authority_zero": true,
     "physical_actuator_authority_zero": true,
     "physical_replay_verified": true,
     "protected_deployed_artifacts_unchanged": true
@@ -20,6 +22,7 @@
     "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
     "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
     "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+    "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
   "evidence": {
@@ -59,6 +62,18 @@
       "path": "docs/research/world_model_v3_4_shadow_verification_v1.json",
       "sha256": "4a74847a85657140d9ce4bd07e9d9c4d4819321b330bad85553730bf67fc5fa5"
     },
+    "physical_3d_protocol": {
+      "path": "docs/research/physical_jepa_multi_embodiment_3d_protocol_v1.json",
+      "sha256": "3ad9357f5dbc078a10824d28cd49678dd838f9adba5cbd4788953fbc60f55e75"
+    },
+    "physical_3d_result": {
+      "path": "docs/research/physical_jepa_multi_embodiment_3d_result_v1.json",
+      "sha256": "a6127c4f71721393199583e7588931db4cf3d47b703a326031946f2e7892b4f4"
+    },
+    "physical_3d_verification": {
+      "path": "docs/research/physical_jepa_multi_embodiment_3d_verification_v1.json",
+      "sha256": "181b17fd6e76b97c8b4d48205969e217693602235b5f5e5be2c1be1a7eb0ee05"
+    },
     "physical_replay_amendment1": {
       "path": "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment1.json",
       "sha256": "87f85e9e5a7ea891d192fd12f8a04006d602f57bd3570761390141372916acc3"
@@ -88,7 +103,10 @@
     "marginal_learned_hazards_avoided_ferrumos": 0,
     "marginal_learned_hazards_avoided_physical": 0,
     "os_authority_disabled_shadow": true,
-    "physical_actuator_disabled_recorded_sensor_replay": true
+    "physical_3d_stress_intervention_rate": 1.0,
+    "physical_3d_stress_task_completion_rate": 0.0,
+    "physical_actuator_disabled_recorded_sensor_replay": true,
+    "physical_multi_embodiment_3d_stress": true
   },
   "promotion_eligible": false,
   "protected_deployed_artifacts": {
