@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "protocol_id": "cross-domain-world-model-external-case-intake-v1",
+  "registration_date": "2026-08-30",
+  "status": "registered_before_selected-file evaluation",
+  "objective": "Use cases and telemetry authored by organizations outside this project to audit workload coverage and physical-data compatibility without retraining, threshold tuning, artifact promotion, or physical actuation.",
+  "frozen_repository_head": "f96ba33a32bd9b9218be0fcdaef31eeb97b9232f",
+  "sources": [
+    {
+      "source_id": "nvidia-anchor-lab",
+      "publisher": "NVIDIA Robotics",
+      "source_url": "https://huggingface.co/datasets/nvidia/Anchor-Lab",
+      "revision": "647edd5787cd764cdc041103ad282dc59214d919",
+      "license": "Apache-2.0",
+      "evidence_class": "externally designed and physically recorded robot/test-stand telemetry",
+      "selected_files": [
+        "data/so101_arm_50motion/so101-sysid-50motion-heldout-square-pattern.parquet",
+        "data/so101_arm_50motion/so101-sysid-50motion-heldout-hold-under-gravity.parquet",
+        "data/so101_arm_50motion/so101-sysid-50motion-heldout-diagonal-sweep.parquet",
+        "data/h1_elbow_teststand/h1-elbow-teststand-sysid-freq-0p2hz-nominal-position8.parquet",
+        "data/h1_elbow_teststand/h1-elbow-teststand-sysid-freq-3p0hz-reduced-position11.parquet",
+        "data/h1_elbow_teststand/h1-elbow-teststand-sysid-chirp-1p0-3p0hz-xlarge-position0-type3.parquet"
+      ],
+      "selection_rule": "Select all three SO-101 files whose publisher-assigned names begin heldout, plus H1 test-stand trials spanning nominal low frequency, reduced high frequency, and xlarge chirp. Selection uses only repository metadata and filenames, not signal values or model outputs."
+    },
+    {
+      "source_id": "azure-public-vm-noise",
+      "publisher": "Microsoft Azure",
+      "source_url": "https://github.com/Azure/AzurePublicDataset/tree/master/vm-noise-data",
+      "revision": "207bed67dd10090b28ad4f745b2cfd41a11aace4",
+      "license": "repository terms at the frozen revision",
+      "evidence_class": "externally authored cloud/OS benchmark taxonomy and measured performance traces",
+      "case_families": [
+        "OSBench create files",
+        "OSBench create processes",
+        "OSBench create threads",
+        "OSBench launch programs",
+        "Stress-NG CPU stress",
+        "Stress-NG memory copying",
+        "Flexible IO random read and write",
+        "Redis parallel GET and SET"
+      ],
+      "use": "Define the natural-use and contention workload mix. Azure measurements are not projected into FerrumOS state vectors and are not presented as FerrumOS labels."
+    }
+  ],
+  "physical_compatibility_checks": [
+    "download every frozen Anchor-Lab file from the frozen revision",
+    "record SHA-256, row count, field names, timestamp count, median sampling interval, p99 sampling interval, and non-finite count",
+    "require measured state plus actuator or command fields before any dynamics-replay classification",
+    "classify compatibility separately for timing, state observation, command observation, safety labels, contact labels, and direct Physical JEPA v5 semantics"
+  ],
+  "gates": [
+    "all selected external files are available and digest-recorded",
+    "no source field is silently reinterpreted as a FerrumOS or Physical JEPA label",
+    "no final catalog is opened",
+    "no frozen model, threshold, deployed disk, or deployed artifact is modified",
+    "actuator attempts and deliveries remain zero"
+  ],
+  "claim_boundary": "Externally authored cases remove local case-design dependence, but this researcher-executed audit is not independent assessment. Physical telemetry may establish data suitability and actuator-disabled replay feasibility; it cannot establish live Ferrum HIL, collision avoidance, contact recovery, or deployment safety."
+}

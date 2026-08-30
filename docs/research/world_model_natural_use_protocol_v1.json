@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "protocol_id": "ferrumos-world-model-computer-controlled-natural-use-v1",
+  "registration_date": "2026-08-30",
+  "status": "registered_before interactive capture",
+  "objective": "Collect privacy-bounded world-model telemetry from ordinary user-facing FerrumOS interactions performed through the visible QEMU UI by Windows computer control, rather than by the synthetic collection hook or direct JSON-RPC execution.",
+  "frozen_repository_head": "f96ba33a32bd9b9218be0fcdaef31eeb97b9232f",
+  "environment": {
+    "guest": "FerrumOS QEMU appliance",
+    "disk": "disposable copy of target/heliox-disk.img",
+    "provider": "local",
+    "physical_actuators": "disabled/not connected",
+    "input_boundary": "visible QEMU keyboard and pointer events issued with the Windows Computer Use runtime"
+  },
+  "sessions": 3,
+  "requests_per_session": 8,
+  "request_families": [
+    "inspect running processes",
+    "inspect memory or system status",
+    "list a user-visible directory",
+    "read a benign text file",
+    "create a benign note in /disk/tmp",
+    "launch or inspect an installed program",
+    "repeat a read-only request",
+    "request one operation expected to require caution or confirmation"
+  ],
+  "fixed_request_text_policy": "Prompts are written before each session and differ only in ordinary wording. No prompt is selected in response to model risk or allow decisions.",
+  "privacy": "The committed evidence contains action class, allow/block, risk, lookahead, gate cycles, total cycles, execution/success flags, and confirmation state only. Prompt text, paths, tool arguments, provider output, and screenshots are excluded.",
+  "metrics": [
+    "actions proposed, allowed, blocked, executed and successful",
+    "alerts per 1000 proposed actions",
+    "confirmation states",
+    "action-class coverage",
+    "median, p95 and maximum gate cycles",
+    "session counts and telemetry record provenance",
+    "guest faults and disposable/source disk digest accounting"
+  ],
+  "gates": [
+    "three independently booted disposable sessions complete",
+    "at least 18 total natural-use telemetry records are captured",
+    "at least five action classes are observed",
+    "no synthetic world-model collection hook is enabled",
+    "no direct execute_tool JSON-RPC call is used to create natural-use records",
+    "no physical actuation is attempted",
+    "source disk digest is unchanged",
+    "all telemetry parses and contains no prompt, path, argument, or output text"
+  ],
+  "claim_boundary": "Passing measures natural user-interface traffic and runtime friction in QEMU. It is unlabelled observational telemetry, not precision/recall evidence, production telemetry, an independently operated study, or physical deployment evidence."
+}

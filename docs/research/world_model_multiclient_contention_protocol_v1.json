@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "protocol_id": "ferrumos-world-model-multiclient-contention-v1",
+  "registration_date": "2026-08-30",
+  "status": "registered_before_runtime modification and evaluation",
+  "objective": "Exercise the in-guest world_model_preview service through four simultaneous host WebSocket clients with independently correlated request identifiers and bounded read-only authority.",
+  "frozen_repository_head": "f96ba33a32bd9b9218be0fcdaef31eeb97b9232f",
+  "runtime_change_allowed": "bounded cooperative preview-only client slots and the minimum listener lifecycle needed to accept simultaneous sockets",
+  "runtime_change_forbidden": [
+    "changing world-model weights or thresholds",
+    "granting preview-only clients execute_tool, agent_step, neural commit, or physical delivery authority",
+    "changing deterministic safety predicates",
+    "modifying the packaged source disk during an evidence run"
+  ],
+  "clients": 4,
+  "requests_per_client": 32,
+  "workload": [
+    "read-only file listing",
+    "read-only file inspection",
+    "file-create preview",
+    "file-delete preview",
+    "process/status preview",
+    "HUD update preview",
+    "CPU-pressure preview",
+    "memory-pressure preview"
+  ],
+  "scheduling": "All four clients open before the timed phase. A deterministic barrier releases 128 requests with client-qualified IDs. The verifier retains per-client send and response timestamps.",
+  "failure_probe": "After the first batch, one preview-only client disconnects and reconnects; the other clients must continue receiving correctly correlated responses and the reconnected client must re-pair before preview.",
+  "metrics": [
+    "responses and schema validity per client",
+    "cross-client response leakage",
+    "per-client median, p95 and maximum latency",
+    "Jain fairness index over per-client throughput",
+    "determinism for identical calls",
+    "execution dataset records added",
+    "guest faults",
+    "packaged source disk digest before and after"
+  ],
+  "gates": [
+    "four distinct WebSocket transports pair and receive responses",
+    "128 of 128 timed responses are received with no cross-client leakage",
+    "all responses satisfy the preview schema",
+    "identical calls are deterministic",
+    "Jain throughput fairness is at least 0.95",
+    "disconnect isolation and explicit re-pair pass",
+    "zero execution dataset records are added",
+    "zero guest faults are observed",
+    "packaged source disk digest is unchanged"
+  ],
+  "promotion": "No model or disk promotion is permitted by this protocol.",
+  "claim_boundary": "Passing establishes bounded multi-client contention for read-only previews in one QEMU guest. It does not establish parallel neural execution, distributed multi-host consensus, production load capacity, or action-execution safety under contention."
+}
