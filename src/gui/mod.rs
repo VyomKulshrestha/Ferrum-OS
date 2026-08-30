@@ -35,6 +35,7 @@ pub static TERMINAL_REDIRECT: Mutex<bool> = Mutex::new(false);
 /// active. Without this boundary every key was duplicated into both the
 /// focused GUI window and the background debug shell.
 static DESKTOP_INPUT_CAPTURED: AtomicBool = AtomicBool::new(false);
+static DESKTOP_INPUT_CLAIM_LOGGED: AtomicBool = AtomicBool::new(false);
 /// Heliox can keep the compositor painted before the dedicated desktop task
 /// is entered. Sign-out disables that ambient surface until `desktop` starts
 /// a new session; otherwise the daemon would immediately repaint over the
@@ -47,6 +48,9 @@ pub fn captures_keyboard() -> bool {
 
 pub fn claim_keyboard() {
     DESKTOP_INPUT_CAPTURED.store(true, Ordering::SeqCst);
+    if !DESKTOP_INPUT_CLAIM_LOGGED.swap(true, Ordering::SeqCst) {
+        crate::serial_println!("[gui] desktop keyboard claimed by visible pointer input");
+    }
 }
 
 pub fn ambient_desktop_enabled() -> bool {
@@ -90,6 +94,7 @@ pub fn exit_desktop() {
     state.active = false;
     drop(state);
     DESKTOP_INPUT_CAPTURED.store(false, Ordering::SeqCst);
+    DESKTOP_INPUT_CLAIM_LOGGED.store(false, Ordering::SeqCst);
     AMBIENT_DESKTOP_ENABLED.store(false, Ordering::SeqCst);
 
     // The Heliox HUD can present the desktop without the dedicated desktop
