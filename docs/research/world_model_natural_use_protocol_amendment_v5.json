@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-5",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v4.json",
+    "sha256": "e9db5817a77383dbcd6822eadf723218a73db93bec693a2f6ecf40a9a1af72c4"
+  },
+  "observed_implementation_failure": "A click at the guest pointer's incidental position could transfer desktop ownership while focusing the overlapping Terminal rather than Heliox. Hardware key counts then passed even though setup text reached the wrong app.",
+  "changes": [
+    "The visible claim action first clamps the relative QEMU pointer at the guest origin, moves it to fixed guest coordinate (420, 500), and clicks there.",
+    "The fixed coordinate lies inside the first-run Heliox app and outside the default System Monitor and Terminal rectangles.",
+    "Configuration reload remains a mandatory pre-prompt gate; physical key counts alone are insufficient evidence of correct app routing."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "local then tiny first-run choices",
+    "full desktop and visible ownership gates",
+    "all quantitative and privacy gates",
+    "three independent disposable boots",
+    "no synthetic collection hook or direct execute_tool JSON-RPC",
+    "no physical actuation and unchanged source disk",
+    "no artifact promotion",
+    "deterministic intent-adapter claim boundary"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "focus diagnostics only; excluded with zero telemetry records"
+  }
+}

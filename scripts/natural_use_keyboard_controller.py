@@ -88,6 +88,14 @@ def claim_desktop_input(port: int) -> None:
             monitor.recv(4096)
         except TimeoutError:
             pass
+        # QEMU's legacy mouse is relative.  Clamp at the guest origin, then
+        # move to a point inside the first-run Heliox app that is outside the
+        # overlapping System Monitor and Terminal windows.  Clicking at the
+        # prior cursor position made focus depend on incidental pointer state.
+        monitor.sendall(b"mouse_move -10000 -10000\n")
+        time.sleep(0.25)
+        monitor.sendall(b"mouse_move 420 500\n")
+        time.sleep(0.25)
         monitor.sendall(b"mouse_button 1\n")
         time.sleep(0.25)
         monitor.sendall(b"mouse_button 0\n")
