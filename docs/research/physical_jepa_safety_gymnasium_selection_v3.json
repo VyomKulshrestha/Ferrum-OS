@@ -1,0 +1,101 @@
+{
+  "candidates": [
+    {
+      "all_gates_pass": false,
+      "candidate": {
+        "candidate_id": "fresh-a",
+        "fallback_forward": 0.2,
+        "learned_predicted_clearance_threshold": -0.03,
+        "rule_hazard_closeness_threshold": 0.935
+      },
+      "gates": {
+        "final_intervention_limit": true,
+        "final_safe_false_positive_limit": true,
+        "strengthened_development_recall": false
+      },
+      "metrics": {
+        "counterfactual_false_positive_interventions": 76,
+        "counterfactual_interventions": 388,
+        "counterfactual_true_positive_interventions": 312,
+        "recorded_dangerous_proposals": 373,
+        "recorded_proposals": 12082,
+        "recorded_safe_proposals": 11709,
+        "trajectory_conditional_dangerous_recall": 0.8364611260053619,
+        "trajectory_conditional_intervention_rate": 0.03211388842906804,
+        "trajectory_conditional_safe_false_positive_rate": 0.006490733623708259
+      }
+    },
+    {
+      "all_gates_pass": true,
+      "candidate": {
+        "candidate_id": "fresh-b",
+        "fallback_forward": 0.2,
+        "learned_predicted_clearance_threshold": -0.03,
+        "rule_hazard_closeness_threshold": 0.93
+      },
+      "gates": {
+        "final_intervention_limit": true,
+        "final_safe_false_positive_limit": true,
+        "strengthened_development_recall": true
+      },
+      "metrics": {
+        "counterfactual_false_positive_interventions": 103,
+        "counterfactual_interventions": 434,
+        "counterfactual_true_positive_interventions": 331,
+        "recorded_dangerous_proposals": 373,
+        "recorded_proposals": 12082,
+        "recorded_safe_proposals": 11709,
+        "trajectory_conditional_dangerous_recall": 0.8873994638069705,
+        "trajectory_conditional_intervention_rate": 0.03592120509849363,
+        "trajectory_conditional_safe_false_positive_rate": 0.008796652147920404
+      }
+    },
+    {
+      "all_gates_pass": true,
+      "candidate": {
+        "candidate_id": "fresh-c",
+        "fallback_forward": 0.2,
+        "learned_predicted_clearance_threshold": -0.03,
+        "rule_hazard_closeness_threshold": 0.925
+      },
+      "gates": {
+        "final_intervention_limit": true,
+        "final_safe_false_positive_limit": true,
+        "strengthened_development_recall": true
+      },
+      "metrics": {
+        "counterfactual_false_positive_interventions": 144,
+        "counterfactual_interventions": 484,
+        "counterfactual_true_positive_interventions": 340,
+        "recorded_dangerous_proposals": 373,
+        "recorded_proposals": 12082,
+        "recorded_safe_proposals": 11709,
+        "trajectory_conditional_dangerous_recall": 0.9115281501340483,
+        "trajectory_conditional_intervention_rate": 0.04005959278265188,
+        "trajectory_conditional_safe_false_positive_rate": 0.012298232129131437
+      }
+    }
+  ],
+  "final_seed_access_attempted": false,
+  "final_seed_accessed": false,
+  "method": "trajectory-conditional threshold recalibration on the retained rules_plus_learned v3 case catalog",
+  "promotion_eligible": false,
+  "protocol": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v3.json",
+    "sha256": "08f39a13501eab94c0b55db9f4e1d919bc01bfd2370f87ad175a5f7ab252fd40"
+  },
+  "schema": "physical-jepa-safety-gymnasium-selection-v3",
+  "selected_candidate": {
+    "candidate_id": "fresh-b",
+    "fallback_forward": 0.2,
+    "learned_predicted_clearance_threshold": -0.03,
+    "rule_hazard_closeness_threshold": 0.93
+  },
+  "selection_passed": true,
+  "source": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_cases_v3.jsonl",
+    "rows": 12082,
+    "sha256": "d25c5db224474453df7a797daaa1e88a1c1984f4dc53f53240439dbe2d5664bd"
+  },
+  "trajectory_limitation": "Counterfactual thresholds are scored on the recorded v2 union trajectory; the fresh final run measures the changed closed-loop trajectory prospectively."
+}
