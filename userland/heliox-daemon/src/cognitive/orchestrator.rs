@@ -125,6 +125,7 @@ pub struct Orchestrator {
     tick_count: u64,
     last_observation: String,
     last_fused_goal: String,
+    last_intent_goal: String,
     last_action: Option<String>,
     last_response: Option<String>,
     
@@ -436,6 +437,7 @@ impl Orchestrator {
             tick_count: 0,
             last_observation: String::new(),
             last_fused_goal: String::new(),
+            last_intent_goal: String::new(),
             last_action: None,
             last_response: None,
             telemetry_buffer: Vec::with_capacity(32),
@@ -531,6 +533,27 @@ impl Orchestrator {
         let goal = self.planner.current_goal();
         if goal != self.last_fused_goal {
             self.observe();
+        }
+
+        if goal != self.last_intent_goal {
+            if let Some(intent) = super::intent_adapter::resolve(&goal) {
+                self.last_intent_goal = goal.clone();
+                self.emit_telemetry(
+                    TelemetryEventKind::ThinkComplete,
+                    format!("Deterministic OS intent adapter selected {}", intent.tool_name),
+                );
+                self.emit_chat("agent", "thinking", "");
+                let actions = self.act(&intent.provider_response);
+                self.emit_chat(
+                    "agent",
+                    "done",
+                    "Request mapped to a capability-gated OS action.",
+                );
+                for (tool_name, success, output) in &actions {
+                    self.verify_and_reflect(tool_name, *success, output);
+                }
+                return;
+            }
         }
 
         if self.tick_count % self.config.tick_interval != 0 {

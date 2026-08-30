@@ -11,6 +11,7 @@ pub mod web_agent;
 pub mod multi_agent;
 pub mod gesture;
 pub mod inference;
+pub mod intent_adapter;
 pub mod self_evolve;
 pub mod fusion;
 pub mod world_model;

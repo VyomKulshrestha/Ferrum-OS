@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-2",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v1.json",
+    "sha256": "81dd6103a110fd57c3ce5aa59ef58268a5d1e80372447c674bffe5f71ccd2068"
+  },
+  "observed_implementation_failure": "The bundled local-15M TinyStories model returned plain punctuation and emitted no tool-call JSON. It is not a viable OS planner for this study.",
+  "changes": [
+    "A deterministic common-OS intent adapter maps bounded read, list, status, note and configuration-removal requests to canonical tool calls.",
+    "Every mapped call still traverses the frozen learned world-model preview, deterministic rule backstop, confirmation policy, capability check, executor and verifier.",
+    "Each disposable disk receives a fixed non-sensitive README fixture and an empty /tmp directory so the frozen requests address real resources.",
+    "A visible guest pointer click transfers physical keyboard ownership to the desktop before registered prompts begin."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative gates and privacy boundaries",
+    "three independent disposable boots",
+    "no synthetic collection hook or direct execute_tool JSON-RPC",
+    "no physical actuation and unchanged source disk",
+    "no artifact promotion"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "diagnostic_goals": [
+      "one frozen prompt used only to confirm the UI routing failure",
+      "two explicit focus probes"
+    ],
+    "disposition": "excluded; disposable disk destroyed"
+  },
+  "claim_boundary": "The amended study measures natural UI text reaching a deterministic intent adapter and then the JEPA safety runtime. It is not evidence that the bundled language model learned OS planning or that intent parsing is learned."
+}
