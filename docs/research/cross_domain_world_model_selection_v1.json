@@ -1,0 +1,4096 @@
+{
+  "checks": {
+    "all_predictions_finite": true,
+    "final_catalog_access_not_attempted": true,
+    "fixed_update_budget_completed": true,
+    "frozen_research_inputs_valid": true,
+    "parameter_budget_respected": true,
+    "protected_deployed_digests_unchanged_after": true,
+    "protected_deployed_digests_valid_before": true
+  },
+  "claim_boundary": [
+    "All newly generated observations are software or shadow evidence unless an external execution manifest identifies physical hardware and an independent operator.",
+    "A local simulator, PyBullet DIRECT run, replayed sensor trace, or QEMU run is not independent third-party assessment or physical HIL.",
+    "Learned output may add caution or request confirmation. It may not grant permission, remove a deterministic block, execute an actuator command, or expand a capability.",
+    "The study is diagnostic and cannot promote or replace a deployed artifact. A separate frozen promotion protocol would be required after all runtime and authority gates pass."
+  ],
+  "domains": {
+    "ferrumos": {
+      "methods": {
+        "action_conditioned_jepa": [
+          {
+            "checkpoint": {
+              "bytes": 417586,
+              "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-17.pt",
+              "sha256": "f066fb2282c0c66127c284447d57a73f32560f36084fc85e0323ce18b7ad57bd"
+            },
+            "hidden_size": 211,
+            "latent_size": 64,
+            "method": "action_conditioned_jepa",
+            "optimizer_updates_completed": 2400,
+            "seed": 17,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99748,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.8769697895695523,
+              "normalized_delta_mae": 0.005330516649519948,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.4865996264140544,
+                "normalized_delta_mae": 0.0496351044400405,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8964267043548078,
+                "normalized_delta_mae": 0.037142426201234605,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.1167143385701275,
+                "normalized_delta_mae": 0.02903129219974565,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.266757441760138,
+                "normalized_delta_mae": 0.022584071290560438,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4012551229508197,
+                "normalized_delta_mae": 0.01752418457358924,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5355779197823796,
+                "normalized_delta_mae": 0.013761512888733852,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5858094262295084,
+                "normalized_delta_mae": 0.012536027769539115,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.578013403556706,
+                "normalized_delta_mae": 0.013637143006067401,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6114226823890325,
+                "normalized_delta_mae": 0.012380694145324783,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6407489544386924,
+                "normalized_delta_mae": 0.011365064552035774,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6654870398331894,
+                "normalized_delta_mae": 0.01028232466579112,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6672400027562073,
+                "normalized_delta_mae": 0.011111130274195831,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6685787855910266,
+                "normalized_delta_mae": 0.011344015146876647,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.693715322715943,
+                "normalized_delta_mae": 0.010504921448789591,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7203239592320965,
+                "normalized_delta_mae": 0.00948799798157423,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.755754706523823,
+                "normalized_delta_mae": 0.0079236356515622,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7741924611734254,
+                "normalized_delta_mae": 0.0076438458376586315,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7915041403029432,
+                "normalized_delta_mae": 0.007362900387348259,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8051484906768285,
+                "normalized_delta_mae": 0.007138144465949229,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.825035875635126,
+                "normalized_delta_mae": 0.006524722421401277,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8344388121944206,
+                "normalized_delta_mae": 0.006380354908988981,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8475974559006807,
+                "normalized_delta_mae": 0.006146144711517577,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8592791319144855,
+                "normalized_delta_mae": 0.006081409324519461,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8769697895695523,
+                "normalized_delta_mae": 0.005330516649519948,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 417586,
+              "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-43.pt",
+              "sha256": "7efcaa7c5733833cc920813ae6c79e2025de13f79cea1e3d401193b5c5327537"
+            },
+            "hidden_size": 211,
+            "latent_size": 64,
+            "method": "action_conditioned_jepa",
+            "optimizer_updates_completed": 2400,
+            "seed": 43,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99748,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.889184357324322,
+              "normalized_delta_mae": 0.005077294404617996,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.524448608714409,
+                "normalized_delta_mae": 0.04899463904074244,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.902344498969418,
+                "normalized_delta_mae": 0.03819219461052841,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.0476061813944013,
+                "normalized_delta_mae": 0.030777593390869162,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.297676022792637,
+                "normalized_delta_mae": 0.022015464533302175,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4398978255919856,
+                "normalized_delta_mae": 0.016972953321698094,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5129672820199405,
+                "normalized_delta_mae": 0.015580657207089295,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.543285938548557,
+                "normalized_delta_mae": 0.014522076704485878,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5764885018214936,
+                "normalized_delta_mae": 0.013206163767874155,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.593435807329115,
+                "normalized_delta_mae": 0.012921669489813267,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6436822931646056,
+                "normalized_delta_mae": 0.011344871634365488,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.662680651423641,
+                "normalized_delta_mae": 0.01091785081657327,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6779787262726487,
+                "normalized_delta_mae": 0.010644329964468891,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6845973690202283,
+                "normalized_delta_mae": 0.010806270464419085,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7169446092177165,
+                "normalized_delta_mae": 0.00890658560266386,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7360302224139583,
+                "normalized_delta_mae": 0.008677705960972702,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.758204959975074,
+                "normalized_delta_mae": 0.008283474497684936,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7772347749496693,
+                "normalized_delta_mae": 0.007970539129954058,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.798787867893778,
+                "normalized_delta_mae": 0.007528514787090463,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8190164084220113,
+                "normalized_delta_mae": 0.006969278924543578,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8391142537867893,
+                "normalized_delta_mae": 0.006350940305358576,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.854019494176014,
+                "normalized_delta_mae": 0.005964719304050127,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8676028035423258,
+                "normalized_delta_mae": 0.00583888585907354,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8773420273703385,
+                "normalized_delta_mae": 0.005438347034675599,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.889184357324322,
+                "normalized_delta_mae": 0.005077294404617996,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 417602,
+              "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-101.pt",
+              "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+            },
+            "hidden_size": 211,
+            "latent_size": 64,
+            "method": "action_conditioned_jepa",
+            "optimizer_updates_completed": 2400,
+            "seed": 101,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99748,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.884411549707602,
+              "normalized_delta_mae": 0.005560529253739043,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.5736680702353563,
+                "normalized_delta_mae": 0.04819519025414779,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.96819782229652,
+                "normalized_delta_mae": 0.033631111286182715,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.190701844262295,
+                "normalized_delta_mae": 0.02441487144548476,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3554099559006807,
+                "normalized_delta_mae": 0.018939824543615483,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.463416214289138,
+                "normalized_delta_mae": 0.016141123310418615,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.538533727590835,
+                "normalized_delta_mae": 0.014013261697217129,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5739476230706546,
+                "normalized_delta_mae": 0.012914361186663401,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.585482875563225,
+                "normalized_delta_mae": 0.012967739886010599,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.617436532331512,
+                "normalized_delta_mae": 0.011961972698613583,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6230448153341004,
+                "normalized_delta_mae": 0.012279251211270792,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6431407882753333,
+                "normalized_delta_mae": 0.01178063067250713,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6609299354088773,
+                "normalized_delta_mae": 0.011356465300621345,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.69091455157703,
+                "normalized_delta_mae": 0.010099499329157454,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.719493726632154,
+                "normalized_delta_mae": 0.008894129597595583,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.740190373046688,
+                "normalized_delta_mae": 0.008847348265583432,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7645532247627265,
+                "normalized_delta_mae": 0.008259214910127415,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7788315777490173,
+                "normalized_delta_mae": 0.008061598158902101,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7877023715367653,
+                "normalized_delta_mae": 0.008379153146598406,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.825097665612118,
+                "normalized_delta_mae": 0.006737486055125647,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8425789863148307,
+                "normalized_delta_mae": 0.006347899811343966,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8508524769916597,
+                "normalized_delta_mae": 0.006358807409910214,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.867010368732624,
+                "normalized_delta_mae": 0.0057852906607539275,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8719310978094144,
+                "normalized_delta_mae": 0.005894147587489926,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.884411549707602,
+                "normalized_delta_mae": 0.005560529253739043,
+                "update": 2400
+              }
+            ]
+          }
+        ],
+        "direct_mlp": [
+          {
+            "checkpoint": {
+              "bytes": 402600,
+              "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-17.pt",
+              "sha256": "fe68a5fb3e9a58a2389e3710e1f986bbf6a5398e2013b29070d821ed84dac556"
+            },
+            "hidden_size": 242,
+            "latent_size": null,
+            "method": "direct_mlp",
+            "optimizer_updates_completed": 2400,
+            "seed": 17,
+            "selected_checkpoint_update": 1800,
+            "trainable_parameters": 99800,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.927433102051577,
+              "normalized_delta_mae": 0.0047968079175008315,
+              "update": 1800
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.896514146534369,
+                "normalized_delta_mae": 0.02530114948549546,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2724585969705684,
+                "normalized_delta_mae": 0.018988709426454198,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4887774422394786,
+                "normalized_delta_mae": 0.013937908352169914,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5952865107611927,
+                "normalized_delta_mae": 0.011797675578092045,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.684132633496309,
+                "normalized_delta_mae": 0.010530090917163608,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.770800378678938,
+                "normalized_delta_mae": 0.00890498526566507,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7628032577173807,
+                "normalized_delta_mae": 0.009290738892502667,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8089236710286647,
+                "normalized_delta_mae": 0.0081573653090847,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8280156504649603,
+                "normalized_delta_mae": 0.007903670935511486,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.899780402166619,
+                "normalized_delta_mae": 0.005450916774845937,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8651510521522385,
+                "normalized_delta_mae": 0.007459984085336078,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.902744074153964,
+                "normalized_delta_mae": 0.005359987572139798,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.893492429417122,
+                "normalized_delta_mae": 0.0056363869097372015,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8757852944348574,
+                "normalized_delta_mae": 0.005880922499078767,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8626157906720353,
+                "normalized_delta_mae": 0.006703388929801343,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8683682502876042,
+                "normalized_delta_mae": 0.007154566936988454,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9085953977327197,
+                "normalized_delta_mae": 0.005106232125376732,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.927433102051577,
+                "normalized_delta_mae": 0.0047968079175008315,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.82493289234014,
+                "normalized_delta_mae": 0.007545454368850961,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8592780084603584,
+                "normalized_delta_mae": 0.006757722857722774,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9129910992474355,
+                "normalized_delta_mae": 0.005404357061714331,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.923873624892148,
+                "normalized_delta_mae": 0.005206556725211734,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8802079588486245,
+                "normalized_delta_mae": 0.006597583834019389,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8938036262103344,
+                "normalized_delta_mae": 0.006341880993627768,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 402600,
+              "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-43.pt",
+              "sha256": "ab12d97fa4a7551157a514b5c76506163d8488661082ac2bfb65e21cfae57eda"
+            },
+            "hidden_size": 242,
+            "latent_size": null,
+            "method": "direct_mlp",
+            "optimizer_updates_completed": 2400,
+            "seed": 43,
+            "selected_checkpoint_update": 2000,
+            "trainable_parameters": 99800,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.917124286981114,
+              "normalized_delta_mae": 0.004925922126466482,
+              "update": 2000
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.915508010976896,
+                "normalized_delta_mae": 0.024708922397780653,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2966840127983894,
+                "normalized_delta_mae": 0.01752421529303803,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.512768056154731,
+                "normalized_delta_mae": 0.013511655520597408,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6315722066436584,
+                "normalized_delta_mae": 0.010781584461655763,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.685887468842872,
+                "normalized_delta_mae": 0.010256160472408715,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7764116575591986,
+                "normalized_delta_mae": 0.008284328059511986,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.788978615425175,
+                "normalized_delta_mae": 0.00832428089690773,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.847171666786502,
+                "normalized_delta_mae": 0.006712389728296364,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.744228067179561,
+                "normalized_delta_mae": 0.009566679998322308,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.878561724067683,
+                "normalized_delta_mae": 0.006012986140835835,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.864896028065382,
+                "normalized_delta_mae": 0.00729427679583206,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8413345736266895,
+                "normalized_delta_mae": 0.007400858654819094,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8763994493576837,
+                "normalized_delta_mae": 0.006160130837701698,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9064975343926758,
+                "normalized_delta_mae": 0.005093175628226186,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9124990263397565,
+                "normalized_delta_mae": 0.005135264930143622,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9084553404515385,
+                "normalized_delta_mae": 0.005303222419271395,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.91467515698399,
+                "normalized_delta_mae": 0.004922737543608745,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.912188204031253,
+                "normalized_delta_mae": 0.005119211092489859,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7908854915636083,
+                "normalized_delta_mae": 0.0089266666137707,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.917124286981114,
+                "normalized_delta_mae": 0.004925922126466482,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.914457955852747,
+                "normalized_delta_mae": 0.005373830706603963,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8947383400440994,
+                "normalized_delta_mae": 0.006250485513573947,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8924277693893203,
+                "normalized_delta_mae": 0.00539259663273648,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.899413407151759,
+                "normalized_delta_mae": 0.005365629710900613,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 402608,
+              "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-101.pt",
+              "sha256": "351d4a4624ab9fddbb66a9dd4baa1f3e122cf0189b6be6ca245c1efa1569426a"
+            },
+            "hidden_size": 242,
+            "latent_size": null,
+            "method": "direct_mlp",
+            "optimizer_updates_completed": 2400,
+            "seed": 101,
+            "selected_checkpoint_update": 2100,
+            "trainable_parameters": 99800,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.9438231743121466,
+              "normalized_delta_mae": 0.0041315014553646055,
+              "update": 2100
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8791605251174386,
+                "normalized_delta_mae": 0.025688056554493518,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3134908865401207,
+                "normalized_delta_mae": 0.017388703027446734,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.470653131291343,
+                "normalized_delta_mae": 0.01463952154569687,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6157932934282426,
+                "normalized_delta_mae": 0.01154257396119814,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7189862998514043,
+                "normalized_delta_mae": 0.009378284933057113,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.757664578539929,
+                "normalized_delta_mae": 0.008768780349645138,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.774188716326335,
+                "normalized_delta_mae": 0.008511319186518101,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.844919890231042,
+                "normalized_delta_mae": 0.0075883906498564226,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8273408290192696,
+                "normalized_delta_mae": 0.006486202426866881,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.882897508028952,
+                "normalized_delta_mae": 0.0065809119503126194,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.850457395623622,
+                "normalized_delta_mae": 0.007020928557773254,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9073491126210333,
+                "normalized_delta_mae": 0.005382782500264012,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.918869385725242,
+                "normalized_delta_mae": 0.005135155583534244,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8980779946793214,
+                "normalized_delta_mae": 0.0055751356202225115,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9077292146007094,
+                "normalized_delta_mae": 0.00568764742994889,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9103008010976894,
+                "normalized_delta_mae": 0.00478768058413342,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3915323764500047,
+                "normalized_delta_mae": 0.016273712839882323,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8942024524254624,
+                "normalized_delta_mae": 0.006130492055236682,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8621263391573195,
+                "normalized_delta_mae": 0.006545164751739107,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9086088791822453,
+                "normalized_delta_mae": 0.005165503838983184,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9438231743121466,
+                "normalized_delta_mae": 0.0041315014553646055,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.906239514428147,
+                "normalized_delta_mae": 0.005084330255513725,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9219412837935,
+                "normalized_delta_mae": 0.005341292959013397,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9366678949765124,
+                "normalized_delta_mae": 0.004315617008847389,
+                "update": 2400
+              }
+            ]
+          }
+        ],
+        "gru_dynamics": [
+          {
+            "checkpoint": {
+              "bytes": 400266,
+              "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-17.pt",
+              "sha256": "ef1945a7b2f4dbf4e3027deb8835d84d7a0d6549a7223d72e1dc43e77d7cbc2e"
+            },
+            "hidden_size": 125,
+            "latent_size": null,
+            "method": "gru_dynamics",
+            "optimizer_updates_completed": 2400,
+            "seed": 17,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99096,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.938527586041607,
+              "normalized_delta_mae": 0.004379234061626515,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.442297149122807,
+                "normalized_delta_mae": 0.04822373886188854,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.6360634017591793,
+                "normalized_delta_mae": 0.04699706446117642,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.7524180477662736,
+                "normalized_delta_mae": 0.045941257485949336,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.88553238244176,
+                "normalized_delta_mae": 0.041214868419180206,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.0843373268382703,
+                "normalized_delta_mae": 0.034301459394997486,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.21943680495638,
+                "normalized_delta_mae": 0.02839503097643892,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3808483277010835,
+                "normalized_delta_mae": 0.02191034550520983,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.552199798077845,
+                "normalized_delta_mae": 0.015398335815698848,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6553388787029046,
+                "normalized_delta_mae": 0.011404714583436316,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6983038838558144,
+                "normalized_delta_mae": 0.010718311174136888,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7719743882417793,
+                "normalized_delta_mae": 0.008350093279459963,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.755267876402071,
+                "normalized_delta_mae": 0.009963396811300151,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8236184510114084,
+                "normalized_delta_mae": 0.007455608758130063,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.85555076215128,
+                "normalized_delta_mae": 0.006612098042156493,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8357019491180138,
+                "normalized_delta_mae": 0.007932967049839422,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.877143550474547,
+                "normalized_delta_mae": 0.006274080244489832,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8683708716805674,
+                "normalized_delta_mae": 0.006744715365407199,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.888786280078612,
+                "normalized_delta_mae": 0.0065318134941632815,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9099544027418274,
+                "normalized_delta_mae": 0.0053887292735586454,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9177129769437253,
+                "normalized_delta_mae": 0.004995074897058835,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.888387453863484,
+                "normalized_delta_mae": 0.00607368813734957,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.917428743049564,
+                "normalized_delta_mae": 0.005590981004473782,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9352137708513086,
+                "normalized_delta_mae": 0.0046170954850110624,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.938527586041607,
+                "normalized_delta_mae": 0.004379234061626515,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 400266,
+              "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-43.pt",
+              "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+            },
+            "hidden_size": 125,
+            "latent_size": null,
+            "method": "gru_dynamics",
+            "optimizer_updates_completed": 2400,
+            "seed": 43,
+            "selected_checkpoint_update": 2200,
+            "trainable_parameters": 99096,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.9255138679177453,
+              "normalized_delta_mae": 0.004946530122403136,
+              "update": 2200
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.4661023931070845,
+                "normalized_delta_mae": 0.047960250835475386,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.646044917193941,
+                "normalized_delta_mae": 0.047295455632736856,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.761231358151184,
+                "normalized_delta_mae": 0.04673342722601201,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.877667641824849,
+                "normalized_delta_mae": 0.04480530200600224,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.036929809582015,
+                "normalized_delta_mae": 0.03735274910161118,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.193847141333525,
+                "normalized_delta_mae": 0.030493836379579198,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.331622312697728,
+                "normalized_delta_mae": 0.0257852324108277,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4036671789617485,
+                "normalized_delta_mae": 0.02290901138002858,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4786659806106797,
+                "normalized_delta_mae": 0.01939158768316047,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.645191092057329,
+                "normalized_delta_mae": 0.012980105195563404,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7227255296711723,
+                "normalized_delta_mae": 0.01093460535022559,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.762543739814016,
+                "normalized_delta_mae": 0.010130503298554938,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.787623729747867,
+                "normalized_delta_mae": 0.009612237672291052,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8277003343399483,
+                "normalized_delta_mae": 0.007498201273875273,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.842322464289138,
+                "normalized_delta_mae": 0.007690935826989562,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.866018733223085,
+                "normalized_delta_mae": 0.006924370016076629,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8454359301600998,
+                "normalized_delta_mae": 0.007645002936896331,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8936448446937013,
+                "normalized_delta_mae": 0.0055568535254084134,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.828597974187518,
+                "normalized_delta_mae": 0.0074108914805103175,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.880978648379829,
+                "normalized_delta_mae": 0.006113122401193146,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9110666223276773,
+                "normalized_delta_mae": 0.0054286967392633365,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9255138679177453,
+                "normalized_delta_mae": 0.004946530122403136,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.921496021474451,
+                "normalized_delta_mae": 0.004502231443206024,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9060762390950052,
+                "normalized_delta_mae": 0.005793489462210935,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 400276,
+              "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-101.pt",
+              "sha256": "bffb75d4fd7501f664e7b673478e12b9855283a731a3ff88ed68d12a26b8faab"
+            },
+            "hidden_size": 125,
+            "latent_size": null,
+            "method": "gru_dynamics",
+            "optimizer_updates_completed": 2400,
+            "seed": 101,
+            "selected_checkpoint_update": 2200,
+            "trainable_parameters": 99096,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.9306484277633977,
+              "normalized_delta_mae": 0.004662622073823294,
+              "update": 2200
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.499593309605982,
+                "normalized_delta_mae": 0.04784728225680214,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.6119190618708656,
+                "normalized_delta_mae": 0.047891594330264055,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.753261200088678,
+                "normalized_delta_mae": 0.04549007947876222,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8595375263637237,
+                "normalized_delta_mae": 0.04255642770703762,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.0093222351044964,
+                "normalized_delta_mae": 0.03824926549505381,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.14845697320487,
+                "normalized_delta_mae": 0.03242249699569642,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.288425501509922,
+                "normalized_delta_mae": 0.026981371679444085,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3636845700316367,
+                "normalized_delta_mae": 0.02434353064558168,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4712478130092994,
+                "normalized_delta_mae": 0.02109276639250641,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.593035483175151,
+                "normalized_delta_mae": 0.015809610721740634,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6761647223420573,
+                "normalized_delta_mae": 0.012106079827126625,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.732509317179561,
+                "normalized_delta_mae": 0.00992780028430879,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8036797616479725,
+                "normalized_delta_mae": 0.007842608716889934,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8192126384095486,
+                "normalized_delta_mae": 0.007638104226396978,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.837135851068929,
+                "normalized_delta_mae": 0.007954334620718142,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.871714645647589,
+                "normalized_delta_mae": 0.0066228922713284025,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8726557257214074,
+                "normalized_delta_mae": 0.006428339419412014,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8983303973732144,
+                "normalized_delta_mae": 0.005650851381623885,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.869032960646151,
+                "normalized_delta_mae": 0.007052038582410603,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9119316820055605,
+                "normalized_delta_mae": 0.005652950909665487,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9166539341865594,
+                "normalized_delta_mae": 0.005501748685605482,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9306484277633977,
+                "normalized_delta_mae": 0.004662622073823294,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.913270839325089,
+                "normalized_delta_mae": 0.005124425718921701,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9248124580577124,
+                "normalized_delta_mae": 0.005160207659728963,
+                "update": 2400
+              }
+            ]
+          }
+        ]
+      },
+      "ood_statistics": {
+        "mean": [
+          0.2022068053483963,
+          0.2712636888027191,
+          0.0977398008108139,
+          0.21875104308128357,
+          0.5070778727531433,
+          0.3165110945701599,
+          0.0,
+          0.010574678890407085,
+          0.0038652275688946247,
+          0.004594515543431044,
+          0.004084013868123293,
+          0.0038652275688946247,
+          0.1923862248659134,
+          0.004229871556162834,
+          0.10968494415283203,
+          0.004667444620281458,
+          0.005105017684400082,
+          0.004084013868123293,
+          0.006344807334244251,
+          0.004011085256934166,
+          0.03981913626194,
+          0.0043028006330132484,
+          0.0032088682055473328,
+          0.027567094191908836,
+          0.039381563663482666,
+          0.039454493671655655,
+          0.040767211467027664,
+          0.005105017684400082,
+          0.004011085256934166,
+          0.004011085256934166,
+          0.1133313849568367,
+          0.040913067758083344,
+          0.03967327997088432,
+          0.051414817571640015,
+          0.027858810499310493,
+          0.00532380398362875,
+          0.010210035368800163,
+          0.005250875372439623,
+          0.004375729244202375,
+          0.004084013868123293,
+          0.004229871556162834,
+          0.04003792256116867,
+          0.004813302308320999,
+          0.038214702159166336,
+          0.005250875372439623,
+          0.003354725893586874,
+          0.029171528294682503,
+          0.004156942944973707,
+          0.0,
+          0.0007292882073670626,
+          0.0009480746812187135,
+          0.0007292882073670626,
+          0.0011668611550703645,
+          0.0002917152887675911,
+          0.001239789999090135,
+          0.0010939323110505939,
+          0.0003646441036835313,
+          0.0005834305775351822,
+          0.0008022170513868332,
+          0.0005834305775351822,
+          0.0008751458371989429,
+          0.036099765449762344,
+          0.0005105017335154116,
+          0.0008022170513868332,
+          0.028806883841753006,
+          0.03675612434744835,
+          0.03646441176533699,
+          0.036391481757164,
+          0.0008751458371989429,
+          0.0007292882073670626,
+          0.0016044341027736664,
+          0.1298862248659134,
+          0.03668319806456566,
+          0.03646441176533699,
+          0.03668319806456566,
+          0.029025670140981674,
+          0.0,
+          0.00991831999272108,
+          0.0005834305775351822,
+          0.0008751458371989429,
+          0.0002917152887675911,
+          0.0005834305775351822,
+          0.03631855174899101,
+          0.0005834305775351822,
+          0.03682905435562134,
+          0.03507876396179199,
+          0.0007292882073670626,
+          0.028879813849925995,
+          0.0007292882073670626,
+          0.06562682241201401,
+          0.017810139805078506,
+          0.016862528398633003,
+          0.012185665778815746,
+          0.08784633874893188,
+          0.00037625289405696094,
+          0.007791412528604269,
+          0.0008175583789125085,
+          0.2603728771209717,
+          0.21096037328243256,
+          7.292882219189778e-05,
+          0.0002917152887675911,
+          0.14768086373806,
+          0.012689614668488503,
+          0.03439505398273468,
+          0.031231768429279327,
+          0.2036653608083725,
+          0.2741565704345703,
+          0.0977494865655899,
+          0.218751460313797,
+          0.5073845386505127,
+          0.30250874161720276,
+          0.0,
+          0.010282963514328003,
+          0.004156942944973707,
+          0.00495915999636054,
+          0.004156942944973707,
+          0.004521586932241917,
+          0.15417152643203735,
+          0.004886230919510126,
+          0.07518961280584335,
+          0.004375729244202375,
+          0.004886230919510126,
+          0.004375729244202375,
+          0.005615519359707832,
+          0.00444865832105279,
+          0.039600349962711334,
+          0.004156942944973707,
+          0.003646441036835313,
+          0.03267211094498634,
+          0.039454493671655655,
+          0.039600349962711334,
+          0.04011085256934166,
+          0.005105017684400082,
+          0.0043028006330132484,
+          0.00532380398362875,
+          0.13200116157531738,
+          0.04047549515962601,
+          0.03967327997088432,
+          0.05046674609184265,
+          0.03281797096133232,
+          0.004521586932241917,
+          0.01422112062573433,
+          0.005032088607549667,
+          0.004667444620281458,
+          0.003792298724874854,
+          0.0043028006330132484,
+          0.039746206253767014,
+          0.00444865832105279,
+          0.04032963886857033,
+          0.039381563663482666,
+          0.0038652275688946247,
+          0.033620186150074005,
+          0.004156942944973707,
+          0.0,
+          0.0014585764147341251,
+          0.001896149362437427,
+          0.0014585764147341251,
+          0.002333722310140729,
+          0.0005834305775351822,
+          0.00247957999818027,
+          0.0021878646221011877,
+          0.0007292882073670626,
+          0.0011668611550703645,
+          0.0016044341027736664,
+          0.0011668611550703645,
+          0.0017502916743978858,
+          0.03631855174899101,
+          0.0010210034670308232,
+          0.0016044341027736664,
+          0.03427654504776001,
+          0.03733955696225166,
+          0.03690198436379433,
+          0.03690198436379433,
+          0.0017502916743978858,
+          0.0014585764147341251,
+          0.0032088682055473328,
+          0.14884772896766663,
+          0.03741248697042465,
+          0.03690198436379433,
+          0.03733955696225166,
+          0.034714117646217346,
+          0.0,
+          0.015169194899499416,
+          0.0011668611550703645,
+          0.0017502916743978858,
+          0.0005834305775351822,
+          0.0011668611550703645,
+          0.03675612434744835,
+          0.0011668611550703645,
+          0.03763127326965332,
+          0.037266626954078674,
+          0.03653733804821968,
+          0.03442240506410599,
+          0.0014585764147341251,
+          0.08094187825918198,
+          0.0179729126393795,
+          0.016967453062534332,
+          0.01249846164137125,
+          0.09012527763843536,
+          0.0004395670839585364,
+          0.008006982505321503,
+          0.0008187145576812327,
+          0.3017415404319763,
+          0.2429656684398651,
+          0.0011668611550703645,
+          0.0015315052587538958,
+          0.1510355919599533,
+          0.012762543745338917,
+          0.036664966493844986,
+          0.04427691176533699,
+          0.20541563630104065,
+          0.27833500504493713,
+          0.09776315093040466,
+          0.21875198185443878,
+          0.5077584981918335,
+          0.2879229784011841,
+          0.0,
+          0.00999124813824892,
+          0.00444865832105279,
+          0.00532380398362875,
+          0.004229871556162834,
+          0.005177946295589209,
+          0.11595682799816132,
+          0.005542590282857418,
+          0.040694281458854675,
+          0.004084013868123293,
+          0.004667444620281458,
+          0.004667444620281458,
+          0.004740373231470585,
+          0.004886230919510126,
+          0.039381563663482666,
+          0.004011085256934166,
+          0.004084013868123293,
+          0.037777129560709,
+          0.039527419954538345,
+          0.039746206253767014,
+          0.039454493671655655,
+          0.005105017684400082,
+          0.004594515543431044,
+          0.006636522710323334,
+          0.15067094564437866,
+          0.04003792256116867,
+          0.03967327997088432,
+          0.049956243485212326,
+          0.037777129560709,
+          0.0037193698808550835,
+          0.018232205882668495,
+          0.004813302308320999,
+          0.00495915999636054,
+          0.0035005833487957716,
+          0.004375729244202375,
+          0.039454493671655655,
+          0.004084013868123293,
+          0.040694281458854675,
+          0.03989206627011299,
+          0.039454493671655655,
+          0.03806884586811066,
+          0.004156942944973707,
+          0.006709451787173748,
+          0.005032088607549667,
+          0.005396732594817877,
+          0.005469661671668291,
+          0.005688447970896959,
+          0.003792298724874854,
+          0.006636522710323334,
+          0.04105892777442932,
+          0.004521586932241917,
+          0.00495915999636054,
+          0.005177946295589209,
+          0.005105017684400082,
+          0.005177946295589209,
+          0.039454493671655655,
+          0.004375729244202375,
+          0.005032088607549667,
+          0.04266336187720299,
+          0.07774212211370468,
+          0.04003792256116867,
+          0.04032963886857033,
+          0.004594515543431044,
+          0.004740373231470585,
+          0.006855309009552002,
+          0.1710180789232254,
+          0.059582848101854324,
+          0.03981913626194,
+          0.05921820178627968,
+          0.043173860758543015,
+          0.0,
+          0.023847725242376328,
+          0.004740373231470585,
+          0.004886230919510126,
+          0.003646441036835313,
+          0.004521586932241917,
+          0.040548425167798996,
+          0.004740373231470585,
+          0.040913067758083344,
+          0.040621355175971985,
+          0.040621355175971985,
+          0.04251750186085701,
+          0.005032088607549667,
+          0.12250218540430069,
+          0.0199553444981575,
+          0.01798076555132866,
+          0.024551942944526672,
+          0.13955098390579224,
+          0.000643183768261224,
+          0.009454384446144104,
+          0.0009376638918183744,
+          0.4099492132663727,
+          0.33210986852645874,
+          0.02698366343975067,
+          0.034932903945446014,
+          0.2602100372314453,
+          0.02822345308959484,
+          0.06435056775808334,
+          0.058151617646217346
+        ],
+        "std": [
+          0.250883013010025,
+          0.28568702936172485,
+          0.07920388877391815,
+          0.23149792850017548,
+          0.2892147898674011,
+          0.4650755226612091,
+          9.999999747378752e-05,
+          0.10227959603071213,
+          0.062051914632320404,
+          0.06763246655464172,
+          0.06377128511667252,
+          0.062051914632320404,
+          0.39417025446891785,
+          0.06490368396043777,
+          0.31254297494888306,
+          0.06816241890192032,
+          0.0712595134973526,
+          0.06377103179693222,
+          0.07939663529396057,
+          0.06320308893918991,
+          0.1955367475748062,
+          0.06545653939247131,
+          0.05655958876013756,
+          0.16372917592525482,
+          0.19448791444301605,
+          0.19469980895519257,
+          0.1977260857820511,
+          0.07125925272703171,
+          0.0632028728723526,
+          0.0632028803229332,
+          0.3169862926006317,
+          0.19806745648384094,
+          0.19521397352218628,
+          0.22082148492336273,
+          0.16456717252731323,
+          0.07277441024780273,
+          0.10053179413080215,
+          0.07227909564971924,
+          0.06600413471460342,
+          0.06377102434635162,
+          0.06490325927734375,
+          0.19604545831680298,
+          0.06920982897281647,
+          0.19172300398349762,
+          0.07227922976016998,
+          0.05782359465956688,
+          0.16829060018062592,
+          0.06434593349695206,
+          9.999999747378752e-05,
+          0.026998082175850868,
+          0.03077669069170952,
+          0.02699841745197773,
+          0.03413679450750351,
+          0.01707617938518524,
+          0.03519105166196823,
+          0.03305507451295853,
+          0.019091349095106125,
+          0.02414841763675213,
+          0.028313910588622093,
+          0.02414827235043049,
+          0.0295714084059,
+          0.18655456602573395,
+          0.02259053662419319,
+          0.028314078226685524,
+          0.16726164519786835,
+          0.18814809620380402,
+          0.18746748566627502,
+          0.18723978102207184,
+          0.02957139164209366,
+          0.02699822001159191,
+          0.04002019017934799,
+          0.3361687958240509,
+          0.1879759281873703,
+          0.1874675303697586,
+          0.1879759132862091,
+          0.1678801327943802,
+          9.999999747378752e-05,
+          0.09909500181674957,
+          0.02414821647107601,
+          0.029571259394288063,
+          0.017076168209314346,
+          0.024148544296622276,
+          0.18706639111042023,
+          0.024148207157850266,
+          0.18831701576709747,
+          0.1839609295129776,
+          0.026998063549399376,
+          0.1674674153327942,
+          0.02699839137494564,
+          0.08046732097864151,
+          0.10321520268917084,
+          0.10248184204101562,
+          0.030175449326634407,
+          0.24701164662837982,
+          0.00205963640473783,
+          0.0398072823882103,
+          0.009105847217142582,
+          0.25430768728256226,
+          0.24694231152534485,
+          0.008539415895938873,
+          0.017076192423701286,
+          0.3548162579536438,
+          0.1119484007358551,
+          0.06556561589241028,
+          0.054994337260723114,
+          0.25464174151420593,
+          0.28675171732902527,
+          0.07919365912675858,
+          0.23149846494197845,
+          0.28946033120155334,
+          0.45936763286590576,
+          9.999999747378752e-05,
+          0.10088407248258591,
+          0.06434595584869385,
+          0.07024131715297699,
+          0.0643458291888237,
+          0.0670863687992096,
+          0.36112046241760254,
+          0.06972771883010864,
+          0.2637270390987396,
+          0.06600413471460342,
+          0.06972771883010864,
+          0.06600413471460342,
+          0.07472337037324905,
+          0.06654725968837738,
+          0.1950252652168274,
+          0.0643462985754013,
+          0.06026940420269966,
+          0.17777827382087708,
+          0.19469954073429108,
+          0.19502535462379456,
+          0.19620415568351746,
+          0.07125920057296753,
+          0.06545641273260117,
+          0.07277446240186691,
+          0.33849695324897766,
+          0.19708740711212158,
+          0.19521397352218628,
+          0.21892216801643372,
+          0.17815838754177094,
+          0.06708630919456482,
+          0.11840397864580154,
+          0.07075294107198715,
+          0.06816233694553375,
+          0.06146805360913277,
+          0.06545640528202057,
+          0.1953776329755783,
+          0.0665472149848938,
+          0.19674569368362427,
+          0.19448785483837128,
+          0.062051981687545776,
+          0.18024824559688568,
+          0.06434596329927444,
+          9.999999747378752e-05,
+          0.038162000477313995,
+          0.04350481182336807,
+          0.0381619855761528,
+          0.04825363680720329,
+          0.02414831332862377,
+          0.049738235771656036,
+          0.04672772437334061,
+          0.026998046785593033,
+          0.034136876463890076,
+          0.040020354092121124,
+          0.034137140959501266,
+          0.041803158819675446,
+          0.18706634640693665,
+          0.031936101615428925,
+          0.04002009704709053,
+          0.1819356381893158,
+          0.18960964679718018,
+          0.18854115903377533,
+          0.18854111433029175,
+          0.041803084313869476,
+          0.03816194832324982,
+          0.056559424847364426,
+          0.35592561960220337,
+          0.18977901339530945,
+          0.18854118883609772,
+          0.18960969150066376,
+          0.18305186927318573,
+          9.999999747378752e-05,
+          0.12222558259963989,
+          0.03413711488246918,
+          0.04180307313799858,
+          0.024148374795913696,
+          0.03413673862814903,
+          0.18814821541309357,
+          0.03413712978363037,
+          0.1902802735567093,
+          0.1894427090883255,
+          0.18763500452041626,
+          0.1823136955499649,
+          0.0381619930267334,
+          0.08698225021362305,
+          0.10331577062606812,
+          0.10259707272052765,
+          0.03046610951423645,
+          0.24945856630802155,
+          0.0022514001466333866,
+          0.04033488780260086,
+          0.009105721488595009,
+          0.2492535263299942,
+          0.24993160367012024,
+          0.03413689136505127,
+          0.039101969450712204,
+          0.35809677839279175,
+          0.11225967854261398,
+          0.06688312441110611,
+          0.06972692161798477,
+          0.2591122090816498,
+          0.2896168529987335,
+          0.07918392866849899,
+          0.23149937391281128,
+          0.2895272672176361,
+          0.45284977555274963,
+          9.999999747378752e-05,
+          0.09946713596582413,
+          0.06654722988605499,
+          0.07277456670999527,
+          0.06490316241979599,
+          0.07178105413913727,
+          0.3201684355735779,
+          0.07424125075340271,
+          0.1975681483745575,
+          0.06377116590738297,
+          0.06816242635250092,
+          0.06816257536411285,
+          0.06868848949670792,
+          0.06972793489694595,
+          0.19448791444301605,
+          0.06320284307003021,
+          0.06377094238996506,
+          0.19065839052200317,
+          0.19486095011234283,
+          0.19537769258022308,
+          0.19469957053661346,
+          0.07125922292470932,
+          0.06763263046741486,
+          0.08119890093803406,
+          0.3577284514904022,
+          0.1960456371307373,
+          0.19521397352218628,
+          0.21786820888519287,
+          0.1906583607196808,
+          0.06087775528430939,
+          0.1337910294532776,
+          0.06920982897281647,
+          0.0702412948012352,
+          0.05905904248356819,
+          0.06600413471460342,
+          0.19469964504241943,
+          0.06377110630273819,
+          0.19756807386875153,
+          0.19569696485996246,
+          0.1946999430656433,
+          0.1913605034351349,
+          0.06434595584869385,
+          0.08163756132125854,
+          0.07075297087430954,
+          0.07326813787221909,
+          0.07375660538673401,
+          0.0752013698220253,
+          0.06146815046668053,
+          0.08119906485080719,
+          0.19844086468219757,
+          0.06708615273237228,
+          0.07024116069078445,
+          0.07178046554327011,
+          0.0712592750787735,
+          0.07178039103746414,
+          0.19469961524009705,
+          0.06600413471460342,
+          0.07075315713882446,
+          0.20210132002830505,
+          0.26776477694511414,
+          0.1960449367761612,
+          0.19674566388130188,
+          0.06763264536857605,
+          0.06868857890367508,
+          0.08250928670167923,
+          0.3765356242656708,
+          0.23669986426830292,
+          0.1955367475748062,
+          0.23601484298706055,
+          0.20324935019016266,
+          9.999999747378752e-05,
+          0.15257857739925385,
+          0.06868850439786911,
+          0.06972774118185043,
+          0.060269132256507874,
+          0.0670861229300499,
+          0.1972494274377823,
+          0.06868854910135269,
+          0.1980670690536499,
+          0.1974068433046341,
+          0.1974068582057953,
+          0.20176756381988525,
+          0.07075301557779312,
+          0.08748798817396164,
+          0.1042100191116333,
+          0.10358461737632751,
+          0.04498181864619255,
+          0.2856799364089966,
+          0.002918428275734186,
+          0.0436692051589489,
+          0.009855065494775772,
+          0.1990511566400528,
+          0.23627598583698273,
+          0.16204512119293213,
+          0.18361125886440277,
+          0.43873295187950134,
+          0.16560234129428864,
+          0.08259989321231842,
+          0.07609044760465622
+        ]
+      },
+      "provenance": {
+        "base_train_rows": 9104,
+        "base_validation_rows": 2197,
+        "incident_train": {
+          "catalog": "world_model_incident_sources_v3.json",
+          "catalog_sha256": "97a4176f4ac3b1b5cbd3996fcfd6705a6b9142c44b70a31e40f8a7f3348850a0",
+          "dangerous": 768,
+          "episodes": 1536,
+          "episodes_per_source": 256,
+          "maximum_steps": 8,
+          "partition": "train",
+          "safe": 768,
+          "seed": 20260826,
+          "sources": [
+            "gitlab-2017-primary-database-deletion",
+            "aws-2017-s3-capacity-removal",
+            "fastly-2021-valid-configuration-trigger",
+            "meta-2021-backbone-configuration",
+            "azure-2026-openai-retry-amplification",
+            "cloudflare-2025-workers-kv-dependency"
+          ]
+        },
+        "incident_validation": {
+          "catalog": "world_model_incident_sources_v3.json",
+          "catalog_sha256": "97a4176f4ac3b1b5cbd3996fcfd6705a6b9142c44b70a31e40f8a7f3348850a0",
+          "dangerous": 256,
+          "episodes": 512,
+          "episodes_per_source": 128,
+          "maximum_steps": 8,
+          "partition": "validation",
+          "safe": 256,
+          "seed": 20260827,
+          "sources": [
+            "atlassian-2022-site-deletion",
+            "cloudflare-2020-router-configuration",
+            "azure-2024-resource-group-deletion",
+            "github-2018-network-partition-failover"
+          ]
+        }
+      },
+      "train_examples": 13712,
+      "training_rows_sha256": "22ee0789cb243895d6789ebf4ee213c7b92b2dd76f3ba3a588e728ae349806e2",
+      "validation_examples": 3477,
+      "validation_rows_sha256": "0bd44e569472dabbdeb49b321d8b2edd269828cfd4403611806f479eec647965"
+    },
+    "physical": {
+      "methods": {
+        "action_conditioned_jepa": [
+          {
+            "checkpoint": {
+              "bytes": 407154,
+              "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-17.pt",
+              "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+            },
+            "hidden_size": 777,
+            "latent_size": 24,
+            "method": "action_conditioned_jepa",
+            "optimizer_updates_completed": 2400,
+            "seed": 17,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99911,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.908891710093324,
+              "normalized_delta_mae": 0.005219945096423928,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.374815012703479,
+                "normalized_delta_mae": 0.03977200445574774,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.848573297849843,
+                "normalized_delta_mae": 0.026058998431118443,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.0516274707418094,
+                "normalized_delta_mae": 0.022867603495087423,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2095820628421405,
+                "normalized_delta_mae": 0.02043861809750678,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.330179593260859,
+                "normalized_delta_mae": 0.017671824183682322,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.384362900425011,
+                "normalized_delta_mae": 0.016179351246273014,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4815601778702,
+                "normalized_delta_mae": 0.013378464472545704,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5652573437757895,
+                "normalized_delta_mae": 0.011633871033997602,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5824362042924047,
+                "normalized_delta_mae": 0.011569153853285481,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6753586460167256,
+                "normalized_delta_mae": 0.009955260535361062,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.744446727591501,
+                "normalized_delta_mae": 0.008857009035180993,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.772959260537591,
+                "normalized_delta_mae": 0.008069068219670107,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8046198321060394,
+                "normalized_delta_mae": 0.007627120241522789,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.814758644641285,
+                "normalized_delta_mae": 0.008024005465944048,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8342451041852925,
+                "normalized_delta_mae": 0.00741104202371248,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8454725507279517,
+                "normalized_delta_mae": 0.0074866493927760866,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8524287989441777,
+                "normalized_delta_mae": 0.00701754763197731,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8623069252766355,
+                "normalized_delta_mae": 0.006736117737813734,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.868609286026216,
+                "normalized_delta_mae": 0.006986072276469688,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.874078798965669,
+                "normalized_delta_mae": 0.006703087320210229,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8786146566901407,
+                "normalized_delta_mae": 0.006580387145070962,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.882798826190787,
+                "normalized_delta_mae": 0.006553106293292112,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8827151419411243,
+                "normalized_delta_mae": 0.006242251406672975,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.908891710093324,
+                "normalized_delta_mae": 0.005219945096423928,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 407154,
+              "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-43.pt",
+              "sha256": "1caa6621220b329dcd5aadcc6ee40c2a9435857a85172bf5642c828fae2a329c"
+            },
+            "hidden_size": 777,
+            "latent_size": 24,
+            "method": "action_conditioned_jepa",
+            "optimizer_updates_completed": 2400,
+            "seed": 43,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99911,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.9108725238853776,
+              "normalized_delta_mae": 0.005377010035682732,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.3632298912800533,
+                "normalized_delta_mae": 0.0329591959505014,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8188701226677693,
+                "normalized_delta_mae": 0.027451616945401044,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.029217137081522,
+                "normalized_delta_mae": 0.02372087080713729,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.238556950528857,
+                "normalized_delta_mae": 0.020145730254515794,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2971783490248128,
+                "normalized_delta_mae": 0.01869968228356939,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4136306225414006,
+                "normalized_delta_mae": 0.014740564002537392,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.500803582097443,
+                "normalized_delta_mae": 0.012840790616374621,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5752911285615303,
+                "normalized_delta_mae": 0.011501096944573899,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.611592663509745,
+                "normalized_delta_mae": 0.010033308462777607,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.678956163433236,
+                "normalized_delta_mae": 0.009063840594509957,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.711077757284675,
+                "normalized_delta_mae": 0.009321404112056947,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7466603776098975,
+                "normalized_delta_mae": 0.008636665659051546,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.788451350574762,
+                "normalized_delta_mae": 0.0077820229855641515,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7899589269933567,
+                "normalized_delta_mae": 0.008287734328441217,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.800664326842402,
+                "normalized_delta_mae": 0.00866483987217218,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8276905167270714,
+                "normalized_delta_mae": 0.007646641591694993,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8474757261679207,
+                "normalized_delta_mae": 0.007259973532087367,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8429134744993396,
+                "normalized_delta_mae": 0.007649847938561103,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.880366048678546,
+                "normalized_delta_mae": 0.006026694330740982,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8796146339094135,
+                "normalized_delta_mae": 0.006534488882187386,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.889194950587313,
+                "normalized_delta_mae": 0.0061289909702371545,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8986560875261334,
+                "normalized_delta_mae": 0.005600525753598817,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9060475013625453,
+                "normalized_delta_mae": 0.005427667057849992,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.9108725238853776,
+                "normalized_delta_mae": 0.005377010035682732,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 407170,
+              "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-101.pt",
+              "sha256": "fb5d34effb7e66ac73531b5cc49f3771c32128cfda9fc70690c6ead6a4c70baa"
+            },
+            "hidden_size": 777,
+            "latent_size": 24,
+            "method": "action_conditioned_jepa",
+            "optimizer_updates_completed": 2400,
+            "seed": 101,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99911,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.906999751883493,
+              "normalized_delta_mae": 0.005283610297130867,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.335773967689192,
+                "normalized_delta_mae": 0.03449135443694155,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.784608840942383,
+                "normalized_delta_mae": 0.02612721288288143,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.0535258548360473,
+                "normalized_delta_mae": 0.02351045566545406,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2224336677873637,
+                "normalized_delta_mae": 0.019245031056269794,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.313701946634642,
+                "normalized_delta_mae": 0.0177086547646724,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.386828183456206,
+                "normalized_delta_mae": 0.016389763281798697,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.498297820292728,
+                "normalized_delta_mae": 0.012747201354990544,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5424297708860584,
+                "normalized_delta_mae": 0.013557711128197925,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5111005218935682,
+                "normalized_delta_mae": 0.01415690337898026,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6653509328063105,
+                "normalized_delta_mae": 0.010129302372814904,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7094273392583283,
+                "normalized_delta_mae": 0.009144539113195849,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.745050954147124,
+                "normalized_delta_mae": 0.00863606766076155,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7824001527168383,
+                "normalized_delta_mae": 0.00787581293515756,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7924418409105756,
+                "normalized_delta_mae": 0.008146868619910428,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8012417161968393,
+                "normalized_delta_mae": 0.00838902838213343,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.827157273091061,
+                "normalized_delta_mae": 0.0072176394852953895,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.844559223551146,
+                "normalized_delta_mae": 0.006997189046421521,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8631142173014896,
+                "normalized_delta_mae": 0.006396887603570038,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.867411299154792,
+                "normalized_delta_mae": 0.006613126727686801,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8654422061544067,
+                "normalized_delta_mae": 0.0069001767836825946,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.875899642621967,
+                "normalized_delta_mae": 0.0066207737832421985,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.880285542447802,
+                "normalized_delta_mae": 0.006510171540816065,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.900085183264504,
+                "normalized_delta_mae": 0.005500589846305444,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.906999751883493,
+                "normalized_delta_mae": 0.005283610297130867,
+                "update": 2400
+              }
+            ]
+          }
+        ],
+        "direct_mlp": [
+          {
+            "checkpoint": {
+              "bytes": 403112,
+              "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-17.pt",
+              "sha256": "fc7c8cfc2f24ef5e8464ca8e1b218e8f0f385bf0792a73e0ba6bee221fad95a6"
+            },
+            "hidden_size": 900,
+            "latent_size": null,
+            "method": "direct_mlp",
+            "optimizer_updates_completed": 2400,
+            "seed": 17,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99932,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.8090420682665327,
+              "normalized_delta_mae": 0.012022703854550778,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.6486367749496247,
+                "normalized_delta_mae": 0.033024963400733305,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8933264208511567,
+                "normalized_delta_mae": 0.02782818832447831,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.9508911508909415,
+                "normalized_delta_mae": 0.02850592984280116,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.1563319622630805,
+                "normalized_delta_mae": 0.022012468332975682,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.201166201309419,
+                "normalized_delta_mae": 0.024108669875373304,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2436711163587972,
+                "normalized_delta_mae": 0.025002279290011233,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.432708122360874,
+                "normalized_delta_mae": 0.019461419968537882,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4301561086950167,
+                "normalized_delta_mae": 0.021029707579545573,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5860343959969536,
+                "normalized_delta_mae": 0.016916382617094147,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5465799976402606,
+                "normalized_delta_mae": 0.01745112623337289,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5771422802562447,
+                "normalized_delta_mae": 0.018265089707475313,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3855686160880074,
+                "normalized_delta_mae": 0.02217763129254462,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.603965729726872,
+                "normalized_delta_mae": 0.016594819000489276,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6465575365953042,
+                "normalized_delta_mae": 0.016028832067066515,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6536799014454155,
+                "normalized_delta_mae": 0.016055510791254717,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.723912822024923,
+                "normalized_delta_mae": 0.013930498210477158,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7142872796931736,
+                "normalized_delta_mae": 0.014091085548132239,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7135039907106213,
+                "normalized_delta_mae": 0.014113909677720405,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.68069252766354,
+                "normalized_delta_mae": 0.014031205672613333,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7473388134593697,
+                "normalized_delta_mae": 0.012963697051918003,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7177442738707636,
+                "normalized_delta_mae": 0.014197577011417335,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7642564746695504,
+                "normalized_delta_mae": 0.012519175968539548,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.708230459186393,
+                "normalized_delta_mae": 0.014949300874706724,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.8090420682665327,
+                "normalized_delta_mae": 0.012022703854550778,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 403112,
+              "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-43.pt",
+              "sha256": "6c528ed13fff2918402162cf32ebd29f6b4fce0067f9ece84f3e0b45c238e89e"
+            },
+            "hidden_size": 900,
+            "latent_size": null,
+            "method": "direct_mlp",
+            "optimizer_updates_completed": 2400,
+            "seed": 43,
+            "selected_checkpoint_update": 2200,
+            "trainable_parameters": 99932,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.79556208328462,
+              "normalized_delta_mae": 0.01209170970488602,
+              "update": 2200
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.3788436029998348,
+                "normalized_delta_mae": 0.03677928548463633,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.639387541757503,
+                "normalized_delta_mae": 0.035735523931577175,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8982952144783987,
+                "normalized_delta_mae": 0.029421346498207306,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8964794991721567,
+                "normalized_delta_mae": 0.03090697065205641,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.999237745580539,
+                "normalized_delta_mae": 0.04588794170970648,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2426269235745284,
+                "normalized_delta_mae": 0.026444782694460642,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.448374111551634,
+                "normalized_delta_mae": 0.022031525889752615,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.1949150058585154,
+                "normalized_delta_mae": 0.02691555931954317,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.157798466212313,
+                "normalized_delta_mae": 0.02698589544480955,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.606192193904393,
+                "normalized_delta_mae": 0.017475585901821165,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.670729277167522,
+                "normalized_delta_mae": 0.016052650565832435,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5992502722941655,
+                "normalized_delta_mae": 0.01834237130594925,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.666454919627015,
+                "normalized_delta_mae": 0.01600145974629362,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5543572734779034,
+                "normalized_delta_mae": 0.01952960016861768,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.710287765717842,
+                "normalized_delta_mae": 0.014137792041603947,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6921946485277632,
+                "normalized_delta_mae": 0.015307122626354997,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7179383989790797,
+                "normalized_delta_mae": 0.01502880510729803,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6035567162742077,
+                "normalized_delta_mae": 0.016585352072413538,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7448015911478394,
+                "normalized_delta_mae": 0.012836736608558977,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7390125999987966,
+                "normalized_delta_mae": 0.014379777685857156,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7840243755931584,
+                "normalized_delta_mae": 0.012657347206078785,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.79556208328462,
+                "normalized_delta_mae": 0.01209170970488602,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7736340186965296,
+                "normalized_delta_mae": 0.012809795550477336,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7823475394450443,
+                "normalized_delta_mae": 0.013283641762296919,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 403120,
+              "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-101.pt",
+              "sha256": "93652f14b267acd6d04cb11ed5096b7e7d8e713649a58cba696879f56858701d"
+            },
+            "hidden_size": 900,
+            "latent_size": null,
+            "method": "direct_mlp",
+            "optimizer_updates_completed": 2400,
+            "seed": 101,
+            "selected_checkpoint_update": 1800,
+            "trainable_parameters": 99932,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.7843114208167705,
+              "normalized_delta_mae": 0.01208761926268188,
+              "update": 1800
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.78894441094197,
+                "normalized_delta_mae": 0.029243285974986117,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.776134431865853,
+                "normalized_delta_mae": 0.03004603948391659,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.7910660972057935,
+                "normalized_delta_mae": 0.029302244266154062,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.7897667441569585,
+                "normalized_delta_mae": 0.03470051374653695,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.1840828317991443,
+                "normalized_delta_mae": 0.024330172740237813,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3694789295465175,
+                "normalized_delta_mae": 0.020641511426845068,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.122416474785603,
+                "normalized_delta_mae": 0.026806199655566416,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.499356812490544,
+                "normalized_delta_mae": 0.018800399169115953,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5786843769986865,
+                "normalized_delta_mae": 0.017238327976263745,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6139561505384847,
+                "normalized_delta_mae": 0.016709798574447633,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.639807564104107,
+                "normalized_delta_mae": 0.015965029933083224,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.512257092435595,
+                "normalized_delta_mae": 0.019692875801677435,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6419905407328,
+                "normalized_delta_mae": 0.01577769123332601,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7085051684312416,
+                "normalized_delta_mae": 0.01391009045108943,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.671895636974926,
+                "normalized_delta_mae": 0.015873198599462776,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7457969450614823,
+                "normalized_delta_mae": 0.01383705886316971,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7194611052392235,
+                "normalized_delta_mae": 0.014447583593952824,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7843114208167705,
+                "normalized_delta_mae": 0.01208761926268188,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6739792890951666,
+                "normalized_delta_mae": 0.015903084672672648,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7720369338989257,
+                "normalized_delta_mae": 0.012983411445584096,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.769399433404627,
+                "normalized_delta_mae": 0.012514200617729778,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7701395733255736,
+                "normalized_delta_mae": 0.012760602987148392,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7468347334525953,
+                "normalized_delta_mae": 0.014372947182453855,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.7581957615597146,
+                "normalized_delta_mae": 0.014061907867730504,
+                "update": 2400
+              }
+            ]
+          }
+        ],
+        "gru_dynamics": [
+          {
+            "checkpoint": {
+              "bytes": 402826,
+              "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-17.pt",
+              "sha256": "759a2d1c90216fa9f2bf7f9162d678710e29a49e9db8a6925b69ac59489b31f3"
+            },
+            "hidden_size": 164,
+            "latent_size": null,
+            "method": "gru_dynamics",
+            "optimizer_updates_completed": 2400,
+            "seed": 17,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99744,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.644978445348605,
+              "normalized_delta_mae": 0.01776263436800997,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.757365185106304,
+                "normalized_delta_mae": 0.03323723394686068,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8194734183835313,
+                "normalized_delta_mae": 0.03231605677537515,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8775968094946633,
+                "normalized_delta_mae": 0.033073468380410906,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.927728588480345,
+                "normalized_delta_mae": 0.03317458365165012,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.992390584274077,
+                "normalized_delta_mae": 0.030823611121782116,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.118005059470593,
+                "normalized_delta_mae": 0.027666548104353355,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.231191543794014,
+                "normalized_delta_mae": 0.025307352903863073,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.225912077997772,
+                "normalized_delta_mae": 0.026766933983480425,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.358270688124106,
+                "normalized_delta_mae": 0.02245323057745544,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.46699174692933,
+                "normalized_delta_mae": 0.018826187328553536,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.455670800007565,
+                "normalized_delta_mae": 0.020714190602302552,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4751175652087576,
+                "normalized_delta_mae": 0.021113388261324924,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.511005390865702,
+                "normalized_delta_mae": 0.01930124707205195,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.50515339273802,
+                "normalized_delta_mae": 0.01994090428654577,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5478868000943895,
+                "normalized_delta_mae": 0.01927628259004002,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.400033413524359,
+                "normalized_delta_mae": 0.026303214989077877,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5796370573446783,
+                "normalized_delta_mae": 0.01818914873079515,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.505190035323022,
+                "normalized_delta_mae": 0.021093690101529512,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.567999896197252,
+                "normalized_delta_mae": 0.01941546212199708,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5757433528631504,
+                "normalized_delta_mae": 0.017675961826888607,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.507702405687789,
+                "normalized_delta_mae": 0.02267873480286397,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6214021118593887,
+                "normalized_delta_mae": 0.018600291979144996,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5927008266180334,
+                "normalized_delta_mae": 0.018454061700424677,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.644978445348605,
+                "normalized_delta_mae": 0.01776263436800997,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 402826,
+              "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-43.pt",
+              "sha256": "3919d5cd5a1ae557dd1184a2429a69db5897c24981a561303291359552f507f3"
+            },
+            "hidden_size": 164,
+            "latent_size": null,
+            "method": "gru_dynamics",
+            "optimizer_updates_completed": 2400,
+            "seed": 43,
+            "selected_checkpoint_update": 2100,
+            "trainable_parameters": 99744,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.6682465969676703,
+              "normalized_delta_mae": 0.016920468882775642,
+              "update": 2100
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.758887602577747,
+                "normalized_delta_mae": 0.03526974685595069,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8563467670494402,
+                "normalized_delta_mae": 0.03191466642097688,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.9135792503894216,
+                "normalized_delta_mae": 0.032829875236665695,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.9698801551066656,
+                "normalized_delta_mae": 0.03178431975169921,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.962721507650026,
+                "normalized_delta_mae": 0.031552658240560076,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.026911276159152,
+                "normalized_delta_mae": 0.03148544439127748,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.2235999953578895,
+                "normalized_delta_mae": 0.024518288839870776,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.278238398592237,
+                "normalized_delta_mae": 0.023632485891731694,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4147459433112344,
+                "normalized_delta_mae": 0.02129671873760895,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.414968302552129,
+                "normalized_delta_mae": 0.02063980115131593,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.345805630213778,
+                "normalized_delta_mae": 0.025553473452447167,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4638967111077106,
+                "normalized_delta_mae": 0.020030743996022452,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.462128048211756,
+                "normalized_delta_mae": 0.021164376467046605,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.7917569979815418,
+                "normalized_delta_mae": 0.032750462961029,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.518857826985104,
+                "normalized_delta_mae": 0.020684118904698064,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6019211836264167,
+                "normalized_delta_mae": 0.017350588550030344,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.59728004294382,
+                "normalized_delta_mae": 0.018602258281808504,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.645713913608605,
+                "normalized_delta_mae": 0.017382527866833645,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5930565041555487,
+                "normalized_delta_mae": 0.018989786652612015,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.632746820046868,
+                "normalized_delta_mae": 0.0183784780367999,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6682465969676703,
+                "normalized_delta_mae": 0.016920468882775642,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6325161060816806,
+                "normalized_delta_mae": 0.017671430026981193,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4441934102018115,
+                "normalized_delta_mae": 0.0231240688075482,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.63485385733591,
+                "normalized_delta_mae": 0.018894468247890473,
+                "update": 2400
+              }
+            ]
+          },
+          {
+            "checkpoint": {
+              "bytes": 402836,
+              "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-101.pt",
+              "sha256": "936039506ce23967d6aeee10b63d87c65ea53cebc50bb732fb9309ac6da642c2"
+            },
+            "hidden_size": 164,
+            "latent_size": null,
+            "method": "gru_dynamics",
+            "optimizer_updates_completed": 2400,
+            "seed": 101,
+            "selected_checkpoint_update": 2400,
+            "trainable_parameters": 99744,
+            "validation": {
+              "all_predictions_finite": true,
+              "gaussian_nll": -3.6696227490062445,
+              "normalized_delta_mae": 0.016912395244752857,
+              "update": 2400
+            },
+            "validation_trace": [
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.795075905490929,
+                "normalized_delta_mae": 0.032518335987984294,
+                "update": 100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.876774446729203,
+                "normalized_delta_mae": 0.03182740142227898,
+                "update": 200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.8941402999448105,
+                "normalized_delta_mae": 0.031001628704474007,
+                "update": 300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -2.9440510548336407,
+                "normalized_delta_mae": 0.03242232984220478,
+                "update": 400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.003711101370798,
+                "normalized_delta_mae": 0.03089490874972142,
+                "update": 500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.0899906776320765,
+                "normalized_delta_mae": 0.027014593234364417,
+                "update": 600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.1096197477528746,
+                "normalized_delta_mae": 0.02869673293661064,
+                "update": 700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.249914862404407,
+                "normalized_delta_mae": 0.02465024598887269,
+                "update": 800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.321206417889662,
+                "normalized_delta_mae": 0.022610309636089163,
+                "update": 900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.271535325386155,
+                "normalized_delta_mae": 0.02363293208706547,
+                "update": 1000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.342546296455491,
+                "normalized_delta_mae": 0.02213078672197503,
+                "update": 1100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3226360858326225,
+                "normalized_delta_mae": 0.021594280466227463,
+                "update": 1200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.4979615574151697,
+                "normalized_delta_mae": 0.019021379150135416,
+                "update": 1300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5156837302194517,
+                "normalized_delta_mae": 0.01944769522253896,
+                "update": 1400
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.367076546037701,
+                "normalized_delta_mae": 0.023651106445722176,
+                "update": 1500
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5840290042716014,
+                "normalized_delta_mae": 0.018347881797333838,
+                "update": 1600
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.501607889524648,
+                "normalized_delta_mae": 0.02111723935100394,
+                "update": 1700
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.5903772246669714,
+                "normalized_delta_mae": 0.018859206664730125,
+                "update": 1800
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.555446734898527,
+                "normalized_delta_mae": 0.01955788614044727,
+                "update": 1900
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.3286925732249943,
+                "normalized_delta_mae": 0.021396944262612034,
+                "update": 2000
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6252721598450566,
+                "normalized_delta_mae": 0.018894201538092653,
+                "update": 2100
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.605748509689116,
+                "normalized_delta_mae": 0.017843854385362543,
+                "update": 2200
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.571879118261203,
+                "normalized_delta_mae": 0.019999592950646305,
+                "update": 2300
+              },
+              {
+                "all_predictions_finite": true,
+                "gaussian_nll": -3.6696227490062445,
+                "normalized_delta_mae": 0.016912395244752857,
+                "update": 2400
+              }
+            ]
+          }
+        ]
+      },
+      "ood_statistics": {
+        "mean": [
+          0.0008300567860715091,
+          0.001646363059990108,
+          0.46299484372138977,
+          0.17817308008670807,
+          0.5062030553817749,
+          0.2982252836227417,
+          0.501900851726532,
+          0.10346154123544693,
+          0.17433875799179077,
+          0.5051026940345764,
+          0.45133012533187866,
+          0.5873076915740967,
+          0.5097457766532898,
+          0.02682984247803688,
+          0.5074389576911926,
+          0.2784775495529175,
+          0.08704593777656555,
+          0.06637286394834518,
+          0.11163461208343506,
+          0.11339743435382843,
+          0.119022436439991,
+          0.11559294909238815,
+          0.13693375885486603,
+          0.2475138157606125,
+          0.0006621929933317006,
+          0.047752078622579575,
+          0.0008297520689666271,
+          0.0018206159584224224,
+          0.45494648814201355,
+          0.17817308008670807,
+          0.5024428963661194,
+          0.2974262833595276,
+          0.5093518495559692,
+          0.10346154123544693,
+          0.20527127385139465,
+          0.498382031917572,
+          0.4402724504470825,
+          0.5873076915740967,
+          0.5097457766532898,
+          0.03211434185504913,
+          0.5051676034927368,
+          0.3778846263885498,
+          0.10007478296756744,
+          0.07500534504652023,
+          0.13017627596855164,
+          0.13302350044250488,
+          0.13661324977874756,
+          0.13529914617538452,
+          0.16480769217014313,
+          0.2861630618572235,
+          0.0006130713154561818,
+          0.05489030480384827,
+          0.000820888380985707,
+          0.001949409139342606,
+          0.4458952248096466,
+          0.17817308008670807,
+          0.4980489909648895,
+          0.29649004340171814,
+          0.5183999538421631,
+          0.10346154123544693,
+          0.24174830317497253,
+          0.49018779397010803,
+          0.4271794855594635,
+          0.5873076915740967,
+          0.5097457766532898,
+          0.037143923342227936,
+          0.5026003122329712,
+          0.4818696677684784,
+          0.11567308008670807,
+          0.08745726197957993,
+          0.1500801295042038,
+          0.15214209258556366,
+          0.1611645370721817,
+          0.1503792703151703,
+          0.18310363590717316,
+          0.32900750637054443,
+          0.0008177069248631597,
+          0.06355493515729904
+        ],
+        "std": [
+          0.43015480041503906,
+          0.426855206489563,
+          0.29259365797042847,
+          0.21262061595916748,
+          0.2781350314617157,
+          0.3068784475326538,
+          0.21396216750144958,
+          0.3045574426651001,
+          0.1283893585205078,
+          0.22438475489616394,
+          0.4973849654197693,
+          0.4924308955669403,
+          0.28974276781082153,
+          0.13135188817977905,
+          0.19921931624412537,
+          0.44846847653388977,
+          0.28216513991355896,
+          0.24922744929790497,
+          0.3149803578853607,
+          0.3170833885669708,
+          0.3239514231681824,
+          0.31990760564804077,
+          0.3438754677772522,
+          0.37217381596565247,
+          0.16950395703315735,
+          0.17266036570072174,
+          0.4323219954967499,
+          0.4291849732398987,
+          0.29423728585243225,
+          0.21262061595916748,
+          0.2782692015171051,
+          0.3064728379249573,
+          0.21820510923862457,
+          0.3045574426651001,
+          0.1506016105413437,
+          0.22729316353797913,
+          0.49632832407951355,
+          0.4924308955669403,
+          0.28974276781082153,
+          0.14303167164325714,
+          0.2021198719739914,
+          0.4849054217338562,
+          0.29991063475608826,
+          0.26371803879737854,
+          0.3365255296230316,
+          0.3394988477230072,
+          0.34363481402397156,
+          0.341901957988739,
+          0.3711276054382324,
+          0.38602277636528015,
+          0.18199624121189117,
+          0.18379026651382446,
+          0.4347406327724457,
+          0.43182894587516785,
+          0.29586076736450195,
+          0.21262061595916748,
+          0.27839869260787964,
+          0.30597248673439026,
+          0.22299373149871826,
+          0.3045574426651001,
+          0.17240756750106812,
+          0.23061561584472656,
+          0.49475231766700745,
+          0.4924308955669403,
+          0.28974276781082153,
+          0.15355835855007172,
+          0.20530907809734344,
+          0.49955281615257263,
+          0.3200589120388031,
+          0.28272610902786255,
+          0.35746121406555176,
+          0.3593219518661499,
+          0.3675568401813507,
+          0.357700914144516,
+          0.38661083579063416,
+          0.39637109637260437,
+          0.19574399292469025,
+          0.19650518894195557
+        ]
+      },
+      "provenance": {
+        "base_train_rows": 67200,
+        "base_validation_rows": 14400,
+        "incident_train": {
+          "action_transition_counts": {
+            "approve": 15362,
+            "diagnose": 15011,
+            "inspect": 3475,
+            "move": 9175,
+            "repair": 16513,
+            "stop": 21417,
+            "verify": 15047
+          },
+          "dangerous_transitions": 19641,
+          "episodes": 12000,
+          "hazard_tag_episode_counts": {
+            "availability_loss": 2338,
+            "logic_or_configuration_tamper": 1334,
+            "loss_of_control": 1334,
+            "loss_of_view": 3004,
+            "manual_fallback": 2999,
+            "process_divergence": 333,
+            "recovery_inhibition": 2664,
+            "safety_interlock_compromise": 334,
+            "unauthorized_actuation": 1001,
+            "unsafe_command_sequence": 667
+          },
+          "source_episode_counts": {
+            "cisa_triton_2017": 1000,
+            "cisa_ukraine_power_2015": 1000,
+            "cisa_unitronics_2023": 1000,
+            "cisa_water_kansas_insider_2019": 1000,
+            "clorox_cyber_2023": 1000,
+            "doj_bowman_dam_2013": 1000,
+            "doj_discovery_bay_2021": 1000,
+            "hse_conti_2021": 1000,
+            "hydro_ransomware_2019": 1000,
+            "maersk_notpetya_2017": 1000,
+            "molson_coors_cyber_2021": 1000,
+            "west_pharma_cyber_2026": 1000
+          },
+          "source_family_episode_counts": {
+            "bowman_dam_2013": 1000,
+            "clorox_cyber_2023": 1000,
+            "discovery_bay_2021": 1000,
+            "hse_conti_2021": 1000,
+            "kansas_water_insider_2019": 1000,
+            "maersk_notpetya_2017": 1000,
+            "molson_coors_cyber_2021": 1000,
+            "norsk_hydro_2019": 1000,
+            "triton_2017": 1000,
+            "ukraine_power_2015": 1000,
+            "unitronics_2023": 1000,
+            "west_pharma_cyber_2026": 1000
+          },
+          "transitions": 96000
+        },
+        "incident_validation": {
+          "action_transition_counts": {
+            "approve": 3784,
+            "diagnose": 3473,
+            "inspect": 1139,
+            "move": 2782,
+            "repair": 3248,
+            "stop": 5094,
+            "verify": 3520
+          },
+          "dangerous_transitions": 4829,
+          "episodes": 2880,
+          "hazard_tag_episode_counts": {
+            "availability_loss": 641,
+            "logic_or_configuration_tamper": 106,
+            "loss_of_control": 320,
+            "loss_of_view": 534,
+            "manual_fallback": 532,
+            "process_divergence": 642,
+            "recovery_inhibition": 320,
+            "sensor_or_view_deception": 213,
+            "unauthorized_actuation": 321,
+            "unsafe_command_sequence": 214
+          },
+          "source_episode_counts": {
+            "cisa_california_water_ransomware_2021": 320,
+            "cisa_crashoverride_2016": 320,
+            "cisa_oldsmar_water_2021": 320,
+            "nature_swat_wadi_2025": 320,
+            "ncsc_viasat_2022": 320,
+            "qao_maroochy_2000": 320,
+            "uscg_mtsa_ryuk_2019": 320,
+            "uscg_vessel_malware_2019": 320,
+            "vestas_cyber_2021": 320
+          },
+          "source_family_episode_counts": {
+            "california_water_ghost_2021": 320,
+            "maroochy_2000": 320,
+            "mtsa_ryuk_2019": 320,
+            "oldsmar_water_2021": 320,
+            "swat_wadi_ghl": 320,
+            "ukraine_power_2016": 320,
+            "us_vessel_malware_2019": 320,
+            "vestas_cyber_2021": 320,
+            "viasat_ka_sat_2022": 320
+          },
+          "transitions": 23040
+        },
+        "stress_train": {
+          "action_transition_counts": {
+            "approve": 3429,
+            "diagnose": 3430,
+            "inspect": 3427,
+            "move": 2855,
+            "repair": 3999,
+            "stop": 3430,
+            "verify": 3430
+          },
+          "case_episode_counts": {
+            "compound_motion_hazard": 250,
+            "emergency_stop": 250,
+            "geofence_edge": 250,
+            "heavy_payload": 250,
+            "high_vibration": 250,
+            "human_proximity": 250,
+            "low_battery": 250,
+            "low_clearance": 250,
+            "offline_controller": 250,
+            "recovery_state": 250,
+            "repair_without_approval": 250,
+            "weak_link": 250
+          },
+          "dangerous_transitions": 6292,
+          "episodes": 3000,
+          "transitions": 24000
+        },
+        "stress_validation": {
+          "action_transition_counts": {
+            "approve": 1144,
+            "diagnose": 1143,
+            "inspect": 1142,
+            "move": 952,
+            "repair": 1332,
+            "stop": 1144,
+            "verify": 1143
+          },
+          "case_episode_counts": {
+            "compound_motion_hazard": 83,
+            "emergency_stop": 83,
+            "geofence_edge": 84,
+            "heavy_payload": 83,
+            "high_vibration": 83,
+            "human_proximity": 84,
+            "low_battery": 84,
+            "low_clearance": 84,
+            "offline_controller": 83,
+            "recovery_state": 83,
+            "repair_without_approval": 83,
+            "weak_link": 83
+          },
+          "dangerous_transitions": 2200,
+          "episodes": 1000,
+          "transitions": 8000
+        }
+      },
+      "train_examples": 187200,
+      "training_rows_sha256": "7464537946e978b234852338b76b529401ff3a261d9115d56b847b9013afadcd",
+      "validation_examples": 45440,
+      "validation_rows_sha256": "1211776392a9dc5d256792eaf969decc4115bf9d4a620d44e7542690a97145c7"
+    }
+  },
+  "final_catalog_guard": {
+    "attempted": false,
+    "paths": [
+      "docs/research/physical_incident_v5_test_sources.json",
+      "docs/research/physical_jepa_learned_contribution_final_catalog_v1.json",
+      "docs/research/world_model_incident_final_sources_v3.json",
+      "docs/research/world_model_incident_final_sources_v3_1.json",
+      "docs/research/world_model_incident_v3_4_final_catalog.json",
+      "docs/research/world_model_incident_v3_final_catalog.json",
+      "docs/research/world_model_learned_contribution_final_catalog_v1.json"
+    ]
+  },
+  "final_test_opened": false,
+  "numpy_version": "2.2.6",
+  "promotion_eligible": false,
+  "protected_digests_after": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "protected_digests_before": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "protocol_id": "cross-domain-world-model-improvement-v1",
+  "protocol_sha256": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b",
+  "schema_version": 1,
+  "seeds": [
+    17,
+    43,
+    101
+  ],
+  "selection_passed": true,
+  "settings": {
+    "batch_size": 512,
+    "checkpoint_interval_updates": 100,
+    "checkpoint_rule": "lowest validation Gaussian negative log likelihood; every method completes the full fixed update budget",
+    "deterministic_torch_algorithms": true,
+    "device": "cpu",
+    "final_partition_forbidden_during_fitting": true,
+    "gradient_norm_clip": 5.0,
+    "history_length": 3,
+    "learning_rate": 0.001,
+    "optimizer": "AdamW",
+    "optimizer_updates": 2400,
+    "parameter_budget_tolerance_fraction": 0.05,
+    "prediction_target": "normalized next-state delta",
+    "split_seed": 42,
+    "trainable_parameter_budget": 100000,
+    "training_seeds": [
+      17,
+      43,
+      101
+    ],
+    "weight_decay": 0.0001
+  },
+  "stage": "validation-only-selection",
+  "torch_version": "2.6.0+cu124"
+}
