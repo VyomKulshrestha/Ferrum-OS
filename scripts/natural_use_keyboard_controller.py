@@ -25,6 +25,12 @@ KEY_NAMES = {
     "?": "shift-slash",
 }
 
+# Keep each emulated PS/2 key down long enough for a saturated guest to
+# service the interrupt.  The earlier 20 ms pulse worked during boot but was
+# observably lost once the local model had paged in and the guest stayed at
+# full CPU; spacing commands alone cannot recover an overwritten scancode.
+KEY_HOLD_MS = 180
+
 
 def hmp_key(character: str) -> str:
     if character.isascii() and character.isalpha():
@@ -44,10 +50,12 @@ def send_text(port: int, text: str) -> None:
         except TimeoutError:
             pass
         for character in text:
-            monitor.sendall(f"sendkey {hmp_key(character)} 20\n".encode("ascii"))
+            monitor.sendall(
+                f"sendkey {hmp_key(character)} {KEY_HOLD_MS}\n".encode("ascii")
+            )
             time.sleep(0.80)
         time.sleep(0.25)
-        monitor.sendall(b"sendkey ret 20\n")
+        monitor.sendall(f"sendkey ret {KEY_HOLD_MS}\n".encode("ascii"))
         time.sleep(0.25)
 
 
@@ -58,7 +66,7 @@ def send_enter(port: int) -> None:
             monitor.recv(4096)
         except TimeoutError:
             pass
-        monitor.sendall(b"sendkey ret 20\n")
+        monitor.sendall(f"sendkey ret {KEY_HOLD_MS}\n".encode("ascii"))
         time.sleep(0.25)
 
 
