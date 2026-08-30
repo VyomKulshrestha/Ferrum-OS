@@ -1,0 +1,27 @@
+{
+  "checks": {
+    "authority_rejected": true,
+    "client_count": true,
+    "disconnect_probe": true,
+    "fairness": true,
+    "no_leakage": true,
+    "no_promotion": true,
+    "per_client_completion": true,
+    "protocol_identity": true,
+    "request_count": true,
+    "result_gates": true,
+    "runtime_checks": true,
+    "source_disk_unchanged": true,
+    "zero_execution": true,
+    "zero_physical_delivery": true
+  },
+  "claim_boundary": "Passing establishes bounded multi-client contention for read-only previews in one QEMU guest. It does not establish parallel neural execution, distributed multi-host consensus, production load capacity, or action-execution safety under contention.",
+  "promotion_eligible": false,
+  "protocol_id": "ferrumos-world-model-multiclient-contention-v1",
+  "result": {
+    "path": "docs/research/world_model_multiclient_contention_result_v1.json",
+    "sha256": "ecf49e8aef4e7df23c6c225cb7d44acc7627211862ca5231a04da0036eefe07d"
+  },
+  "schema_version": 1,
+  "verification_passed": true
+}

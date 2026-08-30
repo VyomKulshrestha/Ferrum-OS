@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "protocol_id": "ferrumos-world-model-multiclient-contention-v1",
+  "protocol_sha256": "5a94981763af04667b5d5e165e2c3a7a1f63bcaa2ee9d3d1571a9aeb326d6a07",
+  "accelerator": "whpx",
+  "ram_mb": 4096,
+  "clients": 4,
+  "requests_per_client": 32,
+  "timed_responses": 128,
+  "action_classes": 8,
+  "batch_wall_milliseconds": 17544.682,
+  "jain_throughput_fairness": 0.999937,
+  "per_client": [
+    {
+      "agent_index": 0,
+      "responses": 32,
+      "median_latency_ms": 8825.631,
+      "p95_latency_ms": 16460.23,
+      "maximum_latency_ms": 17543.549,
+      "throughput_per_second": 1.824,
+      "unexpected_response_ids": []
+    },
+    {
+      "agent_index": 1,
+      "responses": 32,
+      "median_latency_ms": 8449.995,
+      "p95_latency_ms": 16091.383,
+      "maximum_latency_ms": 17173.179,
+      "throughput_per_second": 1.863,
+      "unexpected_response_ids": []
+    },
+    {
+      "agent_index": 2,
+      "responses": 32,
+      "median_latency_ms": 8573.768,
+      "p95_latency_ms": 16209.571,
+      "maximum_latency_ms": 17292.29,
+      "throughput_per_second": 1.851,
+      "unexpected_response_ids": []
+    },
+    {
+      "agent_index": 3,
+      "responses": 32,
+      "median_latency_ms": 8698.122,
+      "p95_latency_ms": 16334.984,
+      "maximum_latency_ms": 17415.353,
+      "throughput_per_second": 1.837,
+      "unexpected_response_ids": []
+    }
+  ],
+  "failure_probe": {
+    "surviving_clients_responded": 3,
+    "replacement_rejected_before_pair": true,
+    "replacement_succeeded_after_pair": true
+  },
+  "authority": {
+    "additional_clients_scope": "world_model_preview only",
+    "execution_probe_error_code": -32601,
+    "execution_dataset_records_added": 0,
+    "physical_delivery_attempts": 0,
+    "physical_deliveries": 0
+  },
+  "transition": {
+    "role": "research candidate injected into disposable run-disk copy",
+    "path": "target/world-model-v3-work/world_model_jepa_v3_candidate.bin",
+    "sha256": "2616aa6b0587adc9258bd5ccd7d95f1e1a2011af7b2e76e3927046c010444f77"
+  },
+  "packaged_source_disk": {
+    "sha256_before": "80ebbe08ca33200fee69aab7d66c915b7572b89b070b8be68de50fba1d840bea",
+    "sha256_after": "80ebbe08ca33200fee69aab7d66c915b7572b89b070b8be68de50fba1d840bea",
+    "unchanged": true
+  },
+  "serial_sha256": "56df260a909cc634fcb5a6c68ead88f1bb96dd01f56fb3c6409768ba74c5de08",
+  "checks": {
+    "distinct_websocket_transports": true,
+    "all_timed_responses_received": true,
+    "preview_schema_valid": true,
+    "no_cross_client_response_leakage": true,
+    "identical_requests_deterministic": true,
+    "throughput_fairness": true,
+    "preview_only_execution_rejected": true,
+    "disconnect_isolation_and_repair": true,
+    "no_execution_dataset_records": true,
+    "learned_model_loaded": true,
+    "guest_fault_free": true,
+    "source_disk_unchanged": true
+  },
+  "acceptance_gates_passed": true,
+  "promotion_eligible": false,
+  "claim_boundary": "Passing establishes bounded multi-client contention for read-only previews in one QEMU guest. It does not establish parallel neural execution, distributed multi-host consensus, production load capacity, or action-execution safety under contention."
+}

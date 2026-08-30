@@ -505,6 +505,107 @@ fn send_rpc_error(fd: u64, id: &str, code: i64, message: &str) {
     let _ = network::ws_send_text_server(fd, &response);
 }
 
+const MAX_PREVIEW_CLIENTS: usize = 3;
+
+struct PreviewClient {
+    conn: network::WsConnection,
+    authorized: bool,
+}
+
+/// Service one frame from a bounded, preview-only cooperative client.
+/// These additional clients deliberately cannot reach any execution or neural
+/// commit method; they exist only to expose real socket-level contention to the
+/// same read-only world-model preview used by the primary bridge.
+fn service_preview_client(
+    client: &mut PreviewClient,
+    bridge_token: Option<&String>,
+    orchestrator: &mut cognitive::orchestrator::Orchestrator,
+) -> bool {
+    match network::ws_recv_frame(&mut client.conn) {
+        Ok(frame) if frame.opcode == 0x08 => false,
+        Ok(frame) if frame.opcode == 0x01 => {
+            let Ok(payload) = core::str::from_utf8(&frame.payload) else {
+                send_rpc_error(client.conn.fd, "null", -32700, "parse error");
+                return true;
+            };
+            let Ok(parsed) = cognitive::json::parse(payload) else {
+                send_rpc_error(client.conn.fd, "null", -32700, "parse error");
+                return true;
+            };
+            let method = parsed.get("method").and_then(|value| value.as_str()).unwrap_or("");
+            let id = match parsed.get("id") {
+                Some(cognitive::json::JsonValue::Number(number)) => alloc::format!("{}", number),
+                Some(cognitive::json::JsonValue::Str(text)) => alloc::format!("\"{}\"", text),
+                _ => String::from("null"),
+            };
+            if method == "ping" {
+                let response = alloc::format!("{{\"jsonrpc\":\"2.0\",\"result\":\"pong\",\"id\":{}}}", id);
+                let _ = network::ws_send_text_server(client.conn.fd, &response);
+            } else if method == "pair" {
+                let supplied = parsed.get("params")
+                    .and_then(|params| params.get("token"))
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("");
+                let mode = parsed.get("params")
+                    .and_then(|params| params.get("control_mode"))
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("");
+                if mode != "cooperative" {
+                    send_rpc_error(client.conn.fd, &id, -32602, "preview-only clients require cooperative mode");
+                } else if bridge_token
+                    .map(|expected| bridge_token_matches(expected, supplied))
+                    .unwrap_or(false)
+                {
+                    client.authorized = true;
+                    let response = alloc::format!(
+                        "{{\"jsonrpc\":\"2.0\",\"result\":{{\"authorized\":true,\"control_mode\":\"cooperative\",\"scope\":\"world_model_preview\"}},\"id\":{}}}",
+                        id,
+                    );
+                    let _ = network::ws_send_text_server(client.conn.fd, &response);
+                } else {
+                    send_rpc_error(client.conn.fd, &id, -32003, "pairing denied");
+                }
+            } else if !client.authorized {
+                send_rpc_error(client.conn.fd, &id, -32003, "bridge pairing required");
+            } else if method == "world_model_preview" {
+                let Some(params) = parsed.get("params") else {
+                    send_rpc_error(client.conn.fd, &id, -32602, "missing params");
+                    return true;
+                };
+                let Some(tool_name) = params.get("tool").and_then(|tool| tool.as_str()) else {
+                    send_rpc_error(client.conn.fd, &id, -32602, "missing tool");
+                    return true;
+                };
+                let arguments = match params.get("args") {
+                    Some(cognitive::json::JsonValue::Object(pairs)) => pairs.clone(),
+                    _ => Vec::new(),
+                };
+                let call = cognitive::json::ToolCall {
+                    name: String::from(tool_name),
+                    arguments,
+                };
+                let advice = orchestrator.preview_world_model_action(&call);
+                let response = alloc::format!(
+                    "{{\"jsonrpc\":\"2.0\",\"result\":{{\"allowed\":{},\"risk\":{:.4},\"lookahead_steps\":{},\"reason\":{},\"suggestion\":{}}},\"id\":{}}}",
+                    advice.allowed,
+                    advice.risk,
+                    advice.lookahead_steps,
+                    escape_json_string(&advice.reason),
+                    escape_json_string(&advice.suggestion),
+                    id,
+                );
+                let _ = network::ws_send_text_server(client.conn.fd, &response);
+            } else {
+                send_rpc_error(client.conn.fd, &id, -32601, "preview-only client method not available");
+            }
+            true
+        }
+        Ok(_) => true,
+        Err("ws: no data") => true,
+        Err(_) => false,
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     // Write startup log
@@ -629,6 +730,7 @@ pub extern "C" fn _start() -> ! {
     let mut bridge_authorized = false;
     let mut bridge_exclusive = false;
     let mut ws_conn: Option<network::WsConnection> = None;
+    let mut preview_clients: Vec<PreviewClient> = Vec::new();
 
     let mut last_detailed = cognitive::gesture::DetailedGesture {
         gesture: cognitive::gesture::GestureType::None,
@@ -782,42 +884,56 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        if !bridge_connected {
-            if let Some(fd) = server_fd {
-                // Check for connection
-                let res = unsafe { syscall3(SYS_ACCEPT, fd | (1 << 63), 0, 0) };
-                if res != 0 && (res as i64) >= 0 {
-                    match network::ws_accept(fd) {
-                        Ok(conn) => {
-                            let print_msg = "[heliox-daemon] bridge client connected, handshake successful!\n";
-                            unsafe {
-                                syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
-                            }
+        if let Some(fd) = server_fd {
+            // In smoltcp the listening socket itself becomes established.
+            // Install a replacement listener immediately after each accepted
+            // handshake so bounded simultaneous preview clients are possible.
+            let res = unsafe { syscall3(SYS_ACCEPT, fd | (1 << 63), 0, 0) };
+            if res != 0 && (res as i64) >= 0 {
+                match network::ws_accept(fd) {
+                    Ok(conn) => {
+                        server_fd = init_server_socket().ok();
+                        if !bridge_connected {
+                            let print_msg = "[heliox-daemon] primary bridge client connected\n";
+                            unsafe { syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64); }
                             ws_conn = Some(conn);
                             bridge_connected = true;
                             bridge_authorized = false;
                             bridge_exclusive = false;
                             orchestrator.neural_disconnect();
-                        }
-                        Err(e) => {
-                            let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", e);
-                            unsafe {
-                                syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64);
-                            }
-                            let _ = network::tcp_close(fd);
-                            server_fd = match init_server_socket() {
-                                Ok(new_fd) => Some(new_fd),
-                                Err(err) => {
-                                    let err_msg = alloc::format!("[heliox-daemon] warning: failed to re-init server socket: {}\n", err);
-                                    unsafe {
-                                        syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                                    }
-                                    None
-                                }
-                            };
+                        } else if preview_clients.len() < MAX_PREVIEW_CLIENTS {
+                            let print_msg = "[heliox-daemon] preview-only cooperative client connected\n";
+                            unsafe { syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64); }
+                            preview_clients.push(PreviewClient { conn, authorized: false });
+                        } else {
+                            let mut rejected = conn;
+                            let _ = network::ws_close(&mut rejected);
+                            let _ = network::tcp_close(rejected.fd);
                         }
                     }
+                    Err(error) => {
+                        let print_msg = alloc::format!("[heliox-daemon] handshake failed: {}\n", error);
+                        unsafe { syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64); }
+                        let _ = network::tcp_close(fd);
+                        server_fd = init_server_socket().ok();
+                    }
                 }
+            }
+        }
+
+        let mut preview_index = 0usize;
+        while preview_index < preview_clients.len() {
+            if service_preview_client(
+                &mut preview_clients[preview_index],
+                bridge_token.as_ref(),
+                &mut orchestrator,
+            ) {
+                preview_index += 1;
+            } else {
+                let client = preview_clients.remove(preview_index);
+                let _ = network::tcp_close(client.conn.fd);
+                let print_msg = "[heliox-daemon] preview-only cooperative client disconnected\n";
+                unsafe { syscall3(SYS_WRITE, FD_CONSOLE, print_msg.as_ptr() as u64, print_msg.len() as u64); }
             }
         }
 
@@ -1390,19 +1506,8 @@ pub extern "C" fn _start() -> ! {
                             bridge_authorized = false;
                             bridge_exclusive = false;
                             orchestrator.neural_disconnect();
-                            ws_conn = None;
-                            if let Some(fd) = server_fd {
-                                let _ = network::tcp_close(fd);
-                                server_fd = match init_server_socket() {
-                                    Ok(new_fd) => Some(new_fd),
-                                    Err(err) => {
-                                        let err_msg = alloc::format!("[heliox-daemon] warning: failed to re-init server socket: {}\n", err);
-                                        unsafe {
-                                            syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                                        }
-                                        None
-                                    }
-                                };
+                            if let Some(disconnected) = ws_conn.take() {
+                                let _ = network::tcp_close(disconnected.fd);
                             }
                         }
                     }
@@ -1418,19 +1523,8 @@ pub extern "C" fn _start() -> ! {
                         bridge_authorized = false;
                         bridge_exclusive = false;
                         orchestrator.neural_disconnect();
-                        ws_conn = None;
-                        if let Some(fd) = server_fd {
-                            let _ = network::tcp_close(fd);
-                            server_fd = match init_server_socket() {
-                                Ok(new_fd) => Some(new_fd),
-                                Err(err) => {
-                                    let err_msg = alloc::format!("[heliox-daemon] warning: failed to re-init server socket: {}\n", err);
-                                    unsafe {
-                                        syscall3(SYS_WRITE, FD_CONSOLE, err_msg.as_ptr() as u64, err_msg.len() as u64);
-                                    }
-                                    None
-                                }
-                            };
+                        if let Some(disconnected) = ws_conn.take() {
+                            let _ = network::tcp_close(disconnected.fd);
                         }
                     }
                 }
