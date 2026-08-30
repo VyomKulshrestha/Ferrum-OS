@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-multi-embodiment-3d-stress-v1",
+  "registration_date": "2026-08-30",
+  "status": "registered_before_case_generation",
+  "artifact": {
+    "path": "userland/heliox-daemon/physical_world_model.bin",
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "retraining_permitted": false,
+    "promotion_permitted": false
+  },
+  "backend": {
+    "name": "PyBullet",
+    "version": "3.2.7",
+    "connection_mode": "DIRECT",
+    "physical_actuator_authority": false,
+    "software_simulator_motion": true,
+    "evidence_class": "researcher-designed local software-physics stress test"
+  },
+  "seed": 20260901,
+  "embodiments": [
+    {
+      "name": "box",
+      "mass_kg": 1.0,
+      "half_extents_m": [0.05, 0.08, 0.05],
+      "bounding_radius_m": 0.10677
+    },
+    {
+      "name": "sphere",
+      "mass_kg": 0.7,
+      "radius_m": 0.07,
+      "bounding_radius_m": 0.07
+    },
+    {
+      "name": "capsule",
+      "mass_kg": 1.5,
+      "radius_m": 0.045,
+      "height_m": 0.12,
+      "bounding_radius_m": 0.105
+    }
+  ],
+  "obstacles": [
+    {
+      "name": "box",
+      "half_extents_m": [0.06, 0.06, 0.06],
+      "bounding_radius_m": 0.10393
+    },
+    {
+      "name": "sphere",
+      "radius_m": 0.065,
+      "bounding_radius_m": 0.065
+    },
+    {
+      "name": "cylinder",
+      "radius_m": 0.055,
+      "height_m": 0.14,
+      "bounding_radius_m": 0.08902
+    }
+  ],
+  "cases_per_embodiment_obstacle_pair": 32,
+  "expected_cases": 288,
+  "trajectory": {
+    "duration_seconds": 1.0,
+    "steps": 240,
+    "time_step_seconds": 0.004166666666666667,
+    "target_radial_range_m": [0.28, 0.48],
+    "target_vertical_offset_range_m": [-0.12, 0.12],
+    "obstacle_path_fraction_range": [0.2, 0.9],
+    "obstacle_lateral_offset_range_m": [-0.18, 0.18],
+    "obstacle_vertical_offset_range_m": [-0.08, 0.08]
+  },
+  "arms": [
+    "unshielded software motion",
+    "frozen deterministic rules",
+    "frozen learned caution",
+    "rules plus learned union"
+  ],
+  "contact_recovery": {
+    "applies_after_unshielded_contact": true,
+    "procedure": "stop, then command one-second return toward the exact start pose in simulation",
+    "success": "no contact at the end of the return and center distance to start is at most 0.03 m"
+  },
+  "required_metrics": [
+    "task completion",
+    "intervention rate",
+    "unshielded and shielded contacts",
+    "marginal learned-only interventions and contacts avoided",
+    "per-embodiment and per-obstacle results",
+    "simulated contact-recovery success",
+    "Wilson 95 percent intervals for completion, intervention, and contact rates"
+  ],
+  "acceptance_gates": [
+    "exactly 288 cases and every registered cell represented",
+    "all simulated observations finite",
+    "rules plus learned equals the logical union",
+    "zero physical actuator attempts and deliveries",
+    "artifact digest unchanged",
+    "all result attribution recomputes from case records",
+    "claim boundary preserved"
+  ],
+  "claim_boundary": "This locally designed PyBullet DIRECT stress test adds software embodiment, obstacle-geometry, 3D-trajectory, contact, and simulated recovery diversity. It is not blinded, independently designed, live HIL, physical timing, robot deployment, or human-safety evidence."
+}
