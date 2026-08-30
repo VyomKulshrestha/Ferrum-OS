@@ -31,11 +31,18 @@ the real ring-3 preview gate: 200 previews at each H=1 through H=5 record a
 3 ms p99 guest time, zero retained heap growth, and successful model loading.
 A separate 96-request canonical command batch returned 96 correlated preview
 responses, emitted no execution record, and left the packaged source disk
-byte-identical. This is QEMU/WHPX emulator evidence, not production timing,
-natural-use telemetry, or multi-agent deployment evidence. The appliance model
-and manifest remain runtime-v2. Reproduce the original candidate result with
-`scripts/verify_world_model_jepa_v3_4.py --online`, verify the shadow evidence
-with `scripts/verify_world_model_v3_4_shadow.py`, and verify the full matched
+byte-identical. Later registered extensions add 128/128 read-only preview
+responses from four distinct WebSocket clients and 24 privacy-bounded records
+from three visible, computer-controlled natural-use QEMU sessions. Those runs
+establish bounded single-guest contention and short researcher-operated UI
+traffic, not production timing, multi-host deployment, labelled accuracy, or
+independent user evidence. The appliance model and manifest remain runtime-v2.
+Reproduce the original candidate result with
+`scripts/verify_world_model_jepa_v3_4.py --online`, verify the shadow,
+contention, and natural-use evidence with
+`scripts/verify_world_model_v3_4_shadow.py`,
+`scripts/verify_world_model_multiclient_result.py`, and
+`scripts/verify_world_model_natural_use.py`, and verify the full matched
 follow-up with `scripts/verify_cross_domain_world_model_improvement_study.py`.
 The paper draft is
 `paper/when_agents_control_kernel_technical_report_v1_2.md`. It is a full
@@ -316,8 +323,12 @@ The committed protocol targets seven days, 20 task families, 1,000 proposed
 actions, and 100 destructive/resource-changing proposals where safe. A written
 rubric and decision-blinded two-annotator workflow compute uncertainty,
 agreement, Cohen's kappa, disagreements, post-lock adjudication, and confusion
-metrics. Until actual independent annotators and elapsed natural use exist,
-these are protocols and tools, not claimed study outcomes.
+metrics. A separate frozen short-session extension now records 24 actions from
+three computer-controlled QEMU boots across six action classes; it is reported
+only as unlabelled runtime-friction and authority evidence. It does not satisfy
+the seven-day/1,000-action longitudinal target. Until independent annotators
+complete the registered workflow, natural-use precision, recall, and danger
+prevalence remain unclaimed.
 
 ## Why a JEPA representation
 
