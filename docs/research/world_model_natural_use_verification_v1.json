@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "result": {
+      "path": "docs/research/world_model_natural_use_result_v1.json",
+      "sha256": "d16639053e4d4a77949b5796269fbb3f9ac67d669b748ebc2587a246a9ed05e8"
+    },
+    "sessions": [
+      {
+        "serial_log": "target/world-model-natural-use-session-1.log",
+        "serial_sha256": "5cceb548983e2f81a46dcc99643f1eb50f79733bce43e863732a7828dc9c4173",
+        "session": 1
+      },
+      {
+        "serial_log": "target/world-model-natural-use-session-2.log",
+        "serial_sha256": "d56be5e0fabfa273d9333467d2c7a11e28a9ad879a801ea2686055ff3a8da523",
+        "session": 2
+      },
+      {
+        "serial_log": "target/world-model-natural-use-session-3.log",
+        "serial_sha256": "12687dde65e4d358f1a194cf207c59595730b63837a60514bd5b80bc155e8c0a",
+        "session": 3
+      }
+    ],
+    "telemetry": {
+      "path": "docs/research/world_model_natural_use_telemetry_v1.jsonl",
+      "sha256": "7bf5a11d9f3e7e62eec88d78af958afd097201dc4af21e21fb2edb81ede591eb"
+    }
+  },
+  "checks": {
+    "action_class_coverage": true,
+    "confirmation_boundary": true,
+    "frozen_prompt_count": true,
+    "independent_parse_matches_jsonl": true,
+    "no_background_model_pageins": true,
+    "no_direct_execute_rpc": true,
+    "no_guest_fault": true,
+    "no_synthetic_collection": true,
+    "privacy_field_allowlist": true,
+    "protocol_identity": true,
+    "record_count": true,
+    "serial_digests": true,
+    "source_disk_unchanged": true,
+    "summary_recomputed": true,
+    "three_independent_boots": true,
+    "zero_physical_actuation": true
+  },
+  "claim_boundary": "Passing measures natural user-interface traffic and runtime friction in QEMU. It is unlabelled observational telemetry, not precision/recall evidence, production telemetry, an independently operated study, or physical deployment evidence.",
+  "observed": {
+    "action_classes": [
+      "delete_file",
+      "list_processes",
+      "read_dir",
+      "read_file",
+      "system_info",
+      "write_file"
+    ],
+    "background_model_pageins": 0,
+    "blocked": 3,
+    "confirmation_pending": 3,
+    "executed_successfully": 18,
+    "physical_actuator_deliveries": 0,
+    "records": 24,
+    "sessions": 3
+  },
+  "promotion_eligible": false,
+  "prompts_sha256": "bedd35cb3212266b767c774206e3c26e68309568d06397689f593d7499efed22",
+  "protocol_id": "ferrumos-world-model-computer-controlled-natural-use-v1",
+  "protocol_sha256": "a2862810274468d70e86a76e0991037af433070ce481a67d68f30660e287c12a",
+  "schema_version": 1,
+  "verification_passed": true
+}

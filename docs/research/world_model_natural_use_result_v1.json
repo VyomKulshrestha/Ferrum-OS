@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "protocol": "privacy-bounded-natural-use-telemetry-v1",
+  "proposed_actions": 24,
+  "blocked_actions": 3,
+  "alerts_per_1000_actions": 125.0,
+  "executed_actions": 18,
+  "successful_results": 18,
+  "confirmations": {
+    "awaiting": 3,
+    "gate_blocked": 3,
+    "not_pending": 18
+  },
+  "actions": {
+    "delete_file": 3,
+    "list_processes": 3,
+    "read_dir": 6,
+    "read_file": 6,
+    "system_info": 3,
+    "write_file": 3
+  },
+  "gate_cycles": {
+    "median": 560877225.0,
+    "p95": 741693578.2499999,
+    "max": 1586786413
+  },
+  "total_cycles": {
+    "median": 4636240096.5,
+    "p95": 5905338914.999999,
+    "max": 6384271626
+  },
+  "privacy_boundary": "No prompt, argument, path, provider, model, or tool output text is recorded.",
+  "label_status": "unlabelled natural traffic; precision and recall require independent adjudication"
+}
