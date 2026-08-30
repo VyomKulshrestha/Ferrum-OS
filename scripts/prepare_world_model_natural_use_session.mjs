@@ -68,7 +68,8 @@ const runtime = {
   transition: path.relative(repo, transitionPath).replaceAll("\\", "/"),
   transition_sha256: digest(transitionPath),
   input_boundary: "Windows Computer Use against the visible QEMU window",
-  setup_mode: "assistant first-run wizard: local then tiny",
+  setup_mode: "ring3 init; full desktop loop; assistant first-run wizard: local then tiny",
+  setup_commands: ["ring3 init", "desktop"],
   effective_tick_interval: 100,
   intent_boundary: "deterministic common-OS intent adapter; every tool call remains capability and world-model gated",
 };

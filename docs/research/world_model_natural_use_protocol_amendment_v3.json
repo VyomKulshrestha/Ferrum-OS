@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-3",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v2.json",
+    "sha256": "8a4da379b26adf9f1275a4f3246dc8cab4faaa483f747f0f0ed9ec63f3f4cf8a"
+  },
+  "observed_implementation_failure": "The ambient HUD path renders the first-run assistant but drains desktop input only while the daemon issues HUD updates. Once the local model is loaded, a registered prompt can remain queued without reaching the focused app.",
+  "changes": [
+    "Each disposable boot enters the product's full desktop loop with the visible shell command desktop after ring3 init and before claiming desktop keyboard ownership.",
+    "A valid session must contain the serial marker [gui] Entered Desktop loop before any registered prompt.",
+    "The QEMU hardware-key hold time is 180 ms so a saturated guest can service each PS/2 interrupt."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative gates and privacy boundaries",
+    "three independent disposable boots",
+    "no synthetic collection hook or direct execute_tool JSON-RPC",
+    "no physical actuation and unchanged source disk",
+    "no artifact promotion",
+    "deterministic intent-adapter claim boundary"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "diagnostic_boots": 2,
+    "disposition": "excluded; each produced zero telemetry records and its disposable disk was destroyed"
+  }
+}
