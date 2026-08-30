@@ -374,6 +374,7 @@ def run_episode(
     planner_path = (
         grid_plan(main_env, policy, protocol["episode"])
         if arm.startswith("planner_")
+        or policy.get("fallback_mode") == "simplex_planner"
         else []
     )
     planner_index = 0
@@ -415,9 +416,9 @@ def run_episode(
                 "planner_rules_plus_learned": rule_block or learned_block,
             }[arm]
             if policy.get("learned_requires_rule_confirmation", False):
-                if arm == "planner_learned_only":
+                if arm in ("learned_only", "planner_learned_only"):
                     base_block = False
-                elif arm == "planner_rules_plus_learned":
+                elif arm in ("rules_plus_learned", "planner_rules_plus_learned"):
                     base_block = rule_block
             state_machine_active = (
                 adaptive_phase is not None
@@ -541,6 +542,14 @@ def run_episode(
                     recovery_turn_remaining -= 1
                     actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
                     recovery_phase = "turn"
+            elif block and policy.get("fallback_mode") == "simplex_planner":
+                actual, _, planner_index = planner_proposal(
+                    main_env,
+                    planner_path,
+                    planner_index,
+                    protocol["episode"],
+                )
+                recovery_phase = "simplex_planner"
             elif (
                 block
                 and arm.startswith("planner_")
