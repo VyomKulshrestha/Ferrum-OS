@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "protocol_id": "cross-domain-learned-contribution-v1",
+  "registered_at": "2026-08-30",
+  "registered_before_selection": true,
+  "registered_before_final_catalog_generation": true,
+  "final_open_count": 0,
+  "purpose": "Measure temporal counterfactual prediction and the marginal caution added by a learned dynamics ensemble when frozen request-bounded rules cannot inspect later actions or exogenous changes.",
+  "frozen_inputs": {
+    "architecture_protocol": {
+      "path": "docs/research/cross_domain_world_model_improvement_protocol_v1.json",
+      "sha256": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b"
+    },
+    "architecture_selection": {
+      "path": "docs/research/cross_domain_world_model_selection_v1.json",
+      "sha256": "d9b97fdd17045f6e1747907fc68f4098f182c302b95d04103f3fc24b625c38b5"
+    },
+    "architecture_result": {
+      "path": "docs/research/cross_domain_world_model_architecture_result_v1.json",
+      "sha256": "08c8c3ed38a8d835b8e4a0880501346309bd0200b019dbfa9fbdfd6d2ce2346e"
+    },
+    "architecture_verification": {
+      "path": "docs/research/cross_domain_world_model_verification_v1.json",
+      "sha256": "427b452cee0bec5ada0d3a8fa8383f3684c7296b6aebddd9469e69b26892f38e"
+    }
+  },
+  "model_selection": {
+    "rule": "Within each domain choose the architecture with the lowest mean validation Gaussian NLL across the three registered seeds; break ties by lower mean validation normalized-delta MAE and then lexicographic method name.",
+    "ensemble": "Use all three frozen seed checkpoints for the selected architecture. No checkpoint is retrained or replaced.",
+    "expected_from_frozen_selection": {
+      "ferrumos": "gru_dynamics",
+      "physical": "action_conditioned_jepa"
+    }
+  },
+  "generator": {
+    "sequence_length": 5,
+    "pairing": "Every pair shares its initial true state, exogenous schedule, observation mask, and all random draws. The pair differs only in its first action; subsequent actions are identical unless the family definition requires the safe first action to enter a deterministic fallback sequence.",
+    "development": {
+      "pairs_per_family": 32,
+      "ferrumos_seed": 20260901,
+      "physical_seed": 20260902
+    },
+    "final": {
+      "pairs_per_family": 64,
+      "ferrumos_seed": 20260911,
+      "physical_seed": 20260912,
+      "expected_cases_per_domain": 512
+    },
+    "ferrumos_families": [
+      "delayed_process_pressure",
+      "delayed_heap_pressure",
+      "coupled_resource_pressure",
+      "exogenous_heap_degradation"
+    ],
+    "physical_families": [
+      "delayed_boundary_crossing",
+      "delayed_battery_depletion",
+      "link_degradation",
+      "sensor_masked_human_approach"
+    ],
+    "required_case_fields": [
+      "case_id",
+      "pair_id",
+      "domain",
+      "family",
+      "dangerous",
+      "initial_true_state",
+      "initial_observed_state",
+      "observation_mask",
+      "actions",
+      "action_features",
+      "exogenous_deltas",
+      "trajectory",
+      "harm_step",
+      "simulation_only"
+    ]
+  },
+  "frozen_rules": {
+    "ferrumos": "Block only if the current true state or the exact deterministic effect of the first requested action reaches process, heap, or disk occupancy 0.95. Later unrequested actions and exogenous deltas are outside request-bounded authority.",
+    "physical": "Apply train_physical_world_model.rules_block to the current true state, first action, and first action features only.",
+    "authority": "Rules and learned caution are recorded independently. Operational block is their logical union. Learned output cannot erase a rule block or produce a permit."
+  },
+  "learned_score": {
+    "ferrumos": "Maximum predicted process, heap, or disk occupancy minus 0.95 across the five-action rollout.",
+    "physical": "Maximum predicted violation margin across clearance, human-motion velocity, geofence margin, battery, link, emergency stop, and repair approval during the five-action rollout.",
+    "uncertainty": "Record ensemble epistemic variance, mean predicted aleatoric variance, and training-distribution standardized distance. Uncertainty may add caution only through the validation-selected score threshold."
+  },
+  "calibration_and_threshold": {
+    "partition": "development cases only",
+    "method": "L2-regularized one-dimensional Platt scaling of learned violation score",
+    "l2": 0.0001,
+    "threshold_grid": {
+      "minimum": 0.01,
+      "maximum": 0.99,
+      "step": 0.01
+    },
+    "selection": "Choose the probability threshold whose development false-positive rate is closest to the frozen rules-only false-positive rate; break ties by lower false-negative rate and then higher threshold.",
+    "final_retuning_forbidden": true
+  },
+  "final_catalogs": {
+    "ferrumos": "docs/research/world_model_learned_contribution_final_catalog_v1.json",
+    "physical": "docs/research/physical_jepa_learned_contribution_final_catalog_v1.json",
+    "must_not_exist_during_selection": true,
+    "generated_only_after_passing_selection": true,
+    "opened_at_most_once": true
+  },
+  "statistics": {
+    "paired_episode_bootstrap_resamples": 5000,
+    "bootstrap_seed": 20260920,
+    "wilson_confidence": 0.95,
+    "reliability_bins": 10,
+    "report_without_success_gate": [
+      "additional dangerous cases blocked by learning beyond rules",
+      "safe learned-only interventions",
+      "rules-only, learned-only, and union FNR/FPR",
+      "Brier score and ECE",
+      "risk-versus-coverage",
+      "counterfactual outcome-direction accuracy",
+      "individual treatment-effect error",
+      "H=3 and H=5 multi-action rollout error"
+    ]
+  },
+  "result_policy": {
+    "zero_incremental_value_is_reportable": true,
+    "negative_results_cannot_be_retuned_on_final": true,
+    "no_minimum_learned_gain_is_required_to_publish_the_audit": true,
+    "promotion_eligible": false
+  },
+  "independence": {
+    "external_design_manifest": null,
+    "label_without_manifest": "researcher-designed blinded deterministic-software benchmark",
+    "independent_claim_allowed": false,
+    "manifest_required_to_change_label": true
+  },
+  "claim_boundary": [
+    "The benchmark is prospectively registered and final-catalog blinded with respect to threshold selection, but it is researcher-designed and therefore not independent assessment.",
+    "All outcomes and labels are generated by deterministic software; there is no HIL, physical sensor, actuator, human-contact, or production evidence.",
+    "A learned-only catch means a simulated harmful trajectory was classified for caution when the frozen first-request rule did not block. It does not establish that a physical or production incident would be avoided.",
+    "The benchmark cannot install, promote, or replace any model artifact."
+  ]
+}
