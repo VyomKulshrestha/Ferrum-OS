@@ -17,6 +17,7 @@ const runDisk = path.join(repo, runtime.run_disk);
 const serialLog = path.join(repo, runtime.serial_log);
 const digest = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 try { process.kill(runtime.pid, "SIGKILL"); } catch {}
+try { process.kill(runtime.controller_pid, "SIGKILL"); } catch {}
 await new Promise((resolve) => setTimeout(resolve, 600));
 if (!fs.existsSync(serialLog)) throw new Error("session serial log was not created");
 const log = fs.readFileSync(serialLog, "utf8");
