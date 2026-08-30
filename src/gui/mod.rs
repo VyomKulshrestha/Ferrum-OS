@@ -53,6 +53,13 @@ pub fn claim_keyboard() {
     }
 }
 
+fn claim_keyboard_for_full_desktop() {
+    DESKTOP_INPUT_CAPTURED.store(true, Ordering::SeqCst);
+    if !DESKTOP_INPUT_CLAIM_LOGGED.swap(true, Ordering::SeqCst) {
+        crate::serial_println!("[gui] desktop keyboard owned by full desktop loop");
+    }
+}
+
 pub fn ambient_desktop_enabled() -> bool {
     AMBIENT_DESKTOP_ENABLED.load(Ordering::SeqCst)
 }
@@ -189,7 +196,7 @@ extern "C" fn desktop_entry() -> ! {
         let mut state = GUI.lock();
         state.active = true;
     }
-    DESKTOP_INPUT_CAPTURED.store(true, Ordering::SeqCst);
+    claim_keyboard_for_full_desktop();
     AMBIENT_DESKTOP_ENABLED.store(true, Ordering::SeqCst);
     {
         let mut state = compositor::COMPOSITOR.lock();

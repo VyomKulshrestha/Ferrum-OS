@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-8",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v7.json",
+    "sha256": "2ae28916bc0204b0d36f6c6a98dfc50cba750390ec34e2477d5920a03c1d0b08"
+  },
+  "observed_implementation_failure": "The full desktop loop already enabled keyboard capture directly, so requiring a pointer-only claim marker did not accurately describe or observe that ownership path.",
+  "changes": [
+    "A valid full-desktop boot must emit [gui] desktop keyboard owned by full desktop loop.",
+    "Visible Heliox focus and configuration reload prove app routing separately from desktop ownership.",
+    "The pointer-focus action remains visible but is not misrepresented as the source of full-desktop ownership."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative, privacy, authority and no-actuation gates"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "ownership-observability diagnostic only; excluded with zero telemetry records"
+  }
+}
