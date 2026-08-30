@@ -12,6 +12,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "docs/research/physical_jepa_recorded_hil_replay_protocol_v1.json"
+AMENDMENT1 = (
+    ROOT / "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment1.json"
+)
+AMENDMENT2 = (
+    ROOT / "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment2.json"
+)
 DEFAULT_RESULT = ROOT / "docs/research/physical_jepa_recorded_hil_replay_result_v1.json"
 DEFAULT_OUTPUT = (
     ROOT / "docs/research/physical_jepa_recorded_hil_replay_verification_v1.json"
@@ -44,6 +50,8 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
     protocol = load(PROTOCOL)
+    amendment1 = load(AMENDMENT1)
+    amendment2 = load(AMENDMENT2)
     result = load(args.result)
     artifact = ROOT / protocol["frozen_artifact"]["path"]
     conditions = [item["name"] for item in result["replay"]["conditions"]]
@@ -63,6 +71,21 @@ def main() -> int:
     checks = {
         "protocol_identity": result["protocol_id"] == protocol["protocol_id"]
         and result["protocol_sha256"] == sha256(PROTOCOL),
+        "amendment_identity": amendment1["parent_protocol_sha256"] == sha256(PROTOCOL)
+        and amendment2["parent_amendment_sha256"] == sha256(AMENDMENT1)
+        and result["amendments"]
+        == [
+            {
+                "id": amendment1["amendment_id"],
+                "sha256": sha256(AMENDMENT1),
+                "status": "superseded_before_evaluation",
+            },
+            {
+                "id": amendment2["amendment_id"],
+                "sha256": sha256(AMENDMENT2),
+                "status": "applied",
+            },
+        ],
         "artifact_identity": sha256(artifact)
         == protocol["frozen_artifact"]["sha256"]
         == result["artifact"]["sha256_before"]

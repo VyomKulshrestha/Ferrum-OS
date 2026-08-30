@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,12 @@ import train_physical_world_model as simulator  # noqa: E402
 
 
 PROTOCOL = ROOT / "docs/research/physical_jepa_recorded_hil_replay_protocol_v1.json"
+AMENDMENT1 = (
+    ROOT / "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment1.json"
+)
+AMENDMENT2 = (
+    ROOT / "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment2.json"
+)
 PROJECTION = ROOT / "docs/research/physical_hai_v1_selection.json"
 DEFAULT_OUTPUT = ROOT / "docs/research/physical_jepa_recorded_hil_replay_result_v1.json"
 
@@ -38,6 +45,43 @@ def load(path: Path) -> dict:
 
 def repository_path(path: Path) -> str:
     return str(path.resolve().relative_to(ROOT)).replace("\\", "/")
+
+
+def attach_registered_positional_labels(
+    trace: hai.Trace, data_path: Path, label_path: Path
+) -> hai.Trace:
+    data_frame = pd.read_csv(data_path, usecols=["timestamp"])
+    label_frame = pd.read_csv(label_path, usecols=["timestamp", "label"])
+    if len(data_frame) != len(label_frame):
+        raise ValueError(f"data/label row-count mismatch: {data_path.name}")
+    data_timestamps = pd.to_datetime(data_frame["timestamp"], errors="raise").to_numpy(
+        dtype="datetime64[s]"
+    )
+    label_timestamps = pd.to_datetime(
+        label_frame["timestamp"], errors="raise"
+    ).to_numpy(dtype="datetime64[s]")
+    if data_path.name == "hai-test2.csv":
+        expected = data_timestamps.astype("datetime64[m]").astype("datetime64[s]")
+    else:
+        expected = data_timestamps
+    if not np.array_equal(expected, label_timestamps):
+        raise ValueError(f"registered positional timestamps do not align: {data_path}")
+    continuous = np.diff(data_timestamps).astype("timedelta64[s]").astype(np.int64) == 1
+    projected_timestamps = data_timestamps[1:][continuous]
+    if not np.array_equal(projected_timestamps, trace.timestamp):
+        raise ValueError(f"projection continuity mismatch: {data_path}")
+    aligned = label_frame["label"].to_numpy(dtype=np.int8)[1:][continuous]
+    if len(aligned) != len(trace.state):
+        raise ValueError(f"projected label length mismatch: {data_path}")
+    return hai.Trace(
+        state=trace.state,
+        next_state=trace.next_state,
+        action=trace.action,
+        action_features=trace.action_features,
+        timestamp=trace.timestamp,
+        label=aligned,
+        source_file=trace.source_file,
+    )
 
 
 def rank_auc(labels: np.ndarray, scores: np.ndarray) -> float | None:
@@ -219,6 +263,12 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
     protocol = load(PROTOCOL)
+    amendment1 = load(AMENDMENT1)
+    amendment2 = load(AMENDMENT2)
+    if amendment1["parent_protocol_sha256"] != sha256(PROTOCOL):
+        raise ValueError("replay amendment 1 parent digest mismatch")
+    if amendment2["parent_amendment_sha256"] != sha256(AMENDMENT1):
+        raise ValueError("replay amendment 2 parent digest mismatch")
     projection_record = load(PROJECTION)
     statistics = projection_record["projection"]
     artifact = ROOT / protocol["frozen_artifact"]["path"]
@@ -236,7 +286,8 @@ def main() -> int:
             raise ValueError(f"data digest mismatch: {data_path}")
         if sha256(label_path) != item["labels_sha256"]:
             raise ValueError(f"label digest mismatch: {label_path}")
-        traces.append(hai.project_trace(data_path, statistics, label_path))
+        trace = hai.project_trace(data_path, statistics)
+        traces.append(attach_registered_positional_labels(trace, data_path, label_path))
         input_files.append(
             {
                 "data": item["data"],
@@ -371,6 +422,18 @@ def main() -> int:
         "schema_version": 1,
         "protocol_id": protocol["protocol_id"],
         "protocol_sha256": sha256(PROTOCOL),
+        "amendments": [
+            {
+                "id": amendment1["amendment_id"],
+                "sha256": sha256(AMENDMENT1),
+                "status": "superseded_before_evaluation",
+            },
+            {
+                "id": amendment2["amendment_id"],
+                "sha256": sha256(AMENDMENT2),
+                "status": "applied",
+            },
+        ],
         "evidence_class": protocol["evidence_class"],
         "artifact": {
             "path": repository_path(artifact),
