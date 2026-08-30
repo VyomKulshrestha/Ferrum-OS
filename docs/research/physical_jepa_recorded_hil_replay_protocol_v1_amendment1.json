@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-jepa-v5-recorded-hil-sensor-replay-v1-label-alignment-amendment1",
+  "parent_protocol": "docs/research/physical_jepa_recorded_hil_replay_protocol_v1.json",
+  "parent_protocol_sha256": "b3cae76e7dd03ce872e9f2b2302d8b0454eeed03b2a956bd68481285b398d7e5",
+  "registration_date": "2026-08-30",
+  "trigger": "The first replay attempt stopped before inference because the HAI 23.05 test2 data timestamps span 2022-08-17 00:00:01 through 2022-08-19 16:00:00 while the same-length label file spans 2022-08-17 00:00:00 through 2022-08-19 16:00:00.",
+  "evaluation_state_before_amendment": {
+    "predictions_computed": 0,
+    "metrics_computed": 0,
+    "result_file_written": false,
+    "artifact_modified": false
+  },
+  "permitted_change": "Align labels to projected transition timestamps by exact timestamp key instead of requiring whole-file positional timestamp equality.",
+  "alignment_requirements": [
+    "label timestamps must be unique",
+    "every projected transition timestamp must have exactly one label",
+    "no nearest-neighbour matching, interpolation, forward fill or imputation is permitted",
+    "any missing projected timestamp fails closed",
+    "data and label digests remain unchanged"
+  ],
+  "unchanged": [
+    "frozen artifact and digest",
+    "projection statistics",
+    "replay files and labels",
+    "all perturbation conditions",
+    "random seed",
+    "metrics and acceptance gates",
+    "authority and claim boundaries"
+  ]
+}
