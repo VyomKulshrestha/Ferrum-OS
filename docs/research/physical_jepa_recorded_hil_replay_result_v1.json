@@ -1,0 +1,302 @@
+{
+  "acceptance_gates_passed": true,
+  "amendments": [
+    {
+      "id": "physical-jepa-v5-recorded-hil-sensor-replay-v1-label-alignment-amendment1",
+      "sha256": "87f85e9e5a7ea891d192fd12f8a04006d602f57bd3570761390141372916acc3",
+      "status": "superseded_before_evaluation"
+    },
+    {
+      "id": "physical-jepa-v5-recorded-hil-sensor-replay-v1-label-precision-amendment2",
+      "sha256": "b94c48f59e2fbeadeb6a93c0bf152c8fdf06b95af7cd5d29ca19e9ec0f21ff18",
+      "status": "applied"
+    }
+  ],
+  "artifact": {
+    "gating_flag": 0,
+    "path": "userland/heliox-daemon/physical_world_model.bin",
+    "sha256_after": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "sha256_before": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "unchanged": true
+  },
+  "authority": {
+    "actuator_deliveries": 0,
+    "actuator_delivery_attempts": 0,
+    "may_actuate_hardware": false,
+    "may_grant_permits": false,
+    "may_issue_approvals": false,
+    "mode": "actuator-disabled sensor replay"
+  },
+  "checks": {
+    "all_inputs_match_registered_digests": true,
+    "all_predictions_and_metrics_finite": true,
+    "all_registered_conditions_reported": true,
+    "artifact_unchanged": true,
+    "both_replay_files_reported": true,
+    "claim_boundary_preserved": true,
+    "zero_actuator_deliveries": true,
+    "zero_actuator_delivery_attempts": true
+  },
+  "claim_boundary": "Passing establishes actuator-disabled software integration with recorded external testbed sensor streams and bounded fault injection. It does not establish learned safety value, live HIL operation, physical timing, contact recovery, embodiment transfer, or deployment readiness.",
+  "evidence_class": "researcher-executed replay of externally recorded HIL/testbed data",
+  "fault_recovery": {
+    "censored_windows": 0,
+    "clean_p95_row_error": 0.07644821889698496,
+    "contact_recovery_measured": false,
+    "definition": "first post-window row at or below 1.25 times pooled clean p95 row error",
+    "median_recovery_seconds": 0.0,
+    "p95_recovery_seconds": 0.0,
+    "recovered_within_120_seconds": 472,
+    "recovery_fraction": 1.0,
+    "windows": 472
+  },
+  "inference_timing": {
+    "batch_size": 4096,
+    "environment": "Python/NumPy host replay; not physical control-loop timing",
+    "measured_batches": 497,
+    "median_microseconds_per_row": 2.2389892578125,
+    "p95_microseconds_per_row": 2.713095703124999,
+    "p99_microseconds_per_row": 3.3032273163315655
+  },
+  "inputs": [
+    {
+      "data": "target/external-data/hai-23.05/hai-test1.csv",
+      "data_sha256": "78c7f1d4de1f2ab9ccc2f8c719f80f831033543adb0c81d0d78f84f40838d4be",
+      "labels": "target/external-data/hai-23.05/label-test1.csv",
+      "labels_sha256": "eaf69edb9c5834bc393afd7bf658b5e408d34fd7bfc3261f80516765fb818fbc"
+    },
+    {
+      "data": "target/external-data/hai-23.05/hai-test2.csv",
+      "data_sha256": "b2b8dd295aefd87e39260fe43cb4c73ee86d6264b0ac4b0761e7efb0c2b545c3",
+      "labels": "target/external-data/hai-23.05/label-test2.csv",
+      "labels_sha256": "8090c44981176e39b0f01a7126a80248ac0b93355c00f9db4d4e2f2106452b92"
+    }
+  ],
+  "projection": {
+    "available_state_indices": [
+      6,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "fit_rows": 698400,
+    "source": "docs/research/physical_hai_v1_selection.json",
+    "source_sha256": "eb0051291bcb642b3a7ac65efc343a4eb11c2624faf05febbce70836606234e6"
+  },
+  "promotion_eligible": false,
+  "protocol_id": "physical-jepa-v5-recorded-hil-sensor-replay-v1",
+  "protocol_sha256": "b3cae76e7dd03ce872e9f2b2302d8b0454eeed03b2a956bd68481285b398d7e5",
+  "replay": {
+    "attack_label_seconds": 11384,
+    "conditions": [
+      {
+        "attack_label_auroc": 0.6114989210317552,
+        "attack_label_average_precision": 0.12170180825216358,
+        "masked_normalized_h1_mae": 0.04662691064041785,
+        "mean_error_delta_from_clean": 0.0,
+        "name": "clean",
+        "p95_row_error": 0.07644821889698496,
+        "p99_row_error": 0.12641193866729722,
+        "perturbation_accounting": {
+          "clipped_command_feature_values": 0,
+          "dropped_sensor_values": 0,
+          "maximum_effective_delay_seconds": 0,
+          "mean_effective_delay_seconds": 0.0
+        },
+        "post_hoc_detection": {
+          "attack_event_recall": 0.38461538461538464,
+          "attack_events": 52,
+          "descriptive_only": true,
+          "detected_attack_events": 20,
+          "false_alert_events": 1382,
+          "false_alerts_per_hour": 17.493793908536627,
+          "false_positive_rate": 0.010003150021610613,
+          "fn": 10395,
+          "fp": 2731,
+          "threshold": 0.12046249456703662,
+          "threshold_source": "post-hoc pooled clean non-attack 99th percentile",
+          "tn": 270283,
+          "tp": 989,
+          "true_positive_rate": 0.08687631763879129
+        },
+        "rows": 284398
+      },
+      {
+        "attack_label_auroc": 0.6040040905506039,
+        "attack_label_average_precision": 0.12507060436234868,
+        "masked_normalized_h1_mae": 0.05042079563029011,
+        "mean_error_delta_from_clean": 0.003793884989872258,
+        "name": "fixed_latency_2s",
+        "p95_row_error": 0.08170385435223569,
+        "p99_row_error": 0.1336887669563271,
+        "perturbation_accounting": {
+          "clipped_command_feature_values": 0,
+          "dropped_sensor_values": 0,
+          "maximum_effective_delay_seconds": 2,
+          "mean_effective_delay_seconds": 2.0
+        },
+        "post_hoc_detection": {
+          "attack_event_recall": 0.4807692307692308,
+          "attack_events": 52,
+          "descriptive_only": true,
+          "detected_attack_events": 25,
+          "false_alert_events": 1627,
+          "false_alerts_per_hour": 20.59508154065781,
+          "false_positive_rate": 0.012856483550294125,
+          "fn": 10227,
+          "fp": 3510,
+          "threshold": 0.12046249456703662,
+          "threshold_source": "post-hoc pooled clean non-attack 99th percentile",
+          "tn": 269504,
+          "tp": 1157,
+          "true_positive_rate": 0.10163387210119466
+        },
+        "rows": 284398
+      },
+      {
+        "attack_label_auroc": 0.603900068382944,
+        "attack_label_average_precision": 0.12400426322660682,
+        "masked_normalized_h1_mae": 0.049487777342766444,
+        "mean_error_delta_from_clean": 0.0028608667023485926,
+        "name": "jitter_0_3s",
+        "p95_row_error": 0.08099462240934371,
+        "p99_row_error": 0.13249850556254356,
+        "perturbation_accounting": {
+          "clipped_command_feature_values": 0,
+          "dropped_sensor_values": 0,
+          "maximum_effective_delay_seconds": 3,
+          "mean_effective_delay_seconds": 1.4944491930182648
+        },
+        "post_hoc_detection": {
+          "attack_event_recall": 0.4423076923076923,
+          "attack_events": 52,
+          "descriptive_only": true,
+          "detected_attack_events": 23,
+          "false_alert_events": 1593,
+          "false_alerts_per_hour": 20.164698767220585,
+          "false_positive_rate": 0.01197374493615712,
+          "fn": 10261,
+          "fp": 3269,
+          "threshold": 0.12046249456703662,
+          "threshold_source": "post-hoc pooled clean non-attack 99th percentile",
+          "tn": 269745,
+          "tp": 1123,
+          "true_positive_rate": 0.0986472241742797
+        },
+        "rows": 284398
+      },
+      {
+        "attack_label_auroc": 0.593693779123279,
+        "attack_label_average_precision": 0.11556026285897014,
+        "masked_normalized_h1_mae": 0.05519359032261188,
+        "mean_error_delta_from_clean": 0.008566679682194031,
+        "name": "noise_0_02",
+        "p95_row_error": 0.08233083896338939,
+        "p99_row_error": 0.134390922784805,
+        "perturbation_accounting": {
+          "clipped_command_feature_values": 0,
+          "dropped_sensor_values": 0,
+          "maximum_effective_delay_seconds": 0,
+          "mean_effective_delay_seconds": 0.0
+        },
+        "post_hoc_detection": {
+          "attack_event_recall": 0.46153846153846156,
+          "attack_events": 52,
+          "descriptive_only": true,
+          "detected_attack_events": 24,
+          "false_alert_events": 1819,
+          "false_alerts_per_hour": 23.025478378891552,
+          "false_positive_rate": 0.013252067659533944,
+          "fn": 10236,
+          "fp": 3618,
+          "threshold": 0.12046249456703662,
+          "threshold_source": "post-hoc pooled clean non-attack 99th percentile",
+          "tn": 269396,
+          "tp": 1148,
+          "true_positive_rate": 0.10084328882642304
+        },
+        "rows": 284398
+      },
+      {
+        "attack_label_auroc": 0.6104841645159057,
+        "attack_label_average_precision": 0.12167547800702314,
+        "masked_normalized_h1_mae": 0.046734961096377294,
+        "mean_error_delta_from_clean": 0.00010805045595944224,
+        "name": "dropout_5pct_hold_last",
+        "p95_row_error": 0.07659377455711362,
+        "p99_row_error": 0.1265648245811456,
+        "perturbation_accounting": {
+          "clipped_command_feature_values": 0,
+          "dropped_sensor_values": 114273,
+          "maximum_effective_delay_seconds": 0,
+          "mean_effective_delay_seconds": 0.0
+        },
+        "post_hoc_detection": {
+          "attack_event_recall": 0.38461538461538464,
+          "attack_events": 52,
+          "descriptive_only": true,
+          "detected_attack_events": 20,
+          "false_alert_events": 1390,
+          "false_alerts_per_hour": 17.595060443463034,
+          "false_positive_rate": 0.010050766627352443,
+          "fn": 10394,
+          "fp": 2744,
+          "threshold": 0.12046249456703662,
+          "threshold_source": "post-hoc pooled clean non-attack 99th percentile",
+          "tn": 270270,
+          "tp": 990,
+          "true_positive_rate": 0.08696416022487702
+        },
+        "rows": 284398
+      },
+      {
+        "attack_label_auroc": 0.6042557149618036,
+        "attack_label_average_precision": 0.13930583894882081,
+        "masked_normalized_h1_mae": 0.059456067629562626,
+        "mean_error_delta_from_clean": 0.012829156989144774,
+        "name": "combined",
+        "p95_row_error": 0.09402108788490285,
+        "p99_row_error": 0.14682391777634593,
+        "perturbation_accounting": {
+          "clipped_command_feature_values": 12133,
+          "dropped_sensor_values": 113409,
+          "maximum_effective_delay_seconds": 4,
+          "mean_effective_delay_seconds": 2.4982145987038367
+        },
+        "post_hoc_detection": {
+          "attack_event_recall": 0.5,
+          "attack_events": 52,
+          "descriptive_only": true,
+          "detected_attack_events": 26,
+          "false_alert_events": 2589,
+          "false_alerts_per_hour": 32.77238236555812,
+          "false_positive_rate": 0.019522808354150337,
+          "fn": 9684,
+          "fp": 5330,
+          "threshold": 0.12046249456703662,
+          "threshold_source": "post-hoc pooled clean non-attack 99th percentile",
+          "tn": 267684,
+          "tp": 1700,
+          "true_positive_rate": 0.1493323963457484
+        },
+        "rows": 284398
+      }
+    ],
+    "files": 2,
+    "recorded_seconds": 284398,
+    "rows": 284398
+  },
+  "schema_version": 1,
+  "unsupported_gaps": [
+    "live Ferrum hardware-in-the-loop",
+    "physical robot actuation",
+    "independent benchmark design or assessment",
+    "contact-dynamics coverage",
+    "multiple robot embodiments",
+    "collision-avoidance or human-safety efficacy"
+  ]
+}

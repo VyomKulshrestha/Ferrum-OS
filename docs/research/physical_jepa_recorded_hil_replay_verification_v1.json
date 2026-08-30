@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "actuator_disabled": true,
+    "amendment_identity": true,
+    "artifact_identity": true,
+    "artifact_unchanged": true,
+    "claim_boundary": true,
+    "finite": true,
+    "no_contact_claim": true,
+    "no_hardware_authority": true,
+    "no_promotion": true,
+    "protocol_identity": true,
+    "registered_conditions": true,
+    "registered_inputs": true,
+    "result_gates": true,
+    "zero_deliveries": true,
+    "zero_delivery_attempts": true
+  },
+  "claim_boundary": "Passing establishes actuator-disabled software integration with recorded external testbed sensor streams and bounded fault injection. It does not establish learned safety value, live HIL operation, physical timing, contact recovery, embodiment transfer, or deployment readiness.",
+  "evidence_class": "researcher-executed replay of externally recorded HIL/testbed data",
+  "promotion_eligible": false,
+  "protocol_id": "physical-jepa-v5-recorded-hil-sensor-replay-v1",
+  "result": {
+    "path": "docs/research/physical_jepa_recorded_hil_replay_result_v1.json",
+    "sha256": "f1627d41ddeeb32476fc81f0f0766ed940b4d137f7bcdf08470c3b20ea0b69fc"
+  },
+  "schema_version": 1,
+  "verification_passed": true
+}
