@@ -5,6 +5,10 @@ threat model under which it is evaluated, and the limitations that must remain
 visible in a paper or submission. It is intentionally narrower than “the world
 model makes the OS safe.”
 
+The post-publication architecture-controlled and cross-domain evidence is
+summarized in
+[`CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md`](CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md).
+
 ## Registered v3.4 research candidate (not deployed)
 
 The post-publication v3-v3.4 study preserves four negative iterations and a
@@ -22,12 +26,18 @@ is attributed entirely to deterministic policy. It is not evidence of
 incremental learned safety value or production-incident replay.
 
 The candidate is archived under `artifacts/world-model-v3.4/` but is not
-promoted. Runtime-v3.4 authority has not been implemented or tested, and
-authored simulator resource deltas are not treated as empirical FerrumOS
-effects. The appliance model and manifest remain runtime-v2. Reproduce the
-research result with `scripts/verify_world_model_jepa_v3_4.py --online`; the
-machine-readable verification records 27/27 passing research and non-promotion
-checks. The paper draft is
+promoted. It has now been exercised in authority-disabled shadow mode inside
+the real ring-3 preview gate: 200 previews at each H=1 through H=5 record a
+3 ms p99 guest time, zero retained heap growth, and successful model loading.
+A separate 96-request canonical command batch returned 96 correlated preview
+responses, emitted no execution record, and left the packaged source disk
+byte-identical. This is QEMU/WHPX emulator evidence, not production timing,
+natural-use telemetry, or multi-agent deployment evidence. The appliance model
+and manifest remain runtime-v2. Reproduce the original candidate result with
+`scripts/verify_world_model_jepa_v3_4.py --online`, verify the shadow evidence
+with `scripts/verify_world_model_v3_4_shadow.py`, and verify the full matched
+follow-up with `scripts/verify_cross_domain_world_model_improvement_study.py`.
+The paper draft is
 `paper/when_agents_control_kernel_technical_report_v1_2.md`. It is a full
 consolidated manuscript: the published architecture, corpus, baselines,
 runtime, calibration, and false-negative analysis remain in scope, while the

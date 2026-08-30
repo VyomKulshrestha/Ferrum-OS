@@ -66,7 +66,7 @@ reciprocally linked Zenodo records.
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [OS report DOI](https://doi.org/10.5281/zenodo.22116399), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [cross-domain matched follow-up](docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md), [OS report DOI](https://doi.org/10.5281/zenodo.22116399), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 
