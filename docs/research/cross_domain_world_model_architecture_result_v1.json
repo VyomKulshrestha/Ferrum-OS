@@ -1,0 +1,2608 @@
+{
+  "checks": {
+    "all_registered_horizons_present": true,
+    "all_registered_methods_present": true,
+    "protected_digests_unchanged_after": true,
+    "protected_digests_valid_before": true,
+    "selection_final_catalog_guard_passed": true,
+    "selection_passed": true
+  },
+  "claim_boundary": [
+    "All newly generated observations are software or shadow evidence unless an external execution manifest identifies physical hardware and an independent operator.",
+    "A local simulator, PyBullet DIRECT run, replayed sensor trace, or QEMU run is not independent third-party assessment or physical HIL.",
+    "Learned output may add caution or request confirmation. It may not grant permission, remove a deterministic block, execute an actuator command, or expand a capability.",
+    "The study is diagnostic and cannot promote or replace a deployed artifact. A separate frozen promotion protocol would be required after all runtime and authority gates pass.",
+    "The existing final catalogs were already open in prior studies. This command is a registered post-publication architecture audit, not a fresh blind final test.",
+    "Paired intervals measure this deterministic software distribution and do not establish production or physical safety."
+  ],
+  "deployed_digests_after": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "deployed_digests_before": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "domains": {
+    "ferrumos": {
+      "examples": 3249,
+      "methods": {
+        "action_conditioned_jepa": {
+          "ensemble_one_step": {
+            "bootstrap_95_percent": [
+              0.009061872959136963,
+              0.010744091123342514
+            ],
+            "episodes": 1034,
+            "estimate": 0.009887617081403732,
+            "resamples": 2000
+          },
+          "rollout": {
+            "h1": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.009031758643686771,
+                  0.010692210868000984
+                ],
+                "episodes": 1034,
+                "estimate": 0.009887617081403732,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.011087751016020775,
+                    0.012907410971820354
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.01197731588035822,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.010609827935695648,
+                    0.01254256535321474
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.011570945382118225,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.011917932890355587,
+                    0.013883371837437153
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.012893464416265488,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0009734443738125265,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.001151302712969482,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0007047696853987873,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.0009561000042594969,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.02027677372097969,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.0013652922352775931,
+                  "rows": 1395
+                }
+              }
+            },
+            "h3": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.010773233138024807,
+                  0.01402573473751545
+                ],
+                "episodes": 318,
+                "estimate": 0.012356267310678959,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.012422698549926281,
+                    0.01594248041510582
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.014113958925008774,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.012888717465102673,
+                    0.017022699117660522
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.015009175054728985,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.013672496192157269,
+                    0.01781904138624668
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.015744557604193687,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0013598173391073942,
+                  "rows": 640
+                },
+                "hybrid": {
+                  "normalized_error": 0.03415832668542862,
+                  "rows": 80
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.009231273084878922,
+                  "rows": 1173
+                }
+              }
+            },
+            "h5": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.004932606127113104,
+                  0.006058328319340944
+                ],
+                "episodes": 238,
+                "estimate": 0.005493765696883202,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.006275432649999857,
+                    0.007389005273580551
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.006823440548032522,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.006315021310001612,
+                    0.00747425202280283
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.006900422740727663,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.006578839849680662,
+                    0.007825194858014584
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.007215473800897598,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0018098604632541537,
+                  "rows": 384
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.009676224552094936,
+                  "rows": 953
+                }
+              }
+            }
+          },
+          "runs": [
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.011046355590224266,
+                  0.012861761264503002
+                ],
+                "episodes": 1034,
+                "estimate": 0.01197731588035822,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0021180352196097374,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.0023216158151626587,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.001242907950654626,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.00220293365418911,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.023797012865543365,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.0020653982646763325,
+                  "rows": 1395
+                }
+              },
+              "seed": 17
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.010585568845272064,
+                  0.012520303018391132
+                ],
+                "episodes": 1034,
+                "estimate": 0.011570945382118225,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0014722800115123391,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.001509742345660925,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0010252506472170353,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.0013803669717162848,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.023652508854866028,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.0020243292674422264,
+                  "rows": 1395
+                }
+              },
+              "seed": 43
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.011858237907290459,
+                  0.01394100021570921
+                ],
+                "episodes": 1034,
+                "estimate": 0.012893464416265488,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0020092306658625603,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.0022355234250426292,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0011432601604610682,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.002329251728951931,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.025884877890348434,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.0021760473027825356,
+                  "rows": 1395
+                }
+              },
+              "seed": 101
+            }
+          ],
+          "uncertainty": {
+            "mean_aleatoric_variance": 0.005484655033797026,
+            "mean_epistemic_variance": 0.00017870882584247738,
+            "mean_ood_score": 0.8209181427955627,
+            "risk_coverage": [
+              {
+                "coverage": 1.0,
+                "maximum_uncertainty": 4748.1826171875,
+                "normalized_error": 0.004484232515096664,
+                "retained": 3249
+              },
+              {
+                "coverage": 0.9,
+                "maximum_uncertainty": 175.90969848632812,
+                "normalized_error": 0.001594832050614059,
+                "retained": 2924
+              },
+              {
+                "coverage": 0.75,
+                "maximum_uncertainty": 4.5557637214660645,
+                "normalized_error": 0.0008476561633870006,
+                "retained": 2436
+              },
+              {
+                "coverage": 0.5,
+                "maximum_uncertainty": 3.0161595344543457,
+                "normalized_error": 0.0007426156080327928,
+                "retained": 1624
+              },
+              {
+                "coverage": 0.25,
+                "maximum_uncertainty": 2.564844846725464,
+                "normalized_error": 0.0006547359516844153,
+                "retained": 812
+              }
+            ]
+          }
+        },
+        "direct_mlp": {
+          "ensemble_one_step": {
+            "bootstrap_95_percent": [
+              0.004474582150578499,
+              0.005054221488535404
+            ],
+            "episodes": 1034,
+            "estimate": 0.004751475062221289,
+            "resamples": 2000
+          },
+          "rollout": {
+            "h1": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.004460068419575691,
+                  0.005041176453232765
+                ],
+                "episodes": 1034,
+                "estimate": 0.004751475062221289,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.006254540290683508,
+                    0.006949595175683498
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.006589144468307495,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.006454795133322477,
+                    0.0070832944475114346
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.006766449194401503,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.0055993166752159595,
+                    0.006205267272889614
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.00590363796800375,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.001823218073695898,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.0019958324264734983,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0020495126955211163,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.002016576239839196,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.008219673298299313,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.002666996791958809,
+                  "rows": 1395
+                }
+              }
+            },
+            "h3": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.00786043331027031,
+                  0.009003362618386745
+                ],
+                "episodes": 318,
+                "estimate": 0.008430540561676025,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.010744484141469002,
+                    0.011963866651058197
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.011355356313288212,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.009781001135706902,
+                    0.011002296581864357
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.010379540733993053,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.008951449766755104,
+                    0.010204658843576908
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.00954330526292324,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0034126215614378452,
+                  "rows": 640
+                },
+                "hybrid": {
+                  "normalized_error": 0.0135527104139328,
+                  "rows": 80
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.010472473688423634,
+                  "rows": 1173
+                }
+              }
+            },
+            "h5": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.006787620484828949,
+                  0.007710927166044712
+                ],
+                "episodes": 238,
+                "estimate": 0.007256422657519579,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.010322527959942818,
+                    0.011136526241898537
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.010723700746893883,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.008504760451614857,
+                    0.00936238281428814
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.008942986838519573,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.007622445002198219,
+                    0.00857300590723753
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.008113250136375427,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.004233923740684986,
+                  "rows": 384
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.010654100216925144,
+                  "rows": 953
+                }
+              }
+            }
+          },
+          "runs": [
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.006240947172045708,
+                  0.006914491765201092
+                ],
+                "episodes": 1034,
+                "estimate": 0.006589144468307495,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.002714867703616619,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.003209674498066306,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0031925332732498646,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.003086869139224291,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.011102301068603992,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.004025022964924574,
+                  "rows": 1395
+                }
+              },
+              "seed": 17
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.00644038338214159,
+                  0.00708776293322444
+                ],
+                "episodes": 1034,
+                "estimate": 0.006766449194401503,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.003196063684299588,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.0035312646068632603,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0036610604729503393,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.0034569576382637024,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.010946576483547688,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.00407694187015295,
+                  "rows": 1395
+                }
+              },
+              "seed": 43
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.005582832265645266,
+                  0.006249252241104841
+                ],
+                "episodes": 1034,
+                "estimate": 0.00590363796800375,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0023778360337018967,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.002377795521169901,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0027875863015651703,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.002566046081483364,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.01020753663033247,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.00342147471383214,
+                  "rows": 1395
+                }
+              },
+              "seed": 101
+            }
+          ],
+          "uncertainty": {
+            "mean_aleatoric_variance": 0.001495068776421249,
+            "mean_epistemic_variance": 2.8670632673311047e-05,
+            "mean_ood_score": 0.8209181427955627,
+            "risk_coverage": [
+              {
+                "coverage": 1.0,
+                "maximum_uncertainty": 2044.6044921875,
+                "normalized_error": 0.003392389975488186,
+                "retained": 3249
+              },
+              {
+                "coverage": 0.9,
+                "maximum_uncertainty": 10.360618591308594,
+                "normalized_error": 0.002505954122170806,
+                "retained": 2924
+              },
+              {
+                "coverage": 0.75,
+                "maximum_uncertainty": 3.9255945682525635,
+                "normalized_error": 0.0020017873030155897,
+                "retained": 2436
+              },
+              {
+                "coverage": 0.5,
+                "maximum_uncertainty": 2.986833333969116,
+                "normalized_error": 0.0019446356454864144,
+                "retained": 1624
+              },
+              {
+                "coverage": 0.25,
+                "maximum_uncertainty": 2.694998025894165,
+                "normalized_error": 0.0018884319579228759,
+                "retained": 812
+              }
+            ]
+          }
+        },
+        "gru_dynamics": {
+          "ensemble_one_step": {
+            "bootstrap_95_percent": [
+              0.004333951510488987,
+              0.004906776361167431
+            ],
+            "episodes": 1034,
+            "estimate": 0.004608562681823969,
+            "resamples": 2000
+          },
+          "rollout": {
+            "h1": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.0043234871700406075,
+                  0.0048958854749798775
+                ],
+                "episodes": 1034,
+                "estimate": 0.004608562681823969,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.005931795574724674,
+                    0.00658314349129796
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.006253536324948072,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.006335102021694183,
+                    0.006978093646466732
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.006648902781307697,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.006076812278479338,
+                    0.006689420901238918
+                  ],
+                  "episodes": 1034,
+                  "estimate": 0.006379947531968355,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.001915021101012826,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.001977715641260147,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.002182228956371546,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.0017783547518774867,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.00796646997332573,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.0026373136788606644,
+                  "rows": 1395
+                }
+              }
+            },
+            "h3": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.007344367913901806,
+                  0.008503078483045101
+                ],
+                "episodes": 318,
+                "estimate": 0.00791715644299984,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.008913538418710232,
+                    0.010147204622626305
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.009522341191768646,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.009499943815171719,
+                    0.010720646008849144
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.010079053230583668,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.008983435109257698,
+                    0.010159702971577644
+                  ],
+                  "episodes": 318,
+                  "estimate": 0.009539995342493057,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.003088435623794794,
+                  "rows": 640
+                },
+                "hybrid": {
+                  "normalized_error": 0.01318463683128357,
+                  "rows": 80
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.009677991271018982,
+                  "rows": 1173
+                }
+              }
+            },
+            "h5": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.006073818542063236,
+                  0.0069449348375201225
+                ],
+                "episodes": 238,
+                "estimate": 0.00651415204629302,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.007921773009002209,
+                    0.008675938472151756
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.008288723416626453,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.008844808675348759,
+                    0.009586618281900883
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.00922105461359024,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.007540546823292971,
+                    0.008354023098945618
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.00795465987175703,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0037187307607382536,
+                  "rows": 384
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.009749533608555794,
+                  "rows": 953
+                }
+              }
+            }
+          },
+          "runs": [
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.005919659975916147,
+                  0.006570770405232906
+                ],
+                "episodes": 1034,
+                "estimate": 0.006253536324948072,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0029740668833255768,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.0028465474024415016,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.003195658791810274,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.0030905145686119795,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.010372172109782696,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.003539572935551405,
+                  "rows": 1395
+                }
+              },
+              "seed": 17
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.006330575328320265,
+                  0.006972176488488913
+                ],
+                "episodes": 1034,
+                "estimate": 0.006648902781307697,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0033499645069241524,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.0034266565926373005,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.004009927157312632,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.002559612039476633,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.010895106010138988,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.004025976173579693,
+                  "rows": 1395
+                }
+              },
+              "seed": 43
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.006061979569494724,
+                  0.006719388533383608
+                ],
+                "episodes": 1034,
+                "estimate": 0.006379947531968355,
+                "resamples": 2000
+              },
+              "per_source": {
+                "cloudflare-2025-r2-gateway-disablement": {
+                  "normalized_error": 0.0028288266621530056,
+                  "rows": 128
+                },
+                "dropbox-2014-active-machine-reinstall": {
+                  "normalized_error": 0.003157711122184992,
+                  "rows": 128
+                },
+                "github-2020-file-limit-resource-contention": {
+                  "normalized_error": 0.0033769961446523666,
+                  "rows": 896
+                },
+                "google-cloud-2021-corrupt-gclb-configuration": {
+                  "normalized_error": 0.0028998516499996185,
+                  "rows": 128
+                },
+                "hybrid": {
+                  "normalized_error": 0.01062648743391037,
+                  "rows": 574
+                },
+                "synthetic-recovered-arguments": {
+                  "normalized_error": 0.003866692306473851,
+                  "rows": 1395
+                }
+              },
+              "seed": 101
+            }
+          ],
+          "uncertainty": {
+            "mean_aleatoric_variance": 0.0005360741051845253,
+            "mean_epistemic_variance": 2.55647610174492e-05,
+            "mean_ood_score": 0.8209181427955627,
+            "risk_coverage": [
+              {
+                "coverage": 1.0,
+                "maximum_uncertainty": 58.714027404785156,
+                "normalized_error": 0.0033650302793830633,
+                "retained": 3249
+              },
+              {
+                "coverage": 0.9,
+                "maximum_uncertainty": 9.654609680175781,
+                "normalized_error": 0.002573073375970125,
+                "retained": 2924
+              },
+              {
+                "coverage": 0.75,
+                "maximum_uncertainty": 4.14160680770874,
+                "normalized_error": 0.0020251721143722534,
+                "retained": 2436
+              },
+              {
+                "coverage": 0.5,
+                "maximum_uncertainty": 2.8395674228668213,
+                "normalized_error": 0.001981319859623909,
+                "retained": 1624
+              },
+              {
+                "coverage": 0.25,
+                "maximum_uncertainty": 2.733846426010132,
+                "normalized_error": 0.0019066007807850838,
+                "retained": 812
+              }
+            ]
+          }
+        }
+      },
+      "paired_architecture_comparisons": {
+        "action_conditioned_jepa_minus_gru_dynamics": {
+          "h1": {
+            "bootstrap_95_percent": [
+              0.004593708086758852,
+              0.005942129995673895
+            ],
+            "episodes": 1034,
+            "estimate": 0.005279055330902338,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h3": {
+            "bootstrap_95_percent": [
+              0.003203069791197777,
+              0.005735444370657206
+            ],
+            "episodes": 318,
+            "estimate": 0.004439109470695257,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h5": {
+            "bootstrap_95_percent": [
+              -0.0011653562542051077,
+              -0.0008650139789097011
+            ],
+            "episodes": 238,
+            "estimate": -0.0010203850688412786,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          }
+        },
+        "direct_mlp_minus_action_conditioned_jepa": {
+          "h1": {
+            "bootstrap_95_percent": [
+              -0.005812297575175762,
+              -0.004446986597031355
+            ],
+            "episodes": 1034,
+            "estimate": -0.005136142019182444,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h3": {
+            "bootstrap_95_percent": [
+              -0.005327245686203241,
+              -0.00266768760047853
+            ],
+            "episodes": 318,
+            "estimate": -0.003925725817680359,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h5": {
+            "bootstrap_95_percent": [
+              0.0016479517798870802,
+              0.001874457229860127
+            ],
+            "episodes": 238,
+            "estimate": 0.0017626561457291245,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          }
+        },
+        "direct_mlp_minus_gru_dynamics": {
+          "h1": {
+            "bootstrap_95_percent": [
+              6.0546950408024713e-05,
+              0.0002282008354086429
+            ],
+            "episodes": 1034,
+            "estimate": 0.00014291296247392893,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h3": {
+            "bootstrap_95_percent": [
+              0.0003672728780657053,
+              0.0006542903138324618
+            ],
+            "episodes": 318,
+            "estimate": 0.0005133842932991683,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h5": {
+            "bootstrap_95_percent": [
+              0.0006881463341414928,
+              0.0008005103445611894
+            ],
+            "episodes": 238,
+            "estimate": 0.0007422711933031678,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          }
+        }
+      },
+      "provenance": {
+        "base_test_rows": 1969,
+        "incident_final": {
+          "catalog": "world_model_incident_final_sources_v3_1.json",
+          "catalog_sha256": "8facb5d794c052dfdb38d9457ead0470c0f4063c513ca40f3c23d6fe5eee6272",
+          "dangerous": 256,
+          "episodes": 512,
+          "episodes_per_source": 128,
+          "maximum_steps": 8,
+          "partition": "final",
+          "safe": 256,
+          "seed": 20260831,
+          "sources": [
+            "cloudflare-2025-r2-gateway-disablement",
+            "dropbox-2014-active-machine-reinstall",
+            "google-cloud-2021-corrupt-gclb-configuration",
+            "github-2020-file-limit-resource-contention"
+          ]
+        }
+      }
+    },
+    "physical": {
+      "examples": 20480,
+      "methods": {
+        "action_conditioned_jepa": {
+          "ensemble_one_step": {
+            "bootstrap_95_percent": [
+              0.002349737100303173,
+              0.002607322996482253
+            ],
+            "episodes": 2560,
+            "estimate": 0.0024758721701800823,
+            "resamples": 2000
+          },
+          "rollout": {
+            "h1": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.002349033486098051,
+                  0.002606157911941409
+                ],
+                "episodes": 2560,
+                "estimate": 0.0024758721701800823,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.0028367580380290747,
+                    0.0030935900285840034
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.002967412816360593,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.002923381282016635,
+                    0.003186821239069104
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.003055596724152565,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.0028862333856523037,
+                    0.0031494388822466135
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.003016913775354624,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.009531618095934391,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.0025677583180367947,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.0011227278737351298,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.001108573516830802,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.0021580341272056103,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.0011283137137070298,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.0010985307162627578,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.001091422513127327,
+                  "rows": 2560
+                }
+              }
+            },
+            "h3": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.006322572939097881,
+                  0.007066128775477409
+                ],
+                "episodes": 2560,
+                "estimate": 0.0066803619265556335,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.00730911735445261,
+                    0.008050281554460526
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.007681949529796839,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.0077329957857728004,
+                    0.008451071567833424
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.008098477497696877,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.007608653977513313,
+                    0.008364622481167316
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.00798867829144001,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.026882540434598923,
+                  "rows": 1920
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.0064145345240831375,
+                  "rows": 1920
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.0028763138689100742,
+                  "rows": 1920
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.002880595624446869,
+                  "rows": 1920
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.005798905156552792,
+                  "rows": 1920
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.0029121744446456432,
+                  "rows": 1920
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.0028420460876077414,
+                  "rows": 1920
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.0028357885312289,
+                  "rows": 1920
+                }
+              }
+            },
+            "h5": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.00987156480550766,
+                  0.01105575356632471
+                ],
+                "episodes": 2560,
+                "estimate": 0.010464722290635109,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.011308272369205952,
+                    0.012460476718842983
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.011868815869092941,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.012060267850756645,
+                    0.013204089365899563
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.012635057792067528,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.011882449500262737,
+                    0.013122713193297386
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.012481322512030602,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.042004819959402084,
+                  "rows": 1280
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.009940186515450478,
+                  "rows": 1280
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.00448319036513567,
+                  "rows": 1280
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.004508341662585735,
+                  "rows": 1280
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.009313076734542847,
+                  "rows": 1280
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.004548968747258186,
+                  "rows": 1280
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.004463844932615757,
+                  "rows": 1280
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.004455351270735264,
+                  "rows": 1280
+                }
+              }
+            }
+          },
+          "runs": [
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.0028455595020204782,
+                  0.003100127447396517
+                ],
+                "episodes": 2560,
+                "estimate": 0.002967412816360593,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.010017325170338154,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.003059044014662504,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.0016043201321735978,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.0015987895894795656,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.002675064606592059,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.0016100432258099318,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.0015865890309214592,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.001588125480338931,
+                  "rows": 2560
+                }
+              },
+              "seed": 17
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.0029277829453349113,
+                  0.0031870207749307156
+                ],
+                "episodes": 2560,
+                "estimate": 0.003055596724152565,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.010183276608586311,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.0031862719915807247,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.001676242216490209,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.0016751259099692106,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.0027429067995399237,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.001682011759839952,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.0016460900660604239,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.0016528494888916612,
+                  "rows": 2560
+                }
+              },
+              "seed": 43
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.0028882059268653393,
+                  0.0031587108969688416
+                ],
+                "episodes": 2560,
+                "estimate": 0.003016913775354624,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.01026620902121067,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.0030870321206748486,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.0016317147528752685,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.0016210433095693588,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.0027186409570276737,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.0016227930318564177,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.0016093250596895814,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.0015785538125783205,
+                  "rows": 2560
+                }
+              },
+              "seed": 101
+            }
+          ],
+          "uncertainty": {
+            "mean_aleatoric_variance": 0.0010529693681746721,
+            "mean_epistemic_variance": 4.413328042573994e-06,
+            "mean_ood_score": 0.9150972366333008,
+            "risk_coverage": [
+              {
+                "coverage": 1.0,
+                "maximum_uncertainty": 2730.753173828125,
+                "normalized_error": 0.0024758721701800823,
+                "retained": 20480
+              },
+              {
+                "coverage": 0.9,
+                "maximum_uncertainty": 4.2522172927856445,
+                "normalized_error": 0.0011725090444087982,
+                "retained": 18432
+              },
+              {
+                "coverage": 0.75,
+                "maximum_uncertainty": 3.3631949424743652,
+                "normalized_error": 0.00111507682595402,
+                "retained": 15360
+              },
+              {
+                "coverage": 0.5,
+                "maximum_uncertainty": 3.0071969032287598,
+                "normalized_error": 0.0010801556054502726,
+                "retained": 10240
+              },
+              {
+                "coverage": 0.25,
+                "maximum_uncertainty": 2.745481252670288,
+                "normalized_error": 0.0010619156528264284,
+                "retained": 5120
+              }
+            ]
+          }
+        },
+        "direct_mlp": {
+          "ensemble_one_step": {
+            "bootstrap_95_percent": [
+              0.006976987700909376,
+              0.007423438597470522
+            ],
+            "episodes": 2560,
+            "estimate": 0.007187865674495697,
+            "resamples": 2000
+          },
+          "rollout": {
+            "h1": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.006957284640520811,
+                  0.007406132761389017
+                ],
+                "episodes": 2560,
+                "estimate": 0.007187865674495697,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.008710470050573349,
+                    0.009139018133282661
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.008923282846808434,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.00812679436057806,
+                    0.008588548749685287
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.008352288976311684,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.007666146382689476,
+                    0.008138712495565414
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.007903273217380047,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.01821262761950493,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.008507751859724522,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.004718839190900326,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.004768182523548603,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.007093925029039383,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.0047579361125826836,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.004739995114505291,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.004703665617853403,
+                  "rows": 2560
+                }
+              }
+            },
+            "h3": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.016203375533223152,
+                  0.017435288056731224
+                ],
+                "episodes": 2560,
+                "estimate": 0.016836266964673996,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.02163117192685604,
+                    0.02280537225306034
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.02224639058113098,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.019168518483638763,
+                    0.020438214763998985
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.019819334149360657,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.017527587711811066,
+                    0.018856123089790344
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.01820828579366207,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.04818427935242653,
+                  "rows": 1920
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.02053971029818058,
+                  "rows": 1920
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.009774466045200825,
+                  "rows": 1920
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.009896806441247463,
+                  "rows": 1920
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.016727622598409653,
+                  "rows": 1920
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.009981258772313595,
+                  "rows": 1920
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.009854564443230629,
+                  "rows": 1920
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.009731429629027843,
+                  "rows": 1920
+                }
+              }
+            },
+            "h5": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.025311974808573723,
+                  0.027356181293725967
+                ],
+                "episodes": 2560,
+                "estimate": 0.026361610740423203,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.03438298776745796,
+                    0.03614522144198418
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.035242851823568344,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.02999200113117695,
+                    0.03204836696386337
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.031014084815979004,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.02734500914812088,
+                    0.029474645853042603
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.028401916846632957,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.07516859471797943,
+                  "rows": 1280
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.03193311765789986,
+                  "rows": 1280
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.015392129309475422,
+                  "rows": 1280
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.015600997023284435,
+                  "rows": 1280
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.026174580678343773,
+                  "rows": 1280
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.015707936137914658,
+                  "rows": 1280
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.01554601825773716,
+                  "rows": 1280
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.015369489789009094,
+                  "rows": 1280
+                }
+              }
+            }
+          },
+          "runs": [
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.008711504749953747,
+                  0.00913606770336628
+                ],
+                "episodes": 2560,
+                "estimate": 0.008923282846808434,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.018884999677538872,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.01017758809030056,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.00668929610401392,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.0067380620166659355,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.008791984058916569,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.006710817106068134,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.006717567332088947,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.00667594512924552,
+                  "rows": 2560
+                }
+              },
+              "seed": 17
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.008118243888020515,
+                  0.008577235974371433
+                ],
+                "episodes": 2560,
+                "estimate": 0.008352288976311684,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.0196584053337574,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.009707438759505749,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.005784493871033192,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.005893699824810028,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.008297339081764221,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.0058305044658482075,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.005846488289535046,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.005799936596304178,
+                  "rows": 2560
+                }
+              },
+              "seed": 43
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.007666217628866434,
+                  0.008147072046995163
+                ],
+                "episodes": 2560,
+                "estimate": 0.007903273217380047,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.019884765148162842,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.009203855879604816,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.005242703016847372,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.0052860272116959095,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.007878330536186695,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.005287747830152512,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.005252161528915167,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.00519059132784605,
+                  "rows": 2560
+                }
+              },
+              "seed": 101
+            }
+          ],
+          "uncertainty": {
+            "mean_aleatoric_variance": 0.002177029848098755,
+            "mean_epistemic_variance": 2.6500656531425193e-05,
+            "mean_ood_score": 0.9150972366333008,
+            "risk_coverage": [
+              {
+                "coverage": 1.0,
+                "maximum_uncertainty": 707.73876953125,
+                "normalized_error": 0.007187864743173122,
+                "retained": 20480
+              },
+              {
+                "coverage": 0.9,
+                "maximum_uncertainty": 15.392217636108398,
+                "normalized_error": 0.003182734362781048,
+                "retained": 18432
+              },
+              {
+                "coverage": 0.75,
+                "maximum_uncertainty": 3.4277572631835938,
+                "normalized_error": 0.0024985983036458492,
+                "retained": 15360
+              },
+              {
+                "coverage": 0.5,
+                "maximum_uncertainty": 3.0344791412353516,
+                "normalized_error": 0.0024594932328909636,
+                "retained": 10240
+              },
+              {
+                "coverage": 0.25,
+                "maximum_uncertainty": 2.8410258293151855,
+                "normalized_error": 0.0024562322068959475,
+                "retained": 5120
+              }
+            ]
+          }
+        },
+        "gru_dynamics": {
+          "ensemble_one_step": {
+            "bootstrap_95_percent": [
+              0.01040488388389349,
+              0.01093371119350195
+            ],
+            "episodes": 2560,
+            "estimate": 0.010658977553248405,
+            "resamples": 2000
+          },
+          "rollout": {
+            "h1": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.010397425852715969,
+                  0.010925563052296638
+                ],
+                "episodes": 2560,
+                "estimate": 0.010658977553248405,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.013189384713768959,
+                    0.013698192313313484
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.013440584763884544,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.01181681826710701,
+                    0.012367825023829937
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.01209069974720478,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.012240971438586712,
+                    0.012740840204060078
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.0124858682975173,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.024919938296079636,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.011883537285029888,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.007626282516866922,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.007536413613706827,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.010688873939216137,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.007670556660741568,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.007494064979255199,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.0074521503411233425,
+                  "rows": 2560
+                }
+              }
+            },
+            "h3": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.025573626160621643,
+                  0.02687898464500904
+                ],
+                "episodes": 2560,
+                "estimate": 0.02623147703707218,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.03232283517718315,
+                    0.0336044542491436
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.032975632697343826,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.027774378657341003,
+                    0.0291124414652586
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.02845694124698639,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.03164922446012497,
+                    0.032879844307899475
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.03227454423904419,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.06246061623096466,
+                  "rows": 1920
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.028148790821433067,
+                  "rows": 1920
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.018805546686053276,
+                  "rows": 1920
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.018453756347298622,
+                  "rows": 1920
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.026362216100096703,
+                  "rows": 1920
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.018962567672133446,
+                  "rows": 1920
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.018385013565421104,
+                  "rows": 1920
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.018273305147886276,
+                  "rows": 1920
+                }
+              }
+            },
+            "h5": {
+              "ensemble": {
+                "bootstrap_95_percent": [
+                  0.03847169503569603,
+                  0.04061815142631531
+                ],
+                "episodes": 2560,
+                "estimate": 0.039541978389024734,
+                "resamples": 2000
+              },
+              "members": [
+                {
+                  "bootstrap_95_percent": [
+                    0.04861997067928314,
+                    0.05058569461107254
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.0495821088552475,
+                  "resamples": 2000,
+                  "seed": 17
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.04031919687986374,
+                    0.04246394336223602
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.04140051454305649,
+                  "resamples": 2000,
+                  "seed": 43
+                },
+                {
+                  "bootstrap_95_percent": [
+                    0.04982103407382965,
+                    0.05176772177219391
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.05076700448989868,
+                  "resamples": 2000,
+                  "seed": 101
+                }
+              ],
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.09515427052974701,
+                  "rows": 1280
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.04355465993285179,
+                  "rows": 1280
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.027931883931159973,
+                  "rows": 1280
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.027206147089600563,
+                  "rows": 1280
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.04022274166345596,
+                  "rows": 1280
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.02809860184788704,
+                  "rows": 1280
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.027137938886880875,
+                  "rows": 1280
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.027029579505324364,
+                  "rows": 1280
+                }
+              }
+            }
+          },
+          "runs": [
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.013195336796343327,
+                  0.013700181618332863
+                ],
+                "episodes": 2560,
+                "estimate": 0.013440584763884544,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.026996564120054245,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.014631440863013268,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.010577664710581303,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.01044577918946743,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.013444940559566021,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.010625896975398064,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.01042774599045515,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.010374637320637703,
+                  "rows": 2560
+                }
+              },
+              "seed": 17
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.011823353357613087,
+                  0.012366949580609798
+                ],
+                "episodes": 2560,
+                "estimate": 0.01209069974720478,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.02657609060406685,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.013508441857993603,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.008887668140232563,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.008896577171981335,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.012280293740332127,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.008923684246838093,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.00884390901774168,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.008808935061097145,
+                  "rows": 2560
+                }
+              },
+              "seed": 43
+            },
+            {
+              "one_step": {
+                "bootstrap_95_percent": [
+                  0.01224240567535162,
+                  0.012744790874421597
+                ],
+                "episodes": 2560,
+                "estimate": 0.0124858682975173,
+                "resamples": 2000
+              },
+              "per_source": {
+                "doj_bexar_water_tampering_2025": {
+                  "normalized_error": 0.02626756951212883,
+                  "rows": 2560
+                },
+                "sec_americold_cyber_2023": {
+                  "normalized_error": 0.01349608413875103,
+                  "rows": 2560
+                },
+                "sec_artivion_cyber_2024": {
+                  "normalized_error": 0.00969250313937664,
+                  "rows": 2560
+                },
+                "sec_brunswick_cyber_2023": {
+                  "normalized_error": 0.009493720717728138,
+                  "rows": 2560
+                },
+                "sec_johnson_controls_ransomware_2023": {
+                  "normalized_error": 0.012338857166469097,
+                  "rows": 2560
+                },
+                "sec_mks_ransomware_2023": {
+                  "normalized_error": 0.009735217317938805,
+                  "rows": 2560
+                },
+                "sec_sensata_ransomware_2025": {
+                  "normalized_error": 0.009444448165595531,
+                  "rows": 2560
+                },
+                "sec_steel_partners_cyber_2022": {
+                  "normalized_error": 0.0094185471534729,
+                  "rows": 2560
+                }
+              },
+              "seed": 101
+            }
+          ],
+          "uncertainty": {
+            "mean_aleatoric_variance": 0.00276705133728683,
+            "mean_epistemic_variance": 7.497938349843025e-05,
+            "mean_ood_score": 0.9150972366333008,
+            "risk_coverage": [
+              {
+                "coverage": 1.0,
+                "maximum_uncertainty": 55.75571060180664,
+                "normalized_error": 0.010658977553248405,
+                "retained": 20480
+              },
+              {
+                "coverage": 0.9,
+                "maximum_uncertainty": 33.12765884399414,
+                "normalized_error": 0.007659268099814653,
+                "retained": 18432
+              },
+              {
+                "coverage": 0.75,
+                "maximum_uncertainty": 8.685869216918945,
+                "normalized_error": 0.003740409854799509,
+                "retained": 15360
+              },
+              {
+                "coverage": 0.5,
+                "maximum_uncertainty": 3.0699567794799805,
+                "normalized_error": 0.0028641154058277607,
+                "retained": 10240
+              },
+              {
+                "coverage": 0.25,
+                "maximum_uncertainty": 2.773984432220459,
+                "normalized_error": 0.002735359128564596,
+                "retained": 5120
+              }
+            ]
+          }
+        }
+      },
+      "paired_architecture_comparisons": {
+        "action_conditioned_jepa_minus_gru_dynamics": {
+          "h1": {
+            "bootstrap_95_percent": [
+              -0.008340231142938137,
+              -0.008022277615964413
+            ],
+            "episodes": 2560,
+            "estimate": -0.008183104917407036,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h3": {
+            "bootstrap_95_percent": [
+              -0.019880225881934166,
+              -0.019212918356060982
+            ],
+            "episodes": 2560,
+            "estimate": -0.019551116973161697,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h5": {
+            "bootstrap_95_percent": [
+              -0.029585381969809532,
+              -0.02853979915380478
+            ],
+            "episodes": 2560,
+            "estimate": -0.029077256098389626,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          }
+        },
+        "direct_mlp_minus_action_conditioned_jepa": {
+          "h1": {
+            "bootstrap_95_percent": [
+              0.004568564239889383,
+              0.0048480769619345665
+            ],
+            "episodes": 2560,
+            "estimate": 0.004711993038654327,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h3": {
+            "bootstrap_95_percent": [
+              0.009828872047364712,
+              0.010482508689165115
+            ],
+            "episodes": 2560,
+            "estimate": 0.010155905969440937,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h5": {
+            "bootstrap_95_percent": [
+              0.015324142761528492,
+              0.016442734748125076
+            ],
+            "episodes": 2560,
+            "estimate": 0.015896886587142944,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          }
+        },
+        "direct_mlp_minus_gru_dynamics": {
+          "h1": {
+            "bootstrap_95_percent": [
+              -0.003541407408192754,
+              -0.003403502982109785
+            ],
+            "episodes": 2560,
+            "estimate": -0.0034711118787527084,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h3": {
+            "bootstrap_95_percent": [
+              -0.009552747011184692,
+              -0.00924648903310299
+            ],
+            "episodes": 2560,
+            "estimate": -0.009395210072398186,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          },
+          "h5": {
+            "bootstrap_95_percent": [
+              -0.013471278361976147,
+              -0.012908736243844032
+            ],
+            "episodes": 2560,
+            "estimate": -0.013180367648601532,
+            "interval_excludes_zero": true,
+            "resamples": 2000
+          }
+        }
+      },
+      "provenance": {
+        "final": {
+          "action_transition_counts": {
+            "approve": 3427,
+            "diagnose": 3190,
+            "inspect": 363,
+            "move": 1058,
+            "repair": 3542,
+            "stop": 5536,
+            "verify": 3364
+          },
+          "dangerous_transitions": 2834,
+          "episodes": 2560,
+          "hazard_tag_episode_counts": {
+            "availability_loss": 1385,
+            "logic_or_configuration_tamper": 214,
+            "loss_of_view": 428,
+            "manual_fallback": 748,
+            "recovery_inhibition": 428,
+            "unauthorized_actuation": 213
+          },
+          "source_episode_counts": {
+            "doj_bexar_water_tampering_2025": 320,
+            "sec_americold_cyber_2023": 320,
+            "sec_artivion_cyber_2024": 320,
+            "sec_brunswick_cyber_2023": 320,
+            "sec_johnson_controls_ransomware_2023": 320,
+            "sec_mks_ransomware_2023": 320,
+            "sec_sensata_ransomware_2025": 320,
+            "sec_steel_partners_cyber_2022": 320
+          },
+          "source_family_episode_counts": {
+            "americold_cyber_2023": 320,
+            "artivion_cyber_2024": 320,
+            "bexar_water_tampering_2025": 320,
+            "brunswick_cyber_2023": 320,
+            "johnson_controls_ransomware_2023": 320,
+            "mks_ransomware_2023": 320,
+            "sensata_ransomware_2025": 320,
+            "steel_partners_cyber_2022": 320
+          },
+          "transitions": 20480
+        }
+      }
+    }
+  },
+  "evaluation_passed": true,
+  "final_open_count": 1,
+  "promotion_eligible": false,
+  "protocol_id": "cross-domain-world-model-improvement-v1",
+  "protocol_sha256": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b",
+  "schema_version": 1,
+  "selection_sha256": "d9b97fdd17045f6e1747907fc68f4098f182c302b95d04103f3fc24b625c38b5",
+  "stage": "architecture-controlled-final-evaluation"
+}

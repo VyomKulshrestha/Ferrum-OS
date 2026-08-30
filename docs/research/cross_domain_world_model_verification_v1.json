@@ -1,0 +1,303 @@
+{
+  "details": {
+    "checkpoints": [
+      {
+        "domain": "ferrumos",
+        "method": "action_conditioned_jepa",
+        "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-17.pt",
+        "seed": 17,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "action_conditioned_jepa",
+        "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-43.pt",
+        "seed": 43,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "action_conditioned_jepa",
+        "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-101.pt",
+        "seed": 101,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "direct_mlp",
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-17.pt",
+        "seed": 17,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "direct_mlp",
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-43.pt",
+        "seed": 43,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "direct_mlp",
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-101.pt",
+        "seed": 101,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "gru_dynamics",
+        "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-17.pt",
+        "seed": 17,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "gru_dynamics",
+        "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-43.pt",
+        "seed": 43,
+        "verified": true
+      },
+      {
+        "domain": "ferrumos",
+        "method": "gru_dynamics",
+        "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-101.pt",
+        "seed": 101,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "action_conditioned_jepa",
+        "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-17.pt",
+        "seed": 17,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "action_conditioned_jepa",
+        "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-43.pt",
+        "seed": 43,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "action_conditioned_jepa",
+        "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-101.pt",
+        "seed": 101,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "direct_mlp",
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-17.pt",
+        "seed": 17,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "direct_mlp",
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-43.pt",
+        "seed": 43,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "direct_mlp",
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-101.pt",
+        "seed": 101,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "gru_dynamics",
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-17.pt",
+        "seed": 17,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "gru_dynamics",
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-43.pt",
+        "seed": 43,
+        "verified": true
+      },
+      {
+        "domain": "physical",
+        "method": "gru_dynamics",
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-101.pt",
+        "seed": 101,
+        "verified": true
+      }
+    ],
+    "parameter_counts": {
+      "ferrumos": {
+        "action_conditioned_jepa": [
+          99748,
+          99748,
+          99748
+        ],
+        "direct_mlp": [
+          99800,
+          99800,
+          99800
+        ],
+        "gru_dynamics": [
+          99096,
+          99096,
+          99096
+        ]
+      },
+      "physical": {
+        "action_conditioned_jepa": [
+          99911,
+          99911,
+          99911
+        ],
+        "direct_mlp": [
+          99932,
+          99932,
+          99932
+        ],
+        "gru_dynamics": [
+          99744,
+          99744,
+          99744
+        ]
+      }
+    }
+  },
+  "promotion_eligible": false,
+  "protocol_id": "cross-domain-world-model-improvement-v1",
+  "result_checks": {
+    "all_numeric_values_finite": true,
+    "domains_match": true,
+    "evaluation_passed": true,
+    "ferrumos_action_conditioned_jepa_coverage_curve": true,
+    "ferrumos_action_conditioned_jepa_horizons": true,
+    "ferrumos_direct_mlp_coverage_curve": true,
+    "ferrumos_direct_mlp_horizons": true,
+    "ferrumos_gru_dynamics_coverage_curve": true,
+    "ferrumos_gru_dynamics_horizons": true,
+    "ferrumos_methods_match": true,
+    "ferrumos_three_pairwise_comparisons": true,
+    "opened_once": true,
+    "physical_action_conditioned_jepa_coverage_curve": true,
+    "physical_action_conditioned_jepa_horizons": true,
+    "physical_direct_mlp_coverage_curve": true,
+    "physical_direct_mlp_horizons": true,
+    "physical_gru_dynamics_coverage_curve": true,
+    "physical_gru_dynamics_horizons": true,
+    "physical_methods_match": true,
+    "physical_three_pairwise_comparisons": true,
+    "promotion_disabled": true,
+    "protected_deployed_digests_match": true,
+    "protocol_digest_matches": true,
+    "protocol_id_matches": true,
+    "recorded_checks_pass": true,
+    "recorded_deployed_digests_unchanged": true,
+    "selection_digest_matches": true,
+    "stage_matches": true
+  },
+  "result_path": "docs/research/cross_domain_world_model_architecture_result_v1.json",
+  "result_sha256": "08c8c3ed38a8d835b8e4a0880501346309bd0200b019dbfa9fbdfd6d2ce2346e",
+  "result_verified": true,
+  "schema_version": 1,
+  "selection_checks": {
+    "all_numeric_values_finite": true,
+    "checkpoint_ferrumos_action_conditioned_jepa_101": true,
+    "checkpoint_ferrumos_action_conditioned_jepa_17": true,
+    "checkpoint_ferrumos_action_conditioned_jepa_43": true,
+    "checkpoint_ferrumos_direct_mlp_101": true,
+    "checkpoint_ferrumos_direct_mlp_17": true,
+    "checkpoint_ferrumos_direct_mlp_43": true,
+    "checkpoint_ferrumos_gru_dynamics_101": true,
+    "checkpoint_ferrumos_gru_dynamics_17": true,
+    "checkpoint_ferrumos_gru_dynamics_43": true,
+    "checkpoint_physical_action_conditioned_jepa_101": true,
+    "checkpoint_physical_action_conditioned_jepa_17": true,
+    "checkpoint_physical_action_conditioned_jepa_43": true,
+    "checkpoint_physical_direct_mlp_101": true,
+    "checkpoint_physical_direct_mlp_17": true,
+    "checkpoint_physical_direct_mlp_43": true,
+    "checkpoint_physical_gru_dynamics_101": true,
+    "checkpoint_physical_gru_dynamics_17": true,
+    "checkpoint_physical_gru_dynamics_43": true,
+    "domains_match": true,
+    "ferrumos_action_conditioned_jepa_seed_count": true,
+    "ferrumos_direct_mlp_seed_count": true,
+    "ferrumos_gru_dynamics_seed_count": true,
+    "ferrumos_methods_match": true,
+    "final_test_not_opened": true,
+    "finite_ferrumos_action_conditioned_jepa_101": true,
+    "finite_ferrumos_action_conditioned_jepa_17": true,
+    "finite_ferrumos_action_conditioned_jepa_43": true,
+    "finite_ferrumos_direct_mlp_101": true,
+    "finite_ferrumos_direct_mlp_17": true,
+    "finite_ferrumos_direct_mlp_43": true,
+    "finite_ferrumos_gru_dynamics_101": true,
+    "finite_ferrumos_gru_dynamics_17": true,
+    "finite_ferrumos_gru_dynamics_43": true,
+    "finite_physical_action_conditioned_jepa_101": true,
+    "finite_physical_action_conditioned_jepa_17": true,
+    "finite_physical_action_conditioned_jepa_43": true,
+    "finite_physical_direct_mlp_101": true,
+    "finite_physical_direct_mlp_17": true,
+    "finite_physical_direct_mlp_43": true,
+    "finite_physical_gru_dynamics_101": true,
+    "finite_physical_gru_dynamics_17": true,
+    "finite_physical_gru_dynamics_43": true,
+    "frozen_research_inputs_match": true,
+    "parameters_ferrumos_action_conditioned_jepa_101": true,
+    "parameters_ferrumos_action_conditioned_jepa_17": true,
+    "parameters_ferrumos_action_conditioned_jepa_43": true,
+    "parameters_ferrumos_direct_mlp_101": true,
+    "parameters_ferrumos_direct_mlp_17": true,
+    "parameters_ferrumos_direct_mlp_43": true,
+    "parameters_ferrumos_gru_dynamics_101": true,
+    "parameters_ferrumos_gru_dynamics_17": true,
+    "parameters_ferrumos_gru_dynamics_43": true,
+    "parameters_physical_action_conditioned_jepa_101": true,
+    "parameters_physical_action_conditioned_jepa_17": true,
+    "parameters_physical_action_conditioned_jepa_43": true,
+    "parameters_physical_direct_mlp_101": true,
+    "parameters_physical_direct_mlp_17": true,
+    "parameters_physical_direct_mlp_43": true,
+    "parameters_physical_gru_dynamics_101": true,
+    "parameters_physical_gru_dynamics_17": true,
+    "parameters_physical_gru_dynamics_43": true,
+    "physical_action_conditioned_jepa_seed_count": true,
+    "physical_direct_mlp_seed_count": true,
+    "physical_gru_dynamics_seed_count": true,
+    "physical_methods_match": true,
+    "promotion_disabled": true,
+    "protected_deployed_digests_match": true,
+    "protocol_digest_matches": true,
+    "protocol_id_matches": true,
+    "recorded_checks_pass": true,
+    "registered_seeds_match": true,
+    "registered_settings_match": true,
+    "selection_passed": true,
+    "stage_is_validation_only": true,
+    "updates_ferrumos_action_conditioned_jepa_101": true,
+    "updates_ferrumos_action_conditioned_jepa_17": true,
+    "updates_ferrumos_action_conditioned_jepa_43": true,
+    "updates_ferrumos_direct_mlp_101": true,
+    "updates_ferrumos_direct_mlp_17": true,
+    "updates_ferrumos_direct_mlp_43": true,
+    "updates_ferrumos_gru_dynamics_101": true,
+    "updates_ferrumos_gru_dynamics_17": true,
+    "updates_ferrumos_gru_dynamics_43": true,
+    "updates_physical_action_conditioned_jepa_101": true,
+    "updates_physical_action_conditioned_jepa_17": true,
+    "updates_physical_action_conditioned_jepa_43": true,
+    "updates_physical_direct_mlp_101": true,
+    "updates_physical_direct_mlp_17": true,
+    "updates_physical_direct_mlp_43": true,
+    "updates_physical_gru_dynamics_101": true,
+    "updates_physical_gru_dynamics_17": true,
+    "updates_physical_gru_dynamics_43": true
+  },
+  "selection_path": "docs/research/cross_domain_world_model_selection_v1.json",
+  "selection_sha256": "d9b97fdd17045f6e1747907fc68f4098f182c302b95d04103f3fc24b625c38b5",
+  "selection_verified": true,
+  "verification_passed": true
+}
