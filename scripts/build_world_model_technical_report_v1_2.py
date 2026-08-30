@@ -171,7 +171,14 @@ def make_styles() -> dict[str, ParagraphStyle]:
     }
 
 
-def header_footer(canvas, document) -> None:
+def draw_header_footer(
+    canvas,
+    document,
+    *,
+    running_left: str = "WHEN AGENTS CONTROL THE KERNEL",
+    running_right: str = "TECHNICAL REPORT v1.2",
+    footer_note: str = "FerrumOS world-model safety gate - evidence frozen 26 August 2026",
+) -> None:
     canvas.saveState()
     width, height = A4
     canvas.setStrokeColor(GRID)
@@ -179,12 +186,12 @@ def header_footer(canvas, document) -> None:
     canvas.line(17 * mm, height - 14.5 * mm, width - 17 * mm, height - 14.5 * mm)
     canvas.setFont("Helvetica-Bold", 7.1)
     canvas.setFillColor(NAVY)
-    canvas.drawString(17 * mm, height - 10.8 * mm, "WHEN AGENTS CONTROL THE KERNEL")
+    canvas.drawString(17 * mm, height - 10.8 * mm, running_left)
     canvas.setFont("Helvetica", 7.1)
     canvas.setFillColor(MUTED)
-    canvas.drawRightString(width - 17 * mm, height - 10.8 * mm, "TECHNICAL REPORT v1.2")
+    canvas.drawRightString(width - 17 * mm, height - 10.8 * mm, running_right)
     canvas.line(17 * mm, 13 * mm, width - 17 * mm, 13 * mm)
-    canvas.drawString(17 * mm, 8.5 * mm, "FerrumOS world-model safety gate - evidence frozen 26 August 2026")
+    canvas.drawString(17 * mm, 8.5 * mm, footer_note)
     canvas.drawRightString(width - 17 * mm, 8.5 * mm, f"Page {document.page}")
     canvas.restoreState()
 
@@ -248,21 +255,55 @@ def parse_image(line: str, width: float, styles: dict[str, ParagraphStyle]):
     return [image, Spacer(1, 1.2 * mm), Paragraph(inline(caption), styles["caption"])]
 
 
-def build(source: Path, output: Path) -> None:
+def build(
+    source: Path,
+    output: Path,
+    *,
+    pdf_title: str = "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
+    pdf_subject: str = "FerrumOS world-model safety gate Technical Report v1.2",
+    pdf_keywords: str = "FerrumOS, JEPA, operating systems, autonomous agents, safety runtime",
+    running_left: str = "WHEN AGENTS CONTROL THE KERNEL",
+    running_right: str = "TECHNICAL REPORT v1.2",
+    footer_note: str = "FerrumOS world-model safety gate - evidence frozen 26 August 2026",
+    spacious_body: bool = False,
+) -> None:
     styles = make_styles()
+    if spacious_body:
+        styles["body"].fontSize = 8.65
+        styles["body"].leading = 11.35
+        styles["body"].spaceAfter = 1.9 * mm
+        styles["bullet"].fontSize = 8.4
+        styles["bullet"].leading = 11.0
+        styles["small"].fontSize = 6.9
+        styles["small"].leading = 8.8
+        styles["table_header"].fontSize = 6.65
+        styles["table_header"].leading = 8.3
+        styles["caption"].fontSize = 7.0
+        styles["caption"].leading = 8.9
+        styles["code"].fontSize = 6.9
+        styles["code"].leading = 9.0
     lines = source.read_text(encoding="utf-8").splitlines()
     output.parent.mkdir(parents=True, exist_ok=True)
     document = BaseDocTemplate(
         str(output), pagesize=A4,
         leftMargin=17 * mm, rightMargin=17 * mm,
         topMargin=18.5 * mm, bottomMargin=17 * mm,
-        title="When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
+        title=pdf_title,
         author="Vyom Kulshrestha",
-        subject="FerrumOS world-model safety gate Technical Report v1.2",
-        keywords="FerrumOS, JEPA, operating systems, autonomous agents, safety runtime",
+        subject=pdf_subject,
+        keywords=pdf_keywords,
     )
     frame = Frame(document.leftMargin, document.bottomMargin, document.width, document.height, id="normal")
-    document.addPageTemplates([PageTemplate(id="main", frames=[frame], onPage=header_footer)])
+    def page_decor(canvas, current_document) -> None:
+        draw_header_footer(
+            canvas,
+            current_document,
+            running_left=running_left,
+            running_right=running_right,
+            footer_note=footer_note,
+        )
+
+    document.addPageTemplates([PageTemplate(id="main", frames=[frame], onPage=page_decor)])
 
     abstract_index = lines.index("### Abstract")
     intro_index = lines.index("### 1. Introduction")
