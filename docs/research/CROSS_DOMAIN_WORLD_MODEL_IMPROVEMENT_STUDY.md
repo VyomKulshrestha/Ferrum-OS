@@ -4,7 +4,7 @@
 
 This study asks a narrower question than the two existing technical reports: after controlling data, compute, parameter count, seeds, and evaluation cases, does a JEPA architecture predict better, and does any learned architecture add practical caution beyond frozen deterministic rules?
 
-The answer is domain-dependent for prediction and negative for operational marginal caution. Physical JEPA is decisively better than the matched MLP and GRU on the frozen physical catalog. FerrumOS instead favors the GRU at H=1 and H=3 and the JEPA at H=5. On new paired temporal catalogs, both selected models respond in the correct counterfactual direction, but neither produces a learned-only intervention at the frozen zero-false-positive threshold. The work therefore strengthens the modeling evidence without manufacturing a safety claim.
+The answer is domain-dependent for prediction and negative for operational marginal caution. Physical JEPA is decisively better than the matched MLP and GRU on the frozen physical catalog. FerrumOS instead favors the GRU at H=1 and H=3 and the JEPA at H=5. On new paired temporal catalogs, both selected models respond in the correct counterfactual direction, but neither produces a learned-only intervention at the frozen zero-false-positive threshold. A later externally designed, locally executed Safety-Gymnasium benchmark separates a strong privileged planner-only controller from an active shield that fails its frozen recall and realized-cost gates. The work therefore strengthens the modeling and runtime-attribution evidence without manufacturing a learned-safety claim.
 
 This is a research-only follow-up. It did not replace or promote a deployed artifact. Later registered extensions add externally authored case intake, true multi-client preview contention, and computer-controlled natural-use telemetry while preserving that boundary.
 
@@ -99,6 +99,14 @@ The run is not practical-value evidence: all 288 cases were stopped and task com
 
 Retaining this result prevents a diversity checkbox from being mistaken for progress. The test adds software geometry and contact coverage while showing that the current state mapping and thresholds fail the completion-versus-intervention objective under this shift.
 
+## Safety-Gymnasium controller and shield benchmark
+
+Safety-Gymnasium v1.0.0 supplies the externally maintained SafetyPointGoal1-v0 task, seeded layouts, observations, goal condition, and hazard-cost signal. The adapter, privileged grid planner, shield policies, local execution, and analysis are researcher-authored. The installed simulator source tree and package versions are digest-locked. Physical actuator attempts and deliveries are zero; execution is not independent, sensor-only, HIL, or physical deployment evidence.
+
+The v12 final opens seeds 4000–4127 exactly once and compares five frozen arms. The strongest prospective controller result is the planner-only arm: 94.53% task completion and 124 hazard-cost events, a 66.93% reduction from the naive controller's 375 events, with zero shield interventions. The selected active union completes 91.41% of tasks and intervenes effectively on 5.04% of proposals, but recalls only 61.58% of dangerous proposals and records 554 hazard-cost events, 47.73% more than the naive baseline. Learned alerts require deterministic rule confirmation and produce zero learned-only interventions.
+
+Every counted v12 intervention changes the applied action; the independent verifier recomputes all five arms, every raw union row, the exact final seeds, protocol and selection hashes, authority counters, and artifact digests. The active shield therefore remains a frozen negative even though the planner-only controller is useful. A later Simplex amendment that switches from naive proposals to planner fallback fails development and never opens its reserved final seed range. Continuing to generate local final catalogs after that failure would be threshold mining rather than stronger evidence.
+
 ## What changed, and what did not
 
 The study adds:
@@ -112,8 +120,9 @@ The study adds:
 - externally authored OS case taxonomy plus frozen physical telemetry compatibility intake;
 - actuator-disabled replay with external recorded sensor streams and registered fault injection;
 - a retained negative multi-embodiment 3D contact-and-recovery stress test.
+- an externally designed Safety-Gymnasium controller/shield benchmark with a strong planner-only arm, an independently recomputed active-shield negative, and a retained no-final-access Simplex failure.
 
-It does not add an independently operated or directly comparable external benchmark, live Ferrum HIL, Ferrum physical control-loop timing, physical actuator dynamics, physical contact recovery, validated physical embodiment transfer, production natural-use telemetry, or multi-host field contention. The new natural-use and multi-client results are bounded QEMU evidence, and the external physical data are retained as a compatibility-negative intake rather than forced into the wrong model semantics.
+It does not add independent execution or assessment, live Ferrum HIL, Ferrum physical control-loop timing, physical actuator dynamics, physical contact recovery, validated physical embodiment transfer, production natural-use telemetry, or multi-host field contention. Safety-Gymnasium adds an external task and cost implementation but uses a privileged local planner and researcher-authored adapter, shield, execution, and analysis. The natural-use and multi-client results remain bounded QEMU evidence, and the external Anchor-Lab physical data remain a compatibility-negative intake rather than being forced into the wrong model semantics.
 
 ## Reproduction
 
@@ -129,6 +138,7 @@ python scripts/verify_world_model_natural_use.py
 python scripts/verify_world_model_external_case_intake.py
 python scripts/verify_physical_jepa_recorded_hil_replay.py
 python scripts/verify_physical_jepa_multi_embodiment_3d.py
+python scripts/verify_physical_jepa_safety_gymnasium_v12.py
 python scripts/verify_cross_domain_world_model_improvement_study.py
 ```
 

@@ -42,9 +42,16 @@ EVIDENCE = {
     "physical_3d_protocol": "physical_jepa_multi_embodiment_3d_protocol_v1.json",
     "physical_3d_result": "physical_jepa_multi_embodiment_3d_result_v1.json",
     "physical_3d_verification": "physical_jepa_multi_embodiment_3d_verification_v1.json",
+    "physical_safety_gym_protocol": "physical_jepa_safety_gymnasium_protocol_v12.json",
+    "physical_safety_gym_selection": "physical_jepa_safety_gymnasium_selection_v12.json",
+    "physical_safety_gym_result": "physical_jepa_safety_gymnasium_result_v12.json",
+    "physical_safety_gym_verification": "physical_jepa_safety_gymnasium_verification_v12.json",
+    "physical_simplex_protocol": "physical_jepa_safety_gymnasium_protocol_v13.json",
+    "physical_simplex_selection": "physical_jepa_safety_gymnasium_selection_v13.json",
 }
 HASH_ONLY_EVIDENCE = {
     "natural_use_telemetry": "world_model_natural_use_telemetry_v1.jsonl",
+    "physical_safety_gym_cases": "physical_jepa_safety_gymnasium_cases_v12.jsonl",
     **{
         f"natural_use_amendment_{number}": f"world_model_natural_use_protocol_amendment_v{number}.json"
         for number in range(1, 14)
@@ -111,6 +118,11 @@ def main() -> int:
     )
     physical_replay = records["physical_replay_result"]
     physical_3d = records["physical_3d_result"]
+    physical_safety_gym = records["physical_safety_gym_result"]
+    physical_safety_gym_verification = records["physical_safety_gym_verification"]
+    physical_safety_gym_union = physical_safety_gym["arms"][
+        "planner_rules_plus_learned"
+    ]["metrics"]
     checks = {
         "architecture_selection_never_opened_final": records["architecture_selection"][
             "final_test_opened"
@@ -184,11 +196,64 @@ def main() -> int:
         ]
         == 0
         and physical_3d["authority"]["physical_actuator_deliveries"] == 0,
+        "physical_safety_gym_selection_never_opened_final": records[
+            "physical_safety_gym_selection"
+        ]["selection_passed"]
+        is True
+        and records["physical_safety_gym_selection"]["final_seed_accessed"] is False
+        and records["physical_safety_gym_selection"][
+            "final_seed_access_attempted"
+        ]
+        is False,
+        "physical_safety_gym_frozen_negative_verified": physical_safety_gym_verification[
+            "overall_pass"
+        ]
+        is False
+        and all(
+            value
+            for name, value in physical_safety_gym_verification["checks"].items()
+            if name != "all_frozen_gates_pass_independently"
+        )
+        and physical_safety_gym_verification["checks"][
+            "all_frozen_gates_pass_independently"
+        ]
+        is False
+        and physical_safety_gym["all_frozen_gates_pass"] is False
+        and physical_safety_gym["frozen_gates"]["dangerous_proposal_recall"] is False
+        and physical_safety_gym["frozen_gates"][
+            "actual_hazard_cost_reduction_fraction"
+        ]
+        is False
+        and physical_safety_gym["final_seed_access_count"] == 1,
+        "physical_safety_gym_effective_interventions": physical_safety_gym_verification[
+            "checks"
+        ]["every_counted_intervention_changes_action"]
+        is True
+        and physical_safety_gym_union["learned_only_interventions"] == 0
+        and physical_safety_gym["selected_candidate"][
+            "learned_requires_rule_confirmation"
+        ]
+        is True,
+        "physical_safety_gym_external_scope_honest": physical_safety_gym[
+            "externally_authored_benchmark"
+        ]
+        is True
+        and physical_safety_gym["independent_execution"] is False
+        and physical_safety_gym["physical_actuator_attempts"] == 0
+        and physical_safety_gym["physical_actuator_deliveries"] == 0,
+        "physical_simplex_failure_retained_without_final_access": records[
+            "physical_simplex_selection"
+        ]["selection_passed"]
+        is False
+        and records["physical_simplex_selection"]["final_seed_accessed"] is False
+        and records["physical_simplex_selection"]["final_seed_access_attempted"]
+        is False,
         "protected_deployed_artifacts_unchanged": deployed == expected_deployed,
         "all_results_finite": finite(architecture)
         and finite(learned)
         and finite(physical_replay)
-        and finite(physical_3d),
+        and finite(physical_3d)
+        and finite(physical_safety_gym),
         "new_runtime_results_finite": finite(multiclient)
         and finite(natural_use)
         and finite(external_intake),
@@ -199,7 +264,8 @@ def main() -> int:
         and natural_use["promotion_eligible"] is False
         and external_intake["promotion_eligible"] is False
         and physical_replay["promotion_eligible"] is False
-        and physical_3d["promotion_eligible"] is False,
+        and physical_3d["promotion_eligible"] is False
+        and physical_safety_gym["promotion_eligible"] is False,
     }
     result = {
         "schema_version": 1,
@@ -233,6 +299,34 @@ def main() -> int:
             "physical_multi_embodiment_3d_stress": True,
             "physical_3d_stress_task_completion_rate": 0.0,
             "physical_3d_stress_intervention_rate": 1.0,
+            "physical_safety_gymnasium_frozen_negative_verified": True,
+            "physical_safety_gymnasium_task_completion_rate": physical_safety_gym[
+                "headline"
+            ]["task_completion_rate"],
+            "physical_safety_gymnasium_intervention_rate": physical_safety_gym[
+                "headline"
+            ]["intervention_rate"],
+            "physical_safety_gymnasium_dangerous_recall": physical_safety_gym[
+                "headline"
+            ]["dangerous_proposal_recall"],
+            "physical_safety_gymnasium_safe_fpr": physical_safety_gym["headline"][
+                "safe_proposal_false_positive_rate"
+            ],
+            "physical_safety_gymnasium_hazard_cost_reduction": physical_safety_gym[
+                "headline"
+            ]["actual_hazard_cost_reduction_fraction"],
+            "physical_safety_gymnasium_learned_only_interventions": physical_safety_gym[
+                "headline"
+            ]["learned_only_interventions"],
+            "physical_safety_gymnasium_planner_task_completion_rate": physical_safety_gym[
+                "arms"
+            ]["planner_unshielded"]["metrics"]["task_completion_rate"],
+            "physical_safety_gymnasium_planner_hazard_cost_events": physical_safety_gym[
+                "arms"
+            ]["planner_unshielded"]["metrics"]["actual_hazard_cost_events"],
+            "physical_safety_gymnasium_naive_hazard_cost_events": physical_safety_gym[
+                "arms"
+            ]["naive_unshielded"]["metrics"]["actual_hazard_cost_events"],
             "independent_benchmark": False,
             "live_physical_hil": False,
         },
@@ -244,6 +338,9 @@ def main() -> int:
             "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
             "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
             "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
+            "The Safety-Gymnasium frozen result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the planner-only arm is useful while the active union fails recall and realized-cost gates.",
+            "Every counted Safety-Gymnasium intervention changes the applied action, learned alerts require deterministic rule confirmation, and planner divergence is reported separately from shield intervention.",
+            "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
             "No protected deployed artifact was promoted or replaced by this study.",
         ],
     }
