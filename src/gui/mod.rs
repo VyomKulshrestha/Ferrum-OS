@@ -240,6 +240,7 @@ extern "C" fn desktop_entry() -> ! {
 
         // 1. Process Input Events (Mouse, Keyboard). This may set
         //    `cursor.dirty` and/or `compositor.needs_redraw`.
+        crate::interrupts::poll_ps2_keyboard();
         cursor::process_input();
 
         // A menu action may sign out while draining the input queue. Leave

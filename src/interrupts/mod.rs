@@ -499,6 +499,27 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     }
 }
 
+/// Drain keyboard bytes left in the i8042 output buffer when an IRQ edge is
+/// missed.  The normal interrupt path remains authoritative; this bounded
+/// poll is used by the interactive desktop loop and deliberately leaves AUX
+/// (mouse) bytes for the mouse handler.
+pub fn poll_ps2_keyboard() {
+    use x86_64::instructions::port::Port;
+
+    let mut status_port = Port::<u8>::new(0x64);
+    let mut data_port = Port::<u8>::new(0x60);
+    for _ in 0..16 {
+        let status = unsafe { status_port.read() };
+        if status & 0x01 == 0 || status & 0x20 != 0 {
+            break;
+        }
+        let scancode = unsafe { data_port.read() };
+        if let Some(ch) = scancode_to_ascii(scancode) {
+            crate::input::inject_key_event(ch, true);
+        }
+    }
+}
+
 /// Hardware mouse interrupt handler (IRQ 12)
 extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFrame) {
     // Process the mouse input

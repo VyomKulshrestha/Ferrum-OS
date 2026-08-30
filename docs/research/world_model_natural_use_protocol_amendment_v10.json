@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-10",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v9.json",
+    "sha256": "01ac63a6750cc0878823bb89ff1e6abaea3ca7c5e1927cb35c545762fd7d40f0"
+  },
+  "observed_implementation_failure": "QEMU accepted a hardware sendkey command while the full desktop recorded no physical key event, demonstrating a missed PS/2 keyboard IRQ below the controller boundary.",
+  "changes": [
+    "The full desktop loop performs a bounded i8042 fallback poll before draining its input queue.",
+    "The fallback reads at most 16 pending keyboard bytes and leaves AUX mouse bytes untouched.",
+    "The existing interrupt-driven keyboard path remains primary."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative, privacy, authority and no-actuation gates"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "PS/2 delivery diagnostic only; excluded with zero telemetry records"
+  }
+}
