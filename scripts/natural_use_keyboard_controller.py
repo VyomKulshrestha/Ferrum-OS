@@ -69,8 +69,8 @@ def send_alt_tab(port: int) -> None:
             monitor.recv(4096)
         except TimeoutError:
             pass
-        monitor.sendall(b"sendkey alt-tab 50\n")
-        time.sleep(0.25)
+        monitor.sendall(b"sendkey alt-tab 500\n")
+        time.sleep(0.75)
 
 
 def main() -> None:
