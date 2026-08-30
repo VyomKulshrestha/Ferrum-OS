@@ -478,6 +478,26 @@ def run_episode(
                     recovery_turn_remaining -= 1
                     actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
                     recovery_phase = "turn"
+            elif (
+                block
+                and arm.startswith("planner_")
+                and policy.get("fallback_mode") == "planner_replan"
+            ):
+                replanned_policy = dict(policy)
+                replanned_policy["planner_hazard_inflation"] = min(
+                    policy["planner_hazard_inflation"]
+                    + policy["replan_inflation_delta"],
+                    policy["replan_inflation_maximum"],
+                )
+                planner_path = grid_plan(main_env, replanned_policy, protocol["episode"])
+                planner_index = 0
+                actual, _, planner_index = planner_proposal(
+                    main_env,
+                    planner_path,
+                    planner_index,
+                    protocol["episode"],
+                )
+                recovery_phase = "replan"
             elif block:
                 actual, recovery_sign = fallback_action(
                     observation,
