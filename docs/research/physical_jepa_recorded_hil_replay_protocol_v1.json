@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "protocol_id": "physical-jepa-v5-recorded-hil-sensor-replay-v1",
+  "registration_date": "2026-08-30",
+  "status": "registered_before_this_replay_execution_but_after_historical_dataset_use",
+  "objective": "Measure the frozen Physical JEPA v5 artifact on external recorded HAI 23.05 testbed sensor streams under clean and deterministic sensor/command-path perturbations while actuator delivery is disabled.",
+  "evidence_class": "researcher-executed replay of externally recorded HIL/testbed data",
+  "not_claimed": [
+    "live Ferrum hardware-in-the-loop",
+    "physical robot actuation",
+    "independent benchmark design or assessment",
+    "contact-dynamics coverage",
+    "multiple robot embodiments",
+    "collision-avoidance or human-safety efficacy"
+  ],
+  "frozen_artifact": {
+    "path": "userland/heliox-daemon/physical_world_model.bin",
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "gating_flag": 0,
+    "retraining_permitted": false,
+    "replacement_or_promotion_permitted": false
+  },
+  "projection": {
+    "source": "docs/research/physical_hai_v1_selection.json#/projection",
+    "fit_files": [
+      "hai-train1.csv",
+      "hai-train2.csv",
+      "hai-train3.csv"
+    ],
+    "fit_rows": 698400,
+    "refitting_permitted": false,
+    "available_state_indices": [6, 8, 9, 10, 11, 12, 13, 14]
+  },
+  "replay_files": [
+    {
+      "data": "target/external-data/hai-23.05/hai-test1.csv",
+      "data_sha256": "78c7f1d4de1f2ab9ccc2f8c719f80f831033543adb0c81d0d78f84f40838d4be",
+      "labels": "target/external-data/hai-23.05/label-test1.csv",
+      "labels_sha256": "eaf69edb9c5834bc393afd7bf658b5e408d34fd7bfc3261f80516765fb818fbc"
+    },
+    {
+      "data": "target/external-data/hai-23.05/hai-test2.csv",
+      "data_sha256": "b2b8dd295aefd87e39260fe43cb4c73ee86d6264b0ac4b0761e7efb0c2b545c3",
+      "labels": "target/external-data/hai-23.05/label-test2.csv",
+      "labels_sha256": "8090c44981176e39b0f01a7126a80248ac0b93355c00f9db4d4e2f2106452b92"
+    }
+  ],
+  "conditions": [
+    {
+      "name": "clean",
+      "sensor_delay_seconds": 0,
+      "jitter_seconds": 0,
+      "noise_standard_deviation": 0.0,
+      "dropout_probability": 0.0,
+      "command_feature_clip": 1.0
+    },
+    {
+      "name": "fixed_latency_2s",
+      "sensor_delay_seconds": 2,
+      "jitter_seconds": 0,
+      "noise_standard_deviation": 0.0,
+      "dropout_probability": 0.0,
+      "command_feature_clip": 1.0
+    },
+    {
+      "name": "jitter_0_3s",
+      "sensor_delay_seconds": 0,
+      "jitter_seconds": 3,
+      "noise_standard_deviation": 0.0,
+      "dropout_probability": 0.0,
+      "command_feature_clip": 1.0
+    },
+    {
+      "name": "noise_0_02",
+      "sensor_delay_seconds": 0,
+      "jitter_seconds": 0,
+      "noise_standard_deviation": 0.02,
+      "dropout_probability": 0.0,
+      "command_feature_clip": 1.0
+    },
+    {
+      "name": "dropout_5pct_hold_last",
+      "sensor_delay_seconds": 0,
+      "jitter_seconds": 0,
+      "noise_standard_deviation": 0.0,
+      "dropout_probability": 0.05,
+      "command_feature_clip": 1.0
+    },
+    {
+      "name": "combined",
+      "sensor_delay_seconds": 1,
+      "jitter_seconds": 3,
+      "noise_standard_deviation": 0.02,
+      "dropout_probability": 0.05,
+      "command_feature_clip": 0.25
+    }
+  ],
+  "random_seed": 20260831,
+  "timing": {
+    "batch_size": 4096,
+    "warmup_batches": 2,
+    "report": [
+      "median_microseconds_per_row",
+      "p95_microseconds_per_row",
+      "p99_microseconds_per_row"
+    ]
+  },
+  "metrics": [
+    "masked normalized H1 prediction MAE and p95 row error",
+    "attack-label AUROC and average precision of prediction residuals as descriptive anomaly diagnostics",
+    "post-hoc 1-percent normal-tail threshold confusion and event recall, labelled descriptive only",
+    "error delta from clean for every perturbation",
+    "fault-window recovery time to at most 1.25 times the clean p95 row error",
+    "actuator delivery attempts and successful deliveries, both required to be zero",
+    "artifact and input digests before and after"
+  ],
+  "fault_recovery": {
+    "window_period_seconds": 600,
+    "fault_duration_seconds": 30,
+    "maximum_observation_seconds": 120,
+    "perturbation": "combined condition only within each registered fault window"
+  },
+  "acceptance_gates": [
+    "all input and artifact digests match",
+    "all predictions and metrics are finite",
+    "actuator delivery attempts equal zero",
+    "actuator deliveries equal zero",
+    "artifact digest is unchanged",
+    "all registered conditions and both replay files are reported",
+    "claim boundary is preserved"
+  ],
+  "interpretation": "Passing establishes actuator-disabled software integration with recorded external testbed sensor streams and bounded fault injection. It does not establish learned safety value, live HIL operation, physical timing, contact recovery, embodiment transfer, or deployment readiness."
+}
