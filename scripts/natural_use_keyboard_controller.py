@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import socket
 import threading
 import time
@@ -61,11 +62,24 @@ def send_enter(port: int) -> None:
         time.sleep(0.25)
 
 
+def send_alt_tab(port: int) -> None:
+    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
+        monitor.settimeout(0.2)
+        try:
+            monitor.recv(4096)
+        except TimeoutError:
+            pass
+        monitor.sendall(b"sendkey alt-tab 50\n")
+        time.sleep(0.25)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime", type=Path, required=True)
     args = parser.parse_args()
     runtime = json.loads(args.runtime.read_text(encoding="utf-8"))
+    runtime["controller_pid"] = os.getpid()
+    args.runtime.write_text(json.dumps(runtime, indent=2) + "\n", encoding="utf-8")
     root = Path(__file__).resolve().parents[1]
     prompts = json.loads(
         (root / "docs/research/world_model_natural_use_prompts_v1.json").read_text(encoding="utf-8")
@@ -124,6 +138,15 @@ def main() -> None:
         font=("Segoe UI", 10),
     )
     enter_button.pack(padx=16, pady=4, anchor="w")
+    switch_button = tk.Button(
+        window,
+        text="Switch guest window (Alt+Tab)",
+        command=lambda: threading.Thread(
+            target=send_alt_tab, args=(int(runtime["monitor_port"]),), daemon=True
+        ).start(),
+        font=("Segoe UI", 10),
+    )
+    switch_button.pack(padx=16, pady=4, anchor="w")
     tk.Label(window, textvariable=status, font=("Segoe UI", 10)).pack(padx=16, pady=8, anchor="w")
     editor.focus_set()
     window.mainloop()
