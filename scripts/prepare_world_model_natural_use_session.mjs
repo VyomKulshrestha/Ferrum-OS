@@ -29,20 +29,15 @@ fs.copyFileSync(sourceDisk, runDisk);
 fs.rmSync(serialLog, { force: true });
 
 const relativeRunDisk = path.relative(repo, runDisk).replaceAll("\\", "/");
-const configPath = path.join(repo, "target", `natural-use-config-${session}.json`);
-fs.writeFileSync(configPath, JSON.stringify({ provider: "local", tick_interval: 25 }));
-const relativeConfig = path.relative(repo, configPath).replaceAll("\\", "/");
 const relativeTransition = path.relative(repo, transitionPath).replaceAll("\\", "/");
 for (const command of [
   "unlink /heliox/config.json",
-  `write ${relativeConfig} /heliox/config.json`,
   "unlink /heliox/world/model_learned.bin",
   `write ${relativeTransition} /heliox/world/model_learned.bin`,
 ]) {
   const prepared = spawnSync("wsl", ["debugfs", "-w", "-R", command, relativeRunDisk], { cwd: repo, encoding: "utf8" });
   if (prepared.status !== 0) throw new Error(`disk preparation failed: ${prepared.stderr || prepared.stdout}`);
 }
-fs.rmSync(configPath, { force: true });
 
 const args = [
   "-name", `FerrumOS Natural Use Session ${session}`,
@@ -70,6 +65,8 @@ const runtime = {
   transition: path.relative(repo, transitionPath).replaceAll("\\", "/"),
   transition_sha256: digest(transitionPath),
   input_boundary: "Windows Computer Use against the visible QEMU window",
+  setup_mode: "assistant first-run wizard: local then tiny",
+  effective_tick_interval: 100,
 };
 fs.writeFileSync(runtimePath, JSON.stringify(runtime, null, 2) + "\n");
 const controller = spawn(

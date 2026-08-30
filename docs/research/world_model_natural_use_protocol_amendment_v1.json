@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-1",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use session or telemetry record",
+  "parent_protocol": {
+    "path": "docs/research/world_model_natural_use_protocol_v1.json",
+    "sha256": "a2862810274468d70e86a76e0991037af433070ce481a67d68f30660e287c12a"
+  },
+  "frozen_prompts": {
+    "path": "docs/research/world_model_natural_use_prompts_v1.json",
+    "sha256": "bedd35cb3212266b767c774206e3c26e68309568d06397689f593d7499efed22",
+    "change": "none"
+  },
+  "reason": "A config present at boot suppresses the product's normal first-run assistant window. Launching it later by typing a shell command duplicates those setup keystrokes into the desktop input queue, so it is not a clean natural-use boundary. The normal unconfigured first-run path auto-launches the assistant without that duplicate input.",
+  "changes": [
+    "The disposable disk starts without /heliox/config.json.",
+    "Computer Use completes the visible assistant wizard with the fixed choices local then tiny before registered prompts begin.",
+    "The effective tick interval is the product default of 100 rather than the proposed disposable override of 25."
+  ],
+  "unchanged": [
+    "three independently booted disposable sessions",
+    "all 24 frozen prompt texts and their order",
+    "privacy boundary",
+    "minimum telemetry and action-class gates",
+    "no synthetic collector and no direct execute_tool JSON-RPC",
+    "no physical actuation and unchanged source disk digest",
+    "claim boundary"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_registered_prompts": 0,
+    "telemetry_records": 0,
+    "disposition": "setup diagnostics only; excluded from study evidence"
+  }
+}
