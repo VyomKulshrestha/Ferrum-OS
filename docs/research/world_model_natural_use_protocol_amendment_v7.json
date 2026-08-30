@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-7",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v6.json",
+    "sha256": "c5967f2f8c267fa1806068189b220322d84aeebbc02da26c79f53a69bc207498"
+  },
+  "observed_implementation_failure": "The large negative origin-clamp movement was subject to the same PS/2 packet truncation as the positive movement.",
+  "changes": [
+    "The origin clamp is emitted as twelve bounded negative 100 by 100 movements before the already bounded positive displacement.",
+    "A visible screenshot must show the Heliox first-run window in front before setup choices are entered."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all protocol gates, authority boundaries and claim limitations from amendment 6"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "pointer-focus diagnostic only; excluded with zero telemetry records"
+  }
+}

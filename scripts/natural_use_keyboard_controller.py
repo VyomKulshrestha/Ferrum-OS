@@ -92,8 +92,9 @@ def claim_desktop_input(port: int) -> None:
         # move to a point inside the first-run Heliox app that is outside the
         # overlapping System Monitor and Terminal windows.  Clicking at the
         # prior cursor position made focus depend on incidental pointer state.
-        monitor.sendall(b"mouse_move -10000 -10000\n")
-        time.sleep(0.25)
+        for _ in range(12):
+            monitor.sendall(b"mouse_move -100 -100\n")
+            time.sleep(0.05)
         # Keep deltas within one PS/2 packet.  A single 420x500 legacy move
         # is truncated by the emulated device and lands near the origin.
         for _ in range(4):
