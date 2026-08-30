@@ -301,7 +301,7 @@ impl Planner {
     pub fn current_goal(&self) -> String {
         match &self.current_plan {
             Some(plan) => plan.goal.clone(),
-            None => String::from("Explore the system"),
+            None => String::new(),
         }
     }
 

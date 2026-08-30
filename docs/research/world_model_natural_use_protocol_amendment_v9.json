@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-9",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v8.json",
+    "sha256": "bb81256dc97c23355a092f5b7eb37ea79088d94b06521a8e06c7d23e51264226"
+  },
+  "observed_implementation_failure": "Planner::current_goal returned Explore the system when no plan existed, contradicting its idle checks and causing configured boots to infer without an explicit goal.",
+  "changes": [
+    "A planner with no current plan now returns an empty goal.",
+    "The already registered empty-goal guard therefore prevents provider inference until an actual goal arrives."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative, privacy, authority and no-actuation gates"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "idle-state diagnostic only; excluded with zero telemetry records"
+  }
+}
