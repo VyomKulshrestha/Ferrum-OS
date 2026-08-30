@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-6",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v5.json",
+    "sha256": "15c540eb674b7f95c233df4596845e4e82abd3e39c020a3285bbb0cebc53848c"
+  },
+  "observed_implementation_failure": "The emulated PS/2 device truncated a single 420 by 500 relative pointer move, leaving the click near the guest origin and the Terminal focused.",
+  "changes": [
+    "The same fixed pointer displacement is emitted as five bounded PS/2 movements: four 100 by 100 moves and one 20 by 100 move.",
+    "Configuration reload remains mandatory before any registered prompt."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all protocol gates, authority boundaries and claim limitations from amendment 5"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "focus diagnostic only; excluded with zero telemetry records"
+  }
+}

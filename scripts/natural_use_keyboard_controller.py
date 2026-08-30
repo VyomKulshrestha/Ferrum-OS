@@ -94,8 +94,13 @@ def claim_desktop_input(port: int) -> None:
         # prior cursor position made focus depend on incidental pointer state.
         monitor.sendall(b"mouse_move -10000 -10000\n")
         time.sleep(0.25)
-        monitor.sendall(b"mouse_move 420 500\n")
-        time.sleep(0.25)
+        # Keep deltas within one PS/2 packet.  A single 420x500 legacy move
+        # is truncated by the emulated device and lands near the origin.
+        for _ in range(4):
+            monitor.sendall(b"mouse_move 100 100\n")
+            time.sleep(0.10)
+        monitor.sendall(b"mouse_move 20 100\n")
+        time.sleep(0.20)
         monitor.sendall(b"mouse_button 1\n")
         time.sleep(0.25)
         monitor.sendall(b"mouse_button 0\n")
