@@ -6,7 +6,7 @@ This study asks a narrower question than the two existing technical reports: aft
 
 The answer is domain-dependent for prediction and negative for operational marginal caution. Physical JEPA is decisively better than the matched MLP and GRU on the frozen physical catalog. FerrumOS instead favors the GRU at H=1 and H=3 and the JEPA at H=5. On new paired temporal catalogs, both selected models respond in the correct counterfactual direction, but neither produces a learned-only intervention at the frozen zero-false-positive threshold. The work therefore strengthens the modeling evidence without manufacturing a safety claim.
 
-This is a research-only follow-up. It did not replace or promote a deployed artifact.
+This is a research-only follow-up. It did not replace or promote a deployed artifact. Later registered extensions add externally authored case intake, true multi-client preview contention, and computer-controlled natural-use telemetry while preserving that boundary.
 
 ## Registered design
 
@@ -62,7 +62,15 @@ This is a substantive negative result, not a failed verifier. The models encode 
 
 FerrumOS v3.4 was injected only into disposable appliance-disk copies and executed inside the real ring-3 preview gate under QEMU/WHPX. Across 200 previews per horizon, H=1 through H=5 each had p99 guest time of 3 ms; the loaded runtime reports 193,229 parameters, zero retained heap growth, and both encoder and transition loaded. A separate batch returned 96/96 correlated preview responses across six canonical command classes, produced no execution-dataset record, and left the packaged source disk byte-identical.
 
-This is emulator shadow evidence. The single-threaded daemon serializes inference, and the workload is a canonical command suite rather than independently collected natural-use telemetry or a true multi-agent deployment.
+A registered contention run then used four distinct WebSocket clients against one QEMU guest. All 128/128 preview responses returned with no cross-client response leakage, Jain throughput fairness 0.999937, and successful disconnect isolation and replacement-client repair. Per-client p95 latency was 16.09-16.46 seconds because the single-threaded daemon serialized saturated inference. Execution was unavailable on those sockets (`-32601`), no execution-dataset record was added, and physical delivery attempts and deliveries were zero. This establishes bounded multi-client preview contention, not parallel inference, production capacity, distributed consensus, or action safety under contention.
+
+Three additional independently booted disposable sessions were operated through the visible FerrumOS assistant using Windows computer control. The 24 frozen natural-language requests produced 24 privacy-bounded telemetry rows across six action classes. Eighteen read-only actions executed successfully, three writes remained awaiting operator confirmation, and three deletes were blocked by the gate. No prompt, argument, path, provider, model, or output text appears in the committed rows; language-model page-ins after deterministic requests, guest faults, synthetic collection markers, direct execution RPCs, physical deliveries, and source-disk changes were all zero. These are short researcher-operated QEMU sessions, not seven-day production telemetry, independent user testing, or labelled precision/recall evidence.
+
+## Externally authored case and physical-data intake
+
+The registered intake freezes the Microsoft Azure VM-noise revision `207bed67dd10090b28ad4f745b2cfd41a11aace4` as an externally authored OS workload taxonomy and NVIDIA Anchor-Lab revision `647edd5787cd764cdc041103ad282dc59214d919` as physical telemetry. The Azure families cover file, process, thread, program-launch, CPU, memory, random-I/O, and Redis contention workloads; they inform the natural-use and contention mix but are not projected into FerrumOS state vectors or treated as FerrumOS labels.
+
+Six frozen Anchor-Lab Parquet files contain 2,925,558 finite timestamped rows, including three publisher-designated held-out SO-101 trials and three H1 elbow-teststand conditions. Command/target and measured-state telemetry are available, but safety/contact labels are not. Their joint, actuator, and temperature semantics do not match Physical JEPA v5's 16-state navigation/maintenance representation or seven-action ontology, so direct v5 replay would be invalid. No semantic projection, model inference, or actuator delivery was performed. The data are suitable for a future separately frozen embodiment-specific model, not for retrofitting an apparent v5 result.
 
 ## Recorded testbed sensor replay
 
@@ -81,6 +89,8 @@ Host NumPy batch inference measured 2.239 µs median and 3.303 µs p99 per row; 
 
 Actuator delivery attempts were zero and actuator deliveries were zero. This is researcher-executed replay of externally recorded HIL/testbed data. It is not live Ferrum HIL, a robot trial, independent assessment, contact-dynamics evidence, multi-embodiment evidence, or human-safety evidence.
 
+The HAI replay remains the strongest directly applicable external physical evidence for the current v5 representation. Anchor-Lab adds genuine physical timing and embodiment telemetry but is semantically incompatible with direct v5 scoring. Live actuator-disabled Ferrum HIL with physical clocks, interfaces, sensor latency, actuator dynamics, contact, and an independent emergency-stop path therefore remains absent.
+
 ## Multi-embodiment 3D stress: retained negative result
 
 A separately registered PyBullet DIRECT stress test varies three simulated bodies (box, sphere, and capsule), three obstacle geometries (box, sphere, and cylinder), mass, 3D targets, contact, and a one-second return-to-start recovery. It is locally designed software physics, not a blinded benchmark or hardware evidence.
@@ -97,10 +107,13 @@ The study adds:
 - distributional prediction, OOD scoring, risk-coverage analysis, and paired temporal interventions;
 - two new once-opened final catalogs designed to leave simple current-state rules without an automatic advantage;
 - in-guest v3.4 shadow timing, memory, concurrency, and no-execution evidence;
-- actuator-disabled replay with external recorded sensor streams and registered fault injection.
+- four-client preview contention with disconnect recovery and no response leakage;
+- 24 privacy-bounded natural-use records from three visible, computer-controlled QEMU sessions;
+- externally authored OS case taxonomy plus frozen physical telemetry compatibility intake;
+- actuator-disabled replay with external recorded sensor streams and registered fault injection;
 - a retained negative multi-embodiment 3D contact-and-recovery stress test.
 
-It does not add independent benchmark design, independently operated execution, live HIL, physical timing, physical actuator dynamics, physical contact recovery, physical embodiment transfer, natural-use OS telemetry, or multi-agent field contention. Those require external people, hardware, or data that are not present in this repository and cannot be created honestly by a local script.
+It does not add an independently operated or directly comparable external benchmark, live Ferrum HIL, Ferrum physical control-loop timing, physical actuator dynamics, physical contact recovery, validated physical embodiment transfer, production natural-use telemetry, or multi-host field contention. The new natural-use and multi-client results are bounded QEMU evidence, and the external physical data are retained as a compatibility-negative intake rather than forced into the wrong model semantics.
 
 ## Reproduction
 
@@ -111,6 +124,9 @@ python scripts/verify_cross_domain_world_models.py
 python scripts/verify_cross_domain_learned_contribution.py
 node scripts/verify_world_model_runtime_benchmark.mjs docs/research/world_model_v3_4_shadow_runtime_v1.json
 python scripts/verify_world_model_v3_4_shadow.py
+python scripts/verify_world_model_multiclient_result.py
+python scripts/verify_world_model_natural_use.py
+python scripts/verify_world_model_external_case_intake.py
 python scripts/verify_physical_jepa_recorded_hil_replay.py
 python scripts/verify_physical_jepa_multi_embodiment_3d.py
 python scripts/verify_cross_domain_world_model_improvement_study.py

@@ -4,6 +4,7 @@
     "architecture_final_opened_once": true,
     "architecture_selection_never_opened_final": true,
     "architecture_verified": true,
+    "external_case_intake_verified": true,
     "independence_not_claimed": true,
     "learned_benchmark_verified": true,
     "learned_final_opened_once": true,
@@ -11,6 +12,9 @@
     "learned_selection_never_opened_final": true,
     "live_hil_not_claimed": true,
     "multi_embodiment_3d_negative_result_verified": true,
+    "multiclient_contention_verified": true,
+    "natural_use_verified": true,
+    "new_runtime_results_finite": true,
     "no_promotion": true,
     "os_shadow_verified": true,
     "physical_3d_actuator_authority_zero": true,
@@ -22,6 +26,9 @@
     "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
     "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
     "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+    "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
+    "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
+    "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
@@ -38,6 +45,18 @@
       "path": "docs/research/cross_domain_world_model_verification_v1.json",
       "sha256": "427b452cee0bec5ada0d3a8fa8383f3684c7296b6aebddd9469e69b26892f38e"
     },
+    "external_intake_protocol": {
+      "path": "docs/research/world_model_external_case_intake_protocol_v1.json",
+      "sha256": "e53502d04e286053986d5daef86e025835a8375381e51931b241380ed3285dbb"
+    },
+    "external_intake_result": {
+      "path": "docs/research/world_model_external_case_intake_result_v1.json",
+      "sha256": "228b0b4cc74054a0b9c2a50fdcdd1ca1ba2e48667bdd8e9997f4ad4b9e978311"
+    },
+    "external_intake_verification": {
+      "path": "docs/research/world_model_external_case_intake_verification_v1.json",
+      "sha256": "dac81430def23d0649b7f60d2202534d92a9bb597eab0c685527165bca1c9399"
+    },
     "learned_result": {
       "path": "docs/research/cross_domain_learned_contribution_result_v1.json",
       "sha256": "1c6e40356726e7b294890eaa1aa7be9ae12428c457d45475fac823509236b351"
@@ -49,6 +68,90 @@
     "learned_verification": {
       "path": "docs/research/cross_domain_learned_contribution_verification_v1.json",
       "sha256": "8c1f070ec44df503f837dcf75921e30dc0e1bbcf4e0374abdbc549c3fd4022f8"
+    },
+    "multiclient_protocol": {
+      "path": "docs/research/world_model_multiclient_contention_protocol_v1.json",
+      "sha256": "5a94981763af04667b5d5e165e2c3a7a1f63bcaa2ee9d3d1571a9aeb326d6a07"
+    },
+    "multiclient_result": {
+      "path": "docs/research/world_model_multiclient_contention_result_v1.json",
+      "sha256": "ecf49e8aef4e7df23c6c225cb7d44acc7627211862ca5231a04da0036eefe07d"
+    },
+    "multiclient_verification": {
+      "path": "docs/research/world_model_multiclient_contention_verification_v1.json",
+      "sha256": "9fc3c7b3af126ead535e9ce2469f62d9a5b35499750be739d3ff45c5bd7e9af0"
+    },
+    "natural_use_amendment_1": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v1.json",
+      "sha256": "81dd6103a110fd57c3ce5aa59ef58268a5d1e80372447c674bffe5f71ccd2068"
+    },
+    "natural_use_amendment_10": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v10.json",
+      "sha256": "fd621cd1cb4039c7cf2c0f52a64182b4610f1fbd1c9c5b3d5fd77b0e5674f927"
+    },
+    "natural_use_amendment_11": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v11.json",
+      "sha256": "ed90cd0a0ae7c57ffabfcd88370fe0098472548fee69291e2a256b165d62b521"
+    },
+    "natural_use_amendment_12": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v12.json",
+      "sha256": "8196d2922550d8ba2854f654d2f43c7fd2ea65c628ab1efa0b8d68c229b5dd4d"
+    },
+    "natural_use_amendment_13": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v13.json",
+      "sha256": "0cd48e873218d33a6770ae37962d2dbaafebe075efec29c64b08ece5b26fe106"
+    },
+    "natural_use_amendment_2": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v2.json",
+      "sha256": "8a4da379b26adf9f1275a4f3246dc8cab4faaa483f747f0f0ed9ec63f3f4cf8a"
+    },
+    "natural_use_amendment_3": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v3.json",
+      "sha256": "1f9653738c4652c934cd654f73d3ed3e0ccd892824544a1590c9f5acab70c69c"
+    },
+    "natural_use_amendment_4": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v4.json",
+      "sha256": "e9db5817a77383dbcd6822eadf723218a73db93bec693a2f6ecf40a9a1af72c4"
+    },
+    "natural_use_amendment_5": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v5.json",
+      "sha256": "15c540eb674b7f95c233df4596845e4e82abd3e39c020a3285bbb0cebc53848c"
+    },
+    "natural_use_amendment_6": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v6.json",
+      "sha256": "c5967f2f8c267fa1806068189b220322d84aeebbc02da26c79f53a69bc207498"
+    },
+    "natural_use_amendment_7": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v7.json",
+      "sha256": "2ae28916bc0204b0d36f6c6a98dfc50cba750390ec34e2477d5920a03c1d0b08"
+    },
+    "natural_use_amendment_8": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v8.json",
+      "sha256": "bb81256dc97c23355a092f5b7eb37ea79088d94b06521a8e06c7d23e51264226"
+    },
+    "natural_use_amendment_9": {
+      "path": "docs/research/world_model_natural_use_protocol_amendment_v9.json",
+      "sha256": "01ac63a6750cc0878823bb89ff1e6abaea3ca7c5e1927cb35c545762fd7d40f0"
+    },
+    "natural_use_prompts": {
+      "path": "docs/research/world_model_natural_use_prompts_v1.json",
+      "sha256": "bedd35cb3212266b767c774206e3c26e68309568d06397689f593d7499efed22"
+    },
+    "natural_use_protocol": {
+      "path": "docs/research/world_model_natural_use_protocol_v1.json",
+      "sha256": "a2862810274468d70e86a76e0991037af433070ce481a67d68f30660e287c12a"
+    },
+    "natural_use_result": {
+      "path": "docs/research/world_model_natural_use_result_v1.json",
+      "sha256": "d16639053e4d4a77949b5796269fbb3f9ac67d669b748ebc2587a246a9ed05e8"
+    },
+    "natural_use_telemetry": {
+      "path": "docs/research/world_model_natural_use_telemetry_v1.jsonl",
+      "sha256": "7bf5a11d9f3e7e62eec88d78af958afd097201dc4af21e21fb2edb81ede591eb"
+    },
+    "natural_use_verification": {
+      "path": "docs/research/world_model_natural_use_verification_v1.json",
+      "sha256": "49b0b14f57328e555f830fb43df8a552d007a8706a8956a10210f2bf54d67b8f"
     },
     "os_shadow_concurrency": {
       "path": "docs/research/world_model_v3_4_shadow_concurrency_v1.json",
@@ -98,11 +201,17 @@
   "headline": {
     "architecture_controlled_evidence": true,
     "distributional_and_causal_evidence": true,
+    "external_physical_data_direct_v5_compatible": false,
+    "externally_authored_physical_rows_intake": 2925558,
     "independent_benchmark": false,
     "live_physical_hil": false,
     "marginal_learned_hazards_avoided_ferrumos": 0,
     "marginal_learned_hazards_avoided_physical": 0,
     "os_authority_disabled_shadow": true,
+    "os_multiclient_preview_clients": 4,
+    "os_multiclient_preview_responses": 128,
+    "os_natural_use_records": 24,
+    "os_natural_use_sessions": 3,
     "physical_3d_stress_intervention_rate": 1.0,
     "physical_3d_stress_task_completion_rate": 0.0,
     "physical_actuator_disabled_recorded_sensor_replay": true,

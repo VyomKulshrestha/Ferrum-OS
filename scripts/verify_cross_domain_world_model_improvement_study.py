@@ -24,6 +24,16 @@ EVIDENCE = {
     "os_shadow_runtime": "world_model_v3_4_shadow_runtime_v1.json",
     "os_shadow_concurrency": "world_model_v3_4_shadow_concurrency_v1.json",
     "os_shadow_verification": "world_model_v3_4_shadow_verification_v1.json",
+    "multiclient_protocol": "world_model_multiclient_contention_protocol_v1.json",
+    "multiclient_result": "world_model_multiclient_contention_result_v1.json",
+    "multiclient_verification": "world_model_multiclient_contention_verification_v1.json",
+    "natural_use_protocol": "world_model_natural_use_protocol_v1.json",
+    "natural_use_prompts": "world_model_natural_use_prompts_v1.json",
+    "natural_use_result": "world_model_natural_use_result_v1.json",
+    "natural_use_verification": "world_model_natural_use_verification_v1.json",
+    "external_intake_protocol": "world_model_external_case_intake_protocol_v1.json",
+    "external_intake_result": "world_model_external_case_intake_result_v1.json",
+    "external_intake_verification": "world_model_external_case_intake_verification_v1.json",
     "physical_replay_protocol": "physical_jepa_recorded_hil_replay_protocol_v1.json",
     "physical_replay_amendment1": "physical_jepa_recorded_hil_replay_protocol_v1_amendment1.json",
     "physical_replay_amendment2": "physical_jepa_recorded_hil_replay_protocol_v1_amendment2.json",
@@ -32,6 +42,13 @@ EVIDENCE = {
     "physical_3d_protocol": "physical_jepa_multi_embodiment_3d_protocol_v1.json",
     "physical_3d_result": "physical_jepa_multi_embodiment_3d_result_v1.json",
     "physical_3d_verification": "physical_jepa_multi_embodiment_3d_verification_v1.json",
+}
+HASH_ONLY_EVIDENCE = {
+    "natural_use_telemetry": "world_model_natural_use_telemetry_v1.jsonl",
+    **{
+        f"natural_use_amendment_{number}": f"world_model_natural_use_protocol_amendment_v{number}.json"
+        for number in range(1, 14)
+    },
 }
 
 
@@ -68,6 +85,13 @@ def main() -> int:
         }
         for name, path in EVIDENCE.items()
     }
+    artifacts.update({
+        name: {
+            "path": f"docs/research/{path}",
+            "sha256": sha256(RESEARCH / path),
+        }
+        for name, path in HASH_ONLY_EVIDENCE.items()
+    })
     deployed = {
         name: sha256(ROOT / item["path"])
         for name, item in protocol["protected_deployed_artifacts"].items()
@@ -79,6 +103,12 @@ def main() -> int:
     architecture = records["architecture_result"]
     learned = records["learned_result"]
     os_shadow = records["os_shadow_verification"]
+    multiclient = records["multiclient_result"]
+    natural_use = records["natural_use_verification"]
+    external_intake = records["external_intake_result"]
+    external_physical_rows = sum(
+        item["rows"] for item in external_intake["sources"]["physical"]["files"]
+    )
     physical_replay = records["physical_replay_result"]
     physical_3d = records["physical_3d_result"]
     checks = {
@@ -109,6 +139,28 @@ def main() -> int:
         "independence_not_claimed": learned["independent_assessment"] is False,
         "os_shadow_verified": os_shadow["verification_passed"] is True
         and os_shadow["promotion_eligible"] is False,
+        "multiclient_contention_verified": records["multiclient_verification"]["verification_passed"] is True
+        and records["multiclient_verification"]["result"]["sha256"] == artifacts["multiclient_result"]["sha256"]
+        and multiclient["timed_responses"] == 128
+        and multiclient["jain_throughput_fairness"] >= 0.95
+        and multiclient["authority"]["execution_dataset_records_added"] == 0
+        and multiclient["promotion_eligible"] is False,
+        "natural_use_verified": natural_use["verification_passed"] is True
+        and natural_use["artifacts"]["telemetry"]["sha256"] == artifacts["natural_use_telemetry"]["sha256"]
+        and natural_use["artifacts"]["result"]["sha256"] == artifacts["natural_use_result"]["sha256"]
+        and natural_use["observed"]["sessions"] == 3
+        and natural_use["observed"]["records"] == 24
+        and len(natural_use["observed"]["action_classes"]) == 6
+        and natural_use["observed"]["background_model_pageins"] == 0
+        and natural_use["observed"]["physical_actuator_deliveries"] == 0
+        and natural_use["promotion_eligible"] is False,
+        "external_case_intake_verified": records["external_intake_verification"]["verification_passed"] is True
+        and records["external_intake_verification"]["result"]["sha256"] == artifacts["external_intake_result"]["sha256"]
+        and external_intake["acceptance_gates_passed"] is True
+        and external_intake["physical_compatibility"]["direct_physical_jepa_v5_replay_valid"] is False
+        and external_intake["authority"]["model_inference_calls"] == 0
+        and external_intake["authority"]["actuator_deliveries"] == 0
+        and external_intake["promotion_eligible"] is False,
         "physical_replay_verified": records["physical_replay_verification"][
             "verification_passed"
         ]
@@ -137,9 +189,15 @@ def main() -> int:
         and finite(learned)
         and finite(physical_replay)
         and finite(physical_3d),
+        "new_runtime_results_finite": finite(multiclient)
+        and finite(natural_use)
+        and finite(external_intake),
         "no_promotion": architecture["promotion_eligible"] is False
         and learned["promotion_eligible"] is False
         and os_shadow["promotion_eligible"] is False
+        and multiclient["promotion_eligible"] is False
+        and natural_use["promotion_eligible"] is False
+        and external_intake["promotion_eligible"] is False
         and physical_replay["promotion_eligible"] is False
         and physical_3d["promotion_eligible"] is False,
     }
@@ -165,7 +223,13 @@ def main() -> int:
             "marginal_learned_hazards_avoided_ferrumos": 0,
             "marginal_learned_hazards_avoided_physical": 0,
             "os_authority_disabled_shadow": True,
+            "os_natural_use_sessions": 3,
+            "os_natural_use_records": 24,
+            "os_multiclient_preview_clients": 4,
+            "os_multiclient_preview_responses": 128,
             "physical_actuator_disabled_recorded_sensor_replay": True,
+            "externally_authored_physical_rows_intake": external_physical_rows,
+            "external_physical_data_direct_v5_compatible": False,
             "physical_multi_embodiment_3d_stress": True,
             "physical_3d_stress_task_completion_rate": 0.0,
             "physical_3d_stress_intervention_rate": 1.0,
@@ -176,6 +240,9 @@ def main() -> int:
             "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
             "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
             "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+            "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
+            "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
+            "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
             "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
             "No protected deployed artifact was promoted or replaced by this study.",
         ],
