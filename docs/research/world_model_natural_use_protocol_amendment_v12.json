@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-12",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v11.json",
+    "sha256": "ed90cd0a0ae7c57ffabfcd88370fe0098472548fee69291e2a256b165d62b521"
+  },
+  "observed_implementation_failure": "The full desktop kernel task could stop draining input after an idle interval even though QEMU continued accepting hardware commands. This path is not required after the empty-goal fix prevents idle provider starvation.",
+  "changes": [
+    "Counted sessions use the product's auto-launched ambient assistant after ring3 init rather than entering the optional full desktop kernel task.",
+    "A valid session requires the ambient assistant window, visible controller focus action, pointer-claim serial marker, configuration reload and stable zero page-ins before prompts.",
+    "Full-desktop ownership, keyboard polling and audit fixes remain in the product but are not counted as natural-use evidence."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative, privacy, authority and no-actuation gates",
+    "local then tiny first-run choices and deterministic intent-adapter claim boundary"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "full-desktop scheduler diagnostics only; excluded with zero telemetry records"
+  }
+}
