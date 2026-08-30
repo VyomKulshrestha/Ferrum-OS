@@ -1,0 +1,25 @@
+{
+  "checks": {
+    "artifact": true,
+    "case_count": true,
+    "cell_counts": true,
+    "claim_boundary": true,
+    "finite": true,
+    "no_promotion": true,
+    "protocol": true,
+    "result_gates": true,
+    "simulated": true,
+    "summary_recomputes": true,
+    "union_monotone": true,
+    "zero_physical_actuator_authority": true
+  },
+  "claim_boundary": "This locally designed PyBullet DIRECT stress test adds software embodiment, obstacle-geometry, 3D-trajectory, contact, and simulated recovery diversity. It is not blinded, independently designed, live HIL, physical timing, robot deployment, or human-safety evidence.",
+  "promotion_eligible": false,
+  "protocol_id": "physical-jepa-v5-multi-embodiment-3d-stress-v1",
+  "result": {
+    "path": "docs/research/physical_jepa_multi_embodiment_3d_result_v1.json",
+    "sha256": "a6127c4f71721393199583e7588931db4cf3d47b703a326031946f2e7892b4f4"
+  },
+  "schema_version": 1,
+  "verification_passed": true
+}
