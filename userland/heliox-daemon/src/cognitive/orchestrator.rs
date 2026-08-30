@@ -556,6 +556,16 @@ impl Orchestrator {
             }
         }
 
+        // A configured provider is not itself an instruction to act.  The
+        // periodic ambient tick previously entered full model inference with
+        // an empty goal immediately after first-run setup, consuming the
+        // cooperative CPU before the assistant could accept its first real
+        // request.  Idle explicitly until a user, voice or controller source
+        // supplies a goal; non-empty goals retain the existing ReAct cadence.
+        if goal.trim().is_empty() {
+            return;
+        }
+
         if self.tick_count % self.config.tick_interval != 0 {
             return;
         }

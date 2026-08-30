@@ -930,7 +930,7 @@ pub fn run_local_inference_with_limit(
             unsafe { core::ptr::read_volatile(file_base.add(warm_off)) };
             warm_off += PAGE_SIZE;
             pages_touched += 1;
-            if pages_touched % 64 == 0 {
+            if pages_touched % 64 == 0 && warm_off < total_file_size {
                 unsafe { crate::syscall3(SYS_YIELD, 0, 0, 0) };
             }
         }
