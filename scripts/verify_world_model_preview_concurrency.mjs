@@ -28,7 +28,12 @@ const hostPort = await freeTcpPort();
 const requestCount = Number(process.env.FERRUMOS_PREVIEW_REQUESTS || 96);
 const outputIndex = process.argv.indexOf("--json-out");
 const outputPath = outputIndex >= 0 ? path.resolve(repo, process.argv[outputIndex + 1]) : null;
+const transitionIndex = process.argv.indexOf("--transition");
+const transitionPath = transitionIndex >= 0 ? path.resolve(repo, process.argv[transitionIndex + 1]) : null;
 if (!fs.existsSync(image) || !fs.existsSync(sourceDisk)) throw new Error("build the boot image and appliance disk first");
+if (transitionPath && !fs.existsSync(transitionPath)) throw new Error(`research transition not found: ${transitionPath}`);
+const digest = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+const sourceDiskSha256 = digest(sourceDisk);
 fs.copyFileSync(sourceDisk, runDisk);
 // Keep the daemon unconfigured so the test exercises only the bridge and
 // preview gate; no provider request or ambient action may race the batch.
@@ -37,6 +42,18 @@ const unlinkConfig = spawnSync("wsl", ["debugfs", "-w", "-R", "unlink /heliox/co
   cwd: repo, encoding: "utf8",
 });
 if (unlinkConfig.status !== 0) throw new Error(`failed to prepare isolated appliance disk: ${unlinkConfig.stderr}`);
+if (transitionPath) {
+  const relativeTransition = path.relative(repo, transitionPath).replaceAll("\\", "/");
+  for (const command of [
+    "unlink /heliox/world/model_learned.bin",
+    `write ${relativeTransition} /heliox/world/model_learned.bin`,
+  ]) {
+    const prepared = spawnSync("wsl", ["debugfs", "-w", "-R", command, relativeRunDisk], {
+      cwd: repo, encoding: "utf8",
+    });
+    if (prepared.status !== 0) throw new Error(`failed to inject research transition: ${prepared.stderr || prepared.stdout}`);
+  }
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const serialText = () => { try { return fs.readFileSync(serialLog, "utf8"); } catch { return ""; } };
@@ -154,6 +171,7 @@ try {
   if (datasetAfter !== datasetBefore) throw new Error("read-only preview emitted an execution dataset event");
   if (!/\[world-model-load-v1\].*encoder_loaded=1 transition_loaded=1/.test(log)) throw new Error("learned world model was not loaded");
   if (/panicked at|Page Fault|General Protection Fault|terminating userspace task/i.test(log)) throw new Error("guest fault detected");
+  if (digest(sourceDisk) !== sourceDiskSha256) throw new Error("packaged source disk changed during disposable shadow run");
   if (outputPath) {
     const report = {
       schema_version: 1,
@@ -169,6 +187,17 @@ try {
       learned_encoder_loaded: true,
       learned_transition_loaded: true,
       guest_fault_free: true,
+      authority_disabled: true,
+      transition: {
+        role: transitionPath ? "research candidate injected into disposable run-disk copy" : "packaged runtime artifact",
+        path: transitionPath ? path.relative(repo, transitionPath).replaceAll("\\", "/") : null,
+        sha256: transitionPath ? digest(transitionPath) : null,
+      },
+      packaged_source_disk: {
+        sha256_before: sourceDiskSha256,
+        sha256_after: digest(sourceDisk),
+        unchanged: sourceDiskSha256 === digest(sourceDisk),
+      },
       serial_sha256: crypto.createHash("sha256").update(log).digest("hex"),
       limitation: "The single-threaded daemon serializes preview inference; concurrency here means multiple outstanding requests with response correlation, not parallel neural execution.",
     };

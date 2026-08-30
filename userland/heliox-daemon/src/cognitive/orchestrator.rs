@@ -1302,25 +1302,30 @@ impl Orchestrator {
             tick_samples.sort_unstable();
             let middle = cycle_samples.len() / 2;
             let p95_index = (cycle_samples.len().saturating_sub(1) * 95) / 100;
+            let p99_index = (cycle_samples.len().saturating_sub(1) * 99) / 100;
             let median_cycles = cycle_samples[middle];
             let p95_cycles = cycle_samples[p95_index];
+            let p99_cycles = cycle_samples[p99_index];
             let max_cycles = cycle_samples.last().copied().unwrap_or(0);
             let median_us = tick_samples[middle].saturating_mul(1_000);
             let p95_us = tick_samples[p95_index].saturating_mul(1_000);
+            let p99_us = tick_samples[p99_index].saturating_mul(1_000);
             let max_us = tick_samples.last().copied().unwrap_or(0).saturating_mul(1_000);
             let batch_ticks = batch_end_tick.saturating_sub(batch_start_tick);
             let mean_us = batch_ticks.saturating_mul(1_000) / iterations as u64;
             let marker = format!(
-                "[heliox-daemon] [world-model-benchmark-v2] horizon={} iterations={} batch_ticks={} mean_us={} median_us={} p95_us={} max_us={} median_cycles={} p95_cycles={} max_cycles={} blocked={}\n",
+                "[heliox-daemon] [world-model-benchmark-v3] horizon={} iterations={} batch_ticks={} mean_us={} median_us={} p95_us={} p99_us={} max_us={} median_cycles={} p95_cycles={} p99_cycles={} max_cycles={} blocked={}\n",
                 horizon,
                 iterations,
                 batch_ticks,
                 mean_us,
                 median_us,
                 p95_us,
+                p99_us,
                 max_us,
                 median_cycles,
                 p95_cycles,
+                p99_cycles,
                 max_cycles,
                 blocked,
             );

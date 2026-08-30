@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
@@ -15,6 +15,8 @@ function arg(name, fallback) {
 }
 const iterations = Math.max(20, Math.min(2000, Number(arg("--iterations", "100"))));
 const outPath = path.resolve(arg("--json-out", path.join(repo, "target", "world_model_runtime_benchmark.json")));
+const transitionArgument = arg("--transition", "");
+const transition = transitionArgument ? path.resolve(transitionArgument) : null;
 const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
 const sourceDisk = path.join(repo, "target", "heliox-disk.img");
 const runId = `${process.pid}-${Date.now()}`;
@@ -25,10 +27,25 @@ let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe"
 if (!fs.existsSync(qemu) && fs.existsSync("C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe")) {
   qemu = "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe";
 }
-for (const required of [image, sourceDisk, qemu]) {
+for (const required of [image, sourceDisk, qemu, ...(transition ? [transition] : [])]) {
   if (!fs.existsSync(required)) throw new Error(`required file not found: ${required}`);
 }
+const digest = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+const sourceDiskSha256 = digest(sourceDisk);
 fs.copyFileSync(sourceDisk, runDisk);
+if (transition) {
+  const relativeRunDisk = path.relative(repo, runDisk).replaceAll("\\", "/");
+  const relativeTransition = path.relative(repo, transition).replaceAll("\\", "/");
+  for (const command of [
+    "unlink /heliox/world/model_learned.bin",
+    `write ${relativeTransition} /heliox/world/model_learned.bin`,
+  ]) {
+    const prepared = spawnSync("wsl", ["debugfs", "-w", "-R", command, relativeRunDisk], {
+      cwd: repo, encoding: "utf8",
+    });
+    if (prepared.status !== 0) throw new Error(`candidate shadow disk preparation failed: ${prepared.stderr || prepared.stdout}`);
+  }
+}
 fs.rmSync(serialLog, { force: true });
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const serialText = () => { try { return fs.readFileSync(serialLog, "utf8"); } catch { return ""; } };
@@ -101,23 +118,24 @@ try {
   await waitForSerial("[world-model-benchmark-memory-v1]", 180, start);
   const text = serialText();
   assert.doesNotMatch(text, /KERNEL PANIC|panicked at|userspace fault|page fault/i);
-  const pattern = /\[world-model-benchmark-v2\] horizon=(\d+) iterations=(\d+) batch_ticks=(\d+) mean_us=(\d+) median_us=(\d+) p95_us=(\d+) max_us=(\d+) median_cycles=(\d+) p95_cycles=(\d+) max_cycles=(\d+) blocked=(\d+)/g;
+  const pattern = /\[world-model-benchmark-v3\] horizon=(\d+) iterations=(\d+) batch_ticks=(\d+) mean_us=(\d+) median_us=(\d+) p95_us=(\d+) p99_us=(\d+) max_us=(\d+) median_cycles=(\d+) p95_cycles=(\d+) p99_cycles=(\d+) max_cycles=(\d+) blocked=(\d+)/g;
   const horizons = [];
   let match;
   while ((match = pattern.exec(text)) !== null) {
     horizons.push({
       horizon: Number(match[1]), iterations: Number(match[2]), batch_ticks: Number(match[3]),
       mean_microseconds: Number(match[4]), median_microseconds: Number(match[5]),
-      p95_microseconds: Number(match[6]), max_microseconds: Number(match[7]),
-      median_cycles: Number(match[8]), p95_cycles: Number(match[9]), max_cycles: Number(match[10]),
-      blocked_previews: Number(match[11]),
+      p95_microseconds: Number(match[6]), p99_microseconds: Number(match[7]), max_microseconds: Number(match[8]),
+      median_cycles: Number(match[9]), p95_cycles: Number(match[10]), p99_cycles: Number(match[11]),
+      max_cycles: Number(match[12]), blocked_previews: Number(match[13]),
     });
   }
   assert.deepEqual(horizons.map((row) => row.horizon), [1, 2, 3, 4, 5]);
   assert.ok(horizons.every((row) => row.iterations === iterations));
   assert.ok(horizons.every((row) => row.median_cycles > 0 && row.p95_cycles >= row.median_cycles));
-  assert.ok(horizons.every((row) => row.max_cycles >= row.p95_cycles));
-  assert.ok(horizons.every((row) => row.p95_microseconds >= row.median_microseconds && row.max_microseconds >= row.p95_microseconds));
+  assert.ok(horizons.every((row) => row.p99_cycles >= row.p95_cycles && row.max_cycles >= row.p99_cycles));
+  assert.ok(horizons.every((row) => row.p95_microseconds >= row.median_microseconds
+    && row.p99_microseconds >= row.p95_microseconds && row.max_microseconds >= row.p99_microseconds));
   const memoryMatch = text.match(/\[world-model-benchmark-memory-v1\] heap_before=(\d+) heap_after=(\d+) heap_delta=(\d+) encoder_file_bytes=(\d+) transition_file_bytes=(\d+) runtime_parameters=(\d+) encoder_loaded=([01]) transition_loaded=([01])/);
   assert.ok(memoryMatch, "missing memory benchmark marker");
   const loadMatch = text.match(/\[world-model-load-v1\] cycles=(\d+) ticks=(\d+) encoder_loaded=([01]) transition_loaded=([01])/);
@@ -140,9 +158,20 @@ try {
   assert.ok(modelLoad.cycles > 0 && modelLoad.encoder_loaded && modelLoad.transition_loaded);
   const report = {
     schema_version: 2,
-    protocol: "in-guest-world-model-runtime-benchmark-v2",
+    protocol: "in-guest-world-model-runtime-benchmark-v3",
     accelerator, ram_mb: 512, iterations_per_horizon: iterations, warmup_previews: 64,
-    scope: "ring-3 Heliox capture + encoder + transition + safety predicate preview; no action dispatch",
+    scope: "ring-3 Heliox capture + encoder + transition + safety predicate preview; authority disabled and no action dispatch",
+    authority_disabled: true,
+    transition: {
+      role: transition ? "research candidate injected into disposable run-disk copy" : "packaged runtime artifact",
+      path: transition ? path.relative(repo, transition).replaceAll("\\", "/") : "target/heliox-disk.img:/heliox/world/model_learned.bin",
+      sha256: transition ? digest(transition) : null,
+    },
+    packaged_source_disk: {
+      sha256_before: sourceDiskSha256,
+      sha256_after: digest(sourceDisk),
+      unchanged: sourceDiskSha256 === digest(sourceDisk),
+    },
     horizons, memory, model_load: modelLoad,
     serial_sha256: crypto.createHash("sha256").update(text).digest("hex"),
     limitations: [
@@ -154,8 +183,9 @@ try {
   };
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+  assert.ok(report.packaged_source_disk.unchanged);
   console.log(`PASS\tmeasured H=1..5 in the real ring-3 gate (${iterations} previews each)`);
-  console.log("PASS\tguest PIT mean/median/p95 time and raw TSC cycle distributions recorded");
+  console.log("PASS\tguest PIT mean/median/p95/p99 time and raw TSC cycle distributions recorded");
   console.log("PASS\tmodel load time, load state, and heap growth recorded without a guest fault");
   console.log(`3/3 checks passed\n${outPath}`);
 } finally {
