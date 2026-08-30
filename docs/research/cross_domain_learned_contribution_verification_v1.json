@@ -1,0 +1,152 @@
+{
+  "promotion_eligible": false,
+  "protocol_id": "cross-domain-learned-contribution-v1",
+  "result_checks": {
+    "all_values_finite": true,
+    "catalogs_verify": true,
+    "evaluation_passed": true,
+    "evidence_class_matches": true,
+    "ferrumos_catalog_digest": true,
+    "ferrumos_frozen_calibration": true,
+    "ferrumos_metric_shape": true,
+    "independent_assessment_not_claimed": true,
+    "opened_once": true,
+    "physical_catalog_digest": true,
+    "physical_frozen_calibration": true,
+    "physical_metric_shape": true,
+    "promotion_disabled": true,
+    "protected_deployed_digests_match": true,
+    "protocol_digest_matches": true,
+    "protocol_id_matches": true,
+    "recorded_checks_pass": true,
+    "selection_digest_matches": true,
+    "single_final_stage": true
+  },
+  "result_details": {
+    "catalog_checks": {
+      "ferrumos": {
+        "case_count_matches": true,
+        "cases_reproduce_exactly": true,
+        "domain_matches": true,
+        "protocol_id_matches": true,
+        "required_fields_present": true,
+        "seed_matches": true,
+        "software_evidence_label": true
+      },
+      "physical": {
+        "case_count_matches": true,
+        "cases_reproduce_exactly": true,
+        "domain_matches": true,
+        "protocol_id_matches": true,
+        "required_fields_present": true,
+        "seed_matches": true,
+        "software_evidence_label": true
+      }
+    },
+    "metric_checks": {
+      "ferrumos": {
+        "all_values_finite": true,
+        "balanced_labels": true,
+        "bootstrap_resamples": true,
+        "case_count": true,
+        "counterfactual_pair_count": true,
+        "coverage_curve": true,
+        "multi_action_horizons": true,
+        "reliability_bins": true,
+        "rule_blocks_not_erased": true,
+        "threshold_in_grid": true
+      },
+      "physical": {
+        "all_values_finite": true,
+        "balanced_labels": true,
+        "bootstrap_resamples": true,
+        "case_count": true,
+        "counterfactual_pair_count": true,
+        "coverage_curve": true,
+        "multi_action_horizons": true,
+        "reliability_bins": true,
+        "rule_blocks_not_erased": true,
+        "threshold_in_grid": true
+      }
+    },
+    "protected_deployed_artifacts": {
+      "ferrumos_encoder": true,
+      "ferrumos_manifest": true,
+      "ferrumos_transition": true,
+      "physical_transition": true
+    }
+  },
+  "result_sha256": "1c6e40356726e7b294890eaa1aa7be9ae12428c457d45475fac823509236b351",
+  "result_verified": true,
+  "schema_version": 1,
+  "selection_checks": {
+    "all_values_finite": true,
+    "checkpoints_match": true,
+    "domains_match": true,
+    "ferrumos_method": true,
+    "ferrumos_metric_shape": true,
+    "final_catalog_state_consistent": true,
+    "final_not_opened": true,
+    "frozen_inputs_match": true,
+    "physical_method": true,
+    "physical_metric_shape": true,
+    "promotion_disabled": true,
+    "protected_deployed_digests_match": true,
+    "protocol_digest_matches": true,
+    "protocol_id_matches": true,
+    "recorded_checks_pass": true,
+    "selection_passed": true,
+    "validation_only_stage": true
+  },
+  "selection_details": {
+    "checkpoints": {
+      "ferrumos_gru_dynamics_101": true,
+      "ferrumos_gru_dynamics_17": true,
+      "ferrumos_gru_dynamics_43": true,
+      "physical_action_conditioned_jepa_101": true,
+      "physical_action_conditioned_jepa_17": true,
+      "physical_action_conditioned_jepa_43": true
+    },
+    "frozen_inputs": {
+      "architecture_protocol": true,
+      "architecture_result": true,
+      "architecture_selection": true,
+      "architecture_verification": true
+    },
+    "metric_checks": {
+      "ferrumos": {
+        "all_values_finite": true,
+        "balanced_labels": true,
+        "bootstrap_resamples": true,
+        "case_count": true,
+        "counterfactual_pair_count": true,
+        "coverage_curve": true,
+        "multi_action_horizons": true,
+        "reliability_bins": true,
+        "rule_blocks_not_erased": true,
+        "threshold_in_grid": true
+      },
+      "physical": {
+        "all_values_finite": true,
+        "balanced_labels": true,
+        "bootstrap_resamples": true,
+        "case_count": true,
+        "counterfactual_pair_count": true,
+        "coverage_curve": true,
+        "multi_action_horizons": true,
+        "reliability_bins": true,
+        "rule_blocks_not_erased": true,
+        "threshold_in_grid": true
+      }
+    },
+    "protected_deployed_artifacts": {
+      "ferrumos_encoder": true,
+      "ferrumos_manifest": true,
+      "ferrumos_transition": true,
+      "physical_transition": true
+    }
+  },
+  "selection_sha256": "c5c7d5c94ab59ec4270c32947a958231570888fc2efe9053c0c5688fb2f6bf51",
+  "selection_verified": true,
+  "verification_passed": true
+}

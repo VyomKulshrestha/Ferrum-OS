@@ -93,7 +93,9 @@ def verify_metric_shape(domain: str, metric: dict, protocol: dict, final: bool) 
     return checks
 
 
-def verify_selection(protocol: dict, selection: dict) -> tuple[dict, dict]:
+def verify_selection(
+    protocol: dict, selection: dict, after_final: bool = False
+) -> tuple[dict, dict]:
     frozen = audit.verify_frozen(protocol)
     catalogs = audit.catalog_paths(protocol)
     checkpoints = verify_checkpoints(selection)
@@ -106,7 +108,11 @@ def verify_selection(protocol: dict, selection: dict) -> tuple[dict, dict]:
         "promotion_disabled": selection["promotion_eligible"] is False,
         "recorded_checks_pass": all(selection["checks"].values()),
         "frozen_inputs_match": all(frozen.values()),
-        "final_catalogs_absent": not any(path.exists() for path in catalogs.values()),
+        "final_catalog_state_consistent": (
+            all(path.exists() for path in catalogs.values())
+            if after_final
+            else not any(path.exists() for path in catalogs.values())
+        ),
         "checkpoints_match": all(checkpoints.values()),
         "domains_match": set(selection["domains"]) == {"ferrumos", "physical"},
         "all_values_finite": finite(selection),
@@ -213,7 +219,9 @@ def main() -> int:
     args = parser.parse_args()
     protocol = load(PROTOCOL)
     selection = load(SELECTION)
-    selection_checks, selection_details = verify_selection(protocol, selection)
+    selection_checks, selection_details = verify_selection(
+        protocol, selection, after_final=not args.selection_only
+    )
     payload = {
         "schema_version": 1,
         "protocol_id": protocol["protocol_id"],
