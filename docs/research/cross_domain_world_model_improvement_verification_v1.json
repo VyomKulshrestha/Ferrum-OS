@@ -1,0 +1,120 @@
+{
+  "checks": {
+    "all_results_finite": true,
+    "architecture_final_opened_once": true,
+    "architecture_selection_never_opened_final": true,
+    "architecture_verified": true,
+    "independence_not_claimed": true,
+    "learned_benchmark_verified": true,
+    "learned_final_opened_once": true,
+    "learned_marginal_result_reported_honestly": true,
+    "learned_selection_never_opened_final": true,
+    "live_hil_not_claimed": true,
+    "no_promotion": true,
+    "os_shadow_verified": true,
+    "physical_actuator_authority_zero": true,
+    "physical_replay_verified": true,
+    "protected_deployed_artifacts_unchanged": true
+  },
+  "claim_boundary": [
+    "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
+    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
+    "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+    "No protected deployed artifact was promoted or replaced by this study."
+  ],
+  "evidence": {
+    "architecture_result": {
+      "path": "docs/research/cross_domain_world_model_architecture_result_v1.json",
+      "sha256": "08c8c3ed38a8d835b8e4a0880501346309bd0200b019dbfa9fbdfd6d2ce2346e"
+    },
+    "architecture_selection": {
+      "path": "docs/research/cross_domain_world_model_selection_v1.json",
+      "sha256": "d9b97fdd17045f6e1747907fc68f4098f182c302b95d04103f3fc24b625c38b5"
+    },
+    "architecture_verification": {
+      "path": "docs/research/cross_domain_world_model_verification_v1.json",
+      "sha256": "427b452cee0bec5ada0d3a8fa8383f3684c7296b6aebddd9469e69b26892f38e"
+    },
+    "learned_result": {
+      "path": "docs/research/cross_domain_learned_contribution_result_v1.json",
+      "sha256": "1c6e40356726e7b294890eaa1aa7be9ae12428c457d45475fac823509236b351"
+    },
+    "learned_selection": {
+      "path": "docs/research/cross_domain_learned_contribution_selection_v1.json",
+      "sha256": "c5c7d5c94ab59ec4270c32947a958231570888fc2efe9053c0c5688fb2f6bf51"
+    },
+    "learned_verification": {
+      "path": "docs/research/cross_domain_learned_contribution_verification_v1.json",
+      "sha256": "8c1f070ec44df503f837dcf75921e30dc0e1bbcf4e0374abdbc549c3fd4022f8"
+    },
+    "os_shadow_concurrency": {
+      "path": "docs/research/world_model_v3_4_shadow_concurrency_v1.json",
+      "sha256": "02fa7ecd5b9cdcc2c8705e57cabc91fd6b98bfe0e0c83c0bf820e91ca536226b"
+    },
+    "os_shadow_runtime": {
+      "path": "docs/research/world_model_v3_4_shadow_runtime_v1.json",
+      "sha256": "2fa5f00b08a25e50de20df1d363881c12c8ba81f6d9c032d2cad7680a19a1c4f"
+    },
+    "os_shadow_verification": {
+      "path": "docs/research/world_model_v3_4_shadow_verification_v1.json",
+      "sha256": "4a74847a85657140d9ce4bd07e9d9c4d4819321b330bad85553730bf67fc5fa5"
+    },
+    "physical_replay_amendment1": {
+      "path": "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment1.json",
+      "sha256": "87f85e9e5a7ea891d192fd12f8a04006d602f57bd3570761390141372916acc3"
+    },
+    "physical_replay_amendment2": {
+      "path": "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment2.json",
+      "sha256": "b94c48f59e2fbeadeb6a93c0bf152c8fdf06b95af7cd5d29ca19e9ec0f21ff18"
+    },
+    "physical_replay_protocol": {
+      "path": "docs/research/physical_jepa_recorded_hil_replay_protocol_v1.json",
+      "sha256": "b3cae76e7dd03ce872e9f2b2302d8b0454eeed03b2a956bd68481285b398d7e5"
+    },
+    "physical_replay_result": {
+      "path": "docs/research/physical_jepa_recorded_hil_replay_result_v1.json",
+      "sha256": "f1627d41ddeeb32476fc81f0f0766ed940b4d137f7bcdf08470c3b20ea0b69fc"
+    },
+    "physical_replay_verification": {
+      "path": "docs/research/physical_jepa_recorded_hil_replay_verification_v1.json",
+      "sha256": "08d99d3ec7b5a5483f8da1c723a6ed0e8441c296e92a94b38bce30ad51166797"
+    }
+  },
+  "headline": {
+    "architecture_controlled_evidence": true,
+    "distributional_and_causal_evidence": true,
+    "independent_benchmark": false,
+    "live_physical_hil": false,
+    "marginal_learned_hazards_avoided_ferrumos": 0,
+    "marginal_learned_hazards_avoided_physical": 0,
+    "os_authority_disabled_shadow": true,
+    "physical_actuator_disabled_recorded_sensor_replay": true
+  },
+  "promotion_eligible": false,
+  "protected_deployed_artifacts": {
+    "ferrumos_encoder": {
+      "expected_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "observed_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "unchanged": true
+    },
+    "ferrumos_manifest": {
+      "expected_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "observed_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "unchanged": true
+    },
+    "ferrumos_transition": {
+      "expected_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "observed_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "unchanged": true
+    },
+    "physical_transition": {
+      "expected_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "observed_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "unchanged": true
+    }
+  },
+  "protocol_id": "cross-domain-world-model-improvement-v1",
+  "protocol_sha256": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b",
+  "schema_version": 1,
+  "verification_passed": true
+}
