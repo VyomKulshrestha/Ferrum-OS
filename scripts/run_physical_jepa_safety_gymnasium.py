@@ -223,6 +223,8 @@ def run_episode(
     recovery_brake_remaining = 0
     recovery_turn_remaining = 0
     recovery_bypass_remaining = 0
+    adaptive_phase: str | None = None
+    adaptive_steps = 0
     try:
         for step in range(protocol["episode"]["maximum_steps"]):
             proposed, goal_angle = proposal(observation, protocol["episode"])
@@ -247,7 +249,8 @@ def run_episode(
                 "rules_plus_learned": rule_block or learned_block,
             }[arm]
             state_machine_active = (
-                recovery_brake_remaining > 0
+                adaptive_phase is not None
+                or recovery_brake_remaining > 0
                 or recovery_turn_remaining > 0
                 or recovery_bypass_remaining > 0
             )
@@ -258,7 +261,59 @@ def run_episode(
             dangerous = bool(oracle_cost > 0.0 or oracle_info.get("cost_hazards", 0.0) > 0.0)
 
             recovery_phase = "none"
-            if state_machine_active:
+            if adaptive_phase is not None:
+                adaptive_steps += 1
+                if adaptive_phase == "brake":
+                    actual = np.asarray(
+                        [policy["recovery_brake_forward"], 0.0], dtype=np.float64
+                    )
+                    recovery_phase = "brake"
+                    if (
+                        adaptive_steps >= policy["adaptive_brake_min_steps"]
+                        and hazard_closeness
+                        <= policy["adaptive_brake_release_closeness"]
+                    ) or adaptive_steps >= policy["adaptive_brake_max_steps"]:
+                        adaptive_phase = "turn"
+                        adaptive_steps = 0
+                elif adaptive_phase == "turn":
+                    actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
+                    recovery_phase = "turn"
+                    hazard_start, hazard_end = protocol["episode"][
+                        "proposal_controller"
+                    ]["hazards_lidar_slice"]
+                    hazard_index = int(np.argmax(observation[hazard_start:hazard_end]))
+                    hazard_angle = (
+                        hazard_index
+                        * 2.0
+                        * math.pi
+                        / protocol["episode"]["proposal_controller"]["lidar_bins"]
+                    )
+                    if hazard_angle > math.pi:
+                        hazard_angle -= 2.0 * math.pi
+                    if (
+                        adaptive_steps >= policy["adaptive_turn_min_steps"]
+                        and abs(hazard_angle) >= policy["adaptive_turn_release_radians"]
+                    ) or adaptive_steps >= policy["adaptive_turn_max_steps"]:
+                        adaptive_phase = "bypass"
+                        adaptive_steps = 0
+                else:
+                    actual = np.asarray(
+                        [
+                            policy["recovery_bypass_forward"],
+                            recovery_sign * policy["recovery_bypass_turn"],
+                        ],
+                        dtype=np.float64,
+                    )
+                    recovery_phase = "bypass"
+                    if (
+                        adaptive_steps >= policy["adaptive_bypass_min_steps"]
+                        and hazard_closeness
+                        <= policy["adaptive_bypass_release_closeness"]
+                    ) or adaptive_steps >= policy["adaptive_bypass_max_steps"]:
+                        adaptive_phase = None
+                        adaptive_steps = 0
+                        recovery_sign = None
+            elif state_machine_active:
                 if recovery_brake_remaining > 0:
                     actual = np.asarray(
                         [policy["recovery_brake_forward"], 0.0], dtype=np.float64
@@ -281,6 +336,19 @@ def run_episode(
                     recovery_phase = "bypass"
                     if recovery_bypass_remaining == 0:
                         recovery_sign = None
+            elif base_block and policy.get("recovery_mode") == "adaptive":
+                _, recovery_sign = fallback_action(
+                    observation,
+                    protocol["episode"],
+                    seed,
+                    recovery_sign,
+                )
+                adaptive_phase = "brake"
+                adaptive_steps = 1
+                actual = np.asarray(
+                    [policy["recovery_brake_forward"], 0.0], dtype=np.float64
+                )
+                recovery_phase = "brake"
             elif base_block and "recovery_turn_steps" in policy:
                 _, recovery_sign = fallback_action(
                     observation,
