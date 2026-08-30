@@ -552,6 +552,9 @@ impl Orchestrator {
                 for (tool_name, success, output) in &actions {
                     self.verify_and_reflect(tool_name, *success, output);
                 }
+                self.planner.clear_goal();
+                self.last_intent_goal.clear();
+                self.last_fused_goal.clear();
                 return;
             }
         }

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-13",
+  "registration_date": "2026-08-30",
+  "status": "registered before any complete valid natural-use session",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v12.json",
+    "sha256": "8196d2922550d8ba2854f654d2f43c7fd2ea65c628ab1efa0b8d68c229b5dd4d"
+  },
+  "observed_implementation_failure": "A deterministic intent executed and verified correctly, but its planner goal remained active. A later periodic tick therefore entered language-model inference for an already completed request and blocked the next prompt.",
+  "changes": [
+    "After deterministic intent execution and verification, the planner goal and intent/fusion comparison keys are cleared.",
+    "A repeated future natural request is therefore treated as a new explicit goal rather than suppressed as a duplicate.",
+    "A valid session must remain at zero language-model page-ins after every deterministic prompt."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "all quantitative, privacy, authority and no-actuation gates"
+  ],
+  "pre_amendment_attempts": {
+    "complete_valid_sessions": 0,
+    "excluded_telemetry_records": 1,
+    "excluded_prompt": "session 1 prompt 1",
+    "disposition": "partial diagnostic boot excluded in full; disposable disk destroyed"
+  }
+}

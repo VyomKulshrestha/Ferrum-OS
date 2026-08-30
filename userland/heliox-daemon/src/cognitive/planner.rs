@@ -267,6 +267,10 @@ impl Planner {
         self.current_plan = Some(plan);
     }
 
+    pub fn clear_goal(&mut self) {
+        self.current_plan = None;
+    }
+
     /// Get a mutable reference to the current plan.
     pub fn plan_mut(&mut self) -> Option<&mut Plan> {
         self.current_plan.as_mut()
