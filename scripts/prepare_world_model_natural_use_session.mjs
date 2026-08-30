@@ -30,8 +30,11 @@ fs.rmSync(serialLog, { force: true });
 
 const relativeRunDisk = path.relative(repo, runDisk).replaceAll("\\", "/");
 const relativeTransition = path.relative(repo, transitionPath).replaceAll("\\", "/");
+const relativeReadme = "docs/research/world_model_natural_use_readme_v1.txt";
 for (const command of [
   "unlink /heliox/config.json",
+  "mkdir /tmp",
+  `write ${relativeReadme} /README.txt`,
   "unlink /heliox/world/model_learned.bin",
   `write ${relativeTransition} /heliox/world/model_learned.bin`,
 ]) {
@@ -67,6 +70,7 @@ const runtime = {
   input_boundary: "Windows Computer Use against the visible QEMU window",
   setup_mode: "assistant first-run wizard: local then tiny",
   effective_tick_interval: 100,
+  intent_boundary: "deterministic common-OS intent adapter; every tool call remains capability and world-model gated",
 };
 fs.writeFileSync(runtimePath, JSON.stringify(runtime, null, 2) + "\n");
 const controller = spawn(
