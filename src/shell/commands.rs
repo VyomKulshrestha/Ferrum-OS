@@ -883,7 +883,15 @@ fn cmd_run(args: &[&str]) {
         return;
     };
 
-    match crate::userspace::launch(args[0], &held) {
+    let result = match args[0] {
+        "heliox-assistant-panel" | "text-editor" | "calculator" | "file-manager"
+        | "settings" | "browser" | "notification-center" | "task-manager" => {
+            crate::userspace::launch_embedded_app(args[0])
+        }
+        _ => crate::userspace::launch(args[0], &held),
+    };
+
+    match result {
         Ok(pid) => println!("launched {} as userspace pid {}", args[0], pid),
         Err(err) => println!("run: {}", err),
     }
