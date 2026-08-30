@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "amendment_id": "physical-jepa-v5-recorded-hil-sensor-replay-v1-label-precision-amendment2",
+  "parent_amendment": "docs/research/physical_jepa_recorded_hil_replay_protocol_v1_amendment1.json",
+  "parent_amendment_sha256": "87f85e9e5a7ea891d192fd12f8a04006d602f57bd3570761390141372916acc3",
+  "registration_date": "2026-08-30",
+  "trigger": "A pre-execution alignment check showed that HAI 23.05 label-test2.csv contains 230400 row labels but only 3841 distinct minute-resolution timestamps. Its timestamp column matches the minute-floor of hai-test2.csv at all 230400 row positions; the first minute has 59 rows and the last has one row, matching the data file exactly.",
+  "evaluation_state_before_amendment": {
+    "predictions_computed": 0,
+    "metrics_computed": 0,
+    "result_file_written": false,
+    "artifact_modified": false
+  },
+  "superseded_requirement": "Amendment 1 required unique label timestamps and exact timestamp-key alignment. That rule is infeasible for the source-provided minute-resolution test2 label timestamps and was never used for an evaluation.",
+  "permitted_change": "Use strict positional alignment only when data and label row counts are identical and every label timestamp equals the corresponding data timestamp after reducing data timestamps to the label file's observed precision. Use exact second-resolution positional equality otherwise.",
+  "alignment_requirements": [
+    "data and label row counts must be identical",
+    "test1 requires exact second-resolution timestamp equality at every row",
+    "test2 requires equality between every label timestamp and the corresponding data timestamp floored to one minute",
+    "labels for transitions are labels[1:] filtered by the same one-second continuity mask as projected transitions",
+    "projected transition timestamps must equal data timestamps[1:] under that continuity mask",
+    "no row shifting, nearest-neighbour matching, interpolation, forward fill or imputation is permitted",
+    "data and label digests remain unchanged"
+  ],
+  "unchanged": [
+    "frozen artifact and digest",
+    "projection statistics",
+    "replay files and label values",
+    "all perturbation conditions",
+    "random seed",
+    "metrics and acceptance gates",
+    "authority and claim boundaries"
+  ]
+}
