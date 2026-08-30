@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "amendment_id": "ferrumos-world-model-computer-controlled-natural-use-v1-amendment-4",
+  "registration_date": "2026-08-30",
+  "status": "registered before any valid natural-use telemetry record",
+  "parent_amendment": {
+    "path": "docs/research/world_model_natural_use_protocol_amendment_v3.json",
+    "sha256": "1f9653738c4652c934cd654f73d3ed3e0ccd892824544a1590c9f5acab70c69c"
+  },
+  "observed_implementation_failure": "After local setup, an empty ambient goal triggered provider inference at the next periodic tick. This prefaulted the language-model checkpoint and starved the assistant before a user request existed.",
+  "changes": [
+    "The orchestrator now idles when no explicit goal exists; configuring a provider alone is not authority to infer or act.",
+    "The pre-prompt quiescence gate is 15 seconds after configuration reload with a stable page-in count. A corrected idle boot is expected to have zero language-model page-ins.",
+    "The local-inference prefault loop no longer yields after its final page, preventing a terminal cooperative yield when inference is actually requested."
+  ],
+  "unchanged": [
+    "all 24 frozen prompt texts and their order",
+    "local then tiny first-run choices",
+    "full desktop and visible input-ownership gates",
+    "all quantitative and privacy gates",
+    "three independent disposable boots",
+    "no synthetic collection hook or direct execute_tool JSON-RPC",
+    "no physical actuation and unchanged source disk",
+    "no artifact promotion",
+    "deterministic intent-adapter claim boundary"
+  ],
+  "pre_amendment_attempts": {
+    "valid_sessions": 0,
+    "valid_telemetry_records": 0,
+    "disposition": "setup and input-delivery diagnostics only; excluded with zero telemetry records"
+  }
+}
