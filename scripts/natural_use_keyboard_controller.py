@@ -73,6 +73,19 @@ def send_alt_tab(port: int) -> None:
         time.sleep(0.75)
 
 
+def claim_desktop_input(port: int) -> None:
+    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
+        monitor.settimeout(0.2)
+        try:
+            monitor.recv(4096)
+        except TimeoutError:
+            pass
+        monitor.sendall(b"mouse_button 1\n")
+        time.sleep(0.25)
+        monitor.sendall(b"mouse_button 0\n")
+        time.sleep(0.25)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime", type=Path, required=True)
@@ -147,6 +160,15 @@ def main() -> None:
         font=("Segoe UI", 10),
     )
     switch_button.pack(padx=16, pady=4, anchor="w")
+    claim_button = tk.Button(
+        window,
+        text="Claim guest desktop input (click)",
+        command=lambda: threading.Thread(
+            target=claim_desktop_input, args=(int(runtime["monitor_port"]),), daemon=True
+        ).start(),
+        font=("Segoe UI", 10),
+    )
+    claim_button.pack(padx=16, pady=4, anchor="w")
     tk.Label(window, textvariable=status, font=("Segoe UI", 10)).pack(padx=16, pady=8, anchor="w")
     editor.focus_set()
     window.mainloop()
