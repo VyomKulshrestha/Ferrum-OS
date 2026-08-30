@@ -44,7 +44,7 @@ def send_text(port: int, text: str) -> None:
             pass
         for character in text:
             monitor.sendall(f"sendkey {hmp_key(character)} 20\n".encode("ascii"))
-            time.sleep(0.20)
+            time.sleep(0.50)
         time.sleep(0.25)
         monitor.sendall(b"sendkey ret 20\n")
         time.sleep(0.25)
