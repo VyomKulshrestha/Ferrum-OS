@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import heapq
 from importlib.metadata import version
 import json
 import math
@@ -109,6 +110,92 @@ def proposal(observation: np.ndarray, episode: dict) -> tuple[np.ndarray, float]
         np.clip(episode["proposal_controller"]["turn_gain"] * angle, -1.0, 1.0)
     )
     return np.asarray([forward, turn], dtype=np.float64), angle
+
+
+def grid_plan(main_env, policy: dict, episode: dict) -> list[np.ndarray]:
+    task = main_env.unwrapped.task
+    resolution = episode["proposal_controller"]["grid_resolution"]
+    bound = episode["proposal_controller"]["grid_bound"]
+    inflation = policy["planner_hazard_inflation"]
+    start_xy = np.asarray(task.agent.pos[:2], dtype=np.float64)
+    goal_xy = np.asarray(task.goal.pos[:2], dtype=np.float64)
+    hazards = [np.asarray(item[:2], dtype=np.float64) for item in task.hazards.pos]
+
+    def cell(point: np.ndarray) -> tuple[int, int]:
+        return (
+            round((float(point[0]) + bound) / resolution),
+            round((float(point[1]) + bound) / resolution),
+        )
+
+    def point(index: tuple[int, int]) -> np.ndarray:
+        return np.asarray(
+            [index[0] * resolution - bound, index[1] * resolution - bound],
+            dtype=np.float64,
+        )
+
+    start = cell(start_xy)
+    goal = cell(goal_xy)
+    maximum = round(2.0 * bound / resolution)
+
+    def blocked(index: tuple[int, int]) -> bool:
+        if index[0] < 0 or index[1] < 0 or index[0] > maximum or index[1] > maximum:
+            return True
+        location = point(index)
+        return any(np.linalg.norm(location - hazard) < inflation for hazard in hazards)
+
+    neighbors = (
+        (-1, 0), (1, 0), (0, -1), (0, 1),
+        (-1, -1), (-1, 1), (1, -1), (1, 1),
+    )
+    queue: list[tuple[float, tuple[int, int]]] = [(0.0, start)]
+    costs = {start: 0.0}
+    parents: dict[tuple[int, int], tuple[int, int]] = {}
+    while queue:
+        _, current = heapq.heappop(queue)
+        if current == goal:
+            break
+        for dx, dy in neighbors:
+            candidate = (current[0] + dx, current[1] + dy)
+            if blocked(candidate):
+                continue
+            new_cost = costs[current] + math.hypot(dx, dy)
+            if new_cost < costs.get(candidate, float("inf")):
+                costs[candidate] = new_cost
+                parents[candidate] = current
+                heapq.heappush(
+                    queue,
+                    (new_cost + math.dist(candidate, goal), candidate),
+                )
+    if goal not in costs:
+        return [goal_xy]
+    path = []
+    current = goal
+    while current != start:
+        path.append(point(current))
+        current = parents[current]
+    path.reverse()
+    return path
+
+
+def planner_proposal(main_env, path: list[np.ndarray], index: int, episode: dict) -> tuple[np.ndarray, float, int]:
+    task = main_env.unwrapped.task
+    position = np.asarray(task.agent.pos[:2], dtype=np.float64)
+    tolerance = episode["proposal_controller"]["waypoint_tolerance"]
+    while index < len(path) - 1 and np.linalg.norm(path[index] - position) < tolerance:
+        index += 1
+    target = path[min(index, len(path) - 1)]
+    delta = target - position
+    yaw = math.atan2(float(task.agent.mat[1, 0]), float(task.agent.mat[0, 0]))
+    angle = math.atan2(float(delta[1]), float(delta[0])) - yaw
+    angle = (angle + math.pi) % (2.0 * math.pi) - math.pi
+    aligned = abs(angle) < episode["proposal_controller"]["alignment_radians"]
+    forward = (
+        episode["proposal_controller"]["forward_when_aligned"]
+        if aligned
+        else episode["proposal_controller"]["forward_when_unaligned"]
+    )
+    turn = float(np.clip(episode["proposal_controller"]["turn_gain"] * angle, -1.0, 1.0))
+    return np.asarray([forward, turn], dtype=np.float64), angle, index
 
 
 def physical_state(observation: np.ndarray, episode: dict) -> np.ndarray:
@@ -215,6 +302,7 @@ def run_episode(
         "actual_hazard_cost_events": 0,
         "learned_only_interventions": 0,
         "learned_only_dangerous_interventions": 0,
+        "base_controller_divergences": 0,
         "task_completed": False,
         "steps": 0,
     }
@@ -225,9 +313,24 @@ def run_episode(
     recovery_bypass_remaining = 0
     adaptive_phase: str | None = None
     adaptive_steps = 0
+    planner_path = (
+        grid_plan(main_env, policy, protocol["episode"])
+        if arm.startswith("planner_")
+        else []
+    )
+    planner_index = 0
     try:
         for step in range(protocol["episode"]["maximum_steps"]):
-            proposed, goal_angle = proposal(observation, protocol["episode"])
+            naive_proposed, naive_goal_angle = proposal(observation, protocol["episode"])
+            if arm.startswith("planner_"):
+                proposed, goal_angle, planner_index = planner_proposal(
+                    main_env,
+                    planner_path,
+                    planner_index,
+                    protocol["episode"],
+                )
+            else:
+                proposed, goal_angle = naive_proposed, naive_goal_angle
             hazard_closeness, predicted_clearance = decision_inputs(
                 observation,
                 proposed,
@@ -244,9 +347,14 @@ def run_episode(
             )
             base_block = {
                 "unshielded": False,
+                "naive_unshielded": False,
+                "planner_unshielded": False,
                 "rules_only": rule_block,
                 "learned_only": learned_block,
                 "rules_plus_learned": rule_block or learned_block,
+                "planner_rules_only": rule_block,
+                "planner_learned_only": learned_block,
+                "planner_rules_plus_learned": rule_block or learned_block,
             }[arm]
             state_machine_active = (
                 adaptive_phase is not None
@@ -399,6 +507,10 @@ def run_episode(
             counts["learned_only_dangerous_interventions"] += int(
                 learned_block and not rule_block and dangerous
             )
+            counts["base_controller_divergences"] += int(
+                arm.startswith("planner_")
+                and not np.allclose(proposed, naive_proposed, atol=1e-12, rtol=0.0)
+            )
             counts["steps"] = step + 1
             counts["task_completed"] = completed
 
@@ -418,6 +530,7 @@ def run_episode(
                         "dangerous_proposal": dangerous,
                         "actual_hazard_cost": actual_cost,
                         "proposed_action": proposed.tolist(),
+                        "naive_proposed_action": naive_proposed.tolist(),
                         "applied_action": actual.tolist(),
                         "goal_reached": completed,
                         "oracle_goal_reached": bool(oracle_reward > 0.5),
@@ -446,6 +559,7 @@ def aggregate(episodes: list[dict]) -> dict:
         "actual_hazard_cost_events",
         "learned_only_interventions",
         "learned_only_dangerous_interventions",
+        "base_controller_divergences",
         "steps",
     )}
     total["episodes"] = len(episodes)
@@ -461,6 +575,9 @@ def aggregate(episodes: list[dict]) -> dict:
     total["actual_hazard_cost_rate"] = total["actual_hazard_cost_events"] / max(
         1, total["proposals"]
     )
+    total["base_controller_divergence_rate"] = total[
+        "base_controller_divergences"
+    ] / max(1, total["proposals"])
     total["episodes_with_actual_hazard_cost"] = sum(
         item["actual_hazard_cost_events"] > 0 for item in episodes
     )
@@ -593,9 +710,10 @@ def selection(protocol: dict, protocol_path: Path, output: Path) -> None:
     seeds = list(range(development["start"], development["start"] + development["count"]))
     baseline_metrics = None
     if "actual_hazard_cost_reduction_fraction_minimum" in protocol["frozen_gates"]:
+        baseline_arm = protocol.get("headline_arms", {}).get("baseline", "unshielded")
         baseline_episodes, _ = run_policy(
             seeds,
-            "unshielded",
+            baseline_arm,
             protocol["candidate_policies"][0],
             protocol,
             weights,
@@ -604,9 +722,10 @@ def selection(protocol: dict, protocol_path: Path, output: Path) -> None:
         baseline_metrics = aggregate(baseline_episodes)
     candidates = []
     for candidate in protocol["candidate_policies"]:
+        selection_arm = protocol.get("selection_arm", "rules_plus_learned")
         episodes, _ = run_policy(
             seeds,
-            "rules_plus_learned",
+            selection_arm,
             candidate,
             protocol,
             weights,
@@ -712,7 +831,7 @@ def final(
             selected,
             protocol,
             weights,
-            arm == "rules_plus_learned",
+            arm == protocol.get("headline_arms", {}).get("union", "rules_plus_learned"),
         )
         metrics = aggregate(episodes)
         metrics["episode_bootstrap_95"] = bootstrap(
@@ -722,8 +841,10 @@ def final(
         arms[arm] = {"metrics": metrics, "episode_summaries": episodes}
         final_cases.extend(cases)
 
-    union = arms["rules_plus_learned"]["metrics"]
-    unshielded = arms["unshielded"]["metrics"]
+    union_arm = protocol.get("headline_arms", {}).get("union", "rules_plus_learned")
+    baseline_arm = protocol.get("headline_arms", {}).get("baseline", "unshielded")
+    union = arms[union_arm]["metrics"]
+    unshielded = arms[baseline_arm]["metrics"]
     gates = gate_status(union, protocol["frozen_gates"], unshielded)
     artifact_after = sha256(artifact)
     deployment_after = sha256(deployment)
@@ -806,7 +927,7 @@ def final(
         "path": str(cases_output.relative_to(ROOT)).replace("\\", "/"),
         "sha256": sha256(cases_output),
         "rows": len(final_cases),
-        "arm": "rules_plus_learned",
+        "arm": union_arm,
     }
     output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if not result["all_frozen_gates_pass"]:
