@@ -29,6 +29,7 @@ def effective_case_checks(path: Path) -> dict:
     interventions = 0
     unchanged_interventions = 0
     learned_only_interventions = 0
+    learned_only_dangerous_interventions = 0
     tangent_actions = 0
     tangent_interventions = 0
     with path.open("r", encoding="utf-8") as handle:
@@ -44,6 +45,12 @@ def effective_case_checks(path: Path) -> dict:
             learned_only_interventions += int(
                 intervention and item["learned_block"] and not item["rule_block"]
             )
+            learned_only_dangerous_interventions += int(
+                intervention
+                and item["learned_block"]
+                and not item["rule_block"]
+                and item["dangerous_proposal"]
+            )
             tangent_actions += int(item["recovery_phase"] == "tangent")
             tangent_interventions += int(
                 intervention and item["recovery_phase"] == "tangent"
@@ -52,6 +59,7 @@ def effective_case_checks(path: Path) -> dict:
         "interventions": interventions,
         "unchanged_interventions": unchanged_interventions,
         "learned_only_interventions": learned_only_interventions,
+        "learned_only_dangerous_interventions": learned_only_dangerous_interventions,
         "tangent_actions": tangent_actions,
         "tangent_interventions": tangent_interventions,
     }
@@ -67,6 +75,10 @@ def main() -> None:
     result = load(RESULT)
     rows, cases, seeds = raw_counts(CASES)
     effective = effective_case_checks(CASES)
+    cases["learned_only_interventions"] = effective["learned_only_interventions"]
+    cases["learned_only_dangerous_interventions"] = effective[
+        "learned_only_dangerous_interventions"
+    ]
     arms = {
         arm: aggregate(payload["episode_summaries"])
         for arm, payload in result["arms"].items()
