@@ -220,6 +220,7 @@ def run_episode(
     }
     cases: list[dict] = []
     recovery_sign: float | None = None
+    recovery_brake_remaining = 0
     recovery_turn_remaining = 0
     recovery_bypass_remaining = 0
     try:
@@ -246,7 +247,9 @@ def run_episode(
                 "rules_plus_learned": rule_block or learned_block,
             }[arm]
             state_machine_active = (
-                recovery_turn_remaining > 0 or recovery_bypass_remaining > 0
+                recovery_brake_remaining > 0
+                or recovery_turn_remaining > 0
+                or recovery_bypass_remaining > 0
             )
             block = base_block or state_machine_active
 
@@ -256,7 +259,13 @@ def run_episode(
 
             recovery_phase = "none"
             if state_machine_active:
-                if recovery_turn_remaining > 0:
+                if recovery_brake_remaining > 0:
+                    actual = np.asarray(
+                        [policy["recovery_brake_forward"], 0.0], dtype=np.float64
+                    )
+                    recovery_brake_remaining -= 1
+                    recovery_phase = "brake"
+                elif recovery_turn_remaining > 0:
                     actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
                     recovery_turn_remaining -= 1
                     recovery_phase = "turn"
@@ -279,10 +288,20 @@ def run_episode(
                     seed,
                     recovery_sign,
                 )
-                recovery_turn_remaining = max(0, policy["recovery_turn_steps"] - 1)
+                recovery_brake_remaining = max(
+                    0, policy.get("recovery_brake_steps", 0) - 1
+                )
+                recovery_turn_remaining = policy["recovery_turn_steps"]
                 recovery_bypass_remaining = policy["recovery_bypass_steps"]
-                actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
-                recovery_phase = "turn"
+                if policy.get("recovery_brake_steps", 0) > 0:
+                    actual = np.asarray(
+                        [policy["recovery_brake_forward"], 0.0], dtype=np.float64
+                    )
+                    recovery_phase = "brake"
+                else:
+                    recovery_turn_remaining -= 1
+                    actual = np.asarray([0.0, recovery_sign], dtype=np.float64)
+                    recovery_phase = "turn"
             elif block:
                 actual, recovery_sign = fallback_action(
                     observation,
