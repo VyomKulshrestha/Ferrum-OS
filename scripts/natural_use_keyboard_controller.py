@@ -45,6 +45,17 @@ def send_text(port: int, text: str) -> None:
         for character in text:
             monitor.sendall(f"sendkey {hmp_key(character)} 20\n".encode("ascii"))
             time.sleep(0.025)
+        time.sleep(0.25)
+        monitor.sendall(b"sendkey ret 20\n")
+
+
+def send_enter(port: int) -> None:
+    with socket.create_connection(("127.0.0.1", port), timeout=5) as monitor:
+        monitor.settimeout(0.2)
+        try:
+            monitor.recv(4096)
+        except TimeoutError:
+            pass
         monitor.sendall(b"sendkey ret 20\n")
 
 
@@ -102,6 +113,15 @@ def main() -> None:
 
     button = tk.Button(window, text="Send to FerrumOS", command=send, font=("Segoe UI", 11))
     button.pack(padx=16, pady=8, anchor="w")
+    enter_button = tk.Button(
+        window,
+        text="Press Enter only",
+        command=lambda: threading.Thread(
+            target=send_enter, args=(int(runtime["monitor_port"]),), daemon=True
+        ).start(),
+        font=("Segoe UI", 10),
+    )
+    enter_button.pack(padx=16, pady=4, anchor="w")
     tk.Label(window, textvariable=status, font=("Segoe UI", 10)).pack(padx=16, pady=8, anchor="w")
     editor.focus_set()
     window.mainloop()
