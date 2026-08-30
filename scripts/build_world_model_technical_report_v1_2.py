@@ -266,8 +266,11 @@ def build(
     running_right: str = "TECHNICAL REPORT v1.2",
     footer_note: str = "FerrumOS world-model safety gate - evidence frozen 26 August 2026",
     spacious_body: bool = False,
+    compact_body: bool = False,
 ) -> None:
     styles = make_styles()
+    if spacious_body and compact_body:
+        raise ValueError("body cannot be both spacious and compact")
     if spacious_body:
         styles["body"].fontSize = 8.65
         styles["body"].leading = 11.35
@@ -282,6 +285,20 @@ def build(
         styles["caption"].leading = 8.9
         styles["code"].fontSize = 6.9
         styles["code"].leading = 9.0
+    elif compact_body:
+        styles["body"].fontSize = 7.8
+        styles["body"].leading = 10.0
+        styles["body"].spaceAfter = 1.3 * mm
+        styles["bullet"].fontSize = 7.65
+        styles["bullet"].leading = 9.75
+        styles["small"].fontSize = 6.2
+        styles["small"].leading = 7.8
+        styles["table_header"].fontSize = 6.0
+        styles["table_header"].leading = 7.5
+        styles["caption"].fontSize = 6.35
+        styles["caption"].leading = 8.0
+        styles["code"].fontSize = 6.35
+        styles["code"].leading = 8.2
     lines = source.read_text(encoding="utf-8").splitlines()
     output.parent.mkdir(parents=True, exist_ok=True)
     document = BaseDocTemplate(
