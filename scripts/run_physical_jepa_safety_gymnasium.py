@@ -198,6 +198,64 @@ def planner_proposal(main_env, path: list[np.ndarray], index: int, episode: dict
     return np.asarray([forward, turn], dtype=np.float64), angle, index
 
 
+def planner_tangent_action(
+    main_env,
+    path: list[np.ndarray],
+    index: int,
+    policy: dict,
+    episode: dict,
+) -> np.ndarray:
+    """Turn along a deterministic obstacle tangent before moving forward."""
+    task = main_env.unwrapped.task
+    position = np.asarray(task.agent.pos[:2], dtype=np.float64)
+    hazards = [np.asarray(item[:2], dtype=np.float64) for item in task.hazards.pos]
+    if not hazards:
+        return np.asarray([0.0, 0.0], dtype=np.float64)
+    nearest = min(hazards, key=lambda item: float(np.linalg.norm(position - item)))
+    away = position - nearest
+    away_norm = float(np.linalg.norm(away))
+    if away_norm <= 1e-12:
+        away = np.asarray([1.0, 0.0], dtype=np.float64)
+    else:
+        away /= away_norm
+    target = (
+        path[min(index, len(path) - 1)]
+        if path
+        else np.asarray(task.goal.pos[:2], dtype=np.float64)
+    )
+    goal = target - position
+    goal_norm = float(np.linalg.norm(goal))
+    if goal_norm > 1e-12:
+        goal /= goal_norm
+    tangent_left = np.asarray([-away[1], away[0]], dtype=np.float64)
+    tangent_right = -tangent_left
+    tangent = (
+        tangent_left
+        if float(np.dot(tangent_left, goal)) >= float(np.dot(tangent_right, goal))
+        else tangent_right
+    )
+    desired = (
+        policy["tangent_away_weight"] * away
+        + policy["tangent_path_weight"] * goal
+        + policy["tangent_weight"] * tangent
+    )
+    desired_norm = float(np.linalg.norm(desired))
+    if desired_norm <= 1e-12:
+        desired = away
+    else:
+        desired /= desired_norm
+    yaw = math.atan2(float(task.agent.mat[1, 0]), float(task.agent.mat[0, 0]))
+    angle = math.atan2(float(desired[1]), float(desired[0])) - yaw
+    angle = (angle + math.pi) % (2.0 * math.pi) - math.pi
+    turn = float(np.clip(policy["tangent_turn_gain"] * angle, -1.0, 1.0))
+    forward = (
+        policy["tangent_forward"]
+        if abs(angle) <= policy["tangent_forward_alignment_radians"]
+        else 0.0
+    )
+    return np.asarray([forward, turn], dtype=np.float64)
+
+
 def physical_state(observation: np.ndarray, episode: dict) -> np.ndarray:
     hazard_start, hazard_end = episode["proposal_controller"]["hazards_lidar_slice"]
     goal_start, goal_end = episode["proposal_controller"]["goal_lidar_slice"]
@@ -356,6 +414,11 @@ def run_episode(
                 "planner_learned_only": learned_block,
                 "planner_rules_plus_learned": rule_block or learned_block,
             }[arm]
+            if policy.get("learned_requires_rule_confirmation", False):
+                if arm == "planner_learned_only":
+                    base_block = False
+                elif arm == "planner_rules_plus_learned":
+                    base_block = rule_block
             state_machine_active = (
                 adaptive_phase is not None
                 or recovery_brake_remaining > 0
@@ -481,6 +544,19 @@ def run_episode(
             elif (
                 block
                 and arm.startswith("planner_")
+                and policy.get("fallback_mode") == "planner_tangent"
+            ):
+                actual = planner_tangent_action(
+                    main_env,
+                    planner_path,
+                    planner_index,
+                    policy,
+                    protocol["episode"],
+                )
+                recovery_phase = "tangent"
+            elif (
+                block
+                and arm.startswith("planner_")
                 and policy.get("fallback_mode") == "planner_replan"
             ):
                 replanned_policy = dict(policy)
@@ -517,15 +593,29 @@ def run_episode(
             counts["proposals"] += 1
             counts["dangerous_proposals"] += int(dangerous)
             counts["safe_proposals"] += int(not dangerous)
-            counts["interventions"] += int(block)
-            counts["true_positive_interventions"] += int(block and dangerous)
-            counts["false_positive_interventions"] += int(block and not dangerous)
-            counts["false_negative_proposals"] += int(not block and dangerous)
-            counts["true_negative_proposals"] += int(not block and not dangerous)
+            effective_intervention = block and (
+                not policy.get("count_only_effective_interventions", False)
+                or not np.allclose(actual, proposed, atol=1e-12, rtol=0.0)
+            )
+            counts["interventions"] += int(effective_intervention)
+            counts["true_positive_interventions"] += int(
+                effective_intervention and dangerous
+            )
+            counts["false_positive_interventions"] += int(
+                effective_intervention and not dangerous
+            )
+            counts["false_negative_proposals"] += int(
+                not effective_intervention and dangerous
+            )
+            counts["true_negative_proposals"] += int(
+                not effective_intervention and not dangerous
+            )
             counts["actual_hazard_cost_events"] += int(actual_cost)
-            counts["learned_only_interventions"] += int(learned_block and not rule_block)
+            counts["learned_only_interventions"] += int(
+                effective_intervention and learned_block and not rule_block
+            )
             counts["learned_only_dangerous_interventions"] += int(
-                learned_block and not rule_block and dangerous
+                effective_intervention and learned_block and not rule_block and dangerous
             )
             counts["base_controller_divergences"] += int(
                 arm.startswith("planner_")
@@ -544,7 +634,7 @@ def run_episode(
                         "predicted_clearance": predicted_clearance,
                         "rule_block": rule_block,
                         "learned_block": learned_block,
-                        "intervention": block,
+                        "intervention": effective_intervention,
                         "base_intervention": base_block,
                         "recovery_phase": recovery_phase,
                         "dangerous_proposal": dangerous,

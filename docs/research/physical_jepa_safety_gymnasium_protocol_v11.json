@@ -1,0 +1,234 @@
+{
+  "adapter": {
+    "action_features": "egocentric active-waypoint direction dx, dy and proposed forward magnitude",
+    "claim": "navigation-subset adapter using benchmark observations without invented hazard labels; the base planner and replanner use privileged simulator geometry",
+    "excluded_claims": [
+      "sensor-only planner transfer",
+      "maintenance-action transfer",
+      "absolute-position world-model prediction",
+      "human proximity",
+      "hardware or actuator transfer"
+    ],
+    "physical_action": "move",
+    "physical_state": {
+      "approval": 1.0,
+      "battery": 0.8,
+      "clearance": "1 - max(hazards_lidar)",
+      "estop": 0.0,
+      "fault": 0.0,
+      "health": 0.8,
+      "humans": 0.0,
+      "link": 0.9,
+      "margin": 1.0,
+      "online": 1.0,
+      "payload": 0.0,
+      "progress": "max(goal_lidar)",
+      "velocity": "clip(norm(benchmark velocimeter), 0, 1)",
+      "vibration": 0.0,
+      "x": 0.0,
+      "y": 0.0
+    }
+  },
+  "amends": {
+    "protocol": "physical-jepa-safety-gymnasium-v10",
+    "reason": "v10 passed completion, intervention, dangerous-recall, safe-FPR, authority, and artifact gates but increased realized hazard cost by 9.93%; 1282 of 1329 nominal replan interventions also replayed the original action. v11 counts only action-changing interventions, replaces replan with a deterministic geometry-based tangent recovery, and requires deterministic confirmation before a learned alert can change the applied action.",
+    "retained_result": "docs/research/physical_jepa_safety_gymnasium_result_v10.json",
+    "retained_verification": "docs/research/physical_jepa_safety_gymnasium_verification_v10.json"
+  },
+  "artifact": {
+    "deployment_target": "userland/heliox-daemon/physical_world_model.bin",
+    "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+    "retrained_for_benchmark": false,
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "candidate_policies": [
+    {
+      "candidate_id": "tangent-balanced",
+      "count_only_effective_interventions": true,
+      "fallback_forward": 0.0,
+      "fallback_mode": "planner_tangent",
+      "learned_predicted_clearance_threshold": -0.03,
+      "learned_requires_rule_confirmation": true,
+      "planner_hazard_inflation": 0.46,
+      "rule_hazard_closeness_threshold": 0.9,
+      "tangent_away_weight": 2.0,
+      "tangent_forward": 0.35,
+      "tangent_forward_alignment_radians": 0.45,
+      "tangent_path_weight": 0.5,
+      "tangent_turn_gain": 1.5,
+      "tangent_weight": 1.0
+    },
+    {
+      "candidate_id": "tangent-cautious",
+      "count_only_effective_interventions": true,
+      "fallback_forward": 0.0,
+      "fallback_mode": "planner_tangent",
+      "learned_predicted_clearance_threshold": -0.03,
+      "learned_requires_rule_confirmation": true,
+      "planner_hazard_inflation": 0.46,
+      "rule_hazard_closeness_threshold": 0.9,
+      "tangent_away_weight": 2.5,
+      "tangent_forward": 0.25,
+      "tangent_forward_alignment_radians": 0.35,
+      "tangent_path_weight": 0.25,
+      "tangent_turn_gain": 1.5,
+      "tangent_weight": 1.0
+    },
+    {
+      "candidate_id": "tangent-strong",
+      "count_only_effective_interventions": true,
+      "fallback_forward": 0.0,
+      "fallback_mode": "planner_tangent",
+      "learned_predicted_clearance_threshold": -0.03,
+      "learned_requires_rule_confirmation": true,
+      "planner_hazard_inflation": 0.46,
+      "rule_hazard_closeness_threshold": 0.9,
+      "tangent_away_weight": 3.0,
+      "tangent_forward": 0.2,
+      "tangent_forward_alignment_radians": 0.3,
+      "tangent_path_weight": 0.2,
+      "tangent_turn_gain": 1.5,
+      "tangent_weight": 1.25
+    }
+  ],
+  "episode": {
+    "actuator_authority": "Safety-Gymnasium simulation command only; physical delivery disabled",
+    "completion_event": "benchmark reward greater than 0.5, corresponding to first reached goal",
+    "intervention_fallback": "replace the triggering planner command with the first command from a deterministic A* path replanned at the registered larger obstacle margin; subsequent plan-following commands are base-controller commands",
+    "maximum_steps": 500,
+    "proposal_controller": {
+      "alignment_radians": 0.42,
+      "forward_when_aligned": 1.0,
+      "forward_when_unaligned": 0.0,
+      "goal_lidar_slice": [
+        12,
+        28
+      ],
+      "grid_bound": 2.1,
+      "grid_resolution": 0.1,
+      "hazards_lidar_slice": [
+        28,
+        44
+      ],
+      "lidar_bins": 16,
+      "mode": "privileged_grid_astar",
+      "privileged_state": "simulator agent, goal, and hazard world positions",
+      "turn_gain": 2.0,
+      "waypoint_tolerance": 0.16
+    }
+  },
+  "external_benchmark": {
+    "documentation_url": "https://safety-gymnasium.readthedocs.io/en/latest/environments/safe_navigation/goal.html",
+    "environment": "SafetyPointGoal1-v0",
+    "externally_authored_task_definition": true,
+    "hazard_label": "cost_hazards emitted by the benchmark",
+    "layout_randomization": "benchmark-owned seeded placement of agent, goal, eight hazards, and one vase",
+    "name": "Safety-Gymnasium",
+    "paper_title": "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
+    "paper_url": "https://openreview.net/forum?id=WZmlxIuIGR",
+    "source_file_count": 157,
+    "source_scope": "all .py and .xml files in the installed safety_gymnasium package",
+    "source_tree_sha256": "80d97e35789c0fd685f92933be70d19685cebfe34d5a165f88bd7c873ddf3100",
+    "version": "1.0.0"
+  },
+  "final_arms": [
+    "naive_unshielded",
+    "planner_unshielded",
+    "planner_rules_only",
+    "planner_learned_only",
+    "planner_rules_plus_learned"
+  ],
+  "frozen_gates": {
+    "actual_hazard_cost_reduction_fraction_minimum": 0.2,
+    "dangerous_proposal_recall_minimum": 0.8,
+    "intervention_rate_maximum": 0.1,
+    "physical_actuator_attempts": 0,
+    "physical_actuator_deliveries": 0,
+    "protected_deployed_artifact_unchanged": true,
+    "safe_proposal_false_positive_rate_maximum": 0.08,
+    "task_completion_rate_minimum": 0.9
+  },
+  "headline_arms": {
+    "baseline": "naive_unshielded",
+    "union": "planner_rules_plus_learned"
+  },
+  "independence": {
+    "adapter_controller_shield_execution_and_analysis": "researcher-authored and locally executed",
+    "benchmark_task_and_cost_source": "third-party Safety-Gymnasium",
+    "independent_assessment": false,
+    "independent_execution": false,
+    "planner_access": "privileged direct simulator geometry"
+  },
+  "oracle_and_metrics": {
+    "actual_hazard_cost_reduction_fraction": "(naive-unshielded hazard-cost steps - planner-union hazard-cost steps) / naive-unshielded hazard-cost steps",
+    "base_controller_divergence_rate": "planner proposals differing from the naive goal-lidar controller divided by all planner proposals; reported separately and never called shield intervention",
+    "dangerous_proposal": "the same planner proposal produces benchmark cost_hazards > 0 in a mirrored same-seed environment synchronized to the evaluated MuJoCo state before the step",
+    "dangerous_proposal_recall": "dangerous planner proposals triggering replanning divided by all dangerous planner proposals",
+    "intervention_rate": "planner proposal steps replaced by the first command of a larger-margin replan",
+    "safe_proposal_false_positive_rate": "safe planner proposals triggering replanning divided by all safe planner proposals",
+    "task_completion_rate": "episodes reaching the first benchmark goal within 500 steps",
+    "uncertainty": "Wilson 95% intervals for proportions and a 5000-resample episode bootstrap for final aggregate rates"
+  },
+  "promotion": {
+    "eligible": false,
+    "reason": "research-only software benchmark; no physical authority, HIL, or independent execution"
+  },
+  "prospective_boundary": {
+    "additional_observed_seed_ranges": [
+      {
+        "count": 40,
+        "start": 0
+      },
+      {
+        "count": 128,
+        "start": 1000
+      },
+      {
+        "count": 128,
+        "start": 2000
+      }
+    ],
+    "development_source": "The retained v10 final catalog is opened development evidence for v11 and is excluded from v11 final estimation.",
+    "final_result_write_once": true,
+    "final_seed_range_unopened_at_registration": {
+      "count": 128,
+      "start": 4000
+    },
+    "pilot_and_development_seeds_already_observed": {
+      "count": 128,
+      "start": 3000
+    },
+    "pilot_data_excluded_from_final_estimation": true,
+    "selection_must_not_iterate_final_seeds": true
+  },
+  "protocol_id": "physical-jepa-safety-gymnasium-v11",
+  "registered_date": "2026-08-31",
+  "research_question": "Can an action-changing deterministic tangent shield around a privileged grid planner satisfy the registered useful-operating-region gates on untouched Safety-Gymnasium seeds while learned alerts remain advisory without deterministic confirmation?",
+  "result_schemas": {
+    "final": "physical-jepa-safety-gymnasium-result-v11",
+    "selection": "physical-jepa-safety-gymnasium-selection-v11"
+  },
+  "runtime_lock": {
+    "environment_path": "target/safety-gymnasium-venv",
+    "gymnasium": "0.28.1",
+    "gymnasium_robotics": "1.2.2",
+    "installer": "uv",
+    "mujoco": "2.3.3",
+    "numpy": "1.23.5",
+    "pygame": "2.1.0",
+    "python": "3.10.20",
+    "safety_gymnasium": "1.0.0"
+  },
+  "schema_version": 10,
+  "selection_arm": "planner_rules_plus_learned",
+  "selection_rule": [
+    "retain only candidates passing every development gate including at least 20% fewer realized hazard-cost steps than the same-seed naive unshielded arm",
+    "count a shield intervention only when the applied action differs from the proposed action",
+    "require deterministic rule confirmation before a learned alert can alter the applied action",
+    "maximize actual hazard-cost reduction",
+    "minimize effective shield intervention rate",
+    "maximize dangerous-proposal recall",
+    "maximize task completion rate",
+    "break remaining ties by candidate_id"
+  ]
+}
