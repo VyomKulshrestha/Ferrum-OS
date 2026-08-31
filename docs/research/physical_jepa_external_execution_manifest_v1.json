@@ -1,0 +1,111 @@
+{
+  "schema": "physical-jepa-external-execution-handoff-v1",
+  "registered_date": "2026-08-31",
+  "status": "awaiting_non_author_execution",
+  "replication_type": "fixed-controller-and-shield execution replication",
+  "reference_result": {
+    "planner_completion_rate": 0.9453125,
+    "planner_hazard_cost_events": 124,
+    "naive_hazard_cost_events": 375,
+    "planner_hazard_cost_reduction_fraction": 0.6693333333333333,
+    "active_union_completion_rate": 0.9140625,
+    "active_union_intervention_rate": 0.05035405192761605,
+    "active_union_dangerous_proposal_recall": 0.6158088235294118,
+    "active_union_safe_proposal_false_positive_rate": 0.03574989317761003,
+    "active_union_hazard_cost_events": 554,
+    "active_union_hazard_cost_change_fraction": 0.47733333333333333,
+    "active_union_all_frozen_gates_pass": false,
+    "failed_gates": [
+      "dangerous_proposal_recall",
+      "actual_hazard_cost_reduction_fraction"
+    ]
+  },
+  "frozen_inputs": {
+    "protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v12.json",
+      "sha256": "af41b52d7ca8e4e5464b3819281e6af5de2b6aa2620c3b5094c6e552ef337a9d",
+      "line_endings": "crlf"
+    },
+    "selection": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_selection_v12.json",
+      "sha256": "e1e06c872555ffd302f2fb0f3e76dbb45eee9d3ffb6aa28e2765fd2212242599",
+      "line_endings": "crlf"
+    },
+    "runner": {
+      "path": "scripts/run_physical_jepa_safety_gymnasium.py",
+      "sha256": "3cbed9d80dcf6b187fde6e40f705afd0a00cfad5566fe0f059c0d3a6921e95d6",
+      "line_endings": "lf"
+    },
+    "external_execution_wrapper": {
+      "path": "scripts/run_physical_jepa_external_execution_v1.py",
+      "sha256": "c13a8a43263382a9dda3ff52f04a3ee28e41e828222934fd3de1c44fb89e2b87",
+      "line_endings": "lf"
+    },
+    "handoff_verifier": {
+      "path": "scripts/verify_physical_jepa_external_execution_handoff_v1.py",
+      "sha256": "69fc58ea1484439bc71da4efe26575a3f93c1e0122cb6a1290b2e0c881278f95",
+      "line_endings": "lf"
+    },
+    "handoff_document": {
+      "path": "docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md",
+      "sha256": "3ce5c648ef550d8aa4a06a84ea8c86ca11c25b0645701de725f35d1798515dc8",
+      "line_endings": "lf"
+    },
+    "research_artifact": {
+      "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "deployed_artifact": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "paper_source": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
+      "sha256": "8b2b14536c45382941ca9a9d66de2a3e3f8284eedaef5952c8d8a278452ae7a2",
+      "line_endings": "lf"
+    },
+    "paper_pdf": {
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
+      "sha256": "5c14162119c21404b93702664ab4b416e78b4e9cd5b1e856941771a8cffa9597"
+    }
+  },
+  "registered_reference_outputs": {
+    "result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v12.json",
+      "sha256": "a8db59fd682ffe9f31f4df54002ac9ea83f81461fb936b0d8badff482df26008",
+      "line_endings": "crlf"
+    },
+    "cases": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_cases_v12.jsonl",
+      "sha256": "8f65e652478cfc1296d02e8cb4288f857f770f25fed15db0427702579b40edf4",
+      "line_endings": "lf"
+    }
+  },
+  "runtime_lock": {
+    "python": "3.10.20",
+    "safety_gymnasium": "1.0.0",
+    "gymnasium": "0.28.1",
+    "gymnasium_robotics": "1.2.2",
+    "mujoco": "2.3.3",
+    "numpy": "1.23.5",
+    "pygame": "2.1.0",
+    "safety_gymnasium_source_tree_sha256": "80d97e35789c0fd685f92933be70d19685cebfe34d5a165f88bd7c873ddf3100"
+  },
+  "executor_requirements": {
+    "must_not_be_paper_author": true,
+    "identity_fields_must_be_supplied_by_executor": true,
+    "fresh_clean_clone_recommended": true,
+    "single_frozen_execution": true,
+    "publish_raw_outputs_and_attestation": true
+  },
+  "claim_boundary": {
+    "before_execution": "Replication-ready handoff only; independent execution has not occurred.",
+    "after_exact_non_author_execution": "Independently executed replication of a fixed author-designed benchmark; not independently designed or independently assessed.",
+    "live_hil": false,
+    "sensor_only_controller": false,
+    "physical_actuator_authority": false,
+    "promotion_eligible": false
+  },
+  "canonical_public_summary": "A privileged deterministic planner achieved 94.53% completion and 66.93% lower hazard cost on the prospective Safety-Gymnasium benchmark, while the active safety union failed its registered recall and realized-cost gates.",
+  "forbidden_public_summary": "FerrumOS achieved 94.53% completion and 66.93% hazard reduction."
+}
