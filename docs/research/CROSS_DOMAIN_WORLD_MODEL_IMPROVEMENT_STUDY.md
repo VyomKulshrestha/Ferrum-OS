@@ -105,6 +105,8 @@ Safety-Gymnasium v1.0.0 supplies the externally maintained SafetyPointGoal1-v0 t
 
 The v12 final opens seeds 4000–4127 exactly once and compares five frozen arms. The strongest prospective controller result is the planner-only arm: 94.53% task completion and 124 hazard-cost events, a 66.93% reduction from the naive controller's 375 events, with zero shield interventions. The selected active union completes 91.41% of tasks and intervenes effectively on 5.04% of proposals, but recalls only 61.58% of dangerous proposals and records 554 hazard-cost events, 47.73% more than the naive baseline. Learned alerts require deterministic rule confirmation and produce zero learned-only interventions.
 
+The canonical public summary is: **A privileged deterministic planner achieved 94.53% completion and 66.93% lower hazard cost on the prospective Safety-Gymnasium benchmark, while the active safety union failed its registered recall and realized-cost gates.** The result must not be shortened to “FerrumOS achieved 94.53% completion and 66.93% hazard reduction,” because that would transfer planner-only credit to the full system and conceal the active union's negative result.
+
 Every counted v12 intervention changes the applied action; the independent verifier recomputes all five arms, every raw union row, the exact final seeds, protocol and selection hashes, authority counters, and artifact digests. The active shield therefore remains a frozen negative even though the planner-only controller is useful. A later Simplex amendment that switches from naive proposals to planner fallback fails development and never opens its reserved final seed range. Continuing to generate local final catalogs after that failure would be threshold mining rather than stronger evidence.
 
 ## What changed, and what did not
@@ -120,7 +122,7 @@ The study adds:
 - externally authored OS case taxonomy plus frozen physical telemetry compatibility intake;
 - actuator-disabled replay with external recorded sensor streams and registered fault injection;
 - a retained negative multi-embodiment 3D contact-and-recovery stress test.
-- an externally designed Safety-Gymnasium controller/shield benchmark with a strong planner-only arm, an independently recomputed active-shield negative, and a retained no-final-access Simplex failure.
+- an externally designed Safety-Gymnasium controller/shield benchmark with a strong planner-only arm, a separately recomputed active-shield negative, and a retained no-final-access Simplex failure.
 
 It does not add independent execution or assessment, live Ferrum HIL, Ferrum physical control-loop timing, physical actuator dynamics, physical contact recovery, validated physical embodiment transfer, production natural-use telemetry, or multi-host field contention. Safety-Gymnasium adds an external task and cost implementation but uses a privileged local planner and researcher-authored adapter, shield, execution, and analysis. The natural-use and multi-client results remain bounded QEMU evidence, and the external Anchor-Lab physical data remain a compatibility-negative intake rather than being forced into the wrong model semantics.
 
