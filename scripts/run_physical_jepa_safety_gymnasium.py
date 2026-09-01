@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import copy
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import heapq
 from importlib.metadata import version
 import json
 import math
+import multiprocessing
 from pathlib import Path
 import sys
 import warnings
@@ -278,7 +280,7 @@ def decision_inputs(
     goal_angle: float,
     weights: dict,
     episode: dict,
-) -> tuple[float, float]:
+) -> tuple[float, np.ndarray]:
     hazard_start, hazard_end = episode["proposal_controller"]["hazards_lidar_slice"]
     hazard_closeness = float(np.max(observation[hazard_start:hazard_end]))
     state = physical_state(observation, episode)
@@ -293,20 +295,168 @@ def decision_inputs(
         np.asarray([physical.MOVE], dtype=np.int64),
         features[None, :],
     )[0]
-    return hazard_closeness, float(predicted[physical.CLEARANCE])
+    return hazard_closeness, predicted
+
+
+def risk_adapter_features(
+    observation: np.ndarray,
+    proposed: np.ndarray,
+    goal_angle: float,
+    hazard_closeness: float,
+    predicted: np.ndarray,
+    episode: dict,
+) -> np.ndarray:
+    """Return the registered local-sensing and frozen-JEPA adapter features."""
+    hazard_start, hazard_end = episode["proposal_controller"]["hazards_lidar_slice"]
+    return np.concatenate(
+        (
+            np.asarray(observation[hazard_start:hazard_end], dtype=np.float64),
+            np.asarray(proposed, dtype=np.float64),
+            np.asarray(
+                [
+                    math.cos(goal_angle),
+                    math.sin(goal_angle),
+                    hazard_closeness,
+                    float(np.clip(np.linalg.norm(observation[3:6]), 0.0, 1.0)),
+                    float(predicted[physical.CLEARANCE]),
+                    float(predicted[physical.VELOCITY]),
+                    float(predicted[physical.PROGRESS]),
+                ],
+                dtype=np.float64,
+            ),
+        )
+    )
+
+
+def expand_risk_adapter_features(features: np.ndarray, transform: str) -> np.ndarray:
+    if transform == "identity":
+        return features
+    if transform == "hazard_lidar_action":
+        return features[:18]
+    if transform == "safety_summary":
+        hazards = features[:16]
+        summary = np.asarray(
+            [
+                float(np.max(hazards[10:15])),
+                float(np.mean(hazards[10:15])),
+                float(np.max(hazards[3:15])),
+            ],
+            dtype=np.float64,
+        )
+        return np.concatenate((features, summary))
+    if transform == "compact_jepa_safety":
+        hazards = features[:16]
+        summary = np.asarray(
+            [
+                features[20],
+                features[22],
+                features[23],
+                features[24],
+                float(np.max(hazards[10:15])),
+                float(np.mean(hazards[10:15])),
+                float(np.max(hazards[3:15])),
+            ],
+            dtype=np.float64,
+        )
+        return np.concatenate((features[:18], summary))
+    if transform == "hazard_lidar_action_quadratic":
+        features = features[:18]
+        pairwise = [
+            features[left] * features[right]
+            for left in range(features.size)
+            for right in range(left, features.size)
+        ]
+        return np.concatenate((features, np.asarray(pairwise, dtype=np.float64)))
+    if transform != "quadratic":
+        raise ValueError(f"unsupported risk adapter transform: {transform}")
+    pairwise = [
+        features[left] * features[right]
+        for left in range(features.size)
+        for right in range(left, features.size)
+    ]
+    return np.concatenate((features, np.asarray(pairwise, dtype=np.float64)))
+
+
+def risk_adapter_score(features: np.ndarray, adapter: dict) -> float:
+    if not np.all(np.isfinite(features)):
+        return 1.0
+    expanded = expand_risk_adapter_features(
+        features,
+        adapter.get("feature_transform", "identity"),
+    )
+    mean = np.asarray(adapter["feature_mean"], dtype=np.float64)
+    scale = np.asarray(adapter["feature_scale"], dtype=np.float64)
+    weights = np.asarray(adapter["weights"], dtype=np.float64)
+    if expanded.shape != mean.shape or mean.shape != scale.shape or scale.shape != weights.shape:
+        raise ValueError("risk adapter feature shape mismatch")
+    if (
+        not np.all(np.isfinite(mean))
+        or not np.all(np.isfinite(scale))
+        or not np.all(np.isfinite(weights))
+        or not math.isfinite(float(adapter["bias"]))
+        or np.any(scale <= 0.0)
+    ):
+        return 1.0
+    logit = float(np.dot((expanded - mean) / scale, weights) + adapter["bias"])
+    if not math.isfinite(logit):
+        return 1.0
+    if logit >= 0.0:
+        return 1.0 / (1.0 + math.exp(-logit))
+    exp_logit = math.exp(logit)
+    return exp_logit / (1.0 + exp_logit)
+
+
+def proposal_has_motion(observation: np.ndarray, proposed: np.ndarray) -> bool:
+    """Treat rotation and residual velocity as motion for learned caution."""
+    return bool(
+        np.linalg.norm(proposed) > 1e-12
+        or np.linalg.norm(observation[3:6]) > 1e-6
+    )
 
 
 def synchronize(main_env, oracle_env) -> None:
     main_task = main_env.unwrapped.task
     oracle_task = oracle_env.unwrapped.task
-    for name in SYNC_ARRAYS:
-        source = getattr(main_task.data, name)
-        target = getattr(oracle_task.data, name)
-        if source.size:
-            np.copyto(target, source)
+    copied = set()
+    for name in (*SYNC_ARRAYS, *dir(main_task.data)):
+        if name in copied or name.startswith("_"):
+            continue
+        copied.add(name)
+        try:
+            source = getattr(main_task.data, name)
+            target = getattr(oracle_task.data, name)
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if (
+            isinstance(source, np.ndarray)
+            and isinstance(target, np.ndarray)
+            and source.shape == target.shape
+            and target.flags.writeable
+            and source.size
+        ):
+            try:
+                np.copyto(target, source)
+            except (TypeError, ValueError):
+                continue
     oracle_task.data.time = main_task.data.time
     oracle_task.last_dist_goal = copy.deepcopy(main_task.last_dist_goal)
     oracle_env.unwrapped.steps = main_env.unwrapped.steps
+    main_wrapper = main_env
+    oracle_wrapper = oracle_env
+    while True:
+        if hasattr(main_wrapper, "_elapsed_steps") and hasattr(
+            oracle_wrapper,
+            "_elapsed_steps",
+        ):
+            oracle_wrapper._elapsed_steps = copy.deepcopy(  # noqa: SLF001
+                main_wrapper._elapsed_steps  # noqa: SLF001
+            )
+        next_main = getattr(main_wrapper, "env", main_wrapper)
+        next_oracle = getattr(oracle_wrapper, "env", oracle_wrapper)
+        if next_main is main_wrapper or next_oracle is oracle_wrapper:
+            break
+        main_wrapper = next_main
+        oracle_wrapper = next_oracle
     mujoco.mj_forward(oracle_task.model, oracle_task.data)
 
 
@@ -337,6 +487,7 @@ def run_episode(
     policy: dict,
     protocol: dict,
     weights: dict,
+    risk_adapter: dict | None,
     capture_cases: bool,
 ) -> tuple[dict, list[dict]]:
     environment = protocol["external_benchmark"]["environment"]
@@ -357,7 +508,16 @@ def run_episode(
         "false_positive_interventions": 0,
         "false_negative_proposals": 0,
         "true_negative_proposals": 0,
+        "warnings": 0,
+        "true_positive_warnings": 0,
+        "false_positive_warnings": 0,
+        "false_negative_warnings": 0,
+        "true_negative_warnings": 0,
+        "dangerous_recall_numerator": 0,
+        "safe_false_positive_numerator": 0,
         "actual_hazard_cost_events": 0,
+        "actual_total_cost_events": 0,
+        "actual_vase_cost_events": 0,
         "learned_only_interventions": 0,
         "learned_only_dangerous_interventions": 0,
         "base_controller_divergences": 0,
@@ -369,6 +529,11 @@ def run_episode(
     recovery_brake_remaining = 0
     recovery_turn_remaining = 0
     recovery_bypass_remaining = 0
+    simplex_handoff_remaining = 0
+    simplex_handoff_source: str | None = None
+    tangent_handoff_remaining = 0
+    tangent_handoff_source: str | None = None
+    intervention_cooldown_remaining = 0
     adaptive_phase: str | None = None
     adaptive_steps = 0
     planner_path = (
@@ -390,20 +555,44 @@ def run_episode(
                 )
             else:
                 proposed, goal_angle = naive_proposed, naive_goal_angle
-            hazard_closeness, predicted_clearance = decision_inputs(
+            hazard_closeness, predicted = decision_inputs(
                 observation,
                 proposed,
                 goal_angle,
                 weights,
                 protocol["episode"],
             )
-            moving = bool(proposed[0] > 0.0)
-            rule_block = moving and hazard_closeness >= policy["rule_hazard_closeness_threshold"]
-            learned_block = (
-                moving
-                and predicted_clearance
+            predicted_clearance = float(predicted[physical.CLEARANCE])
+            adapter_features = risk_adapter_features(
+                observation,
+                proposed,
+                goal_angle,
+                hazard_closeness,
+                predicted,
+                protocol["episode"],
+            )
+            learned_risk_score = (
+                None
+                if risk_adapter is None
+                else risk_adapter_score(adapter_features, risk_adapter)
+            )
+            forward_motion = bool(proposed[0] > 0.0)
+            motion_active = proposal_has_motion(observation, proposed)
+            rule_block = (
+                forward_motion
+                and hazard_closeness >= policy["rule_hazard_closeness_threshold"]
+            )
+            raw_learned_block = motion_active and (
+                learned_risk_score
+                >= policy.get(
+                    "learned_risk_threshold",
+                    risk_adapter["validation"]["selected_threshold"],
+                )
+                if learned_risk_score is not None
+                else predicted_clearance
                 <= policy["learned_predicted_clearance_threshold"]
             )
+            learned_block = raw_learned_block and intervention_cooldown_remaining == 0
             base_block = {
                 "unshielded": False,
                 "naive_unshielded": False,
@@ -420,19 +609,74 @@ def run_episode(
                     base_block = False
                 elif arm in ("rules_plus_learned", "planner_rules_plus_learned"):
                     base_block = rule_block
-            state_machine_active = (
+            legacy_recovery_active = (
                 adaptive_phase is not None
                 or recovery_brake_remaining > 0
                 or recovery_turn_remaining > 0
                 or recovery_bypass_remaining > 0
             )
+            state_machine_active = (
+                legacy_recovery_active
+                or simplex_handoff_remaining > 0
+                or tangent_handoff_remaining > 0
+            )
             block = base_block or state_machine_active
 
             synchronize(main_env, oracle_env)
-            _, oracle_reward, oracle_cost, _, _, oracle_info = oracle_env.step(proposed)
-            dangerous = bool(oracle_cost > 0.0 or oracle_info.get("cost_hazards", 0.0) > 0.0)
+            danger_horizon = int(
+                protocol["oracle_and_metrics"].get("danger_horizon_steps", 1)
+            )
+            if danger_horizon < 1:
+                raise ValueError("danger horizon must be at least one step")
+            dangerous = False
+            oracle_goal_reached = False
+            oracle_action = proposed.copy()
+            oracle_planner_index = planner_index
+            danger_rollout_mode = protocol["oracle_and_metrics"].get(
+                "danger_rollout_mode",
+                "constant_proposal",
+            )
+            if danger_rollout_mode not in (
+                "constant_proposal",
+                "nominal_controller",
+            ):
+                raise ValueError("unsupported danger rollout mode")
+            for oracle_step in range(danger_horizon):
+                (
+                    oracle_observation,
+                    oracle_reward,
+                    oracle_cost,
+                    oracle_terminated,
+                    oracle_truncated,
+                    oracle_info,
+                ) = oracle_env.step(oracle_action)
+                if oracle_step == 0:
+                    oracle_goal_reached = bool(oracle_reward > 0.5)
+                dangerous = dangerous or bool(
+                    oracle_info.get("cost_hazards", 0.0) > 0.0
+                )
+                if oracle_terminated or oracle_truncated:
+                    break
+                if danger_rollout_mode == "nominal_controller":
+                    if arm.startswith("planner_"):
+                        (
+                            oracle_action,
+                            _,
+                            oracle_planner_index,
+                        ) = planner_proposal(
+                            oracle_env,
+                            planner_path,
+                            oracle_planner_index,
+                            protocol["episode"],
+                        )
+                    else:
+                        oracle_action, _ = proposal(
+                            oracle_observation,
+                            protocol["episode"],
+                        )
 
             recovery_phase = "none"
+            simplex_handoff_completed = False
             if adaptive_phase is not None:
                 adaptive_steps += 1
                 if adaptive_phase == "brake":
@@ -485,7 +729,7 @@ def run_episode(
                         adaptive_phase = None
                         adaptive_steps = 0
                         recovery_sign = None
-            elif state_machine_active:
+            elif legacy_recovery_active:
                 if recovery_brake_remaining > 0:
                     actual = np.asarray(
                         [policy["recovery_brake_forward"], 0.0], dtype=np.float64
@@ -550,11 +794,74 @@ def run_episode(
                     protocol["episode"],
                 )
                 recovery_phase = "simplex_planner"
+            elif block and policy.get("fallback_mode") == "simplex_replan":
+                replanned_policy = dict(policy)
+                replanned_policy["planner_hazard_inflation"] = policy.get(
+                    "simplex_planner_hazard_inflation",
+                    policy["planner_hazard_inflation"],
+                )
+                planner_path = grid_plan(
+                    main_env,
+                    replanned_policy,
+                    protocol["episode"],
+                )
+                planner_index = 0
+                actual, _, planner_index = planner_proposal(
+                    main_env,
+                    planner_path,
+                    planner_index,
+                    protocol["episode"],
+                )
+                recovery_phase = "simplex_replan"
+            elif block and policy.get("fallback_mode") == "simplex_replan_handoff":
+                if simplex_handoff_remaining <= 0:
+                    replanned_policy = dict(policy)
+                    replanned_policy["planner_hazard_inflation"] = policy.get(
+                        "simplex_planner_hazard_inflation",
+                        policy["planner_hazard_inflation"],
+                    )
+                    planner_path = grid_plan(
+                        main_env,
+                        replanned_policy,
+                        protocol["episode"],
+                    )
+                    planner_index = 0
+                    simplex_handoff_remaining = policy[
+                        "simplex_handoff_command_budget"
+                    ]
+                    simplex_handoff_source = (
+                        "learned"
+                        if learned_block and not rule_block
+                        else "rule"
+                        if rule_block and not learned_block
+                        else "union"
+                    )
+                actual, _, planner_index = planner_proposal(
+                    main_env,
+                    planner_path,
+                    planner_index,
+                    protocol["episode"],
+                )
+                simplex_handoff_remaining -= 1
+                simplex_handoff_completed = simplex_handoff_remaining == 0
+                recovery_phase = "simplex_replan_handoff"
             elif (
                 block
                 and arm.startswith("planner_")
                 and policy.get("fallback_mode") == "planner_tangent"
             ):
+                if tangent_handoff_remaining <= 0:
+                    tangent_handoff_remaining = policy.get(
+                        "tangent_command_budget",
+                        1,
+                    )
+                    tangent_handoff_source = (
+                        "learned"
+                        if learned_block and not rule_block
+                        else "rule"
+                        if rule_block and not learned_block
+                        else "union"
+                    )
                 actual = planner_tangent_action(
                     main_env,
                     planner_path,
@@ -562,6 +869,7 @@ def run_episode(
                     policy,
                     protocol["episode"],
                 )
+                tangent_handoff_remaining -= 1
                 recovery_phase = "tangent"
             elif (
                 block
@@ -596,7 +904,9 @@ def run_episode(
                 recovery_sign = None
 
             next_observation, reward, cost, terminated, truncated, info = main_env.step(actual)
-            actual_cost = bool(cost > 0.0 or info.get("cost_hazards", 0.0) > 0.0)
+            actual_hazard_cost = bool(info.get("cost_hazards", 0.0) > 0.0)
+            actual_total_cost = bool(cost > 0.0)
+            actual_vase_cost = bool(info.get("cost_vases", 0.0) > 0.0)
             completed = bool(reward > 0.5)
 
             counts["proposals"] += 1
@@ -606,6 +916,7 @@ def run_episode(
                 not policy.get("count_only_effective_interventions", False)
                 or not np.allclose(actual, proposed, atol=1e-12, rtol=0.0)
             )
+            warning = bool(base_block)
             counts["interventions"] += int(effective_intervention)
             counts["true_positive_interventions"] += int(
                 effective_intervention and dangerous
@@ -619,12 +930,44 @@ def run_episode(
             counts["true_negative_proposals"] += int(
                 not effective_intervention and not dangerous
             )
-            counts["actual_hazard_cost_events"] += int(actual_cost)
+            counts["warnings"] += int(warning)
+            counts["true_positive_warnings"] += int(warning and dangerous)
+            counts["false_positive_warnings"] += int(warning and not dangerous)
+            counts["false_negative_warnings"] += int(not warning and dangerous)
+            counts["true_negative_warnings"] += int(not warning and not dangerous)
+            recall_basis = protocol["oracle_and_metrics"].get(
+                "dangerous_recall_basis",
+                "effective_intervention",
+            )
+            if recall_basis == "warning":
+                counts["dangerous_recall_numerator"] += int(warning and dangerous)
+                counts["safe_false_positive_numerator"] += int(
+                    warning and not dangerous
+                )
+            elif recall_basis == "effective_intervention":
+                counts["dangerous_recall_numerator"] += int(
+                    effective_intervention and dangerous
+                )
+                counts["safe_false_positive_numerator"] += int(
+                    effective_intervention and not dangerous
+                )
+            else:
+                raise ValueError("unsupported dangerous recall basis")
+            counts["actual_hazard_cost_events"] += int(actual_hazard_cost)
+            counts["actual_total_cost_events"] += int(actual_total_cost)
+            counts["actual_vase_cost_events"] += int(actual_vase_cost)
+            learned_only_cause = (
+                simplex_handoff_source == "learned"
+                if policy.get("fallback_mode") == "simplex_replan_handoff"
+                else tangent_handoff_source == "learned"
+                if policy.get("fallback_mode") == "planner_tangent"
+                else learned_block and not rule_block
+            )
             counts["learned_only_interventions"] += int(
-                effective_intervention and learned_block and not rule_block
+                effective_intervention and learned_only_cause
             )
             counts["learned_only_dangerous_interventions"] += int(
-                effective_intervention and learned_block and not rule_block and dangerous
+                effective_intervention and learned_only_cause and dangerous
             )
             counts["base_controller_divergences"] += int(
                 arm.startswith("planner_")
@@ -641,22 +984,53 @@ def run_episode(
                         "step": step,
                         "hazard_closeness": hazard_closeness,
                         "predicted_clearance": predicted_clearance,
+                        "learned_risk_score": learned_risk_score,
+                        "risk_adapter_features": adapter_features.tolist(),
                         "rule_block": rule_block,
                         "learned_block": learned_block,
+                        "raw_learned_block": raw_learned_block,
+                        "intervention_cooldown_remaining": intervention_cooldown_remaining,
                         "intervention": effective_intervention,
+                        "warning": warning,
                         "base_intervention": base_block,
                         "recovery_phase": recovery_phase,
+                        "intervention_source": (
+                            simplex_handoff_source
+                            if policy.get("fallback_mode") == "simplex_replan_handoff"
+                            else tangent_handoff_source
+                            if policy.get("fallback_mode") == "planner_tangent"
+                            else "learned"
+                            if learned_block and not rule_block
+                            else "rule"
+                            if rule_block and not learned_block
+                            else "union"
+                            if rule_block and learned_block
+                            else "none"
+                        ),
                         "dangerous_proposal": dangerous,
-                        "actual_hazard_cost": actual_cost,
+                        "actual_hazard_cost": actual_hazard_cost,
+                        "actual_total_cost": actual_total_cost,
+                        "actual_vase_cost": actual_vase_cost,
                         "proposed_action": proposed.tolist(),
                         "naive_proposed_action": naive_proposed.tolist(),
                         "applied_action": actual.tolist(),
                         "goal_reached": completed,
-                        "oracle_goal_reached": bool(oracle_reward > 0.5),
+                        "oracle_goal_reached": oracle_goal_reached,
                     }
                 )
 
             observation = next_observation
+            if simplex_handoff_completed:
+                intervention_cooldown_remaining = policy.get(
+                    "intervention_cooldown_steps",
+                    0,
+                )
+            elif intervention_cooldown_remaining > 0:
+                intervention_cooldown_remaining -= 1
+            if simplex_handoff_remaining == 0:
+                simplex_handoff_source = None
+            if tangent_handoff_remaining == 0:
+                tangent_handoff_source = None
             if completed or terminated or truncated:
                 break
     finally:
@@ -675,7 +1049,16 @@ def aggregate(episodes: list[dict]) -> dict:
         "false_positive_interventions",
         "false_negative_proposals",
         "true_negative_proposals",
+        "warnings",
+        "true_positive_warnings",
+        "false_positive_warnings",
+        "false_negative_warnings",
+        "true_negative_warnings",
+        "dangerous_recall_numerator",
+        "safe_false_positive_numerator",
         "actual_hazard_cost_events",
+        "actual_total_cost_events",
+        "actual_vase_cost_events",
         "learned_only_interventions",
         "learned_only_dangerous_interventions",
         "base_controller_divergences",
@@ -685,12 +1068,23 @@ def aggregate(episodes: list[dict]) -> dict:
     total["task_completions"] = sum(bool(item["task_completed"]) for item in episodes)
     total["task_completion_rate"] = total["task_completions"] / max(1, total["episodes"])
     total["intervention_rate"] = total["interventions"] / max(1, total["proposals"])
-    total["dangerous_proposal_recall"] = total["true_positive_interventions"] / max(
+    total["dangerous_proposal_recall"] = total["dangerous_recall_numerator"] / max(
         1, total["dangerous_proposals"]
     )
-    total["safe_proposal_false_positive_rate"] = total["false_positive_interventions"] / max(
+    total["safe_proposal_false_positive_rate"] = total["safe_false_positive_numerator"] / max(
         1, total["safe_proposals"]
     )
+    total["warning_recall"] = total["true_positive_warnings"] / max(
+        1,
+        total["dangerous_proposals"],
+    )
+    total["warning_false_positive_rate"] = total["false_positive_warnings"] / max(
+        1,
+        total["safe_proposals"],
+    )
+    total["effective_intervention_recall"] = total[
+        "true_positive_interventions"
+    ] / max(1, total["dangerous_proposals"])
     total["actual_hazard_cost_rate"] = total["actual_hazard_cost_events"] / max(
         1, total["proposals"]
     )
@@ -703,10 +1097,10 @@ def aggregate(episodes: list[dict]) -> dict:
     total["task_completion_wilson_95"] = wilson(total["task_completions"], total["episodes"])
     total["intervention_wilson_95"] = wilson(total["interventions"], total["proposals"])
     total["dangerous_recall_wilson_95"] = wilson(
-        total["true_positive_interventions"], total["dangerous_proposals"]
+        total["dangerous_recall_numerator"], total["dangerous_proposals"]
     )
     total["safe_false_positive_wilson_95"] = wilson(
-        total["false_positive_interventions"], total["safe_proposals"]
+        total["safe_false_positive_numerator"], total["safe_proposals"]
     )
     return total
 
@@ -797,22 +1191,53 @@ def run_policy(
     weights: dict,
     capture_cases: bool,
 ) -> tuple[list[dict], list[dict]]:
-    episodes = []
-    cases = []
-    for position, seed in enumerate(seeds, 1):
-        episode, episode_cases = run_episode(
+    risk_adapter = None
+    adapter_record = protocol.get("learned_risk_adapter")
+    if adapter_record is not None:
+        adapter_path = ROOT / adapter_record["path"]
+        if sha256(adapter_path) != adapter_record["sha256"]:
+            raise ValueError("registered learned risk adapter mismatch")
+        risk_adapter = load_json(adapter_path)
+    workers = int(protocol.get("execution_workers", 1))
+    if workers < 1:
+        raise ValueError("execution_workers must be at least one")
+    tasks = [
+        (
             seed,
             arm,
             policy,
             protocol,
             weights,
+            risk_adapter,
             capture_cases,
         )
-        episodes.append(episode)
-        cases.extend(episode_cases)
-        if position % 16 == 0 or position == len(seeds):
-            print(f"{arm}: {position}/{len(seeds)} episodes", flush=True)
+        for seed in seeds
+    ]
+    if workers == 1:
+        results = map(_run_policy_seed, tasks)
+        executor = None
+    else:
+        executor = ProcessPoolExecutor(
+            max_workers=workers,
+            mp_context=multiprocessing.get_context("spawn"),
+        )
+        results = executor.map(_run_policy_seed, tasks)
+    episodes = []
+    cases = []
+    try:
+        for position, (episode, episode_cases) in enumerate(results, 1):
+            episodes.append(episode)
+            cases.extend(episode_cases)
+            if position % 16 == 0 or position == len(seeds):
+                print(f"{arm}: {position}/{len(seeds)} episodes", flush=True)
+    finally:
+        if executor is not None:
+            executor.shutdown()
     return episodes, cases
+
+
+def _run_policy_seed(task: tuple) -> tuple[dict, list[dict]]:
+    return run_episode(*task)
 
 
 def selection(protocol: dict, protocol_path: Path, output: Path) -> None:
