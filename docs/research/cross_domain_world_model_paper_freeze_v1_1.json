@@ -2,15 +2,15 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "128c0393745a394ee3bcc86364015ae7ff985d5d2274ff36aa2afcb22f056807"
+      "sha256": "18792ac7cdd3da9fd5090ec83e0497046807d0b81a36e376248dbdb2fb488496"
     },
     "external_result": {
-      "path": "docs/research/physical_jepa_safety_gymnasium_result_v12.json",
-      "sha256": "a8db59fd682ffe9f31f4df54002ac9ea83f81461fb936b0d8badff482df26008"
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+      "sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
     },
     "external_verification": {
-      "path": "docs/research/physical_jepa_safety_gymnasium_verification_v12.json",
-      "sha256": "cde8acf6890adeae4b4d88fe41da5841c5191b7b7bc0cd9714876affa59b4b4f"
+      "path": "docs/research/physical_jepa_safety_gymnasium_verification_v14.json",
+      "sha256": "603faf48e4a583d77abf57ccda9db7a4b4afe51596f3e3c4c46192a1ede8dd9e"
     },
     "figures": [
       {
@@ -36,12 +36,12 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "8b2b14536c45382941ca9a9d66de2a3e3f8284eedaef5952c8d8a278452ae7a2"
+      "sha256": "d711210209261a19d3c29cfc5dbf57b535a0d2a5f658665033dd0c3845ab98f9"
     },
     "pdf": {
       "pages": 14,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "5c14162119c21404b93702664ab4b416e78b4e9cd5b1e856941771a8cffa9597"
+      "sha256": "1c3d10cdb2791385fa2a22f5d3238b590bcde74cecb4ffd6d8cac7d794d5df8c"
     }
   },
   "author": "Vyom Kulshrestha",
@@ -53,12 +53,12 @@
     "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
     "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
-    "The Safety-Gymnasium frozen result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the planner-only arm is useful while the active union fails recall and realized-cost gates.",
-    "Every counted Safety-Gymnasium intervention changes the applied action, learned alerts require deterministic rule confirmation, and planner divergence is reported separately from shield intervention.",
+    "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
+    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
-  "evidence_frozen_date": "2026-08-31",
+  "evidence_frozen_date": "2026-09-01",
   "orcid": "0009-0009-1434-7148",
   "promotion_eligible": false,
   "protected_deployed_artifacts": {

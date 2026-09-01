@@ -2,7 +2,7 @@
 
 ## Architecture-Controlled Evidence Across an Agentic Operating System and a Cyber-Physical Runtime
 
-Technical Report v1.1 - 31 August 2026
+Technical Report v1.1 — 1 September 2026
 
 Vyom Kulshrestha
 Independent Researcher, India
@@ -16,9 +16,9 @@ Research artifact accompanying the FerrumOS world-model evidence lineage.
 
 World models are increasingly proposed as predictive components for autonomous software and robots, but a lower rollout error does not establish that a learned score should authorize a state-changing action. This report studies that distinction in two domains with different dynamics and authority surfaces: FerrumOS, where an agent proposes canonical operating-system actions, and Physical JEPA, where a predictive model observes navigation and maintenance state. A prospective protocol matches data, curriculum, parameter budget, optimization budget, seeds, and final cases across direct multilayer perceptron, action-conditioned joint-embedding predictive architecture, and gated recurrent unit dynamics models. Eighteen models are trained without final-partition access during selection.
 
-Architecture rankings are domain-dependent. Physical JEPA has the lowest normalized rollout error at H=1, H=3, and H=5; its MLP-minus-JEPA H=3 difference is 0.010156 [0.009829, 0.010483]. FerrumOS favors the GRU at H=1 and H=3 and the JEPA at H=5. Both selected models are counterfactually directional, but calibration weakens under shift. At threshold 0.99, every arm intervenes in 0 of 512 cases per domain. A 3D PyBullet stress test reaches the other operationally unusable extreme: 288/288 interventions and 0% completion. On 128 untouched Safety-Gymnasium seeds, the privileged planner completes 94.53% of tasks and reduces hazard cost by 66.93%; the active union completes 91.41%, intervenes on 5.04%, recalls 61.58% of dangerous proposals, and increases hazard cost by 47.73%.
+Architecture rankings are domain-dependent. On the frozen physical catalog, the JEPA has the lowest normalized rollout error at horizons 1, 3, and 5; the MLP-minus-JEPA H=3 difference is 0.010156 with a paired episode-bootstrap 95% interval [0.009829, 0.010483]. FerrumOS instead favors the GRU at H=1 and H=3 and the JEPA at H=5. Both selected models show counterfactual directional sensitivity on paired temporal cases, yet calibration weakens under the registered distribution shift. At the frozen 0.99 threshold, rules-only, learned-only, and their union all intervene in 0 of 512 cases in each domain and miss all 256 simulator-labelled dangerous cases. The learned branch therefore adds zero marginal hazard blocks and zero safe-case interventions. A separately registered 3D PyBullet stress test produces an operationally unusable extreme: 288 interventions in 288 cases and 0% task completion. A subsequent externally designed, locally executed Safety-Gymnasium benchmark separates controller value, warning quality, and effective action changes on 128 untouched seeds. The privileged planner completes 94.53% of tasks and records 87.08% fewer hazard-cost events than the naive controller. The active union completes 96.09%, changes 1.86% of commands, recalls 95.62% of dangerous nominal-controller trajectories, and records 84.50% fewer hazard-cost events than the naive controller. Relative to the planner, it completes 2 more tasks but records 14 additional hazard-cost steps.
 
-The contribution is an authority factorization and evidence ladder, not universal model superiority. FerrumOS previews run in authority-disabled QEMU; physical evidence is recorded replay and actuator-disabled software physics. Policy, capability, confirmation, and actuator denial remain independent of prediction. Every negative is retained, protected artifacts are byte-identical, and promotion is false. The evidence supports reproducible runtime methodology, not production, live-robot, formal, independent, physical-deployment, or learned-safety claims. The planner receives the final hazard reduction credit; the active shield fails its frozen joint objective and learning remains advisory.
+The runtime contribution is an authority factorization and evidence ladder rather than a claim of universal model superiority. FerrumOS previews execute in an authority-disabled QEMU path with no action dispatch, while Physical JEPA is evaluated through recorded testbed replay and actuator-disabled software physics. Deterministic policy, capability checks, operator confirmation, and physical actuator denial remain independent of learned prediction. All negative and failed frozen attempts are retained, the planner-only contrast and active-union tradeoff are reported together, protected deployed artifacts remain byte-identical, and promotion eligibility is false. The evidence supports a reproducible safety-runtime methodology and domain-specific predictive modeling; it does not establish production agent safety, live robot safety, formal correctness, or independent replication, physical deployment safety, or a learned collision-avoidance advantage over the privileged planner: the union passes its registered naive-baseline objective, but its completion gain over the planner accompanies higher realized hazard cost.
 
 ### 1. Introduction
 
@@ -30,7 +30,7 @@ The study extends two artifact-backed FerrumOS lineages: unprivileged action-con
 
 #### 1.1 Contributions
 
-This report contributes six things: a matched MLP/JEPA/GRU study across two domains; separate prediction, causal, calibration, and intervention estimands; an authority factorization where learning cannot grant permission or erase deterministic denial; an evidence ladder from sealed catalogs to authority-disabled runtime tests; primary reporting of zero learned marginal caution, incompatible external data, and an all-stop 3D negative; and a prospective external-task result where the planner-only arm generalizes but the selected active shield does not.
+This report contributes six things. First, it provides a matched two-domain architecture study covering MLP, action-conditioned JEPA, and GRU dynamics under equal data, optimization, parameter, seed, and final-case conditions. Second, it separates distributional prediction, counterfactual sensitivity, calibration, and thresholded intervention into independently reported outcomes. Third, it specifies an authority factorization in which learned prediction can add caution but cannot create execution authority or erase a deterministic block. Fourth, it builds a cross-domain evidence ladder spanning sealed offline catalogs, QEMU shadow execution, visible researcher-operated sessions, externally recorded testbed replay, and actuator-disabled software physics. Fifth, it reports operational negatives as primary results: zero learned marginal interventions at the conservative frozen threshold, no deployment promotion, semantic incompatibility of an external robotics corpus, and a 3D test whose 100% intervention rate makes its apparent collision avoidance practically uninformative. Sixth, it prospectively freezes a joint completion, intervention, recall, false-positive, and realized-cost objective, retains every failed or non-beneficial protocol stage, and reports a once-opened Safety-Gymnasium final where the selected union passes the registered joint objective while remaining worse than the privileged planner on realized hazard cost.
 
 #### 1.2 Claim boundary
 
@@ -256,23 +256,23 @@ The learned branch contributes 23 interventions not produced by the rule; 13 coi
 | Learned-only and unshielded contact | 13 / 288 | 4.51% |
 | Simulated recovery | 181 / 205 | 88.29% [83.17%, 92.01%] |
 
-No shielded contact in this run should be read as a zero underlying collision probability. More fundamentally, avoiding contact by stopping every case is not useful autonomy. Retaining the negative prevents an embodiment-diversity checkbox from being mistaken for deployment progress.
+No shielded contact was observed in this run; this does not establish a zero underlying collision probability. More fundamentally, avoiding contact by stopping every case is not useful autonomy. Retaining the negative prevents an embodiment-diversity checkbox from being mistaken for deployment progress.
 
 #### 8.4 Prospective Safety-Gymnasium controller and shield benchmark
 
-The final amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.3, the installed simulator-source digest, the protected Physical JEPA v5 digest, effective-intervention choice on already-opened development seeds 3000-3127, and untouched final seeds 4000-4127. The external project supplies the task definition, seeded layouts, observations, goal condition, and hazard-cost signal [17]. This study supplies the navigation adapter, proposed controllers, deterministic shield, learned caution branch, execution, and analysis. Execution is local, physical actuator authority is disabled, and no independent replication is claimed.
+The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.3, the installed simulator-source digest, the protected Physical JEPA v5 digest, a deterministic risk adapter fitted on opened seeds 4000-4095, candidate choice on opened seeds 4096-4127, and untouched final seeds 6000-6127. The 20-step oracle rolls out the nominal receding-horizon controller from synchronized simulator state; it does not repeat the current command for 20 steps. Warning recall and warning FPR evaluate the detector, whereas intervention rate counts only commands that actually change. The external project supplies the task, layouts, observations, goal condition, and hazard costs [17]. This study supplies the adapter, privileged planner, tangent shield, execution, and analysis. Execution is local, actuator authority is disabled, and no independent replication is claimed.
 
-| Final arm | Completion | Intervention | Dangerous recall | Safe FPR | Hazard-cost events |
-|---|---:|---:|---:|---:|---:|
-| Naive unshielded | 100.00% | 0.00% | 0.00% | 0.00% | 375 |
-| Planner unshielded | **94.53%** | 0.00% | 0.00% | 0.00% | **124** |
-| Planner + rules | 91.41% | 5.04% | 61.58% | 3.57% | 554 |
-| Planner + learned | 94.53% | 0.00% | 0.00% | 0.00% | 124 |
-| Planner + rules + learned | 91.41% | 5.04% | 61.58% | 3.57% | 554 |
+| Final arm | Completion | Effective intervention | Warning recall | Warning FPR | Effective-action recall | Hazard-cost events |
+|---|---:|---:|---:|---:|---:|---:|
+| Naive unshielded | 100.00% | 0.00% | 0.00% | 0.00% | 0.00% | 542 |
+| Planner unshielded | 94.53% | 0.00% | 0.00% | 0.00% | 0.00% | **70** |
+| Planner + rules | 94.53% | 0.00% | 0.00% | 0.00% | 0.00% | 70 |
+| Planner + learned | **96.09%** | 1.86% | **95.62%** | 3.24% | 55.00% | 84 |
+| Planner + rules + learned | **96.09%** | 1.86% | **95.62%** | 3.24% | 55.00% | 84 |
 
-The privileged planner-only arm is the strongest prospective controller result: it completes 94.53% of tasks and reduces realized hazard-cost events from 375 to 124 (66.93%) without a shield intervention. The selected active union does not pass the frozen joint objective. It passes completion, intervention, safe-FPR, authority, and artifact-integrity gates, but dangerous-proposal recall is 61.58% against an 80% minimum and realized hazard cost increases from 375 to 554 (47.73%). Episode-bootstrap intervals are preserved in the result artifact rather than selectively summarized here.
+The union passes every registered gate: 96.09% completion, 1.86% effective intervention, 95.62% warning recall, 3.24% warning FPR, and 84.50% fewer hazard-cost events than the naive controller (542 to 84). Its effective action-change recall is 55.00% (88/160): warned dangerous proposals do not count as interventions when the tangent command is already identical to the planner command. Its episode-bootstrap 95% intervals are 92.19%-99.22% for completion, 1.18%-2.55% for intervention, 81.58%-100.00% for warning recall, and 2.19%-4.31% for warning FPR. No final rerun or recovery path was used.
 
-Attribution is essential. The privileged deterministic planner changes 78.61% of union proposals relative to the naive local controller; that is controller divergence, not shield intervention. An intervention is counted only when the applied action differs from the proposal. The learned branch accounts for 0 rule-exclusive interventions because learned alerts require deterministic rule confirmation before they can alter control. The benchmark therefore supports prospective deterministic-planner value and a retained active-shield negative, not a claim that v5 produced the hazard-cost reduction. The repository retains selection failures, a serializer failure, fresh-final recall and realized-cost failures, a nominal replan that often repeated the original action, and a subsequent Simplex fallback that failed before final access.
+Attribution remains essential. The privileged planner alone reduces hazard cost from 542 to 70 (87.08%). Adding the learned tangent branch increases completion from 121/128 to 123/128 but increases hazard-cost events from 70 to 84 (plus 14). All 382 effective union interventions are learned-only because the high-closeness rule never changes a command on this final distribution. The adapter warns on 153/160 dangerous controller trajectories, while 88/160 receive a different command; the remaining warned cases already propose the saturated tangent-compatible turn. The benchmark therefore supports a passing naive-baseline runtime objective and a completion/cost tradeoff over the planner, not learned collision-avoidance superiority over privileged planning.
 
 ### 9. Cross-domain synthesis
 
@@ -286,7 +286,7 @@ Both selected models react to paired interventions in the intended direction. Ne
 
 #### 9.3 Deterministic authority can fail differently
 
-The new 512-case catalogs show no interventions from either rules or learning, while the 3D stress intervenes on every case. The prospective Safety-Gymnasium result separates a useful privileged planner-only controller from an active union that fails recall and worsens realized hazard cost. The contrast shows why controller quality cannot be credited to a shield and why a shield's recall cannot substitute for executed outcomes. These three outcomes show why deterministic authority must be evaluated with task completion, intervention, proposal recall, false positives, realized cost, and controller divergence rather than a collision count alone.
+The new 512-case catalogs show no interventions from either rules or learning, while the 3D stress intervenes on every case. The prospective Safety-Gymnasium result separates a useful privileged planner-only controller from an active union that passes the naive-baseline objective but trades higher completion for higher hazard cost relative to the planner. The contrast shows why controller quality cannot be credited to a shield and why warning recall cannot substitute for marginal executed outcomes. These three outcomes show why deterministic authority must be evaluated with task completion, intervention, proposal recall, false positives, realized cost, and controller divergence rather than a collision count alone.
 
 #### 9.4 Evidence ladders prevent category errors
 
@@ -338,7 +338,7 @@ python scripts/verify_world_model_natural_use.py
 python scripts/verify_world_model_external_case_intake.py
 python scripts/verify_physical_jepa_recorded_hil_replay.py
 python scripts/verify_physical_jepa_multi_embodiment_3d.py
-python scripts/verify_physical_jepa_safety_gymnasium_v12.py
+python scripts/verify_physical_jepa_safety_gymnasium_v14.py
 python scripts/verify_cross_domain_world_model_improvement_study.py
 python scripts/verify_cross_domain_world_model_paper.py
 ```
@@ -347,9 +347,9 @@ The paper verifier checks required claims and boundaries in the manuscript, PDF 
 
 ### 12. Conclusion
 
-This report finds a real architecture-controlled advantage for Physical JEPA and a different ranking in FerrumOS. It also finds zero learned intervention at the original conservative operating point and an all-stop failure in the 3D stress test. In the later prospective Safety-Gymnasium benchmark, the privileged planner alone reaches 94.53% completion with 66.93% fewer realized hazard-cost events than the naive baseline, while the active union reaches only 61.58% dangerous recall and increases hazard cost. These results locate distinct engineering problems: learning dynamics, calibrating decisions under shift, designing useful authority policies, and separating planner effects from shield and learned-model effects.
+This report finds a real architecture-controlled advantage for Physical JEPA and a different ranking in FerrumOS. It also finds zero learned intervention at the original conservative operating point and an all-stop failure in the 3D stress test. In the later prospective Safety-Gymnasium benchmark, the privileged planner alone reaches 94.53% completion with 87.08% fewer realized hazard-cost events than the naive baseline. The active union passes the registered objective with 95.62% warning recall and 84.50% lower hazard cost than naive, but adds 14 hazard-cost steps relative to the planner while completing two additional tasks. These results locate distinct engineering problems: learning dynamics, calibrating decisions under shift, designing useful authority policies, and separating planner effects from shield and learned-model effects.
 
-The defensible contribution is therefore not that a world model makes an operating system or robot safe. It is that world models can be evaluated inside a reproducible authority architecture without being mistaken for authority. Prediction remains advisory; deterministic policy, capability, confirmation, and actuator denial remain independently enforceable; negative evidence remains visible; and deployment remains unchanged unless a separate prospective deployment protocol passes. The planner contrast is useful research evidence, but the active shield fails its frozen gates and every research artifact remains explicitly ineligible for promotion.
+The defensible contribution is therefore not that a world model makes an operating system or robot safe. It is that world models can be evaluated inside a reproducible authority architecture without being mistaken for authority. Prediction remains advisory; deterministic policy, capability, confirmation, and actuator denial remain independently enforceable; negative evidence remains visible; and deployment remains unchanged unless a separate prospective deployment protocol passes. The union passes this software benchmark, but the privileged-planner marginal tradeoff and absence of HIL or independent execution keep every research artifact explicitly ineligible for promotion.
 
 #### 12.1 Submission scope
 
@@ -357,7 +357,7 @@ The appropriate submission identity is a cyber-physical systems, runtime-assuran
 
 #### 12.2 Remaining evidence tier
 
-The prospective joint objective is now measured on an external simulator task and fails for the active shield despite a strong planner-only arm. Another local seed range or threshold sweep has low scientific value. The next evidence-class changes are a controller/shield design fixed before an externally executed benchmark, actuator-disabled live HIL with physical clocks and interfaces, and execution of a frozen protocol by an independent party. For FerrumOS, independently operated longitudinal use and concurrent preview remain more valuable than additional synthetic prompts. These are declared next-tier studies, not missing rows that can be fabricated inside the present software-only report.
+The prospective joint objective now passes on an external simulator task, while the planner-relative comparison remains a completion/cost tradeoff rather than learned collision-avoidance superiority. Another local seed range or threshold sweep has low scientific value. The next evidence-class changes are a controller/shield design fixed before an externally executed benchmark, actuator-disabled live HIL with physical clocks and interfaces, and execution of a frozen protocol by an independent party. For FerrumOS, independently operated longitudinal use and concurrent preview remain more valuable than additional synthetic prompts. These are next-tier studies, not claims that can be fabricated inside the present software-only report.
 
 #### 12.3 Release rule
 
@@ -382,7 +382,7 @@ This ledger is part of the report rather than a supplementary marketing summary.
 | External physical streams can be replayed | 284,398 HAI transitions | Fault-condition error and event diagnostics | Not live Ferrum HIL or physical recovery |
 | Anchor-Lab adds external embodiment data | Six publisher files, 2,925,558 rows | Timing and command/state fields are finite | Not semantically valid for direct v5 scoring |
 | 3D geometry/contact stress is exercised | 288 local PyBullet DIRECT cases | Contact and simulated recovery are measured | Not practical learned safety at 100% intervention |
-| Controller and shield are jointly evaluated | Safety-Gymnasium final seeds 4000-4127 | Planner-only: 94.53% completion and 66.93% cost reduction; active union fails recall and cost gates | Not a passing shield, independent, sensor-only, physical, or learned-safety result |
+| Controller and shield are jointly evaluated | Safety-Gymnasium final seeds 6000-6127 | Planner-only: 94.53% completion and 87.08% cost reduction; union passes all registered naive-baseline gates with 95.62% warning recall, but costs 14 more hazard steps than planner | Not independent, sensor-only, physical, or learned-superiority evidence |
 | Deployment stayed unchanged | Recomputed protected SHA-256 digests | Every protected artifact is byte-identical | Not a deployment or release result |
 
 #### A.1 Evidence precedence
@@ -391,7 +391,7 @@ When two measurements appear to support different narratives, the operationally 
 
 #### A.2 Negative-result taxonomy
 
-The study distinguishes three types of negative evidence. A scientific negative is a completed comparison whose registered estimand does not support the hoped-for effect, as in zero learned marginal caution. A gate pass can still be an engineering negative when the executed outcome worsens, as retained in the pre-v12 Safety-Gymnasium lineage. An engineering negative is a system behavior that is measurable but unusable, as in serial multi-client latency or the all-stop 3D policy. A compatibility negative occurs before model scoring when external data do not share the required semantics, as with Anchor-Lab. None is a failed run, and none should be rewritten as missing data.
+The study distinguishes three types of negative evidence. A scientific negative is a completed comparison whose registered estimand does not support the hoped-for effect, as in zero learned marginal caution. A gate pass can still contain a negative marginal contrast, as v14 does when the union improves completion but worsens hazard cost relative to the planner. An engineering negative is a system behavior that is measurable but unusable, as in serial multi-client latency or the all-stop 3D policy. A compatibility negative occurs before model scoring when external data do not share the required semantics, as with Anchor-Lab. None is a failed run, and none should be rewritten as missing data.
 
 <!-- PAGE BREAK -->
 
@@ -443,9 +443,9 @@ The repository is the executable supplement to the narrative. Table C.1 lists th
 | External intake result | `docs/research/world_model_external_case_intake_result_v1.json` | Inspect source revisions, rows and compatibility decision |
 | Recorded replay result | `docs/research/physical_jepa_recorded_hil_replay_result_v1.json` | Recompute fault-condition and authority-disabled metrics |
 | 3D stress result | `docs/research/physical_jepa_multi_embodiment_3d_result_v1.json` | Recompute completion, intervention, contact and recovery |
-| External useful-autonomy protocol | `docs/research/physical_jepa_safety_gymnasium_protocol_v12.json` | Inspect runtime lock, seed boundary, candidate policy and frozen joint gates |
-| External useful-autonomy result | `docs/research/physical_jepa_safety_gymnasium_result_v12.json` | Recompute five arms, planner divergence, learned-only attribution and realized-cost reduction |
-| External useful-autonomy verification | `docs/research/physical_jepa_safety_gymnasium_verification_v12.json` | Confirm raw cases, exact seeds, hashes, gates, authority zero and non-promotion |
+| External useful-autonomy protocol | `docs/research/physical_jepa_safety_gymnasium_protocol_v14.json` | Inspect runtime lock, seed boundary, candidate policy and frozen joint gates |
+| External useful-autonomy result | `docs/research/physical_jepa_safety_gymnasium_result_v14.json` | Recompute five arms, planner divergence, learned-only attribution and realized-cost reduction |
+| External useful-autonomy verification | `docs/research/physical_jepa_safety_gymnasium_verification_v14.json` | Confirm raw cases, exact seeds, hashes, gates, authority zero and non-promotion |
 | Umbrella verification | `docs/research/cross_domain_world_model_improvement_verification_v1.json` | Confirm subordinate passes, claim boundaries and protected hashes |
 | Narrative study | `docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md` | Read the compact evidence-first study before this full report |
 

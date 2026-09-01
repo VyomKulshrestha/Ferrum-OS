@@ -2,27 +2,27 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "128c0393745a394ee3bcc86364015ae7ff985d5d2274ff36aa2afcb22f056807"
+      "sha256": "18792ac7cdd3da9fd5090ec83e0497046807d0b81a36e376248dbdb2fb488496"
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "c8214ed7ab2cdf4872f460502b4301a03ca3f1060ff2e7df8cf40a18540ffedd"
+      "sha256": "9959b638b7adbee167efd3f72cedb7396d9f0875f1320c28cfcbe02fb032562c"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "8b2b14536c45382941ca9a9d66de2a3e3f8284eedaef5952c8d8a278452ae7a2"
+      "sha256": "d711210209261a19d3c29cfc5dbf57b535a0d2a5f658665033dd0c3845ab98f9"
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "5c14162119c21404b93702664ab4b416e78b4e9cd5b1e856941771a8cffa9597"
+      "sha256": "1c3d10cdb2791385fa2a22f5d3238b590bcde74cecb4ffd6d8cac7d794d5df8c"
     }
   },
   "checks": {
     "all_figures_nonempty": true,
-    "external_frozen_negative_recomputes": true,
+    "external_frozen_pass_recomputes": true,
     "external_result_effective_and_attributed": true,
     "external_scope_and_nonpromotion_honest": true,
-    "external_verification_confirms_only_gate_failure": true,
+    "external_verification_confirms_all_gates": true,
     "forbidden_placeholders_and_review_wording_absent": true,
     "pdf_author_exact": true,
     "pdf_has_no_replacement_character": true,
@@ -45,7 +45,7 @@
       "opposite unusable extreme": true,
       "reviewer-requested": true
     },
-    "freeze_manifest_sha256": "c8214ed7ab2cdf4872f460502b4301a03ca3f1060ff2e7df8cf40a18540ffedd",
+    "freeze_manifest_sha256": "9959b638b7adbee167efd3f72cedb7396d9f0875f1320c28cfcbe02fb032562c",
     "pdf_pages": 14,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
@@ -60,9 +60,8 @@
       "Threats to validity and limitations": true,
       "Vyom Kulshrestha": true
     },
-    "pdf_words_extracted": 7839,
+    "pdf_words_extracted": 8183,
     "source_required_phrases": {
-      "An intervention is counted only when the applied action differs from the proposal.": true,
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
@@ -70,16 +69,17 @@
       "No protected research result was promoted.": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
-      "Safety-Gymnasium supplies the task and costs": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
-      "Technical Report v1.1 - 31 August 2026": true,
-      "controller divergence, not shield intervention": true,
-      "learned alerts require deterministic rule confirmation": true,
+      "Technical Report v1.1 \u2014 1 September 2026": true,
+      "The union passes every registered gate": true,
+      "Warning recall and warning FPR evaluate the detector": true,
+      "completion/cost tradeoff over the planner": true,
+      "effective action-change recall": true,
+      "intervention rate counts only commands that actually change": true,
       "no independent replication is claimed": true,
-      "not a claim that v5 produced the hazard-cost reduction": true,
-      "operationally unusable extreme": true,
-      "privileged deterministic planner": true,
-      "selected active union does not pass the frozen joint objective": true
+      "nominal receding-horizon controller": true,
+      "not learned collision-avoidance superiority over privileged planning": true,
+      "operationally unusable extreme": true
     }
   },
   "overall_pass": true,

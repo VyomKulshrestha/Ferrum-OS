@@ -42,16 +42,18 @@ EVIDENCE = {
     "physical_3d_protocol": "physical_jepa_multi_embodiment_3d_protocol_v1.json",
     "physical_3d_result": "physical_jepa_multi_embodiment_3d_result_v1.json",
     "physical_3d_verification": "physical_jepa_multi_embodiment_3d_verification_v1.json",
-    "physical_safety_gym_protocol": "physical_jepa_safety_gymnasium_protocol_v12.json",
-    "physical_safety_gym_selection": "physical_jepa_safety_gymnasium_selection_v12.json",
-    "physical_safety_gym_result": "physical_jepa_safety_gymnasium_result_v12.json",
-    "physical_safety_gym_verification": "physical_jepa_safety_gymnasium_verification_v12.json",
+    "physical_safety_gym_protocol": "physical_jepa_safety_gymnasium_protocol_v14.json",
+    "physical_safety_gym_selection": "physical_jepa_safety_gymnasium_selection_v14.json",
+    "physical_safety_gym_result": "physical_jepa_safety_gymnasium_result_v14.json",
+    "physical_safety_gym_verification": "physical_jepa_safety_gymnasium_verification_v14.json",
+    "physical_safety_gym_v12_result": "physical_jepa_safety_gymnasium_result_v12.json",
+    "physical_safety_gym_v12_verification": "physical_jepa_safety_gymnasium_verification_v12.json",
     "physical_simplex_protocol": "physical_jepa_safety_gymnasium_protocol_v13.json",
     "physical_simplex_selection": "physical_jepa_safety_gymnasium_selection_v13.json",
 }
 HASH_ONLY_EVIDENCE = {
     "natural_use_telemetry": "world_model_natural_use_telemetry_v1.jsonl",
-    "physical_safety_gym_cases": "physical_jepa_safety_gymnasium_cases_v12.jsonl",
+    "physical_safety_gym_cases": "physical_jepa_safety_gymnasium_cases_v14.jsonl",
     **{
         f"natural_use_amendment_{number}": f"world_model_natural_use_protocol_amendment_v{number}.json"
         for number in range(1, 14)
@@ -205,35 +207,30 @@ def main() -> int:
             "final_seed_access_attempted"
         ]
         is False,
-        "physical_safety_gym_frozen_negative_verified": physical_safety_gym_verification[
+        "physical_safety_gym_frozen_pass_verified": physical_safety_gym_verification[
             "overall_pass"
         ]
-        is False
-        and all(
-            value
-            for name, value in physical_safety_gym_verification["checks"].items()
-            if name != "all_frozen_gates_pass_independently"
-        )
-        and physical_safety_gym_verification["checks"][
-            "all_frozen_gates_pass_independently"
-        ]
-        is False
-        and physical_safety_gym["all_frozen_gates_pass"] is False
-        and physical_safety_gym["frozen_gates"]["dangerous_proposal_recall"] is False
-        and physical_safety_gym["frozen_gates"][
-            "actual_hazard_cost_reduction_fraction"
-        ]
-        is False
+        is True
+        and all(physical_safety_gym_verification["checks"].values())
+        and physical_safety_gym["all_frozen_gates_pass"] is True
+        and all(physical_safety_gym["frozen_gates"].values())
         and physical_safety_gym["final_seed_access_count"] == 1,
+        "physical_safety_gym_v12_negative_retained": records[
+            "physical_safety_gym_v12_result"
+        ]["all_frozen_gates_pass"]
+        is False
+        and records["physical_safety_gym_v12_verification"]["overall_pass"] is False,
         "physical_safety_gym_effective_interventions": physical_safety_gym_verification[
             "checks"
         ]["every_counted_intervention_changes_action"]
         is True
-        and physical_safety_gym_union["learned_only_interventions"] == 0
+        and physical_safety_gym_union["learned_only_interventions"] > 0
         and physical_safety_gym["selected_candidate"][
             "learned_requires_rule_confirmation"
         ]
-        is True,
+        is False
+        and physical_safety_gym["selected_candidate"]["fallback_mode"]
+        == "planner_tangent",
         "physical_safety_gym_external_scope_honest": physical_safety_gym[
             "externally_authored_benchmark"
         ]
@@ -299,7 +296,7 @@ def main() -> int:
             "physical_multi_embodiment_3d_stress": True,
             "physical_3d_stress_task_completion_rate": 0.0,
             "physical_3d_stress_intervention_rate": 1.0,
-            "physical_safety_gymnasium_frozen_negative_verified": True,
+            "physical_safety_gymnasium_frozen_pass_verified": True,
             "physical_safety_gymnasium_task_completion_rate": physical_safety_gym[
                 "headline"
             ]["task_completion_rate"],
@@ -338,8 +335,8 @@ def main() -> int:
             "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
             "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
             "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
-            "The Safety-Gymnasium frozen result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the planner-only arm is useful while the active union fails recall and realized-cost gates.",
-            "Every counted Safety-Gymnasium intervention changes the applied action, learned alerts require deterministic rule confirmation, and planner divergence is reported separately from shield intervention.",
+            "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
+            "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
             "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
             "No protected deployed artifact was promoted or replaced by this study.",
         ],

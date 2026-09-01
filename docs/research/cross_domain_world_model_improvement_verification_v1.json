@@ -22,8 +22,9 @@
     "physical_replay_verified": true,
     "physical_safety_gym_effective_interventions": true,
     "physical_safety_gym_external_scope_honest": true,
-    "physical_safety_gym_frozen_negative_verified": true,
+    "physical_safety_gym_frozen_pass_verified": true,
     "physical_safety_gym_selection_never_opened_final": true,
+    "physical_safety_gym_v12_negative_retained": true,
     "physical_simplex_failure_retained_without_final_access": true,
     "protected_deployed_artifacts_unchanged": true
   },
@@ -35,8 +36,8 @@
     "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
     "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
-    "The Safety-Gymnasium frozen result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the planner-only arm is useful while the active union fails recall and realized-cost gates.",
-    "Every counted Safety-Gymnasium intervention changes the applied action, learned alerts require deterministic rule confirmation, and planner divergence is reported separately from shield intervention.",
+    "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
+    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
@@ -206,24 +207,32 @@
       "sha256": "08d99d3ec7b5a5483f8da1c723a6ed0e8441c296e92a94b38bce30ad51166797"
     },
     "physical_safety_gym_cases": {
-      "path": "docs/research/physical_jepa_safety_gymnasium_cases_v12.jsonl",
-      "sha256": "8f65e652478cfc1296d02e8cb4288f857f770f25fed15db0427702579b40edf4"
+      "path": "docs/research/physical_jepa_safety_gymnasium_cases_v14.jsonl",
+      "sha256": "ca9f3425666134ffcffebea7361129325f47eab82f1be2cf6895cf1a1397eebd"
     },
     "physical_safety_gym_protocol": {
-      "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v12.json",
-      "sha256": "af41b52d7ca8e4e5464b3819281e6af5de2b6aa2620c3b5094c6e552ef337a9d"
+      "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v14.json",
+      "sha256": "58dcf0de75ba3c6edd361d35059cbdd1429e6efc2c2e484e74191f2008d3fa4e"
     },
     "physical_safety_gym_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+      "sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
+    },
+    "physical_safety_gym_selection": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_selection_v14.json",
+      "sha256": "70a128717b21618cc8eadc09130f1bde465672211919d5c6975a51f58cb91837"
+    },
+    "physical_safety_gym_v12_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_result_v12.json",
       "sha256": "a8db59fd682ffe9f31f4df54002ac9ea83f81461fb936b0d8badff482df26008"
     },
-    "physical_safety_gym_selection": {
-      "path": "docs/research/physical_jepa_safety_gymnasium_selection_v12.json",
-      "sha256": "e1e06c872555ffd302f2fb0f3e76dbb45eee9d3ffb6aa28e2765fd2212242599"
-    },
-    "physical_safety_gym_verification": {
+    "physical_safety_gym_v12_verification": {
       "path": "docs/research/physical_jepa_safety_gymnasium_verification_v12.json",
       "sha256": "cde8acf6890adeae4b4d88fe41da5841c5191b7b7bc0cd9714876affa59b4b4f"
+    },
+    "physical_safety_gym_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_verification_v14.json",
+      "sha256": "603faf48e4a583d77abf57ccda9db7a4b4afe51596f3e3c4c46192a1ede8dd9e"
     },
     "physical_simplex_protocol": {
       "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v13.json",
@@ -252,16 +261,16 @@
     "physical_3d_stress_task_completion_rate": 0.0,
     "physical_actuator_disabled_recorded_sensor_replay": true,
     "physical_multi_embodiment_3d_stress": true,
-    "physical_safety_gymnasium_dangerous_recall": 0.6158088235294118,
-    "physical_safety_gymnasium_frozen_negative_verified": true,
-    "physical_safety_gymnasium_hazard_cost_reduction": -0.47733333333333333,
-    "physical_safety_gymnasium_intervention_rate": 0.05035405192761605,
-    "physical_safety_gymnasium_learned_only_interventions": 0,
-    "physical_safety_gymnasium_naive_hazard_cost_events": 375,
-    "physical_safety_gymnasium_planner_hazard_cost_events": 124,
+    "physical_safety_gymnasium_dangerous_recall": 0.95625,
+    "physical_safety_gymnasium_frozen_pass_verified": true,
+    "physical_safety_gymnasium_hazard_cost_reduction": 0.8450184501845018,
+    "physical_safety_gymnasium_intervention_rate": 0.018628694040768556,
+    "physical_safety_gymnasium_learned_only_interventions": 382,
+    "physical_safety_gymnasium_naive_hazard_cost_events": 542,
+    "physical_safety_gymnasium_planner_hazard_cost_events": 70,
     "physical_safety_gymnasium_planner_task_completion_rate": 0.9453125,
-    "physical_safety_gymnasium_safe_fpr": 0.03574989317761003,
-    "physical_safety_gymnasium_task_completion_rate": 0.9140625
+    "physical_safety_gymnasium_safe_fpr": 0.03238965890101248,
+    "physical_safety_gymnasium_task_completion_rate": 0.9609375
   },
   "promotion_eligible": false,
   "protected_deployed_artifacts": {
