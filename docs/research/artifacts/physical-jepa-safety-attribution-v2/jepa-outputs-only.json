@@ -1,0 +1,202 @@
+{
+  "authority": {
+    "deployment_eligible": false,
+    "may_add_caution": true,
+    "may_grant_permission": false,
+    "physical_actuator_authority": false
+  },
+  "bias": -1.0828171652372258,
+  "feature_mean": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.09740320700088675,
+    0.5481373835895187,
+    0.5768034052643011
+  ],
+  "feature_scale": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.08115004588789745,
+    0.5004234073777252,
+    0.19336710710560695
+  ],
+  "feature_transform": "identity",
+  "fit": {
+    "l2_regularization": 0.05,
+    "optimizer": "deterministic full-batch Adam",
+    "training_positive_rows": 310,
+    "training_rows": 17768,
+    "training_seed_range": {
+      "count": 96,
+      "start": 4000
+    },
+    "updates": 3000,
+    "validation_positive_rows": 23,
+    "validation_rows": 3494,
+    "validation_seed_range": {
+      "count": 32,
+      "start": 4096
+    }
+  },
+  "included_raw_feature_indices": [
+    22,
+    23,
+    24
+  ],
+  "name": "jepa-outputs-only",
+  "raw_feature_count": 25,
+  "schema": "physical-jepa-safety-risk-source-adapter-v1",
+  "validation": {
+    "calibration": {
+      "brier": 0.09958285080704232,
+      "ece": 0.26529724787406456,
+      "reliability": [
+        {
+          "count": 606,
+          "lower": 0.0,
+          "mean_score": 0.052422681068730714,
+          "observed_frequency": 0.0,
+          "upper": 0.1
+        },
+        {
+          "count": 802,
+          "lower": 0.1,
+          "mean_score": 0.1514273734532417,
+          "observed_frequency": 0.0,
+          "upper": 0.2
+        },
+        {
+          "count": 623,
+          "lower": 0.2,
+          "mean_score": 0.2513705949524884,
+          "observed_frequency": 0.0,
+          "upper": 0.3
+        },
+        {
+          "count": 672,
+          "lower": 0.3,
+          "mean_score": 0.34879454358391965,
+          "observed_frequency": 0.0,
+          "upper": 0.4
+        },
+        {
+          "count": 430,
+          "lower": 0.4,
+          "mean_score": 0.4472667640211769,
+          "observed_frequency": 0.0,
+          "upper": 0.5
+        },
+        {
+          "count": 231,
+          "lower": 0.5,
+          "mean_score": 0.5405203124481363,
+          "observed_frequency": 0.0,
+          "upper": 0.6
+        },
+        {
+          "count": 81,
+          "lower": 0.6,
+          "mean_score": 0.658972883927131,
+          "observed_frequency": 0.09876543209876543,
+          "upper": 0.7
+        },
+        {
+          "count": 49,
+          "lower": 0.7,
+          "mean_score": 0.7179626038431314,
+          "observed_frequency": 0.30612244897959184,
+          "upper": 0.8
+        },
+        {
+          "count": 0,
+          "lower": 0.8,
+          "upper": 0.9
+        },
+        {
+          "count": 0,
+          "lower": 0.9,
+          "upper": 1.0
+        }
+      ]
+    },
+    "selected": {
+      "false_positive_rate": 0.00432152117545376,
+      "fn": 9,
+      "fp": 15,
+      "precision": 0.4827586206896552,
+      "recall": 0.6086956521739131,
+      "threshold": 0.709,
+      "tn": 3456,
+      "tp": 14
+    },
+    "selected_threshold": 0.709,
+    "selection_rule": "minimum absolute FPR difference from the frozen full-adapter FPR; then fewer false negatives; then higher threshold"
+  },
+  "weights": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -1.9377341422452032,
+    -1.6924253228992794,
+    0.23187704906435633
+  ]
+}

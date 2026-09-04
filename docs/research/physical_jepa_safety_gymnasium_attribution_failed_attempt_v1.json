@@ -1,0 +1,29 @@
+{
+  "schema": "physical-jepa-safety-gymnasium-risk-source-attribution-failed-attempt-v1",
+  "protocol": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_attribution_protocol_v1.json",
+    "registered_commit": "df58e72"
+  },
+  "final_seed_range_accessed": {
+    "start": 7000,
+    "count": 128
+  },
+  "completed_stages": [
+    "planner_unshielded",
+    "full-frozen-v14-adapter"
+  ],
+  "failed_stage": "local-sensing-without-jepa",
+  "failure": {
+    "type": "KeyError",
+    "message": "selected_threshold",
+    "cause": "The frozen runner eagerly evaluated adapter.validation.selected_threshold even though the policy supplied an explicit learned_risk_threshold. The v1 alternative adapters stored the same selected threshold under adapter.validation.selected.threshold."
+  },
+  "retained_partial_case_catalog": {
+    "path": "docs/research/artifacts/physical-jepa-safety-attribution-v1/final-cases/full-frozen-v14-adapter.jsonl.gz",
+    "sha256": "97c2cb54a3ac002aa5a77bb716619c88f0f6ec47d78a23489aecd72a523be17a",
+    "rows": 26468
+  },
+  "result_eligible": false,
+  "promotion_eligible": false,
+  "rerun_policy": "Do not resume, repair, or report estimates on seeds 7000-7127. Register the schema-only repair before opening a new seed range."
+}
