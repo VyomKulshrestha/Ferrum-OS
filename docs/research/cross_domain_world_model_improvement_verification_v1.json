@@ -22,6 +22,10 @@
     "physical_3d_actuator_authority_zero": true,
     "physical_actuator_authority_zero": true,
     "physical_replay_verified": true,
+    "physical_safety_gym_attribution_authority_and_nonpromotion": true,
+    "physical_safety_gym_attribution_effect_recomputed": true,
+    "physical_safety_gym_attribution_failure_retained": true,
+    "physical_safety_gym_attribution_verified": true,
     "physical_safety_gym_effective_interventions": true,
     "physical_safety_gym_external_scope_honest": true,
     "physical_safety_gym_frozen_pass_verified": true,
@@ -43,6 +47,7 @@
     "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
     "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
     "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
+    "The fresh-seed risk-source attribution finds that the JEPA-output-only pipeline intervenes less and records fewer hazard steps than the full adapter, but it varies a complete warning pipeline and does not isolate architecture-only causality or establish superiority to the privileged planner.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
@@ -215,6 +220,22 @@
       "path": "docs/research/physical_jepa_recorded_hil_replay_verification_v1.json",
       "sha256": "08d99d3ec7b5a5483f8da1c723a6ed0e8441c296e92a94b38bce30ad51166797"
     },
+    "physical_safety_gym_attribution_failed_attempt": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_failed_attempt_v1.json",
+      "sha256": "99861742d58f09d419a2b8bc2c38df4ac25038853a16212253a84d0ddcc56eff"
+    },
+    "physical_safety_gym_attribution_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_protocol_v2.json",
+      "sha256": "ebe06850294979075a015b7b0d4aeb96bfd71a559badef5e76acc04fee96982d"
+    },
+    "physical_safety_gym_attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
+    },
+    "physical_safety_gym_attribution_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+      "sha256": "4fd14399205e6cd71870ba7c24a33971471e91f3a6d7756c4c2b1b522813caee"
+    },
     "physical_safety_gym_cases": {
       "path": "docs/research/physical_jepa_safety_gymnasium_cases_v14.jsonl",
       "sha256": "ca9f3425666134ffcffebea7361129325f47eab82f1be2cf6895cf1a1397eebd"
@@ -282,6 +303,10 @@
     "physical_3d_stress_task_completion_rate": 0.0,
     "physical_actuator_disabled_recorded_sensor_replay": true,
     "physical_multi_embodiment_3d_stress": true,
+    "physical_safety_gymnasium_attribution_jepa_only_hazard_cost_events": 104,
+    "physical_safety_gymnasium_attribution_jepa_only_intervention_rate": 0.013517509398893254,
+    "physical_safety_gymnasium_attribution_jepa_only_task_completion_rate": 0.9609375,
+    "physical_safety_gymnasium_attribution_verified": true,
     "physical_safety_gymnasium_dangerous_recall": 0.95625,
     "physical_safety_gymnasium_frozen_pass_verified": true,
     "physical_safety_gymnasium_hazard_cost_reduction": 0.8450184501845018,

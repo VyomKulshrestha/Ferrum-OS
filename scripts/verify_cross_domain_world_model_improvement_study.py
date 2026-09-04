@@ -49,6 +49,10 @@ EVIDENCE = {
     "physical_safety_gym_paired_uncertainty_protocol": "physical_jepa_safety_gymnasium_paired_uncertainty_protocol_v1.json",
     "physical_safety_gym_paired_uncertainty_result": "physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
     "physical_safety_gym_paired_uncertainty_verification": "physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+    "physical_safety_gym_attribution_protocol": "physical_jepa_safety_gymnasium_attribution_protocol_v2.json",
+    "physical_safety_gym_attribution_result": "physical_jepa_safety_gymnasium_attribution_result_v2.json",
+    "physical_safety_gym_attribution_verification": "physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+    "physical_safety_gym_attribution_failed_attempt": "physical_jepa_safety_gymnasium_attribution_failed_attempt_v1.json",
     "physical_safety_gym_v12_result": "physical_jepa_safety_gymnasium_result_v12.json",
     "physical_safety_gym_v12_verification": "physical_jepa_safety_gymnasium_verification_v12.json",
     "physical_simplex_protocol": "physical_jepa_safety_gymnasium_protocol_v13.json",
@@ -133,6 +137,21 @@ def main() -> int:
     ]
     physical_safety_gym_paired_verification = records[
         "physical_safety_gym_paired_uncertainty_verification"
+    ]
+    physical_safety_gym_attribution = records[
+        "physical_safety_gym_attribution_result"
+    ]
+    physical_safety_gym_attribution_verification = records[
+        "physical_safety_gym_attribution_verification"
+    ]
+    physical_safety_gym_attribution_failed = records[
+        "physical_safety_gym_attribution_failed_attempt"
+    ]
+    attribution_jepa = physical_safety_gym_attribution["variants"][
+        "jepa-outputs-only"
+    ]
+    attribution_jepa_vs_full = attribution_jepa[
+        "versus_full_adapter_paired_bootstrap"
     ]
     physical_safety_gym_union = physical_safety_gym["arms"][
         "planner_rules_plus_learned"
@@ -323,6 +342,57 @@ def main() -> int:
             "realized_hazard_cost_steps"
         ]["interval_excludes_zero"]
         is False,
+        "physical_safety_gym_attribution_verified": physical_safety_gym_attribution_verification[
+            "all_checks_pass"
+        ]
+        is True
+        and all(physical_safety_gym_attribution_verification["checks"].values())
+        and physical_safety_gym_attribution["final_seed_access_count"] == 1
+        and physical_safety_gym_attribution["final_seed_range"]
+        == {"start": 8000, "count": 128},
+        "physical_safety_gym_attribution_failure_retained": physical_safety_gym_attribution_failed[
+            "result_eligible"
+        ]
+        is False
+        and physical_safety_gym_attribution_failed["promotion_eligible"] is False
+        and physical_safety_gym_attribution_failed["retained_partial_case_catalog"][
+            "rows"
+        ]
+        == 26468,
+        "physical_safety_gym_attribution_effect_recomputed": attribution_jepa_vs_full[
+            "actual_hazard_cost_steps"
+        ]["estimate"]
+        == -25.0
+        and attribution_jepa_vs_full["actual_hazard_cost_steps"][
+            "interval_excludes_zero"
+        ]
+        is True
+        and attribution_jepa_vs_full["intervention_percentage_points"][
+            "interval_excludes_zero"
+        ]
+        is True
+        and attribution_jepa_vs_full["completion_percentage_points"][
+            "interval_excludes_zero"
+        ]
+        is False
+        and attribution_jepa["versus_planner_paired_bootstrap"][
+            "actual_hazard_cost_steps"
+        ]["interval_excludes_zero"]
+        is False,
+        "physical_safety_gym_attribution_authority_and_nonpromotion": physical_safety_gym_attribution[
+            "authority"
+        ]["physical_actuator_attempts"]
+        == 0
+        and physical_safety_gym_attribution["authority"][
+            "physical_actuator_deliveries"
+        ]
+        == 0
+        and physical_safety_gym_attribution["authority"]["promotion_eligible"]
+        is False
+        and physical_safety_gym_attribution["authority"][
+            "protected_deployed_artifact_unchanged"
+        ]
+        is True,
         "physical_simplex_failure_retained_without_final_access": records[
             "physical_simplex_selection"
         ]["selection_passed"]
@@ -336,7 +406,8 @@ def main() -> int:
         and finite(physical_replay)
         and finite(physical_3d)
         and finite(physical_safety_gym)
-        and finite(physical_safety_gym_paired),
+        and finite(physical_safety_gym_paired)
+        and finite(physical_safety_gym_attribution),
         "new_runtime_results_finite": finite(multiclient)
         and finite(natural_use)
         and finite(external_intake),
@@ -349,7 +420,9 @@ def main() -> int:
         and physical_replay["promotion_eligible"] is False
         and physical_3d["promotion_eligible"] is False
         and physical_safety_gym["promotion_eligible"] is False
-        and physical_safety_gym_paired["promotion_eligible"] is False,
+        and physical_safety_gym_paired["promotion_eligible"] is False
+        and physical_safety_gym_attribution["authority"]["promotion_eligible"]
+        is False,
     }
     result = {
         "schema_version": 1,
@@ -417,6 +490,16 @@ def main() -> int:
             "physical_safety_gymnasium_paired_hazard_cost_difference_steps": physical_safety_gym_paired[
                 "differences_union_minus_planner"
             ]["realized_hazard_cost_steps"],
+            "physical_safety_gymnasium_attribution_verified": True,
+            "physical_safety_gymnasium_attribution_jepa_only_task_completion_rate": attribution_jepa[
+                "aggregate"
+            ]["task_completion_rate"],
+            "physical_safety_gymnasium_attribution_jepa_only_intervention_rate": attribution_jepa[
+                "aggregate"
+            ]["intervention_rate"],
+            "physical_safety_gymnasium_attribution_jepa_only_hazard_cost_events": attribution_jepa[
+                "aggregate"
+            ]["actual_hazard_cost_events"],
             "independent_benchmark": False,
             "live_physical_hil": False,
         },
@@ -431,6 +514,7 @@ def main() -> int:
             "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
             "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
             "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
+            "The fresh-seed risk-source attribution finds that the JEPA-output-only pipeline intervenes less and records fewer hazard steps than the full adapter, but it varies a complete warning pipeline and does not isolate architecture-only causality or establish superiority to the privileged planner.",
             "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
             "No protected deployed artifact was promoted or replaced by this study.",
         ],

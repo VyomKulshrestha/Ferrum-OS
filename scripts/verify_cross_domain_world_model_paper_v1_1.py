@@ -34,6 +34,13 @@ PAIRED_VERIFICATION = (
     ROOT
     / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json"
 )
+ATTRIBUTION_RESULT = (
+    ROOT / "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json"
+)
+ATTRIBUTION_VERIFICATION = (
+    ROOT
+    / "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json"
+)
 LEARNED_CONTRIBUTION = (
     ROOT / "docs/research/cross_domain_learned_contribution_result_v1.json"
 )
@@ -49,9 +56,11 @@ RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_1.
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
 REQUIRED_SOURCE_PHRASES = [
-    "Technical Report v1.1 — 4 September 2026",
-    "Architecture rankings are domain-dependent.",
-    "operationally unusable extreme",
+    "Technical Report v1.1 — 5 September 2026",
+    "The primary contribution is an evaluation method, not a new JEPA objective.",
+    "The bootstrap conditions on these fixed trained models and does not include retraining variability.",
+    "not strictly compute-controlled",
+    "constant-prevalence predictor has Brier 0.25",
     "Prospective Safety-Gymnasium controller and shield benchmark",
     "Warning recall and warning FPR evaluate the detector",
     "intervention rate counts only commands that actually change",
@@ -59,12 +68,11 @@ REQUIRED_SOURCE_PHRASES = [
     "The union passes every registered joint-objective gate relative to the frozen benchmark criteria",
     "these gates do not require superiority over the privileged planner",
     "effective action-change recall",
-    "55.00% effective-action recall",
+    "effective action-change recall is 55.00%",
     "Executed intervention precision is 23.04% (88/382)",
     "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories",
-    "rule_block` is false in all 1,024 domain-case records by construction",
-    "construct-coverage negative about threshold-based caution under latent hazards",
-    "The 512-case families also sit outside the present-state deterministic predicates' evaluation window",
+    "`rule_block` is false in all 1,024 records by construction of this estimand",
+    "thresholded latent-hazard coverage negative",
     "| Naive unshielded | 100.00% | 0.00% | — | — | 0.00% | 542 |",
     "| Planner unshielded | 94.53% | 0.00% | — | — | 0.00% | **70** |",
     "not learned collision-avoidance superiority over privileged planning",
@@ -73,7 +81,13 @@ REQUIRED_SOURCE_PHRASES = [
     "Neither interval excludes zero",
     "descriptive rather than statistically stable",
     "no independent replication is claimed",
-    "No protected research result was promoted.",
+    "Frozen risk-source attribution on fresh layouts",
+    "The v2 attribution opens seeds 8000–8127 once",
+    "three frozen JEPA outputs produced a lower-intervention operating point",
+    "not architecture-only causality or physical safety",
+    "Hashes prove byte identity only",
+    "Validation means checking an existing record",
+    "protected deployed artifacts remain byte-identical and promotion eligibility is false",
     "Revisiting Feature Prediction for Learning Visual Representations from Video",
     "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
     "Appendix A. Claim-to-evidence ledger",
@@ -91,6 +105,7 @@ REQUIRED_PDF_PHRASES = [
     "Claim-to-evidence ledger",
     "Frozen-gate and artifact audit",
     "Artifact locator",
+    "Frozen risk-source attribution on fresh layouts",
     "Neither interval excludes zero",
     "References",
 ]
@@ -129,9 +144,9 @@ def normalize_cell(value: str | None) -> str:
 def pdf_table_rows() -> dict[int, set[tuple[str, ...]]]:
     rows: dict[int, set[tuple[str, ...]]] = {}
     with pdfplumber.open(PDF) as document:
-        for page_number in (5, 8, 11, 12, 13):
+        for page_number, page in enumerate(document.pages, start=1):
             page_rows: set[tuple[str, ...]] = set()
-            for table in document.pages[page_number - 1].extract_tables():
+            for table in page.extract_tables():
                 page_rows.update(
                     tuple(normalize_cell(cell) for cell in row) for row in table
                 )
@@ -148,6 +163,8 @@ def main() -> None:
         EXTERNAL_VERIFICATION,
         PAIRED_RESULT,
         PAIRED_VERIFICATION,
+        ATTRIBUTION_RESULT,
+        ATTRIBUTION_VERIFICATION,
         LEARNED_CONTRIBUTION,
         *FIGURES,
     ]
@@ -162,6 +179,10 @@ def main() -> None:
     )
     paired = json.loads(PAIRED_RESULT.read_text(encoding="utf-8"))
     paired_verification = json.loads(PAIRED_VERIFICATION.read_text(encoding="utf-8"))
+    attribution = json.loads(ATTRIBUTION_RESULT.read_text(encoding="utf-8"))
+    attribution_verification = json.loads(
+        ATTRIBUTION_VERIFICATION.read_text(encoding="utf-8")
+    )
     learned_contribution = json.loads(LEARNED_CONTRIBUTION.read_text(encoding="utf-8"))
     reader = PdfReader(str(PDF))
     pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
@@ -199,13 +220,14 @@ def main() -> None:
         for domain in expected_families
     }
     table_rows = pdf_table_rows()
+    all_table_rows = set().union(*table_rows.values())
     checks = {
         "source_required_phrases_present": all(source_required.values()),
         "pdf_required_phrases_present": all(pdf_required.values()),
         "forbidden_placeholders_and_review_wording_absent": all(
             forbidden_absent.values()
         ),
-        "pdf_page_count_is_14": len(reader.pages) == 14,
+        "pdf_page_count_is_submission_length": 14 <= len(reader.pages) <= 20,
         "pdf_title_exact": metadata.title == TITLE,
         "pdf_author_exact": metadata.author == "Vyom Kulshrestha",
         "pdf_subject_versioned": metadata.subject
@@ -249,7 +271,7 @@ def main() -> None:
                 "0.026772",
                 "0.046361",
             )
-            in table_rows[5]
+            in all_table_rows
             and (
                 "Naive unshielded",
                 "100.00%",
@@ -259,7 +281,7 @@ def main() -> None:
                 "0.00%",
                 "542",
             )
-            in table_rows[8]
+            in all_table_rows
             and (
                 "Planner unshielded",
                 "94.53%",
@@ -269,34 +291,46 @@ def main() -> None:
                 "0.00%",
                 "70",
             )
-            in table_rows[8]
+            in all_table_rows
             and (
                 "External physical streams can be replayed",
                 "284,398 HAI transitions",
                 "Fault-condition error and event diagnostics",
                 "Not live Ferrum HIL or physical recovery",
             )
-            in table_rows[11]
+            in all_table_rows
             and (
                 "3D geometry/contact stress is exercised",
                 "288 local PyBullet DIRECT cases",
                 "Contact and simulated recovery are measured",
                 "Not practical learned safety at 100% intervention",
             )
-            in table_rows[11]
+            in all_table_rows
             and (
                 "External useful-autonomy test",
                 "Runtime lock, dev/final seeds, candidates, five arms, joint gates",
                 "One untouched final opening; raw union rows and all arms independently recompute",
                 "Safety-Gymnasium DIRECT; privileged planner; actuator authority zero",
             )
-            in table_rows[12]
+            in all_table_rows
             and (
                 "Paired planner-union uncertainty",
                 "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
                 "Recompute seed-matched completion and realized hazard-cost difference intervals",
             )
-            in table_rows[13]
+            in all_table_rows
+            and (
+                "JEPA outputs only",
+                "96.09%",
+                "57.81%",
+                "20.25%",
+                "1.35%",
+                "15.00%",
+                "104",
+                "7/128",
+                "184.9",
+            )
+            in all_table_rows
         ),
         "external_verification_confirms_all_gates": external_verification[
             "overall_pass"
@@ -323,6 +357,41 @@ def main() -> None:
             "interval_excludes_zero"
         ]
         is False,
+        "risk_source_attribution_verified": attribution_verification[
+            "all_checks_pass"
+        ]
+        is True
+        and all(attribution_verification["checks"].values())
+        and attribution["final_seed_access_count"] == 1
+        and attribution["final_seed_range"] == {"start": 8000, "count": 128}
+        and attribution["variants"]["jepa-outputs-only"]["aggregate"][
+            "actual_hazard_cost_events"
+        ]
+        == 104
+        and attribution["variants"]["jepa-outputs-only"][
+            "versus_full_adapter_paired_bootstrap"
+        ]["actual_hazard_cost_steps"]["estimate"]
+        == -25.0
+        and attribution["variants"]["jepa-outputs-only"][
+            "versus_full_adapter_paired_bootstrap"
+        ]["actual_hazard_cost_steps"]["interval_excludes_zero"]
+        is True
+        and attribution["variants"]["jepa-outputs-only"][
+            "versus_full_adapter_paired_bootstrap"
+        ]["intervention_percentage_points"]["interval_excludes_zero"]
+        is True
+        and attribution["variants"]["jepa-outputs-only"][
+            "versus_planner_paired_bootstrap"
+        ]["actual_hazard_cost_steps"]["interval_excludes_zero"]
+        is False,
+        "risk_source_attribution_authority_disabled": attribution["authority"][
+            "physical_actuator_attempts"
+        ]
+        == 0
+        and attribution["authority"]["physical_actuator_deliveries"] == 0
+        and attribution["authority"]["promotion_eligible"] is False
+        and attribution["authority"]["protected_deployed_artifact_unchanged"]
+        is True,
         "external_scope_and_nonpromotion_honest": external["independent_execution"]
         is False
         and external["physical_actuator_attempts"] == 0
@@ -345,7 +414,7 @@ def main() -> None:
     freeze = {
         "schema": "cross-domain-world-model-paper-freeze-v1-1",
         "report_version": "1.1",
-        "evidence_frozen_date": "2026-09-04",
+        "evidence_frozen_date": "2026-09-05",
         "title": TITLE,
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
@@ -380,6 +449,14 @@ def main() -> None:
             "paired_uncertainty_verification": {
                 "path": rel(PAIRED_VERIFICATION),
                 "sha256": sha256(PAIRED_VERIFICATION),
+            },
+            "risk_source_attribution_result": {
+                "path": rel(ATTRIBUTION_RESULT),
+                "sha256": sha256(ATTRIBUTION_RESULT),
+            },
+            "risk_source_attribution_verification": {
+                "path": rel(ATTRIBUTION_VERIFICATION),
+                "sha256": sha256(ATTRIBUTION_VERIFICATION),
             },
         },
         "claim_boundary": umbrella.get("claim_boundary", []),
@@ -416,6 +493,14 @@ def main() -> None:
             "paired_uncertainty_verification": {
                 "path": rel(PAIRED_VERIFICATION),
                 "sha256": sha256(PAIRED_VERIFICATION),
+            },
+            "risk_source_attribution_result": {
+                "path": rel(ATTRIBUTION_RESULT),
+                "sha256": sha256(ATTRIBUTION_RESULT),
+            },
+            "risk_source_attribution_verification": {
+                "path": rel(ATTRIBUTION_VERIFICATION),
+                "sha256": sha256(ATTRIBUTION_VERIFICATION),
             },
         },
         "promotion_eligible": False,

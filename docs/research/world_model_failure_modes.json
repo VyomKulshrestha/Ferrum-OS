@@ -5,17 +5,14 @@
   "cases": [
     {
       "id": "valid_learned_artifacts",
-      "injection": "none",
-      "command": "node scripts/verify_world_model_learned.mjs",
+      "injection": "valid learned false-safe transition",
+      "command": "node scripts/verify_world_model_combined_gate.mjs",
       "passed": true,
       "exit_code": 0,
       "checks": [
-        "boot reaches shell prompt",
-        "learned transition model loads from the staged weights file at boot\t[heliox-daemon] [world-model] loaded learned transition model (input=185 hidden=512 output=128 arg_features=16 coverage=0x1ffefffffff)",
-        "learned encoder loads from the staged weights file at boot\t[heliox-daemon] [world-model] loaded learned encoder (input=48 hidden=256 output=77)",
-        "safety gate still blocks delete_file targeting config.json while using the learned model\t[heliox-daemon] [world-model] BLOCKED tool 'delete_file': risk=0.90 lookahead_steps=1 (would delete the daemon's own config.json) suggestion=Read the current config, write a validated replacement to a separate file, and request explicit approval before swapping it",
-        "block message reports the lookahead step count (Layer 6.2 wired in)",
-        "no userspace fault or page fault panic"
+        "valid learned write_file weights loaded and predicted a false-safe zero delta",
+        "deterministic estimate remained active and blocked disk exhaustion",
+        "combined gate prevented execution before the real write"
       ]
     },
     {

@@ -2,7 +2,7 @@
 
 ## Architecture-Controlled Evidence Across an Agentic Operating System and a Cyber-Physical Runtime
 
-Technical Report v1.1 — 4 September 2026
+Technical Report v1.1 — 5 September 2026
 
 Vyom Kulshrestha
 Independent Researcher, India
@@ -14,11 +14,11 @@ Research artifact accompanying the FerrumOS world-model evidence lineage.
 
 ### Abstract
 
-World models are increasingly proposed as predictive components for autonomous software and robots, but a lower rollout error does not establish that a learned score should authorize a state-changing action. This report studies that distinction in two domains with different dynamics and authority surfaces: FerrumOS, where an agent proposes canonical operating-system actions, and Physical JEPA, where a predictive model observes navigation and maintenance state. A prospective protocol matches data, curriculum, parameter budget, optimization budget, seeds, and final cases across direct multilayer perceptron, action-conditioned joint-embedding predictive architecture, and gated recurrent unit dynamics models. Eighteen models are trained without final-partition access during selection.
+World-model papers often move too quickly from predictive error to operational safety. This report contributes a registered evaluation method that keeps four estimands separate: dynamics prediction, counterfactual sensitivity, thresholded warning quality, and independently enforced authority. The method is applied separately to FerrumOS and Physical JEPA; *cross-domain* means reuse of the evaluation framework, not model, feature, label, or policy transfer. Eighteen approximately parameter-matched models are trained without final-partition access, and failed frozen stages remain part of the evidence record.
 
-Architecture rankings are domain-dependent. On the frozen physical catalog, the JEPA has the lowest normalized rollout error at horizons 1, 3, and 5; the MLP-minus-JEPA H=3 difference is 0.010156 with a paired episode-bootstrap 95% interval [0.009829, 0.010483]. FerrumOS instead favors the GRU at H=1 and H=3 and the JEPA at H=5. Both selected models show counterfactual directional sensitivity on paired temporal cases, yet calibration weakens under the registered distribution shift. At the frozen 0.99 threshold, rules-only, learned-only, and their union all intervene in 0 of 512 cases in each domain and miss all 256 simulator-labelled dangerous cases. The learned branch therefore adds zero marginal hazard blocks and zero safe-case interventions. A separately registered 3D PyBullet stress test produces an operationally unusable extreme: 288 interventions in 288 cases and 0% task completion. A subsequent externally designed, locally executed Safety-Gymnasium benchmark separates controller value, warning quality, and effective action changes on 128 untouched seeds. The privileged planner completes 94.53% of tasks and records 87.08% fewer hazard-cost events than the naive controller. The active union completes 96.09%, changes 1.86% of commands, has 95.62% warning recall on 20-step oracle-labelled dangerous nominal-controller trajectories and 55.00% effective-action recall, and records 84.50% fewer hazard-cost events than the naive controller. Relative to the planner, it completes 2 more tasks but records 14 additional hazard-cost steps; paired episode-bootstrap intervals for both planner-relative differences include zero.
+The rankings are domain-dependent. The three-seed ensemble favors Physical JEPA at H=1, H=3, and H=5, whereas FerrumOS favors GRU dynamics at H=1 and H=3 and JEPA at H=5. The bootstrap conditions on these fixed trained models and does not include retraining variability. On balanced delayed-hazard catalogs, the frozen 0.99 threshold yields zero interventions for rules, learning, and their union; the all-zero bootstrap interval reflects the observed vector, while the Wilson upper bound for a missed population rate is 1.478%. A PyBullet stress test fails in the opposite direction with 100% intervention and 0% completion.
 
-The runtime contribution is an authority factorization and evidence ladder rather than a claim of universal model superiority. FerrumOS previews execute in an authority-disabled QEMU path with no action dispatch, while Physical JEPA is evaluated through recorded testbed replay and actuator-disabled software physics. Deterministic policy, capability checks, operator confirmation, and physical actuator denial remain independent of learned prediction. All negative and failed frozen attempts are retained, the planner-only contrast and active-union tradeoff are reported together, protected deployed artifacts remain byte-identical, and promotion eligibility is false. The evidence supports a reproducible safety-runtime methodology and domain-specific predictive modeling; it does not establish production agent safety, live robot safety, formal correctness, or independent replication, physical deployment safety, or a learned collision-avoidance advantage over the privileged planner: the union passes its registered naive-baseline objective, but its completion gain over the planner accompanies higher realized hazard cost.
+On Safety-Gymnasium v14, a privileged planner—not the learned model—accounts for most realized-cost reduction. The union passes its registered naive-baseline criteria but is not superior to that planner. A subsequent registered risk-source attribution on fresh seeds 8000–8127 holds the planner, correction, oracle, and runtime fixed. JEPA-output-only caution records 96.09% completion, 1.35% intervention, and 104 hazard steps. Relative to the full adapter it changes hazard cost by -25 steps (paired 95% CI [-50, -6]) and intervention by -0.81 percentage points (CI [-1.45, -0.16]); completion is not separable. This supports a pipeline-level lower-intervention result, not architecture-only causality or physical safety. QEMU, recorded-sensor, and simulator evidence all keep execution authority independently disabled; protected deployed artifacts remain byte-identical and promotion eligibility is false.
 
 ### 1. Introduction
 
@@ -30,11 +30,11 @@ The study extends two artifact-backed FerrumOS lineages: unprivileged action-con
 
 #### 1.1 Contributions
 
-This report contributes six things. First, it provides a matched two-domain architecture study covering MLP, action-conditioned JEPA, and GRU dynamics under equal data, optimization, parameter, seed, and final-case conditions. Second, it separates distributional prediction, counterfactual sensitivity, calibration, and thresholded intervention into independently reported outcomes. Third, it specifies an authority factorization in which learned prediction can add caution but cannot create execution authority or erase a deterministic block. Fourth, it builds a cross-domain evidence ladder spanning sealed offline catalogs, QEMU shadow execution, visible researcher-operated sessions, externally recorded testbed replay, and actuator-disabled software physics. Fifth, it reports operational negatives as primary results: zero learned marginal interventions at the conservative frozen threshold, no deployment promotion, semantic incompatibility of an external robotics corpus, and a 3D test whose 100% intervention rate makes its apparent collision avoidance practically uninformative. Sixth, it prospectively freezes a joint completion, intervention, recall, false-positive, and realized-cost objective, retains every failed or non-beneficial protocol stage, and reports a once-opened Safety-Gymnasium final where the selected union passes the registered joint objective while remaining worse than the privileged planner on realized hazard cost.
+The primary contribution is an evaluation method, not a new JEPA objective. It predefines the prediction, causal-response, warning, intervention, realized-outcome, and authority estimands; specifies how final data are sealed; retains invalid, failed, and non-beneficial stages; and binds each claim to a machine-readable evidence object. The empirical contributions are: (1) an 18-run matched small-model comparison in two distinct domains; (2) paired temporal and calibration analyses that expose when predictive skill fails to become operational value; (3) an authority factorization in which learning may only add caution; (4) QEMU, recorded-sensor, PyBullet, and Safety-Gymnasium integrations labelled by evidence class; (5) a prospective controller/shield benchmark with planner-relative uncertainty; and (6) a fresh risk-source attribution that holds planning and correction fixed while comparing full, no-JEPA, JEPA-only, and geometry-only warning pipelines.
 
 #### 1.2 Claim boundary
 
-The temporal catalogs and 3D stress are locally designed software tests. Safety-Gymnasium supplies the task and costs, but the adapter, privileged planner, shield, execution, and analysis are local. Physical evidence is replay, not live HIL; FerrumOS evidence is disposable QEMU, not production use. No result establishes formal, independent, human-contact, broad-transfer, or deployment safety, and no protected artifact is replaced.
+*Cross-domain* denotes application of the same evaluation and authority methodology to two domains. The models, state meanings, action spaces, labels, controllers, and datasets are not transferred between them. The temporal catalogs and PyBullet stress are locally designed software tests. Safety-Gymnasium supplies a third-party task and costs, but the adapters, privileged planner, correction, execution, and analysis are local. Physical evidence is replay and software simulation, not live HIL; FerrumOS evidence is disposable QEMU, not production use. No result establishes formal non-bypass, independent replication, human-contact safety, universal model superiority, or deployment safety, and no protected artifact is replaced.
 
 <!-- PAGE BREAK -->
 
@@ -87,31 +87,57 @@ The architecture is fail-closed only within stated boundaries. A missing or non-
 
 #### 3.3 Evidence classes
 
-The study uses an evidence ladder rather than a single undifferentiated benchmark claim. Sealed offline prediction supports comparative model accuracy. Deterministic software scenarios support controlled authority attribution. In-guest shadow execution supports integration, latency, memory, and no-execution claims. Recorded testbed replay supports robustness to real sensor streams under an explicit projection. Software physics supports geometry and contact stress. None of those alone supports live deployment safety.
+The study uses an evidence ladder rather than a single benchmark label. Sealed prediction supports comparative accuracy; deterministic catalogs support controlled estimands; QEMU shadow execution supports tested integration and no-dispatch claims; recorded testbed replay supports a bounded external-stream projection; and software physics supports simulated geometry and contact. Higher rungs add realism but do not retroactively turn lower-rung evidence into physical or independent assurance.
 
 ![Figure 2. Evidence ladder and the strongest claim supported at each level. Higher levels add realism but do not erase the boundaries of lower-level measurements.](docs/research/figures/cross_domain_world_model/evidence_ladder.png)
+
+#### 3.4 Authority threat model and enforcement tests
+
+The threat model assumes a learned component may be wrong, missing, malformed, non-finite, stale, delayed, replayed, or paired with changed arguments or state. It also assumes callers may lack a capability or attempt to reach an effect through a separately enumerated interface. The tested contract is monotone blocking and independent authorization—not that blocking necessarily improves safety.
+
+| Threat | Enforcement point | Repository test or evidence | Supported conclusion |
+|---|---|---|---|
+| Learned false-safe under an active rule | Boolean union before capability handling | `verify_world_model_combined_gate.mjs` | A covered deterministic block is not erased |
+| Missing or non-finite model artifact | Loader rejection plus deterministic fallback | `world_model_failure_modes.json` | Invalid learned artifacts do not disable tested fallback checks |
+| Non-finite physical input or adapter | Risk adapter returns maximum caution | `physical_jepa_safety_gymnasium_runtime_verification_v14.json` | Tested malformed scores fail toward caution |
+| Missing capability or expired permit | Physical adapter permit validation | `command_requires_matching_unexpired_permit` | A safe prediction is not a permit |
+| Replay or modified command provenance | Single-use permit, MAC, identity, and provenance checks | `malformed_stale_replayed_and_bad_mac_fail_closed`; `command_provenance_must_match_the_single_use_permit` | Replayed or altered tested messages are denied |
+| State changes between preview and commit | Revision and expiry recheck | `commit_rechecks_identity_expiry_and_revisions`; `stale_preview_cannot_be_reused_after_twin_changes` | Preview does not survive a changed state |
+| Duplicate delivery | Idempotency key | `idempotency_key_prevents_duplicate_physical_effects` | Tested duplicate effects are suppressed |
+| Physical delivery while disabled | Offline adapter and actuator-disabled driver | `offline_adapter_cannot_ingest_or_route`; `actuator_disabled_driver_records_without_physical_execution_mode` | The tested research path records without physical delivery |
+
+These tests cover the named protocol, daemon, and physical-runtime entry points. They are not a formal proof that no alternate implementation path can ever bypass policy. Monotonicity means the learned branch cannot convert a deterministic *block* to *allow*; it does not mean an intervention is beneficial, as the PyBullet all-stop and planner-relative Safety-Gymnasium costs demonstrate.
 
 <!-- PAGE BREAK -->
 
 ### 4. Registered methods
 
-#### 4.1 Domains and representations
+#### 4.1 Domains, representations, and partitions
 
-FerrumOS represents an agentic operating-system transition: a captured system state, a canonical action, and the next state or bounded rollout. The runtime normalizes provider output before prediction, keeping provider identity out of the action semantics. Physical JEPA represents compact navigation and maintenance state with a seven-action ontology. The two domains share the evaluation logic but not feature meanings, labels, or deployment surfaces.
-
-The cross-domain protocol is prospective and digest-bound. It registers source artifacts, train/validation/final partitions, architecture families, seeds, update budget, parameter tolerance, model selection rule, bootstrap procedure, learned-contribution threshold procedure, and protected deployment digests. Selection programs are denied final paths. Final evaluation is once-opened, writes to new result paths, and cannot overwrite a deployed model.
+FerrumOS uses 48-state and 57-action-feature vectors for canonical operating-system transitions. Physical JEPA uses 16-state and 10-action-feature vectors (seven action identities plus three continuous features). Both use a three-step causal history; short prefixes repeat the first state and prepend zero actions. They share metric code but not semantics. FerrumOS contains 13,712 training, 3,477 validation, and 3,249 final transition examples; its final set combines 1,969 base-test rows with four held-out incident sources. Physical contains 187,200 training, 45,440 validation, and 20,480 final transitions; its final set has eight held-out incident families. Selection programs cannot read final paths.
 
 #### 4.2 Matched architecture study
 
-The factorial design contains 18 completed training runs: two domains by three methods by three seeds. Seeds are 17, 43, and 101. Each run receives the same domain-specific rows and curriculum, 2,400 AdamW updates, batch size 512, and a nominal 100,000-parameter budget with 5% tolerance. The methods are a direct feed-forward MLP, an action-conditioned JEPA, and GRU dynamics. Every model completes the full update budget. Lowest validation Gaussian negative log likelihood selects a checkpoint without final access.
+All methods predict the same normalized observable next-state delta, `(next_state - current_state) / registered_scale`, and a diagonal log variance. H-step rollout repeatedly adds the predicted delta in physical units while consuming the registered future action sequence. Normalized rollout error is the per-row mean absolute endpoint error divided componentwise by the same scale. Gaussian NLL and MAE therefore evaluate the same normalized target; NLL differs only by incorporating the predicted variance.
 
-Final evaluation measures normalized rollout error at H=1, H=3, and H=5. Paired episode bootstrap differences use the same final episodes for both methods. The estimand is architecture performance within this registered small-model setting, not a theorem about all JEPA, recurrent, or supervised models.
+The direct MLP flattens three state-action pairs into `Linear-GELU-Linear`. The action-conditioned JEPA applies a linear state encoder, `tanh`, and a `Linear-GELU-Linear` latent predictor; a stop-gradient target encoder is updated with EMA coefficient 0.99, and training minimizes Gaussian NLL plus 0.25 times latent-target MSE. The GRU receives the same state-action sequence, uses its zero-initialized recurrent state, and maps the final hidden state to mean and variance. Collapse prevention is the stop-gradient EMA target plus the observable-delta NLL; constant-representation trials are separately rejected.
 
-#### 4.3 Temporal causality and uncertainty
+| Domain | Method | Hidden / latent | Trainable parameters | Selected checkpoint updates for seeds 17 / 43 / 101 |
+|---|---|---:|---:|---:|
+| FerrumOS | Direct MLP | 242 / — | 99,800 | 1800 / 2000 / 2100 |
+| FerrumOS | Action-conditioned JEPA | 211 / 64 | 99,748 | 2400 / 2400 / 2400 |
+| FerrumOS | GRU dynamics | 125 / — | 99,096 | 2400 / 2200 / 2200 |
+| Physical | Direct MLP | 900 / — | 99,932 | 2400 / 2200 / 1800 |
+| Physical | Action-conditioned JEPA | 777 / 24 | 99,911 | 2400 / 2400 / 2400 |
+| Physical | GRU dynamics | 164 / — | 99,744 | 2400 / 2100 / 2400 |
 
-The paired temporal catalogs introduce changing actions, delayed hazards, interaction effects, partial observation, and exogenous degradation and recovery. Counterfactual pairs share the same initial state and random schedule while varying the intervention. Directional accuracy measures whether the selected model ranks paired consequences in the intended direction. Individual-treatment-effect normalized MAE measures the magnitude error in the predicted intervention difference. Multi-action rollout error evaluates H=3 and H=5 sequences rather than repeated single actions.
+Every run receives the same domain-specific split, seed set, batch size 512, maximum 2,400 AdamW updates, learning rate 0.001, weight decay 0.0001, and gradient clipping at 5. Lowest validation Gaussian NLL at 100-update checkpoints selects the saved state. The comparison is parameter- and update-matched, not strictly compute-controlled: FLOPs, wall-clock training time, and recurrent versus feed-forward execution cost were not equalized.
 
-Three seeded models form an ensemble diagnostic for epistemic variation. The evaluator also records learned aleatoric variance, standardized OOD distance, reliability bins, Brier score, ECE, and risk-versus-coverage curves. These quantities are descriptive unless a registered gate states otherwise. In particular, abstention is not credited when removing high-uncertainty cases fails to monotonically reduce error.
+#### 4.3 Aggregation, temporal causality, and uncertainty
+
+Table 1 uses an ensemble prediction: the three seed checkpoints each predict, their state predictions are averaged, and the endpoint error is then computed. It is not the best seed or the mean of the three member errors. Appendix D reports every member result. Episode bootstrap intervals resample final episodes while holding the trained checkpoints fixed; they measure final-layout sampling uncertainty, not the variability of retraining the architecture on new seeds.
+
+Paired temporal catalogs vary an intervention while sharing the initial state and random schedule. Directional accuracy asks whether the consequence ranking changes in the registered direction; ITE normalized MAE measures the magnitude difference. Multi-action rollouts use the actual registered action sequence rather than repeating one command. Uncertainty diagnostics include ensemble dispersion, learned variance, OOD distance, reliability bins, Brier score, ECE, and risk-coverage curves; none is an authority token.
 
 #### 4.4 Learned-contribution benchmark
 
@@ -125,15 +151,21 @@ FerrumOS shadow evaluation injects the research artifact only into disposable ap
 
 Physical evaluation has four separate components. Recorded HAI testbed streams are projected through previously frozen statistics and replayed with registered latency, jitter, noise, dropout, and combined faults. NVIDIA Anchor-Lab files are inspected for semantic compatibility before inference. A local PyBullet DIRECT stress test varies bodies, obstacles, mass, 3D targets, contact, and return-to-start recovery with physical actuator authority disabled. Finally, Safety-Gymnasium v1.0.0 supplies the externally maintained SafetyPointGoal1-v0 task and simulator costs. A registered adapter compares a naive local controller, a privileged deterministic grid planner, rules-only and learned-only shields, and their monotone union while keeping actuator authority zero.
 
-#### 4.6 Frozen gates and non-promotion rule
+#### 4.6 Frozen risk-source attribution
 
-The umbrella verifier requires finite results, final-open counts of one, denied final access during selection, unchanged protected digests, zero actuator authority, honest independence labels, and successful subordinate verifiers. Passing an experiment verifier does not imply deployment eligibility. The study-level result explicitly sets `promotion_eligible` to false, and the deployed FerrumOS encoder, transition, manifest, and Physical JEPA transition hashes must remain unchanged.
+The v2 attribution protocol holds SafetyPointGoal1-v0, the privileged planner, one-command tangent correction, 20-step oracle, Physical JEPA v5 artifact, episode limit, runtime lock, and seeds fixed. It varies only the warning pipeline: the full frozen v14 adapter; local lidar/action/goal/closeness/speed with JEPA weights zero; frozen JEPA clearance/velocity/progress outputs only; or current maximum hazard closeness only. Alternative logistic adapters are fitted on seeds 4000–4095 and select thresholds on 4096–4127 by matching the full adapter's validation FPR, then minimizing false negatives, then choosing the higher threshold. Final seeds 8000–8127 are opened once.
+
+The first registered attribution attempt on seeds 7000–7127 failed after the baseline and full arm because the alternative JSON schema omitted a runner-required threshold alias. Its partial catalog is retained and excluded. The v2 repair adds only that alias, preserves every numeric adapter field and threshold, commits the repair before final access, and uses a new seed range.
+
+#### 4.7 Frozen gates, hashes, and non-promotion
+
+Validation means checking an existing record against its schema, hashes, and gates. Recompute means deriving metrics again from committed rows or episode summaries without simulator execution. Rerun means executing the simulator or QEMU workload again. The verifiers distinguish these operations. SHA-256 establishes byte identity of named files, not scientific correctness; program logs establish only the events instrumented by those programs; and a verifier may share assumptions with its producer. Git commit timestamps provide externally hosted chronology after push, not proof that equivalent data were never observed elsewhere. Passing any study verifier does not imply deployment eligibility. Protected FerrumOS and Physical JEPA deployment digests must remain unchanged, and the study explicitly sets `promotion_eligible=false`.
 
 ### 5. Architecture-controlled results
 
 #### 5.1 Domain-dependent ranking
 
-Table 1 reports final normalized rollout error. Physical JEPA wins at every horizon. FerrumOS does not reproduce that ranking: the GRU is best at H=1 and H=3, while the JEPA is best at H=5. All reported pairwise episode-bootstrap intervals exclude zero at all three horizons.
+Table 1 reports the error of the three-seed ensemble prediction defined in Section 4.3. Physical JEPA wins at every horizon. FerrumOS does not reproduce that ranking: the GRU is best at H=1 and H=3, while the JEPA is best at H=5. The registered pairwise intervals for the stated leaders exclude zero, conditional on the fixed trained checkpoints; Appendix D shows all seed members.
 
 | Domain | Method | H=1 | H=3 | H=5 |
 |---|---|---:|---:|---:|
@@ -150,7 +182,7 @@ The physical MLP-minus-JEPA H=3 difference is 0.010156 with 95% interval [0.0098
 
 #### 5.2 Interpretation
 
-The result closes a data and compute confound that affected historical comparisons, but only within this study. The physical representation and curriculum favor the action-conditioned JEPA decisively. FerrumOS contains short-horizon structured state changes for which recurrent dynamics are more effective, while the JEPA has the lowest long-horizon error at H=5. Architecture choice should therefore be treated as an empirical property of the state, action, horizon, and training regime rather than a brand-level claim.
+The result closes a data, parameter-count, and update-budget confound that affected historical comparisons, but not a FLOP or training-time confound. The physical representation and curriculum favor the action-conditioned JEPA in this fixed study. FerrumOS favors recurrent dynamics at shorter horizons. Its apparent H=3-to-H=5 error decrease is not monotonic improvement with horizon: H=3 averages 318 eligible episodes including 80 hybrid-source rows, whereas H=5 averages 238 episodes and excludes that source because fewer sequences are long enough. The endpoint estimands therefore have different episode composition. Architecture choice remains a property of representation, action, horizon, data, and training regime—not a brand-level claim.
 
 The matched study also changes how the two earlier reports should be read. The Physical JEPA result can now be described as an architecture-controlled rollout advantage in its registered domain. The FerrumOS lineage cannot claim that a JEPA is the strongest general small dynamics model. Its stronger contribution is the mediation architecture, evidence discipline, and the request-bounded separation between prediction and authority.
 
@@ -169,13 +201,13 @@ Directional sensitivity establishes that the models do not merely reproduce a st
 
 #### 6.2 Calibration under shift
 
-FerrumOS Brier and ECE are 0.249943 and 0.238143. Physical Brier and ECE are 0.229970 and 0.292887. Reliability bins and risk-coverage curves show that uncertainty is not a certified error ordering: abstaining on the most uncertain cases does not monotonically improve H=5 error in either final catalog. The study therefore does not tune a new threshold after observing final results.
+FerrumOS Brier and ECE are 0.249943 and 0.238143. Physical Brier and ECE are 0.229970 and 0.292887. Because each final catalog is balanced, the constant-prevalence predictor has Brier 0.25; FerrumOS is effectively at that baseline and Physical improves it modestly. ECE remains bin-dependent, and the registered risk-coverage curves are non-monotonic. These scores describe the shifted catalog and do not certify an error ordering or an operational probability.
 
-This is the point at which a prediction paper can accidentally become an authority claim. The models have measurable dynamics skill and causal sensitivity, yet the shifted risk scores are poorly positioned for a very conservative zero-false-positive threshold. Preserving the registered threshold reveals that mismatch instead of repairing it post hoc.
+The frozen 0.99 threshold was selected on 256 development cases per domain to match the rules-only FPR of zero, breaking ties by lower FNR and then higher threshold. Zero observed development FPs do not guarantee zero population FPR. No threshold is retuned after final access.
 
 #### 6.3 Primary operational result
 
-The operational result is identical in both domains and every arm. No case is stopped at threshold 0.99. Each arm therefore records 0 true positives, 0 false positives, 256 true negatives, and 256 false negatives.
+On each 512-case balanced final catalog, rules-only, learned-only, and union record TP=0, FP=0, TN=256, and FN=256 at threshold 0.99.
 
 | Domain | Arm | TP | FP | TN | FN | Intervention |
 |---|---|---:|---:|---:|---:|---:|
@@ -186,7 +218,7 @@ The operational result is identical in both domains and every arm. No case is st
 | Physical | Learned only | 0 | 0 | 256 | 256 | 0% |
 | Physical | Rules + learned | 0 | 0 | 256 | 256 | 0% |
 
-The learned branch adds zero dangerous-case blocks and zero safe-case interventions. The Wilson 95% upper bound for either marginal rate is 1.478%, and the 5,000-pair bootstrap interval is [0, 0]. All eight final families are delayed, coupled, masked, or exogenous: their danger labels materialize in later transitions, whereas the deterministic predicates inspect the current state and requested action. Consequently, `rule_block` is false in all 1,024 domain-case records by construction of this estimand; rules-only recall here is not an estimate of general rule quality. At the zero-FP-calibrated threshold, the learned branch also does not extend the authority boundary into this delayed-hazard regime, making the union arm uninformative because neither branch fires. This is a construct-coverage negative about threshold-based caution under latent hazards, not merely a completed program with finite zero estimates. No final-set retuning or deployment promotion follows.
+The Wilson 95% upper bound for either zero marginal rate is 1.478%; zero observed events are not a population guarantee. The 5,000-pair bootstrap interval is exactly [0, 0] because every observed paired difference is zero, so every resample is also zero. All eight final families are delayed, coupled, masked, or exogenous: danger materializes later, while the deterministic predicates inspect current state and action. `rule_block` is false in all 1,024 records by construction of this estimand, so rules-only recall is not a general rule-quality estimate. The learned branch likewise does not extend the authority boundary at the zero-FP-calibrated threshold. This is a thresholded latent-hazard coverage negative, and no final-set retuning or promotion follows.
 
 ![Figure 4. Predictive and causal evidence do not become operational learned value at the frozen threshold. The gap is measured rather than hidden by final-set retuning.](docs/research/figures/cross_domain_world_model/causal_vs_operational.png)
 
@@ -194,27 +226,30 @@ The learned branch adds zero dangerous-case blocks and zero safe-case interventi
 
 ### 7. FerrumOS authority-disabled runtime evidence
 
-#### 7.1 In-guest shadow timing and integrity
+#### 7.1 Lineage and measurement boundaries
 
-The FerrumOS v3.4 research model was injected into disposable copies of the appliance disk and loaded by the actual ring-3 preview gate under QEMU/WHPX. Across 200 previews at each horizon from H=1 through H=5, p99 guest-reported time was 3 ms. The runtime reported 193,229 loaded parameters, both encoder and transition present, and zero retained heap growth. A separate canonical-command batch returned 96 of 96 correlated preview responses across six command classes.
+Three model objects must not be conflated. The architecture study trains approximately 100k-parameter research models solely for matched offline comparison. The QEMU runtime loads the earlier 193,229-parameter FerrumOS v3.4 encoder-plus-transition lineage. Physical experiments use the distinct frozen Physical JEPA v5 binary. No architecture-study checkpoint is silently substituted into either runtime.
 
-The preview method did not emit an execution-dataset record, and the packaged source disk remained byte-identical after the test. These measurements establish an integrated authority-disabled path and bounded guest timing for the tested configuration. They do not establish end-to-end production latency, a hard real-time deadline, or permission to dispatch an action.
+| Evidence object | Model object | Clock and workload | Supported timing claim |
+|---|---|---|---|
+| Guest horizon probe | FerrumOS v3.4, one preview at a time | 1 kHz guest timer; 200 previews per horizon | 3 ms guest-reported p99 in that probe |
+| Four-client saturation | Same serial QEMU daemon | Host WebSocket wall clock; 128 responses | 17.545 s batch wall time, about 7.30 responses/s; client median 8.45–8.83 s and p95 16.09–16.46 s |
+| Natural-use sessions | Same mediation lineage | Guest cycle counters without calibrated frequency | Ordering and bounded counts only, not milliseconds |
+| HAI NumPy batch | Physical JEPA v5 on host arrays | Host batch timing, 4096 rows | Microseconds per row, not control-loop latency |
 
-#### 7.2 Four-client contention
+These clocks and workloads are not directly comparable. The study has no synchronized decomposition of model compute, guest scheduling, serialization queueing, transport, and polling. “Serialized inference” is therefore a supported mechanism-level explanation for saturation, not a complete latency attribution.
 
-A registered run opened four distinct WebSocket clients against one guest. All 128 of 128 responses returned without cross-client response leakage. Jain throughput fairness was 0.999937, disconnect isolation succeeded, and a replacement client completed after one client disconnected. Per-client p95 latency ranged from 16.09 to 16.46 seconds because the single-threaded daemon serialized saturated inference.
+#### 7.2 Shadow integration and contention
 
-The high latency is retained as a systems result, not averaged away. The run demonstrates response correlation, fairness, isolation, and recovery in one serial guest. It does not demonstrate parallel model execution, distributed consensus, field capacity, or multi-host availability. The action execution method was unavailable on these sockets with JSON-RPC error -32601. Execution records, physical delivery attempts, and physical deliveries were all zero.
+The v3.4 model is injected only into disposable appliance-disk copies and loaded by the actual ring-3 preview gate. The one-at-a-time probe reports 3 ms p99 at H=1 through H=5, zero retained heap growth, and 96/96 correlated command-class responses. The preview emits no execution record and the source disk remains byte-identical. Under four-client saturation, all 128 responses return without leakage, Jain fairness is 0.999937, disconnect isolation succeeds, and a replacement client completes. Execution RPC is unavailable with error −32601, and execution records and physical deliveries remain zero.
 
 #### 7.3 Visible natural-use sessions
 
-Three independently booted disposable sessions were operated through the visible FerrumOS assistant using Windows computer control. A frozen prompt set produced 24 privacy-bounded telemetry rows across six action classes. Eighteen read-only actions executed successfully, three write actions remained awaiting operator confirmation, and three delete actions were blocked by the gate.
+Three separately booted disposable guests produce 24 privacy-bounded rows: 18 reads execute, three writes await operator confirmation, and three deletes are blocked. Telemetry excludes prompts, arguments, paths, provider/model identifiers, and output text. This is short researcher-operated QEMU evidence, not production telemetry or independent user testing.
 
-The committed telemetry excludes prompts, arguments, paths, provider identifiers, model identifiers, and output text. Language-model page-ins after deterministic requests, guest faults, synthetic collector markers, direct execution RPCs, physical deliveries, and source-disk changes were zero. This is short researcher-operated QEMU evidence. It is not a seven-day study, independent user testing, production telemetry, or a labelled precision/recall dataset.
+#### 7.4 Runtime interpretation
 
-#### 7.4 What the OS evidence supports
-
-Together, the OS experiments support a narrow systems claim: a learned preview can run inside the real unprivileged mediation path while execution authority remains separately unavailable or gated. The experiments also expose a practical bottleneck under saturated serial inference. They do not rescue the zero learned-contribution result in Section 6. The strongest learned result remains architecture-controlled rollout prediction; the strongest authority result remains deterministic separation and absence of unauthorized effects.
+The supported claim is narrow: a learned preview runs inside the tested unprivileged mediation path while capability, confirmation, revision checks, and execution remain separate. The source tests in Section 3.4 exercise false-safe prediction, malformed artifacts, stale/replayed messages, capability denial, and actuator-disabled delivery. This establishes empirical enforcement for enumerated paths—not a formal proof of non-bypass and not evidence that every block improves safety.
 
 ### 8. Physical evidence and retained negatives
 
@@ -239,7 +274,7 @@ The frozen Physical JEPA v5 artifact is evaluated over 284,398 one-second transi
 
 Host NumPy batch inference measured 2.239 microseconds median and 3.303 microseconds p99 per row. These are host software measurements, not physical control-loop timing. Across 472 injected observation-fault windows, the first clean row after the injection ended fell below 1.25 times clean p95 error. That zero-second observation restoration is not a physical recovery-time claim. Actuator delivery attempts and deliveries were both zero.
 
-The replay is the strongest external physical evidence directly compatible with the present v5 representation, but it remains researcher-executed replay. It does not include live Ferrum hardware, physical clocks and interfaces, actuator dynamics, physical contact recovery, or an independently tested emergency-stop path.
+The projection is fixed from 698,400 HAI train1–train3 rows and maps only eight available source channels into the 16-state representation; missing state dimensions retain registered constants. Test1 labels align at exact second resolution; test2 labels align positionally only after matching the source file's minute precision, with equal row counts and no shifting, interpolation, nearest-neighbor matching, fill, or imputation. Event labels and proxy commands are descriptive anomaly diagnostics, not equivalent to the model's maintenance/action ontology. The replay is therefore bounded external-stream compatibility evidence, not live Ferrum HIL, end-to-end safety validation, physical timing, actuator dynamics, contact recovery, or an independently tested emergency stop.
 
 #### 8.3 Multi-embodiment 3D stress
 
@@ -276,6 +311,21 @@ Relative to the privileged planner, the union changes completion by +1.5625 perc
 
 Attribution remains essential. The privileged planner alone reduces hazard cost from 542 to 70 (87.08%). Adding the learned tangent branch increases completion from 121/128 to 123/128 but increases hazard-cost events from 70 to 84 (plus 14). All 382 effective union interventions are learned-only because the high-closeness rule never changes a command on this final distribution. The adapter warns on 153/160 dangerous controller trajectories, while 88/160 receive a different command; the remaining warned cases already propose the saturated tangent-compatible turn. The benchmark therefore supports a passing naive-baseline runtime objective and a completion/cost tradeoff over the planner, not learned collision-avoidance superiority over privileged planning.
 
+#### 8.5 Frozen risk-source attribution on fresh layouts
+
+The v2 attribution opens seeds 8000–8127 once after committing every adapter, threshold, and simulator setting. The planner baseline records 122/128 completions, 116 hazard steps, and 7/128 hazardous episodes. Table 6 changes only the warning source; all rows retain the deterministic rule union and the same one-command tangent correction.
+
+| Risk source | Completion | Warning recall | Effective recall | Intervention | Intervention precision | Hazard steps | Hazardous episodes | Mean steps |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full local + JEPA adapter | 94.53% | 92.40% | 47.53% | 2.16% | 24.27% | 129 | 8/128 | 186.1 |
+| Local sensing, no JEPA | 93.75% | 90.60% | 46.62% | 1.66% | 31.71% | 132 | 8/128 | 184.1 |
+| JEPA outputs only | 96.09% | 57.81% | 20.25% | 1.35% | 15.00% | 104 | 7/128 | 184.9 |
+| Hazard closeness only | 94.53% | 80.58% | 51.08% | 2.63% | 22.83% | 144 | 9/128 | 184.5 |
+
+The full adapter is not the best realized-outcome arm on this range. JEPA-only changes hazard cost by -25 steps relative to full (paired 10,000-resample 95% CI [-50, -6]) and intervention by -0.81 percentage points (CI [-1.45, -0.16]); both intervals exclude zero. Its +1.56-point completion difference has CI [0.00, 3.91] and is not separable. Against the unshielded planner, JEPA-only changes hazard cost by -12 steps with CI [-39, 4], so superiority to the planner is not established.
+
+Warning recall and realized outcomes rank differently: full has higher 20-step dangerous-trajectory warning recall, while JEPA-only intervenes less and records fewer realized hazard steps. The study therefore supports a pipeline-level result that the three frozen JEPA outputs produced a lower-intervention operating point under this fixed correction design. It does not isolate JEPA architecture from the historical v5 training data, prove transfer, or establish safety superiority. The failed v1 attribution attempt and its excluded 7000-range partial catalog remain archived.
+
 ### 9. Cross-domain synthesis
 
 #### 9.1 Prediction quality is domain-specific
@@ -296,76 +346,75 @@ QEMU timing is not production throughput. Researcher-operated sessions are not i
 
 #### 9.5 Novelty statement
 
-This work does not claim the first JEPA world model, first safety filter, first calibrated predictor, or first runtime-assurance architecture. Its contribution is the cross-domain combination of: matched architecture control; explicit separation of prediction, policy, capability, and effect; sealed validation-only selection; paired causal and operational estimands; runtime evidence with authority disabled; semantic compatibility checks for external data; retained operational negatives; and digest-verified non-promotion. The principal hypothesis supported is methodological: predictive evidence and authority evidence should be registered, measured, and reviewed separately.
+This work does not claim the first JEPA world model, safety filter, calibrated predictor, or runtime-assurance architecture. Its central novelty is an executable evaluation method with named estimands and named failure modes: prediction error, counterfactual response, calibration, warnings, effective interventions, realized outcomes, and authority are registered and reviewed separately. Applying that method in two domains exposes ranking reversal, a thresholded latent-hazard zero, an all-stop policy, a planner-dominated result, and a risk-source attribution that warning recall alone would conceal. The cross-domain claim is methodological replication across distinct systems, not learned representation or policy transfer.
 
 ### 10. Threats to validity and limitations
 
-1. The final temporal catalogs and 3D benchmark use deterministic simulator labels designed locally. Safety-Gymnasium improves task and cost provenance, but its adapter, controller, shield, execution, and assessment remain local; no independent replication is claimed.
+1. The temporal catalogs and PyBullet stress use locally designed deterministic labels. Safety-Gymnasium improves task provenance, but adapter design, execution, and assessment remain local; no independent replication is claimed.
 
-2. The architecture result is controlled within the chosen data, state representations, parameter scale, optimizers, and update budget. It does not establish universal superiority for any model family.
+2. The architecture study matches data, seeds, parameters, and updates, not FLOPs or training wall time. Its episode bootstrap conditions on fixed trained checkpoints and omits retraining variability.
 
-3. Calibration is weak under the registered temporal shift. ECE is bin-dependent, and risk-coverage ordering is not monotonic. No calibrated safety guarantee is claimed.
+3. The attribution varies complete risk-source pipelines, not architecture alone. JEPA-only retains a historically trained v5 artifact, so its lower hazard count cannot be attributed purely to a JEPA objective.
 
-4. The 512-case operational zero-result remains threshold-specific. The 512-case families also sit outside the present-state deterministic predicates' evaluation window, so their rules-only zero is a catalog-coverage property rather than a general estimate of rule quality. The later Safety-Gymnasium protocol selects a different registered navigation operating point on development seeds and evaluates it once on untouched seeds; it does not retroactively repair the earlier estimand.
+4. Calibration is weak under shift. The constant-prevalence Brier baseline is 0.25, ECE is bin-dependent, and risk-coverage ordering is non-monotonic. Zero observed false positives are not a population guarantee.
 
-5. FerrumOS runtime evidence uses QEMU/WHPX, disposable disks, a serial daemon, four local clients, and 24 requests from one researcher. There is no production load, multi-host field test, independent user study, or long-duration natural-use telemetry.
+5. The 512-case families place danger beyond present-state rules by construction. Their rules-only zero is catalog coverage, not general rule quality; the [0,0] bootstrap reflects an all-zero observed vector.
 
-6. The Physical JEPA replay uses an explicit projection of recorded testbed sensor streams. There is no live Ferrum HIL, physical actuation, physical timing, sensor-interface latency, actuator dynamics, human contact, or hardware emergency-stop validation.
+6. FerrumOS runtime evidence uses QEMU/WHPX, one serial daemon, four local clients, and 24 requests from one researcher. No production, multi-host, independent-user, or long-duration evidence exists.
 
-7. The HAI replay's event labels and proxy features do not convert it into an end-to-end safety benchmark. Host microsecond measurements and one-row observation restoration are not control-loop or physical-recovery timings.
+7. Timing uses different clocks and workloads. No synchronized model/queue/transport/polling decomposition or calibrated natural-use cycle conversion is available.
 
-8. Anchor-Lab telemetry is externally authored but semantically incompatible with direct v5 scoring. It supports a future embodiment-specific model, not transfer of the present one.
+8. The HAI replay projects eight recorded channels into a 16-state representation using frozen training statistics. Labels and proxy actions are not equivalent to the model ontology; it is replay, not live HIL.
 
-9. The PyBullet environment is locally designed and simple relative to robotics benchmarks. Its 100% intervention rate and 0% completion remain a negative stress result. Safety-Gymnasium adds an external task implementation, but only the Point navigation subset is covered.
+9. Anchor-Lab telemetry is externally authored but semantically incompatible with direct v5 scoring. It supports future embodiment-specific work, not present-model transfer.
 
-10. The strongest Safety-Gymnasium controller uses direct simulator geometry in a deterministic grid planner. Its high proposal divergence must not be confused with low shield intervention or sensor-only deployability. Deterministic rules remain engineering predicates, not formally verified invariants.
+10. The PyBullet environment is locally designed and simple. Its 100% intervention and 0% completion remain a negative stress result, not useful collision avoidance.
 
-11. No live actuator timing, physical contact, hardware emergency stop, actuator dynamics, sensor-interface latency, human-contact dynamics, or independent execution is established. The report remains a CPS/runtime-assurance study, not a robotics-deployment study.
+11. The strongest Safety-Gymnasium controller uses privileged simulator geometry. Planner effects must not be credited to the shield, and the fixed rule's inactivity is distribution-specific.
 
-12. No protected research result was promoted. The report therefore evaluates a research lineage, not a deployed policy change.
+12. Warning recall uses a 20-step nominal-controller oracle. It is dangerous-trajectory warning recall, not a generic system-safety metric; effective action recall and realized cost are separate.
+
+13. Source tests cover enumerated protocol, daemon, and physical-runtime paths. Deterministic predicates are engineering rules, not formally verified invariants, and empirical tests do not prove universal non-bypass.
+
+14. There is no live actuator timing, physical contact, hardware emergency stop, human-contact dynamics, or independent execution. All research artifacts remain ineligible for promotion and protected deployed artifacts are unchanged.
 
 ### 11. Reproducibility and artifact integrity
 
-The umbrella verifier binds protocols, selections, results, runtime reports, external intake, replay amendments, stress tests, and subordinate verifiers by SHA-256. It independently recomputes protected deployment digests and requires `promotion_eligible=false`. Selection attempts are logged, final paths are denied during model and threshold choice, and once-opened results write to new files.
-
-Principal reproduction commands are:
+Every evidence object names its scope and digest. Hashes prove byte identity only; they do not validate labels, scientific assumptions, or instrument completeness. Result producers and verifiers share repository code in places, so independent replication remains a higher evidence tier. The report uses three distinct verbs: **validate** an existing record and gates; **recompute** metrics from committed rows without environment execution; and **rerun** the registered environment or QEMU workload. Commands below are labelled accordingly.
 
 ```powershell
+# Recompute or validate committed evidence; no new final simulator execution
 python scripts/verify_cross_domain_world_models.py
 python scripts/verify_cross_domain_learned_contribution.py
-node scripts/verify_world_model_runtime_benchmark.mjs docs/research/world_model_v3_4_shadow_runtime_v1.json
-python scripts/verify_world_model_v3_4_shadow.py
-python scripts/verify_world_model_multiclient_result.py
-python scripts/verify_world_model_natural_use.py
-python scripts/verify_world_model_external_case_intake.py
-python scripts/verify_physical_jepa_recorded_hil_replay.py
-python scripts/verify_physical_jepa_multi_embodiment_3d.py
 python scripts/verify_physical_jepa_safety_gymnasium_v14.py
-python scripts/evaluate_physical_jepa_safety_gymnasium_paired_uncertainty.py
 python scripts/verify_physical_jepa_safety_gymnasium_paired_uncertainty.py
+target\safety-gymnasium-venv\Scripts\python.exe scripts/verify_physical_jepa_safety_gymnasium_attribution_v1.py
 python scripts/verify_cross_domain_world_model_improvement_study.py
-python scripts/verify_cross_domain_world_model_paper.py
+
+# Rerun only under a new prospective protocol and output paths
+# node scripts/verify_world_model_combined_gate.mjs
+# target\safety-gymnasium-venv\Scripts\python.exe scripts/evaluate_physical_jepa_safety_gymnasium_attribution_v1.py
 ```
 
-The paper verifier checks required claims and boundaries in the manuscript, PDF text and metadata, figure presence, page count, source and PDF digests, the umbrella verification result, non-promotion status, and protected-artifact integrity. A paper freeze record identifies the exact manuscript, rendered PDF, figures, and evidence snapshot used for Technical Report v1.1.
+The attribution verifier recomputes every aggregate from 128 per-seed summaries, checks all four compressed row catalogs, exact seed membership, 10,000 paired resamples, adapter/protocol digests, locked runtime source, zero actuator authority, and non-promotion. The paper verifier checks required claim boundaries, PDF metadata, figures, tables across all pages, page count, source/PDF digests, and the umbrella evidence snapshot.
 
 ### 12. Conclusion
 
-This report finds a real architecture-controlled advantage for Physical JEPA and a different ranking in FerrumOS. It also finds zero learned intervention at the original conservative operating point and an all-stop failure in the 3D stress test. In the later prospective Safety-Gymnasium benchmark, the privileged planner alone reaches 94.53% completion with 87.08% fewer realized hazard-cost events than the naive baseline. The active union passes the registered objective with 95.62% warning recall and 84.50% lower hazard cost than naive, but adds 14 hazard-cost steps relative to the planner while completing two additional tasks; the paired 95% intervals for both planner-relative differences include zero. These results locate distinct engineering problems: learning dynamics, calibrating decisions under shift, designing useful authority policies, and separating planner effects from shield and learned-model effects.
+The paper's strongest result is methodological. A world model can lead a matched rollout table, respond directionally to interventions, fail at a frozen operational threshold, and still remain correctly subordinate to policy and capability. The same evaluation method reveals a different architecture ranking in FerrumOS, a zero-coverage latent-hazard estimand, an all-stop PyBullet policy, planner-dominated Safety-Gymnasium outcomes, and a fresh risk-source comparison in which JEPA-only caution reduces interventions and hazard steps relative to the full adapter without establishing superiority to the planner.
 
-The defensible contribution is therefore not that a world model makes an operating system or robot safe. It is that world models can be evaluated inside a reproducible authority architecture without being mistaken for authority. Prediction remains advisory; deterministic policy, capability, confirmation, and actuator denial remain independently enforceable; negative evidence remains visible; and deployment remains unchanged unless a separate prospective deployment protocol passes. The union passes this software benchmark, but the privileged-planner marginal tradeoff and absence of HIL or independent execution keep every research artifact explicitly ineligible for promotion.
+The defensible claim is not that FerrumOS or Physical JEPA is safe. It is that predictive evidence, warning quality, effective action changes, realized outcomes, and authority can be measured as separate objects with frozen access boundaries and retained failures. Deterministic blocking is empirically monotone on tested paths, but monotonicity is not benefit; capability, confirmation, revision checks, and actuator denial remain independently necessary. No protected artifact is promoted.
 
 #### 12.1 Submission scope
 
-The appropriate submission identity is a cyber-physical systems, runtime-assurance, or dependable-agent-systems paper. The Physical JEPA experiments include externally recorded sensors and software physics, but no live actuation; calling the work a robotics-deployment paper would exceed the evidence. The FerrumOS experiments include a real in-guest mediation path but no production population. The cross-domain value is the shared authority method and the controlled contrast, not an assertion that the two environments are equivalent.
+The appropriate venue identity is cyber-physical systems, runtime assurance, dependable agents, or evaluation methodology. Cross-domain means the method is exercised separately in an agentic OS and a physical-runtime simulation—not that one model transfers between them. The absence of live hardware and independent execution excludes robotics-deployment claims.
 
 #### 12.2 Remaining evidence tier
 
-The prospective joint objective now passes on an external simulator task, while the planner-relative comparison remains a completion/cost tradeoff rather than learned collision-avoidance superiority. Another local seed range or threshold sweep has low scientific value. The next evidence-class changes are a controller/shield design fixed before an externally executed benchmark, actuator-disabled live HIL with physical clocks and interfaces, and execution of a frozen protocol by an independent party. For FerrumOS, independently operated longitudinal use and concurrent preview remain more valuable than additional synthetic prompts. These are next-tier studies, not claims that can be fabricated inside the present software-only report.
+The targeted local attribution requested by the present review is now complete on fresh, frozen seeds. Another local threshold sweep would add little. The next evidence-class changes are independent execution of a frozen controller/shield benchmark, actuator-disabled live HIL with physical clocks and interfaces, and externally controlled labels or assessment. For FerrumOS, independently operated longitudinal use and concurrent preview remain higher value than more synthetic prompts.
 
 #### 12.3 Release rule
 
-Future improvements should create new versioned research artifacts and preserve every failed frozen result. A candidate may be promoted only under a separate prospective deployment protocol that identifies the exact protected targets, rollback path, capability boundary, post-execution verification, and all required gates. Publication of this report does not satisfy that protocol.
+Future work must create new versioned artifacts and retain failed frozen results. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
 
 <!-- PAGE BREAK -->
 
@@ -379,14 +428,15 @@ This ledger is part of the report rather than a supplementary marketing summary.
 | FerrumOS ranking differs | Shared frozen FerrumOS final catalog | GRU leads H=1 and H=3; JEPA leads H=5 | Not evidence that recurrent models are universally best |
 | Selected models encode interventions | Paired temporal counterfactual catalogs | 100.00% and 93.36% directional accuracy | Not calibrated hazard recall |
 | Shifted scores are weakly calibrated | Frozen reliability, Brier, and ECE outputs | ECE 0.238143 and 0.292887 | Not a formal probability guarantee |
-| Learned models add operational caution | Three-arm 512-case catalogs | Zero marginal blocks at threshold 0.99 | No learned safety-value claim |
+| Learned marginal caution is evaluated | Three-arm 512-case catalogs | Zero marginal blocks at threshold 0.99 | No learned safety-value claim |
 | Runtime preview is integrated | FerrumOS QEMU ring-3 shadow path | H=1-H=5 p99 guest time 3 ms | Not production or hard real-time timing |
 | Multiple clients remain correlated and isolated | Four WebSocket clients, 128 responses | No leakage; Jain fairness 0.999937 | Not parallel inference or distributed execution |
 | Visible assistant mediation works in bounded sessions | Three QEMU boots, 24 requests | Reads execute; writes await confirmation; deletes block | Not independent users or production telemetry |
 | External physical streams can be replayed | 284,398 HAI transitions | Fault-condition error and event diagnostics | Not live Ferrum HIL or physical recovery |
 | Anchor-Lab adds external embodiment data | Six publisher files, 2,925,558 rows | Timing and command/state fields are finite | Not semantically valid for direct v5 scoring |
 | 3D geometry/contact stress is exercised | 288 local PyBullet DIRECT cases | Contact and simulated recovery are measured | Not practical learned safety at 100% intervention |
-| Controller and shield are jointly evaluated | Safety-Gymnasium final seeds 6000-6127 | Planner-only: 94.53% completion and 87.08% cost reduction; union passes all registered naive-baseline gates with 95.62% warning recall, 55.00% effective-action recall, and 23.04% intervention precision, but costs 14 more hazard steps than planner | Not independent, sensor-only, physical, or learned-superiority evidence |
+| Controller and shield are jointly evaluated | Safety-Gymnasium final seeds 6000-6127 | Planner-only explains most cost reduction; union passes naive-baseline gates but is not separable from planner on completion or cost | Not independent, sensor-only, physical, or learned-superiority evidence |
+| Risk-source pipelines are compared | Frozen attribution seeds 8000-8127 | JEPA-only versus full: -25 hazard steps and -0.81 intervention points; paired intervals exclude zero | Not architecture-only causality or superiority to planner |
 | Deployment stayed unchanged | Recomputed protected SHA-256 digests | Every protected artifact is byte-identical | Not a deployment or release result |
 
 #### A.1 Evidence precedence
@@ -418,19 +468,31 @@ The paper inherits the study's frozen-gate discipline. Each verifier checks its 
 | Paired planner-union uncertainty | Seed pairing, estimands, 10,000 resamples, bootstrap seed | Completion and hazard-cost differences independently recompute; both intervals include zero | Post-hoc analysis of committed episode summaries; no final rerun |
 | Paper freeze | Required claims, boundaries, figures, metadata | Text, hashes, pages, evidence snapshot pass | Documentation artifacts only |
 
-#### B.1 Protected deployment inventory
+#### B.1 Protocol and amendment chronology
 
-The umbrella record protects four deployed objects: the FerrumOS encoder, FerrumOS transition, FerrumOS manifest, and Physical JEPA transition. Their observed digests equal their registered expected digests. The cross-domain architecture models, calibration objects, final catalogs, replay projections, and 3D results are research artifacts. A passing paper verifier cannot change that status. Promotion would require a separate prospective protocol and every deployment-specific gate.
+Hosted Git history timestamps the registered files after commit; it does not prove absence of any earlier equivalent observation. The table is an audit index, not a claim that every stage was scientifically successful.
 
-#### B.2 Reproduction order
+| Stage | Registration commit / time (IST) | Frozen change | Outcome |
+|---|---|---|---|
+| Safety-Gym v1–v4 | `383e525`–`f9d1a52`, 30 Aug 17:32–19:24 | Initial recovery, new final ranges, realized-cost gate | v1 selection failed; v3 final failed; v4 retained mixed record |
+| Safety-Gym v5–v8 | `5a2a07c`–`2ae1502`, 30–31 Aug | Earlier warning, bounded steering, braking, adaptive exit | Development failures; no promoted final |
+| Safety-Gym v9–v13 | `22f9774`–`4f62544`, 31 Aug | Privileged planner factorization, tangent correction, recall repair, Simplex trial | v10/v12 finals failed; v13 failed development |
+| Safety-Gym v14 | `bcca0b6`, 1 Sep 23:21 | Synchronized 20-step nominal oracle and corrected cost accounting | One final pass against naive-baseline gates; planner-relative tradeoff retained |
+| Attribution v1 | `df58e72`, 5 Sep | Four fixed risk sources, seeds 7000–7127 | Schema failure after two stages; partial catalog retained and excluded |
+| Attribution v2 | `e954a2c`, 5 Sep | Threshold alias only; new seeds 8000–8127 | Completed once; all evidence checks pass; no promotion |
+
+#### B.2 Protected deployment inventory
+
+The umbrella record protects four deployed objects: the FerrumOS encoder, FerrumOS transition, FerrumOS manifest, and Physical JEPA transition. Their observed digests equal their registered expected digests. Architecture checkpoints, adapters, catalogs, replay projections, and simulator results remain research artifacts. A passing verifier cannot change that status.
+
+#### B.3 Reproduction order
 
 A reviewer can begin with `verify_cross_domain_world_model_improvement_study.py`, which checks the subordinate verification records and protected digests. For deeper inspection, the architecture and learned-contribution verifiers expose selection-access logs and final-open accounting; runtime verifiers expose no-execution and source-disk checks; physical verifiers expose actuator-authority counters and result attribution. The final paper verifier then checks that the manuscript says what the evidence permits, not merely that a PDF exists.
 
-#### B.3 Archival boundary
+#### B.4 Archival boundary
 
 Technical Report v1.1 is intended to be archived together with its manuscript, figures, paper verification record, and freeze manifest. Dataset or software records may receive their own archival identifiers because they are independently reusable objects. Reciprocal links should identify the exact immutable report version and the exact dataset or software version without implying that a repository's moving branch is itself frozen. The DOI fields are intentionally not invented in this pre-archive build; they can be added only after the archival service reserves or publishes the corresponding identifiers.
 
-<!-- PAGE BREAK -->
 
 ### Appendix C. Artifact locator
 
@@ -452,6 +514,9 @@ The repository is the executable supplement to the narrative. Table C.1 lists th
 | External useful-autonomy result | `docs/research/physical_jepa_safety_gymnasium_result_v14.json` | Recompute five arms, planner divergence, learned-only attribution and realized-cost reduction |
 | External useful-autonomy verification | `docs/research/physical_jepa_safety_gymnasium_verification_v14.json` | Confirm raw cases, exact seeds, hashes, gates, authority zero and non-promotion |
 | Paired planner-union uncertainty | `docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json` | Recompute seed-matched completion and realized hazard-cost difference intervals |
+| Risk-source attribution protocol | `docs/research/physical_jepa_safety_gymnasium_attribution_protocol_v2.json` | Inspect fixed factors, thresholds, recovery, and fresh seed boundary |
+| Risk-source attribution result | `docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json` | Recompute four pipeline arms, episode statistics, and paired differences |
+| Risk-source attribution verification | `docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json` | Confirm row catalogs, seed sets, digests, runtime, authority, and non-promotion |
 | Umbrella verification | `docs/research/cross_domain_world_model_improvement_verification_v1.json` | Confirm subordinate passes, claim boundaries and protected hashes |
 | Narrative study | `docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md` | Read the compact evidence-first study before this full report |
 
@@ -463,6 +528,20 @@ Begin with the prospective protocol and umbrella verification. Confirm `promotio
 
 The report version identifies a fixed document, not a promise that every moving repository file will remain identical forever. Corrections that alter prose, evidence binding, or layout should create a new immutable report version and retain the old version in archival history. Dataset and software deposits should use their own versioned records when they are independently reusable. A concept DOI may identify the evolving record, while the paper should cite the immutable version DOI used during review.
 
+
+### Appendix D. Seed-level architecture results
+
+Each cell reports H=1/H=3/H=5 normalized endpoint error for one independently initialized checkpoint. Table 1 instead reports error after averaging the three state predictions. These seed results show training variability; the paper's episode bootstrap does not resample this training process.
+
+| Domain | Method | Seed 17 | Seed 43 | Seed 101 |
+|---|---|---:|---:|---:|
+| FerrumOS | Direct MLP | 0.006589 / 0.011355 / 0.010724 | 0.006766 / 0.010380 / 0.008943 | 0.005904 / 0.009543 / 0.008113 |
+| FerrumOS | Action-conditioned JEPA | 0.011977 / 0.014114 / 0.006823 | 0.011571 / 0.015009 / 0.006900 | 0.012893 / 0.015745 / 0.007215 |
+| FerrumOS | GRU dynamics | 0.006254 / 0.009522 / 0.008289 | 0.006649 / 0.010079 / 0.009221 | 0.006380 / 0.009540 / 0.007955 |
+| Physical | Direct MLP | 0.008923 / 0.022246 / 0.035243 | 0.008352 / 0.019819 / 0.031014 | 0.007903 / 0.018208 / 0.028402 |
+| Physical | Action-conditioned JEPA | 0.002967 / 0.007682 / 0.011869 | 0.003056 / 0.008098 / 0.012635 | 0.003017 / 0.007989 / 0.012481 |
+| Physical | GRU dynamics | 0.013441 / 0.032976 / 0.049582 | 0.012091 / 0.028457 / 0.041401 | 0.012486 / 0.032275 / 0.050767 |
+
 <!-- PAGE BREAK -->
 
 ### References
@@ -471,19 +550,19 @@ The report version identifies a fixed document, not a promise that every moving 
 
 [2] A. Bardes et al. "V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning." arXiv:2506.09985, 2025. https://arxiv.org/abs/2506.09985
 
-[3] T. Zhou et al. "DINO-WM: World Models on Pre-trained Visual Features Enable Zero-shot Planning." arXiv:2411.04983, 2024. https://arxiv.org/abs/2411.04983
+[3] G. Zhou et al. "DINO-WM: World Models on Pre-trained Visual Features enable Zero-shot Planning." arXiv:2411.04983, 2024. https://arxiv.org/abs/2411.04983
 
 [4] T. Xie et al. "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments." arXiv:2404.07972, 2024. https://arxiv.org/abs/2404.07972
 
 [5] D. Seto, B. Krogh, L. Sha, and A. Chutinan. "The Simplex Architecture for Safe Online Control System Upgrades." Proceedings of the American Control Conference, 1998.
 
-[6] N. Phan et al. "Neural Simplex Architecture." NASA Formal Methods, 2020. https://doi.org/10.1007/978-3-030-55754-6_6
+[6] D. T. Phan et al. "Neural Simplex Architecture." NASA Formal Methods, LNCS 12229, 2020. https://doi.org/10.1007/978-3-030-55754-6_6
 
-[7] N. Phan et al. "The Black-Box Simplex Architecture for Runtime Assurance of Autonomous CPS." NASA Formal Methods, 2022. https://doi.org/10.1007/978-3-031-06773-0_32
+[7] U. Mehmood et al. "The Black-Box Simplex Architecture for Runtime Assurance of Autonomous CPS." NASA Formal Methods, LNCS 13260, 2022. https://doi.org/10.1007/978-3-031-06773-0_12
 
-[8] NASA. "Formal Verification Framework for Runtime Assurance." NASA Technical Reports Server. https://ntrs.nasa.gov/citations/20210010253
+[8] J. T. Slagel, L. M. White, A. Dutle, C. Muñoz, and N. Crespo. "A Formal Verification Framework for Runtime Assurance." NASA Formal Methods, LNCS 14627, pp. 322–328, 2024. https://doi.org/10.1007/978-3-031-60698-4_19
 
-[9] NASA. "Runtime Assurance for Unmanned Aircraft Systems." NASA Technical Reports Server. https://ntrs.nasa.gov/citations/20210014050
+[9] J. T. Slagel, L. M. White, A. Dutle, C. Muñoz, and N. Crespo. "A Verification Framework for Runtime Assurance of Autonomous UAS." 43rd Digital Avionics Systems Conference, 2024. https://shemesh.larc.nasa.gov/fm/plaidypvs/
 
 [10] L. Yang, B. Werner, R. K. Cosner, D. Fridovich-Keil, P. Culbertson, and A. D. Ames. "SHIELD: Safety on Humanoids via CBFs In Expectation on Learned Dynamics." arXiv:2505.11494, 2025. https://arxiv.org/abs/2505.11494
 

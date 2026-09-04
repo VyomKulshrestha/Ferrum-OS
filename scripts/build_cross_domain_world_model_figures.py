@@ -114,9 +114,9 @@ def rollout_figure() -> None:
 
 
 def evidence_ladder_figure() -> None:
-    fig, ax = plt.subplots(figsize=(11.2, 5.2))
+    fig, ax = plt.subplots(figsize=(11.2, 5.6))
     ax.set_xlim(0, 10.5)
-    ax.set_ylim(0, 5.7)
+    ax.set_ylim(0, 6.2)
     ax.axis("off")
     steps = [
         (0.35, 0.55, 2.0, 0.8, "Software catalogs", "matched models + paired cases", TEAL),
@@ -141,9 +141,9 @@ def evidence_ladder_figure() -> None:
             fontsize=8.4, color=RED)
     ax.add_patch(FancyArrowPatch((8.35, 4.95), (8.55, 4.95), arrowstyle="-|>",
                                  mutation_scale=12, color=RED, linewidth=1.2))
-    ax.text(0.35, 5.42, "Evidence strength rises; claim scope remains explicit",
+    ax.text(0.35, 5.95, "Evidence strength rises; claim scope remains explicit",
             fontsize=15, color=NAVY, weight="bold")
-    ax.text(0.35, 5.08,
+    ax.text(0.35, 5.60,
             "No rung is relabelled as hardware deployment, independent assessment, or formal safety.",
             fontsize=9.2, color="#526276")
     save(fig, "evidence_ladder.png")

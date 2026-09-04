@@ -2,7 +2,7 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "5257814e612d34b124dd541e13c436ffce631fd3adce9de4578ca824461a657c"
+      "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
     },
     "external_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
@@ -24,9 +24,9 @@
         "sha256": "b483c335817e8dd855f7e90f90015450a281422be881b0ec3d3a9313a9211593"
       },
       {
-        "bytes": 116969,
+        "bytes": 115893,
         "path": "docs/research/figures/cross_domain_world_model/evidence_ladder.png",
-        "sha256": "03ea3a315b59b5bc580bd9e7f30250b9dcc15b35ac62249e63c49e48c12a3353"
+        "sha256": "bca249cbf2e4861a53850500f22ff8b0b663524b4f9c3580b974a88da188d572"
       },
       {
         "bytes": 145249,
@@ -36,7 +36,7 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "33ff2f3f803c28b6cfebd98eaaa14fd720d59979ea16d3e4c94054c881ad82fa"
+      "sha256": "9478b245d05ee728c9d8b8c80d9a7e02736562b720dd795bd29ecf937b317bd3"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -47,9 +47,17 @@
       "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
     "pdf": {
-      "pages": 14,
+      "pages": 18,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "6d8dd684c1dcb068c6be8339942a39f80c82bfcd58f83897594d266944619256"
+      "sha256": "1b9e02f3a16a8a4be123c808b6114ce5d21472e0abdfbaf595f0752a607f8571"
+    },
+    "risk_source_attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
+    },
+    "risk_source_attribution_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+      "sha256": "4fd14399205e6cd71870ba7c24a33971471e91f3a6d7756c4c2b1b522813caee"
     }
   },
   "author": "Vyom Kulshrestha",
@@ -64,10 +72,11 @@
     "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
     "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
     "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
+    "The fresh-seed risk-source attribution finds that the JEPA-output-only pipeline intervenes less and records fewer hazard steps than the full adapter, but it varies a complete warning pipeline and does not isolate architecture-only causality or establish superiority to the privileged planner.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
-  "evidence_frozen_date": "2026-09-04",
+  "evidence_frozen_date": "2026-09-05",
   "orcid": "0009-0009-1434-7148",
   "promotion_eligible": false,
   "protected_deployed_artifacts": {

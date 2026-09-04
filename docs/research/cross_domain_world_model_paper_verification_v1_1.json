@@ -2,15 +2,15 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "5257814e612d34b124dd541e13c436ffce631fd3adce9de4578ca824461a657c"
+      "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "831701387aa5dc3180893bb2406c83de5b1578762a9f6680adfa0b673b6f7489"
+      "sha256": "cef11728b0c3a52c6707176a00a2843d421565f020d9347f295e0290275c889e"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "33ff2f3f803c28b6cfebd98eaaa14fd720d59979ea16d3e4c94054c881ad82fa"
+      "sha256": "9478b245d05ee728c9d8b8c80d9a7e02736562b720dd795bd29ecf937b317bd3"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -22,7 +22,15 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "6d8dd684c1dcb068c6be8339942a39f80c82bfcd58f83897594d266944619256"
+      "sha256": "1b9e02f3a16a8a4be123c808b6114ce5d21472e0abdfbaf595f0752a607f8571"
+    },
+    "risk_source_attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
+    },
+    "risk_source_attribution_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+      "sha256": "4fd14399205e6cd71870ba7c24a33971471e91f3a6d7756c4c2b1b522813caee"
     }
   },
   "checks": {
@@ -37,11 +45,13 @@
     "paired_planner_union_uncertainty_verified": true,
     "pdf_author_exact": true,
     "pdf_has_no_replacement_character": true,
-    "pdf_page_count_is_14": true,
+    "pdf_page_count_is_submission_length": true,
     "pdf_required_phrases_present": true,
     "pdf_subject_versioned": true,
     "pdf_title_exact": true,
     "protected_deployed_artifacts_unchanged": true,
+    "risk_source_attribution_authority_disabled": true,
+    "risk_source_attribution_verified": true,
     "source_required_phrases_present": true,
     "umbrella_all_checks_pass": true,
     "umbrella_binds_external_verification": true,
@@ -60,12 +70,13 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "831701387aa5dc3180893bb2406c83de5b1578762a9f6680adfa0b673b6f7489",
-    "pdf_pages": 14,
+    "freeze_manifest_sha256": "cef11728b0c3a52c6707176a00a2843d421565f020d9347f295e0290275c889e",
+    "pdf_pages": 18,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
       "Claim-to-evidence ledger": true,
+      "Frozen risk-source attribution on fresh layouts": true,
       "Frozen-gate and artifact audit": true,
       "Neither interval excludes zero": true,
       "ORCID: 0009-0009-1434-7148": true,
@@ -76,43 +87,63 @@
       "Threats to validity and limitations": true,
       "Vyom Kulshrestha": true
     },
-    "pdf_words_extracted": 8472,
+    "pdf_words_extracted": 9606,
     "positionally_checked_pdf_table_pages": [
+      1,
+      2,
+      3,
+      4,
       5,
+      6,
+      7,
       8,
+      9,
+      10,
       11,
       12,
-      13
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
     ],
     "source_required_phrases": {
       "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
-      "55.00% effective-action recall": true,
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
-      "Architecture rankings are domain-dependent.": true,
       "Executed intervention precision is 23.04% (88/382)": true,
+      "Frozen risk-source attribution on fresh layouts": true,
+      "Hashes prove byte identity only": true,
       "Neither interval excludes zero": true,
-      "No protected research result was promoted.": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
-      "Technical Report v1.1 \u2014 4 September 2026": true,
-      "The 512-case families also sit outside the present-state deterministic predicates' evaluation window": true,
+      "Technical Report v1.1 \u2014 5 September 2026": true,
+      "The bootstrap conditions on these fixed trained models and does not include retraining variability.": true,
+      "The primary contribution is an evaluation method, not a new JEPA objective.": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
+      "The v2 attribution opens seeds 8000\u20138127 once": true,
+      "Validation means checking an existing record": true,
       "Warning recall and warning FPR evaluate the detector": true,
+      "`rule_block` is false in all 1,024 records by construction of this estimand": true,
       "completion/cost tradeoff over the planner": true,
-      "construct-coverage negative about threshold-based caution under latent hazards": true,
+      "constant-prevalence predictor has Brier 0.25": true,
       "descriptive rather than statistically stable": true,
       "effective action-change recall": true,
+      "effective action-change recall is 55.00%": true,
       "intervention rate counts only commands that actually change": true,
       "no independent replication is claimed": true,
       "nominal receding-horizon controller": true,
+      "not architecture-only causality or physical safety": true,
       "not learned collision-avoidance superiority over privileged planning": true,
-      "operationally unusable extreme": true,
+      "not strictly compute-controlled": true,
       "paired 10,000-resample episode-bootstrap 95% CI": true,
-      "rule_block` is false in all 1,024 domain-case records by construction": true,
+      "protected deployed artifacts remain byte-identical and promotion eligibility is false": true,
       "these gates do not require superiority over the privileged planner": true,
+      "three frozen JEPA outputs produced a lower-intervention operating point": true,
+      "thresholded latent-hazard coverage negative": true,
       "| Naive unshielded | 100.00% | 0.00% | \u2014 | \u2014 | 0.00% | 542 |": true,
       "| Planner unshielded | 94.53% | 0.00% | \u2014 | \u2014 | 0.00% | **70** |": true
     }

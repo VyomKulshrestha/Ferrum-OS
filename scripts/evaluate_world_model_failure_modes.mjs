@@ -9,7 +9,7 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outputArg = process.argv.indexOf("--json-out");
 const output = path.resolve(repo, outputArg >= 0 ? process.argv[outputArg + 1] : "docs/research/world_model_failure_modes.json");
 const cases = [
-  { id: "valid_learned_artifacts", command: [process.execPath, "scripts/verify_world_model_learned.mjs"], injection: "none" },
+  { id: "valid_learned_artifacts", command: [process.execPath, "scripts/verify_world_model_combined_gate.mjs"], injection: "valid learned false-safe transition" },
   { id: "missing_artifacts", command: [process.execPath, "scripts/verify_world_model_missing_weights.mjs"], injection: "remove encoder and transition" },
   { id: "nonfinite_artifacts", command: [process.execPath, "scripts/verify_world_model_weight_integrity.mjs"], injection: "valid-shape NaN encoder and transition" },
   { id: "forbidden_coverage_metadata", command: [process.execPath, "scripts/verify_world_model_policy_weights.mjs"], injection: "transition claims policy-only kernel-upgrade coverage" },
