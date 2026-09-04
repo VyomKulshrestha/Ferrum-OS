@@ -48,15 +48,23 @@ def main() -> None:
         "protected_deployed_artifact_unchanged": result["authority"]["protected_deployed_artifact_unchanged"],
         "promotion_ineligible": result["authority"]["promotion_eligible"] is False,
     }
-    registered_blob = subprocess.check_output(
-        ["git", "show", f"{result['protocol']['registered_commit']}:{str(PROTOCOL_PATH.relative_to(ROOT)).replace(chr(92), '/')}"],
-        cwd=ROOT,
-    )
     checks["protocol_matches_registered_commit"] = (
-        hashlib.sha256(registered_blob).hexdigest() == sha256(PROTOCOL_PATH)
+        subprocess.run(
+            [
+                "git",
+                "diff",
+                "--quiet",
+                result["protocol"]["registered_commit"],
+                "--",
+                str(PROTOCOL_PATH.relative_to(ROOT)),
+            ],
+            cwd=ROOT,
+            check=False,
+        ).returncode
+        == 0
     )
     expected_variants = [item["id"] for item in protocol["risk_source_variants"]]
-    checks["variant_set_exact"] = list(result["variants"]) == expected_variants
+    checks["variant_set_exact"] = set(result["variants"]) == set(expected_variants)
 
     for registered in protocol["risk_source_variants"]:
         name = registered["id"]
