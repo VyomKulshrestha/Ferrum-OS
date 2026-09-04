@@ -1,0 +1,203 @@
+{
+  "authority": {
+    "deployment_eligible": false,
+    "may_add_caution": true,
+    "may_grant_permission": false,
+    "physical_actuator_authority": false
+  },
+  "bias": -2.7380406255961636,
+  "feature_mean": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.7962188944794963,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "feature_scale": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.0614721924871688,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "feature_transform": "identity",
+  "fit": {
+    "l2_regularization": 0.05,
+    "optimizer": "deterministic full-batch Adam",
+    "training_positive_rows": 310,
+    "training_rows": 17768,
+    "training_seed_range": {
+      "count": 96,
+      "start": 4000
+    },
+    "updates": 3000,
+    "validation_positive_rows": 23,
+    "validation_rows": 3494,
+    "validation_seed_range": {
+      "count": 32,
+      "start": 4096
+    }
+  },
+  "included_raw_feature_indices": [
+    20
+  ],
+  "name": "hazard-closeness-only",
+  "raw_feature_count": 25,
+  "schema": "physical-jepa-safety-risk-source-adapter-v1",
+  "validation": {
+    "calibration": {
+      "brier": 0.024911507790738602,
+      "ece": 0.08854595978658819,
+      "reliability": [
+        {
+          "count": 2558,
+          "lower": 0.0,
+          "mean_score": 0.03224353146958489,
+          "observed_frequency": 0.0,
+          "upper": 0.1
+        },
+        {
+          "count": 455,
+          "lower": 0.1,
+          "mean_score": 0.14593783027605128,
+          "observed_frequency": 0.0,
+          "upper": 0.2
+        },
+        {
+          "count": 220,
+          "lower": 0.2,
+          "mean_score": 0.2424659289475156,
+          "observed_frequency": 0.0,
+          "upper": 0.3
+        },
+        {
+          "count": 107,
+          "lower": 0.3,
+          "mean_score": 0.34597148271225786,
+          "observed_frequency": 0.0,
+          "upper": 0.4
+        },
+        {
+          "count": 53,
+          "lower": 0.4,
+          "mean_score": 0.45245547188898244,
+          "observed_frequency": 0.0,
+          "upper": 0.5
+        },
+        {
+          "count": 39,
+          "lower": 0.5,
+          "mean_score": 0.5314999345449541,
+          "observed_frequency": 0.05128205128205128,
+          "upper": 0.6
+        },
+        {
+          "count": 14,
+          "lower": 0.6,
+          "mean_score": 0.6546675919097866,
+          "observed_frequency": 0.21428571428571427,
+          "upper": 0.7
+        },
+        {
+          "count": 23,
+          "lower": 0.7,
+          "mean_score": 0.7542532401902524,
+          "observed_frequency": 0.17391304347826086,
+          "upper": 0.8
+        },
+        {
+          "count": 17,
+          "lower": 0.8,
+          "mean_score": 0.861329255296434,
+          "observed_frequency": 0.5294117647058824,
+          "upper": 0.9
+        },
+        {
+          "count": 8,
+          "lower": 0.9,
+          "mean_score": 0.9091323240438912,
+          "observed_frequency": 0.625,
+          "upper": 1.0
+        }
+      ]
+    },
+    "selected": {
+      "false_positive_rate": 0.003745318352059925,
+      "fn": 8,
+      "fp": 13,
+      "precision": 0.5357142857142857,
+      "recall": 0.6521739130434783,
+      "threshold": 0.78,
+      "tn": 3458,
+      "tp": 15
+    },
+    "selection_rule": "minimum absolute FPR difference from the frozen full-adapter FPR; then fewer false negatives; then higher threshold"
+  },
+  "weights": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.26629822433528,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+}

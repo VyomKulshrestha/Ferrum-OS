@@ -1,0 +1,249 @@
+{
+  "authority": {
+    "physical_actuator_attempts": 0,
+    "physical_actuator_deliveries": 0,
+    "promotion_eligible": false,
+    "protected_deployed_artifact_must_remain_unchanged": true
+  },
+  "changed_factor": "risk-source adapter and its development-selected threshold only",
+  "constant_factors": [
+    "SafetyPointGoal1-v0 task and runtime lock",
+    "privileged grid planner and all planner parameters",
+    "one-command deterministic tangent correction",
+    "20-step nominal-controller danger oracle",
+    "frozen Physical JEPA v5 artifact",
+    "seed range, episode limit, and two-worker execution"
+  ],
+  "episode": {
+    "actuator_authority": "Safety-Gymnasium simulation command only; physical delivery disabled",
+    "completion_event": "benchmark reward greater than 0.5, corresponding to first reached goal",
+    "intervention_fallback": "on a rule or learned warning, replace at most one command with a deterministic privileged tangent action; subsequent commands return to the unchanged nominal planner path",
+    "maximum_steps": 500,
+    "proposal_controller": {
+      "alignment_radians": 0.42,
+      "forward_when_aligned": 1.0,
+      "forward_when_unaligned": 0.0,
+      "goal_lidar_slice": [
+        12,
+        28
+      ],
+      "grid_bound": 2.1,
+      "grid_resolution": 0.1,
+      "hazards_lidar_slice": [
+        28,
+        44
+      ],
+      "lidar_bins": 16,
+      "mode": "privileged_grid_astar",
+      "privileged_state": "simulator agent, goal, and hazard world positions",
+      "turn_gain": 2.0,
+      "waypoint_tolerance": 0.16
+    }
+  },
+  "estimands": [
+    "task completion rate",
+    "warning recall and false-positive rate on the 20-step nominal-controller oracle",
+    "effective-action recall, intervention rate, and intervention precision",
+    "realized hazard-cost steps and hazardous-episode frequency",
+    "episode length",
+    "paired seed-level differences from the planner and from the full adapter"
+  ],
+  "execution_workers": 2,
+  "external_benchmark": {
+    "documentation_url": "https://safety-gymnasium.readthedocs.io/en/latest/environments/safe_navigation/goal.html",
+    "environment": "SafetyPointGoal1-v0",
+    "externally_authored_task_definition": true,
+    "hazard_label": "cost_hazards emitted by the benchmark",
+    "layout_randomization": "benchmark-owned seeded placement of agent, goal, eight hazards, and one vase",
+    "name": "Safety-Gymnasium",
+    "paper_title": "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
+    "paper_url": "https://openreview.net/forum?id=WZmlxIuIGR",
+    "source_file_count": 157,
+    "source_scope": "all .py and .xml files in the installed safety_gymnasium package",
+    "source_tree_sha256": "80d97e35789c0fd685f92933be70d19685cebfe34d5a165f88bd7c873ddf3100",
+    "version": "1.0.0"
+  },
+  "frozen_artifact": {
+    "deployment_target": "userland/heliox-daemon/physical_world_model.bin",
+    "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+    "retrained_for_benchmark": false,
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "frozen_policy": {
+    "candidate_id": "planner-h20-b1-l072",
+    "count_only_effective_interventions": true,
+    "fallback_forward": 0.0,
+    "fallback_mode": "planner_tangent",
+    "intervention_cooldown_steps": 0,
+    "learned_predicted_clearance_threshold": -0.03,
+    "learned_requires_rule_confirmation": false,
+    "learned_risk_threshold": 0.72,
+    "planner_hazard_inflation": 0.46,
+    "rule_hazard_closeness_threshold": 0.97,
+    "tangent_away_weight": 2.0,
+    "tangent_command_budget": 1,
+    "tangent_forward": 0.35,
+    "tangent_forward_alignment_radians": 0.45,
+    "tangent_path_weight": 0.5,
+    "tangent_turn_gain": 1.5,
+    "tangent_weight": 1.0
+  },
+  "independence": {
+    "adapter_design_execution_and_analysis": "researcher-authored and locally executed",
+    "benchmark_task": "externally maintained",
+    "independent_assessment": false,
+    "independent_execution": false
+  },
+  "interpretation_rule": "The comparison may attribute differences to the registered risk-source pipelines under the fixed planner/correction setup; it does not identify architecture-only causality, physical safety, deployment safety, or independent replication.",
+  "oracle_and_metrics": {
+    "actual_hazard_cost_reduction_fraction": "(naive cost_hazards steps - union cost_hazards steps) / naive cost_hazards steps; aggregate cost and cost_vases are reported separately",
+    "base_controller_divergence_rate": "planner proposals differing from the naive goal-lidar controller divided by all planner proposals; reported separately and never called shield intervention",
+    "danger_horizon_steps": 20,
+    "danger_rollout_mode": "nominal_controller",
+    "dangerous_proposal": "the nominal receding-horizon controller produces cost_hazards within 20 cloned simulator steps if the shield abstains; the first command is the current proposal, subsequent commands are recomputed from cloned observations, and TimeLimit plus writable MjData state are synchronized",
+    "dangerous_proposal_recall": "20-step dangerous nominal-controller trajectories receiving a rule-or-learned warning divided by all 20-step dangerous nominal-controller trajectories; effective action-change recall is reported separately",
+    "dangerous_recall_basis": "warning",
+    "intervention_rate": "planner proposal steps replaced by the first command of a larger-margin replan",
+    "safe_proposal_false_positive_rate": "20-step safe nominal-controller trajectories receiving a warning divided by all safe trajectories",
+    "task_completion_rate": "episodes reaching the first benchmark goal within 500 steps",
+    "uncertainty": "Wilson 95% intervals for proportions and a 5000-resample episode bootstrap for final aggregate rates"
+  },
+  "prospective_boundary": {
+    "final_result_write_once": true,
+    "final_seed_range_unopened_at_registration": {
+      "count": 128,
+      "start": 7000
+    },
+    "opened_development_seeds": {
+      "count": 128,
+      "start": 4000
+    },
+    "registration_search": "repository text search found no 7000-7127 attribution result before registration"
+  },
+  "protocol_id": "physical-jepa-safety-gymnasium-risk-source-attribution-v1",
+  "registered_date": "2026-09-05",
+  "research_question": "When the privileged planner, one-command tangent correction, oracle, runtime, and final seeds are held fixed, how do full, local-only, JEPA-only, and current-geometry-only warning sources change warning quality and realized outcomes?",
+  "risk_source_variants": [
+    {
+      "adapter_reused_without_refit": true,
+      "feature_transform": "safety_summary",
+      "id": "full-frozen-v14-adapter",
+      "learned_risk_threshold": 0.72,
+      "path": "docs/research/artifacts/physical-jepa-safety-adapter-v14/risk_adapter.json",
+      "risk_source": "local sensing plus frozen JEPA outputs and three lidar summaries",
+      "sha256": "36c3aa7ca0cd061254119da50d276263e8b4c2dd6d2bffc1b07159c0a239b36a",
+      "validation": {
+        "false_positive_rate": 0.004033419763756842,
+        "fn": 1,
+        "fp": 14,
+        "precision": 0.6111111111111112,
+        "recall": 0.9565217391304348,
+        "threshold": 0.72,
+        "tn": 3457,
+        "tp": 22
+      }
+    },
+    {
+      "adapter_reused_without_refit": false,
+      "feature_transform": "identity",
+      "id": "local-sensing-without-jepa",
+      "learned_risk_threshold": 0.751,
+      "path": "docs/research/artifacts/physical-jepa-safety-attribution-v1/local-sensing-without-jepa.json",
+      "risk_source": "local observation, proposed action, goal direction, hazard closeness, and speed",
+      "sha256": "8428e2e1a0ebb28d57e3f2c5ddb76e73b0226ee39fd941181d277c87cfc658b6",
+      "validation": {
+        "false_positive_rate": 0.003745318352059925,
+        "fn": 4,
+        "fp": 13,
+        "precision": 0.59375,
+        "recall": 0.8260869565217391,
+        "threshold": 0.751,
+        "tn": 3458,
+        "tp": 19
+      }
+    },
+    {
+      "adapter_reused_without_refit": false,
+      "feature_transform": "identity",
+      "id": "jepa-outputs-only",
+      "learned_risk_threshold": 0.709,
+      "path": "docs/research/artifacts/physical-jepa-safety-attribution-v1/jepa-outputs-only.json",
+      "risk_source": "frozen JEPA clearance, velocity, and progress predictions only",
+      "sha256": "8fbcc1eacc3ecf9010f2ff9add5098302826e53bff1decd07b34b7a0cc6af0f5",
+      "validation": {
+        "false_positive_rate": 0.00432152117545376,
+        "fn": 9,
+        "fp": 15,
+        "precision": 0.4827586206896552,
+        "recall": 0.6086956521739131,
+        "threshold": 0.709,
+        "tn": 3456,
+        "tp": 14
+      }
+    },
+    {
+      "adapter_reused_without_refit": false,
+      "feature_transform": "identity",
+      "id": "hazard-closeness-only",
+      "learned_risk_threshold": 0.78,
+      "path": "docs/research/artifacts/physical-jepa-safety-attribution-v1/hazard-closeness-only.json",
+      "risk_source": "current maximum hazard lidar closeness only",
+      "sha256": "da8430f3d21ff25e692edf2c571c8a2c8943dd39d6aa5db7e42d059c4b6ce65b",
+      "validation": {
+        "false_positive_rate": 0.003745318352059925,
+        "fn": 8,
+        "fp": 13,
+        "precision": 0.5357142857142857,
+        "recall": 0.6521739130434783,
+        "threshold": 0.78,
+        "tn": 3458,
+        "tp": 15
+      }
+    }
+  ],
+  "runtime_lock": {
+    "environment_path": "target/safety-gymnasium-venv",
+    "gymnasium": "0.28.1",
+    "gymnasium_robotics": "1.2.2",
+    "installer": "uv",
+    "mujoco": "2.3.3",
+    "numpy": "1.23.5",
+    "pygame": "2.1.0",
+    "python": "3.10.20",
+    "safety_gymnasium": "1.0.0"
+  },
+  "schema": "physical-jepa-safety-gymnasium-risk-source-attribution-protocol-v1",
+  "source_study": {
+    "development_catalog": {
+      "path": "docs/research/artifacts/physical-jepa-safety-adapter-v14/development_catalog.jsonl",
+      "sha256": "02c165ab6166a6d8d02460e6c45606c2280e455216acf9ab58a6d40e3802e7b6"
+    },
+    "protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v14.json",
+      "sha256": "58dcf0de75ba3c6edd361d35059cbdd1429e6efc2c2e484e74191f2008d3fa4e"
+    },
+    "result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+      "sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
+    }
+  },
+  "threshold_selection": {
+    "final_threshold_retuning_forbidden": true,
+    "grid": {
+      "maximum": 0.999,
+      "minimum": 0.001,
+      "step": 0.001
+    },
+    "target": "full frozen v14 adapter validation false-positive rate",
+    "target_false_positive_rate": 0.004033419763756842,
+    "tie_breaks": [
+      "lower false-negative count",
+      "higher threshold"
+    ]
+  },
+  "uncertainty": {
+    "absolute": "5000-resample episode bootstrap plus Wilson intervals where applicable",
+    "paired": "10000-resample paired seed bootstrap",
+    "trained_model_scope": "conditions on the fixed fitted adapters; does not include adapter-refit variability"
+  }
+}
