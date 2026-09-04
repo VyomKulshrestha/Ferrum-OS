@@ -9,10 +9,12 @@
     "learned_benchmark_verified": true,
     "learned_final_opened_once": true,
     "learned_marginal_result_reported_honestly": true,
+    "learned_rule_coverage_context_verified": true,
     "learned_selection_never_opened_final": true,
     "live_hil_not_claimed": true,
     "multi_embodiment_3d_negative_result_verified": true,
     "multiclient_contention_verified": true,
+    "narrative_study_matches_v14": true,
     "natural_use_verified": true,
     "new_runtime_results_finite": true,
     "no_promotion": true,
@@ -23,6 +25,7 @@
     "physical_safety_gym_effective_interventions": true,
     "physical_safety_gym_external_scope_honest": true,
     "physical_safety_gym_frozen_pass_verified": true,
+    "physical_safety_gym_intervention_precision_recomputed": true,
     "physical_safety_gym_paired_uncertainty_verified": true,
     "physical_safety_gym_selection_never_opened_final": true,
     "physical_safety_gym_v12_negative_retained": true,
@@ -31,14 +34,14 @@
   },
   "claim_boundary": [
     "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
-    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
+    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold; all eight families place danger beyond the present-state deterministic predicates' evaluation window.",
     "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
     "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
     "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
     "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
     "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
-    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
+    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
     "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
@@ -91,6 +94,10 @@
     "multiclient_verification": {
       "path": "docs/research/world_model_multiclient_contention_verification_v1.json",
       "sha256": "9fc3c7b3af126ead535e9ce2469f62d9a5b35499750be739d3ff45c5bd7e9af0"
+    },
+    "narrative_study": {
+      "path": "docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md",
+      "sha256": "e12f3481b5ab815fe0f024c191235bd0d31e383a59a57593effc818d0a6cf5cb"
     },
     "natural_use_amendment_1": {
       "path": "docs/research/world_model_natural_use_protocol_amendment_v1.json",

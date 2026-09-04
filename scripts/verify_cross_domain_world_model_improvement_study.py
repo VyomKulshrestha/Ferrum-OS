@@ -55,6 +55,7 @@ EVIDENCE = {
     "physical_simplex_selection": "physical_jepa_safety_gymnasium_selection_v13.json",
 }
 HASH_ONLY_EVIDENCE = {
+    "narrative_study": "CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md",
     "natural_use_telemetry": "world_model_natural_use_telemetry_v1.jsonl",
     "physical_safety_gym_cases": "physical_jepa_safety_gymnasium_cases_v14.jsonl",
     **{
@@ -97,13 +98,15 @@ def main() -> int:
         }
         for name, path in EVIDENCE.items()
     }
-    artifacts.update({
-        name: {
-            "path": f"docs/research/{path}",
-            "sha256": sha256(RESEARCH / path),
+    artifacts.update(
+        {
+            name: {
+                "path": f"docs/research/{path}",
+                "sha256": sha256(RESEARCH / path),
+            }
+            for name, path in HASH_ONLY_EVIDENCE.items()
         }
-        for name, path in HASH_ONLY_EVIDENCE.items()
-    })
+    )
     deployed = {
         name: sha256(ROOT / item["path"])
         for name, item in protocol["protected_deployed_artifacts"].items()
@@ -125,13 +128,32 @@ def main() -> int:
     physical_3d = records["physical_3d_result"]
     physical_safety_gym = records["physical_safety_gym_result"]
     physical_safety_gym_verification = records["physical_safety_gym_verification"]
-    physical_safety_gym_paired = records["physical_safety_gym_paired_uncertainty_result"]
+    physical_safety_gym_paired = records[
+        "physical_safety_gym_paired_uncertainty_result"
+    ]
     physical_safety_gym_paired_verification = records[
         "physical_safety_gym_paired_uncertainty_verification"
     ]
     physical_safety_gym_union = physical_safety_gym["arms"][
         "planner_rules_plus_learned"
     ]["metrics"]
+    narrative_study = (RESEARCH / HASH_ONLY_EVIDENCE["narrative_study"]).read_text(
+        encoding="utf-8"
+    )
+    expected_learned_families = {
+        "ferrumos": {
+            "delayed_heap_pressure",
+            "delayed_process_pressure",
+            "coupled_resource_pressure",
+            "exogenous_heap_degradation",
+        },
+        "physical": {
+            "delayed_battery_depletion",
+            "delayed_boundary_crossing",
+            "sensor_masked_human_approach",
+            "link_degradation",
+        },
+    }
     checks = {
         "architecture_selection_never_opened_final": records["architecture_selection"][
             "final_test_opened"
@@ -157,28 +179,50 @@ def main() -> int:
             == 0
             for domain in ("ferrumos", "physical")
         ),
+        "learned_rule_coverage_context_verified": all(
+            {row["family"] for row in learned["domains"][domain]["case_records"]}
+            == families
+            and all(
+                row["rule_block"] is False
+                for row in learned["domains"][domain]["case_records"]
+            )
+            for domain, families in expected_learned_families.items()
+        ),
         "independence_not_claimed": learned["independent_assessment"] is False,
         "os_shadow_verified": os_shadow["verification_passed"] is True
         and os_shadow["promotion_eligible"] is False,
-        "multiclient_contention_verified": records["multiclient_verification"]["verification_passed"] is True
-        and records["multiclient_verification"]["result"]["sha256"] == artifacts["multiclient_result"]["sha256"]
+        "multiclient_contention_verified": records["multiclient_verification"][
+            "verification_passed"
+        ]
+        is True
+        and records["multiclient_verification"]["result"]["sha256"]
+        == artifacts["multiclient_result"]["sha256"]
         and multiclient["timed_responses"] == 128
         and multiclient["jain_throughput_fairness"] >= 0.95
         and multiclient["authority"]["execution_dataset_records_added"] == 0
         and multiclient["promotion_eligible"] is False,
         "natural_use_verified": natural_use["verification_passed"] is True
-        and natural_use["artifacts"]["telemetry"]["sha256"] == artifacts["natural_use_telemetry"]["sha256"]
-        and natural_use["artifacts"]["result"]["sha256"] == artifacts["natural_use_result"]["sha256"]
+        and natural_use["artifacts"]["telemetry"]["sha256"]
+        == artifacts["natural_use_telemetry"]["sha256"]
+        and natural_use["artifacts"]["result"]["sha256"]
+        == artifacts["natural_use_result"]["sha256"]
         and natural_use["observed"]["sessions"] == 3
         and natural_use["observed"]["records"] == 24
         and len(natural_use["observed"]["action_classes"]) == 6
         and natural_use["observed"]["background_model_pageins"] == 0
         and natural_use["observed"]["physical_actuator_deliveries"] == 0
         and natural_use["promotion_eligible"] is False,
-        "external_case_intake_verified": records["external_intake_verification"]["verification_passed"] is True
-        and records["external_intake_verification"]["result"]["sha256"] == artifacts["external_intake_result"]["sha256"]
+        "external_case_intake_verified": records["external_intake_verification"][
+            "verification_passed"
+        ]
+        is True
+        and records["external_intake_verification"]["result"]["sha256"]
+        == artifacts["external_intake_result"]["sha256"]
         and external_intake["acceptance_gates_passed"] is True
-        and external_intake["physical_compatibility"]["direct_physical_jepa_v5_replay_valid"] is False
+        and external_intake["physical_compatibility"][
+            "direct_physical_jepa_v5_replay_valid"
+        ]
+        is False
         and external_intake["authority"]["model_inference_calls"] == 0
         and external_intake["authority"]["actuator_deliveries"] == 0
         and external_intake["promotion_eligible"] is False,
@@ -210,9 +254,7 @@ def main() -> int:
         ]["selection_passed"]
         is True
         and records["physical_safety_gym_selection"]["final_seed_accessed"] is False
-        and records["physical_safety_gym_selection"][
-            "final_seed_access_attempted"
-        ]
+        and records["physical_safety_gym_selection"]["final_seed_access_attempted"]
         is False,
         "physical_safety_gym_frozen_pass_verified": physical_safety_gym_verification[
             "overall_pass"
@@ -238,6 +280,28 @@ def main() -> int:
         is False
         and physical_safety_gym["selected_candidate"]["fallback_mode"]
         == "planner_tangent",
+        "physical_safety_gym_intervention_precision_recomputed": physical_safety_gym_union[
+            "interventions"
+        ]
+        == 382
+        and physical_safety_gym_union["true_positive_interventions"] == 88
+        and physical_safety_gym_union["false_positive_interventions"] == 294
+        and abs(
+            physical_safety_gym_union["true_positive_interventions"]
+            / physical_safety_gym_union["interventions"]
+            - 0.23036649214659685
+        )
+        < 1e-15,
+        "narrative_study_matches_v14": all(
+            phrase in narrative_study
+            for phrase in (
+                "The v14 final opens untouched seeds 6000–6127 exactly once",
+                "Executed intervention precision is 23.04% (88/382)",
+                "rule_block` is therefore false in all 1,024 domain-case records",
+                "The retained v12 final fails its registered recall and realized-cost gates",
+                "the later v13 Simplex amendment fails development",
+            )
+        ),
         "physical_safety_gym_external_scope_honest": physical_safety_gym[
             "externally_authored_benchmark"
         ]
@@ -358,14 +422,14 @@ def main() -> int:
         },
         "claim_boundary": [
             "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
-            "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
+            "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold; all eight families place danger beyond the present-state deterministic predicates' evaluation window.",
             "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
             "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
             "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
             "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
             "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
             "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
-            "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
+            "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
             "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
             "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
             "No protected deployed artifact was promoted or replaced by this study.",
