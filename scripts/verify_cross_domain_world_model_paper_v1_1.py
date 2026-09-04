@@ -38,7 +38,8 @@ REQUIRED_SOURCE_PHRASES = [
     "Warning recall and warning FPR evaluate the detector",
     "intervention rate counts only commands that actually change",
     "nominal receding-horizon controller",
-    "The union passes every registered gate",
+    "The union passes every registered joint-objective gate relative to the frozen benchmark criteria",
+    "these gates do not require superiority over the privileged planner",
     "effective action-change recall",
     "not learned collision-avoidance superiority over privileged planning",
     "completion/cost tradeoff over the planner",
@@ -75,6 +76,7 @@ FORBIDDEN_PATTERNS = [
     r"opposite unusable extreme",
     r"Submission candidate",
     r"safety recall",
+    r"The union passes every registered gate",
 ]
 
 

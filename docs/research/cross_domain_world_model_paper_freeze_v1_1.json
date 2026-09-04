@@ -36,7 +36,7 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "da14092580ce23e228102c05e8d685f2e4c92bddaf646a702a0cea77eaec9311"
+      "sha256": "511b3607dedbb5654cc53bcf45de68fe76b9e089b6f40db2385321a498368dc8"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -49,7 +49,7 @@
     "pdf": {
       "pages": 14,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "bb61a699f12a2d98780e2e699326ff8e5a694984d4c0ad66a664ddda381e968f"
+      "sha256": "ff62dc6dae5bed9d03785cf762ef53f3224da5ea3539aceeb4ecd972f8c7f265"
     }
   },
   "author": "Vyom Kulshrestha",

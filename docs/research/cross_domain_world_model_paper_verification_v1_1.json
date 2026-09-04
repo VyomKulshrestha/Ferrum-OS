@@ -6,11 +6,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "3ee7d7348572f4aba870d1d0a1d03eb534da996a68ac17633a3d3443c03804c5"
+      "sha256": "c82287ff2ebd7a7acc6d60ff8d16ecc5cf3f81de65673f2b9ee3997c3e400fe9"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "da14092580ce23e228102c05e8d685f2e4c92bddaf646a702a0cea77eaec9311"
+      "sha256": "511b3607dedbb5654cc53bcf45de68fe76b9e089b6f40db2385321a498368dc8"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -22,7 +22,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "bb61a699f12a2d98780e2e699326ff8e5a694984d4c0ad66a664ddda381e968f"
+      "sha256": "ff62dc6dae5bed9d03785cf762ef53f3224da5ea3539aceeb4ecd972f8c7f265"
     }
   },
   "checks": {
@@ -48,6 +48,7 @@
   "diagnostics": {
     "forbidden_patterns_absent": {
       "Submission candidate": true,
+      "The union passes every registered gate": true,
       "\\bTBD\\b": true,
       "\\bTODO\\b": true,
       "independently executed third-party": true,
@@ -55,7 +56,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "3ee7d7348572f4aba870d1d0a1d03eb534da996a68ac17633a3d3443c03804c5",
+    "freeze_manifest_sha256": "c82287ff2ebd7a7acc6d60ff8d16ecc5cf3f81de65673f2b9ee3997c3e400fe9",
     "pdf_pages": 14,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
@@ -71,7 +72,7 @@
       "Threats to validity and limitations": true,
       "Vyom Kulshrestha": true
     },
-    "pdf_words_extracted": 8306,
+    "pdf_words_extracted": 8323,
     "source_required_phrases": {
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
@@ -83,7 +84,7 @@
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
       "Technical Report v1.1 \u2014 4 September 2026": true,
-      "The union passes every registered gate": true,
+      "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "completion/cost tradeoff over the planner": true,
       "descriptive rather than statistically stable": true,
@@ -93,7 +94,8 @@
       "nominal receding-horizon controller": true,
       "not learned collision-avoidance superiority over privileged planning": true,
       "operationally unusable extreme": true,
-      "paired 10,000-resample episode-bootstrap 95% CI": true
+      "paired 10,000-resample episode-bootstrap 95% CI": true,
+      "these gates do not require superiority over the privileged planner": true
     }
   },
   "overall_pass": true,
