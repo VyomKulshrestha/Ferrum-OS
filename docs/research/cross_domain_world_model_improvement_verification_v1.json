@@ -23,6 +23,7 @@
     "physical_safety_gym_effective_interventions": true,
     "physical_safety_gym_external_scope_honest": true,
     "physical_safety_gym_frozen_pass_verified": true,
+    "physical_safety_gym_paired_uncertainty_verified": true,
     "physical_safety_gym_selection_never_opened_final": true,
     "physical_safety_gym_v12_negative_retained": true,
     "physical_simplex_failure_retained_without_final_access": true,
@@ -38,6 +39,7 @@
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
     "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
     "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
+    "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
@@ -210,6 +212,18 @@
       "path": "docs/research/physical_jepa_safety_gymnasium_cases_v14.jsonl",
       "sha256": "ca9f3425666134ffcffebea7361129325f47eab82f1be2cf6895cf1a1397eebd"
     },
+    "physical_safety_gym_paired_uncertainty_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_protocol_v1.json",
+      "sha256": "da0cbfda68d7d47dc66c5ba0414de2ee66888d48e6117af559ce618dc5c6046a"
+    },
+    "physical_safety_gym_paired_uncertainty_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+      "sha256": "994689b4d2901424efe3d1a9b76a1af6aa478997818e679c9871148a9b4f12ad"
+    },
+    "physical_safety_gym_paired_uncertainty_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+      "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
+    },
     "physical_safety_gym_protocol": {
       "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v14.json",
       "sha256": "58dcf0de75ba3c6edd361d35059cbdd1429e6efc2c2e484e74191f2008d3fa4e"
@@ -267,6 +281,22 @@
     "physical_safety_gymnasium_intervention_rate": 0.018628694040768556,
     "physical_safety_gymnasium_learned_only_interventions": 382,
     "physical_safety_gymnasium_naive_hazard_cost_events": 542,
+    "physical_safety_gymnasium_paired_completion_difference_percentage_points": {
+      "bootstrap_95_percent": [
+        -1.5625,
+        4.6875
+      ],
+      "estimate": 1.5625,
+      "interval_excludes_zero": false
+    },
+    "physical_safety_gymnasium_paired_hazard_cost_difference_steps": {
+      "bootstrap_95_percent": [
+        -22.025,
+        54.0
+      ],
+      "estimate": 14.0,
+      "interval_excludes_zero": false
+    },
     "physical_safety_gymnasium_planner_hazard_cost_events": 70,
     "physical_safety_gymnasium_planner_task_completion_rate": 0.9453125,
     "physical_safety_gymnasium_safe_fpr": 0.03238965890101248,

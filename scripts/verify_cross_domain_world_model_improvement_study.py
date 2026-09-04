@@ -46,6 +46,9 @@ EVIDENCE = {
     "physical_safety_gym_selection": "physical_jepa_safety_gymnasium_selection_v14.json",
     "physical_safety_gym_result": "physical_jepa_safety_gymnasium_result_v14.json",
     "physical_safety_gym_verification": "physical_jepa_safety_gymnasium_verification_v14.json",
+    "physical_safety_gym_paired_uncertainty_protocol": "physical_jepa_safety_gymnasium_paired_uncertainty_protocol_v1.json",
+    "physical_safety_gym_paired_uncertainty_result": "physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+    "physical_safety_gym_paired_uncertainty_verification": "physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
     "physical_safety_gym_v12_result": "physical_jepa_safety_gymnasium_result_v12.json",
     "physical_safety_gym_v12_verification": "physical_jepa_safety_gymnasium_verification_v12.json",
     "physical_simplex_protocol": "physical_jepa_safety_gymnasium_protocol_v13.json",
@@ -122,6 +125,10 @@ def main() -> int:
     physical_3d = records["physical_3d_result"]
     physical_safety_gym = records["physical_safety_gym_result"]
     physical_safety_gym_verification = records["physical_safety_gym_verification"]
+    physical_safety_gym_paired = records["physical_safety_gym_paired_uncertainty_result"]
+    physical_safety_gym_paired_verification = records[
+        "physical_safety_gym_paired_uncertainty_verification"
+    ]
     physical_safety_gym_union = physical_safety_gym["arms"][
         "planner_rules_plus_learned"
     ]["metrics"]
@@ -238,6 +245,20 @@ def main() -> int:
         and physical_safety_gym["independent_execution"] is False
         and physical_safety_gym["physical_actuator_attempts"] == 0
         and physical_safety_gym["physical_actuator_deliveries"] == 0,
+        "physical_safety_gym_paired_uncertainty_verified": physical_safety_gym_paired_verification[
+            "overall_pass"
+        ]
+        is True
+        and all(physical_safety_gym_paired_verification["checks"].values())
+        and physical_safety_gym_paired["pairing"]["episodes"] == 128
+        and physical_safety_gym_paired["differences_union_minus_planner"][
+            "completion_rate_percentage_points"
+        ]["interval_excludes_zero"]
+        is False
+        and physical_safety_gym_paired["differences_union_minus_planner"][
+            "realized_hazard_cost_steps"
+        ]["interval_excludes_zero"]
+        is False,
         "physical_simplex_failure_retained_without_final_access": records[
             "physical_simplex_selection"
         ]["selection_passed"]
@@ -250,7 +271,8 @@ def main() -> int:
         and finite(learned)
         and finite(physical_replay)
         and finite(physical_3d)
-        and finite(physical_safety_gym),
+        and finite(physical_safety_gym)
+        and finite(physical_safety_gym_paired),
         "new_runtime_results_finite": finite(multiclient)
         and finite(natural_use)
         and finite(external_intake),
@@ -262,7 +284,8 @@ def main() -> int:
         and external_intake["promotion_eligible"] is False
         and physical_replay["promotion_eligible"] is False
         and physical_3d["promotion_eligible"] is False
-        and physical_safety_gym["promotion_eligible"] is False,
+        and physical_safety_gym["promotion_eligible"] is False
+        and physical_safety_gym_paired["promotion_eligible"] is False,
     }
     result = {
         "schema_version": 1,
@@ -324,6 +347,12 @@ def main() -> int:
             "physical_safety_gymnasium_naive_hazard_cost_events": physical_safety_gym[
                 "arms"
             ]["naive_unshielded"]["metrics"]["actual_hazard_cost_events"],
+            "physical_safety_gymnasium_paired_completion_difference_percentage_points": physical_safety_gym_paired[
+                "differences_union_minus_planner"
+            ]["completion_rate_percentage_points"],
+            "physical_safety_gymnasium_paired_hazard_cost_difference_steps": physical_safety_gym_paired[
+                "differences_union_minus_planner"
+            ]["realized_hazard_cost_steps"],
             "independent_benchmark": False,
             "live_physical_hil": False,
         },
@@ -337,6 +366,7 @@ def main() -> int:
             "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
             "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
             "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
+            "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
             "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
             "No protected deployed artifact was promoted or replaced by this study.",
         ],

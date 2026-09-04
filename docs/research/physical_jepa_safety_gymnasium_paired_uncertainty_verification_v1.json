@@ -1,0 +1,36 @@
+{
+  "artifacts": {
+    "protocol_sha256": "da0cbfda68d7d47dc66c5ba0414de2ee66888d48e6117af559ce618dc5c6046a",
+    "result_sha256": "994689b4d2901424efe3d1a9b76a1af6aa478997818e679c9871148a9b4f12ad",
+    "source_result_sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
+  },
+  "checks": {
+    "all_128_seeds_unique_and_matched": true,
+    "completion_interval_recomputes": true,
+    "completion_point_matches_123_minus_121": true,
+    "hazard_interval_recomputes": true,
+    "hazard_point_matches_84_minus_70": true,
+    "neither_interval_excludes_zero": true,
+    "no_rerun_reselection_or_promotion_claimed": true,
+    "protocol_and_source_hashes_exact": true
+  },
+  "overall_pass": true,
+  "promotion_eligible": false,
+  "recomputed": {
+    "completion_rate_percentage_points": {
+      "bootstrap_95_percent": [
+        -1.5625,
+        4.6875
+      ],
+      "estimate": 1.5625
+    },
+    "realized_hazard_cost_steps": {
+      "bootstrap_95_percent": [
+        -22.025,
+        54.0
+      ],
+      "estimate": 14.0
+    }
+  },
+  "schema": "physical-jepa-safety-gymnasium-paired-uncertainty-verification-v1"
+}

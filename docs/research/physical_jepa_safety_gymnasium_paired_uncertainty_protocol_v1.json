@@ -1,0 +1,28 @@
+{
+  "analysis_kind": "registered_post_hoc_paired_uncertainty",
+  "arms": {
+    "left": "planner_rules_plus_learned",
+    "right": "planner_unshielded"
+  },
+  "bootstrap": {
+    "confidence_level": 0.95,
+    "method": "paired_episode_percentile",
+    "numpy_percentile_method": "linear",
+    "resamples": 10000,
+    "seed": 20260904
+  },
+  "estimands": {
+    "completion_rate_difference_percentage_points": "100 * mean(union task_completed - planner task_completed) over seed-matched episodes",
+    "realized_hazard_cost_difference_steps": "sum(union cost_hazards steps - planner cost_hazards steps) over a 128-episode paired resample"
+  },
+  "interpretation_rule": "Call a paired difference statistically separated from zero only when its two-sided percentile interval excludes zero.",
+  "pair_key": "seed",
+  "promotion_eligible": false,
+  "registered_date": "2026-09-04",
+  "schema": "physical-jepa-safety-gymnasium-paired-uncertainty-protocol-v1",
+  "source_result": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+    "sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
+  },
+  "scope": "Post-hoc uncertainty analysis of already committed seed-matched final episode summaries; no benchmark rerun, final-catalog reopening, model selection, threshold choice, or deployment change."
+}
