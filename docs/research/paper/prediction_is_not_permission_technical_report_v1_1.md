@@ -264,8 +264,8 @@ The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.
 
 | Final arm | Completion | Effective intervention | Warning recall | Warning FPR | Effective-action recall | Hazard-cost events |
 |---|---:|---:|---:|---:|---:|---:|
-| Naive unshielded | 100.00% | 0.00% | 0.00% | 0.00% | 0.00% | 542 |
-| Planner unshielded | 94.53% | 0.00% | 0.00% | 0.00% | 0.00% | **70** |
+| Naive unshielded | 100.00% | 0.00% | — | — | 0.00% | 542 |
+| Planner unshielded | 94.53% | 0.00% | — | — | 0.00% | **70** |
 | Planner + rules | 94.53% | 0.00% | 0.00% | 0.00% | 0.00% | 70 |
 | Planner + learned | **96.09%** | 1.86% | **95.62%** | 3.24% | 55.00% | 84 |
 | Planner + rules + learned | **96.09%** | 1.86% | **95.62%** | 3.24% | 55.00% | 84 |
@@ -306,7 +306,7 @@ This work does not claim the first JEPA world model, first safety filter, first 
 
 3. Calibration is weak under the registered temporal shift. ECE is bin-dependent, and risk-coverage ordering is not monotonic. No calibrated safety guarantee is claimed.
 
-4. The 512-case operational zero-result remains threshold-specific. The later Safety-Gymnasium families also sit outside the present-state deterministic predicates' evaluation window, so their rules-only zero is a catalog-coverage property rather than a general estimate of rule quality. The later Safety-Gymnasium protocol selects a different registered navigation operating point on development seeds and evaluates it once on untouched seeds; it does not retroactively repair the earlier estimand.
+4. The 512-case operational zero-result remains threshold-specific. The 512-case families also sit outside the present-state deterministic predicates' evaluation window, so their rules-only zero is a catalog-coverage property rather than a general estimate of rule quality. The later Safety-Gymnasium protocol selects a different registered navigation operating point on development seeds and evaluates it once on untouched seeds; it does not retroactively repair the earlier estimand.
 
 5. FerrumOS runtime evidence uses QEMU/WHPX, disposable disks, a serial daemon, four local clients, and 24 requests from one researcher. There is no production load, multi-host field test, independent user study, or long-duration natural-use telemetry.
 

@@ -6,11 +6,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "a6015a6877e1e7b04546bc0a9d226520ad343914df1a9da77e797eeef85ffc38"
+      "sha256": "831701387aa5dc3180893bb2406c83de5b1578762a9f6680adfa0b673b6f7489"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "895ef2e2427f5e161ae2ead88348c5a11c4bb57071c8d87f6037f8bb95adf456"
+      "sha256": "33ff2f3f803c28b6cfebd98eaaa14fd720d59979ea16d3e4c94054c881ad82fa"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -22,7 +22,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "fe924138b4cf73b148a4cb5a4e3674ca56ab9485d234b557600d5c6b708074f3"
+      "sha256": "6d8dd684c1dcb068c6be8339942a39f80c82bfcd58f83897594d266944619256"
     }
   },
   "checks": {
@@ -51,6 +51,7 @@
   "diagnostics": {
     "forbidden_patterns_absent": {
       "Submission candidate": true,
+      "The later Safety-Gymnasium families also sit outside": true,
       "The union passes every registered gate": true,
       "\\bTBD\\b": true,
       "\\bTODO\\b": true,
@@ -59,7 +60,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "a6015a6877e1e7b04546bc0a9d226520ad343914df1a9da77e797eeef85ffc38",
+    "freeze_manifest_sha256": "831701387aa5dc3180893bb2406c83de5b1578762a9f6680adfa0b673b6f7489",
     "pdf_pages": 14,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
@@ -75,9 +76,10 @@
       "Threats to validity and limitations": true,
       "Vyom Kulshrestha": true
     },
-    "pdf_words_extracted": 8473,
+    "pdf_words_extracted": 8472,
     "positionally_checked_pdf_table_pages": [
       5,
+      8,
       11,
       12,
       13
@@ -96,6 +98,7 @@
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
       "Technical Report v1.1 \u2014 4 September 2026": true,
+      "The 512-case families also sit outside the present-state deterministic predicates' evaluation window": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "completion/cost tradeoff over the planner": true,
@@ -109,7 +112,9 @@
       "operationally unusable extreme": true,
       "paired 10,000-resample episode-bootstrap 95% CI": true,
       "rule_block` is false in all 1,024 domain-case records by construction": true,
-      "these gates do not require superiority over the privileged planner": true
+      "these gates do not require superiority over the privileged planner": true,
+      "| Naive unshielded | 100.00% | 0.00% | \u2014 | \u2014 | 0.00% | 542 |": true,
+      "| Planner unshielded | 94.53% | 0.00% | \u2014 | \u2014 | 0.00% | **70** |": true
     }
   },
   "overall_pass": true,

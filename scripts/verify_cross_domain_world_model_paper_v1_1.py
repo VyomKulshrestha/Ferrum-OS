@@ -64,6 +64,9 @@ REQUIRED_SOURCE_PHRASES = [
     "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories",
     "rule_block` is false in all 1,024 domain-case records by construction",
     "construct-coverage negative about threshold-based caution under latent hazards",
+    "The 512-case families also sit outside the present-state deterministic predicates' evaluation window",
+    "| Naive unshielded | 100.00% | 0.00% | — | — | 0.00% | 542 |",
+    "| Planner unshielded | 94.53% | 0.00% | — | — | 0.00% | **70** |",
     "not learned collision-avoidance superiority over privileged planning",
     "completion/cost tradeoff over the planner",
     "paired 10,000-resample episode-bootstrap 95% CI",
@@ -100,6 +103,7 @@ FORBIDDEN_PATTERNS = [
     r"Submission candidate",
     r"safety recall",
     r"The union passes every registered gate",
+    r"The later Safety-Gymnasium families also sit outside",
 ]
 
 
@@ -125,7 +129,7 @@ def normalize_cell(value: str | None) -> str:
 def pdf_table_rows() -> dict[int, set[tuple[str, ...]]]:
     rows: dict[int, set[tuple[str, ...]]] = {}
     with pdfplumber.open(PDF) as document:
-        for page_number in (5, 11, 12, 13):
+        for page_number in (5, 8, 11, 12, 13):
             page_rows: set[tuple[str, ...]] = set()
             for table in document.pages[page_number - 1].extract_tables():
                 page_rows.update(
@@ -246,6 +250,26 @@ def main() -> None:
                 "0.046361",
             )
             in table_rows[5]
+            and (
+                "Naive unshielded",
+                "100.00%",
+                "0.00%",
+                "—",
+                "—",
+                "0.00%",
+                "542",
+            )
+            in table_rows[8]
+            and (
+                "Planner unshielded",
+                "94.53%",
+                "0.00%",
+                "—",
+                "—",
+                "0.00%",
+                "70",
+            )
+            in table_rows[8]
             and (
                 "External physical streams can be replayed",
                 "284,398 HAI transitions",

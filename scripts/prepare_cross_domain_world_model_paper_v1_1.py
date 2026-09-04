@@ -227,8 +227,8 @@ The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.
 
 | Final arm | Completion | Effective intervention | Warning recall | Warning FPR | Effective-action recall | Hazard-cost events |
 |---|---:|---:|---:|---:|---:|---:|
-| Naive unshielded | {pct(naive["task_completion_rate"])} | {pct(naive["intervention_rate"])} | {pct(naive["warning_recall"])} | {pct(naive["warning_false_positive_rate"])} | {pct(naive["effective_intervention_recall"])} | {naive["actual_hazard_cost_events"]} |
-| Planner unshielded | {pct(planner["task_completion_rate"])} | {pct(planner["intervention_rate"])} | {pct(planner["warning_recall"])} | {pct(planner["warning_false_positive_rate"])} | {pct(planner["effective_intervention_recall"])} | **{planner["actual_hazard_cost_events"]}** |
+| Naive unshielded | {pct(naive["task_completion_rate"])} | {pct(naive["intervention_rate"])} | — | — | {pct(naive["effective_intervention_recall"])} | {naive["actual_hazard_cost_events"]} |
+| Planner unshielded | {pct(planner["task_completion_rate"])} | {pct(planner["intervention_rate"])} | — | — | {pct(planner["effective_intervention_recall"])} | **{planner["actual_hazard_cost_events"]}** |
 | Planner + rules | {pct(rules["task_completion_rate"])} | {pct(rules["intervention_rate"])} | {pct(rules["warning_recall"])} | {pct(rules["warning_false_positive_rate"])} | {pct(rules["effective_intervention_recall"])} | {rules["actual_hazard_cost_events"]} |
 | Planner + learned | **{pct(learned["task_completion_rate"])}** | {pct(learned["intervention_rate"])} | **{pct(learned["warning_recall"])}** | {pct(learned["warning_false_positive_rate"])} | {pct(learned["effective_intervention_recall"])} | {learned["actual_hazard_cost_events"]} |
 | Planner + rules + learned | **{pct(full["task_completion_rate"])}** | {pct(full["intervention_rate"])} | **{pct(full["warning_recall"])}** | {pct(full["warning_false_positive_rate"])} | {pct(full["effective_intervention_recall"])} | {full["actual_hazard_cost_events"]} |
@@ -281,7 +281,7 @@ Attribution remains essential. The privileged planner alone reduces hazard cost 
         text,
         "4. The operational zero-result is threshold-specific. Lower thresholds could increase recall and false positives, but selecting one after final access would invalidate the frozen operating-point claim.",
         (
-            "4. The 512-case operational zero-result remains threshold-specific. The later Safety-Gymnasium "
+            "4. The 512-case operational zero-result remains threshold-specific. The 512-case "
             "families also sit outside the present-state deterministic predicates' evaluation window, so their "
             "rules-only zero is a catalog-coverage property rather than a general estimate of rule quality. The "
             "later Safety-Gymnasium protocol selects a different registered navigation operating point on "
