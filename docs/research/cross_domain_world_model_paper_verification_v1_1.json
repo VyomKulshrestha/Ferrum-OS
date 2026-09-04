@@ -2,19 +2,27 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "18792ac7cdd3da9fd5090ec83e0497046807d0b81a36e376248dbdb2fb488496"
+      "sha256": "1d528515e2a220cec4a0a86b909d84229e271619e509ed79f4ee960ac98817e7"
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "9959b638b7adbee167efd3f72cedb7396d9f0875f1320c28cfcbe02fb032562c"
+      "sha256": "3ee7d7348572f4aba870d1d0a1d03eb534da996a68ac17633a3d3443c03804c5"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "d711210209261a19d3c29cfc5dbf57b535a0d2a5f658665033dd0c3845ab98f9"
+      "sha256": "da14092580ce23e228102c05e8d685f2e4c92bddaf646a702a0cea77eaec9311"
+    },
+    "paired_uncertainty_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+      "sha256": "994689b4d2901424efe3d1a9b76a1af6aa478997818e679c9871148a9b4f12ad"
+    },
+    "paired_uncertainty_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+      "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "1c3d10cdb2791385fa2a22f5d3238b590bcde74cecb4ffd6d8cac7d794d5df8c"
+      "sha256": "bb61a699f12a2d98780e2e699326ff8e5a694984d4c0ad66a664ddda381e968f"
     }
   },
   "checks": {
@@ -24,6 +32,7 @@
     "external_scope_and_nonpromotion_honest": true,
     "external_verification_confirms_all_gates": true,
     "forbidden_placeholders_and_review_wording_absent": true,
+    "paired_planner_union_uncertainty_verified": true,
     "pdf_author_exact": true,
     "pdf_has_no_replacement_character": true,
     "pdf_page_count_is_14": true,
@@ -43,15 +52,17 @@
       "\\bTODO\\b": true,
       "independently executed third-party": true,
       "opposite unusable extreme": true,
-      "reviewer-requested": true
+      "reviewer-requested": true,
+      "safety recall": true
     },
-    "freeze_manifest_sha256": "9959b638b7adbee167efd3f72cedb7396d9f0875f1320c28cfcbe02fb032562c",
+    "freeze_manifest_sha256": "3ee7d7348572f4aba870d1d0a1d03eb534da996a68ac17633a3d3443c03804c5",
     "pdf_pages": 14,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
       "Claim-to-evidence ledger": true,
       "Frozen-gate and artifact audit": true,
+      "Neither interval excludes zero": true,
       "ORCID: 0009-0009-1434-7148": true,
       "Prediction Is Not Permission": true,
       "References": true,
@@ -60,26 +71,29 @@
       "Threats to validity and limitations": true,
       "Vyom Kulshrestha": true
     },
-    "pdf_words_extracted": 8183,
+    "pdf_words_extracted": 8306,
     "source_required_phrases": {
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
       "Architecture rankings are domain-dependent.": true,
+      "Neither interval excludes zero": true,
       "No protected research result was promoted.": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
-      "Technical Report v1.1 \u2014 1 September 2026": true,
+      "Technical Report v1.1 \u2014 4 September 2026": true,
       "The union passes every registered gate": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "completion/cost tradeoff over the planner": true,
+      "descriptive rather than statistically stable": true,
       "effective action-change recall": true,
       "intervention rate counts only commands that actually change": true,
       "no independent replication is claimed": true,
       "nominal receding-horizon controller": true,
       "not learned collision-avoidance superiority over privileged planning": true,
-      "operationally unusable extreme": true
+      "operationally unusable extreme": true,
+      "paired 10,000-resample episode-bootstrap 95% CI": true
     }
   },
   "overall_pass": true,

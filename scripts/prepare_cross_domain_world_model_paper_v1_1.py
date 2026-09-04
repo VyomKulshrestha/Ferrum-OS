@@ -12,6 +12,8 @@ SOURCE = ROOT / "docs/research/paper/prediction_is_not_permission_technical_repo
 OUTPUT = ROOT / "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md"
 RESULT = ROOT / "docs/research/physical_jepa_safety_gymnasium_result_v14.json"
 VERIFICATION = ROOT / "docs/research/physical_jepa_safety_gymnasium_verification_v14.json"
+PAIRED_RESULT = ROOT / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json"
+PAIRED_VERIFICATION = ROOT / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json"
 
 
 def replace_exact(text: str, old: str, new: str) -> str:
@@ -28,10 +30,14 @@ def pct(value: float) -> str:
 def main() -> None:
     result = json.loads(RESULT.read_text(encoding="utf-8"))
     verification = json.loads(VERIFICATION.read_text(encoding="utf-8"))
+    paired = json.loads(PAIRED_RESULT.read_text(encoding="utf-8"))
+    paired_verification = json.loads(PAIRED_VERIFICATION.read_text(encoding="utf-8"))
     if (
         result.get("all_frozen_gates_pass") is not True
         or verification.get("overall_pass") is not True
         or not all(verification.get("checks", {}).values())
+        or paired_verification.get("overall_pass") is not True
+        or not all(paired_verification.get("checks", {}).values())
     ):
         raise SystemExit("v14 must pass every independently recomputed frozen gate")
 
@@ -51,12 +57,18 @@ def main() -> None:
     marginal_cost_delta = (
         full["actual_hazard_cost_events"] - planner["actual_hazard_cost_events"]
     )
+    paired_completion = paired["differences_union_minus_planner"][
+        "completion_rate_percentage_points"
+    ]
+    paired_hazard = paired["differences_union_minus_planner"][
+        "realized_hazard_cost_steps"
+    ]
 
     text = SOURCE.read_text(encoding="utf-8")
     text = replace_exact(
         text,
         "Technical Report v1.0 - 30 August 2026",
-        "Technical Report v1.1 — 1 September 2026",
+        "Technical Report v1.1 — 4 September 2026",
     )
     text = replace_exact(
         text,
@@ -69,10 +81,12 @@ def main() -> None:
             f"planner completes {pct(planner['task_completion_rate'])} of tasks and records "
             f"{pct(planner_reduction)} fewer hazard-cost events than the naive controller. The active union "
             f"completes {pct(full['task_completion_rate'])}, changes {pct(full['intervention_rate'])} of commands, "
-            f"recalls {pct(full['warning_recall'])} of dangerous nominal-controller trajectories, and records "
+            f"has {pct(full['warning_recall'])} warning recall on 20-step oracle-labelled dangerous "
+            "nominal-controller trajectories, and records "
             f"{pct(union_reduction)} fewer hazard-cost events than the naive controller. Relative to the planner, "
             f"it completes {full['task_completions'] - planner['task_completions']} more tasks but records "
-            f"{marginal_cost_delta} additional hazard-cost steps."
+            f"{marginal_cost_delta} additional hazard-cost steps; paired episode-bootstrap intervals for both "
+            "planner-relative differences include zero."
         ),
     )
     text = replace_exact(
@@ -163,6 +177,8 @@ The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.
 
 The union passes every registered gate: {pct(full['task_completion_rate'])} completion, {pct(full['intervention_rate'])} effective intervention, {pct(full['warning_recall'])} warning recall, {pct(full['warning_false_positive_rate'])} warning FPR, and {pct(union_reduction)} fewer hazard-cost events than the naive controller ({naive['actual_hazard_cost_events']} to {full['actual_hazard_cost_events']}). Its effective action-change recall is {pct(full['effective_intervention_recall'])} ({full['true_positive_interventions']}/{full['dangerous_proposals']}): warned dangerous proposals do not count as interventions when the tangent command is already identical to the planner command. Its episode-bootstrap 95% intervals are {pct(full['episode_bootstrap_95']['task_completion_rate'][0])}-{pct(full['episode_bootstrap_95']['task_completion_rate'][1])} for completion, {pct(full['episode_bootstrap_95']['intervention_rate'][0])}-{pct(full['episode_bootstrap_95']['intervention_rate'][1])} for intervention, {pct(full['episode_bootstrap_95']['dangerous_proposal_recall'][0])}-{pct(full['episode_bootstrap_95']['dangerous_proposal_recall'][1])} for warning recall, and {pct(full['episode_bootstrap_95']['safe_proposal_false_positive_rate'][0])}-{pct(full['episode_bootstrap_95']['safe_proposal_false_positive_rate'][1])} for warning FPR. No final rerun or recovery path was used.
 
+Relative to the privileged planner, the union changes completion by {paired_completion['estimate']:+.4f} percentage points (paired 10,000-resample episode-bootstrap 95% CI [{paired_completion['bootstrap_95_percent'][0]:.4f}, {paired_completion['bootstrap_95_percent'][1]:.4f}]) and realized hazard cost by {paired_hazard['estimate']:+.0f} steps (95% CI [{paired_hazard['bootstrap_95_percent'][0]:.3f}, {paired_hazard['bootstrap_95_percent'][1]:.3f}]). Neither interval excludes zero, so the observed two-task gain and 14-step increase are descriptive rather than statistically stable at this sample size.
+
 Attribution remains essential. The privileged planner alone reduces hazard cost from {naive['actual_hazard_cost_events']} to {planner['actual_hazard_cost_events']} ({pct(planner_reduction)}). Adding the learned tangent branch increases completion from {planner['task_completions']}/{seeds['count']} to {full['task_completions']}/{seeds['count']} but increases hazard-cost events from {planner['actual_hazard_cost_events']} to {full['actual_hazard_cost_events']} (plus {marginal_cost_delta}). All {headline['learned_only_interventions']} effective union interventions are learned-only because the high-closeness rule never changes a command on this final distribution. The adapter warns on {full['true_positive_warnings']}/{full['dangerous_proposals']} dangerous controller trajectories, while {full['true_positive_interventions']}/{full['dangerous_proposals']} receive a different command; the remaining warned cases already propose the saturated tangent-compatible turn. The benchmark therefore supports a passing naive-baseline runtime objective and a completion/cost tradeoff over the planner, not learned collision-avoidance superiority over privileged planning.
 
 """
@@ -239,7 +255,12 @@ Attribution remains essential. The privileged planner alone reduces hazard cost 
     text = replace_exact(
         text,
         "python scripts/verify_physical_jepa_multi_embodiment_3d.py\n",
-        "python scripts/verify_physical_jepa_multi_embodiment_3d.py\npython scripts/verify_physical_jepa_safety_gymnasium_v14.py\n",
+        (
+            "python scripts/verify_physical_jepa_multi_embodiment_3d.py\n"
+            "python scripts/verify_physical_jepa_safety_gymnasium_v14.py\n"
+            "python scripts/evaluate_physical_jepa_safety_gymnasium_paired_uncertainty.py\n"
+            "python scripts/verify_physical_jepa_safety_gymnasium_paired_uncertainty.py\n"
+        ),
     )
     text = replace_exact(
         text,
@@ -257,7 +278,8 @@ Attribution remains essential. The privileged planner alone reduces hazard cost 
             f"{pct(planner_reduction)} fewer realized hazard-cost events than the naive baseline. The active "
             f"union passes the registered objective with {pct(full['warning_recall'])} warning recall and "
             f"{pct(union_reduction)} lower hazard cost than naive, but adds {marginal_cost_delta} hazard-cost steps "
-            "relative to the planner while completing two additional tasks. "
+            "relative to the planner while completing two additional tasks; the paired 95% intervals for both "
+            "planner-relative differences include zero. "
             "These results locate distinct engineering problems: learning dynamics, "
             "calibrating decisions under shift, designing useful authority policies, and separating planner effects "
             "from shield and learned-model effects."
@@ -319,7 +341,10 @@ The prospective joint objective now passes on an external simulator task, while 
             "PyBullet DIRECT; actuator authority zero |\n"
             "| External useful-autonomy test | Runtime lock, dev/final seeds, candidates, five arms, joint gates | "
             "One untouched final opening; raw union rows and all arms independently recompute | Safety-Gymnasium "
-            "DIRECT; privileged planner; actuator authority zero |"
+            "DIRECT; privileged planner; actuator authority zero |\n"
+            "| Paired planner-union uncertainty | Seed pairing, estimands, 10,000 resamples, bootstrap seed | "
+            "Completion and hazard-cost differences independently recompute; both intervals include zero | "
+            "Post-hoc analysis of committed episode summaries; no final rerun |"
         ),
     )
     text = replace_exact(text, "Technical Report v1.0 is intended", "Technical Report v1.1 is intended")
@@ -334,7 +359,9 @@ The prospective joint objective now passes on an external simulator task, while 
             "| External useful-autonomy result | `docs/research/physical_jepa_safety_gymnasium_result_v14.json` | "
             "Recompute five arms, planner divergence, learned-only attribution and realized-cost reduction |\n"
             "| External useful-autonomy verification | `docs/research/physical_jepa_safety_gymnasium_verification_v14.json` | "
-            "Confirm raw cases, exact seeds, hashes, gates, authority zero and non-promotion |"
+            "Confirm raw cases, exact seeds, hashes, gates, authority zero and non-promotion |\n"
+            "| Paired planner-union uncertainty | `docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json` | "
+            "Recompute seed-matched completion and realized hazard-cost difference intervals |"
         ),
     )
     text = replace_exact(

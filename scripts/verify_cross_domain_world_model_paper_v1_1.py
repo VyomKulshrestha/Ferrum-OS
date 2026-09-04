@@ -17,6 +17,8 @@ PDF = ROOT / "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_
 UMBRELLA = ROOT / "docs/research/cross_domain_world_model_improvement_verification_v1.json"
 EXTERNAL_RESULT = ROOT / "docs/research/physical_jepa_safety_gymnasium_result_v14.json"
 EXTERNAL_VERIFICATION = ROOT / "docs/research/physical_jepa_safety_gymnasium_verification_v14.json"
+PAIRED_RESULT = ROOT / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json"
+PAIRED_VERIFICATION = ROOT / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json"
 FIGURE_DIR = ROOT / "docs/research/figures/cross_domain_world_model"
 FIGURES = [
     FIGURE_DIR / "authority_factorization.png",
@@ -29,7 +31,7 @@ RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_1.
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
 REQUIRED_SOURCE_PHRASES = [
-    "Technical Report v1.1 — 1 September 2026",
+    "Technical Report v1.1 — 4 September 2026",
     "Architecture rankings are domain-dependent.",
     "operationally unusable extreme",
     "Prospective Safety-Gymnasium controller and shield benchmark",
@@ -40,6 +42,9 @@ REQUIRED_SOURCE_PHRASES = [
     "effective action-change recall",
     "not learned collision-avoidance superiority over privileged planning",
     "completion/cost tradeoff over the planner",
+    "paired 10,000-resample episode-bootstrap 95% CI",
+    "Neither interval excludes zero",
+    "descriptive rather than statistically stable",
     "no independent replication is claimed",
     "No protected research result was promoted.",
     "Revisiting Feature Prediction for Learning Visual Representations from Video",
@@ -59,6 +64,7 @@ REQUIRED_PDF_PHRASES = [
     "Claim-to-evidence ledger",
     "Frozen-gate and artifact audit",
     "Artifact locator",
+    "Neither interval excludes zero",
     "References",
 ]
 FORBIDDEN_PATTERNS = [
@@ -68,6 +74,7 @@ FORBIDDEN_PATTERNS = [
     r"independently executed third-party",
     r"opposite unusable extreme",
     r"Submission candidate",
+    r"safety recall",
 ]
 
 
@@ -90,6 +97,8 @@ def main() -> None:
         UMBRELLA,
         EXTERNAL_RESULT,
         EXTERNAL_VERIFICATION,
+        PAIRED_RESULT,
+        PAIRED_VERIFICATION,
         *FIGURES,
     ]
     missing = [rel(path) for path in required_paths if not path.is_file()]
@@ -99,6 +108,8 @@ def main() -> None:
     umbrella = json.loads(UMBRELLA.read_text(encoding="utf-8"))
     external = json.loads(EXTERNAL_RESULT.read_text(encoding="utf-8"))
     external_verification = json.loads(EXTERNAL_VERIFICATION.read_text(encoding="utf-8"))
+    paired = json.loads(PAIRED_RESULT.read_text(encoding="utf-8"))
+    paired_verification = json.loads(PAIRED_VERIFICATION.read_text(encoding="utf-8"))
     reader = PdfReader(str(PDF))
     pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
     metadata = reader.metadata
@@ -136,6 +147,25 @@ def main() -> None:
         ]
         is True
         and all(external_verification["checks"].values()),
+        "paired_planner_union_uncertainty_verified": paired_verification["overall_pass"] is True
+        and all(paired_verification["checks"].values())
+        and paired["pairing"]["episodes"] == 128
+        and paired["differences_union_minus_planner"]["completion_rate_percentage_points"][
+            "estimate"
+        ]
+        == 1.5625
+        and paired["differences_union_minus_planner"]["realized_hazard_cost_steps"][
+            "estimate"
+        ]
+        == 14.0
+        and paired["differences_union_minus_planner"]["completion_rate_percentage_points"][
+            "interval_excludes_zero"
+        ]
+        is False
+        and paired["differences_union_minus_planner"]["realized_hazard_cost_steps"][
+            "interval_excludes_zero"
+        ]
+        is False,
         "external_scope_and_nonpromotion_honest": external["independent_execution"] is False
         and external["physical_actuator_attempts"] == 0
         and external["physical_actuator_deliveries"] == 0
@@ -156,7 +186,7 @@ def main() -> None:
     freeze = {
         "schema": "cross-domain-world-model-paper-freeze-v1-1",
         "report_version": "1.1",
-        "evidence_frozen_date": "2026-09-01",
+        "evidence_frozen_date": "2026-09-04",
         "title": TITLE,
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
@@ -172,6 +202,14 @@ def main() -> None:
             "external_verification": {
                 "path": rel(EXTERNAL_VERIFICATION),
                 "sha256": sha256(EXTERNAL_VERIFICATION),
+            },
+            "paired_uncertainty_result": {
+                "path": rel(PAIRED_RESULT),
+                "sha256": sha256(PAIRED_RESULT),
+            },
+            "paired_uncertainty_verification": {
+                "path": rel(PAIRED_VERIFICATION),
+                "sha256": sha256(PAIRED_VERIFICATION),
             },
         },
         "claim_boundary": umbrella.get("claim_boundary", []),
@@ -198,6 +236,14 @@ def main() -> None:
             "pdf": {"path": rel(PDF), "sha256": sha256(PDF)},
             "freeze_manifest": {"path": rel(FREEZE), "sha256": sha256(FREEZE)},
             "evidence_snapshot": {"path": rel(UMBRELLA), "sha256": sha256(UMBRELLA)},
+            "paired_uncertainty_result": {
+                "path": rel(PAIRED_RESULT),
+                "sha256": sha256(PAIRED_RESULT),
+            },
+            "paired_uncertainty_verification": {
+                "path": rel(PAIRED_VERIFICATION),
+                "sha256": sha256(PAIRED_VERIFICATION),
+            },
         },
         "promotion_eligible": False,
     }

@@ -2,7 +2,7 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "18792ac7cdd3da9fd5090ec83e0497046807d0b81a36e376248dbdb2fb488496"
+      "sha256": "1d528515e2a220cec4a0a86b909d84229e271619e509ed79f4ee960ac98817e7"
     },
     "external_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
@@ -36,12 +36,20 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "d711210209261a19d3c29cfc5dbf57b535a0d2a5f658665033dd0c3845ab98f9"
+      "sha256": "da14092580ce23e228102c05e8d685f2e4c92bddaf646a702a0cea77eaec9311"
+    },
+    "paired_uncertainty_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+      "sha256": "994689b4d2901424efe3d1a9b76a1af6aa478997818e679c9871148a9b4f12ad"
+    },
+    "paired_uncertainty_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+      "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
     "pdf": {
       "pages": 14,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "1c3d10cdb2791385fa2a22f5d3238b590bcde74cecb4ffd6d8cac7d794d5df8c"
+      "sha256": "bb61a699f12a2d98780e2e699326ff8e5a694984d4c0ad66a664ddda381e968f"
     }
   },
   "author": "Vyom Kulshrestha",
@@ -55,10 +63,11 @@
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
     "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
     "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
+    "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."
   ],
-  "evidence_frozen_date": "2026-09-01",
+  "evidence_frozen_date": "2026-09-04",
   "orcid": "0009-0009-1434-7148",
   "promotion_eligible": false,
   "protected_deployed_artifacts": {
