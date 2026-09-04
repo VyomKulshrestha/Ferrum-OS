@@ -4,3 +4,4 @@ scipy==1.15.3
 pybullet==3.2.7
 reportlab==4.4.4
 pypdf==6.15.0
+pdfplumber==0.11.0

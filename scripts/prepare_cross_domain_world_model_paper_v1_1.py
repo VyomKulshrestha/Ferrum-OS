@@ -8,18 +8,35 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "docs/research/paper/prediction_is_not_permission_technical_report_v1_0.md"
-OUTPUT = ROOT / "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md"
+SOURCE = (
+    ROOT / "docs/research/paper/prediction_is_not_permission_technical_report_v1_0.md"
+)
+OUTPUT = (
+    ROOT / "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md"
+)
 RESULT = ROOT / "docs/research/physical_jepa_safety_gymnasium_result_v14.json"
-VERIFICATION = ROOT / "docs/research/physical_jepa_safety_gymnasium_verification_v14.json"
-PAIRED_RESULT = ROOT / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json"
-PAIRED_VERIFICATION = ROOT / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json"
+VERIFICATION = (
+    ROOT / "docs/research/physical_jepa_safety_gymnasium_verification_v14.json"
+)
+PAIRED_RESULT = (
+    ROOT
+    / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json"
+)
+PAIRED_VERIFICATION = (
+    ROOT
+    / "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json"
+)
+LEARNED_CONTRIBUTION = (
+    ROOT / "docs/research/cross_domain_learned_contribution_result_v1.json"
+)
 
 
 def replace_exact(text: str, old: str, new: str) -> str:
     count = text.count(old)
     if count != 1:
-        raise ValueError(f"expected exactly one source block, found {count}: {old[:80]!r}")
+        raise ValueError(
+            f"expected exactly one source block, found {count}: {old[:80]!r}"
+        )
     return text.replace(old, new)
 
 
@@ -32,14 +49,17 @@ def main() -> None:
     verification = json.loads(VERIFICATION.read_text(encoding="utf-8"))
     paired = json.loads(PAIRED_RESULT.read_text(encoding="utf-8"))
     paired_verification = json.loads(PAIRED_VERIFICATION.read_text(encoding="utf-8"))
+    learned_contribution = json.loads(LEARNED_CONTRIBUTION.read_text(encoding="utf-8"))
     if (
         result.get("all_frozen_gates_pass") is not True
         or verification.get("overall_pass") is not True
         or not all(verification.get("checks", {}).values())
         or paired_verification.get("overall_pass") is not True
         or not all(paired_verification.get("checks", {}).values())
+        or learned_contribution.get("evaluation_passed") is not True
+        or learned_contribution.get("final_open_count") != 1
     ):
-        raise SystemExit("v14 must pass every independently recomputed frozen gate")
+        raise SystemExit("the frozen v14 and learned-contribution evidence must verify")
 
     headline = result["headline"]
     arms = result["arms"]
@@ -63,6 +83,27 @@ def main() -> None:
     paired_hazard = paired["differences_union_minus_planner"][
         "realized_hazard_cost_steps"
     ]
+    intervention_precision = full["true_positive_interventions"] / full["interventions"]
+    expected_families = {
+        "ferrumos": {
+            "delayed_heap_pressure",
+            "delayed_process_pressure",
+            "coupled_resource_pressure",
+            "exogenous_heap_degradation",
+        },
+        "physical": {
+            "delayed_battery_depletion",
+            "delayed_boundary_crossing",
+            "sensor_masked_human_approach",
+            "link_degradation",
+        },
+    }
+    for domain, families in expected_families.items():
+        records = learned_contribution["domains"][domain]["case_records"]
+        if {row["family"] for row in records} != families or any(
+            row["rule_block"] for row in records
+        ):
+            raise SystemExit(f"unexpected deterministic-rule coverage in {domain}")
 
     text = SOURCE.read_text(encoding="utf-8")
     text = replace_exact(
@@ -82,7 +123,8 @@ def main() -> None:
             f"{pct(planner_reduction)} fewer hazard-cost events than the naive controller. The active union "
             f"completes {pct(full['task_completion_rate'])}, changes {pct(full['intervention_rate'])} of commands, "
             f"has {pct(full['warning_recall'])} warning recall on 20-step oracle-labelled dangerous "
-            "nominal-controller trajectories, and records "
+            f"nominal-controller trajectories and {pct(full['effective_intervention_recall'])} effective-action "
+            "recall, and records "
             f"{pct(union_reduction)} fewer hazard-cost events than the naive controller. Relative to the planner, "
             f"it completes {full['task_completions'] - planner['task_completions']} more tasks but records "
             f"{marginal_cost_delta} additional hazard-cost steps; paired episode-bootstrap intervals for both "
@@ -138,6 +180,22 @@ def main() -> None:
     )
     text = replace_exact(
         text,
+        "The learned branch adds zero dangerous-case blocks and zero safe-case interventions. The Wilson 95% upper bound for either marginal rate is 1.478%, and the 5,000-pair bootstrap interval is [0, 0]. This is not a verifier failure: the registered programs completed, final catalogs were opened once, and the estimates are finite. It is a substantive negative result. At this operating point, neither selected learned model provides deployable marginal caution.",
+        (
+            "The learned branch adds zero dangerous-case blocks and zero safe-case interventions. The Wilson "
+            "95% upper bound for either marginal rate is 1.478%, and the 5,000-pair bootstrap interval is "
+            "[0, 0]. All eight final families are delayed, coupled, masked, or exogenous: their danger labels "
+            "materialize in later transitions, whereas the deterministic predicates inspect the current state "
+            "and requested action. Consequently, `rule_block` is false in all 1,024 domain-case records by "
+            "construction of this estimand; rules-only recall here is not an estimate of general rule quality. "
+            "At the zero-FP-calibrated threshold, the learned branch also does not extend the authority boundary "
+            "into this delayed-hazard regime, making the union arm uninformative because neither branch fires. "
+            "This is a construct-coverage negative about threshold-based caution under latent hazards, not merely "
+            "a completed program with finite zero estimates. No final-set retuning or deployment promotion follows."
+        ),
+    )
+    text = replace_exact(
+        text,
         "The final temporal catalogs and the 3D stress benchmark are researcher-designed deterministic-software evaluations.",
         (
             "The final temporal catalogs and 3D stress benchmark are researcher-designed deterministic-software "
@@ -165,24 +223,28 @@ def main() -> None:
 
     safety_section = f"""#### 8.4 Prospective Safety-Gymnasium controller and shield benchmark
 
-The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.3, the installed simulator-source digest, the protected Physical JEPA v5 digest, a deterministic risk adapter fitted on opened seeds 4000-4095, candidate choice on opened seeds 4096-4127, and untouched final seeds {seeds['start']}-{seed_end}. The 20-step oracle rolls out the nominal receding-horizon controller from synchronized simulator state; it does not repeat the current command for 20 steps. Warning recall and warning FPR evaluate the detector, whereas intervention rate counts only commands that actually change. The external project supplies the task, layouts, observations, goal condition, and hazard costs [17]. This study supplies the adapter, privileged planner, tangent shield, execution, and analysis. Execution is local, actuator authority is disabled, and no independent replication is claimed.
+The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.3, the installed simulator-source digest, the protected Physical JEPA v5 digest, a deterministic risk adapter fitted on opened seeds 4000-4095, candidate choice on opened seeds 4096-4127, and untouched final seeds {seeds["start"]}-{seed_end}. The 20-step oracle rolls out the nominal receding-horizon controller from synchronized simulator state; it does not repeat the current command for 20 steps. Warning recall and warning FPR evaluate the detector, whereas intervention rate counts only commands that actually change. The external project supplies the task, layouts, observations, goal condition, and hazard costs [17]. This study supplies the adapter, privileged planner, tangent shield, execution, and analysis. Execution is local, actuator authority is disabled, and no independent replication is claimed.
 
 | Final arm | Completion | Effective intervention | Warning recall | Warning FPR | Effective-action recall | Hazard-cost events |
 |---|---:|---:|---:|---:|---:|---:|
-| Naive unshielded | {pct(naive['task_completion_rate'])} | {pct(naive['intervention_rate'])} | {pct(naive['warning_recall'])} | {pct(naive['warning_false_positive_rate'])} | {pct(naive['effective_intervention_recall'])} | {naive['actual_hazard_cost_events']} |
-| Planner unshielded | {pct(planner['task_completion_rate'])} | {pct(planner['intervention_rate'])} | {pct(planner['warning_recall'])} | {pct(planner['warning_false_positive_rate'])} | {pct(planner['effective_intervention_recall'])} | **{planner['actual_hazard_cost_events']}** |
-| Planner + rules | {pct(rules['task_completion_rate'])} | {pct(rules['intervention_rate'])} | {pct(rules['warning_recall'])} | {pct(rules['warning_false_positive_rate'])} | {pct(rules['effective_intervention_recall'])} | {rules['actual_hazard_cost_events']} |
-| Planner + learned | **{pct(learned['task_completion_rate'])}** | {pct(learned['intervention_rate'])} | **{pct(learned['warning_recall'])}** | {pct(learned['warning_false_positive_rate'])} | {pct(learned['effective_intervention_recall'])} | {learned['actual_hazard_cost_events']} |
-| Planner + rules + learned | **{pct(full['task_completion_rate'])}** | {pct(full['intervention_rate'])} | **{pct(full['warning_recall'])}** | {pct(full['warning_false_positive_rate'])} | {pct(full['effective_intervention_recall'])} | {full['actual_hazard_cost_events']} |
+| Naive unshielded | {pct(naive["task_completion_rate"])} | {pct(naive["intervention_rate"])} | {pct(naive["warning_recall"])} | {pct(naive["warning_false_positive_rate"])} | {pct(naive["effective_intervention_recall"])} | {naive["actual_hazard_cost_events"]} |
+| Planner unshielded | {pct(planner["task_completion_rate"])} | {pct(planner["intervention_rate"])} | {pct(planner["warning_recall"])} | {pct(planner["warning_false_positive_rate"])} | {pct(planner["effective_intervention_recall"])} | **{planner["actual_hazard_cost_events"]}** |
+| Planner + rules | {pct(rules["task_completion_rate"])} | {pct(rules["intervention_rate"])} | {pct(rules["warning_recall"])} | {pct(rules["warning_false_positive_rate"])} | {pct(rules["effective_intervention_recall"])} | {rules["actual_hazard_cost_events"]} |
+| Planner + learned | **{pct(learned["task_completion_rate"])}** | {pct(learned["intervention_rate"])} | **{pct(learned["warning_recall"])}** | {pct(learned["warning_false_positive_rate"])} | {pct(learned["effective_intervention_recall"])} | {learned["actual_hazard_cost_events"]} |
+| Planner + rules + learned | **{pct(full["task_completion_rate"])}** | {pct(full["intervention_rate"])} | **{pct(full["warning_recall"])}** | {pct(full["warning_false_positive_rate"])} | {pct(full["effective_intervention_recall"])} | {full["actual_hazard_cost_events"]} |
 
-The union passes every registered joint-objective gate relative to the frozen benchmark criteria; these gates do not require superiority over the privileged planner: {pct(full['task_completion_rate'])} completion, {pct(full['intervention_rate'])} effective intervention, {pct(full['warning_recall'])} warning recall, {pct(full['warning_false_positive_rate'])} warning FPR, and {pct(union_reduction)} fewer hazard-cost events than the naive controller ({naive['actual_hazard_cost_events']} to {full['actual_hazard_cost_events']}). Its effective action-change recall is {pct(full['effective_intervention_recall'])} ({full['true_positive_interventions']}/{full['dangerous_proposals']}): warned dangerous proposals do not count as interventions when the tangent command is already identical to the planner command. Its episode-bootstrap 95% intervals are {pct(full['episode_bootstrap_95']['task_completion_rate'][0])}-{pct(full['episode_bootstrap_95']['task_completion_rate'][1])} for completion, {pct(full['episode_bootstrap_95']['intervention_rate'][0])}-{pct(full['episode_bootstrap_95']['intervention_rate'][1])} for intervention, {pct(full['episode_bootstrap_95']['dangerous_proposal_recall'][0])}-{pct(full['episode_bootstrap_95']['dangerous_proposal_recall'][1])} for warning recall, and {pct(full['episode_bootstrap_95']['safe_proposal_false_positive_rate'][0])}-{pct(full['episode_bootstrap_95']['safe_proposal_false_positive_rate'][1])} for warning FPR. No final rerun or recovery path was used.
+The union passes every registered joint-objective gate relative to the frozen benchmark criteria; these gates do not require superiority over the privileged planner: {pct(full["task_completion_rate"])} completion, {pct(full["intervention_rate"])} effective intervention, {pct(full["warning_recall"])} warning recall, {pct(full["warning_false_positive_rate"])} warning FPR, and {pct(union_reduction)} fewer hazard-cost events than the naive controller ({naive["actual_hazard_cost_events"]} to {full["actual_hazard_cost_events"]}). Its effective action-change recall is {pct(full["effective_intervention_recall"])} ({full["true_positive_interventions"]}/{full["dangerous_proposals"]}): warned dangerous proposals do not count as interventions when the tangent command is already identical to the planner command. Executed intervention precision is {pct(intervention_precision)} ({full["true_positive_interventions"]}/{full["interventions"]}): {full["false_positive_interventions"]} of {full["interventions"]} changed commands occur on oracle-labelled non-dangerous trajectories. That low precision is mechanistically consistent with the observed planner-relative hazard-cost increase, but the design does not identify causality and the paired interval includes zero. Its episode-bootstrap 95% intervals are {pct(full["episode_bootstrap_95"]["task_completion_rate"][0])}-{pct(full["episode_bootstrap_95"]["task_completion_rate"][1])} for completion, {pct(full["episode_bootstrap_95"]["intervention_rate"][0])}-{pct(full["episode_bootstrap_95"]["intervention_rate"][1])} for intervention, {pct(full["episode_bootstrap_95"]["dangerous_proposal_recall"][0])}-{pct(full["episode_bootstrap_95"]["dangerous_proposal_recall"][1])} for warning recall, and {pct(full["episode_bootstrap_95"]["safe_proposal_false_positive_rate"][0])}-{pct(full["episode_bootstrap_95"]["safe_proposal_false_positive_rate"][1])} for warning FPR. No final rerun or recovery path was used.
 
-Relative to the privileged planner, the union changes completion by {paired_completion['estimate']:+.4f} percentage points (paired 10,000-resample episode-bootstrap 95% CI [{paired_completion['bootstrap_95_percent'][0]:.4f}, {paired_completion['bootstrap_95_percent'][1]:.4f}]) and realized hazard cost by {paired_hazard['estimate']:+.0f} steps (95% CI [{paired_hazard['bootstrap_95_percent'][0]:.3f}, {paired_hazard['bootstrap_95_percent'][1]:.3f}]). Neither interval excludes zero, so the observed two-task gain and 14-step increase are descriptive rather than statistically stable at this sample size.
+Relative to the privileged planner, the union changes completion by {paired_completion["estimate"]:+.4f} percentage points (paired 10,000-resample episode-bootstrap 95% CI [{paired_completion["bootstrap_95_percent"][0]:.4f}, {paired_completion["bootstrap_95_percent"][1]:.4f}]) and realized hazard cost by {paired_hazard["estimate"]:+.0f} steps (95% CI [{paired_hazard["bootstrap_95_percent"][0]:.3f}, {paired_hazard["bootstrap_95_percent"][1]:.3f}]). Neither interval excludes zero, so the observed two-task gain and 14-step increase are descriptive rather than statistically stable at this sample size.
 
-Attribution remains essential. The privileged planner alone reduces hazard cost from {naive['actual_hazard_cost_events']} to {planner['actual_hazard_cost_events']} ({pct(planner_reduction)}). Adding the learned tangent branch increases completion from {planner['task_completions']}/{seeds['count']} to {full['task_completions']}/{seeds['count']} but increases hazard-cost events from {planner['actual_hazard_cost_events']} to {full['actual_hazard_cost_events']} (plus {marginal_cost_delta}). All {headline['learned_only_interventions']} effective union interventions are learned-only because the high-closeness rule never changes a command on this final distribution. The adapter warns on {full['true_positive_warnings']}/{full['dangerous_proposals']} dangerous controller trajectories, while {full['true_positive_interventions']}/{full['dangerous_proposals']} receive a different command; the remaining warned cases already propose the saturated tangent-compatible turn. The benchmark therefore supports a passing naive-baseline runtime objective and a completion/cost tradeoff over the planner, not learned collision-avoidance superiority over privileged planning.
+Attribution remains essential. The privileged planner alone reduces hazard cost from {naive["actual_hazard_cost_events"]} to {planner["actual_hazard_cost_events"]} ({pct(planner_reduction)}). Adding the learned tangent branch increases completion from {planner["task_completions"]}/{seeds["count"]} to {full["task_completions"]}/{seeds["count"]} but increases hazard-cost events from {planner["actual_hazard_cost_events"]} to {full["actual_hazard_cost_events"]} (plus {marginal_cost_delta}). All {headline["learned_only_interventions"]} effective union interventions are learned-only because the high-closeness rule never changes a command on this final distribution. The adapter warns on {full["true_positive_warnings"]}/{full["dangerous_proposals"]} dangerous controller trajectories, while {full["true_positive_interventions"]}/{full["dangerous_proposals"]} receive a different command; the remaining warned cases already propose the saturated tangent-compatible turn. The benchmark therefore supports a passing naive-baseline runtime objective and a completion/cost tradeoff over the planner, not learned collision-avoidance superiority over privileged planning.
 
 """
-    text = replace_exact(text, "### 9. Cross-domain synthesis", safety_section + "### 9. Cross-domain synthesis")
+    text = replace_exact(
+        text,
+        "### 9. Cross-domain synthesis",
+        safety_section + "### 9. Cross-domain synthesis",
+    )
     text = replace_exact(
         text,
         "The new 512-case catalogs show no interventions from either rules or learning. The 3D stress shows intervention on every case. One extreme has no hazard recall; the other has no task completion. Together they show why a shield should be evaluated on both avoided harm and intervention cost at a registered operating point. Deterministic authority is necessary as a control boundary but is not automatically sufficient as an engineering policy.",
@@ -220,8 +282,11 @@ Attribution remains essential. The privileged planner alone reduces hazard cost 
         "4. The operational zero-result is threshold-specific. Lower thresholds could increase recall and false positives, but selecting one after final access would invalidate the frozen operating-point claim.",
         (
             "4. The 512-case operational zero-result remains threshold-specific. The later Safety-Gymnasium "
-            "protocol selects a different registered navigation operating point on development seeds and evaluates "
-            "it once on untouched seeds; it does not retroactively repair the earlier estimand."
+            "families also sit outside the present-state deterministic predicates' evaluation window, so their "
+            "rules-only zero is a catalog-coverage property rather than a general estimate of rule quality. The "
+            "later Safety-Gymnasium protocol selects a different registered navigation operating point on "
+            "development seeds and evaluates it once on untouched seeds; it does not retroactively repair the "
+            "earlier estimand."
         ),
     )
     text = replace_exact(
@@ -320,7 +385,9 @@ The prospective joint objective now passes on an external simulator task, while 
             f"| Controller and shield are jointly evaluated | Safety-Gymnasium final seeds {seeds['start']}-{seed_end} | "
             f"Planner-only: {pct(planner['task_completion_rate'])} completion and {pct(planner_reduction)} cost "
             f"reduction; union passes all registered naive-baseline gates with {pct(full['warning_recall'])} warning "
-            f"recall, but costs {marginal_cost_delta} more hazard steps than planner | Not independent, sensor-only, "
+            f"recall, {pct(full['effective_intervention_recall'])} effective-action recall, and "
+            f"{pct(intervention_precision)} intervention precision, but costs {marginal_cost_delta} more hazard "
+            "steps than planner | Not independent, sensor-only, "
             "physical, or learned-superiority evidence |"
         ),
     )
@@ -347,7 +414,9 @@ The prospective joint objective now passes on an external simulator task, while 
             "Post-hoc analysis of committed episode summaries; no final rerun |"
         ),
     )
-    text = replace_exact(text, "Technical Report v1.0 is intended", "Technical Report v1.1 is intended")
+    text = replace_exact(
+        text, "Technical Report v1.0 is intended", "Technical Report v1.1 is intended"
+    )
     text = replace_exact(
         text,
         "| 3D stress result | `docs/research/physical_jepa_multi_embodiment_3d_result_v1.json` | Recompute completion, intervention, contact and recovery |",
@@ -377,14 +446,14 @@ The prospective joint objective now passes on an external simulator task, while 
         text,
         '[1] M. Assran et al. "V-JEPA: Latent Video Prediction for Visual Representation Learning." arXiv:2404.08471, 2024. https://arxiv.org/abs/2404.08471',
         (
-            '[1] A. Bardes, Q. Garrido, J. Ponce, X. Chen, M. Rabbat, Y. LeCun, M. Assran, and N. Ballas. '
+            "[1] A. Bardes, Q. Garrido, J. Ponce, X. Chen, M. Rabbat, Y. LeCun, M. Assran, and N. Ballas. "
             '"Revisiting Feature Prediction for Learning Visual Representations from Video." arXiv:2404.08471, 2024. '
-            'https://arxiv.org/abs/2404.08471'
+            "https://arxiv.org/abs/2404.08471"
         ),
     )
     text += (
-        "\n[17] Safety-Gymnasium Contributors. \"Safety-Gymnasium: A Unified Safe Reinforcement Learning "
-        "Benchmark.\" Thirty-seventh Conference on Neural Information Processing Systems Datasets and "
+        '\n[17] Safety-Gymnasium Contributors. "Safety-Gymnasium: A Unified Safe Reinforcement Learning '
+        'Benchmark." Thirty-seventh Conference on Neural Information Processing Systems Datasets and '
         "Benchmarks Track, 2023. https://openreview.net/forum?id=WZmlxIuIGR\n"
     )
     text = replace_exact(
@@ -402,7 +471,10 @@ The prospective joint objective now passes on an external simulator task, while 
         "No shielded contact in this run should be read as a zero underlying collision probability.",
         "No shielded contact was observed in this run; this does not establish a zero underlying collision probability.",
     )
-    if "reviewer-requested" in text.lower() or "opposite unusable extreme" in text.lower():
+    if (
+        "reviewer-requested" in text.lower()
+        or "opposite unusable extreme" in text.lower()
+    ):
         raise ValueError("forbidden archival wording remains")
     OUTPUT.write_text(text, encoding="utf-8", newline="\n")
     print(OUTPUT.relative_to(ROOT).as_posix())

@@ -29,8 +29,16 @@ from reportlab.platypus import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE = ROOT / "docs" / "research" / "paper" / "when_agents_control_kernel_technical_report_v1_2.md"
-DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "FerrumOS_WorldModel_Technical_Report_v1.2.pdf"
+DEFAULT_SOURCE = (
+    ROOT
+    / "docs"
+    / "research"
+    / "paper"
+    / "when_agents_control_kernel_technical_report_v1_2.md"
+)
+DEFAULT_OUTPUT = (
+    ROOT / "output" / "pdf" / "FerrumOS_WorldModel_Technical_Report_v1.2.pdf"
+)
 
 INK = colors.HexColor("#172334")
 MUTED = colors.HexColor("#526276")
@@ -62,111 +70,227 @@ def make_styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     return {
         "front_eyebrow": ParagraphStyle(
-            "FrontEyebrow", parent=base["BodyText"], fontName="Helvetica-Oblique",
-            fontSize=8.8, leading=10.5, textColor=MUTED, alignment=TA_CENTER,
+            "FrontEyebrow",
+            parent=base["BodyText"],
+            fontName="Helvetica-Oblique",
+            fontSize=8.8,
+            leading=10.5,
+            textColor=MUTED,
+            alignment=TA_CENTER,
             spaceAfter=2.6 * mm,
         ),
         "front_title": ParagraphStyle(
-            "FrontTitle", parent=base["Title"], fontName="Helvetica-Bold",
-            fontSize=20.5, leading=22.2, textColor=NAVY, alignment=TA_LEFT,
+            "FrontTitle",
+            parent=base["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=20.5,
+            leading=22.2,
+            textColor=NAVY,
+            alignment=TA_LEFT,
             spaceAfter=2.2 * mm,
         ),
         "front_meta": ParagraphStyle(
-            "FrontMeta", parent=base["Normal"], fontName="Helvetica",
-            fontSize=7.0, leading=8.3, textColor=INK,
+            "FrontMeta",
+            parent=base["Normal"],
+            fontName="Helvetica",
+            fontSize=7.0,
+            leading=8.3,
+            textColor=INK,
         ),
         "front_abstract_heading": ParagraphStyle(
-            "FrontAbstractHeading", parent=base["Heading2"], fontName="Helvetica-Bold",
-            fontSize=10.5, leading=12.2, textColor=TEAL, alignment=TA_CENTER,
-            spaceBefore=1.5 * mm, spaceAfter=1.2 * mm,
+            "FrontAbstractHeading",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=10.5,
+            leading=12.2,
+            textColor=TEAL,
+            alignment=TA_CENTER,
+            spaceBefore=1.5 * mm,
+            spaceAfter=1.2 * mm,
         ),
         "front_abstract": ParagraphStyle(
-            "FrontAbstract", parent=base["BodyText"], fontName="Times-Roman",
-            fontSize=7.8, leading=9.65, textColor=INK, alignment=TA_JUSTIFY,
+            "FrontAbstract",
+            parent=base["BodyText"],
+            fontName="Times-Roman",
+            fontSize=7.8,
+            leading=9.65,
+            textColor=INK,
+            alignment=TA_JUSTIFY,
             spaceAfter=1.2 * mm,
         ),
         "front_h1": ParagraphStyle(
-            "FrontH1", parent=base["Heading1"], fontName="Helvetica-Bold",
-            fontSize=13.4, leading=15.2, textColor=NAVY,
-            spaceBefore=2.1 * mm, spaceAfter=1.0 * mm, keepWithNext=True,
+            "FrontH1",
+            parent=base["Heading1"],
+            fontName="Helvetica-Bold",
+            fontSize=13.4,
+            leading=15.2,
+            textColor=NAVY,
+            spaceBefore=2.1 * mm,
+            spaceAfter=1.0 * mm,
+            keepWithNext=True,
         ),
         "front_h2": ParagraphStyle(
-            "FrontH2", parent=base["Heading2"], fontName="Helvetica-Bold",
-            fontSize=8.3, leading=9.7, textColor=INK,
-            spaceBefore=1.2 * mm, spaceAfter=0.7 * mm, keepWithNext=True,
+            "FrontH2",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=8.3,
+            leading=9.7,
+            textColor=INK,
+            spaceBefore=1.2 * mm,
+            spaceAfter=0.7 * mm,
+            keepWithNext=True,
         ),
         "front_body": ParagraphStyle(
-            "FrontBody", parent=base["BodyText"], fontName="Times-Roman",
-            fontSize=7.75, leading=9.6, textColor=INK, alignment=TA_JUSTIFY,
+            "FrontBody",
+            parent=base["BodyText"],
+            fontName="Times-Roman",
+            fontSize=7.75,
+            leading=9.6,
+            textColor=INK,
+            alignment=TA_JUSTIFY,
             spaceAfter=1.15 * mm,
         ),
         "front_claim_label": ParagraphStyle(
-            "FrontClaimLabel", parent=base["BodyText"], fontName="Helvetica-Bold",
-            fontSize=7.0, leading=8.3, textColor=NAVY,
+            "FrontClaimLabel",
+            parent=base["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=7.0,
+            leading=8.3,
+            textColor=NAVY,
         ),
         "front_claim": ParagraphStyle(
-            "FrontClaim", parent=base["BodyText"], fontName="Times-Roman",
-            fontSize=7.0, leading=8.3, textColor=INK,
+            "FrontClaim",
+            parent=base["BodyText"],
+            fontName="Times-Roman",
+            fontSize=7.0,
+            leading=8.3,
+            textColor=INK,
         ),
         "title": ParagraphStyle(
-            "Title", parent=base["Title"], fontName="Helvetica-Bold",
-            fontSize=20, leading=22.5, textColor=NAVY, alignment=TA_LEFT,
+            "Title",
+            parent=base["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=20,
+            leading=22.5,
+            textColor=NAVY,
+            alignment=TA_LEFT,
             spaceAfter=3.5 * mm,
         ),
         "subtitle": ParagraphStyle(
-            "Subtitle", parent=base["Heading2"], fontName="Helvetica",
-            fontSize=11.5, leading=14.2, textColor=TEAL, alignment=TA_LEFT,
+            "Subtitle",
+            parent=base["Heading2"],
+            fontName="Helvetica",
+            fontSize=11.5,
+            leading=14.2,
+            textColor=TEAL,
+            alignment=TA_LEFT,
             spaceAfter=4.5 * mm,
         ),
         "meta": ParagraphStyle(
-            "Meta", parent=base["Normal"], fontName="Helvetica",
-            fontSize=7.8, leading=10.2, textColor=MUTED, spaceAfter=1.4 * mm,
+            "Meta",
+            parent=base["Normal"],
+            fontName="Helvetica",
+            fontSize=7.8,
+            leading=10.2,
+            textColor=MUTED,
+            spaceAfter=1.4 * mm,
         ),
         "h1": ParagraphStyle(
-            "H1", parent=base["Heading1"], fontName="Helvetica-Bold",
-            fontSize=13.6, leading=16.3, textColor=NAVY,
-            spaceBefore=3.5 * mm, spaceAfter=2.2 * mm, keepWithNext=True,
+            "H1",
+            parent=base["Heading1"],
+            fontName="Helvetica-Bold",
+            fontSize=13.6,
+            leading=16.3,
+            textColor=NAVY,
+            spaceBefore=3.5 * mm,
+            spaceAfter=2.2 * mm,
+            keepWithNext=True,
         ),
         "h2": ParagraphStyle(
-            "H2", parent=base["Heading2"], fontName="Helvetica-Bold",
-            fontSize=10.2, leading=12.6, textColor=TEAL,
-            spaceBefore=2.6 * mm, spaceAfter=1.5 * mm, keepWithNext=True,
+            "H2",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=10.2,
+            leading=12.6,
+            textColor=TEAL,
+            spaceBefore=2.6 * mm,
+            spaceAfter=1.5 * mm,
+            keepWithNext=True,
         ),
         "body": ParagraphStyle(
-            "Body", parent=base["BodyText"], fontName="Helvetica",
-            fontSize=8.1, leading=10.55, textColor=INK, spaceAfter=1.6 * mm,
+            "Body",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=8.1,
+            leading=10.55,
+            textColor=INK,
+            spaceAfter=1.6 * mm,
             splitLongWords=False,
         ),
         "abstract": ParagraphStyle(
-            "Abstract", parent=base["BodyText"], fontName="Helvetica",
-            fontSize=7.9, leading=10.4, textColor=INK, backColor=PALE,
-            borderColor=TEAL, borderWidth=0.7, borderPadding=7,
+            "Abstract",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=7.9,
+            leading=10.4,
+            textColor=INK,
+            backColor=PALE,
+            borderColor=TEAL,
+            borderWidth=0.7,
+            borderPadding=7,
             spaceAfter=2.2 * mm,
         ),
         "bullet": ParagraphStyle(
-            "Bullet", parent=base["BodyText"], fontName="Helvetica",
-            fontSize=7.9, leading=10.25, leftIndent=4.2 * mm,
-            firstLineIndent=-3.2 * mm, bulletIndent=0, textColor=INK,
+            "Bullet",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=7.9,
+            leading=10.25,
+            leftIndent=4.2 * mm,
+            firstLineIndent=-3.2 * mm,
+            bulletIndent=0,
+            textColor=INK,
             spaceAfter=1.0 * mm,
         ),
         "code": ParagraphStyle(
-            "Code", parent=base["Code"], fontName="Courier", fontSize=6.6,
-            leading=8.6, leftIndent=3 * mm, rightIndent=3 * mm,
-            backColor=colors.HexColor("#F5F7F8"), borderPadding=5,
-            borderColor=GRID, borderWidth=0.45, spaceAfter=2 * mm,
+            "Code",
+            parent=base["Code"],
+            fontName="Courier",
+            fontSize=6.6,
+            leading=8.6,
+            leftIndent=3 * mm,
+            rightIndent=3 * mm,
+            backColor=colors.HexColor("#F5F7F8"),
+            borderPadding=5,
+            borderColor=GRID,
+            borderWidth=0.45,
+            spaceAfter=2 * mm,
         ),
         "caption": ParagraphStyle(
-            "Caption", parent=base["BodyText"], fontName="Helvetica-Oblique",
-            fontSize=6.6, leading=8.4, textColor=MUTED, alignment=TA_CENTER,
+            "Caption",
+            parent=base["BodyText"],
+            fontName="Helvetica-Oblique",
+            fontSize=6.6,
+            leading=8.4,
+            textColor=MUTED,
+            alignment=TA_CENTER,
             spaceAfter=1.8 * mm,
         ),
         "small": ParagraphStyle(
-            "Small", parent=base["BodyText"], fontName="Helvetica",
-            fontSize=6.45, leading=8.2, textColor=INK,
+            "Small",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=6.45,
+            leading=8.2,
+            textColor=INK,
         ),
         "table_header": ParagraphStyle(
-            "TableHeader", parent=base["BodyText"], fontName="Helvetica-Bold",
-            fontSize=6.25, leading=7.8, textColor=WHITE,
+            "TableHeader",
+            parent=base["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=6.25,
+            leading=7.8,
+            textColor=WHITE,
         ),
     }
 
@@ -210,7 +334,9 @@ def column_widths(column_count: int, width: float) -> list[float]:
     return [width * value / total for value in fractions]
 
 
-def parse_table(lines: list[str], width: float, styles: dict[str, ParagraphStyle]) -> Table:
+def parse_table(
+    lines: list[str], width: float, styles: dict[str, ParagraphStyle]
+) -> Table:
     rows: list[list[Paragraph]] = []
     for line in lines:
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
@@ -223,9 +349,10 @@ def parse_table(lines: list[str], width: float, styles: dict[str, ParagraphStyle
         colWidths=column_widths(len(rows[0]), width),
         repeatRows=1,
         splitByRow=1,
+        splitInRow=0,
         hAlign="LEFT",
     )
-    table.setStyle(TableStyle([
+    table_style = [
         ("BACKGROUND", (0, 0), (-1, 0), NAVY),
         ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -235,7 +362,9 @@ def parse_table(lines: list[str], width: float, styles: dict[str, ParagraphStyle
         ("RIGHTPADDING", (0, 0), (-1, -1), 3.3),
         ("TOPPADDING", (0, 0), (-1, -1), 3.0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3.0),
-    ]))
+    ]
+    table_style.extend(("NOSPLIT", (0, row), (-1, row)) for row in range(len(rows)))
+    table.setStyle(TableStyle(table_style))
     return table
 
 
@@ -302,15 +431,25 @@ def build(
     lines = source.read_text(encoding="utf-8").splitlines()
     output.parent.mkdir(parents=True, exist_ok=True)
     document = BaseDocTemplate(
-        str(output), pagesize=A4,
-        leftMargin=17 * mm, rightMargin=17 * mm,
-        topMargin=18.5 * mm, bottomMargin=17 * mm,
+        str(output),
+        pagesize=A4,
+        leftMargin=17 * mm,
+        rightMargin=17 * mm,
+        topMargin=18.5 * mm,
+        bottomMargin=17 * mm,
         title=pdf_title,
         author="Vyom Kulshrestha",
         subject=pdf_subject,
         keywords=pdf_keywords,
     )
-    frame = Frame(document.leftMargin, document.bottomMargin, document.width, document.height, id="normal")
+    frame = Frame(
+        document.leftMargin,
+        document.bottomMargin,
+        document.width,
+        document.height,
+        id="normal",
+    )
+
     def page_decor(canvas, current_document) -> None:
         draw_header_footer(
             canvas,
@@ -320,14 +459,17 @@ def build(
             footer_note=footer_note,
         )
 
-    document.addPageTemplates([PageTemplate(id="main", frames=[frame], onPage=page_decor)])
+    document.addPageTemplates(
+        [PageTemplate(id="main", frames=[frame], onPage=page_decor)]
+    )
 
     abstract_index = lines.index("### Abstract")
     intro_index = lines.index("### 1. Introduction")
     contributions_index = lines.index("#### 1.1 Contributions")
     boundary_index = lines.index("#### 1.2 Claim boundary")
     front_end = next(
-        index for index in range(boundary_index + 1, len(lines))
+        index
+        for index in range(boundary_index + 1, len(lines))
         if lines[index] == "<!-- PAGE BREAK -->"
     )
 
@@ -349,44 +491,73 @@ def build(
     meta = [value for value in lines[4:abstract_index] if value.strip()]
     abstract_paragraphs = paragraphs_between(abstract_index + 1, intro_index)
     intro_paragraphs = paragraphs_between(intro_index + 1, contributions_index)
-    contribution_paragraphs = paragraphs_between(contributions_index + 1, boundary_index)
+    contribution_paragraphs = paragraphs_between(
+        contributions_index + 1, boundary_index
+    )
     claim_paragraphs = paragraphs_between(boundary_index + 1, front_end)
 
-    left_meta = "<b>" + inline(meta[1]) + "</b><br/>" + inline(meta[2]) + "<br/>" + inline(meta[3])
+    left_meta = (
+        "<b>"
+        + inline(meta[1])
+        + "</b><br/>"
+        + inline(meta[2])
+        + "<br/>"
+        + inline(meta[3])
+    )
     right_meta = (
-        inline(meta[0]) + "<br/>" + inline(meta[6]) + "<br/>" +
-        inline(meta[5]) + " | " + inline(meta[4])
+        inline(meta[0])
+        + "<br/>"
+        + inline(meta[6])
+        + "<br/>"
+        + inline(meta[5])
+        + " | "
+        + inline(meta[4])
     )
     meta_table = Table(
-        [[Paragraph(left_meta, styles["front_meta"]), Paragraph(right_meta, styles["front_meta"])]],
+        [
+            [
+                Paragraph(left_meta, styles["front_meta"]),
+                Paragraph(right_meta, styles["front_meta"]),
+            ]
+        ],
         colWidths=[document.width * 0.31, document.width * 0.69],
         hAlign="LEFT",
     )
-    meta_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
+    meta_table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
 
     claim_table = Table(
-        [[
-            Paragraph("Claim boundary", styles["front_claim_label"]),
-            Paragraph(inline(" ".join(claim_paragraphs)), styles["front_claim"]),
-        ]],
+        [
+            [
+                Paragraph("Claim boundary", styles["front_claim_label"]),
+                Paragraph(inline(" ".join(claim_paragraphs)), styles["front_claim"]),
+            ]
+        ],
         colWidths=[document.width * 0.17, document.width * 0.83],
         hAlign="LEFT",
     )
-    claim_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), PALE),
-        ("BOX", (0, 0), (-1, -1), 0.55, TEAL),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]))
+    claim_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PALE),
+                ("BOX", (0, 0), (-1, -1), 0.55, TEAL),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
 
     story = [
         Spacer(1, 1.2 * mm),
@@ -396,18 +567,28 @@ def build(
         Spacer(1, 1.1 * mm),
         Paragraph("ABSTRACT", styles["front_abstract_heading"]),
     ]
-    story.extend(Paragraph(inline(value), styles["front_abstract"]) for value in abstract_paragraphs)
-    story.extend([
-        Spacer(1, 0.6 * mm),
-        claim_table,
-        Paragraph("1 Introduction", styles["front_h1"]),
-    ])
-    story.extend(Paragraph(inline(value), styles["front_body"]) for value in intro_paragraphs)
+    story.extend(
+        Paragraph(inline(value), styles["front_abstract"])
+        for value in abstract_paragraphs
+    )
+    story.extend(
+        [
+            Spacer(1, 0.6 * mm),
+            claim_table,
+            Paragraph("1 Introduction", styles["front_h1"]),
+        ]
+    )
+    story.extend(
+        Paragraph(inline(value), styles["front_body"]) for value in intro_paragraphs
+    )
     story.append(Paragraph("Contributions", styles["front_h2"]))
-    story.extend(Paragraph(inline(value), styles["front_body"]) for value in contribution_paragraphs)
+    story.extend(
+        Paragraph(inline(value), styles["front_body"])
+        for value in contribution_paragraphs
+    )
     story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
 
-    lines = lines[front_end + 1:]
+    lines = lines[front_end + 1 :]
     paragraph: list[str] = []
     code_lines: list[str] = []
     in_code = False
@@ -418,7 +599,11 @@ def build(
         if not paragraph:
             return
         text = " ".join(value.strip() for value in paragraph)
-        story.append(Paragraph(inline(text), styles["abstract"] if abstract_mode else styles["body"]))
+        story.append(
+            Paragraph(
+                inline(text), styles["abstract"] if abstract_mode else styles["body"]
+            )
+        )
         paragraph.clear()
 
     index = 0
@@ -434,7 +619,12 @@ def build(
         if line.startswith("```"):
             flush_paragraph()
             if in_code:
-                story.append(Paragraph("<br/>".join(escape(value) for value in code_lines), styles["code"]))
+                story.append(
+                    Paragraph(
+                        "<br/>".join(escape(value) for value in code_lines),
+                        styles["code"],
+                    )
+                )
                 code_lines.clear()
             in_code = not in_code
             index += 1
@@ -449,9 +639,13 @@ def build(
             while index < len(lines) and lines[index].startswith("|"):
                 table_lines.append(lines[index])
                 index += 1
-            story.extend([parse_table(table_lines, document.width, styles), Spacer(1, 1.8 * mm)])
+            story.extend(
+                [parse_table(table_lines, document.width, styles), Spacer(1, 1.8 * mm)]
+            )
             continue
-        image_flowables = parse_image(line, document.width, styles) if line.startswith("![") else None
+        image_flowables = (
+            parse_image(line, document.width, styles) if line.startswith("![") else None
+        )
         if image_flowables:
             flush_paragraph()
             story.extend(image_flowables)
@@ -479,20 +673,31 @@ def build(
         elif re.match(r"^\d+\. ", line):
             flush_paragraph()
             number, text = line.split(". ", 1)
-            story.append(Paragraph(inline(text), styles["bullet"], bulletText=f"{number}."))
+            story.append(
+                Paragraph(inline(text), styles["bullet"], bulletText=f"{number}.")
+            )
         elif line.startswith("- "):
             flush_paragraph()
             story.append(Paragraph(inline(line[2:]), styles["bullet"], bulletText="-"))
-        elif not any(item.startswith("### ") for item in lines[:index]) and not line.startswith("Published lineage:"):
+        elif not any(
+            item.startswith("### ") for item in lines[:index]
+        ) and not line.startswith("Published lineage:"):
             flush_paragraph()
             story.append(Paragraph(inline(line), styles["meta"]))
         elif line.startswith("Published lineage:"):
             flush_paragraph()
             story.append(Paragraph(inline(line), styles["meta"]))
-            story.append(Table([["", ""]], colWidths=[18 * mm, document.width - 18 * mm], rowHeights=[1.6 * mm], style=[
-                ("BACKGROUND", (0, 0), (0, 0), ORANGE),
-                ("BACKGROUND", (1, 0), (1, 0), TEAL),
-            ]))
+            story.append(
+                Table(
+                    [["", ""]],
+                    colWidths=[18 * mm, document.width - 18 * mm],
+                    rowHeights=[1.6 * mm],
+                    style=[
+                        ("BACKGROUND", (0, 0), (0, 0), ORANGE),
+                        ("BACKGROUND", (1, 0), (1, 0), TEAL),
+                    ],
+                )
+            )
             story.append(Spacer(1, 2.3 * mm))
         else:
             paragraph.append(line)

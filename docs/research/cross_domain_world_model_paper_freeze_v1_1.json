@@ -2,7 +2,7 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "1d528515e2a220cec4a0a86b909d84229e271619e509ed79f4ee960ac98817e7"
+      "sha256": "5257814e612d34b124dd541e13c436ffce631fd3adce9de4578ca824461a657c"
     },
     "external_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
@@ -36,7 +36,7 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "511b3607dedbb5654cc53bcf45de68fe76b9e089b6f40db2385321a498368dc8"
+      "sha256": "895ef2e2427f5e161ae2ead88348c5a11c4bb57071c8d87f6037f8bb95adf456"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -49,20 +49,20 @@
     "pdf": {
       "pages": 14,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "ff62dc6dae5bed9d03785cf762ef53f3224da5ea3539aceeb4ecd972f8c7f265"
+      "sha256": "fe924138b4cf73b148a4cb5a4e3674ca56ab9485d234b557600d5c6b708074f3"
     }
   },
   "author": "Vyom Kulshrestha",
   "claim_boundary": [
     "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
-    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold.",
+    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold; all eight families place danger beyond the present-state deterministic predicates' evaluation window.",
     "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
     "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
     "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
     "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
     "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
     "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
-    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, and planner divergence are reported separately.",
+    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
     "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
     "No protected deployed artifact was promoted or replaced by this study."

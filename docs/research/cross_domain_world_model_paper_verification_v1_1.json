@@ -2,15 +2,15 @@
   "artifacts": {
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
-      "sha256": "1d528515e2a220cec4a0a86b909d84229e271619e509ed79f4ee960ac98817e7"
+      "sha256": "5257814e612d34b124dd541e13c436ffce631fd3adce9de4578ca824461a657c"
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "c82287ff2ebd7a7acc6d60ff8d16ecc5cf3f81de65673f2b9ee3997c3e400fe9"
+      "sha256": "a6015a6877e1e7b04546bc0a9d226520ad343914df1a9da77e797eeef85ffc38"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "511b3607dedbb5654cc53bcf45de68fe76b9e089b6f40db2385321a498368dc8"
+      "sha256": "895ef2e2427f5e161ae2ead88348c5a11c4bb57071c8d87f6037f8bb95adf456"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -22,16 +22,18 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "ff62dc6dae5bed9d03785cf762ef53f3224da5ea3539aceeb4ecd972f8c7f265"
+      "sha256": "fe924138b4cf73b148a4cb5a4e3674ca56ab9485d234b557600d5c6b708074f3"
     }
   },
   "checks": {
     "all_figures_nonempty": true,
+    "delayed_hazard_construct_coverage_recomputed": true,
     "external_frozen_pass_recomputes": true,
     "external_result_effective_and_attributed": true,
     "external_scope_and_nonpromotion_honest": true,
     "external_verification_confirms_all_gates": true,
     "forbidden_placeholders_and_review_wording_absent": true,
+    "intervention_precision_recomputed": true,
     "paired_planner_union_uncertainty_verified": true,
     "pdf_author_exact": true,
     "pdf_has_no_replacement_character": true,
@@ -43,7 +45,8 @@
     "source_required_phrases_present": true,
     "umbrella_all_checks_pass": true,
     "umbrella_binds_external_verification": true,
-    "umbrella_promotion_ineligible": true
+    "umbrella_promotion_ineligible": true,
+    "wrapped_pdf_table_cells_positionally_correct": true
   },
   "diagnostics": {
     "forbidden_patterns_absent": {
@@ -56,7 +59,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "c82287ff2ebd7a7acc6d60ff8d16ecc5cf3f81de65673f2b9ee3997c3e400fe9",
+    "freeze_manifest_sha256": "a6015a6877e1e7b04546bc0a9d226520ad343914df1a9da77e797eeef85ffc38",
     "pdf_pages": 14,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
@@ -72,12 +75,21 @@
       "Threats to validity and limitations": true,
       "Vyom Kulshrestha": true
     },
-    "pdf_words_extracted": 8323,
+    "pdf_words_extracted": 8473,
+    "positionally_checked_pdf_table_pages": [
+      5,
+      11,
+      12,
+      13
+    ],
     "source_required_phrases": {
+      "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
+      "55.00% effective-action recall": true,
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
       "Architecture rankings are domain-dependent.": true,
+      "Executed intervention precision is 23.04% (88/382)": true,
       "Neither interval excludes zero": true,
       "No protected research result was promoted.": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
@@ -87,6 +99,7 @@
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "completion/cost tradeoff over the planner": true,
+      "construct-coverage negative about threshold-based caution under latent hazards": true,
       "descriptive rather than statistically stable": true,
       "effective action-change recall": true,
       "intervention rate counts only commands that actually change": true,
@@ -95,6 +108,7 @@
       "not learned collision-avoidance superiority over privileged planning": true,
       "operationally unusable extreme": true,
       "paired 10,000-resample episode-bootstrap 95% CI": true,
+      "rule_block` is false in all 1,024 domain-case records by construction": true,
       "these gates do not require superiority over the privileged planner": true
     }
   },
