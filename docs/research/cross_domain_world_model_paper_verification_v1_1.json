@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "4bd67b9a6890506524b264cc764d47005b5a5c4814fe25ac208cba1ab35f6f44"
+      "sha256": "90699e78152f7d563ffbb9e1ee7beaed21fd044e83201ff036ba7ce380c1c9ff"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "43fa0045940e784ad8a89548763af9f0e46142a8cd61b1e8db11b00a0567bdec"
+      "sha256": "b4d205d168c1f664bcc95c0b7674c2821fdd89dfc672e91934ed685a29f7a539"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -26,7 +26,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "29ea979ce53e4909ff4595590eac32cc7c198edead9faa3c7f3cee7aac08bca4"
+      "sha256": "aee0d71736bdff63a4ed9749170358971fbffdcc3ce09fdca3e3bd9b8a3ed0d3"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -60,6 +60,7 @@
     "intervention_precision_recomputed": true,
     "paired_planner_union_uncertainty_verified": true,
     "pdf_author_exact": true,
+    "pdf_fonts_are_embedded_and_character_spacing_is_normal": true,
     "pdf_has_no_replacement_character": true,
     "pdf_page_count_is_submission_length": true,
     "pdf_required_phrases_present": true,
@@ -90,8 +91,26 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "4bd67b9a6890506524b264cc764d47005b5a5c4814fe25ac208cba1ab35f6f44",
-    "pdf_pages": 16,
+    "freeze_manifest_sha256": "90699e78152f7d563ffbb9e1ee7beaed21fd044e83201ff036ba7ce380c1c9ff",
+    "pdf_font_inventory": [
+      {
+        "base_font": "/AAAAAA+BitstreamVeraSans-Bold",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+BitstreamVeraSans-Oblique",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+BitstreamVeraSans-Roman",
+        "embedded": true,
+        "subtype": "/TrueType"
+      }
+    ],
+    "pdf_nonzero_character_spacing": [],
+    "pdf_pages": 17,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -108,9 +127,11 @@
       "Threats to validity and limitations": true,
       "Validation FPR": true,
       "Vyom Kulshrestha": true,
-      "common-episode sensitivity": true
+      "common-episode sensitivity": true,
+      "complete post-hoc common-episode comparison": true,
+      "superiority over the planner was not established": true
     },
-    "pdf_words_extracted": 10140,
+    "pdf_words_extracted": 10273,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -127,11 +148,13 @@
       13,
       14,
       15,
-      16
+      16,
+      17
     ],
     "source_required_phrases": {
       "1.478%": true,
       "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
+      "5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately": true,
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
@@ -146,20 +169,25 @@
       "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
+      "Table 2 reports the complete post-hoc common-episode comparison": true,
       "Technical Report v1.1 \u2014 8 September 2026": true,
       "The original warning metrics are on-policy": true,
       "The primary contribution is an evaluation method, not a new JEPA objective.": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "The v2 attribution opens seeds 8000-8127 once": true,
+      "These leave-one-out checks are sensitivity analyses, not independent replications.": true,
       "Validation FPR": true,
       "Validation means checking an existing record": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "`rule_block` is false in all 1,024 records by construction of this estimand": true,
+      "complete post-hoc common-episode comparison": true,
       "completion/cost tradeoff over the planner": true,
       "constant-prevalence predictor has Brier 0.25": true,
       "descriptive rather than statistically stable": true,
+      "earlier v1.1 builds were private mutable drafts, not archival releases": true,
       "effective action-change recall": true,
       "effective action-change recall is 55.00%": true,
+      "exact scientific-evidence snapshot for this review freeze is Git commit `e8805eb3ed70d848887b954f33871c1fbdb8ef39`": true,
       "exploratory pipeline-level evidence": true,
       "false-negative rate is 256/256": true,
       "identical 23,815-proposal catalog": true,
@@ -172,12 +200,13 @@
       "not the uniquely designated primary contrast": true,
       "paired 10,000-resample episode-bootstrap 95% CI": true,
       "physical permit unit tests do not establish FerrumOS syscall-path enforcement": true,
-      "protected artifacts remain byte-identical, and promotion eligibility is false": true,
-      "registered post-hoc common-episode sensitivity": true,
+      "protected artifacts remain unchanged": true,
       "registered ranking reversal cannot be isolated as a horizon effect": true,
+      "repository tag `prediction-is-not-permission-v1.1`": true,
       "same six evidence objects named in the abstract": true,
       "these gates do not require superiority over the privileged planner": true,
       "thresholded latent-hazard coverage negative": true,
+      "| H=1 | 0.002343 | **0.001018** | 0.002401 | +0.001325 [0.001295, 0.001356] | -0.001383 [-0.001408, -0.001358] |": true,
       "| Naive unshielded | 100.00% | 0.00% | \u2014 | \u2014 | 0.00% | 542 |": true,
       "| Planner unshielded | 94.53% | 0.00% | \u2014 | \u2014 | 0.00% | **70** |": true
     }

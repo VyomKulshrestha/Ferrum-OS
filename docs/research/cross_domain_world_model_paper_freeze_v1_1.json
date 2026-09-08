@@ -40,7 +40,7 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "43fa0045940e784ad8a89548763af9f0e46142a8cd61b1e8db11b00a0567bdec"
+      "sha256": "b4d205d168c1f664bcc95c0b7674c2821fdd89dfc672e91934ed685a29f7a539"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -51,9 +51,9 @@
       "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
     "pdf": {
-      "pages": 16,
+      "pages": 17,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "29ea979ce53e4909ff4595590eac32cc7c198edead9faa3c7f3cee7aac08bca4"
+      "sha256": "aee0d71736bdff63a4ed9749170358971fbffdcc3ce09fdca3e3bd9b8a3ed0d3"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -90,7 +90,8 @@
     "The registered FerrumOS horizon populations differ; the common-episode post-hoc sensitivity changes the ranking, so the registered reversal is not isolated as a horizon effect.",
     "The original attribution warning metrics are on-policy. The common-proposal sensitivity fixes inputs to the full-arm visited-state catalog and is not an independent detector sample.",
     "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
-    "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement."
+    "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
+    "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications."
   ],
   "evidence_frozen_date": "2026-09-08",
   "orcid": "0009-0009-1434-7148",
@@ -116,6 +117,11 @@
       "observed_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
       "unchanged": true
     }
+  },
+  "release": {
+    "evidence_snapshot_commit": "e8805eb3ed70d848887b954f33871c1fbdb8ef39",
+    "repository_tag": "prediction-is-not-permission-v1.1",
+    "status": "first reviewable v1.1 freeze; earlier v1.1 builds were private drafts"
   },
   "report_version": "1.1",
   "schema": "cross-domain-world-model-paper-freeze-v1-1",

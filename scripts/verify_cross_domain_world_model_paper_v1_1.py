@@ -10,6 +10,7 @@ import re
 
 import pdfplumber
 from pypdf import PdfReader
+from pypdf.generic import ContentStream
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,14 +66,18 @@ FREEZE = ROOT / "docs/research/cross_domain_world_model_paper_freeze_v1_1.json"
 RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_1.json"
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
+EVIDENCE_SNAPSHOT_COMMIT = "e8805eb3ed70d848887b954f33871c1fbdb8ef39"
+RELEASE_TAG = "prediction-is-not-permission-v1.1"
 REQUIRED_SOURCE_PHRASES = [
     "Technical Report v1.1 — 8 September 2026",
     "The primary contribution is an evaluation method, not a new JEPA objective.",
     "same six evidence objects named in the abstract",
     "not strictly compute-controlled",
     "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]",
-    "registered post-hoc common-episode sensitivity",
+    "complete post-hoc common-episode comparison",
     "registered ranking reversal cannot be isolated as a horizon effect",
+    "Table 2 reports the complete post-hoc common-episode comparison",
+    "| H=1 | 0.002343 | **0.001018** | 0.002401 | +0.001325 [0.001295, 0.001356] | -0.001383 [-0.001408, -0.001358] |",
     "constant-prevalence predictor has Brier 0.25",
     "Prospective Safety-Gymnasium controller and shield benchmark",
     "Warning recall and warning FPR evaluate the detector",
@@ -100,7 +105,9 @@ REQUIRED_SOURCE_PHRASES = [
     "The v2 attribution opens seeds 8000-8127 once",
     "not the uniquely designated primary contrast",
     "Bonferroni-adjusted 98.33% interval",
+    "5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately",
     "Every one of 128 leave-one-seed-out 95% intervals",
+    "These leave-one-out checks are sensitivity analyses, not independent replications.",
     "no statistically resolved difference and is not a non-inferiority result",
     "The original warning metrics are on-policy",
     "identical 23,815-proposal catalog",
@@ -109,8 +116,11 @@ REQUIRED_SOURCE_PHRASES = [
     "physical permit unit tests do not establish FerrumOS syscall-path enforcement",
     "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124",
     "Hashes prove byte identity only",
+    f"exact scientific-evidence snapshot for this review freeze is Git commit `{EVIDENCE_SNAPSHOT_COMMIT}`",
+    "earlier v1.1 builds were private mutable drafts, not archival releases",
+    f"repository tag `{RELEASE_TAG}`",
     "Validation means checking an existing record",
-    "protected artifacts remain byte-identical, and promotion eligibility is false",
+    "protected artifacts remain unchanged",
     "Revisiting Feature Prediction for Learning Visual Representations from Video",
     "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
     "Appendix A. Claim-to-evidence ledger",
@@ -132,6 +142,8 @@ REQUIRED_PDF_PHRASES = [
     "Neither interval excludes zero",
     "Bonferroni-adjusted 98.33% interval",
     "common-episode sensitivity",
+    "complete post-hoc common-episode comparison",
+    "superiority over the planner was not established",
     "Validation FPR",
     "References",
 ]
@@ -183,6 +195,58 @@ def pdf_table_rows() -> dict[int, set[tuple[str, ...]]]:
     return rows
 
 
+def pdf_font_inventory(
+    reader: PdfReader,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    fonts: dict[tuple[str, str], dict[str, object]] = {}
+    nonzero_character_spacing: list[dict[str, object]] = []
+
+    def descriptor_embedded(font: object) -> bool:
+        descriptor = font.get("/FontDescriptor")
+        if descriptor is None:
+            return False
+        descriptor = descriptor.get_object()
+        return any(
+            key in descriptor for key in ("/FontFile", "/FontFile2", "/FontFile3")
+        )
+
+    for page_number, page in enumerate(reader.pages, start=1):
+        resources = page.get("/Resources")
+        if resources is not None:
+            font_resources = resources.get_object().get("/Font")
+            if font_resources is not None:
+                for font_ref in font_resources.get_object().values():
+                    font = font_ref.get_object()
+                    base_font = str(font.get("/BaseFont", ""))
+                    subtype = str(font.get("/Subtype", ""))
+                    embedded = descriptor_embedded(font)
+                    if subtype == "/Type0":
+                        descendants = font.get("/DescendantFonts") or []
+                        embedded = bool(descendants) and all(
+                            descriptor_embedded(item.get_object())
+                            for item in descendants
+                        )
+                    fonts[(base_font, subtype)] = {
+                        "base_font": base_font,
+                        "subtype": subtype,
+                        "embedded": embedded,
+                    }
+        contents = page.get_contents()
+        if contents is not None:
+            for operands, operator in ContentStream(contents, reader).operations:
+                if operator == b"Tc" and operands and abs(float(operands[0])) > 1e-12:
+                    nonzero_character_spacing.append(
+                        {"page": page_number, "value": float(operands[0])}
+                    )
+    return (
+        sorted(
+            fonts.values(),
+            key=lambda item: (str(item["base_font"]), str(item["subtype"])),
+        ),
+        nonzero_character_spacing,
+    )
+
+
 def main() -> None:
     required_paths = [
         SOURCE,
@@ -220,12 +284,16 @@ def main() -> None:
     authority_inventory = json.loads(AUTHORITY_TEST_INVENTORY.read_text(encoding="utf-8"))
     learned_contribution = json.loads(LEARNED_CONTRIBUTION.read_text(encoding="utf-8"))
     reader = PdfReader(str(PDF))
+    font_inventory, nonzero_character_spacing = pdf_font_inventory(reader)
     pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    pdf_search_text = " ".join(pdf_text.split())
     metadata = reader.metadata
     source_required = {
         phrase: phrase in source_text for phrase in REQUIRED_SOURCE_PHRASES
     }
-    pdf_required = {phrase: phrase in pdf_text for phrase in REQUIRED_PDF_PHRASES}
+    pdf_required = {
+        phrase: phrase in pdf_search_text for phrase in REQUIRED_PDF_PHRASES
+    }
     forbidden_absent = {
         pattern: re.search(pattern, source_text, flags=re.IGNORECASE) is None
         for pattern in FORBIDDEN_PATTERNS
@@ -268,6 +336,16 @@ def main() -> None:
         "pdf_subject_versioned": metadata.subject
         == "Cross-domain world-model runtime authority Technical Report v1.1",
         "pdf_has_no_replacement_character": "\ufffd" not in pdf_text,
+        "pdf_fonts_are_embedded_and_character_spacing_is_normal": bool(font_inventory)
+        and all(item["embedded"] is True for item in font_inventory)
+        and not nonzero_character_spacing
+        and not any(
+            any(
+                base14 in str(item["base_font"])
+                for base14 in ("Helvetica", "Times", "Courier")
+            )
+            for item in font_inventory
+        ),
         "all_figures_nonempty": all(path.stat().st_size > 10_000 for path in FIGURES),
         "external_frozen_pass_recomputes": external["all_frozen_gates_pass"] is True
         and all(external["frozen_gates"].values())
@@ -379,6 +457,15 @@ def main() -> None:
                 "Host unit",
                 "cross_domain_authority_test_inventory_v1.json:128/128",
                 "Simulator/offline adapter only; physical actuator unavailable",
+            )
+            in all_table_rows
+            and (
+                "H=1",
+                "0.002343",
+                "0.001018",
+                "0.002401",
+                "+0.001325 [0.001295, 0.001356]",
+                "-0.001383 [-0.001408, -0.001358]",
             )
             in all_table_rows
         ),
@@ -542,6 +629,11 @@ def main() -> None:
         "title": TITLE,
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
+        "release": {
+            "status": "first reviewable v1.1 freeze; earlier v1.1 builds were private drafts",
+            "evidence_snapshot_commit": EVIDENCE_SNAPSHOT_COMMIT,
+            "repository_tag": RELEASE_TAG,
+        },
         "artifacts": {
             "manuscript": {"path": rel(SOURCE), "sha256": sha256(SOURCE)},
             "pdf": {
@@ -601,6 +693,7 @@ def main() -> None:
             "The original attribution warning metrics are on-policy. The common-proposal sensitivity fixes inputs to the full-arm visited-state catalog and is not an independent detector sample.",
             "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
             "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
+            "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
         ],
         "promotion_eligible": False,
         "protected_deployed_artifacts": protected,
@@ -621,6 +714,8 @@ def main() -> None:
             "pdf_pages": len(reader.pages),
             "pdf_words_extracted": len(pdf_text.split()),
             "positionally_checked_pdf_table_pages": sorted(table_rows),
+            "pdf_font_inventory": font_inventory,
+            "pdf_nonzero_character_spacing": nonzero_character_spacing,
             "freeze_manifest_sha256": sha256(FREEZE),
         },
         "artifacts": {

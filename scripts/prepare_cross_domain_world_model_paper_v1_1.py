@@ -548,11 +548,11 @@ The prospective joint objective now passes on an external simulator task, while 
     )
     abstract = f"""### Abstract
 
-World-model papers often move too quickly from predictive error to operational safety. This report contributes a registered evaluation method that separates six evidence objects: dynamics prediction, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority. The method is applied separately to FerrumOS and Physical JEPA; *cross-domain* means reuse of the evaluation framework, not model, feature, label, or policy transfer. Eighteen approximately parameter-matched models are trained without final-partition access, and failed frozen stages remain part of the evidence record.
+World-model papers often move too quickly from predictive error to operational safety. This report contributes a registered evaluation method that separates six evidence objects: dynamics prediction, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority. It applies the method separately to FerrumOS and Physical JEPA across an 18-run matched architecture study, sealed threshold tests, authority-separated software integrations, a prospective Safety-Gymnasium controller/shield benchmark, and a fresh risk-source attribution. Failed and non-beneficial frozen stages remain in the record.
 
-The registered rankings are domain-dependent. The three-member Physical JEPA ensemble leads at H=1, H=3, and H=5; the three-member FerrumOS GRU ensemble leads at H=1 and H=3 and JEPA at H=5. A registered post-hoc sensitivity over the 238 FerrumOS episodes eligible at every horizon instead favors JEPA at all three, so the registered reversal cannot be isolated from episode composition. On balanced delayed-hazard catalogs, the frozen 0.99 threshold yields zero interventions for rules, learning, and their union. The two-sided Wilson 95% interval for the observed false-negative rate of 256/256 is approximately [98.52%, 100.00%]; 1.478% is the upper bound for each zero-observed marginal intervention rate (0/256), not a missed-case rate. A PyBullet stress test fails in the opposite direction with 100% intervention and 0% completion.
+The registered Physical JEPA ensemble leads at H=1, H=3, and H=5. In FerrumOS, GRU leads at H=1 and H=3 and JEPA at H=5, but a registered post-hoc comparison on the same 238 H=5-eligible episodes favors JEPA at every horizon. The apparent reversal therefore cannot be isolated from episode composition. At the frozen 0.99 threshold, rules, learning, and their union all miss 256/256 delayed-hazard cases without intervening; a separate PyBullet stress instead stops every case and completes none.
 
-On Safety-Gymnasium v14, a privileged planner - not the learned model - accounts for most realized-cost reduction. The union passes its registered naive-baseline criteria but is not superior to that planner; it records {pct(full['warning_recall'])} warning recall and {pct(full['effective_intervention_recall'])} effective-action recall. A subsequent registered risk-source attribution on fresh seeds 8000-8127 holds the planner, correction, oracle, and runtime fixed. JEPA-output-only caution records {pct(attribution_jepa['aggregate']['task_completion_rate'])} completion, {pct(attribution_jepa['aggregate']['intervention_rate'])} intervention, {pct(attribution_jepa['aggregate']['effective_intervention_recall'])} effective-action recall, and {attribution_jepa['aggregate']['actual_hazard_cost_events']} hazard steps. JEPA-only minus full is {jepa_vs_full['actual_hazard_cost_steps']['estimate']:+.0f} hazard steps and {jepa_vs_full['intervention_percentage_points']['estimate']:+.2f} intervention percentage points; both Bonferroni-adjusted 98.33% intervals exclude zero and every leave-one-out 95% interval does too. Completion has no statistically resolved difference, and JEPA-only is not superior to the planner. Original warning metrics are on-policy; on the shared 23,815-proposal full-arm catalog, JEPA-only recall is {pct(common_warning['variants']['jepa-outputs-only']['warning_recall'])}. This is exploratory pipeline evidence, not architecture-only causality or physical safety. QEMU no-dispatch previews emit no execution record; separate authorized guest sessions execute 18 read-only actions while writes require confirmation and deletes are blocked. Physical delivery remains disabled, protected artifacts remain byte-identical, and promotion eligibility is false.
+On Safety-Gymnasium v14, the privileged planner accounts for most realized-cost reduction. The union passes its registered naive-baseline criteria with {pct(full['warning_recall'])} warning recall and {pct(full['effective_intervention_recall'])} effective-action recall, but superiority over the planner was not established. In the exploratory fresh-seed attribution, JEPA-output-only versus the full adapter changes hazard steps by {jepa_vs_full['actual_hazard_cost_steps']['estimate']:+.0f} and intervention rate by {jepa_vs_full['intervention_percentage_points']['estimate']:+.2f} percentage points; multiplicity-adjusted intervals exclude zero, while completion and planner-superiority claims remain unresolved. QEMU previews, recorded replay, and software physics exercise scoped integrations with execution or actuator authority denied where stated. No result establishes physical safety, independent replication, architecture-only causality, or deployment eligibility; protected artifacts remain unchanged.
 """
     text = replace_section(text, "### Abstract", "### 1. Introduction", abstract)
 
@@ -622,6 +622,49 @@ Paired temporal catalogs vary an intervention while sharing the initial state an
 """
     text = replace_section(text, "#### 4.1 Domains and representations", "#### 4.4 Learned-contribution benchmark", methods)
 
+    common_rows = []
+    common_methods = common_ferrumos["methods"]
+    common_pairs = common_ferrumos["paired_architecture_comparisons"]
+    for horizon in ("h1", "h3", "h5"):
+        mlp = common_methods["direct_mlp"]["rollout"][horizon]["ensemble"]
+        jepa = common_methods["action_conditioned_jepa"]["rollout"][horizon][
+            "ensemble"
+        ]
+        gru = common_methods["gru_dynamics"]["rollout"][horizon]["ensemble"]
+        mlp_minus_jepa = common_pairs["direct_mlp_minus_action_conditioned_jepa"][
+            horizon
+        ]
+        jepa_minus_gru = common_pairs[
+            "action_conditioned_jepa_minus_gru_dynamics"
+        ][horizon]
+        common_rows.append(
+            "| {label} | {mlp:.6f} | **{jepa:.6f}** | {gru:.6f} | "
+            "{mj:+.6f} [{mj_lo:.6f}, {mj_hi:.6f}] | "
+            "{jg:+.6f} [{jg_lo:.6f}, {jg_hi:.6f}] |".format(
+                label=horizon.upper().replace("H", "H="),
+                mlp=mlp["estimate"],
+                jepa=jepa["estimate"],
+                gru=gru["estimate"],
+                mj=mlp_minus_jepa["estimate"],
+                mj_lo=mlp_minus_jepa["bootstrap_95_percent"][0],
+                mj_hi=mlp_minus_jepa["bootstrap_95_percent"][1],
+                jg=jepa_minus_gru["estimate"],
+                jg_lo=jepa_minus_gru["bootstrap_95_percent"][0],
+                jg_hi=jepa_minus_gru["bootstrap_95_percent"][1],
+            )
+        )
+    common_episode_table = "\n".join(
+        [
+            "Table 2 reports the complete post-hoc common-episode comparison. All estimates are three-member ensemble normalized errors on the same 238 FerrumOS episodes; lower is better. Contrast intervals are paired, unadjusted 10,000-resample 95% bootstrap intervals conditional on the fixed checkpoints and this episode population.",
+            "",
+            "| Horizon | Direct MLP | JEPA | GRU | MLP - JEPA, paired 95% | JEPA - GRU, paired 95% |",
+            "|---|---:|---:|---:|---:|---:|",
+            *common_rows,
+            "",
+            "JEPA has the lowest common-episode estimate at every horizon, and both displayed paired contrasts exclude zero. This post-hoc table changes the interpretation of the registered horizon-specific ranking; it does not replace the registered result or model selection.",
+        ]
+    )
+
     text = replace_exact(
         text,
         "The present study differs in scope. It does not propose a new large-scale pretraining objective. It compares small matched dynamics models at a runtime decision boundary, holds compute and data constant, and measures whether offline ranking survives calibration and an operational threshold. Its novelty is primarily systems and methodology: authority remains separately enforceable, and every evidence class is labelled by what it can and cannot support.",
@@ -653,7 +696,7 @@ Validation means checking an existing record against its schema, hashes, and gat
     text = replace_exact(
         text,
         "The result closes a data and compute confound that affected historical comparisons, but only within this study. The physical representation and curriculum favor the action-conditioned JEPA decisively. FerrumOS contains short-horizon structured state changes for which recurrent dynamics are more effective, while the JEPA has the lowest long-horizon error at H=5. Architecture choice should therefore be treated as an empirical property of the state, action, horizon, and training regime rather than a brand-level claim.",
-        f"The result closes data, parameter-count, and update-budget confounds that affected historical comparisons, but not FLOP or training-time differences. In the registered table, the tested three-member FerrumOS GRU ensemble leads at H=1 and H=3; this does not describe the mean individual checkpoint at H=1, where MLP is lower by only 0.000008. H=3 averages 318 eligible episodes, whereas H=5 averages {common_ferrumos['common_episode_count']} and excludes a source whose sequences are too short. In the registered post-hoc common-episode sensitivity, JEPA records H=1/H=3/H=5 errors of {common_ferrumos['methods']['action_conditioned_jepa']['rollout']['h1']['ensemble']['estimate']:.6f}/{common_ferrumos['methods']['action_conditioned_jepa']['rollout']['h3']['ensemble']['estimate']:.6f}/{common_ferrumos['methods']['action_conditioned_jepa']['rollout']['h5']['ensemble']['estimate']:.6f}, versus GRU {common_ferrumos['methods']['gru_dynamics']['rollout']['h1']['ensemble']['estimate']:.6f}/{common_ferrumos['methods']['gru_dynamics']['rollout']['h3']['ensemble']['estimate']:.6f}/{common_ferrumos['methods']['gru_dynamics']['rollout']['h5']['ensemble']['estimate']:.6f}; JEPA-minus-GRU intervals exclude zero at all three horizons. Thus the registered ranking reversal cannot be isolated as a horizon effect: episode composition changes it. The original table and model selection remain unchanged.",
+        f"The result closes data, parameter-count, and update-budget confounds that affected historical comparisons, but not FLOP or training-time differences. In the registered table, the tested three-member FerrumOS GRU ensemble leads at H=1 and H=3; this does not describe the mean individual checkpoint at H=1, where MLP is lower by only 0.000008. H=3 averages 318 eligible episodes, whereas H=5 averages {common_ferrumos['common_episode_count']} and excludes a source whose sequences are too short. Thus the registered ranking reversal cannot be isolated as a horizon effect: episode composition changes it. The original table and model selection remain unchanged.\n\n{common_episode_table}",
     )
 
     calibration = """#### 6.2 Calibration under shift
@@ -753,7 +796,7 @@ The v2 attribution opens seeds 8000-8127 once after committing every adapter, th
 {attribution_row('JEPA outputs only', attribution_jepa)}
 {attribution_row('Hazard closeness only', attribution_geometry)}
 
-JEPA-only versus full was a prospectively specified member of a four-pipeline family, but not the uniquely designated primary contrast. The original 95% intervals are pointwise and unadjusted, so confirmatory interpretation would be inappropriate. A registered post-hoc familywise sensitivity gives JEPA-only minus full as {posthoc_jepa_adjusted['hazard_steps']['estimate']:+.0f} hazard steps with Bonferroni-adjusted 98.33% interval [{posthoc_jepa_adjusted['hazard_steps']['percentile_interval'][0]:.0f}, {posthoc_jepa_adjusted['hazard_steps']['percentile_interval'][1]:.0f}], and {posthoc_jepa_adjusted['intervention_percentage_points']['estimate']:+.2f} intervention percentage points with interval [{posthoc_jepa_adjusted['intervention_percentage_points']['percentile_interval'][0]:.2f}, {posthoc_jepa_adjusted['intervention_percentage_points']['percentile_interval'][1]:.2f}]. Both exclude zero. Hazard steps improve/worsen/remain unchanged in {posthoc_jepa_directions['hazard_steps']['improved']}/{posthoc_jepa_directions['hazard_steps']['worsened']}/{posthoc_jepa_directions['hazard_steps']['unchanged']} paired episodes; intervention counts are lower/higher/unchanged in {posthoc_jepa_directions['intervention_count']['improved']}/{posthoc_jepa_directions['intervention_count']['worsened']}/{posthoc_jepa_directions['intervention_count']['unchanged']}. Every one of 128 leave-one-seed-out 95% intervals still excludes zero for both quantities (hazard endpoints across omissions [{posthoc_jepa_loo['hazard_interval_endpoint_range'][0]:.0f}, {posthoc_jepa_loo['hazard_interval_endpoint_range'][1]:.0f}]; intervention endpoints [{posthoc_jepa_loo['intervention_interval_endpoint_range'][0]:.2f}, {posthoc_jepa_loo['intervention_interval_endpoint_range'][1]:.2f}]). Its {jepa_vs_full['completion_percentage_points']['estimate']:+.2f}-point completion contrast has pointwise CI [{jepa_vs_full['completion_percentage_points']['bootstrap_95_percent'][0]:.2f}, {jepa_vs_full['completion_percentage_points']['bootstrap_95_percent'][1]:.2f}], which shows no statistically resolved difference and is not a non-inferiority result. Against the unshielded planner, JEPA-only changes hazard cost by {attribution_jepa['versus_planner_paired_bootstrap']['actual_hazard_cost_steps']['estimate']:+.0f} steps with CI [{attribution_jepa['versus_planner_paired_bootstrap']['actual_hazard_cost_steps']['bootstrap_95_percent'][0]:.0f}, {attribution_jepa['versus_planner_paired_bootstrap']['actual_hazard_cost_steps']['bootstrap_95_percent'][1]:.0f}], so superiority to the planner is not established.
+JEPA-only versus full was a prospectively specified member of a four-pipeline family, but not the uniquely designated primary contrast. The original 95% intervals are pointwise and unadjusted, so confirmatory interpretation would be inappropriate. A registered post-hoc sensitivity controls a 5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately; it does not adjust jointly across every endpoint or comparison in the report. For JEPA-only minus full, the Bonferroni-adjusted 98.33% interval is [{posthoc_jepa_adjusted['hazard_steps']['percentile_interval'][0]:.0f}, {posthoc_jepa_adjusted['hazard_steps']['percentile_interval'][1]:.0f}] for a {posthoc_jepa_adjusted['hazard_steps']['estimate']:+.0f}-step hazard contrast and [{posthoc_jepa_adjusted['intervention_percentage_points']['percentile_interval'][0]:.2f}, {posthoc_jepa_adjusted['intervention_percentage_points']['percentile_interval'][1]:.2f}] for a {posthoc_jepa_adjusted['intervention_percentage_points']['estimate']:+.2f}-point intervention contrast. Both exclude zero. Hazard steps improve/worsen/remain unchanged in {posthoc_jepa_directions['hazard_steps']['improved']}/{posthoc_jepa_directions['hazard_steps']['worsened']}/{posthoc_jepa_directions['hazard_steps']['unchanged']} paired episodes; intervention counts are lower/higher/unchanged in {posthoc_jepa_directions['intervention_count']['improved']}/{posthoc_jepa_directions['intervention_count']['worsened']}/{posthoc_jepa_directions['intervention_count']['unchanged']}. Every one of 128 leave-one-seed-out 95% intervals still excludes zero for both quantities (hazard endpoints across omissions [{posthoc_jepa_loo['hazard_interval_endpoint_range'][0]:.0f}, {posthoc_jepa_loo['hazard_interval_endpoint_range'][1]:.0f}]; intervention endpoints [{posthoc_jepa_loo['intervention_interval_endpoint_range'][0]:.2f}, {posthoc_jepa_loo['intervention_interval_endpoint_range'][1]:.2f}]). These leave-one-out checks are sensitivity analyses, not independent replications. Its {jepa_vs_full['completion_percentage_points']['estimate']:+.2f}-point completion contrast has pointwise CI [{jepa_vs_full['completion_percentage_points']['bootstrap_95_percent'][0]:.2f}, {jepa_vs_full['completion_percentage_points']['bootstrap_95_percent'][1]:.2f}], which shows no statistically resolved difference and is not a non-inferiority result. Against the unshielded planner, JEPA-only changes hazard cost by {attribution_jepa['versus_planner_paired_bootstrap']['actual_hazard_cost_steps']['estimate']:+.0f} steps with CI [{attribution_jepa['versus_planner_paired_bootstrap']['actual_hazard_cost_steps']['bootstrap_95_percent'][0]:.0f}, {attribution_jepa['versus_planner_paired_bootstrap']['actual_hazard_cost_steps']['bootstrap_95_percent'][1]:.0f}], so superiority to the planner is not established.
 
 The original warning metrics are on-policy: each pipeline changes actions and therefore changes the states and proposals it later visits. Keeping the oracle logic fixed does not keep the evaluation population fixed. Table 7 reports both those on-policy values and a direct post-hoc detector comparison on the identical {common_warning['catalog_rows']:,}-proposal catalog visited by the full pipeline. The common catalog contains {common_warning['dangerous_proposals']} dangerous and {common_warning['safe_proposals']:,} safe proposals and reproduces the full arm exactly; it remains conditional on full-arm visitation and is not an independent sample.
 
@@ -786,7 +829,7 @@ Warning recall and realized outcomes rank differently: full has higher 20-step d
 
 2. The architecture study matches data, seeds, parameters, and updates, not FLOPs or training wall time. Its episode bootstrap conditions on fixed trained checkpoints and omits retraining variability. Registered horizon populations differ; the common-episode post-hoc sensitivity changes the FerrumOS ranking, so the registered reversal cannot be isolated as a horizon effect.
 
-3. The attribution varies complete risk-source pipelines, not architecture alone. JEPA-only retains a historically trained v5 artifact, so its lower hazard count cannot be attributed purely to a JEPA objective. JEPA-only versus full was one prospectively specified family member, not a unique primary contrast; the original intervals are pointwise, and the multiplicity and leave-one-out checks are registered post-hoc sensitivities.
+3. The attribution varies complete risk-source pipelines, not architecture alone. JEPA-only retains a historically trained v5 artifact, so its lower hazard count cannot be attributed purely to a JEPA objective. JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. The Bonferroni sensitivity is familywise across three non-full-versus-full pipeline contrasts within each endpoint, not across every endpoint or comparison; the leave-one-out checks are sensitivity analyses, not independent replications.
 
 4. Calibration is weak under shift. The constant-prevalence Brier baseline is 0.25, ECE is bin-dependent, and risk-coverage ordering is non-monotonic. Zero observed false positives are not a population guarantee.
 
@@ -818,6 +861,8 @@ Every evidence object names its scope and digest. Hashes prove byte identity onl
 
 The architecture and post-hoc analysis record Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124 on Windows; `requirements-research.txt` pins the remaining analysis and PDF packages. Safety-Gymnasium uses its separate locked environment: Python 3.10.20, Safety-Gymnasium 1.0.0, Gymnasium 0.28.1, Gymnasium-Robotics 1.2.2, MuJoCo 2.3.3, NumPy 1.23.5, and pygame 2.1.0. Protocols bind simulator source trees, checkpoints, catalogs, and results. Wall time is machine-dependent; the post-hoc verifier performs checkpoint inference and 10,000-resample analyses without launching the simulator.
 
+The exact scientific-evidence snapshot for this review freeze is Git commit `e8805eb3ed70d848887b954f33871c1fbdb8ef39`. A short headline-table audit is: run the umbrella verifier, run the post-hoc verifier, then run the paper verifier. These validate or recompute committed evidence; they do not rerun a final simulator catalog.
+
 ```powershell
 # Recompute or validate committed evidence; no new final simulator execution
 python scripts/verify_cross_domain_world_models.py
@@ -827,6 +872,7 @@ python scripts/verify_physical_jepa_safety_gymnasium_v14.py
 python scripts/verify_physical_jepa_safety_gymnasium_paired_uncertainty.py
 target\\safety-gymnasium-venv\\Scripts\\python.exe scripts/verify_physical_jepa_safety_gymnasium_attribution_v1.py
 python scripts/verify_cross_domain_world_model_improvement_study.py
+python scripts/verify_cross_domain_world_model_paper_v1_1.py
 cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc
 cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
 
@@ -855,7 +901,7 @@ The targeted local attribution and its registered post-hoc sensitivity checks ar
 
 #### 12.3 Release rule
 
-Future work must create new versioned artifacts and retain failed frozen results. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
+This is the first reviewable Technical Report v1.1 freeze; earlier v1.1 builds were private mutable drafts, not archival releases. The repository tag `prediction-is-not-permission-v1.1` identifies the exact reviewable source, PDF, verifier, and freeze manifest. Future evidence-changing work must create a new immutable report version and retain failed frozen results. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
 """
     text = replace_section(text, "### 12. Conclusion", "<!-- PAGE BREAK -->\n\n### Appendix A", conclusion)
     text = text.replace(

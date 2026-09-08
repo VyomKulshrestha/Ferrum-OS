@@ -4,17 +4,22 @@
 from __future__ import annotations
 
 import argparse
+from functools import partial
 from html import escape
 from pathlib import Path
 import re
 
 from PIL import Image as PILImage
+import reportlab
 from reportlab import rl_config
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
@@ -54,6 +59,33 @@ WHITE = colors.white
 rl_config.invariant = True
 
 
+def register_embedded_fonts() -> None:
+    """Register the redistributable TrueType family bundled with ReportLab."""
+
+    font_dir = Path(reportlab.__file__).resolve().parent / "fonts"
+    font_files = {
+        "ReportSans": "Vera.ttf",
+        "ReportSans-Bold": "VeraBd.ttf",
+        "ReportSans-Italic": "VeraIt.ttf",
+        "ReportSans-BoldItalic": "VeraBI.ttf",
+        "ReportCode": "Vera.ttf",
+    }
+    registered = set(pdfmetrics.getRegisteredFontNames())
+    for name, filename in font_files.items():
+        if name not in registered:
+            pdfmetrics.registerFont(TTFont(name, str(font_dir / filename)))
+    pdfmetrics.registerFontFamily(
+        "ReportSans",
+        normal="ReportSans",
+        bold="ReportSans-Bold",
+        italic="ReportSans-Italic",
+        boldItalic="ReportSans-BoldItalic",
+    )
+    # Prevent the canvas from registering an unused, unembedded Base-14 font
+    # before the first flowable is drawn.
+    rl_config.canvas_basefontname = "ReportSans"
+
+
 def inline(text: str) -> str:
     # Base-14 fonts render these punctuation glyphs inconsistently across PDF
     # viewers. Normalize to an ASCII archival text path before markup parsing.
@@ -67,7 +99,7 @@ def inline(text: str) -> str:
         .replace("\u2212", "-")
     )
     value = escape(normalized)
-    value = re.sub(r"`([^`]+)`", r"<font name='Courier'>\1</font>", value)
+    value = re.sub(r"`([^`]+)`", r"<font name='ReportCode'>\1</font>", value)
     value = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", value)
     value = re.sub(r"\*([^*]+)\*", r"<i>\1</i>", value)
     value = re.sub(
@@ -84,7 +116,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_eyebrow": ParagraphStyle(
             "FrontEyebrow",
             parent=base["BodyText"],
-            fontName="Helvetica-Oblique",
+            fontName="ReportSans-Italic",
             fontSize=8.8,
             leading=10.5,
             textColor=MUTED,
@@ -94,7 +126,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_title": ParagraphStyle(
             "FrontTitle",
             parent=base["Title"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=20.5,
             leading=22.2,
             textColor=NAVY,
@@ -104,7 +136,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_meta": ParagraphStyle(
             "FrontMeta",
             parent=base["Normal"],
-            fontName="Helvetica",
+            fontName="ReportSans",
             fontSize=7.0,
             leading=8.3,
             textColor=INK,
@@ -112,7 +144,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_abstract_heading": ParagraphStyle(
             "FrontAbstractHeading",
             parent=base["Heading2"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=10.5,
             leading=12.2,
             textColor=TEAL,
@@ -123,7 +155,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_abstract": ParagraphStyle(
             "FrontAbstract",
             parent=base["BodyText"],
-            fontName="Times-Roman",
+            fontName="ReportSans",
             fontSize=7.8,
             leading=9.65,
             textColor=INK,
@@ -133,7 +165,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_h1": ParagraphStyle(
             "FrontH1",
             parent=base["Heading1"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=13.4,
             leading=15.2,
             textColor=NAVY,
@@ -144,7 +176,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_h2": ParagraphStyle(
             "FrontH2",
             parent=base["Heading2"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=8.3,
             leading=9.7,
             textColor=INK,
@@ -155,7 +187,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_body": ParagraphStyle(
             "FrontBody",
             parent=base["BodyText"],
-            fontName="Times-Roman",
+            fontName="ReportSans",
             fontSize=7.75,
             leading=9.6,
             textColor=INK,
@@ -165,7 +197,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_claim_label": ParagraphStyle(
             "FrontClaimLabel",
             parent=base["BodyText"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=7.0,
             leading=8.3,
             textColor=NAVY,
@@ -173,7 +205,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "front_claim": ParagraphStyle(
             "FrontClaim",
             parent=base["BodyText"],
-            fontName="Times-Roman",
+            fontName="ReportSans",
             fontSize=7.0,
             leading=8.3,
             textColor=INK,
@@ -181,7 +213,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "title": ParagraphStyle(
             "Title",
             parent=base["Title"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=20,
             leading=22.5,
             textColor=NAVY,
@@ -191,7 +223,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "subtitle": ParagraphStyle(
             "Subtitle",
             parent=base["Heading2"],
-            fontName="Helvetica",
+            fontName="ReportSans",
             fontSize=11.5,
             leading=14.2,
             textColor=TEAL,
@@ -201,7 +233,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "meta": ParagraphStyle(
             "Meta",
             parent=base["Normal"],
-            fontName="Helvetica",
+            fontName="ReportSans",
             fontSize=7.8,
             leading=10.2,
             textColor=MUTED,
@@ -210,7 +242,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "h1": ParagraphStyle(
             "H1",
             parent=base["Heading1"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=13.6,
             leading=16.3,
             textColor=NAVY,
@@ -221,7 +253,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "h2": ParagraphStyle(
             "H2",
             parent=base["Heading2"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=10.2,
             leading=12.6,
             textColor=TEAL,
@@ -232,7 +264,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "body": ParagraphStyle(
             "Body",
             parent=base["BodyText"],
-            fontName="Helvetica",
+            fontName="ReportSans",
             fontSize=8.1,
             leading=10.55,
             textColor=INK,
@@ -242,7 +274,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "abstract": ParagraphStyle(
             "Abstract",
             parent=base["BodyText"],
-            fontName="Helvetica",
+            fontName="ReportSans",
             fontSize=7.9,
             leading=10.4,
             textColor=INK,
@@ -255,7 +287,8 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "bullet": ParagraphStyle(
             "Bullet",
             parent=base["BodyText"],
-            fontName="Helvetica",
+            fontName="ReportSans",
+            bulletFontName="ReportSans",
             fontSize=7.9,
             leading=10.25,
             leftIndent=4.2 * mm,
@@ -267,7 +300,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "code": ParagraphStyle(
             "Code",
             parent=base["Code"],
-            fontName="Courier",
+            fontName="ReportCode",
             fontSize=6.6,
             leading=8.6,
             leftIndent=3 * mm,
@@ -281,7 +314,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "caption": ParagraphStyle(
             "Caption",
             parent=base["BodyText"],
-            fontName="Helvetica-Oblique",
+            fontName="ReportSans-Italic",
             fontSize=6.6,
             leading=8.4,
             textColor=MUTED,
@@ -291,7 +324,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "small": ParagraphStyle(
             "Small",
             parent=base["BodyText"],
-            fontName="Helvetica",
+            fontName="ReportSans",
             fontSize=6.45,
             leading=8.2,
             textColor=INK,
@@ -299,7 +332,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
         "table_header": ParagraphStyle(
             "TableHeader",
             parent=base["BodyText"],
-            fontName="Helvetica-Bold",
+            fontName="ReportSans-Bold",
             fontSize=6.25,
             leading=7.8,
             textColor=WHITE,
@@ -320,10 +353,10 @@ def draw_header_footer(
     canvas.setStrokeColor(GRID)
     canvas.setLineWidth(0.5)
     canvas.line(17 * mm, height - 14.5 * mm, width - 17 * mm, height - 14.5 * mm)
-    canvas.setFont("Helvetica-Bold", 7.1)
+    canvas.setFont("ReportSans-Bold", 7.1)
     canvas.setFillColor(NAVY)
     canvas.drawString(17 * mm, height - 10.8 * mm, running_left)
-    canvas.setFont("Helvetica", 7.1)
+    canvas.setFont("ReportSans", 7.1)
     canvas.setFillColor(MUTED)
     canvas.drawRightString(width - 17 * mm, height - 10.8 * mm, running_right)
     canvas.line(17 * mm, 13 * mm, width - 17 * mm, 13 * mm)
@@ -365,6 +398,7 @@ def parse_table(
         hAlign="LEFT",
     )
     table_style = [
+        ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
         ("BACKGROUND", (0, 0), (-1, 0), NAVY),
         ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -409,6 +443,7 @@ def build(
     spacious_body: bool = False,
     compact_body: bool = False,
 ) -> None:
+    register_embedded_fonts()
     styles = make_styles()
     if spacious_body and compact_body:
         raise ValueError("body cannot be both spacious and compact")
@@ -538,6 +573,7 @@ def build(
     meta_table.setStyle(
         TableStyle(
             [
+                ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 0),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 2),
@@ -560,6 +596,7 @@ def build(
     claim_table.setStyle(
         TableStyle(
             [
+                ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
                 ("BACKGROUND", (0, 0), (-1, -1), PALE),
                 ("BOX", (0, 0), (-1, -1), 0.55, TEAL),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -710,6 +747,7 @@ def build(
                     colWidths=[18 * mm, document.width - 18 * mm],
                     rowHeights=[1.6 * mm],
                     style=[
+                        ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
                         ("BACKGROUND", (0, 0), (0, 0), ORANGE),
                         ("BACKGROUND", (1, 0), (1, 0), TEAL),
                     ],
@@ -720,7 +758,7 @@ def build(
             paragraph.append(line)
         index += 1
     flush_paragraph()
-    document.build(story)
+    document.build(story, canvasmaker=partial(Canvas, initialFontName="ReportSans"))
 
 
 def main() -> None:
