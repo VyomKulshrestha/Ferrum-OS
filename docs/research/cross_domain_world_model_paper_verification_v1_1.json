@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "90699e78152f7d563ffbb9e1ee7beaed21fd044e83201ff036ba7ce380c1c9ff"
+      "sha256": "015ea370179dcbb52ccc537ea4fbb4d377f062b303b5113114560eb50f260ed2"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
@@ -26,7 +26,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "aee0d71736bdff63a4ed9749170358971fbffdcc3ce09fdca3e3bd9b8a3ed0d3"
+      "sha256": "bd8ffee3b42adccdc018b5b7e204d615cf970c97f7390782b177e9e43a210b06"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -91,7 +91,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "90699e78152f7d563ffbb9e1ee7beaed21fd044e83201ff036ba7ce380c1c9ff",
+    "freeze_manifest_sha256": "015ea370179dcbb52ccc537ea4fbb4d377f062b303b5113114560eb50f260ed2",
     "pdf_font_inventory": [
       {
         "base_font": "/AAAAAA+BitstreamVeraSans-Bold",

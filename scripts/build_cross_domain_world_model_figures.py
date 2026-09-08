@@ -107,7 +107,7 @@ def rollout_figure() -> None:
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=3, frameon=False,
                bbox_to_anchor=(0.5, 1.02), fontsize=9)
-    fig.suptitle("Architecture leadership is domain- and horizon-dependent",
+    fig.suptitle("Architecture rankings on registered evaluation populations",
                  x=0.06, y=1.12, ha="left", fontsize=15, color=NAVY, weight="bold")
     fig.tight_layout(rect=(0, 0, 1, 0.94))
     save(fig, "matched_rollout_results.png")

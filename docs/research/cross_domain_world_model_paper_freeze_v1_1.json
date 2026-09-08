@@ -23,9 +23,9 @@
         "sha256": "2a2f178dd0c60f3079a00017df7432fbb4b7bff1f09f1d2b196069200c03eecb"
       },
       {
-        "bytes": 108459,
+        "bytes": 109239,
         "path": "docs/research/figures/cross_domain_world_model/matched_rollout_results.png",
-        "sha256": "b483c335817e8dd855f7e90f90015450a281422be881b0ec3d3a9313a9211593"
+        "sha256": "2cde4e384cb99a715de5ec6188e3f55a56f6f5c6e7f71f0f337aa7f1e0e68537"
       },
       {
         "bytes": 115893,
@@ -53,7 +53,7 @@
     "pdf": {
       "pages": 17,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "aee0d71736bdff63a4ed9749170358971fbffdcc3ce09fdca3e3bd9b8a3ed0d3"
+      "sha256": "bd8ffee3b42adccdc018b5b7e204d615cf970c97f7390782b177e9e43a210b06"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
