@@ -1,0 +1,50 @@
+{
+  "amendment_id": "physical-jepa-safety-gymnasium-output-ablation-verification-amendment-v3",
+  "authority": {
+    "physical_actuator_attempts": 0,
+    "physical_actuator_deliveries": 0,
+    "promotion_eligible": false,
+    "promotion_forbidden": true
+  },
+  "claim_boundary": "This amendment verifies the v2 retained-catalog recovery without reclassifying the failed prospective v1 execution. The estimates are a retrospective analysis of complete paired simulator catalogs under a subsequently registered recovery protocol. They support a direct output-value intervention contrast only for the fixed local Safety-Gymnasium software pipeline and do not establish prospective confirmation, architecture-wide causality, planner superiority, learned-safety superiority, independent replication or assessment, HIL, physical safety, deployment safety, or promotion eligibility.",
+  "digest_policy": {
+    "binary_artifacts": "SHA-256 over exact bytes",
+    "historical_report_snapshot": "Read the report PDF as a Git blob from the recovery result's registered commit and compare its exact bytes with the registered digest.",
+    "moving_report_path": "Record the current report digest as a non-failing diagnostic because later documentation revisions do not alter the already recorded recovery execution.",
+    "text_compatibility": "Compare semantic UTF-8 text after newline normalization against both LF and CRLF historical SHA-256 representations"
+  },
+  "interpretation": {
+    "catalog_status": "complete retained paired catalogs from seeds 9000-9127",
+    "estimates_status": "retrospective retained-catalog recovery analysis",
+    "prospective_v1_execution_status": "failed",
+    "prospective_v1_rerun_completed": false,
+    "v2_recovery_reclassified_as_v1_success": false
+  },
+  "reason": "The v2 verifier hashed checkout-specific text bytes and compared a later-mutated report path with a historical registration digest. The registered record itself contains both LF- and CRLF-hashed text. A clean Windows checkout therefore failed provenance checks even though every scientific aggregate, feature intervention, score, seed set, catalog digest, and paired effect recomputed. This amendment accepts either historical newline representation only when normalized text content is identical and validates the report at the recorded recovery commit.",
+  "registered_date": "2026-09-08",
+  "retained_records": {
+    "failed_attempt": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
+    "recovery_protocol": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_protocol_v2.json",
+    "recovery_result": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_result_v2.json",
+    "recovery_verification_v2": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_verification_v2.json"
+  },
+  "schema": "physical-jepa-safety-gymnasium-output-ablation-verification-amendment-v3",
+  "scope": {
+    "changes_estimands": false,
+    "changes_metrics": false,
+    "changes_recorded_results": false,
+    "opens_new_simulator_seeds": false,
+    "reruns_simulator": false,
+    "verification_only": true
+  },
+  "toolchain": {
+    "recovery_verifier_v2": {
+      "path": "scripts/verify_physical_jepa_safety_gymnasium_output_ablation_recovery_v2.py",
+      "sha256": "3af0006c6a6fc70f1e3560ef4cdbf81d382246797df7ed88961dca899ee7efab"
+    },
+    "verification_amendment_v3": {
+      "path": "scripts/verify_physical_jepa_safety_gymnasium_output_ablation_recovery_v3.py",
+      "sha256": "5909e75a578f6f5ab362c60d767e279afd23c715b7e90ca262067214b0bd580e"
+    }
+  }
+}
