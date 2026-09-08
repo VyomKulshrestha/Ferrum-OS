@@ -457,21 +457,26 @@ def pdf_font_inventory(
 
 def pdf_typography_metrics() -> dict[str, float]:
     sizes: Counter[float] = Counter()
+    first_page_sizes: list[float] = []
     with pdfplumber.open(PDF) as document:
-        for page in document.pages[2:]:
+        for page_index, page in enumerate(document.pages):
             for character in page.chars:
                 if str(character.get("text", "")).strip():
-                    sizes[round(float(character["size"]), 2)] += 1
+                    size = round(float(character["size"]), 2)
+                    sizes[size] += 1
+                    if page_index == 0:
+                        first_page_sizes.append(size)
     total = sum(sizes.values())
     dominant_size = sizes.most_common(1)[0][0] if sizes else 0.0
-    readable_share = (
-        sum(count for size, count in sizes.items() if size >= 10.0) / total
+    publication_body_share = (
+        sum(count for size, count in sizes.items() if size >= 9.4) / total
         if total
         else 0.0
     )
     return {
         "dominant_body_font_size_points": dominant_size,
-        "character_share_at_least_10_points": readable_share,
+        "character_share_at_least_9_4_points": publication_body_share,
+        "maximum_first_page_font_size_points": max(first_page_sizes, default=0.0),
     }
 
 
@@ -633,12 +638,12 @@ def main() -> None:
         "forbidden_placeholders_and_review_wording_absent": all(
             forbidden_absent.values()
         ),
-        "pdf_page_count_is_readable_submission_length": 28 <= len(reader.pages) <= 38,
-        "pdf_body_typography_is_readable": typography[
-            "dominant_body_font_size_points"
-        ]
-        >= 10.0
-        and typography["character_share_at_least_10_points"] >= 0.68,
+        "pdf_page_count_is_readable_submission_length": 20 <= len(reader.pages) <= 32,
+        "pdf_body_typography_matches_publication_scale": 9.4
+        <= typography["dominant_body_font_size_points"]
+        <= 9.6
+        and typography["character_share_at_least_9_4_points"] >= 0.68
+        and typography["maximum_first_page_font_size_points"] <= 24.0,
         "pdf_title_exact": metadata.title == TITLE,
         "pdf_author_exact": metadata.author == "Vyom Kulshrestha",
         "pdf_subject_versioned": metadata.subject

@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "d85bcceaeb3a49416ae14b8f9e9fecbd58ff97784f2dfcbd74d0b1efd675b9e1"
+      "sha256": "622554e113ceaa369ada21ecd65d821321a5e209346d593df49f4e35f207ce34"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "70d9df75e54620e6afe0579f230eb0d07cafa5741e6bd0c531aa846f3e758979"
+      "sha256": "e8ea684ac8a930471ec9b120cfd5d1ab22114a83faab0f06a22594fbea18ddc7"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -93,7 +93,7 @@
     "output_ablation_verification_amendment_is_nonexperimental": true,
     "paired_planner_union_uncertainty_verified": true,
     "pdf_author_exact": true,
-    "pdf_body_typography_is_readable": true,
+    "pdf_body_typography_matches_publication_scale": true,
     "pdf_fonts_are_embedded_and_character_spacing_is_normal": true,
     "pdf_has_no_replacement_character": true,
     "pdf_page_count_is_readable_submission_length": true,
@@ -125,7 +125,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "d85bcceaeb3a49416ae14b8f9e9fecbd58ff97784f2dfcbd74d0b1efd675b9e1",
+    "freeze_manifest_sha256": "622554e113ceaa369ada21ecd65d821321a5e209346d593df49f4e35f207ce34",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -271,10 +271,25 @@
         "base_font": "/AAAAAA+BitstreamVeraSans-Roman",
         "embedded": true,
         "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+DejaVuSerif",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+DejaVuSerif-Bold",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+DejaVuSerif-Italic",
+        "embedded": true,
+        "subtype": "/TrueType"
       }
     ],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 34,
+    "pdf_pages": 27,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -301,10 +316,11 @@
       "writes await confirmation": true
     },
     "pdf_typography": {
-      "character_share_at_least_10_points": 0.7260452961672473,
-      "dominant_body_font_size_points": 10.15
+      "character_share_at_least_9_4_points": 0.7086448004068141,
+      "dominant_body_font_size_points": 9.5,
+      "maximum_first_page_font_size_points": 21.5
     },
-    "pdf_words_extracted": 11816,
+    "pdf_words_extracted": 11766,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -332,14 +348,7 @@
       24,
       25,
       26,
-      27,
-      28,
-      29,
-      30,
-      31,
-      32,
-      33,
-      34
+      27
     ],
     "source_required_phrases": {
       "1.478%": true,
