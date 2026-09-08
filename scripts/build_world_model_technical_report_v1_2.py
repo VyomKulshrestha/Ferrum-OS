@@ -22,6 +22,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     BaseDocTemplate,
+    Flowable,
     Frame,
     Image,
     KeepTogether,
@@ -108,6 +109,90 @@ def inline(text: str) -> str:
         value,
     )
     return value
+
+
+def split_for_readability(text: str, limit: int = 780) -> list[str]:
+    """Split long prose at sentence boundaries without changing its wording."""
+
+    if len(text) <= limit:
+        return [text]
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    paragraphs: list[str] = []
+    current: list[str] = []
+    for sentence in sentences:
+        candidate = " ".join([*current, sentence])
+        if current and len(candidate) > limit:
+            paragraphs.append(" ".join(current))
+            current = [sentence]
+        else:
+            current.append(sentence)
+    if current:
+        paragraphs.append(" ".join(current))
+    return paragraphs
+
+
+class EvidenceChain(Flowable):
+    """Compact vector centerpiece for the report's six evidence objects."""
+
+    labels = (
+        ("PREDICTION",),
+        ("COUNTER-", "FACTUAL"),
+        ("WARNING",),
+        ("INTERVENTION",),
+        ("OUTCOME",),
+        ("AUTHORITY",),
+    )
+
+    def __init__(self, width: float):
+        super().__init__()
+        self.width = width
+        self.height = 29 * mm
+
+    def wrap(self, available_width, available_height):
+        return min(self.width, available_width), self.height
+
+    def draw(self):
+        canvas = self.canv
+        width = self.width
+        gap = 4.2 * mm
+        box_width = (width - gap * 5) / 6
+        box_height = 10.5 * mm
+        y = 10.2 * mm
+        fills = (TEAL, NAVY, NAVY, NAVY, ORANGE, TEAL)
+
+        canvas.saveState()
+        canvas.setFont("ReportSans-Bold", 7.0)
+        canvas.setFillColor(NAVY)
+        canvas.drawString(0, 25.2 * mm, "SIX DISTINCT EVIDENCE OBJECTS")
+        for index, (label_lines, fill) in enumerate(zip(self.labels, fills)):
+            x = index * (box_width + gap)
+            canvas.setFillColor(fill)
+            canvas.roundRect(x, y, box_width, box_height, 2.2 * mm, fill=1, stroke=0)
+            canvas.setFillColor(WHITE)
+            canvas.setFont("ReportSans-Bold", 6.3 if index == 3 else 6.6)
+            if len(label_lines) == 1:
+                canvas.drawCentredString(x + box_width / 2, y + 4.1 * mm, label_lines[0])
+            else:
+                canvas.drawCentredString(x + box_width / 2, y + 5.7 * mm, label_lines[0])
+                canvas.drawCentredString(x + box_width / 2, y + 2.9 * mm, label_lines[1])
+            if index < 5:
+                start = x + box_width + 0.7 * mm
+                end = x + box_width + gap - 0.7 * mm
+                mid = y + box_height / 2
+                canvas.setStrokeColor(GRID)
+                canvas.setLineWidth(1.1)
+                canvas.line(start, mid, end, mid)
+                canvas.setFillColor(GRID)
+                canvas.line(end, mid, end - 1.4 * mm, mid + 1.1 * mm)
+                canvas.line(end, mid, end - 1.4 * mm, mid - 1.1 * mm)
+        canvas.setFillColor(MUTED)
+        canvas.setFont("ReportSans-Italic", 6.7)
+        canvas.drawString(
+            0,
+            4.2 * mm,
+            "Prediction != warning != intervention != outcome != authority",
+        )
+        canvas.restoreState()
 
 
 def make_styles() -> dict[str, ParagraphStyle]:
@@ -329,6 +414,51 @@ def make_styles() -> dict[str, ParagraphStyle]:
             leading=8.2,
             textColor=INK,
         ),
+        "callout_label": ParagraphStyle(
+            "CalloutLabel",
+            parent=base["BodyText"],
+            fontName="ReportSans-Bold",
+            fontSize=6.7,
+            leading=8.2,
+            textColor=TEAL,
+            spaceAfter=0.5 * mm,
+        ),
+        "callout_text": ParagraphStyle(
+            "CalloutText",
+            parent=base["BodyText"],
+            fontName="ReportSans",
+            fontSize=7.4,
+            leading=9.4,
+            textColor=INK,
+        ),
+        "result_label": ParagraphStyle(
+            "ResultLabel",
+            parent=base["BodyText"],
+            fontName="ReportSans-Bold",
+            fontSize=7.0,
+            leading=8.5,
+            textColor=WHITE,
+            spaceAfter=0.7 * mm,
+        ),
+        "result_text": ParagraphStyle(
+            "ResultText",
+            parent=base["BodyText"],
+            fontName="ReportSans",
+            fontSize=7.5,
+            leading=9.4,
+            textColor=WHITE,
+        ),
+        "table_note": ParagraphStyle(
+            "TableNote",
+            parent=base["BodyText"],
+            fontName="ReportSans-Italic",
+            fontSize=6.1,
+            leading=7.7,
+            textColor=MUTED,
+            leftIndent=1.5 * mm,
+            rightIndent=1.5 * mm,
+            spaceAfter=1.6 * mm,
+        ),
         "table_header": ParagraphStyle(
             "TableHeader",
             parent=base["BodyText"],
@@ -363,6 +493,78 @@ def draw_header_footer(
     canvas.drawString(17 * mm, 8.5 * mm, footer_note)
     canvas.drawRightString(width - 17 * mm, 8.5 * mm, f"Page {document.page}")
     canvas.restoreState()
+
+
+def callout_box(
+    label: str,
+    text: str,
+    width: float,
+    styles: dict[str, ParagraphStyle],
+    *,
+    accent=TEAL,
+) -> Table:
+    content = [
+        Paragraph(inline(label.upper()), styles["callout_label"]),
+        Paragraph(inline(text), styles["callout_text"]),
+    ]
+    table = Table(
+        [[Paragraph("", styles["callout_text"]), content]],
+        colWidths=[2.2 * mm, width - 2.2 * mm],
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, 0), accent),
+                ("BACKGROUND", (1, 0), (1, 0), PALE),
+                ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
+                ("BOX", (0, 0), (-1, -1), 0.45, GRID),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (0, 0), 0),
+                ("RIGHTPADDING", (0, 0), (0, 0), 0),
+                ("TOPPADDING", (0, 0), (0, 0), 0),
+                ("BOTTOMPADDING", (0, 0), (0, 0), 0),
+                ("LEFTPADDING", (1, 0), (1, 0), 7),
+                ("RIGHTPADDING", (1, 0), (1, 0), 7),
+                ("TOPPADDING", (1, 0), (1, 0), 6),
+                ("BOTTOMPADDING", (1, 0), (1, 0), 6),
+            ]
+        )
+    )
+    return table
+
+
+def architecture_result_box(
+    width: float, styles: dict[str, ParagraphStyle]
+) -> Table:
+    cells = [
+        [
+            Paragraph("PHYSICAL", styles["result_label"]),
+            Paragraph("FERRUMOS", styles["result_label"]),
+        ],
+        [
+            Paragraph("JEPA leads all registered horizons", styles["result_text"]),
+            Paragraph("Ranking is composition-sensitive", styles["result_text"]),
+        ],
+    ]
+    table = Table(cells, colWidths=[width / 2, width / 2])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), TEAL),
+                ("BACKGROUND", (1, 0), (1, -1), NAVY),
+                ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, 0), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 1),
+                ("TOPPADDING", (0, 1), (-1, 1), 1),
+                ("BOTTOMPADDING", (0, 1), (-1, 1), 7),
+                ("LINEBEFORE", (1, 0), (1, -1), 2, WHITE),
+            ]
+        )
+    )
+    return table
 
 
 def column_widths(column_count: int, width: float) -> list[float]:
@@ -442,6 +644,7 @@ def build(
     footer_note: str = "FerrumOS world-model safety gate - evidence frozen 26 August 2026",
     spacious_body: bool = False,
     compact_body: bool = False,
+    editorial_layout: bool = False,
 ) -> None:
     register_embedded_fonts()
     styles = make_styles()
@@ -475,6 +678,26 @@ def build(
         styles["caption"].leading = 8.0
         styles["code"].fontSize = 6.35
         styles["code"].leading = 8.2
+    if editorial_layout:
+        styles["front_abstract"].fontSize = 8.05
+        styles["front_abstract"].leading = 10.5
+        styles["front_abstract"].spaceAfter = 2.0 * mm
+        styles["front_body"].fontSize = 8.0
+        styles["front_body"].leading = 10.45
+        styles["front_body"].spaceAfter = 1.6 * mm
+        styles["body"].fontSize = 7.95
+        styles["body"].leading = 10.45
+        styles["body"].spaceAfter = 1.55 * mm
+        styles["h1"].fontSize = 13.2
+        styles["h1"].leading = 15.6
+        styles["h1"].spaceBefore = 4.3 * mm
+        styles["h1"].spaceAfter = 2.5 * mm
+        styles["h1"].backColor = PALE
+        styles["h1"].borderColor = GRID
+        styles["h1"].borderWidth = 0.45
+        styles["h1"].borderPadding = 5
+        styles["h2"].spaceBefore = 3.0 * mm
+        styles["h2"].spaceAfter = 1.8 * mm
     lines = source.read_text(encoding="utf-8").splitlines()
     output.parent.mkdir(parents=True, exist_ok=True)
     document = BaseDocTemplate(
@@ -507,7 +730,7 @@ def build(
         )
 
     document.addPageTemplates(
-        [PageTemplate(id="main", frames=[frame], onPage=page_decor)]
+        [PageTemplate(id="main", frames=[frame], onPageEnd=page_decor)]
     )
 
     abstract_index = lines.index("### Abstract")
@@ -620,9 +843,26 @@ def build(
         Paragraph(inline(value), styles["front_abstract"])
         for value in abstract_paragraphs
     )
+    if editorial_layout:
+        story.extend(
+            [
+                Spacer(1, 1.4 * mm),
+                callout_box(
+                    "Core finding",
+                    "Prediction quality, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority are distinct evidence objects.",
+                    document.width,
+                    styles,
+                ),
+                Spacer(1, 4.0 * mm),
+                EvidenceChain(document.width),
+                PageBreak(),
+                Spacer(1, 1.5 * mm),
+            ]
+        )
+    else:
+        story.append(Spacer(1, 0.6 * mm))
     story.extend(
         [
-            Spacer(1, 0.6 * mm),
             claim_table,
             Paragraph("1 Introduction", styles["front_h1"]),
         ]
@@ -631,10 +871,9 @@ def build(
         Paragraph(inline(value), styles["front_body"]) for value in intro_paragraphs
     )
     story.append(Paragraph("Contributions", styles["front_h2"]))
-    story.extend(
-        Paragraph(inline(value), styles["front_body"])
-        for value in contribution_paragraphs
-    )
+    for value in contribution_paragraphs:
+        pieces = split_for_readability(value, 620) if editorial_layout else [value]
+        story.extend(Paragraph(inline(piece), styles["front_body"]) for piece in pieces)
     story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
 
     lines = lines[front_end + 1 :]
@@ -648,11 +887,13 @@ def build(
         if not paragraph:
             return
         text = " ".join(value.strip() for value in paragraph)
-        story.append(
-            Paragraph(
-                inline(text), styles["abstract"] if abstract_mode else styles["body"]
-            )
+        paragraph_style = styles["abstract"] if abstract_mode else styles["body"]
+        pieces = (
+            split_for_readability(text)
+            if editorial_layout and not abstract_mode
+            else [text]
         )
+        story.extend(Paragraph(inline(piece), paragraph_style) for piece in pieces)
         paragraph.clear()
 
     index = 0
@@ -688,10 +929,30 @@ def build(
             while index < len(lines) and lines[index].startswith("|"):
                 table_lines.append(lines[index])
                 index += 1
+            table_note = None
+            if editorial_layout and table_lines[0].startswith(
+                "| Component exercised | Test class | Committed pass evidence"
+            ):
+                table_lines = [
+                    "| Component | Test | Evidence | Availability / boundary |",
+                    "|---|---|---|---|",
+                    "| FerrumOS gate | QEMU integration | `world_model_failure_modes.json`: pass | Command path available; failure modes exercised [a] |",
+                    "| Assistant mediation | QEMU observation | `world_model_natural_use_verification_v1.json`: pass | Reads available; writes confirmed; deletes blocked |",
+                    "| Signed neural permit | Host unit | Authority inventory: 9/9 | Protocol only; syscall path not exercised [b] |",
+                    "| Physical permit and disabled driver | Host unit | `cross_domain_authority_test_inventory_v1.json`: 128/128 | Simulator/offline adapter only; physical actuator unavailable |",
+                    "| Safety-Gym adapter | Host integration | Runtime verification: pass | Simulator commands only; no actuator [c] |",
+                ]
+                table_note = (
+                    "[a] Cases include false-safe, missing, non-finite, and forbidden-coverage artifacts. "
+                    "[b] Host-unit protocol coverage does not establish FerrumOS syscall-path enforcement. "
+                    "[c] Physical actuator delivery was unavailable or disabled."
+                )
             table_group = [
                 parse_table(table_lines, document.width, styles),
-                Spacer(1, 1.8 * mm),
             ]
+            if table_note:
+                table_group.append(Paragraph(inline(table_note), styles["table_note"]))
+            table_group.append(Spacer(1, 1.8 * mm))
             if len(table_lines) <= 8:
                 story.append(KeepTogether(table_group))
             else:
@@ -702,6 +963,13 @@ def build(
         )
         if image_flowables:
             flush_paragraph()
+            if editorial_layout and "matched_rollout_results.png" in line:
+                story.extend(
+                    [
+                        architecture_result_box(document.width, styles),
+                        Spacer(1, 2.4 * mm),
+                    ]
+                )
             story.extend(image_flowables)
             index += 1
             continue
@@ -723,7 +991,31 @@ def build(
         elif line.startswith("#### "):
             flush_paragraph()
             abstract_mode = False
-            story.append(Paragraph(inline(line[5:]), styles["h2"]))
+            heading = line[5:]
+            story.append(Paragraph(inline(heading), styles["h2"]))
+            if editorial_layout:
+                boundaries = {
+                    "4.2 Matched architecture study": (
+                        "Evidence boundary",
+                        "Matched data, seeds, parameter counts, and update budgets; FLOPs and training wall time are not equalized.",
+                    ),
+                    "4.3 Aggregation, temporal causality, and uncertainty": (
+                        "Evidence boundary",
+                        "Episode bootstraps condition on fixed trained checkpoints and do not include retraining variability.",
+                    ),
+                    "5.2 Interpretation": (
+                        "Evidence boundary",
+                        "The common-episode comparison is post-hoc; leave-one-out checks are sensitivity analyses, not independent replications.",
+                    ),
+                }
+                if heading in boundaries:
+                    label, text = boundaries[heading]
+                    story.extend(
+                        [
+                            callout_box(label, text, document.width, styles),
+                            Spacer(1, 1.7 * mm),
+                        ]
+                    )
         elif re.match(r"^\d+\. ", line):
             flush_paragraph()
             number, text = line.split(". ", 1)

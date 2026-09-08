@@ -32,6 +32,7 @@ def main() -> None:
         footer_note=f"Cross-domain world-model authority study - evidence frozen {args.evidence_date}",
         spacious_body=args.version == "1.0",
         compact_body=args.version != "1.0",
+        editorial_layout=args.version == "1.1",
     )
     print(args.output)
 

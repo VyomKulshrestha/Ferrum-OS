@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "015ea370179dcbb52ccc537ea4fbb4d377f062b303b5113114560eb50f260ed2"
+      "sha256": "d2d6fdb6feb697aada802e1e366f1b1fb1b70ae14e12e3403d1dfb9373a2c778"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
@@ -26,7 +26,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "bd8ffee3b42adccdc018b5b7e204d615cf970c97f7390782b177e9e43a210b06"
+      "sha256": "32eb2bef032e727a0a0caa8540fb54a7f774bc9391d3b68d02c8b50d076882d8"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -91,7 +91,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "015ea370179dcbb52ccc537ea4fbb4d377f062b303b5113114560eb50f260ed2",
+    "freeze_manifest_sha256": "d2d6fdb6feb697aada802e1e366f1b1fb1b70ae14e12e3403d1dfb9373a2c778",
     "pdf_font_inventory": [
       {
         "base_font": "/AAAAAA+BitstreamVeraSans-Bold",
@@ -110,7 +110,7 @@
       }
     ],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 17,
+    "pdf_pages": 19,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -131,7 +131,7 @@
       "complete post-hoc common-episode comparison": true,
       "superiority over the planner was not established": true
     },
-    "pdf_words_extracted": 10273,
+    "pdf_words_extracted": 10411,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -149,7 +149,9 @@
       14,
       15,
       16,
-      17
+      17,
+      18,
+      19
     ],
     "source_required_phrases": {
       "1.478%": true,
