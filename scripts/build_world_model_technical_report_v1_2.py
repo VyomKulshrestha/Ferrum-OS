@@ -175,16 +175,6 @@ class EvidenceChain(Flowable):
             else:
                 canvas.drawCentredString(x + box_width / 2, y + 5.7 * mm, label_lines[0])
                 canvas.drawCentredString(x + box_width / 2, y + 2.9 * mm, label_lines[1])
-            if index < 5:
-                start = x + box_width + 0.7 * mm
-                end = x + box_width + gap - 0.7 * mm
-                mid = y + box_height / 2
-                canvas.setStrokeColor(GRID)
-                canvas.setLineWidth(1.1)
-                canvas.line(start, mid, end, mid)
-                canvas.setFillColor(GRID)
-                canvas.line(end, mid, end - 1.4 * mm, mid + 1.1 * mm)
-                canvas.line(end, mid, end - 1.4 * mm, mid - 1.1 * mm)
         canvas.setFillColor(MUTED)
         canvas.setFont("ReportSans-Italic", 6.7)
         canvas.drawString(
@@ -688,7 +678,7 @@ def research_questions_box(
                 ),
             ],
             [
-                Paragraph("RQ2 / AUTHORITY", styles["panel_label"]),
+                Paragraph("RQ2 / OPERATIONAL VALUE", styles["panel_label"]),
                 Paragraph(
                     "Does predictive quality translate into operational caution?",
                     styles["panel_text"],
@@ -1139,7 +1129,7 @@ def build(
                     "| Component | Test | Evidence | Availability / boundary |",
                     "|---|---|---|---|",
                     "| FerrumOS gate | QEMU integration | `world_model_failure_modes.json`: pass | Command path available; failure modes exercised [a] |",
-                    "| Assistant mediation | QEMU observation | `world_model_natural_use_verification_v1.json`: pass | Reads available; writes confirmed; deletes blocked |",
+                    "| Assistant mediation | QEMU observation | `world_model_natural_use_verification_v1.json`: pass | Reads available; writes await confirmation; deletes blocked |",
                     "| Signed neural permit | Host unit | Authority inventory: 9/9 | Protocol only; syscall path not exercised [b] |",
                     "| Physical permit and disabled driver | Host unit | `cross_domain_authority_test_inventory_v1.json`: 128/128 | Simulator/offline adapter only; physical actuator unavailable |",
                     "| Safety-Gym adapter | Host integration | Runtime verification: pass | Simulator commands only; no actuator [c] |",

@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "ffb35ad56a5dd5f846badc602064a64a8ee06e557d9d4136f3eca3dd5a2535ad"
+      "sha256": "d6ef24e6e33018a714218c55c0bfa08b4a95102967b5ce5b4fd094ed6d03c275"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
@@ -26,7 +26,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "019e6ded2d6510be40964ac1783bd7cdf7ea8404b111f11c9188affbacb82262"
+      "sha256": "4d141314cecdfb28d6a9273a909d910b0aae4c3346e35276a717683c3d2cadae"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -91,7 +91,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "ffb35ad56a5dd5f846badc602064a64a8ee06e557d9d4136f3eca3dd5a2535ad",
+    "freeze_manifest_sha256": "d6ef24e6e33018a714218c55c0bfa08b4a95102967b5ce5b4fd094ed6d03c275",
     "pdf_font_inventory": [
       {
         "base_font": "/AAAAAA+BitstreamVeraSans-Bold",
@@ -126,6 +126,7 @@
       "ORCID: 0009-0009-1434-7148": true,
       "Prediction Is Not Permission": true,
       "RESEARCH QUESTIONS": true,
+      "RQ2 / OPERATIONAL VALUE": true,
       "References": true,
       "Safety-Gymnasium controller and shield benchmark": true,
       "Technical Report v1.1": true,
@@ -134,9 +135,10 @@
       "Vyom Kulshrestha": true,
       "common-episode sensitivity": true,
       "complete post-hoc common-episode comparison": true,
-      "superiority over the planner was not established": true
+      "superiority over the planner was not established": true,
+      "writes await confirmation": true
     },
-    "pdf_words_extracted": 10489,
+    "pdf_words_extracted": 10491,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
