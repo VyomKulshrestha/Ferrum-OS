@@ -406,6 +406,40 @@ def risk_adapter_score(features: np.ndarray, adapter: dict) -> float:
     return exp_logit / (1.0 + exp_logit)
 
 
+def apply_risk_adapter_feature_intervention(
+    features: np.ndarray,
+    adapter: dict | None,
+    intervention: dict | None,
+) -> np.ndarray:
+    """Apply a registered pre-score feature intervention without changing the adapter."""
+    scored = np.asarray(features, dtype=np.float64).copy()
+    if intervention is None or intervention.get("mode") == "identity":
+        return scored
+    if intervention.get("mode") != "replace_raw_indices_with_adapter_means":
+        raise ValueError("unsupported risk adapter feature intervention")
+    if adapter is None:
+        raise ValueError("feature intervention requires a risk adapter")
+    if adapter.get("feature_transform") != "safety_summary":
+        raise ValueError("registered JEPA-output intervention requires safety_summary")
+    if scored.size != int(adapter.get("raw_feature_count", -1)):
+        raise ValueError("risk adapter raw feature count mismatch")
+    indices = [int(value) for value in intervention.get("raw_feature_indices", [])]
+    if len(indices) != len(set(indices)) or any(
+        index < 0 or index >= scored.size for index in indices
+    ):
+        raise ValueError("invalid risk adapter intervention indices")
+    means = np.asarray(adapter["feature_mean"], dtype=np.float64)
+    replacements = np.asarray(
+        intervention.get("replacement_values", []), dtype=np.float64
+    )
+    if replacements.shape != (len(indices),):
+        raise ValueError("risk adapter intervention replacement count mismatch")
+    if not np.array_equal(replacements, means[indices]):
+        raise ValueError("registered replacements differ from adapter means")
+    scored[indices] = replacements
+    return scored
+
+
 def proposal_has_motion(observation: np.ndarray, proposed: np.ndarray) -> bool:
     """Treat rotation and residual velocity as motion for learned caution."""
     return bool(
@@ -534,6 +568,9 @@ def run_episode(
     tangent_handoff_remaining = 0
     tangent_handoff_source: str | None = None
     intervention_cooldown_remaining = 0
+    feature_intervention = protocol.get("learned_risk_adapter", {}).get(
+        "feature_intervention"
+    )
     adaptive_phase: str | None = None
     adaptive_steps = 0
     planner_path = (
@@ -571,10 +608,15 @@ def run_episode(
                 predicted,
                 protocol["episode"],
             )
+            scored_adapter_features = apply_risk_adapter_feature_intervention(
+                adapter_features,
+                risk_adapter,
+                feature_intervention,
+            )
             learned_risk_score = (
                 None
                 if risk_adapter is None
-                else risk_adapter_score(adapter_features, risk_adapter)
+                else risk_adapter_score(scored_adapter_features, risk_adapter)
             )
             forward_motion = bool(proposed[0] > 0.0)
             motion_active = proposal_has_motion(observation, proposed)
@@ -986,6 +1028,13 @@ def run_episode(
                         "predicted_clearance": predicted_clearance,
                         "learned_risk_score": learned_risk_score,
                         "risk_adapter_features": adapter_features.tolist(),
+                        **(
+                            {
+                                "risk_adapter_scored_features": scored_adapter_features.tolist()
+                            }
+                            if feature_intervention is not None
+                            else {}
+                        ),
                         "rule_block": rule_block,
                         "learned_block": learned_block,
                         "raw_learned_block": raw_learned_block,
