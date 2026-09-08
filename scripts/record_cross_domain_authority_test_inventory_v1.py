@@ -69,10 +69,9 @@ def main() -> int:
             "cargo",
             "test",
             "--manifest-path",
-            "userland/heliox-daemon/Cargo.toml",
+            "userland/physical-runtime/Cargo.toml",
             "--target",
             "x86_64-pc-windows-msvc",
-            "physical::tests::",
         ]
     )
     components = [
@@ -112,7 +111,7 @@ def main() -> int:
             "component": "Safety-Gymnasium risk adapter runtime",
             "test_class": "host integration verification",
             "committed_evidence": physical_path.relative_to(ROOT).as_posix(),
-            "committed_pass": bool(physical.get("all_checks_pass")),
+            "committed_pass": bool(physical.get("verification_passed")),
             "execution_available": False,
             "execution_scope": "malformed/non-finite adapter behavior and simulator-only commands; no physical delivery",
         },
