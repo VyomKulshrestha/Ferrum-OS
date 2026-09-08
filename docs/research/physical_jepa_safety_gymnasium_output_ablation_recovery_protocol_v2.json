@@ -1,0 +1,174 @@
+{
+  "arms": [
+    {
+      "feature_intervention": {
+        "mode": "identity"
+      },
+      "id": "observed-frozen-jepa"
+    },
+    {
+      "feature_intervention": {
+        "mode": "replace_raw_indices_with_adapter_means",
+        "raw_feature_indices": [
+          22,
+          23,
+          24
+        ],
+        "replacement_source": "the frozen full adapter's development-set feature means at the same raw positions",
+        "replacement_values": [
+          0.09740320700088675,
+          0.5481373835895187,
+          0.5768034052643011
+        ]
+      },
+      "id": "development-mean-masked-jepa"
+    }
+  ],
+  "authority": {
+    "physical_actuator_attempts": 0,
+    "physical_actuator_deliveries": 0,
+    "promotion_eligible": false,
+    "promotion_forbidden": true
+  },
+  "changed_factor": "Only the values presented at raw risk-adapter feature indices 22-24: observed frozen JEPA outputs versus their preregistered development means.",
+  "claim_boundary": "The retained catalogs support a direct closed-loop output-value contrast for this fixed, locally executed Safety-Gymnasium software pipeline. The recovery is analysis-only and does not establish architecture-wide causality, planner superiority, learned-safety superiority, independent replication or assessment, HIL, physical safety, deployment safety, or promotion eligibility.",
+  "constant_factors": [
+    "Safety-Gymnasium 1.0.0 SafetyPointGoal1-v0 task and source digest",
+    "fresh paired seeds 9000-9127 and the already-completed two-arm execution",
+    "frozen Physical JEPA v5 model and inference path",
+    "full v14 safety_summary risk adapter, coefficients, normalization, and bias",
+    "learned risk operating threshold 0.72 with no retuning",
+    "rule warning, privileged planner, one-command tangent correction, cooldown, oracle, runtime, and metrics",
+    "v1 registered estimands and bootstrap seeds"
+  ],
+  "fresh_seed_execution": {
+    "case_catalogs_completed_before_failure": true,
+    "failure_was_after_simulator_and_analysis_completion": true,
+    "fresh_at_v1_registration": true,
+    "recovery_opens_no_new_simulator_seed": true,
+    "seed_range": {
+      "count": 128,
+      "start": 9000
+    }
+  },
+  "frozen_artifact": {
+    "deployment_target": "userland/heliox-daemon/physical_world_model.bin",
+    "path": "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin",
+    "retrained_for_ablation": false,
+    "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+  },
+  "frozen_policy": {
+    "candidate_id": "planner-h20-b1-l072",
+    "count_only_effective_interventions": true,
+    "fallback_forward": 0.0,
+    "fallback_mode": "planner_tangent",
+    "intervention_cooldown_steps": 0,
+    "learned_predicted_clearance_threshold": -0.03,
+    "learned_requires_rule_confirmation": false,
+    "learned_risk_threshold": 0.72,
+    "planner_hazard_inflation": 0.46,
+    "rule_hazard_closeness_threshold": 0.97,
+    "tangent_away_weight": 2.0,
+    "tangent_command_budget": 1,
+    "tangent_forward": 0.35,
+    "tangent_forward_alignment_radians": 0.45,
+    "tangent_path_weight": 0.5,
+    "tangent_turn_gain": 1.5,
+    "tangent_weight": 1.0
+  },
+  "frozen_warning_pipeline": {
+    "adapter": {
+      "path": "docs/research/artifacts/physical-jepa-safety-adapter-v14/risk_adapter.json",
+      "sha256": "36c3aa7ca0cd061254119da50d276263e8b4c2dd6d2bffc1b07159c0a239b36a"
+    },
+    "runner_arm": "planner_rules_plus_learned"
+  },
+  "outcome_retention": {
+    "all_arms_required": true,
+    "all_reconstructed_episode_summaries_required": true,
+    "all_signed_paired_effects_required": true,
+    "favorable_outcome_gate": null,
+    "failed_attempt_must_remain_present": true,
+    "null_intervals_must_be_listed": true,
+    "result_suppression_forbidden": true
+  },
+  "protected_files": {
+    "deployed_physical_world_model": {
+      "path": "userland/heliox-daemon/physical_world_model.bin",
+      "sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864"
+    },
+    "technical_report_v1_1_pdf_at_recovery_registration": {
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
+      "sha256": "32eb2bef032e727a0a0caa8540fb54a7f774bc9391d3b68d02c8b50d076882d8"
+    },
+    "technical_report_v1_1_source": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
+      "sha256": "b4d205d168c1f664bcc95c0b7674c2821fdd89dfc672e91934ed685a29f7a539"
+    }
+  },
+  "protocol_id": "physical-jepa-safety-gymnasium-output-ablation-recovery-v2",
+  "recovery_rule": "Reconstruct the registered episode counters from every retained step row, rerun the v1 aggregate and bootstrap code without changing any estimand or random seed, and write a result only if all registered input and protected-file digests remain exact.",
+  "registered_date": "2026-09-08",
+  "registered_inputs": {
+    "failed_attempt": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
+      "sha256": "ed68b02869e8a178450e67b2951638747f7c3c6f123ed35b505bc0ad6a84bc41"
+    },
+    "original_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json",
+      "sha256": "79104c1443c3e4a51ac32e5539c5564e7acbb47a186ad137ff1b4e93ac8407a7"
+    },
+    "source_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_protocol_v14.json",
+      "sha256": "58dcf0de75ba3c6edd361d35059cbdd1429e6efc2c2e484e74191f2008d3fa4e"
+    },
+    "source_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+      "sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
+    }
+  },
+  "retained_execution_catalogs": {
+    "development-mean-masked-jepa": {
+      "path": "docs/research/artifacts/physical-jepa-safety-output-ablation-v1/final-cases/development-mean-masked-jepa.jsonl.gz",
+      "rows": 25389,
+      "sha256": "3190bcac8c24d832fbdeaa7adcd6fe3360e774f64ef51ebe7bc042e34db6defb"
+    },
+    "observed-frozen-jepa": {
+      "path": "docs/research/artifacts/physical-jepa-safety-output-ablation-v1/final-cases/observed-frozen-jepa.jsonl.gz",
+      "rows": 25497,
+      "sha256": "64245720d774fb1436323fc743bc05812d9dc2ad97c3d8c1459b3fcf538fa571"
+    }
+  },
+  "schema": "physical-jepa-safety-gymnasium-output-ablation-recovery-protocol-v2",
+  "threshold_selection": {
+    "ablation_threshold_search": false,
+    "fixed_operating_threshold": 0.72,
+    "recovery_retuning_forbidden": true,
+    "rule": "Reuse the v14 selected candidate's learned_risk_threshold exactly in both arms."
+  },
+  "toolchain": {
+    "benchmark_runner_with_registered_feature_hook": {
+      "path": "scripts/run_physical_jepa_safety_gymnasium.py",
+      "sha256": "77c476e2bdadd585d6586ebbf3d878cf65c2845a97938116aad07cf4507f3659"
+    },
+    "recovery_runner": {
+      "path": "scripts/recover_physical_jepa_safety_gymnasium_output_ablation_v2.py",
+      "sha256": "735f5a39842546c7fc6d224f35c29d17ed278ecf8720ec18243d58b5d0dcadae"
+    },
+    "recovery_verifier": {
+      "path": "scripts/verify_physical_jepa_safety_gymnasium_output_ablation_recovery_v2.py",
+      "sha256": "3af0006c6a6fc70f1e3560ef4cdbf81d382246797df7ed88961dca899ee7efab"
+    },
+    "v1_registered_analysis_core": {
+      "path": "scripts/run_physical_jepa_safety_gymnasium_output_ablation_v1.py",
+      "sha256": "0034ee3100db93b6d971ebd0be01a42757fbebbd9c007099f95a1a79c821b1f7"
+    }
+  },
+  "uncertainty": {
+    "absolute_bootstrap_resamples": 5000,
+    "absolute_bootstrap_seed": 2026090800,
+    "paired_bootstrap_resamples": 10000,
+    "paired_bootstrap_seed": 2026090810,
+    "scope": "Episode bootstrap conditions on the frozen fitted model, frozen fitted adapter, fixed masking intervention, retained complete execution catalogs, and registered seed-generating process."
+  }
+}
