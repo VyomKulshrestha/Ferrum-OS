@@ -170,7 +170,7 @@ def common_episode_domain(
     seed: int,
     resamples: int,
 ) -> dict:
-    _, _, _, h5_episodes, _ = models.rollout_arrays(rows, spec, 5)
+    _, _, _, _, h5_episodes, _ = models.rollout_arrays(rows, spec, 5)
     common_ids = set(str(value) for value in np.unique(h5_episodes))
     common_rows = [row for row in rows if str(row["episode"]) in common_ids]
     if not common_rows:
