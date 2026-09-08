@@ -10,13 +10,14 @@ from pathlib import Path
 import re
 
 from PIL import Image as PILImage
+from matplotlib import get_data_path
 import reportlab
 from reportlab import rl_config
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
+from reportlab.lib.units import inch, mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
@@ -24,6 +25,7 @@ from reportlab.platypus import (
     BaseDocTemplate,
     Flowable,
     Frame,
+    HRFlowable,
     Image,
     KeepTogether,
     PageBreak,
@@ -75,12 +77,29 @@ def register_embedded_fonts() -> None:
     for name, filename in font_files.items():
         if name not in registered:
             pdfmetrics.registerFont(TTFont(name, str(font_dir / filename)))
+    serif_dir = Path(get_data_path()) / "fonts" / "ttf"
+    serif_files = {
+        "ReportSerif": "DejaVuSerif.ttf",
+        "ReportSerif-Bold": "DejaVuSerif-Bold.ttf",
+        "ReportSerif-Italic": "DejaVuSerif-Italic.ttf",
+        "ReportSerif-BoldItalic": "DejaVuSerif-BoldItalic.ttf",
+    }
+    for name, filename in serif_files.items():
+        if name not in registered:
+            pdfmetrics.registerFont(TTFont(name, str(serif_dir / filename)))
     pdfmetrics.registerFontFamily(
         "ReportSans",
         normal="ReportSans",
         bold="ReportSans-Bold",
         italic="ReportSans-Italic",
         boldItalic="ReportSans-BoldItalic",
+    )
+    pdfmetrics.registerFontFamily(
+        "ReportSerif",
+        normal="ReportSerif",
+        bold="ReportSerif-Bold",
+        italic="ReportSerif-Italic",
+        boldItalic="ReportSerif-BoldItalic",
     )
     # Prevent the canvas from registering an unused, unembedded Base-14 font
     # before the first flowable is drawn.
@@ -571,9 +590,33 @@ def draw_header_footer(
     running_left: str = "WHEN AGENTS CONTROL THE KERNEL",
     running_right: str = "TECHNICAL REPORT v1.2",
     footer_note: str = "FerrumOS world-model safety gate - evidence frozen 26 August 2026",
+    scholarly_layout: bool = False,
 ) -> None:
     canvas.saveState()
-    width, height = A4
+    width, height = canvas._pagesize
+    if scholarly_layout:
+        canvas.setStrokeColor(colors.HexColor("#D4DDE4"))
+        canvas.setLineWidth(0.4)
+        canvas.line(
+            document.leftMargin,
+            height - 0.48 * inch,
+            width - document.rightMargin,
+            height - 0.48 * inch,
+        )
+        canvas.setFont("ReportSans", 7.3)
+        canvas.setFillColor(colors.HexColor("#667788"))
+        canvas.drawString(
+            document.leftMargin,
+            height - 0.38 * inch,
+            f"{running_left} - {running_right}",
+        )
+        canvas.drawRightString(
+            width - document.rightMargin,
+            0.38 * inch,
+            str(document.page),
+        )
+        canvas.restoreState()
+        return
     canvas.setStrokeColor(GRID)
     canvas.setLineWidth(0.5)
     canvas.line(17 * mm, height - 14.5 * mm, width - 17 * mm, height - 14.5 * mm)
@@ -885,60 +928,99 @@ def build(
         styles["h2"].spaceAfter = 1.8 * mm
     readable_layout = editorial_layout and spacious_body
     if readable_layout:
-        styles["front_eyebrow"].fontSize = 10.2
-        styles["front_eyebrow"].leading = 13.0
-        styles["front_title"].fontSize = 25.0
-        styles["front_title"].leading = 27.5
-        styles["front_meta"].fontSize = 8.4
-        styles["front_meta"].leading = 10.8
-        styles["front_abstract_heading"].fontSize = 14.8
-        styles["front_abstract_heading"].leading = 17.5
+        styles["front_eyebrow"].fontName = "ReportSans"
+        styles["front_eyebrow"].fontSize = 12.8
+        styles["front_eyebrow"].leading = 16.5
+        styles["front_eyebrow"].textColor = colors.HexColor("#44546A")
+        styles["front_eyebrow"].spaceAfter = 4.0 * mm
+        styles["front_title"].fontSize = 23.5
+        styles["front_title"].leading = 26.0
+        styles["front_title"].textColor = colors.HexColor("#17202A")
+        styles["front_title"].alignment = TA_CENTER
+        styles["front_title"].spaceAfter = 3.0 * mm
+        styles["front_meta"].fontSize = 9.1
+        styles["front_meta"].leading = 12.8
+        styles["front_meta"].textColor = colors.HexColor("#586575")
+        styles["front_meta"].alignment = TA_CENTER
+        styles["front_meta"].spaceAfter = 1.0 * mm
+        styles["front_abstract_heading"].fontSize = 14.0
+        styles["front_abstract_heading"].leading = 17.0
+        styles["front_abstract_heading"].textColor = colors.HexColor("#1F496E")
         styles["front_abstract_heading"].alignment = TA_LEFT
-        styles["front_abstract"].fontSize = 9.25
-        styles["front_abstract"].leading = 12.6
-        styles["front_abstract"].spaceAfter = 2.5 * mm
-        styles["front_h1"].fontSize = 15.8
-        styles["front_h1"].leading = 18.4
+        styles["front_abstract_heading"].spaceBefore = 3.0 * mm
+        styles["front_abstract_heading"].spaceAfter = 2.0 * mm
+        styles["front_abstract"].fontName = "ReportSerif-Italic"
+        styles["front_abstract"].fontSize = 9.0
+        styles["front_abstract"].leading = 12.8
+        styles["front_abstract"].alignment = TA_JUSTIFY
+        styles["front_abstract"].backColor = colors.HexColor("#F5F8FA")
+        styles["front_abstract"].borderColor = colors.HexColor("#A9B9C8")
+        styles["front_abstract"].borderWidth = 0.6
+        styles["front_abstract"].borderPadding = 8
+        styles["front_abstract"].spaceAfter = 3.0 * mm
+        styles["front_h1"].fontSize = 14.0
+        styles["front_h1"].leading = 17.0
+        styles["front_h1"].textColor = colors.HexColor("#1F496E")
+        styles["front_h1"].spaceBefore = 3.5 * mm
+        styles["front_h1"].spaceAfter = 2.0 * mm
         styles["front_h2"].fontSize = 11.2
-        styles["front_h2"].leading = 13.6
-        styles["front_body"].fontSize = 9.25
-        styles["front_body"].leading = 12.5
-        styles["front_body"].spaceAfter = 2.1 * mm
-        styles["front_claim_label"].fontSize = 7.8
-        styles["front_claim_label"].leading = 9.8
-        styles["front_claim"].fontSize = 8.3
-        styles["front_claim"].leading = 10.7
-        styles["body"].fontSize = 9.25
-        styles["body"].leading = 12.45
-        styles["body"].spaceAfter = 2.1 * mm
-        styles["h1"].fontSize = 15.4
-        styles["h1"].leading = 18.0
-        styles["h1"].spaceBefore = 5.0 * mm
-        styles["h1"].spaceAfter = 3.0 * mm
-        styles["h2"].fontSize = 11.4
-        styles["h2"].leading = 13.8
-        styles["h2"].spaceBefore = 3.8 * mm
-        styles["h2"].spaceAfter = 2.2 * mm
+        styles["front_h2"].leading = 14.0
+        styles["front_h2"].textColor = colors.HexColor("#2D5F78")
+        styles["front_h2"].spaceBefore = 3.0 * mm
+        styles["front_h2"].spaceAfter = 1.5 * mm
+        styles["front_body"].fontName = "ReportSerif"
+        styles["front_body"].fontSize = 9.15
+        styles["front_body"].leading = 12.8
+        styles["front_body"].alignment = TA_JUSTIFY
+        styles["front_body"].spaceAfter = 2.0 * mm
+        styles["front_claim"].fontName = "ReportSerif-Italic"
+        styles["front_claim"].fontSize = 9.1
+        styles["front_claim"].leading = 13.0
+        styles["front_claim"].alignment = TA_JUSTIFY
+        styles["front_claim"].leftIndent = 16
+        styles["front_claim"].rightIndent = 16
+        styles["front_claim"].textColor = colors.HexColor("#34495E")
+        styles["body"].fontName = "ReportSerif"
+        styles["body"].fontSize = 9.1
+        styles["body"].leading = 12.75
+        styles["body"].alignment = TA_JUSTIFY
+        styles["body"].spaceAfter = 2.0 * mm
+        styles["h1"].fontSize = 14.0
+        styles["h1"].leading = 17.0
+        styles["h1"].textColor = colors.HexColor("#1F496E")
+        styles["h1"].spaceBefore = 4.2 * mm
+        styles["h1"].spaceAfter = 2.0 * mm
+        styles["h1"].backColor = None
+        styles["h1"].borderWidth = 0
+        styles["h1"].borderPadding = 0
+        styles["h2"].fontSize = 11.2
+        styles["h2"].leading = 14.0
+        styles["h2"].textColor = colors.HexColor("#2D5F78")
+        styles["h2"].spaceBefore = 3.0 * mm
+        styles["h2"].spaceAfter = 1.5 * mm
+        styles["bullet"].fontName = "ReportSerif"
+        styles["bullet"].bulletFontName = "ReportSerif"
         styles["bullet"].fontSize = 9.0
-        styles["bullet"].leading = 12.1
-        styles["bullet"].spaceAfter = 1.5 * mm
-        styles["small"].fontSize = 7.0
-        styles["small"].leading = 8.8
+        styles["bullet"].leading = 12.6
+        styles["bullet"].spaceAfter = 1.2 * mm
+        styles["small"].fontSize = 7.1
+        styles["small"].leading = 8.9
         styles["table_header"].fontSize = 6.6
         styles["table_header"].leading = 8.2
-        styles["caption"].fontSize = 7.2
-        styles["caption"].leading = 9.1
+        styles["caption"].fontSize = 7.5
+        styles["caption"].leading = 9.5
         styles["code"].fontSize = 7.0
         styles["code"].leading = 9.1
     lines = source.read_text(encoding="utf-8").splitlines()
     output.parent.mkdir(parents=True, exist_ok=True)
+    page_size = letter if readable_layout else A4
     document = BaseDocTemplate(
         str(output),
-        pagesize=A4,
-        leftMargin=17 * mm,
-        rightMargin=17 * mm,
-        topMargin=18.5 * mm,
-        bottomMargin=19 * mm,
+        pagesize=page_size,
+        leftMargin=0.7 * inch if readable_layout else 17 * mm,
+        rightMargin=0.7 * inch if readable_layout else 17 * mm,
+        topMargin=0.76 * inch if readable_layout else 18.5 * mm,
+        bottomMargin=0.62 * inch if readable_layout else 19 * mm,
         title=pdf_title,
         author="Vyom Kulshrestha",
         subject=pdf_subject,
@@ -959,6 +1041,7 @@ def build(
             running_left=running_left,
             running_right=running_right,
             footer_note=footer_note,
+            scholarly_layout=readable_layout,
         )
 
     document.addPageTemplates(
@@ -1065,40 +1148,53 @@ def build(
 
     if readable_layout:
         story = [
-            Spacer(1, 24 * mm),
-            Paragraph(inline(subtitle), styles["front_eyebrow"]),
-            Paragraph(inline(title), styles["front_title"]),
-            Table(
-                [["", ""]],
-                colWidths=[18 * mm, document.width - 18 * mm],
-                rowHeights=[2.0 * mm],
-                style=[
-                    ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
-                    ("BACKGROUND", (0, 0), (0, 0), ORANGE),
-                    ("BACKGROUND", (1, 0), (1, 0), TEAL),
-                ],
-            ),
-            Spacer(1, 12 * mm),
-            meta_table,
-            Spacer(1, 18 * mm),
-            callout_box(
-                "v1.2 evidence update",
-                "Observed Physical JEPA output values are compared with preregistered development-mean masking on complete paired catalogs. The design and simulator execution were prospective; the reportable result remains a retrospective recovery because a concurrent report rebuild tripped the final protected-file check.",
-                document.width,
-                styles,
-                accent=ORANGE,
-            ),
             Spacer(1, 8 * mm),
-            EvidenceChain(document.width),
-            PageBreak(),
-            Spacer(1, 2.0 * mm),
+            Paragraph(inline(title), styles["front_title"]),
+            Paragraph(inline(subtitle), styles["front_eyebrow"]),
+            HRFlowable(
+                width="62%",
+                thickness=0.8,
+                color=colors.HexColor("#6F8DA4"),
+                spaceBefore=1,
+                spaceAfter=10,
+            ),
+            Paragraph(f"<b>{inline(meta[1])}</b>", styles["front_meta"]),
+            Paragraph(inline(meta[2]), styles["front_meta"]),
+            Paragraph(inline(meta[3]), styles["front_meta"]),
+            Paragraph(
+                inline(meta[5]) + " | " + inline(meta[4]),
+                styles["front_meta"],
+            ),
+            Paragraph(inline(meta[0]), styles["front_meta"]),
+            Paragraph(inline(meta[6]), styles["front_meta"]),
+            Spacer(1, 5 * mm),
             Paragraph("Abstract", styles["front_abstract_heading"]),
+            Paragraph(
+                inline(" ".join(abstract_paragraphs)),
+                styles["front_abstract"],
+            ),
+            Paragraph("1. Introduction", styles["front_h1"]),
         ]
         story.extend(
-            Paragraph(inline(value), styles["front_abstract"])
-            for value in abstract_paragraphs
+            Paragraph(inline(value), styles["front_body"])
+            for value in intro_paragraphs
         )
-        story.extend([Spacer(1, 2.0 * mm), claim_table])
+        story.append(Paragraph("1.1 Contributions", styles["front_h2"]))
+        for value in contribution_paragraphs:
+            story.extend(
+                Paragraph(inline(piece), styles["front_body"])
+                for piece in split_for_readability(value, 620)
+            )
+        story.extend(
+            [
+                Paragraph("1.2 Claim boundary", styles["front_h2"]),
+                Paragraph(
+                    inline(" ".join(claim_paragraphs)),
+                    styles["front_claim"],
+                ),
+                Spacer(1, 3.0 * mm),
+            ]
+        )
     else:
         story = [
             Spacer(1, 1.2 * mm),
@@ -1112,44 +1208,43 @@ def build(
             Paragraph(inline(value), styles["front_abstract"])
             for value in abstract_paragraphs
         )
-    if editorial_layout and not readable_layout:
-        story.extend(
-            [
-                Spacer(1, 1.4 * mm),
-                callout_box(
-                    "Core finding",
-                    "Prediction quality, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority are distinct evidence objects.",
-                    document.width,
-                    styles,
-                ),
-                Spacer(1, 4.0 * mm),
-                EvidenceChain(document.width),
-                PageBreak(),
-                Spacer(1, 1.5 * mm),
-            ]
-        )
-    elif not readable_layout:
-        story.append(Spacer(1, 0.6 * mm))
-    if not readable_layout:
+        if editorial_layout:
+            story.extend(
+                [
+                    Spacer(1, 1.4 * mm),
+                    callout_box(
+                        "Core finding",
+                        "Prediction quality, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority are distinct evidence objects.",
+                        document.width,
+                        styles,
+                    ),
+                    Spacer(1, 4.0 * mm),
+                    EvidenceChain(document.width),
+                    PageBreak(),
+                    Spacer(1, 1.5 * mm),
+                ]
+            )
+        else:
+            story.append(Spacer(1, 0.6 * mm))
         story.append(claim_table)
-    story.append(Paragraph("1 Introduction", styles["front_h1"]))
-    story.extend(
-        Paragraph(inline(value), styles["front_body"]) for value in intro_paragraphs
-    )
-    story.append(Paragraph("Contributions", styles["front_h2"]))
-    for value in contribution_paragraphs:
-        pieces = split_for_readability(value, 620) if editorial_layout else [value]
-        story.extend(Paragraph(inline(piece), styles["front_body"]) for piece in pieces)
-    if editorial_layout:
+        story.append(Paragraph("1 Introduction", styles["front_h1"]))
         story.extend(
-            [
-                Spacer(1, 3.5 * mm),
-                research_questions_box(document.width, styles),
-            ]
+            Paragraph(inline(value), styles["front_body"])
+            for value in intro_paragraphs
         )
-    if readable_layout:
-        story.append(Spacer(1, 7 * mm))
-    else:
+        story.append(Paragraph("Contributions", styles["front_h2"]))
+        for value in contribution_paragraphs:
+            pieces = split_for_readability(value, 620) if editorial_layout else [value]
+            story.extend(
+                Paragraph(inline(piece), styles["front_body"]) for piece in pieces
+            )
+        if editorial_layout:
+            story.extend(
+                [
+                    Spacer(1, 3.5 * mm),
+                    research_questions_box(document.width, styles),
+                ]
+            )
         story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
 
     lines = lines[front_end + 1 :]
@@ -1206,8 +1301,12 @@ def build(
                 table_lines.append(lines[index])
                 index += 1
             table_note = None
-            if editorial_layout and table_lines[0].startswith(
-                "| Component exercised | Test class | Committed pass evidence"
+            if (
+                editorial_layout
+                and not readable_layout
+                and table_lines[0].startswith(
+                    "| Component exercised | Test class | Committed pass evidence"
+                )
             ):
                 table_lines = [
                     "| Component | Test | Evidence | Availability / boundary |",
@@ -1228,8 +1327,10 @@ def build(
             ]
             if table_note:
                 table_group.append(Paragraph(inline(table_note), styles["table_note"]))
-            if editorial_layout and table_lines[0].startswith(
-                "| Final arm | Completion |"
+            if (
+                editorial_layout
+                and not readable_layout
+                and table_lines[0].startswith("| Final arm | Completion |")
             ):
                 table_group.extend(
                     [
@@ -1237,8 +1338,12 @@ def build(
                         safety_gym_result_strip(document.width, styles),
                     ]
                 )
-            if editorial_layout and table_lines[0].startswith(
-                "| Risk source | Completion | Effective recall |"
+            if (
+                editorial_layout
+                and not readable_layout
+                and table_lines[0].startswith(
+                    "| Risk source | Completion | Effective recall |"
+                )
             ):
                 table_group.extend(
                     [
@@ -1257,7 +1362,11 @@ def build(
         )
         if image_flowables:
             flush_paragraph()
-            if editorial_layout and "matched_rollout_results.png" in line:
+            if (
+                editorial_layout
+                and not readable_layout
+                and "matched_rollout_results.png" in line
+            ):
                 story.extend(
                     [
                         architecture_result_box(document.width, styles),
@@ -1290,7 +1399,7 @@ def build(
             abstract_mode = False
             heading = line[5:]
             story.append(Paragraph(inline(heading), styles["h2"]))
-            if editorial_layout:
+            if editorial_layout and not readable_layout:
                 boundaries = {
                     "4.2 Matched architecture study": (
                         "Evidence boundary",
