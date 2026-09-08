@@ -7,6 +7,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -19,7 +20,6 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import cross_domain_world_model_models as models  # noqa: E402
 import evaluate_cross_domain_world_models as architecture  # noqa: E402
-import run_physical_jepa_safety_gymnasium as safety_gym  # noqa: E402
 
 
 PROTOCOL = ROOT / "docs/research/cross_domain_world_model_posthoc_sensitivity_protocol_v1.json"
@@ -31,6 +31,53 @@ VARIANTS = (
     "jepa-outputs-only",
     "hazard-closeness-only",
 )
+
+
+def expand_adapter_features(features: np.ndarray, transform: str) -> np.ndarray:
+    """Mirror the frozen runtime's two transforms used by the four adapters."""
+    if transform == "identity":
+        return features
+    if transform == "safety_summary":
+        hazards = features[:16]
+        summary = np.asarray(
+            [
+                float(np.max(hazards[10:15])),
+                float(np.mean(hazards[10:15])),
+                float(np.max(hazards[3:15])),
+            ],
+            dtype=np.float64,
+        )
+        return np.concatenate((features, summary))
+    raise ValueError(f"unsupported registered adapter transform: {transform}")
+
+
+def adapter_score(features: np.ndarray, adapter: dict) -> float:
+    """Apply the frozen linear-logistic adapter without importing the simulator."""
+    if not np.all(np.isfinite(features)):
+        return 1.0
+    expanded = expand_adapter_features(
+        features, adapter.get("feature_transform", "identity")
+    )
+    mean = np.asarray(adapter["feature_mean"], dtype=np.float64)
+    scale = np.asarray(adapter["feature_scale"], dtype=np.float64)
+    weights = np.asarray(adapter["weights"], dtype=np.float64)
+    if expanded.shape != mean.shape or mean.shape != scale.shape or scale.shape != weights.shape:
+        raise ValueError("risk adapter feature shape mismatch")
+    if (
+        not np.all(np.isfinite(mean))
+        or not np.all(np.isfinite(scale))
+        or not np.all(np.isfinite(weights))
+        or not math.isfinite(float(adapter["bias"]))
+        or np.any(scale <= 0.0)
+    ):
+        return 1.0
+    logit = float(np.dot((expanded - mean) / scale, weights) + adapter["bias"])
+    if not math.isfinite(logit):
+        return 1.0
+    if logit >= 0.0:
+        return 1.0 / (1.0 + math.exp(-logit))
+    exp_logit = math.exp(logit)
+    return exp_logit / (1.0 + exp_logit)
 
 
 def sha256(path: Path) -> str:
@@ -391,7 +438,7 @@ def common_proposal_metrics(protocol: dict) -> dict:
             raise ValueError(f"attribution adapter drifted: {name}")
         adapter = load_json(adapter_path)
         scores = np.asarray(
-            [safety_gym.risk_adapter_score(feature, adapter) for feature in features]
+            [adapter_score(feature, adapter) for feature in features]
         )
         warnings = rule_blocks | (motion & (scores >= item["learned_risk_threshold"]))
         tp = int(np.sum(warnings & labels))
