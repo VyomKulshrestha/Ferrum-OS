@@ -883,6 +883,53 @@ def build(
         styles["h1"].borderPadding = 5
         styles["h2"].spaceBefore = 3.0 * mm
         styles["h2"].spaceAfter = 1.8 * mm
+    readable_layout = editorial_layout and spacious_body
+    if readable_layout:
+        styles["front_eyebrow"].fontSize = 10.2
+        styles["front_eyebrow"].leading = 13.0
+        styles["front_title"].fontSize = 25.0
+        styles["front_title"].leading = 27.5
+        styles["front_meta"].fontSize = 8.4
+        styles["front_meta"].leading = 10.8
+        styles["front_abstract_heading"].fontSize = 14.8
+        styles["front_abstract_heading"].leading = 17.5
+        styles["front_abstract_heading"].alignment = TA_LEFT
+        styles["front_abstract"].fontSize = 9.25
+        styles["front_abstract"].leading = 12.6
+        styles["front_abstract"].spaceAfter = 2.5 * mm
+        styles["front_h1"].fontSize = 15.8
+        styles["front_h1"].leading = 18.4
+        styles["front_h2"].fontSize = 11.2
+        styles["front_h2"].leading = 13.6
+        styles["front_body"].fontSize = 9.25
+        styles["front_body"].leading = 12.5
+        styles["front_body"].spaceAfter = 2.1 * mm
+        styles["front_claim_label"].fontSize = 7.8
+        styles["front_claim_label"].leading = 9.8
+        styles["front_claim"].fontSize = 8.3
+        styles["front_claim"].leading = 10.7
+        styles["body"].fontSize = 9.25
+        styles["body"].leading = 12.45
+        styles["body"].spaceAfter = 2.1 * mm
+        styles["h1"].fontSize = 15.4
+        styles["h1"].leading = 18.0
+        styles["h1"].spaceBefore = 5.0 * mm
+        styles["h1"].spaceAfter = 3.0 * mm
+        styles["h2"].fontSize = 11.4
+        styles["h2"].leading = 13.8
+        styles["h2"].spaceBefore = 3.8 * mm
+        styles["h2"].spaceAfter = 2.2 * mm
+        styles["bullet"].fontSize = 9.0
+        styles["bullet"].leading = 12.1
+        styles["bullet"].spaceAfter = 1.5 * mm
+        styles["small"].fontSize = 7.0
+        styles["small"].leading = 8.8
+        styles["table_header"].fontSize = 6.6
+        styles["table_header"].leading = 8.2
+        styles["caption"].fontSize = 7.2
+        styles["caption"].leading = 9.1
+        styles["code"].fontSize = 7.0
+        styles["code"].leading = 9.1
     lines = source.read_text(encoding="utf-8").splitlines()
     output.parent.mkdir(parents=True, exist_ok=True)
     document = BaseDocTemplate(
@@ -1016,19 +1063,56 @@ def build(
         )
     )
 
-    story = [
-        Spacer(1, 1.2 * mm),
-        Paragraph(inline(subtitle), styles["front_eyebrow"]),
-        Paragraph(inline(title), styles["front_title"]),
-        meta_table,
-        Spacer(1, 1.1 * mm),
-        Paragraph("ABSTRACT", styles["front_abstract_heading"]),
-    ]
-    story.extend(
-        Paragraph(inline(value), styles["front_abstract"])
-        for value in abstract_paragraphs
-    )
-    if editorial_layout:
+    if readable_layout:
+        story = [
+            Spacer(1, 24 * mm),
+            Paragraph(inline(subtitle), styles["front_eyebrow"]),
+            Paragraph(inline(title), styles["front_title"]),
+            Table(
+                [["", ""]],
+                colWidths=[18 * mm, document.width - 18 * mm],
+                rowHeights=[2.0 * mm],
+                style=[
+                    ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
+                    ("BACKGROUND", (0, 0), (0, 0), ORANGE),
+                    ("BACKGROUND", (1, 0), (1, 0), TEAL),
+                ],
+            ),
+            Spacer(1, 12 * mm),
+            meta_table,
+            Spacer(1, 18 * mm),
+            callout_box(
+                "v1.2 evidence update",
+                "Observed Physical JEPA output values are now compared with preregistered development-mean masking on complete retained paired catalogs. The analysis remains retrospective because the prospective v1 execution failed its final protected-file check.",
+                document.width,
+                styles,
+                accent=ORANGE,
+            ),
+            Spacer(1, 8 * mm),
+            EvidenceChain(document.width),
+            PageBreak(),
+            Spacer(1, 2.0 * mm),
+            Paragraph("Abstract", styles["front_abstract_heading"]),
+        ]
+        story.extend(
+            Paragraph(inline(value), styles["front_abstract"])
+            for value in abstract_paragraphs
+        )
+        story.extend([Spacer(1, 2.0 * mm), claim_table])
+    else:
+        story = [
+            Spacer(1, 1.2 * mm),
+            Paragraph(inline(subtitle), styles["front_eyebrow"]),
+            Paragraph(inline(title), styles["front_title"]),
+            meta_table,
+            Spacer(1, 1.1 * mm),
+            Paragraph("ABSTRACT", styles["front_abstract_heading"]),
+        ]
+        story.extend(
+            Paragraph(inline(value), styles["front_abstract"])
+            for value in abstract_paragraphs
+        )
+    if editorial_layout and not readable_layout:
         story.extend(
             [
                 Spacer(1, 1.4 * mm),
@@ -1044,14 +1128,11 @@ def build(
                 Spacer(1, 1.5 * mm),
             ]
         )
-    else:
+    elif not readable_layout:
         story.append(Spacer(1, 0.6 * mm))
-    story.extend(
-        [
-            claim_table,
-            Paragraph("1 Introduction", styles["front_h1"]),
-        ]
-    )
+    if not readable_layout:
+        story.append(claim_table)
+    story.append(Paragraph("1 Introduction", styles["front_h1"]))
     story.extend(
         Paragraph(inline(value), styles["front_body"]) for value in intro_paragraphs
     )
@@ -1066,7 +1147,10 @@ def build(
                 research_questions_box(document.width, styles),
             ]
         )
-    story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
+    if readable_layout:
+        story.append(Spacer(1, 7 * mm))
+    else:
+        story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
 
     lines = lines[front_end + 1 :]
     paragraph: list[str] = []
@@ -1180,7 +1264,10 @@ def build(
                         Spacer(1, 2.4 * mm),
                     ]
                 )
-            story.extend(image_flowables)
+            if readable_layout:
+                story.append(KeepTogether(image_flowables))
+            else:
+                story.extend(image_flowables)
             index += 1
             continue
         if not line.strip():

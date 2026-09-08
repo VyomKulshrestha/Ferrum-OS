@@ -30,9 +30,9 @@ def main() -> None:
         running_left="PREDICTION IS NOT PERMISSION",
         running_right=f"TECHNICAL REPORT v{args.version}",
         footer_note=f"Cross-domain world-model authority study - evidence frozen {args.evidence_date}",
-        spacious_body=args.version == "1.0",
-        compact_body=args.version != "1.0",
-        editorial_layout=args.version == "1.1",
+        spacious_body=args.version in {"1.0", "1.2"},
+        compact_body=args.version == "1.1",
+        editorial_layout=args.version in {"1.1", "1.2"},
     )
     print(args.output)
 

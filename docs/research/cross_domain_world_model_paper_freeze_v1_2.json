@@ -1,0 +1,150 @@
+{
+  "artifacts": {
+    "authority_test_inventory": {
+      "path": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "sha256": "e4bd63ecb9432847ee3fa6d3a08d7c1b77e2bb851572d040c713c8a91eb9b812"
+    },
+    "evidence_snapshot": {
+      "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
+      "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
+    },
+    "external_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+      "sha256": "2cb0d2d6668f8827706069c0d3ab0c56d7d9122623b0b570f80219e3c9dc6a83"
+    },
+    "external_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_verification_v14.json",
+      "sha256": "603faf48e4a583d77abf57ccda9db7a4b4afe51596f3e3c4c46192a1ede8dd9e"
+    },
+    "figures": [
+      {
+        "bytes": 123678,
+        "path": "docs/research/figures/cross_domain_world_model/authority_factorization.png",
+        "sha256": "2a2f178dd0c60f3079a00017df7432fbb4b7bff1f09f1d2b196069200c03eecb"
+      },
+      {
+        "bytes": 109239,
+        "path": "docs/research/figures/cross_domain_world_model/matched_rollout_results.png",
+        "sha256": "2cde4e384cb99a715de5ec6188e3f55a56f6f5c6e7f71f0f337aa7f1e0e68537"
+      },
+      {
+        "bytes": 115893,
+        "path": "docs/research/figures/cross_domain_world_model/evidence_ladder.png",
+        "sha256": "bca249cbf2e4861a53850500f22ff8b0b663524b4f9c3580b974a88da188d572"
+      },
+      {
+        "bytes": 145249,
+        "path": "docs/research/figures/cross_domain_world_model/causal_vs_operational.png",
+        "sha256": "7560813b9384a3eac5bc81b2a22384d0fa03437cba8961f519951321c72b52eb"
+      }
+    ],
+    "manuscript": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
+      "sha256": "49deffe52d94fb0474104d8941f4c642494636ba09c7a5dc4f128e8f2b393d9b"
+    },
+    "output_ablation_failed_attempt": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
+      "sha256": "ed68b02869e8a178450e67b2951638747f7c3c6f123ed35b505bc0ad6a84bc41"
+    },
+    "output_ablation_recovery_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_protocol_v2.json",
+      "sha256": "e85fee2c795f07d490108766405306d16ee3b7b0e7334ab3160db73882defce6"
+    },
+    "output_ablation_recovery_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_result_v2.json",
+      "sha256": "6ac231e8616b235c09436d62ebed61978d742cb3b7a511e5334af70f66e4a372"
+    },
+    "output_ablation_recovery_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_verification_v3.json",
+      "sha256": "9e685077dd2656c4d79c87e3c05f98aba0a6eeaef39b674afc63c736d42823a6"
+    },
+    "output_ablation_verification_amendment": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_verification_amendment_v3.json",
+      "sha256": "d6555034df03e660e0de567aa26f0b820f5585daa9b214cf4d547fe15d0c248e"
+    },
+    "paired_uncertainty_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+      "sha256": "994689b4d2901424efe3d1a9b76a1af6aa478997818e679c9871148a9b4f12ad"
+    },
+    "paired_uncertainty_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+      "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
+    },
+    "pdf": {
+      "pages": 26,
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
+      "sha256": "f53cbc911fd07df4458f41d2af19e1135ac4d72aa43c506c00b4666465f32f68"
+    },
+    "posthoc_sensitivity_result": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+      "sha256": "cbef9025b01570f01c8cee4f84b90a7a87ba31cf0cf428a5eb033c85749f23c0"
+    },
+    "posthoc_sensitivity_verification": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json",
+      "sha256": "6210266b9ea215f9e8dcca832504b9990cb58e13102a0e1317520774c8eaa4df"
+    },
+    "risk_source_attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
+    },
+    "risk_source_attribution_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+      "sha256": "4fd14399205e6cd71870ba7c24a33971471e91f3a6d7756c4c2b1b522813caee"
+    }
+  },
+  "author": "Vyom Kulshrestha",
+  "claim_boundary": [
+    "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
+    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold; all eight families place danger beyond the present-state deterministic predicates' evaluation window.",
+    "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+    "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
+    "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
+    "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
+    "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
+    "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
+    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
+    "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
+    "The fresh-seed risk-source attribution finds that the JEPA-output-only pipeline intervenes less and records fewer hazard steps than the full adapter, but it varies a complete warning pipeline and does not isolate architecture-only causality or establish superiority to the privileged planner.",
+    "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
+    "No protected deployed artifact was promoted or replaced by this study.",
+    "The registered FerrumOS horizon populations differ; the common-episode post-hoc sensitivity changes the ranking, so the registered reversal is not isolated as a horizon effect.",
+    "The original attribution warning metrics are on-policy. The common-proposal sensitivity fixes inputs to the full-arm visited-state catalog and is not an independent detector sample.",
+    "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
+    "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
+    "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
+    "The output-ablation v1 execution failed its final protected-file check. Its complete retained catalogs support only a subsequently registered retrospective output-value analysis, not prospective confirmation or architecture-wide causality."
+  ],
+  "evidence_frozen_date": "2026-09-08",
+  "orcid": "0009-0009-1434-7148",
+  "promotion_eligible": false,
+  "protected_deployed_artifacts": {
+    "ferrumos_encoder": {
+      "expected_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "observed_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "unchanged": true
+    },
+    "ferrumos_manifest": {
+      "expected_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "observed_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "unchanged": true
+    },
+    "ferrumos_transition": {
+      "expected_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "observed_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "unchanged": true
+    },
+    "physical_transition": {
+      "expected_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "observed_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "unchanged": true
+    }
+  },
+  "release": {
+    "evidence_snapshot_commit": "6a6da0a2dd1a352df5c929ee1e93831b29640acd",
+    "repository_tag": null,
+    "status": "immutable v1.2 evidence update; v1.1 remains retained"
+  },
+  "report_version": "1.2",
+  "schema": "cross-domain-world-model-paper-freeze-v1-2",
+  "title": "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
+}
