@@ -41,6 +41,16 @@ ATTRIBUTION_VERIFICATION = (
     ROOT
     / "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json"
 )
+POSTHOC_RESULT = (
+    ROOT / "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json"
+)
+POSTHOC_VERIFICATION = (
+    ROOT
+    / "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json"
+)
+AUTHORITY_TEST_INVENTORY = (
+    ROOT / "docs/research/cross_domain_authority_test_inventory_v1.json"
+)
 LEARNED_CONTRIBUTION = (
     ROOT / "docs/research/cross_domain_learned_contribution_result_v1.json"
 )
@@ -56,10 +66,13 @@ RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_1.
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
 REQUIRED_SOURCE_PHRASES = [
-    "Technical Report v1.1 — 5 September 2026",
+    "Technical Report v1.1 — 8 September 2026",
     "The primary contribution is an evaluation method, not a new JEPA objective.",
-    "The bootstrap conditions on these fixed trained models and does not include retraining variability.",
+    "same six evidence objects named in the abstract",
     "not strictly compute-controlled",
+    "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]",
+    "registered post-hoc common-episode sensitivity",
+    "registered ranking reversal cannot be isolated as a horizon effect",
     "constant-prevalence predictor has Brier 0.25",
     "Prospective Safety-Gymnasium controller and shield benchmark",
     "Warning recall and warning FPR evaluate the detector",
@@ -73,6 +86,8 @@ REQUIRED_SOURCE_PHRASES = [
     "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories",
     "`rule_block` is false in all 1,024 records by construction of this estimand",
     "thresholded latent-hazard coverage negative",
+    "false-negative rate is 256/256",
+    "1.478%",
     "| Naive unshielded | 100.00% | 0.00% | — | — | 0.00% | 542 |",
     "| Planner unshielded | 94.53% | 0.00% | — | — | 0.00% | **70** |",
     "not learned collision-avoidance superiority over privileged planning",
@@ -82,12 +97,20 @@ REQUIRED_SOURCE_PHRASES = [
     "descriptive rather than statistically stable",
     "no independent replication is claimed",
     "Frozen risk-source attribution on fresh layouts",
-    "The v2 attribution opens seeds 8000–8127 once",
-    "three frozen JEPA outputs produced a lower-intervention operating point",
-    "not architecture-only causality or physical safety",
+    "The v2 attribution opens seeds 8000-8127 once",
+    "not the uniquely designated primary contrast",
+    "Bonferroni-adjusted 98.33% interval",
+    "Every one of 128 leave-one-seed-out 95% intervals",
+    "no statistically resolved difference and is not a non-inferiority result",
+    "The original warning metrics are on-policy",
+    "identical 23,815-proposal catalog",
+    "Validation FPR",
+    "exploratory pipeline-level evidence",
+    "physical permit unit tests do not establish FerrumOS syscall-path enforcement",
+    "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124",
     "Hashes prove byte identity only",
     "Validation means checking an existing record",
-    "protected deployed artifacts remain byte-identical and promotion eligibility is false",
+    "protected artifacts remain byte-identical, and promotion eligibility is false",
     "Revisiting Feature Prediction for Learning Visual Representations from Video",
     "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
     "Appendix A. Claim-to-evidence ledger",
@@ -107,18 +130,24 @@ REQUIRED_PDF_PHRASES = [
     "Artifact locator",
     "Frozen risk-source attribution on fresh layouts",
     "Neither interval excludes zero",
+    "Bonferroni-adjusted 98.33% interval",
+    "common-episode sensitivity",
+    "Validation FPR",
     "References",
 ]
 FORBIDDEN_PATTERNS = [
     r"\bTODO\b",
     r"\bTBD\b",
     r"reviewer-requested",
+    r"requested by the present review",
     r"independently executed third-party",
     r"opposite unusable extreme",
     r"Submission candidate",
     r"safety recall",
     r"The union passes every registered gate",
     r"The later Safety-Gymnasium families also sit outside",
+    r"missed population rate is 1\.478%",
+    r"holds compute and data constant",
 ]
 
 
@@ -136,7 +165,7 @@ def rel(path: Path) -> str:
 
 def normalize_cell(value: str | None) -> str:
     normalized = " ".join((value or "").split())
-    if normalized.startswith("docs/research/"):
+    if ".json" in normalized:
         return normalized.replace(" ", "")
     return normalized
 
@@ -165,6 +194,9 @@ def main() -> None:
         PAIRED_VERIFICATION,
         ATTRIBUTION_RESULT,
         ATTRIBUTION_VERIFICATION,
+        POSTHOC_RESULT,
+        POSTHOC_VERIFICATION,
+        AUTHORITY_TEST_INVENTORY,
         LEARNED_CONTRIBUTION,
         *FIGURES,
     ]
@@ -183,6 +215,9 @@ def main() -> None:
     attribution_verification = json.loads(
         ATTRIBUTION_VERIFICATION.read_text(encoding="utf-8")
     )
+    posthoc = json.loads(POSTHOC_RESULT.read_text(encoding="utf-8"))
+    posthoc_verification = json.loads(POSTHOC_VERIFICATION.read_text(encoding="utf-8"))
+    authority_inventory = json.loads(AUTHORITY_TEST_INVENTORY.read_text(encoding="utf-8"))
     learned_contribution = json.loads(LEARNED_CONTRIBUTION.read_text(encoding="utf-8"))
     reader = PdfReader(str(PDF))
     pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
@@ -276,8 +311,8 @@ def main() -> None:
                 "Naive unshielded",
                 "100.00%",
                 "0.00%",
-                "—",
-                "—",
+                "-",
+                "-",
                 "0.00%",
                 "542",
             )
@@ -286,8 +321,8 @@ def main() -> None:
                 "Planner unshielded",
                 "94.53%",
                 "0.00%",
-                "—",
-                "—",
+                "-",
+                "-",
                 "0.00%",
                 "70",
             )
@@ -322,13 +357,28 @@ def main() -> None:
             and (
                 "JEPA outputs only",
                 "96.09%",
-                "57.81%",
                 "20.25%",
                 "1.35%",
                 "15.00%",
                 "104",
                 "7/128",
                 "184.9",
+            )
+            in all_table_rows
+            and (
+                "JEPA outputs only",
+                "0.43%",
+                "57.81%",
+                "2.66%",
+                "51.71%",
+                "2.90%",
+            )
+            in all_table_rows
+            and (
+                "Physical permit and disabled driver",
+                "Host unit",
+                "cross_domain_authority_test_inventory_v1.json:128/128",
+                "Simulator/offline adapter only; physical actuator unavailable",
             )
             in all_table_rows
         ),
@@ -392,6 +442,80 @@ def main() -> None:
         and attribution["authority"]["promotion_eligible"] is False
         and attribution["authority"]["protected_deployed_artifact_unchanged"]
         is True,
+        "posthoc_sensitivity_recomputes_and_is_nonpromotable": posthoc_verification[
+            "all_checks_pass"
+        ]
+        is True
+        and all(posthoc_verification["checks"].values())
+        and posthoc["authority"]["simulator_executed"] is False
+        and posthoc["authority"]["models_or_adapters_retrained"] is False
+        and posthoc["authority"]["promotion_eligible"] is False,
+        "common_episode_horizon_confound_is_measured": posthoc[
+            "common_episode_horizon_analysis"
+        ]["domains"]["ferrumos"]["common_episode_count"]
+        == 238
+        and posthoc["common_episode_horizon_analysis"]["domains"]["ferrumos"][
+            "methods"
+        ]["action_conditioned_jepa"]["rollout"]["h1"]["ensemble"]["estimate"]
+        < posthoc["common_episode_horizon_analysis"]["domains"]["ferrumos"][
+            "methods"
+        ]["gru_dynamics"]["rollout"]["h1"]["ensemble"]["estimate"]
+        and posthoc["common_episode_horizon_analysis"]["domains"]["ferrumos"][
+            "paired_architecture_comparisons"
+        ]["action_conditioned_jepa_minus_gru_dynamics"]["h3"][
+            "interval_excludes_zero"
+        ]
+        is True,
+        "attribution_multiplicity_and_influence_checks_pass": posthoc[
+            "attribution_diagnostics"
+        ]["comparisons"]["jepa-outputs-only_minus_full"][
+            "bonferroni_98_333333_percent"
+        ]["hazard_steps"]["percentile_interval"]
+        == [-57.0, -3.0]
+        and posthoc["attribution_diagnostics"]["comparisons"][
+            "jepa-outputs-only_minus_full"
+        ]["bonferroni_98_333333_percent"]["intervention_percentage_points"][
+            "interval_excludes_zero"
+        ]
+        is True
+        and posthoc["attribution_diagnostics"][
+            "jepa_outputs_only_minus_full_leave_one_out"
+        ]["all_hazard_intervals_exclude_zero"]
+        is True
+        and posthoc["attribution_diagnostics"][
+            "jepa_outputs_only_minus_full_leave_one_out"
+        ]["all_intervention_intervals_exclude_zero"]
+        is True,
+        "common_proposal_warning_comparison_is_reproduced": all(
+            posthoc["attribution_diagnostics"]["common_proposal_warning_analysis"][
+                "full_adapter_source_arm_reproduced"
+            ].values()
+        )
+        and posthoc["attribution_diagnostics"]["common_proposal_warning_analysis"][
+            "catalog_rows"
+        ]
+        == 23815
+        and abs(
+            posthoc["attribution_diagnostics"]["common_proposal_warning_analysis"][
+                "variants"
+            ]["jepa-outputs-only"]["warning_recall"]
+            - 0.5171102661596958
+        )
+        < 1e-15,
+        "authority_test_inventory_passes_with_scoped_execution": authority_inventory[
+            "all_checks_pass"
+        ]
+        is True
+        and authority_inventory["fresh_test_runs"]["neural_protocol"]["passed"]
+        is True
+        and authority_inventory["fresh_test_runs"]["physical_daemon"]["passed"]
+        is True
+        and any(
+            item["component"] == "physical runtime permit and actuator-disabled driver"
+            and item["test_class"] == "host unit test"
+            and item["execution_available"] is False
+            for item in authority_inventory["components"]
+        ),
         "external_scope_and_nonpromotion_honest": external["independent_execution"]
         is False
         and external["physical_actuator_attempts"] == 0
@@ -414,7 +538,7 @@ def main() -> None:
     freeze = {
         "schema": "cross-domain-world-model-paper-freeze-v1-1",
         "report_version": "1.1",
-        "evidence_frozen_date": "2026-09-05",
+        "evidence_frozen_date": "2026-09-08",
         "title": TITLE,
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
@@ -458,8 +582,26 @@ def main() -> None:
                 "path": rel(ATTRIBUTION_VERIFICATION),
                 "sha256": sha256(ATTRIBUTION_VERIFICATION),
             },
+            "posthoc_sensitivity_result": {
+                "path": rel(POSTHOC_RESULT),
+                "sha256": sha256(POSTHOC_RESULT),
+            },
+            "posthoc_sensitivity_verification": {
+                "path": rel(POSTHOC_VERIFICATION),
+                "sha256": sha256(POSTHOC_VERIFICATION),
+            },
+            "authority_test_inventory": {
+                "path": rel(AUTHORITY_TEST_INVENTORY),
+                "sha256": sha256(AUTHORITY_TEST_INVENTORY),
+            },
         },
-        "claim_boundary": umbrella.get("claim_boundary", []),
+        "claim_boundary": umbrella.get("claim_boundary", [])
+        + [
+            "The registered FerrumOS horizon populations differ; the common-episode post-hoc sensitivity changes the ranking, so the registered reversal is not isolated as a horizon effect.",
+            "The original attribution warning metrics are on-policy. The common-proposal sensitivity fixes inputs to the full-arm visited-state catalog and is not an independent detector sample.",
+            "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
+            "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
+        ],
         "promotion_eligible": False,
         "protected_deployed_artifacts": protected,
     }
@@ -501,6 +643,18 @@ def main() -> None:
             "risk_source_attribution_verification": {
                 "path": rel(ATTRIBUTION_VERIFICATION),
                 "sha256": sha256(ATTRIBUTION_VERIFICATION),
+            },
+            "posthoc_sensitivity_result": {
+                "path": rel(POSTHOC_RESULT),
+                "sha256": sha256(POSTHOC_RESULT),
+            },
+            "posthoc_sensitivity_verification": {
+                "path": rel(POSTHOC_VERIFICATION),
+                "sha256": sha256(POSTHOC_VERIFICATION),
+            },
+            "authority_test_inventory": {
+                "path": rel(AUTHORITY_TEST_INVENTORY),
+                "sha256": sha256(AUTHORITY_TEST_INVENTORY),
             },
         },
         "promotion_eligible": False,

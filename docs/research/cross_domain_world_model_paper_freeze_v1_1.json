@@ -1,5 +1,9 @@
 {
   "artifacts": {
+    "authority_test_inventory": {
+      "path": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "sha256": "e4bd63ecb9432847ee3fa6d3a08d7c1b77e2bb851572d040c713c8a91eb9b812"
+    },
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
       "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
@@ -36,7 +40,7 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "9478b245d05ee728c9d8b8c80d9a7e02736562b720dd795bd29ecf937b317bd3"
+      "sha256": "43fa0045940e784ad8a89548763af9f0e46142a8cd61b1e8db11b00a0567bdec"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -47,9 +51,17 @@
       "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
     "pdf": {
-      "pages": 18,
+      "pages": 16,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "1b9e02f3a16a8a4be123c808b6114ce5d21472e0abdfbaf595f0752a607f8571"
+      "sha256": "29ea979ce53e4909ff4595590eac32cc7c198edead9faa3c7f3cee7aac08bca4"
+    },
+    "posthoc_sensitivity_result": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+      "sha256": "cbef9025b01570f01c8cee4f84b90a7a87ba31cf0cf428a5eb033c85749f23c0"
+    },
+    "posthoc_sensitivity_verification": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json",
+      "sha256": "6210266b9ea215f9e8dcca832504b9990cb58e13102a0e1317520774c8eaa4df"
     },
     "risk_source_attribution_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
@@ -74,9 +86,13 @@
     "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
     "The fresh-seed risk-source attribution finds that the JEPA-output-only pipeline intervenes less and records fewer hazard steps than the full adapter, but it varies a complete warning pipeline and does not isolate architecture-only causality or establish superiority to the privileged planner.",
     "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
-    "No protected deployed artifact was promoted or replaced by this study."
+    "No protected deployed artifact was promoted or replaced by this study.",
+    "The registered FerrumOS horizon populations differ; the common-episode post-hoc sensitivity changes the ranking, so the registered reversal is not isolated as a horizon effect.",
+    "The original attribution warning metrics are on-policy. The common-proposal sensitivity fixes inputs to the full-arm visited-state catalog and is not an independent detector sample.",
+    "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
+    "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement."
   ],
-  "evidence_frozen_date": "2026-09-05",
+  "evidence_frozen_date": "2026-09-08",
   "orcid": "0009-0009-1434-7148",
   "promotion_eligible": false,
   "protected_deployed_artifacts": {

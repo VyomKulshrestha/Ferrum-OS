@@ -1,16 +1,20 @@
 {
   "artifacts": {
+    "authority_test_inventory": {
+      "path": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "sha256": "e4bd63ecb9432847ee3fa6d3a08d7c1b77e2bb851572d040c713c8a91eb9b812"
+    },
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
       "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "cef11728b0c3a52c6707176a00a2843d421565f020d9347f295e0290275c889e"
+      "sha256": "4bd67b9a6890506524b264cc764d47005b5a5c4814fe25ac208cba1ab35f6f44"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
-      "sha256": "9478b245d05ee728c9d8b8c80d9a7e02736562b720dd795bd29ecf937b317bd3"
+      "sha256": "43fa0045940e784ad8a89548763af9f0e46142a8cd61b1e8db11b00a0567bdec"
     },
     "paired_uncertainty_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
@@ -22,7 +26,15 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "1b9e02f3a16a8a4be123c808b6114ce5d21472e0abdfbaf595f0752a607f8571"
+      "sha256": "29ea979ce53e4909ff4595590eac32cc7c198edead9faa3c7f3cee7aac08bca4"
+    },
+    "posthoc_sensitivity_result": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+      "sha256": "cbef9025b01570f01c8cee4f84b90a7a87ba31cf0cf428a5eb033c85749f23c0"
+    },
+    "posthoc_sensitivity_verification": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json",
+      "sha256": "6210266b9ea215f9e8dcca832504b9990cb58e13102a0e1317520774c8eaa4df"
     },
     "risk_source_attribution_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
@@ -35,6 +47,10 @@
   },
   "checks": {
     "all_figures_nonempty": true,
+    "attribution_multiplicity_and_influence_checks_pass": true,
+    "authority_test_inventory_passes_with_scoped_execution": true,
+    "common_episode_horizon_confound_is_measured": true,
+    "common_proposal_warning_comparison_is_reproduced": true,
     "delayed_hazard_construct_coverage_recomputed": true,
     "external_frozen_pass_recomputes": true,
     "external_result_effective_and_attributed": true,
@@ -49,6 +65,7 @@
     "pdf_required_phrases_present": true,
     "pdf_subject_versioned": true,
     "pdf_title_exact": true,
+    "posthoc_sensitivity_recomputes_and_is_nonpromotable": true,
     "protected_deployed_artifacts_unchanged": true,
     "risk_source_attribution_authority_disabled": true,
     "risk_source_attribution_verified": true,
@@ -65,16 +82,20 @@
       "The union passes every registered gate": true,
       "\\bTBD\\b": true,
       "\\bTODO\\b": true,
+      "holds compute and data constant": true,
       "independently executed third-party": true,
+      "missed population rate is 1\\.478%": true,
       "opposite unusable extreme": true,
+      "requested by the present review": true,
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "cef11728b0c3a52c6707176a00a2843d421565f020d9347f295e0290275c889e",
-    "pdf_pages": 18,
+    "freeze_manifest_sha256": "4bd67b9a6890506524b264cc764d47005b5a5c4814fe25ac208cba1ab35f6f44",
+    "pdf_pages": 16,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
+      "Bonferroni-adjusted 98.33% interval": true,
       "Claim-to-evidence ledger": true,
       "Frozen risk-source attribution on fresh layouts": true,
       "Frozen-gate and artifact audit": true,
@@ -85,9 +106,11 @@
       "Safety-Gymnasium controller and shield benchmark": true,
       "Technical Report v1.1": true,
       "Threats to validity and limitations": true,
-      "Vyom Kulshrestha": true
+      "Validation FPR": true,
+      "Vyom Kulshrestha": true,
+      "common-episode sensitivity": true
     },
-    "pdf_words_extracted": 9606,
+    "pdf_words_extracted": 10140,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -104,27 +127,31 @@
       13,
       14,
       15,
-      16,
-      17,
-      18
+      16
     ],
     "source_required_phrases": {
+      "1.478%": true,
       "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
+      "Bonferroni-adjusted 98.33% interval": true,
+      "Every one of 128 leave-one-seed-out 95% intervals": true,
       "Executed intervention precision is 23.04% (88/382)": true,
       "Frozen risk-source attribution on fresh layouts": true,
+      "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]": true,
       "Hashes prove byte identity only": true,
       "Neither interval excludes zero": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
+      "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
-      "Technical Report v1.1 \u2014 5 September 2026": true,
-      "The bootstrap conditions on these fixed trained models and does not include retraining variability.": true,
+      "Technical Report v1.1 \u2014 8 September 2026": true,
+      "The original warning metrics are on-policy": true,
       "The primary contribution is an evaluation method, not a new JEPA objective.": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
-      "The v2 attribution opens seeds 8000\u20138127 once": true,
+      "The v2 attribution opens seeds 8000-8127 once": true,
+      "Validation FPR": true,
       "Validation means checking an existing record": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "`rule_block` is false in all 1,024 records by construction of this estimand": true,
@@ -133,16 +160,23 @@
       "descriptive rather than statistically stable": true,
       "effective action-change recall": true,
       "effective action-change recall is 55.00%": true,
+      "exploratory pipeline-level evidence": true,
+      "false-negative rate is 256/256": true,
+      "identical 23,815-proposal catalog": true,
       "intervention rate counts only commands that actually change": true,
       "no independent replication is claimed": true,
+      "no statistically resolved difference and is not a non-inferiority result": true,
       "nominal receding-horizon controller": true,
-      "not architecture-only causality or physical safety": true,
       "not learned collision-avoidance superiority over privileged planning": true,
       "not strictly compute-controlled": true,
+      "not the uniquely designated primary contrast": true,
       "paired 10,000-resample episode-bootstrap 95% CI": true,
-      "protected deployed artifacts remain byte-identical and promotion eligibility is false": true,
+      "physical permit unit tests do not establish FerrumOS syscall-path enforcement": true,
+      "protected artifacts remain byte-identical, and promotion eligibility is false": true,
+      "registered post-hoc common-episode sensitivity": true,
+      "registered ranking reversal cannot be isolated as a horizon effect": true,
+      "same six evidence objects named in the abstract": true,
       "these gates do not require superiority over the privileged planner": true,
-      "three frozen JEPA outputs produced a lower-intervention operating point": true,
       "thresholded latent-hazard coverage negative": true,
       "| Naive unshielded | 100.00% | 0.00% | \u2014 | \u2014 | 0.00% | 542 |": true,
       "| Planner unshielded | 94.53% | 0.00% | \u2014 | \u2014 | 0.00% | **70** |": true

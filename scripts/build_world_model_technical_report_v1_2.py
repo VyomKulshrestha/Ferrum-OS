@@ -11,7 +11,7 @@ import re
 from PIL import Image as PILImage
 from reportlab import rl_config
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -19,6 +19,7 @@ from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
     Image,
+    KeepTogether,
     PageBreak,
     PageTemplate,
     Paragraph,
@@ -54,7 +55,18 @@ rl_config.invariant = True
 
 
 def inline(text: str) -> str:
-    value = escape(text.strip())
+    # Base-14 fonts render these punctuation glyphs inconsistently across PDF
+    # viewers. Normalize to an ASCII archival text path before markup parsing.
+    normalized = (
+        text.strip()
+        .replace("\u2010", "-")
+        .replace("\u2011", "-")
+        .replace("\u2012", "-")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2212", "-")
+    )
+    value = escape(normalized)
     value = re.sub(r"`([^`]+)`", r"<font name='Courier'>\1</font>", value)
     value = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", value)
     value = re.sub(r"\*([^*]+)\*", r"<i>\1</i>", value)
@@ -115,7 +127,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
             fontSize=7.8,
             leading=9.65,
             textColor=INK,
-            alignment=TA_JUSTIFY,
+            alignment=TA_LEFT,
             spaceAfter=1.2 * mm,
         ),
         "front_h1": ParagraphStyle(
@@ -147,7 +159,7 @@ def make_styles() -> dict[str, ParagraphStyle]:
             fontSize=7.75,
             leading=9.6,
             textColor=INK,
-            alignment=TA_JUSTIFY,
+            alignment=TA_LEFT,
             spaceAfter=1.15 * mm,
         ),
         "front_claim_label": ParagraphStyle(
@@ -436,7 +448,7 @@ def build(
         leftMargin=17 * mm,
         rightMargin=17 * mm,
         topMargin=18.5 * mm,
-        bottomMargin=17 * mm,
+        bottomMargin=19 * mm,
         title=pdf_title,
         author="Vyom Kulshrestha",
         subject=pdf_subject,
@@ -639,9 +651,14 @@ def build(
             while index < len(lines) and lines[index].startswith("|"):
                 table_lines.append(lines[index])
                 index += 1
-            story.extend(
-                [parse_table(table_lines, document.width, styles), Spacer(1, 1.8 * mm)]
-            )
+            table_group = [
+                parse_table(table_lines, document.width, styles),
+                Spacer(1, 1.8 * mm),
+            ]
+            if len(table_lines) <= 8:
+                story.append(KeepTogether(table_group))
+            else:
+                story.extend(table_group)
             continue
         image_flowables = (
             parse_image(line, document.width, styles) if line.startswith("![") else None
