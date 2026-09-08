@@ -90,6 +90,7 @@ FIGURES = [
 ]
 FREEZE = ROOT / "docs/research/cross_domain_world_model_paper_freeze_v1_2.json"
 RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_2.json"
+BUILDER = ROOT / "scripts/build_world_model_technical_report_v1_2.py"
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
 EVIDENCE_SNAPSHOT_COMMIT = "6a6da0a2dd1a352df5c929ee1e93831b29640acd"
@@ -112,6 +113,7 @@ ABLATION_ALL_REGISTERED_OUTPUTS = (
 REQUIRED_SOURCE_PHRASES = [
     "Technical Report v1.2 — 8 September 2026",
     "The primary contribution is an evaluation method, not a new JEPA objective.",
+    "The empirical contributions are:",
     "same six evidence objects named in the abstract",
     "not strictly compute-controlled",
     "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]",
@@ -182,6 +184,7 @@ REQUIRED_SOURCE_PHRASES = [
 ]
 REQUIRED_PDF_PHRASES = [
     "Prediction Is Not Permission",
+    "The empirical contributions are:",
     "Vyom Kulshrestha",
     "ORCID: 0009-0009-1434-7148",
     "Technical Report v1.2",
@@ -484,6 +487,7 @@ def main() -> None:
     required_paths = [
         SOURCE,
         PDF,
+        BUILDER,
         UMBRELLA,
         EXTERNAL_RESULT,
         EXTERNAL_VERIFICATION,
@@ -507,6 +511,7 @@ def main() -> None:
     if missing:
         raise SystemExit(f"missing required paper artifacts: {missing}")
     source_text = SOURCE.read_text(encoding="utf-8")
+    builder_text = BUILDER.read_text(encoding="utf-8")
     umbrella = json.loads(UMBRELLA.read_text(encoding="utf-8"))
     external = json.loads(EXTERNAL_RESULT.read_text(encoding="utf-8"))
     external_verification = json.loads(
@@ -635,6 +640,12 @@ def main() -> None:
     checks = {
         "source_required_phrases_present": all(source_required.values()),
         "pdf_required_phrases_present": all(pdf_required.values()),
+        "public_graphic_uses_typographic_evidence_chain": (
+            "Prediction ≠ Warning ≠ Intervention ≠ Outcome ≠ Authority"
+            in builder_text
+            and "Prediction != warning != intervention != outcome != authority"
+            not in builder_text
+        ),
         "forbidden_placeholders_and_review_wording_absent": all(
             forbidden_absent.values()
         ),
@@ -1178,6 +1189,9 @@ def main() -> None:
         "diagnostics": {
             "source_required_phrases": source_required,
             "pdf_required_phrases": pdf_required,
+            "public_graphic_uses_typographic_evidence_chain": checks[
+                "public_graphic_uses_typographic_evidence_chain"
+            ],
             "forbidden_patterns_absent": forbidden_absent,
             "pdf_pages": len(reader.pages),
             "pdf_words_extracted": len(pdf_text.split()),

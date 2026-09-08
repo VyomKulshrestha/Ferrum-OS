@@ -199,7 +199,7 @@ class EvidenceChain(Flowable):
         canvas.drawString(
             0,
             4.2 * mm,
-            "Prediction != warning != intervention != outcome != authority",
+            "Prediction ≠ Warning ≠ Intervention ≠ Outcome ≠ Authority",
         )
         canvas.restoreState()
 
@@ -1213,7 +1213,7 @@ def build(
             if not markers:
                 story.append(Paragraph(inline(value), styles["front_body"]))
                 continue
-            introduction = value[: markers[0].start()].rstrip(" :") + "."
+            introduction = value[: markers[0].start()].rstrip(" :.") + ":"
             story.append(Paragraph(inline(introduction), styles["front_body"]))
             for marker_index, marker in enumerate(markers):
                 end = (

@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "622554e113ceaa369ada21ecd65d821321a5e209346d593df49f4e35f207ce34"
+      "sha256": "ab0bab0afa4bc3908cd2d57cfb86ef18235ed3b92ffd2e3101c0a055a8175ed8"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "e8ea684ac8a930471ec9b120cfd5d1ab22114a83faab0f06a22594fbea18ddc7"
+      "sha256": "4aa306f52c8b3ee5157367dd8b21ace6568122315ff737278c6cd8329303ddf9"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -102,6 +102,7 @@
     "pdf_title_exact": true,
     "posthoc_sensitivity_recomputes_and_is_nonpromotable": true,
     "protected_deployed_artifacts_unchanged": true,
+    "public_graphic_uses_typographic_evidence_chain": true,
     "risk_source_attribution_authority_disabled": true,
     "risk_source_attribution_verified": true,
     "source_required_phrases_present": true,
@@ -125,7 +126,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "622554e113ceaa369ada21ecd65d821321a5e209346d593df49f4e35f207ce34",
+    "freeze_manifest_sha256": "ab0bab0afa4bc3908cd2d57cfb86ef18235ed3b92ffd2e3101c0a055a8175ed8",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -307,6 +308,7 @@
       "Safety-Gymnasium controller and shield benchmark": true,
       "Technical Report v1.2": true,
       "The design and simulator execution were prospective": true,
+      "The empirical contributions are:": true,
       "Threats to validity and limitations": true,
       "Validation FPR": true,
       "Vyom Kulshrestha": true,
@@ -350,6 +352,7 @@
       26,
       27
     ],
+    "public_graphic_uses_typographic_evidence_chain": true,
     "source_required_phrases": {
       "1.478%": true,
       "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
@@ -376,6 +379,7 @@
       "Technical Report v1.2 is the prepublication evidence-changing successor to v1.1": true,
       "Technical Report v1.2 \u2014 8 September 2026": true,
       "The design and simulator execution were prospective, but the v1 result remains failed and ineligible": true,
+      "The empirical contributions are:": true,
       "The original warning metrics are on-policy": true,
       "The primary contribution is an evaluation method, not a new JEPA objective.": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,

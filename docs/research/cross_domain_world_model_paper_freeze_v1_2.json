@@ -77,7 +77,7 @@
     "pdf": {
       "pages": 27,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "e8ea684ac8a930471ec9b120cfd5d1ab22114a83faab0f06a22594fbea18ddc7"
+      "sha256": "4aa306f52c8b3ee5157367dd8b21ace6568122315ff737278c6cd8329303ddf9"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
