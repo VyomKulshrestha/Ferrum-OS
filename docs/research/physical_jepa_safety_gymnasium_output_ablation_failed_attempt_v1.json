@@ -1,0 +1,51 @@
+{
+  "authority": {
+    "physical_actuator_attempts": 0,
+    "physical_actuator_deliveries": 0,
+    "promotion_eligible": false,
+    "promotion_attempted": false
+  },
+  "completed_stages": [
+    "observed-frozen-jepa: 128 of 128 episodes",
+    "development-mean-masked-jepa: 128 of 128 episodes",
+    "deterministic case-catalog writes",
+    "paired bootstrap analysis in memory"
+  ],
+  "failure": {
+    "detected_at": "post-run protected-file digest check before result write",
+    "message": "protected file differs from registration: technical_report_v1_1_pdf",
+    "observed_report_sha256_at_failure": "79480f7755385aae3e139a2be1ace23bb0a92d2e1d34b934931bd71e2d149427",
+    "registered_report_sha256": "bd8ffee3b42adccdc018b5b7e204d615cf970c97f7390782b177e9e43a210b06",
+    "type": "ValueError"
+  },
+  "failure_cause": "A separate active task in the shared checkout rebuilt Technical Report v1.1 while the sealed simulator run was in progress. The ablation runner did not write or invoke the report build.",
+  "final_seed_range_accessed": {
+    "count": 128,
+    "start": 9000
+  },
+  "protected_state_at_diagnosis": {
+    "deployed_physical_world_model_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "frozen_research_model_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+    "technical_report_v1_1_source_sha256": "b4d205d168c1f664bcc95c0b7674c2821fdd89dfc672e91934ed685a29f7a539"
+  },
+  "protocol": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json",
+    "registered_commit": "6f70724f5d0d6419e80ff4a1520610f1f0c8bd57",
+    "sha256": "79104c1443c3e4a51ac32e5539c5564e7acbb47a186ad137ff1b4e93ac8407a7"
+  },
+  "result_eligible": false,
+  "retained_case_catalogs": {
+    "development-mean-masked-jepa": {
+      "path": "docs/research/artifacts/physical-jepa-safety-output-ablation-v1/final-cases/development-mean-masked-jepa.jsonl.gz",
+      "rows": 25389,
+      "sha256": "3190bcac8c24d832fbdeaa7adcd6fe3360e774f64ef51ebe7bc042e34db6defb"
+    },
+    "observed-frozen-jepa": {
+      "path": "docs/research/artifacts/physical-jepa-safety-output-ablation-v1/final-cases/observed-frozen-jepa.jsonl.gz",
+      "rows": 25497,
+      "sha256": "64245720d774fb1436323fc743bc05812d9dc2ad97c3d8c1459b3fcf538fa571"
+    }
+  },
+  "rerun_policy": "Do not resume, reinterpret, or report estimates from seeds 9000-9127 as the successful ablation. Retain this failure and register a new untouched range only after the report owner has finished.",
+  "schema": "physical-jepa-safety-gymnasium-output-ablation-failed-attempt-v1"
+}
