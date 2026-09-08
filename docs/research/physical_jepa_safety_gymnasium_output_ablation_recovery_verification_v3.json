@@ -1,0 +1,103 @@
+{
+  "all_checks_pass": true,
+  "checks": {
+    "all_execution_catalog_digests_match": true,
+    "all_outcomes_retained": true,
+    "all_protected_files_unchanged": true,
+    "all_registered_inputs_match": true,
+    "all_toolchain_digests_match": true,
+    "amendment_toolchain_digests_match": true,
+    "arm_set_exact": true,
+    "case_catalogs_reused_without_modification": true,
+    "claim_boundary_exact": true,
+    "deployed_physical_world_model_before_after_current_identical": true,
+    "deployed_physical_world_model_matches_recovery_registration": true,
+    "development-mean-masked-jepa_aggregate_recomputes": true,
+    "development-mean-masked-jepa_case_rows": true,
+    "development-mean-masked-jepa_case_seed_set": true,
+    "development-mean-masked-jepa_episode_reconstruction_exact": true,
+    "development-mean-masked-jepa_feature_intervention_exact": true,
+    "development-mean-masked-jepa_scores_recompute": true,
+    "development-mean-masked-jepa_seed_set": true,
+    "failed_attempt_retained": true,
+    "failed_v1_not_reclassified_as_success": true,
+    "fresh_seed_range_matches_failed_attempt": true,
+    "frozen_adapter_digest": true,
+    "frozen_jepa_digest": true,
+    "historical_report_snapshot_matches": true,
+    "masked_jepa_values_were_nonconstant_before_intervention": true,
+    "no_simulator_rerun_during_recovery": true,
+    "null_intervals_retained_exactly": true,
+    "observed-frozen-jepa_aggregate_recomputes": true,
+    "observed-frozen-jepa_case_rows": true,
+    "observed-frozen-jepa_case_seed_set": true,
+    "observed-frozen-jepa_episode_reconstruction_exact": true,
+    "observed-frozen-jepa_feature_intervention_exact": true,
+    "observed-frozen-jepa_scores_recompute": true,
+    "observed-frozen-jepa_seed_set": true,
+    "paired_effects_recompute": true,
+    "physical_actuator_attempts_zero": true,
+    "physical_actuator_deliveries_zero": true,
+    "portable_text_digest_policy_applied": true,
+    "promotion_ineligible": true,
+    "promotion_not_attempted": true,
+    "protocol_matches_registration_commit": true,
+    "registration_commit_recorded": true,
+    "result_protocol_digest_matches": true,
+    "runtime_source_matches": true,
+    "runtime_versions_match": true,
+    "same_adapter_all_arms": true,
+    "same_operating_threshold": true,
+    "technical_report_v1_1_pdf_before_after_registered_blob_identical": true,
+    "technical_report_v1_1_pdf_registered_blob_matches_recovery_registration": true,
+    "technical_report_v1_1_source_before_after_current_identical": true,
+    "technical_report_v1_1_source_matches_recovery_registration": true
+  },
+  "claim_boundary": "This amendment verifies the v2 retained-catalog recovery without reclassifying the failed prospective v1 execution. The estimates are a retrospective analysis of complete paired simulator catalogs under a subsequently registered recovery protocol. They support a direct output-value intervention contrast only for the fixed local Safety-Gymnasium software pipeline and do not establish prospective confirmation, architecture-wide causality, planner superiority, learned-safety superiority, independent replication or assessment, HIL, physical safety, deployment safety, or promotion eligibility.",
+  "diagnostics": {
+    "current_protected_files": {
+      "deployed_physical_world_model": {
+        "current_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+        "matches_registration": true,
+        "registration_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+        "text_content_matches_registration": null
+      },
+      "technical_report_v1_1_pdf_at_recovery_registration": {
+        "current_sha256": "4d141314cecdfb28d6a9273a909d910b0aae4c3346e35276a717683c3d2cadae",
+        "matches_registration": false,
+        "registration_sha256": "32eb2bef032e727a0a0caa8540fb54a7f774bc9391d3b68d02c8b50d076882d8",
+        "text_content_matches_registration": null
+      },
+      "technical_report_v1_1_source": {
+        "current_sha256": "b4d205d168c1f664bcc95c0b7674c2821fdd89dfc672e91934ed685a29f7a539",
+        "matches_registration": true,
+        "registration_sha256": "b4d205d168c1f664bcc95c0b7674c2821fdd89dfc672e91934ed685a29f7a539",
+        "text_content_matches_registration": true
+      }
+    },
+    "current_report_drift_is_non_failing": true,
+    "historical_report_sha256": "32eb2bef032e727a0a0caa8540fb54a7f774bc9391d3b68d02c8b50d076882d8",
+    "registered_commit": "c47b8ba73a6f77492bf85ea8141fbb7958098cae"
+  },
+  "interpretation": {
+    "catalog_status": "complete retained paired catalogs from seeds 9000-9127",
+    "estimates_status": "retrospective retained-catalog recovery analysis",
+    "prospective_v1_execution_status": "failed",
+    "prospective_v1_rerun_completed": false,
+    "v2_recovery_reclassified_as_v1_success": false
+  },
+  "promotion_eligible": false,
+  "protocol": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_protocol_v2.json",
+    "sha256": "e85fee2c795f07d490108766405306d16ee3b7b0e7334ab3160db73882defce6"
+  },
+  "result": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_result_v2.json",
+    "sha256": "40c54e01fbfdaee0c1afd4ae002e389006d8155f99f915412da6b8ae7ced06a7"
+  },
+  "schema": "physical-jepa-safety-gymnasium-output-ablation-recovery-verification-v3",
+  "verification_amendment": {
+    "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_verification_amendment_v3.json",
+    "sha256": "d6555034df03e660e0de567aa26f0b820f5585daa9b214cf4d547fe15d0c248e"
+  }
+}
