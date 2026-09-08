@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import hashlib
 import json
 from pathlib import Path
@@ -454,6 +455,26 @@ def pdf_font_inventory(
     )
 
 
+def pdf_typography_metrics() -> dict[str, float]:
+    sizes: Counter[float] = Counter()
+    with pdfplumber.open(PDF) as document:
+        for page in document.pages[2:]:
+            for character in page.chars:
+                if str(character.get("text", "")).strip():
+                    sizes[round(float(character["size"]), 2)] += 1
+    total = sum(sizes.values())
+    dominant_size = sizes.most_common(1)[0][0] if sizes else 0.0
+    readable_share = (
+        sum(count for size, count in sizes.items() if size >= 10.0) / total
+        if total
+        else 0.0
+    )
+    return {
+        "dominant_body_font_size_points": dominant_size,
+        "character_share_at_least_10_points": readable_share,
+    }
+
+
 def main() -> None:
     required_paths = [
         SOURCE,
@@ -514,6 +535,7 @@ def main() -> None:
     )
     reader = PdfReader(str(PDF))
     font_inventory, nonzero_character_spacing = pdf_font_inventory(reader)
+    typography = pdf_typography_metrics()
     pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
     pdf_search_text = " ".join(pdf_text.split())
     metadata = reader.metadata
@@ -611,7 +633,12 @@ def main() -> None:
         "forbidden_placeholders_and_review_wording_absent": all(
             forbidden_absent.values()
         ),
-        "pdf_page_count_is_readable_submission_length": 20 <= len(reader.pages) <= 32,
+        "pdf_page_count_is_readable_submission_length": 28 <= len(reader.pages) <= 38,
+        "pdf_body_typography_is_readable": typography[
+            "dominant_body_font_size_points"
+        ]
+        >= 10.0
+        and typography["character_share_at_least_10_points"] >= 0.68,
         "pdf_title_exact": metadata.title == TITLE,
         "pdf_author_exact": metadata.author == "Vyom Kulshrestha",
         "pdf_subject_versioned": metadata.subject
@@ -1152,6 +1179,7 @@ def main() -> None:
             "positionally_checked_pdf_table_pages": sorted(table_rows),
             "pdf_font_inventory": font_inventory,
             "pdf_nonzero_character_spacing": nonzero_character_spacing,
+            "pdf_typography": typography,
             "output_ablation_bonferroni_7_endpoint": displayed_adjusted,
             "output_ablation_bonferroni_11_output": all_registered_adjusted,
             "freeze_manifest_sha256": sha256(FREEZE),

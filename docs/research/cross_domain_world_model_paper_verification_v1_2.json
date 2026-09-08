@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "229f3ce7ebfd0631ba2584e744a8f610093ba99592ba1703e6bfa26a2af2ae1c"
+      "sha256": "d85bcceaeb3a49416ae14b8f9e9fecbd58ff97784f2dfcbd74d0b1efd675b9e1"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "cdb8cc438372ac2dfdb79df08bb2d6f6804130e8c8130c9d4fdb9c7131c9e2f3"
+      "sha256": "70d9df75e54620e6afe0579f230eb0d07cafa5741e6bd0c531aa846f3e758979"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -93,6 +93,7 @@
     "output_ablation_verification_amendment_is_nonexperimental": true,
     "paired_planner_union_uncertainty_verified": true,
     "pdf_author_exact": true,
+    "pdf_body_typography_is_readable": true,
     "pdf_fonts_are_embedded_and_character_spacing_is_normal": true,
     "pdf_has_no_replacement_character": true,
     "pdf_page_count_is_readable_submission_length": true,
@@ -124,7 +125,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "229f3ce7ebfd0631ba2584e744a8f610093ba99592ba1703e6bfa26a2af2ae1c",
+    "freeze_manifest_sha256": "d85bcceaeb3a49416ae14b8f9e9fecbd58ff97784f2dfcbd74d0b1efd675b9e1",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -270,25 +271,10 @@
         "base_font": "/AAAAAA+BitstreamVeraSans-Roman",
         "embedded": true,
         "subtype": "/TrueType"
-      },
-      {
-        "base_font": "/AAAAAA+DejaVuSerif",
-        "embedded": true,
-        "subtype": "/TrueType"
-      },
-      {
-        "base_font": "/AAAAAA+DejaVuSerif-Bold",
-        "embedded": true,
-        "subtype": "/TrueType"
-      },
-      {
-        "base_font": "/AAAAAA+DejaVuSerif-Italic",
-        "embedded": true,
-        "subtype": "/TrueType"
       }
     ],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 26,
+    "pdf_pages": 34,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -314,7 +300,11 @@
       "superiority over the planner was not established": true,
       "writes await confirmation": true
     },
-    "pdf_words_extracted": 11759,
+    "pdf_typography": {
+      "character_share_at_least_10_points": 0.7260452961672473,
+      "dominant_body_font_size_points": 10.15
+    },
+    "pdf_words_extracted": 11816,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -341,7 +331,15 @@
       23,
       24,
       25,
-      26
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34
     ],
     "source_required_phrases": {
       "1.478%": true,
