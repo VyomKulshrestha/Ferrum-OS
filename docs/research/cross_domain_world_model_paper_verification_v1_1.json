@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_1.json",
-      "sha256": "d2d6fdb6feb697aada802e1e366f1b1fb1b70ae14e12e3403d1dfb9373a2c778"
+      "sha256": "ffb35ad56a5dd5f846badc602064a64a8ee06e557d9d4136f3eca3dd5a2535ad"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_1.md",
@@ -26,7 +26,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf",
-      "sha256": "32eb2bef032e727a0a0caa8540fb54a7f774bc9391d3b68d02c8b50d076882d8"
+      "sha256": "019e6ded2d6510be40964ac1783bd7cdf7ea8404b111f11c9188affbacb82262"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -91,7 +91,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "d2d6fdb6feb697aada802e1e366f1b1fb1b70ae14e12e3403d1dfb9373a2c778",
+    "freeze_manifest_sha256": "ffb35ad56a5dd5f846badc602064a64a8ee06e557d9d4136f3eca3dd5a2535ad",
     "pdf_font_inventory": [
       {
         "base_font": "/AAAAAA+BitstreamVeraSans-Bold",
@@ -116,11 +116,16 @@
       "Artifact locator": true,
       "Bonferroni-adjusted 98.33% interval": true,
       "Claim-to-evidence ledger": true,
+      "Completion +1.56 points; hazard cost +14 steps.": true,
+      "Does one architecture consistently dominate across domains?": true,
+      "Does predictive quality translate into operational caution?": true,
       "Frozen risk-source attribution on fresh layouts": true,
       "Frozen-gate and artifact audit": true,
+      "Hazard steps by frozen risk source": true,
       "Neither interval excludes zero": true,
       "ORCID: 0009-0009-1434-7148": true,
       "Prediction Is Not Permission": true,
+      "RESEARCH QUESTIONS": true,
       "References": true,
       "Safety-Gymnasium controller and shield benchmark": true,
       "Technical Report v1.1": true,
@@ -131,7 +136,7 @@
       "complete post-hoc common-episode comparison": true,
       "superiority over the planner was not established": true
     },
-    "pdf_words_extracted": 10411,
+    "pdf_words_extracted": 10489,
     "positionally_checked_pdf_table_pages": [
       1,
       2,

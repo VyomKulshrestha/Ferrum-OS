@@ -195,6 +195,85 @@ class EvidenceChain(Flowable):
         canvas.restoreState()
 
 
+class HazardStepsChart(Flowable):
+    """Small horizontal comparison chart for the frozen attribution result."""
+
+    rows = (
+        ("Full + JEPA", 129, NAVY),
+        ("Local / no JEPA", 132, colors.HexColor("#4E7FAF")),
+        ("JEPA-only", 104, TEAL),
+        ("Hazard closeness", 144, ORANGE),
+    )
+
+    def __init__(self, width: float):
+        super().__init__()
+        self.width = width
+        self.height = 55 * mm
+
+    def wrap(self, available_width, available_height):
+        return min(self.width, available_width), self.height
+
+    def draw(self):
+        canvas = self.canv
+        width = self.width
+        height = self.height
+        chart_left = 42 * mm
+        chart_right = width - 20 * mm
+        chart_width = chart_right - chart_left
+        row_centers = (33, 25, 17, 9)
+
+        canvas.saveState()
+        canvas.setFillColor(PALE)
+        canvas.setStrokeColor(GRID)
+        canvas.setLineWidth(0.45)
+        canvas.roundRect(0, 0, width, height, 2 * mm, fill=1, stroke=1)
+
+        canvas.setFillColor(NAVY)
+        canvas.setFont("ReportSans-Bold", 9.2)
+        canvas.drawString(5 * mm, 48 * mm, "Hazard steps by frozen risk source")
+        canvas.setFillColor(MUTED)
+        canvas.setFont("ReportSans", 6.5)
+        canvas.drawString(
+            5 * mm,
+            43.5 * mm,
+            "Fresh layouts; lower is fewer realized hazard steps",
+        )
+
+        canvas.setStrokeColor(GRID)
+        canvas.setLineWidth(0.35)
+        canvas.setDash(1.4, 1.8)
+        for tick in (0, 80, 160):
+            x = chart_left + chart_width * tick / 160
+            canvas.line(x, 6.3 * mm, x, 37.3 * mm)
+            canvas.setFillColor(MUTED)
+            canvas.setFont("ReportSans", 5.8)
+            canvas.drawCentredString(x, 38.8 * mm, str(tick))
+        canvas.setDash()
+
+        for (label, value, fill), center in zip(self.rows, row_centers):
+            y = center * mm
+            canvas.setFillColor(INK)
+            canvas.setFont(
+                "ReportSans-Bold" if label == "JEPA-only" else "ReportSans",
+                6.7,
+            )
+            canvas.drawRightString(chart_left - 3 * mm, y - 1.2 * mm, label)
+            canvas.setFillColor(fill)
+            canvas.roundRect(
+                chart_left,
+                y - 2.25 * mm,
+                chart_width * value / 160,
+                4.5 * mm,
+                1.1 * mm,
+                fill=1,
+                stroke=0,
+            )
+            canvas.setFillColor(INK)
+            canvas.setFont("ReportSans-Bold", 6.7)
+            canvas.drawString(chart_right + 3 * mm, y - 1.2 * mm, str(value))
+        canvas.restoreState()
+
+
 def make_styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     return {
@@ -448,6 +527,31 @@ def make_styles() -> dict[str, ParagraphStyle]:
             leading=9.4,
             textColor=WHITE,
         ),
+        "panel_heading": ParagraphStyle(
+            "PanelHeading",
+            parent=base["BodyText"],
+            fontName="ReportSans-Bold",
+            fontSize=6.8,
+            leading=8.2,
+            textColor=WHITE,
+        ),
+        "panel_label": ParagraphStyle(
+            "PanelLabel",
+            parent=base["BodyText"],
+            fontName="ReportSans-Bold",
+            fontSize=6.8,
+            leading=8.4,
+            textColor=TEAL,
+            spaceAfter=0.8 * mm,
+        ),
+        "panel_text": ParagraphStyle(
+            "PanelText",
+            parent=base["BodyText"],
+            fontName="ReportSans",
+            fontSize=7.7,
+            leading=9.6,
+            textColor=INK,
+        ),
         "table_note": ParagraphStyle(
             "TableNote",
             parent=base["BodyText"],
@@ -561,6 +665,97 @@ def architecture_result_box(
                 ("TOPPADDING", (0, 1), (-1, 1), 1),
                 ("BOTTOMPADDING", (0, 1), (-1, 1), 7),
                 ("LINEBEFORE", (1, 0), (1, -1), 2, WHITE),
+            ]
+        )
+    )
+    return table
+
+
+def research_questions_box(
+    width: float, styles: dict[str, ParagraphStyle]
+) -> Table:
+    cells = [
+        [
+            Paragraph("RESEARCH QUESTIONS", styles["panel_heading"]),
+            Paragraph("", styles["panel_heading"]),
+        ],
+        [
+            [
+                Paragraph("RQ1 / PREDICTION", styles["panel_label"]),
+                Paragraph(
+                    "Does one architecture consistently dominate across domains?",
+                    styles["panel_text"],
+                ),
+            ],
+            [
+                Paragraph("RQ2 / AUTHORITY", styles["panel_label"]),
+                Paragraph(
+                    "Does predictive quality translate into operational caution?",
+                    styles["panel_text"],
+                ),
+            ],
+        ],
+    ]
+    table = Table(cells, colWidths=[width / 2, width / 2])
+    table.setStyle(
+        TableStyle(
+            [
+                ("SPAN", (0, 0), (1, 0)),
+                ("BACKGROUND", (0, 0), (1, 0), NAVY),
+                ("BACKGROUND", (0, 1), (1, 1), PALE),
+                ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
+                ("BOX", (0, 0), (-1, -1), 0.45, GRID),
+                ("LINEBEFORE", (1, 1), (1, 1), 0.45, GRID),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, 0), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 5),
+                ("TOPPADDING", (0, 1), (-1, 1), 7),
+                ("BOTTOMPADDING", (0, 1), (-1, 1), 8),
+            ]
+        )
+    )
+    return table
+
+
+def safety_gym_result_strip(
+    width: float, styles: dict[str, ParagraphStyle]
+) -> Table:
+    cells = [
+        [
+            [
+                Paragraph("PLANNER", styles["result_label"]),
+                Paragraph("94.53% completion<br/>70 hazard steps", styles["result_text"]),
+            ],
+            [
+                Paragraph("UNION", styles["result_label"]),
+                Paragraph("96.09% completion<br/>84 hazard steps", styles["result_text"]),
+            ],
+            [
+                Paragraph("INTERPRETATION", styles["panel_label"]),
+                Paragraph(
+                    "Completion +1.56 points; hazard cost +14 steps. Neither paired difference excludes zero.",
+                    styles["panel_text"],
+                ),
+            ],
+        ]
+    ]
+    table = Table(cells, colWidths=[width * 0.22, width * 0.22, width * 0.56])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, 0), NAVY),
+                ("BACKGROUND", (1, 0), (1, 0), TEAL),
+                ("BACKGROUND", (2, 0), (2, 0), PALE),
+                ("FONTNAME", (0, 0), (-1, -1), "ReportSans"),
+                ("BOX", (0, 0), (-1, -1), 0.45, GRID),
+                ("LINEBEFORE", (1, 0), (-1, 0), 1.2, WHITE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
             ]
         )
     )
@@ -874,6 +1069,13 @@ def build(
     for value in contribution_paragraphs:
         pieces = split_for_readability(value, 620) if editorial_layout else [value]
         story.extend(Paragraph(inline(piece), styles["front_body"]) for piece in pieces)
+    if editorial_layout:
+        story.extend(
+            [
+                Spacer(1, 3.5 * mm),
+                research_questions_box(document.width, styles),
+            ]
+        )
     story.extend([PageBreak(), Spacer(1, 1.5 * mm)])
 
     lines = lines[front_end + 1 :]
@@ -952,6 +1154,24 @@ def build(
             ]
             if table_note:
                 table_group.append(Paragraph(inline(table_note), styles["table_note"]))
+            if editorial_layout and table_lines[0].startswith(
+                "| Final arm | Completion |"
+            ):
+                table_group.extend(
+                    [
+                        Spacer(1, 2.0 * mm),
+                        safety_gym_result_strip(document.width, styles),
+                    ]
+                )
+            if editorial_layout and table_lines[0].startswith(
+                "| Risk source | Completion | Effective recall |"
+            ):
+                table_group.extend(
+                    [
+                        Spacer(1, 2.2 * mm),
+                        HazardStepsChart(document.width),
+                    ]
+                )
             table_group.append(Spacer(1, 1.8 * mm))
             if len(table_lines) <= 8:
                 story.append(KeepTogether(table_group))
