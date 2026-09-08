@@ -1,0 +1,65 @@
+{
+  "schema": "cross-domain-world-model-posthoc-sensitivity-protocol-v1",
+  "protocol_id": "cross-domain-world-model-posthoc-sensitivity-v1",
+  "registered_date": "2026-09-08",
+  "status": "registered_post_hoc_before_computation",
+  "scope": "Targeted sensitivity analyses of already opened, committed evidence. No model retraining, simulator rerun, threshold selection, artifact promotion, or replacement is permitted.",
+  "inputs": {
+    "architecture_protocol": {
+      "path": "docs/research/cross_domain_world_model_improvement_protocol_v1.json",
+      "sha256": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b"
+    },
+    "architecture_selection": {
+      "path": "docs/research/cross_domain_world_model_selection_v1.json",
+      "sha256": "d9b97fdd17045f6e1747907fc68f4098f182c302b95d04103f3fc24b625c38b5"
+    },
+    "architecture_result": {
+      "path": "docs/research/cross_domain_world_model_architecture_result_v1.json",
+      "sha256": "08c8c3ed38a8d835b8e4a0880501346309bd0200b019dbfa9fbdfd6d2ce2346e"
+    },
+    "attribution_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_protocol_v2.json",
+      "sha256": "ebe06850294979075a015b7b0d4aeb96bfd71a559badef5e76acc04fee96982d"
+    },
+    "attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
+    },
+    "common_proposal_catalog": {
+      "path": "docs/research/artifacts/physical-jepa-safety-attribution-v2/final-cases/full-frozen-v14-adapter.jsonl.gz",
+      "sha256": "72a30f149084c13af8ad33dac7c6b1be210b99884c0039933815cd5b41678ecc",
+      "provenance": "states visited by the full-adapter arm on final seeds 8000-8127"
+    }
+  },
+  "common_episode_horizon_analysis": {
+    "label": "post-hoc sensitivity analysis",
+    "episode_rule": "Within each domain, retain exactly the episode IDs with at least one eligible H=5 rollout endpoint, then recompute H=1, H=3, and H=5 on those episode IDs.",
+    "aggregation": "For each architecture, average the three checkpoint state predictions before computing normalized endpoint error.",
+    "uncertainty": "10,000-resample episode bootstrap holding trained checkpoints fixed",
+    "paired_contrasts": "all three architecture pairs at every horizon",
+    "selection_effect": "none; the original registered table and selected checkpoints remain unchanged"
+  },
+  "attribution_diagnostics": {
+    "label": "registered post-hoc sensitivity analysis",
+    "contrast_status": "JEPA-output-only versus full was one member of the prospectively specified family of risk-source contrasts, but it was not uniquely designated as the primary contrast.",
+    "pointwise_intervals": "The original 95% intervals are pointwise and unadjusted.",
+    "multiplicity_sensitivity": "For hazard steps and intervention rate, also report Bonferroni-adjusted 98.333333% percentile intervals across the three non-full pipelines versus full.",
+    "paired_episode_diagnostics": "Count improved, worsened, and unchanged paired episodes for hazard steps, task completion, and intervention count.",
+    "leave_one_out": "For JEPA-output-only minus full, omit each seed once and recompute 10,000-resample pointwise percentile intervals for hazard steps and intervention-rate percentage points.",
+    "common_proposal_analysis": "Apply every frozen adapter and registered threshold to the identical full-adapter visited-state proposal catalog. This compares warning behavior on shared inputs; it does not compare realized outcomes or remove catalog-provenance bias.",
+    "warning_population": "The original attribution warning metrics are on-policy and use each pipeline's own visited proposals."
+  },
+  "randomness": {
+    "common_episode_bootstrap_seed": 2026090801,
+    "attribution_family_bootstrap_seed": 2026090802,
+    "leave_one_out_bootstrap_seed_base": 2026090900,
+    "resamples": 10000
+  },
+  "authority": {
+    "may_promote_or_replace_artifacts": false,
+    "may_execute_simulator": false,
+    "may_retrain_models_or_adapters": false,
+    "physical_actuator_authority": false
+  },
+  "interpretation": "These analyses can qualify horizon-composition and warning-pipeline claims. They cannot establish architecture-only causality, detector superiority on an independently sampled population, physical safety, independent execution, or deployment readiness."
+}
