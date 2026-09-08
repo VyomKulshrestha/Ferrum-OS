@@ -1083,7 +1083,7 @@ def build(
             Spacer(1, 18 * mm),
             callout_box(
                 "v1.2 evidence update",
-                "Observed Physical JEPA output values are now compared with preregistered development-mean masking on complete retained paired catalogs. The analysis remains retrospective because the prospective v1 execution failed its final protected-file check.",
+                "Observed Physical JEPA output values are compared with preregistered development-mean masking on complete paired catalogs. The design and simulator execution were prospective; the reportable result remains a retrospective recovery because a concurrent report rebuild tripped the final protected-file check.",
                 document.width,
                 styles,
                 accent=ORANGE,

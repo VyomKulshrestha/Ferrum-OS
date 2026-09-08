@@ -40,7 +40,7 @@
     ],
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "49deffe52d94fb0474104d8941f4c642494636ba09c7a5dc4f128e8f2b393d9b"
+      "sha256": "1c9a99f53ed7526655f3f00c09052fa7167947a1ad60d50dc678c7622727b509"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -58,6 +58,10 @@
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_verification_v3.json",
       "sha256": "9e685077dd2656c4d79c87e3c05f98aba0a6eeaef39b674afc63c736d42823a6"
     },
+    "output_ablation_v1_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json",
+      "sha256": "79104c1443c3e4a51ac32e5539c5564e7acbb47a186ad137ff1b4e93ac8407a7"
+    },
     "output_ablation_verification_amendment": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_verification_amendment_v3.json",
       "sha256": "d6555034df03e660e0de567aa26f0b820f5585daa9b214cf4d547fe15d0c248e"
@@ -71,9 +75,9 @@
       "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
     "pdf": {
-      "pages": 26,
+      "pages": 27,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "f53cbc911fd07df4458f41d2af19e1135ac4d72aa43c506c00b4666465f32f68"
+      "sha256": "42ea57730bf783c63e5a09fb3773c9e62854296306d48b033978ed5e7d4021e9"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -112,7 +116,8 @@
     "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
     "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
     "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
-    "The output-ablation v1 execution failed its final protected-file check. Its complete retained catalogs support only a subsequently registered retrospective output-value analysis, not prospective confirmation or architecture-wide causality."
+    "The output-ablation design, estimands, fresh seed range, and bootstrap seeds were fixed before either catalog existed. The simulator execution was prospective, but its result failed the final protected-file gate; recovery v2 is the retrospective reportable analysis.",
+    "The output-ablation multiplicity checks are post-hoc. Seven displayed endpoints and all 11 registered paired outputs leave only warning FPR and intervention rate separated from zero; neither result establishes benefit."
   ],
   "evidence_frozen_date": "2026-09-08",
   "orcid": "0009-0009-1434-7148",
@@ -142,7 +147,7 @@
   "release": {
     "evidence_snapshot_commit": "6a6da0a2dd1a352df5c929ee1e93831b29640acd",
     "repository_tag": null,
-    "status": "immutable v1.2 evidence update; v1.1 remains retained"
+    "status": "prepublication v1.2 candidate; v1.1 remains retained"
   },
   "report_version": "1.2",
   "schema": "cross-domain-world-model-paper-freeze-v1-2",

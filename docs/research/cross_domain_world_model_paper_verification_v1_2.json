@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "10375b43184d99946442c29188b391cbab75e383e9fd9ebb87f2eebbf00f8803"
+      "sha256": "edde12fa4f699833fe2bd485c61d546da0ce554a79f02fe311bfa6c304ce158e"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "49deffe52d94fb0474104d8941f4c642494636ba09c7a5dc4f128e8f2b393d9b"
+      "sha256": "1c9a99f53ed7526655f3f00c09052fa7167947a1ad60d50dc678c7622727b509"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -32,6 +32,10 @@
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_verification_v3.json",
       "sha256": "9e685077dd2656c4d79c87e3c05f98aba0a6eeaef39b674afc63c736d42823a6"
     },
+    "output_ablation_v1_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json",
+      "sha256": "79104c1443c3e4a51ac32e5539c5564e7acbb47a186ad137ff1b4e93ac8407a7"
+    },
     "output_ablation_verification_amendment": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_verification_amendment_v3.json",
       "sha256": "d6555034df03e660e0de567aa26f0b820f5585daa9b214cf4d547fe15d0c248e"
@@ -46,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "f53cbc911fd07df4458f41d2af19e1135ac4d72aa43c506c00b4666465f32f68"
+      "sha256": "42ea57730bf783c63e5a09fb3773c9e62854296306d48b033978ed5e7d4021e9"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -78,10 +82,13 @@
     "external_verification_confirms_all_gates": true,
     "forbidden_placeholders_and_review_wording_absent": true,
     "intervention_precision_recomputed": true,
+    "output_ablation_all_output_family_same_survivors": true,
     "output_ablation_failed_v1_retained": true,
     "output_ablation_headline_effects_exact": true,
+    "output_ablation_pre_catalog_registration_exact": true,
     "output_ablation_protocol_and_result_are_bound": true,
     "output_ablation_recovery_is_retrospective": true,
+    "output_ablation_seven_endpoint_bonferroni_recomputes": true,
     "output_ablation_v3_all_51_checks_pass": true,
     "output_ablation_verification_amendment_is_nonexperimental": true,
     "paired_planner_union_uncertainty_verified": true,
@@ -117,7 +124,137 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "10375b43184d99946442c29188b391cbab75e383e9fd9ebb87f2eebbf00f8803",
+    "freeze_manifest_sha256": "edde12fa4f699833fe2bd485c61d546da0ce554a79f02fe311bfa6c304ce158e",
+    "output_ablation_bonferroni_11_output": {
+      "actual_hazard_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -137.37499999999997,
+          83.0
+        ]
+      },
+      "actual_total_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -137.37499999999997,
+          83.0
+        ]
+      },
+      "actual_vase_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          0.0,
+          0.0
+        ]
+      },
+      "effective_intervention_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -8.396415631469978,
+          6.456016330575844
+        ]
+      },
+      "hazardous_episode_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -3.125,
+          4.6875
+        ]
+      },
+      "intervention_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.45555900060583593,
+          1.5993617791065153
+        ]
+      },
+      "intervention_precision_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -36.31721310801085,
+          2.173919474589823
+        ]
+      },
+      "mean_episode_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -0.1875,
+          2.109375
+        ]
+      },
+      "task_completion_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -3.90625,
+          0.0
+        ]
+      },
+      "warning_false_positive_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.7363828601763047,
+          2.8972508163281856
+        ]
+      },
+      "warning_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -13.191450207277706,
+          20.03179881736974
+        ]
+      }
+    },
+    "output_ablation_bonferroni_7_endpoint": {
+      "actual_hazard_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -134.0,
+          81.0
+        ]
+      },
+      "effective_intervention_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -7.629120645358498,
+          6.2211752780409935
+        ]
+      },
+      "intervention_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.4778018711832064,
+          1.5751027845626882
+        ]
+      },
+      "intervention_precision_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -34.86661087127528,
+          1.3570538582529057
+        ]
+      },
+      "task_completion_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -3.125,
+          0.0
+        ]
+      },
+      "warning_false_positive_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.7846824039950231,
+          2.81866234561309
+        ]
+      },
+      "warning_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -11.253300870202505,
+          18.182549363264535
+        ]
+      }
+    },
     "pdf_font_inventory": [
       {
         "base_font": "/AAAAAA+BitstreamVeraSans-Bold",
@@ -136,11 +273,12 @@
       }
     ],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 26,
+    "pdf_pages": 27,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
       "Bonferroni-adjusted 98.33% interval": true,
+      "Bonferroni-adjusted 99.29% CI": true,
       "Claim-to-evidence ledger": true,
       "Completion +1.56 points; hazard cost +14 steps.": true,
       "Does one architecture consistently dominate across domains?": true,
@@ -156,19 +294,20 @@
       "RQ2 / OPERATIONAL VALUE": true,
       "References": true,
       "Retained-catalog Physical JEPA output-value ablation": true,
-      "Retrospective recovery, not prospective confirmation": true,
       "Safety-Gymnasium controller and shield benchmark": true,
       "Technical Report v1.2": true,
+      "The design and simulator execution were prospective": true,
       "Threats to validity and limitations": true,
       "V1.2 EVIDENCE UPDATE": true,
       "Validation FPR": true,
       "Vyom Kulshrestha": true,
       "common-episode sensitivity": true,
       "complete post-hoc common-episode comparison": true,
+      "reportable result remains a retrospective recovery": true,
       "superiority over the planner was not established": true,
       "writes await confirmation": true
     },
-    "pdf_words_extracted": 11816,
+    "pdf_words_extracted": 12218,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -195,7 +334,8 @@
       23,
       24,
       25,
-      26
+      26,
+      27
     ],
     "source_required_phrases": {
       "1.478%": true,
@@ -210,25 +350,30 @@
       "Frozen risk-source attribution on fresh layouts": true,
       "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]": true,
       "Hashes prove byte identity only": true,
+      "Intervention precision | [-34.86661, 1.35705] | Includes zero": true,
+      "Intervention rate | **[0.47780, 1.57510]** | **Excludes zero**": true,
       "Neither interval excludes zero": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
+      "Publication or tagging makes that source, PDF, verifier, and manifest immutable": true,
       "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124": true,
       "Recovery protocol v2 reused the retained catalogs without simulator execution": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
       "Table 2 reports the complete post-hoc common-episode comparison": true,
-      "Technical Report v1.2 is the immutable evidence-changing successor to v1.1": true,
+      "Technical Report v1.2 is the prepublication evidence-changing successor to v1.1": true,
       "Technical Report v1.2 \u2014 8 September 2026": true,
+      "The design and simulator execution were prospective, but the v1 result remains failed and ineligible": true,
       "The original warning metrics are on-policy": true,
       "The primary contribution is an evaluation method, not a new JEPA objective.": true,
-      "The registered prospective v1 attempt therefore remains failed and result-ineligible.": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "The v2 attribution opens seeds 8000-8127 once": true,
       "These leave-one-out checks are sensitivity analyses, not independent replications.": true,
       "Validation FPR": true,
       "Validation means checking an existing record": true,
+      "Warning FPR | **[0.78468, 2.81866]** | **Excludes zero**": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "`rule_block` is false in all 1,024 records by construction of this estimand": true,
+      "adjustment across all 11 registered paired outputs gives the same survivor set": true,
       "complete post-hoc common-episode comparison": true,
       "completion/cost tradeoff over the planner": true,
       "constant-prevalence predictor has Brier 0.25": true,
@@ -248,13 +393,14 @@
       "not the uniquely designated primary contrast": true,
       "paired 10,000-resample episode-bootstrap 95% CI": true,
       "physical permit unit tests do not establish FerrumOS syscall-path enforcement": true,
+      "post-hoc seven-endpoint Bonferroni-adjusted 99.29% intervals": true,
       "protected artifacts remain unchanged": true,
       "registered ranking reversal cannot be isolated as a horizon effect": true,
-      "repository tag may identify that freeze only after the committed objects exist": true,
       "same six evidence objects named in the abstract": true,
       "these gates do not require superiority over the privileged planner": true,
       "thresholded latent-hazard coverage negative": true,
       "verification v3 recomputes the catalogs, scores, aggregates, paired effects, seeds, and feature intervention and passes all 51 checks": true,
+      "warning FPR [0.73638, 2.89725] and intervention rate [0.45556, 1.59936]": true,
       "| H=1 | 0.002343 | **0.001018** | 0.002401 | +0.001325 [0.001295, 0.001356] | -0.001383 [-0.001408, -0.001358] |": true,
       "| Intervention precision, percentage points | -15.25735 | [-29.32521, -3.00212] | Excludes zero |": true,
       "| Intervention rate, percentage points | +0.96180 | [0.58641, 1.38473] | Excludes zero |": true,

@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 
+import numpy as np
 import pdfplumber
 from pypdf import PdfReader
 from pypdf.generic import ContentStream
@@ -59,6 +60,10 @@ ABLATION_FAILED = (
     ROOT
     / "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json"
 )
+ABLATION_V1_PROTOCOL = (
+    ROOT
+    / "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json"
+)
 ABLATION_RECOVERY_PROTOCOL = (
     ROOT
     / "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_protocol_v2.json"
@@ -87,6 +92,22 @@ RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_2.
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
 EVIDENCE_SNAPSHOT_COMMIT = "6a6da0a2dd1a352df5c929ee1e93831b29640acd"
+ABLATION_DISPLAYED_ENDPOINTS = (
+    "task_completion_percentage_points",
+    "warning_recall_percentage_points",
+    "warning_false_positive_percentage_points",
+    "effective_intervention_recall_percentage_points",
+    "intervention_percentage_points",
+    "intervention_precision_percentage_points",
+    "actual_hazard_cost_steps",
+)
+ABLATION_ALL_REGISTERED_OUTPUTS = (
+    *ABLATION_DISPLAYED_ENDPOINTS,
+    "actual_total_cost_steps",
+    "actual_vase_cost_steps",
+    "hazardous_episode_percentage_points",
+    "mean_episode_steps",
+)
 REQUIRED_SOURCE_PHRASES = [
     "Technical Report v1.2 — 8 September 2026",
     "The primary contribution is an evaluation method, not a new JEPA objective.",
@@ -136,11 +157,17 @@ REQUIRED_SOURCE_PHRASES = [
     "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124",
     "Hashes prove byte identity only",
     f"exact pre-report scientific-evidence snapshot for this review freeze is Git commit `{EVIDENCE_SNAPSHOT_COMMIT}`",
-    "Technical Report v1.2 is the immutable evidence-changing successor to v1.1",
-    "repository tag may identify that freeze only after the committed objects exist",
-    "The registered prospective v1 attempt therefore remains failed and result-ineligible.",
+    "Technical Report v1.2 is the prepublication evidence-changing successor to v1.1",
+    "Publication or tagging makes that source, PDF, verifier, and manifest immutable",
+    "The design and simulator execution were prospective, but the v1 result remains failed and ineligible",
     "Recovery protocol v2 reused the retained catalogs without simulator execution",
     "verification v3 recomputes the catalogs, scores, aggregates, paired effects, seeds, and feature intervention and passes all 51 checks",
+    "post-hoc seven-endpoint Bonferroni-adjusted 99.29% intervals",
+    "Warning FPR | **[0.78468, 2.81866]** | **Excludes zero**",
+    "Intervention rate | **[0.47780, 1.57510]** | **Excludes zero**",
+    "Intervention precision | [-34.86661, 1.35705] | Includes zero",
+    "adjustment across all 11 registered paired outputs gives the same survivor set",
+    "warning FPR [0.73638, 2.89725] and intervention rate [0.45556, 1.59936]",
     "| Intervention rate, percentage points | +0.96180 | [0.58641, 1.38473] | Excludes zero |",
     "| Intervention precision, percentage points | -15.25735 | [-29.32521, -3.00212] | Excludes zero |",
     "| Realized hazard-cost steps | -10 | [-98, 59] | Includes zero |",
@@ -180,7 +207,9 @@ REQUIRED_PDF_PHRASES = [
     "Validation FPR",
     "Retained-catalog Physical JEPA output-value ablation",
     "Observed minus development-mean masked",
-    "Retrospective recovery, not prospective confirmation",
+    "reportable result remains a retrospective recovery",
+    "Bonferroni-adjusted 99.29% CI",
+    "The design and simulator execution were prospective",
     "References",
 ]
 FORBIDDEN_PATTERNS = [
@@ -222,6 +251,143 @@ def text_sha256_candidates(path: Path) -> set[str]:
 
 def rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
+
+
+def output_summary_metrics(episodes: list[dict]) -> dict[str, float]:
+    summed = {
+        key: sum(int(item[key]) for item in episodes)
+        for key in (
+            "proposals",
+            "dangerous_proposals",
+            "safe_proposals",
+            "interventions",
+            "true_positive_interventions",
+            "true_positive_warnings",
+            "false_positive_warnings",
+            "actual_hazard_cost_events",
+            "actual_total_cost_events",
+            "actual_vase_cost_events",
+            "steps",
+        )
+    }
+    episode_count = len(episodes)
+    summed["task_completion_rate"] = sum(
+        bool(item["task_completed"]) for item in episodes
+    ) / max(1, episode_count)
+    summed["warning_recall"] = summed["true_positive_warnings"] / max(
+        1, summed["dangerous_proposals"]
+    )
+    summed["warning_false_positive_rate"] = summed[
+        "false_positive_warnings"
+    ] / max(1, summed["safe_proposals"])
+    summed["effective_intervention_recall"] = summed[
+        "true_positive_interventions"
+    ] / max(1, summed["dangerous_proposals"])
+    summed["intervention_rate"] = summed["interventions"] / max(
+        1, summed["proposals"]
+    )
+    summed["intervention_precision"] = summed[
+        "true_positive_interventions"
+    ] / max(1, summed["interventions"])
+    summed["hazardous_episode_rate"] = sum(
+        item["actual_hazard_cost_events"] > 0 for item in episodes
+    ) / max(1, episode_count)
+    summed["mean_episode_steps"] = summed["steps"] / max(1, episode_count)
+    return summed
+
+
+def output_paired_metrics(left: list[dict], right: list[dict]) -> dict[str, float]:
+    left_metrics = output_summary_metrics(left)
+    right_metrics = output_summary_metrics(right)
+    return {
+        "task_completion_percentage_points": 100.0
+        * (
+            left_metrics["task_completion_rate"]
+            - right_metrics["task_completion_rate"]
+        ),
+        "warning_recall_percentage_points": 100.0
+        * (left_metrics["warning_recall"] - right_metrics["warning_recall"]),
+        "warning_false_positive_percentage_points": 100.0
+        * (
+            left_metrics["warning_false_positive_rate"]
+            - right_metrics["warning_false_positive_rate"]
+        ),
+        "effective_intervention_recall_percentage_points": 100.0
+        * (
+            left_metrics["effective_intervention_recall"]
+            - right_metrics["effective_intervention_recall"]
+        ),
+        "intervention_percentage_points": 100.0
+        * (left_metrics["intervention_rate"] - right_metrics["intervention_rate"]),
+        "intervention_precision_percentage_points": 100.0
+        * (
+            left_metrics["intervention_precision"]
+            - right_metrics["intervention_precision"]
+        ),
+        "actual_hazard_cost_steps": float(
+            left_metrics["actual_hazard_cost_events"]
+            - right_metrics["actual_hazard_cost_events"]
+        ),
+        "actual_total_cost_steps": float(
+            left_metrics["actual_total_cost_events"]
+            - right_metrics["actual_total_cost_events"]
+        ),
+        "actual_vase_cost_steps": float(
+            left_metrics["actual_vase_cost_events"]
+            - right_metrics["actual_vase_cost_events"]
+        ),
+        "hazardous_episode_percentage_points": 100.0
+        * (
+            left_metrics["hazardous_episode_rate"]
+            - right_metrics["hazardous_episode_rate"]
+        ),
+        "mean_episode_steps": float(
+            left_metrics["mean_episode_steps"]
+            - right_metrics["mean_episode_steps"]
+        ),
+    }
+
+
+def output_bootstrap_samples(
+    left: list[dict],
+    right: list[dict],
+    endpoints: tuple[str, ...],
+    *,
+    seed: int,
+    resamples: int,
+) -> dict[str, dict]:
+    left_by_seed = {int(item["seed"]): item for item in left}
+    right_by_seed = {int(item["seed"]): item for item in right}
+    seeds = sorted(left_by_seed)
+    if seeds != sorted(right_by_seed):
+        raise ValueError("output-ablation paired episode seeds differ")
+    rng = np.random.default_rng(seed)
+    samples = {name: [] for name in endpoints}
+    for _ in range(resamples):
+        sampled = rng.integers(0, len(seeds), size=len(seeds))
+        left_sample = [left_by_seed[seeds[index]] for index in sampled]
+        right_sample = [right_by_seed[seeds[index]] for index in sampled]
+        effects = output_paired_metrics(left_sample, right_sample)
+        for name in endpoints:
+            samples[name].append(effects[name])
+    return samples
+
+
+def output_bonferroni_intervals(
+    samples: dict[str, list[float]], endpoints: tuple[str, ...]
+) -> dict[str, dict]:
+    tail = 0.05 / (2.0 * len(endpoints))
+    intervals = {}
+    for name in endpoints:
+        lower, upper = (
+            float(value)
+            for value in np.quantile(samples[name], [tail, 1.0 - tail])
+        )
+        intervals[name] = {
+            "interval": [lower, upper],
+            "excludes_zero": bool(lower > 0.0 or upper < 0.0),
+        }
+    return intervals
 
 
 def normalize_cell(value: str | None) -> str:
@@ -311,6 +477,7 @@ def main() -> None:
         POSTHOC_VERIFICATION,
         AUTHORITY_TEST_INVENTORY,
         LEARNED_CONTRIBUTION,
+        ABLATION_V1_PROTOCOL,
         ABLATION_FAILED,
         ABLATION_RECOVERY_PROTOCOL,
         ABLATION_RECOVERY_RESULT,
@@ -337,6 +504,9 @@ def main() -> None:
     posthoc_verification = json.loads(POSTHOC_VERIFICATION.read_text(encoding="utf-8"))
     authority_inventory = json.loads(AUTHORITY_TEST_INVENTORY.read_text(encoding="utf-8"))
     learned_contribution = json.loads(LEARNED_CONTRIBUTION.read_text(encoding="utf-8"))
+    ablation_v1_protocol = json.loads(
+        ABLATION_V1_PROTOCOL.read_text(encoding="utf-8")
+    )
     ablation_failed = json.loads(ABLATION_FAILED.read_text(encoding="utf-8"))
     ablation_recovery_protocol = json.loads(
         ABLATION_RECOVERY_PROTOCOL.read_text(encoding="utf-8")
@@ -390,6 +560,57 @@ def main() -> None:
         for domain in expected_families
     }
     ablation_effects = ablation_recovery["paired_output_contribution"]["effects"]
+    observed_ablation_episodes = ablation_recovery["arms"]["observed-frozen-jepa"][
+        "episode_summaries"
+    ]
+    masked_ablation_episodes = ablation_recovery["arms"][
+        "development-mean-masked-jepa"
+    ]["episode_summaries"]
+    ablation_bootstrap_seed = ablation_v1_protocol["uncertainty"][
+        "paired_bootstrap_seed"
+    ]
+    ablation_bootstrap_resamples = ablation_v1_protocol["uncertainty"][
+        "paired_bootstrap_resamples"
+    ]
+    ablation_bootstrap_samples = output_bootstrap_samples(
+        observed_ablation_episodes,
+        masked_ablation_episodes,
+        ABLATION_ALL_REGISTERED_OUTPUTS,
+        seed=ablation_bootstrap_seed,
+        resamples=ablation_bootstrap_resamples,
+    )
+    all_registered_adjusted = output_bonferroni_intervals(
+        ablation_bootstrap_samples,
+        ABLATION_ALL_REGISTERED_OUTPUTS,
+    )
+    displayed_adjusted = output_bonferroni_intervals(
+        ablation_bootstrap_samples,
+        ABLATION_DISPLAYED_ENDPOINTS,
+    )
+    expected_displayed_adjusted = {
+        "task_completion_percentage_points": [-3.125, 0.0],
+        "warning_recall_percentage_points": [
+            -11.253300870202505,
+            18.182549363264535,
+        ],
+        "warning_false_positive_percentage_points": [
+            0.7846824039950231,
+            2.81866234561309,
+        ],
+        "effective_intervention_recall_percentage_points": [
+            -7.629120645358498,
+            6.2211752780409935,
+        ],
+        "intervention_percentage_points": [
+            0.4778018711832064,
+            1.5751027845626882,
+        ],
+        "intervention_precision_percentage_points": [
+            -34.86661087127528,
+            1.3570538582529057,
+        ],
+        "actual_hazard_cost_steps": [-134.0, 81.0],
+    }
     table_rows = pdf_table_rows()
     all_table_rows = set().union(*table_rows.values())
     checks = {
@@ -742,6 +963,69 @@ def main() -> None:
         and ablation_effects["actual_hazard_cost_steps"]["estimate"] == -10.0
         and ablation_effects["actual_hazard_cost_steps"]["interval_excludes_zero"]
         is False,
+        "output_ablation_pre_catalog_registration_exact": ablation_v1_protocol[
+            "prospective_boundary"
+        ]["seed_range_status_at_registration"]
+        == "unopened for this ablation"
+        and ablation_v1_protocol["prospective_boundary"]["fresh_final_seed_range"]
+        == {"start": 9000, "count": 128}
+        and ablation_v1_protocol["uncertainty"]["paired_bootstrap_seed"]
+        == ablation_recovery_protocol["uncertainty"]["paired_bootstrap_seed"]
+        == 2026090810
+        and ablation_v1_protocol["uncertainty"]["absolute_bootstrap_seed"]
+        == ablation_recovery_protocol["uncertainty"]["absolute_bootstrap_seed"]
+        == 2026090800
+        and ablation_v1_protocol["toolchain"]["ablation_runner"]["sha256"]
+        == ablation_recovery_protocol["toolchain"]["v1_registered_analysis_core"][
+            "sha256"
+        ]
+        == "0034ee3100db93b6d971ebd0be01a42757fbebbd9c007099f95a1a79c821b1f7"
+        and "v1 registered estimands and bootstrap seeds"
+        in ablation_recovery_protocol["constant_factors"]
+        and ablation_failed["failure_cause"].endswith(
+            "The ablation runner did not write or invoke the report build."
+        ),
+        "output_ablation_seven_endpoint_bonferroni_recomputes": all(
+            np.allclose(
+                displayed_adjusted[name]["interval"],
+                expected_interval,
+                rtol=0.0,
+                atol=1e-12,
+            )
+            for name, expected_interval in expected_displayed_adjusted.items()
+        )
+        and {
+            name
+            for name, record in displayed_adjusted.items()
+            if record["excludes_zero"]
+        }
+        == {
+            "warning_false_positive_percentage_points",
+            "intervention_percentage_points",
+        },
+        "output_ablation_all_output_family_same_survivors": {
+            name
+            for name, record in all_registered_adjusted.items()
+            if record["excludes_zero"]
+        }
+        == {
+            "warning_false_positive_percentage_points",
+            "intervention_percentage_points",
+        }
+        and np.allclose(
+            all_registered_adjusted["warning_false_positive_percentage_points"][
+                "interval"
+            ],
+            [0.7363828602, 2.897250816],
+            rtol=0.0,
+            atol=1e-9,
+        )
+        and np.allclose(
+            all_registered_adjusted["intervention_percentage_points"]["interval"],
+            [0.4555590006, 1.599361779],
+            rtol=0.0,
+            atol=1e-9,
+        ),
         "umbrella_all_checks_pass": bool(umbrella_checks)
         and all(umbrella_checks.values()),
         "umbrella_binds_external_verification": umbrella.get("headline", {}).get(
@@ -764,7 +1048,7 @@ def main() -> None:
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
         "release": {
-            "status": "immutable v1.2 evidence update; v1.1 remains retained",
+            "status": "prepublication v1.2 candidate; v1.1 remains retained",
             "evidence_snapshot_commit": EVIDENCE_SNAPSHOT_COMMIT,
             "repository_tag": None,
         },
@@ -820,6 +1104,10 @@ def main() -> None:
                 "path": rel(AUTHORITY_TEST_INVENTORY),
                 "sha256": sha256(AUTHORITY_TEST_INVENTORY),
             },
+            "output_ablation_v1_protocol": {
+                "path": rel(ABLATION_V1_PROTOCOL),
+                "sha256": sha256(ABLATION_V1_PROTOCOL),
+            },
             "output_ablation_failed_attempt": {
                 "path": rel(ABLATION_FAILED),
                 "sha256": sha256(ABLATION_FAILED),
@@ -848,7 +1136,8 @@ def main() -> None:
             "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
             "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
             "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
-            "The output-ablation v1 execution failed its final protected-file check. Its complete retained catalogs support only a subsequently registered retrospective output-value analysis, not prospective confirmation or architecture-wide causality.",
+            "The output-ablation design, estimands, fresh seed range, and bootstrap seeds were fixed before either catalog existed. The simulator execution was prospective, but its result failed the final protected-file gate; recovery v2 is the retrospective reportable analysis.",
+            "The output-ablation multiplicity checks are post-hoc. Seven displayed endpoints and all 11 registered paired outputs leave only warning FPR and intervention rate separated from zero; neither result establishes benefit.",
         ],
         "promotion_eligible": False,
         "protected_deployed_artifacts": protected,
@@ -871,6 +1160,8 @@ def main() -> None:
             "positionally_checked_pdf_table_pages": sorted(table_rows),
             "pdf_font_inventory": font_inventory,
             "pdf_nonzero_character_spacing": nonzero_character_spacing,
+            "output_ablation_bonferroni_7_endpoint": displayed_adjusted,
+            "output_ablation_bonferroni_11_output": all_registered_adjusted,
             "freeze_manifest_sha256": sha256(FREEZE),
         },
         "artifacts": {
@@ -905,6 +1196,10 @@ def main() -> None:
             "authority_test_inventory": {
                 "path": rel(AUTHORITY_TEST_INVENTORY),
                 "sha256": sha256(AUTHORITY_TEST_INVENTORY),
+            },
+            "output_ablation_v1_protocol": {
+                "path": rel(ABLATION_V1_PROTOCOL),
+                "sha256": sha256(ABLATION_V1_PROTOCOL),
             },
             "output_ablation_failed_attempt": {
                 "path": rel(ABLATION_FAILED),
