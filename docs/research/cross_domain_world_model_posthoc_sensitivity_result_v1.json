@@ -1,0 +1,4049 @@
+{
+  "analysis_class": "registered post-hoc sensitivity analysis",
+  "attribution_diagnostics": {
+    "common_proposal_warning_analysis": {
+      "catalog_provenance": "states visited by the full-adapter arm on final seeds 8000-8127",
+      "catalog_rows": 23815,
+      "dangerous_proposals": 263,
+      "full_adapter_source_arm_reproduced": {
+        "fn_matches": true,
+        "fp_matches": true,
+        "tn_matches": true,
+        "tp_matches": true
+      },
+      "interpretation": "All warning sources are scored on identical inputs from the full-adapter visited-state catalog. This is a controlled detector comparison conditional on that catalog, not a realized-outcome comparison or an independent sample.",
+      "safe_proposals": 23552,
+      "variants": {
+        "full-frozen-v14-adapter": {
+          "fn": 20,
+          "fp": 790,
+          "threshold": 0.72,
+          "tn": 22762,
+          "tp": 243,
+          "warning_false_positive_rate": 0.03354279891304348,
+          "warning_precision": 0.23523717328170377,
+          "warning_recall": 0.9239543726235742
+        },
+        "hazard-closeness-only": {
+          "fn": 53,
+          "fp": 547,
+          "threshold": 0.78,
+          "tn": 23005,
+          "tp": 210,
+          "warning_false_positive_rate": 0.023225203804347828,
+          "warning_precision": 0.2774108322324967,
+          "warning_recall": 0.7984790874524715
+        },
+        "jepa-outputs-only": {
+          "fn": 127,
+          "fp": 683,
+          "threshold": 0.709,
+          "tn": 22869,
+          "tp": 136,
+          "warning_false_positive_rate": 0.028999660326086956,
+          "warning_precision": 0.16605616605616605,
+          "warning_recall": 0.5171102661596958
+        },
+        "local-sensing-without-jepa": {
+          "fn": 25,
+          "fp": 567,
+          "threshold": 0.751,
+          "tn": 22985,
+          "tp": 238,
+          "warning_false_positive_rate": 0.02407438858695652,
+          "warning_precision": 0.2956521739130435,
+          "warning_recall": 0.9049429657794676
+        }
+      }
+    },
+    "comparisons": {
+      "hazard-closeness-only_minus_full": {
+        "bonferroni_98_333333_percent": {
+          "hazard_steps": {
+            "confidence_level": 0.9833333333333333,
+            "estimate": 15.0,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -2.0,
+              44.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.9833333333333333,
+            "estimate": 0.47130496367949193,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -0.21619002996919665,
+              1.224357932990064
+            ]
+          }
+        },
+        "paired_episode_directions": {
+          "hazard_steps": {
+            "direction_definition": "negative paired difference is improved",
+            "improved": 1,
+            "unchanged": 124,
+            "worsened": 3
+          },
+          "intervention_count": {
+            "direction_definition": "negative paired difference is improved",
+            "improved": 19,
+            "unchanged": 92,
+            "worsened": 17
+          },
+          "task_completion": {
+            "direction_definition": "positive paired difference is improved",
+            "improved": 0,
+            "unchanged": 128,
+            "worsened": 0
+          }
+        },
+        "pointwise_95_percent": {
+          "completion_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": 0.0,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              0.0,
+              0.0
+            ]
+          },
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": 15.0,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -1.0,
+              37.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": 0.47130496367949193,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -0.08858844857232362,
+              1.065144998362512
+            ]
+          }
+        }
+      },
+      "jepa-outputs-only_minus_full": {
+        "bonferroni_98_333333_percent": {
+          "hazard_steps": {
+            "confidence_level": 0.9833333333333333,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -57.0,
+              -3.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.9833333333333333,
+            "estimate": -0.8107516845070636,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.575939056850711,
+              -0.012011400157509955
+            ]
+          }
+        },
+        "paired_episode_directions": {
+          "hazard_steps": {
+            "direction_definition": "negative paired difference is improved",
+            "improved": 6,
+            "unchanged": 122,
+            "worsened": 0
+          },
+          "intervention_count": {
+            "direction_definition": "negative paired difference is improved",
+            "improved": 26,
+            "unchanged": 86,
+            "worsened": 16
+          },
+          "task_completion": {
+            "direction_definition": "positive paired difference is improved",
+            "improved": 2,
+            "unchanged": 126,
+            "worsened": 0
+          }
+        },
+        "pointwise_95_percent": {
+          "completion_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": 1.5625,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              0.0,
+              3.90625
+            ]
+          },
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8107516845070636,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.443055857128487,
+              -0.16999208138799513
+            ]
+          }
+        }
+      },
+      "local-sensing-without-jepa_minus_full": {
+        "bonferroni_98_333333_percent": {
+          "hazard_steps": {
+            "confidence_level": 0.9833333333333333,
+            "estimate": 3.0,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -3.0,
+              15.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.9833333333333333,
+            "estimate": -0.5030509649447293,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -0.9035627746132536,
+              -0.15762030556596043
+            ]
+          }
+        },
+        "paired_episode_directions": {
+          "hazard_steps": {
+            "direction_definition": "negative paired difference is improved",
+            "improved": 1,
+            "unchanged": 126,
+            "worsened": 1
+          },
+          "intervention_count": {
+            "direction_definition": "negative paired difference is improved",
+            "improved": 27,
+            "unchanged": 97,
+            "worsened": 4
+          },
+          "task_completion": {
+            "direction_definition": "positive paired difference is improved",
+            "improved": 0,
+            "unchanged": 127,
+            "worsened": 1
+          }
+        },
+        "pointwise_95_percent": {
+          "completion_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.78125,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -2.34375,
+              0.0
+            ]
+          },
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": 3.0,
+            "interval_excludes_zero": false,
+            "percentile_interval": [
+              -3.0,
+              12.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.5030509649447293,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -0.826417466710152,
+              -0.2161806720557809
+            ]
+          }
+        }
+      }
+    },
+    "contrast_status": "JEPA-output-only versus full was one member of the prospectively specified family of risk-source contrasts, but it was not uniquely designated as the primary contrast.",
+    "final_on_policy_warning_false_positive_rates": {
+      "full-frozen-v14-adapter": 0.03354279891304348,
+      "hazard-closeness-only": 0.026437569628931356,
+      "jepa-outputs-only": 0.026625704045058884,
+      "local-sensing-without-jepa": 0.025326236263736264
+    },
+    "jepa_outputs_only_minus_full_leave_one_out": {
+      "all_hazard_intervals_exclude_zero": true,
+      "all_intervention_intervals_exclude_zero": true,
+      "hazard_interval_endpoint_range": [
+        -51.0,
+        -3.0
+      ],
+      "intervention_interval_endpoint_range": [
+        -1.5236036563971649,
+        -0.07163024213836017
+      ],
+      "omissions": 128,
+      "records": [
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.812440357317398,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4472496029810387,
+              -0.17108126022639308
+            ]
+          },
+          "omitted_seed": 8000
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8140341353397615,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4401336003263325,
+              -0.1616858241393445
+            ]
+          },
+          "omitted_seed": 8001
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8122373453122855,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4561449727992366,
+              -0.16024944346275175
+            ]
+          },
+          "omitted_seed": 8002
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8133551683918603,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4514327571503198,
+              -0.1658613188010323
+            ]
+          },
+          "omitted_seed": 8003
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8147823092390396,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.466043581026618,
+              -0.17330198073255484
+            ]
+          },
+          "omitted_seed": 8004
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8404464075938225,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4850090892582162,
+              -0.19419010274964218
+            ]
+          },
+          "omitted_seed": 8005
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8690315048511104,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.5094725783175151,
+              -0.23077962211710412
+            ]
+          },
+          "omitted_seed": 8006
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8119668203823747,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4479898204711927,
+              -0.17339024741763673
+            ]
+          },
+          "omitted_seed": 8007
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8120006261449748,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4484810956844527,
+              -0.1708719653337873
+            ]
+          },
+          "omitted_seed": 8008
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -18.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -39.0,
+              -3.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7336273860021024,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3661812592455074,
+              -0.08933201560826931
+            ]
+          },
+          "omitted_seed": 8009
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -23.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -48.0,
+              -4.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7959356749097002,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4426721865567507,
+              -0.13027200637709604
+            ]
+          },
+          "omitted_seed": 8010
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8130161094040446,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4471116073612111,
+              -0.16674928909085118
+            ]
+          },
+          "omitted_seed": 8011
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.813524803940925,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4505092241327895,
+              -0.16618408475358912
+            ]
+          },
+          "omitted_seed": 8012
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8128128096431873,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4533680717910307,
+              -0.16951841212720958
+            ]
+          },
+          "omitted_seed": 8013
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8019343586578119,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4466743951122203,
+              -0.1509417849474101
+            ]
+          },
+          "omitted_seed": 8014
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8197908734654458,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4758067858549822,
+              -0.17124852142786132
+            ]
+          },
+          "omitted_seed": 8015
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8176859467225069,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4593254201382053,
+              -0.16143976861889564
+            ]
+          },
+          "omitted_seed": 8016
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8254809159777292,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4698266276923473,
+              -0.1900957171776383
+            ]
+          },
+          "omitted_seed": 8017
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8159412864968488,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.452521538580307,
+              -0.1573316460333361
+            ]
+          },
+          "omitted_seed": 8018
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8194725132718566,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4713326174494703,
+              -0.1776860321670342
+            ]
+          },
+          "omitted_seed": 8019
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8131856035609687,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4441708054054716,
+              -0.17089801124507556
+            ]
+          },
+          "omitted_seed": 8020
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8279609574317778,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.482570536754905,
+              -0.18610203002168516
+            ]
+          },
+          "omitted_seed": 8021
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.6930684946360021,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3030419162373437,
+              -0.07163024213836017
+            ]
+          },
+          "omitted_seed": 8022
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8931079799794662,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.5236036563971649,
+              -0.2559569564104775
+            ]
+          },
+          "omitted_seed": 8023
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8717597619573522,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.510403267074587,
+              -0.23712496085636503
+            ]
+          },
+          "omitted_seed": 8024
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8136945102524046,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.44594397395474,
+              -0.1662429257102335
+            ]
+          },
+          "omitted_seed": 8025
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8165561983076889,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4447752118662567,
+              -0.16122108300624186
+            ]
+          },
+          "omitted_seed": 8026
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8136266192334901,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4780612329408678,
+              -0.16955977155420002
+            ]
+          },
+          "omitted_seed": 8027
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.813524803940925,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4542713026014609,
+              -0.16908789315332598
+            ]
+          },
+          "omitted_seed": 8028
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8136605633269907,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4558033833500543,
+              -0.1664898344460546
+            ]
+          },
+          "omitted_seed": 8029
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8146788907214892,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4561716113367973,
+              -0.17264237751396289
+            ]
+          },
+          "omitted_seed": 8030
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8203513021618549,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4605089902268453,
+              -0.18066105433857083
+            ]
+          },
+          "omitted_seed": 8031
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8129144468150193,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4294557590267525,
+              -0.17175607077255406
+            ]
+          },
+          "omitted_seed": 8032
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8242170180413104,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4628879083148814,
+              -0.18334561287462056
+            ]
+          },
+          "omitted_seed": 8033
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7976101583549928,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4399553867662405,
+              -0.13890863805028328
+            ]
+          },
+          "omitted_seed": 8034
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.871394304038043,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4993500556323616,
+              -0.24028716446893328
+            ]
+          },
+          "omitted_seed": 8035
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8303207217703304,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4679091170651697,
+              -0.1884187929652186
+            ]
+          },
+          "omitted_seed": 8036
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8174460420106644,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4570218880608639,
+              -0.17143071578909566
+            ]
+          },
+          "omitted_seed": 8037
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.847254393179917,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4846411500941759,
+              -0.20080041919187486
+            ]
+          },
+          "omitted_seed": 8038
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8221192413851455,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4663647706547522,
+              -0.1812034883324106
+            ]
+          },
+          "omitted_seed": 8039
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8186813393567085,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.472856712309631,
+              -0.17151206863991753
+            ]
+          },
+          "omitted_seed": 8040
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7677945368811907,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4000138735779744,
+              -0.122207269988783
+            ]
+          },
+          "omitted_seed": 8041
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -24.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -4.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7640346138053031,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.418059160135086,
+              -0.12225382739897285
+            ]
+          },
+          "omitted_seed": 8042
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8233471395868256,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4582416776860687,
+              -0.17486885930335752
+            ]
+          },
+          "omitted_seed": 8043
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8135587395408113,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4447160359213258,
+              -0.16017868482327038
+            ]
+          },
+          "omitted_seed": 8044
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8289680142171919,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4729490479425007,
+              -0.16588974610274246
+            ]
+          },
+          "omitted_seed": 8045
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8155318594603155,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4461192170237973,
+              -0.1758661304243682
+            ]
+          },
+          "omitted_seed": 8046
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8134230141228287,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4579652137885128,
+              -0.17126445090850229
+            ]
+          },
+          "omitted_seed": 8047
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8124742025167155,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4604475814361597,
+              -0.16691480238338263
+            ]
+          },
+          "omitted_seed": 8048
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8134908711715352,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4555281884766265,
+              -0.1624912014464629
+            ]
+          },
+          "omitted_seed": 8049
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8128128096431873,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.447989043920045,
+              -0.15330434794031564
+            ]
+          },
+          "omitted_seed": 8050
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8173432687869565,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4740966291742035,
+              -0.1758250324518893
+            ]
+          },
+          "omitted_seed": 8051
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.975000000000364
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8122035198399465,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4508848311619216,
+              -0.16563897223293356
+            ]
+          },
+          "omitted_seed": 8052
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8121696971843393,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4642552163148028,
+              -0.15488015349056208
+            ]
+          },
+          "omitted_seed": 8053
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8123726753759991,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4573512851757822,
+              -0.17758398292663735
+            ]
+          },
+          "omitted_seed": 8054
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7727691925197707,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4175482464513898,
+              -0.1311586584166669
+            ]
+          },
+          "omitted_seed": 8055
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8131856035609687,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.448588478554369,
+              -0.15944292657784523
+            ]
+          },
+          "omitted_seed": 8056
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8132534210099746,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4738714052782624,
+              -0.16885314867765333
+            ]
+          },
+          "omitted_seed": 8057
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8126773329354641,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4435582302112755,
+              -0.15453786119780488
+            ]
+          },
+          "omitted_seed": 8058
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7500423704709993,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3826551621425007,
+              -0.11600535208501797
+            ]
+          },
+          "omitted_seed": 8059
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -21.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -45.0,
+              -3.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7447368257116416,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3694799518634344,
+              -0.10226011696739622
+            ]
+          },
+          "omitted_seed": 8060
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8164878290155333,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4627585571293549,
+              -0.1580813340706736
+            ]
+          },
+          "omitted_seed": 8061
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.815200296965033,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.468530247356834,
+              -0.15888375175268393
+            ]
+          },
+          "omitted_seed": 8062
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8325917173512524,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4954726420933848,
+              -0.16356999384071616
+            ]
+          },
+          "omitted_seed": 8063
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8126434708135722,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4585815441406549,
+              -0.16360809772145957
+            ]
+          },
+          "omitted_seed": 8064
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8270739759795944,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4822076077783188,
+              -0.17255393306234978
+            ]
+          },
+          "omitted_seed": 8065
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8132195108718157,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4369323817344186,
+              -0.1571667769211266
+            ]
+          },
+          "omitted_seed": 8066
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8308017032445615,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.485124621427807,
+              -0.19333582950583933
+            ]
+          },
+          "omitted_seed": 8067
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -21.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -45.0,
+              -3.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7463808555858552,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3773429440403668,
+              -0.10538943745153752
+            ]
+          },
+          "omitted_seed": 8068
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8099478394594094,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4629447875639034,
+              -0.17063355735928784
+            ]
+          },
+          "omitted_seed": 8069
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8148503932384277,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4520430597578822,
+              -0.16475974082540318
+            ]
+          },
+          "omitted_seed": 8070
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8355006021673281,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4680879292873952,
+              -0.16996845045697836
+            ]
+          },
+          "omitted_seed": 8071
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8143060395712736,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4482832383213962,
+              -0.164195484785577
+            ]
+          },
+          "omitted_seed": 8072
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8147823092390396,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4505999391521147,
+              -0.151604433972041
+            ]
+          },
+          "omitted_seed": 8073
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8684709220336553,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4948720680792347,
+              -0.23152349524946947
+            ]
+          },
+          "omitted_seed": 8074
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7518521909538938,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3957583011431958,
+              -0.10177831185392013
+            ]
+          },
+          "omitted_seed": 8075
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -51.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8203342208734414,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.468363264313439,
+              -0.16085570637761396
+            ]
+          },
+          "omitted_seed": 8076
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8135926779715484,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4524379541953103,
+              -0.1731577359980662
+            ]
+          },
+          "omitted_seed": 8077
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8130161094040446,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4484724941943135,
+              -0.1679230392218052
+            ]
+          },
+          "omitted_seed": 8078
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8136605633269907,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4563752091660462,
+              -0.17024023399740798
+            ]
+          },
+          "omitted_seed": 8079
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8107447563846961,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.460680753218636,
+              -0.17925800260258015
+            ]
+          },
+          "omitted_seed": 8080
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8455546538727827,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4752933907462231,
+              -0.20821466735676458
+            ]
+          },
+          "omitted_seed": 8081
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8122711736017088,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.451300472353204,
+              -0.16344551848632152
+            ]
+          },
+          "omitted_seed": 8082
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8130838985887656,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4446040959489852,
+              -0.17306178990494858
+            ]
+          },
+          "omitted_seed": 8083
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8165220122306681,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4611666802984338,
+              -0.16762961607791466
+            ]
+          },
+          "omitted_seed": 8084
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.812711197879019,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.447018372384665,
+              -0.170686375196911
+            ]
+          },
+          "omitted_seed": 8085
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8135587395408113,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4592668680118723,
+              -0.152374591361963
+            ]
+          },
+          "omitted_seed": 8086
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8122373453122855,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4570701031221953,
+              -0.15890970667724022
+            ]
+          },
+          "omitted_seed": 8087
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.6861840356634106,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.2976134603262373,
+              -0.07329405465773096
+            ]
+          },
+          "omitted_seed": 8088
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8100740538169187,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4561541432348755,
+              -0.15195106850772502
+            ]
+          },
+          "omitted_seed": 8089
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8135926779715484,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.454096013646459,
+              -0.15566858091113037
+            ]
+          },
+          "omitted_seed": 8090
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8250189309151593,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4677986449693718,
+              -0.15526902178222135
+            ]
+          },
+          "omitted_seed": 8091
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8125080505355811,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4536897852288109,
+              -0.16046075985182032
+            ]
+          },
+          "omitted_seed": 8092
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -18.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -38.0,
+              -3.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7377474563854262,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3589647245368999,
+              -0.1102588691785823
+            ]
+          },
+          "omitted_seed": 8093
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8129483315200912,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4396451802960277,
+              -0.16068536100775466
+            ]
+          },
+          "omitted_seed": 8094
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8230691660777242,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.464710771763316,
+              -0.1593776605055585
+            ]
+          },
+          "omitted_seed": 8095
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8150937045902594,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4644751147873118,
+              -0.14815262176608351
+            ]
+          },
+          "omitted_seed": 8096
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7893591989072228,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4322459818179263,
+              -0.1456890215923517
+            ]
+          },
+          "omitted_seed": 8097
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7784429253203912,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4149639018123672,
+              -0.14018306227542263
+            ]
+          },
+          "omitted_seed": 8098
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8137284600100865,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4701515673196295,
+              -0.16542285214195054
+            ]
+          },
+          "omitted_seed": 8099
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8181661787685199,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4686338565967108,
+              -0.17093664038519082
+            ]
+          },
+          "omitted_seed": 8100
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8121696971843393,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4439341463568411,
+              -0.16549379032410266
+            ]
+          },
+          "omitted_seed": 8101
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8120344347221968,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4266239374479872,
+              -0.16886445044688517
+            ]
+          },
+          "omitted_seed": 8102
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8161120024307994,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4557649258040937,
+              -0.1539058900940481
+            ]
+          },
+          "omitted_seed": 8103
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8863779574833648,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.5206459461157593,
+              -0.24281347061984046
+            ]
+          },
+          "omitted_seed": 8104
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8141700647576389,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.451671410379036,
+              -0.15935129200835385
+            ]
+          },
+          "omitted_seed": 8105
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8140341353397615,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4681651208321558,
+              -0.18361808156246384
+            ]
+          },
+          "omitted_seed": 8106
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.975000000000364
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8168640018450554,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4531806277149,
+              -0.17740999257105738
+            ]
+          },
+          "omitted_seed": 8107
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.775845246802879,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4147463800328726,
+              -0.12594852032363735
+            ]
+          },
+          "omitted_seed": 8108
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8156341777001754,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4683499720929039,
+              -0.14558430555810425
+            ]
+          },
+          "omitted_seed": 8109
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8124742025167155,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4574515164146584,
+              -0.16110870750121156
+            ]
+          },
+          "omitted_seed": 8110
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8144420598034059,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4389448593036027,
+              -0.1684002654900256
+            ]
+          },
+          "omitted_seed": 8111
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8133212497696434,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4511830190267356,
+              -0.16244528404348194
+            ]
+          },
+          "omitted_seed": 8112
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8132873339757993,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4661441145267604,
+              -0.16248689453253207
+            ]
+          },
+          "omitted_seed": 8113
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8129144468150193,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4394130173436617,
+              -0.15551331241959393
+            ]
+          },
+          "omitted_seed": 8114
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7969651364674273,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4420643169838039,
+              -0.13514479736741017
+            ]
+          },
+          "omitted_seed": 8115
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8133212497696434,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4346171034479387,
+              -0.16708091094716593
+            ]
+          },
+          "omitted_seed": 8116
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8125419013743471,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.457355708884747,
+              -0.16171390082280127
+            ]
+          },
+          "omitted_seed": 8117
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8118992172996361,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4431596169287917,
+              -0.17001347745510886
+            ]
+          },
+          "omitted_seed": 8118
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8130161094040446,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.444623062869301,
+              -0.17552423676703097
+            ]
+          },
+          "omitted_seed": 8119
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8125419013743471,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4502954128353913,
+              -0.17259546483330554
+            ]
+          },
+          "omitted_seed": 8120
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.817681838136803,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4719439559463117,
+              -0.1748644047557841
+            ]
+          },
+          "omitted_seed": 8121
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8142720416107693,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.462535563418711,
+              -0.16497313785504597
+            ]
+          },
+          "omitted_seed": 8122
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.812440357317398,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4519391680474816,
+              -0.154976953427842
+            ]
+          },
+          "omitted_seed": 8123
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -5.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8130500025836327,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.443531116319375,
+              -0.1512947068631355
+            ]
+          },
+          "omitted_seed": 8124
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8166587737136608,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4626219652021557,
+              -0.17010209776907556
+            ]
+          },
+          "omitted_seed": 8125
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -49.02499999999998,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.8139322180536473,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.4347708560051224,
+              -0.16634147433893415
+            ]
+          },
+          "omitted_seed": 8126
+        },
+        {
+          "hazard_steps": {
+            "confidence_level": 0.95,
+            "estimate": -25.0,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -50.0,
+              -6.0
+            ]
+          },
+          "intervention_percentage_points": {
+            "confidence_level": 0.95,
+            "estimate": -0.7117351669512726,
+            "interval_excludes_zero": true,
+            "percentile_interval": [
+              -1.3205891756779025,
+              -0.07864364562541488
+            ]
+          },
+          "omitted_seed": 8127
+        }
+      ],
+      "resamples_per_omission": 10000
+    },
+    "on_policy_warning_population": "Each original arm's warning metrics use the states and proposals visited by that arm; fixing the oracle logic does not fix the proposal population.",
+    "original_intervals": "The original 95% intervals are pointwise and unadjusted.",
+    "validation_warning_false_positive_rates": {
+      "full-frozen-v14-adapter": 0.004033419763756842,
+      "hazard-closeness-only": 0.003745318352059925,
+      "jepa-outputs-only": 0.00432152117545376,
+      "local-sensing-without-jepa": 0.003745318352059925
+    }
+  },
+  "authority": {
+    "artifacts_promoted_or_replaced": false,
+    "models_or_adapters_retrained": false,
+    "physical_actuator_attempts": 0,
+    "physical_actuator_deliveries": 0,
+    "promotion_eligible": false,
+    "simulator_executed": false
+  },
+  "claim_boundary": "These analyses can qualify horizon-composition and warning-pipeline claims. They cannot establish architecture-only causality, detector superiority on an independently sampled population, physical safety, independent execution, or deployment readiness.",
+  "common_episode_horizon_analysis": {
+    "domains": {
+      "ferrumos": {
+        "common_episode_count": 238,
+        "common_row_count": 2289,
+        "episode_ids_sha256": "94081acd910b90d4e83b7d990a15444f88f3e927fbc7d38faf15b5f0f006ceca",
+        "episode_rule": "episode has at least one H=5 rollout endpoint",
+        "methods": {
+          "action_conditioned_jepa": {
+            "ensemble_size": 3,
+            "rollout": {
+              "h1": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.0009488451509088857,
+                    0.001095102589714151
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.0010179888822447445,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.001554696941872992,
+                      0.001722470752527045
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.0016357239801436663,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.0014099272243087199,
+                      0.001595950048727946
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.0014997900010207902,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.0015346338273835088,
+                      0.0017226377963954229
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.0016247767195919482,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 2289
+              },
+              "h3": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.0045070918979677925,
+                    0.005572881776178667
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.005027843501317088,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.0055847228035632085,
+                      0.006688823617658256
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.006119549841846989,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.005475444863907437,
+                      0.006633881603987856
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.006043620073009564,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.005726690884794993,
+                      0.006895730237573377
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.006296765091515952,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 1813
+              },
+              "h5": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.0049548682115948565,
+                    0.006041066076162862
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.0054937664731483935,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.00625686468583426,
+                      0.0073826319132315205
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.006823439933672673,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.006317144581566745,
+                      0.007514454237285203
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.006900422688878822,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.006607215600469767,
+                      0.007818221409820771
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.007215473790136518,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 1337
+              }
+            }
+          },
+          "direct_mlp": {
+            "ensemble_size": 3,
+            "rollout": {
+              "h1": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.0022684570127743994,
+                    0.002423276031669131
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.002342568668380317,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.003497348291439419,
+                      0.0036754901733439213
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.0035838153088042714,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.003775751919699872,
+                      0.003928171655949706
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.0038497308366971105,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.0030050835508839504,
+                      0.003169963347574915
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.003084332504145363,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 2289
+              },
+              "h3": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.006231316161159027,
+                    0.0071923772075865025
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.006708803545574055,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.008869904709858586,
+                      0.009788348532904001
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.009324364540237589,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007992916791200904,
+                      0.008937857433040274
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.008457141855982047,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007033969439026125,
+                      0.00801147308830121
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.007517430231859516,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 1813
+              },
+              "h5": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.006808225209203533,
+                    0.007697689859759055
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.007256422689802819,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.010323282119088235,
+                      0.011131789480744931
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.010723701576475337,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.008504413536108028,
+                      0.009396178558656649
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.008942986820910532,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007655718976420452,
+                      0.008604345697676763
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.008113250997261841,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 1337
+              }
+            }
+          },
+          "gru_dynamics": {
+            "ensemble_size": 3,
+            "rollout": {
+              "h1": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.002335291117417016,
+                    0.002473902434001563
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.002400583856613884,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.0032957692515641107,
+                      0.003438214899946646
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.003362484843697117,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.003959531231857679,
+                      0.004087292398776108
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.004021171911838739,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.0035500378534051064,
+                      0.003699125347027023
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.0036205946821954195,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 2289
+              },
+              "h3": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.005699388149288334,
+                    0.006598938971502558
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.006146575324237347,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.007152455394105407,
+                      0.00798268077631888
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.007557611260954447,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007876358860849302,
+                      0.008722200423494732
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.00829747536986628,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007207027912979257,
+                      0.008091534712124898
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.007649299581026455,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 1813
+              },
+              "h5": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.006093024681767394,
+                    0.006931893975315458
+                  ],
+                  "episodes": 238,
+                  "estimate": 0.006514151573783773,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.007914232382376702,
+                      0.008671947656651302
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.008288723913592701,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.008843810191943444,
+                      0.009607123181335392
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.009221054369020237,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007545494045690484,
+                      0.008376276760436438
+                    ],
+                    "episodes": 238,
+                    "estimate": 0.007954659603708307,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 1337
+              }
+            }
+          }
+        },
+        "paired_architecture_comparisons": {
+          "action_conditioned_jepa_minus_gru_dynamics": {
+            "h1": {
+              "bootstrap_95_percent": [
+                -0.0014075125591216037,
+                -0.0013578194641166252
+              ],
+              "episodes": 238,
+              "estimate": -0.0013825950015164097,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h3": {
+              "bootstrap_95_percent": [
+                -0.0012179007864772842,
+                -0.0010163032540385886
+              ],
+              "episodes": 238,
+              "estimate": -0.0011187317841497035,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h5": {
+              "bootstrap_95_percent": [
+                -0.0011643614348956187,
+                -0.0008705418977741898
+              ],
+              "episodes": 238,
+              "estimate": -0.0010203850837600488,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            }
+          },
+          "direct_mlp_minus_action_conditioned_jepa": {
+            "h1": {
+              "bootstrap_95_percent": [
+                0.001294671641767882,
+                0.0013555732397572918
+              ],
+              "episodes": 238,
+              "estimate": 0.0013245797949400927,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h3": {
+              "bootstrap_95_percent": [
+                0.0016137136607043232,
+                0.001745600000653854
+              ],
+              "episodes": 238,
+              "estimate": 0.0016809599924081263,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h5": {
+              "bootstrap_95_percent": [
+                0.001646260750747678,
+                0.0018742250398461982
+              ],
+              "episodes": 238,
+              "estimate": 0.0017626562013688004,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            }
+          },
+          "direct_mlp_minus_gru_dynamics": {
+            "h1": {
+              "bootstrap_95_percent": [
+                -8.156154582523705e-05,
+                -3.4245232125172845e-05
+              ],
+              "episodes": 238,
+              "estimate": -5.801518707950218e-05,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h3": {
+              "bootstrap_95_percent": [
+                0.0005140193301351147,
+                0.0006125130778532567
+              ],
+              "episodes": 238,
+              "estimate": 0.0005622282194957458,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h5": {
+              "bootstrap_95_percent": [
+                0.0006877076917070164,
+                0.0007980615020520004
+              ],
+              "episodes": 238,
+              "estimate": 0.0007422711194430266,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            }
+          }
+        }
+      },
+      "physical": {
+        "common_episode_count": 2560,
+        "common_row_count": 20480,
+        "episode_ids_sha256": "ea5a4f327d6a166fe52fe2eda0216eb80b88ec5a24030be923a2c86b5585c6c7",
+        "episode_rule": "episode has at least one H=5 rollout endpoint",
+        "methods": {
+          "action_conditioned_jepa": {
+            "ensemble_size": 3,
+            "rollout": {
+              "h1": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.0023509836549908416,
+                    0.002610457568003426
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.002475872284708203,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.002839300111995726,
+                      0.003094883123434329
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.002967412677480752,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.002930841049022774,
+                      0.003186232678058332
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.003055596811009309,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.00288559449862305,
+                      0.0031505799341607597
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.0030169138618020954,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 20480
+              },
+              "h3": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.006320112009456124,
+                    0.007056985620042724
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.00668036232623308,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.0073149926594965105,
+                      0.008041622976195413
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.0076819489148874705,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.00773552171292522,
+                      0.008467318024536326
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.00809847771488421,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.0076167856859456155,
+                      0.008371827320286228
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.007988678379297199,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 15360
+              },
+              "h5": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.009874083586630604,
+                    0.01105420688261347
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.010464722574761253,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.011295610001775458,
+                      0.0124489110628042
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.011868815938305488,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.012064358193410953,
+                      0.01321305334352928
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.012635056633371278,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.011876112277159337,
+                      0.013090540753232743
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.012481323153588164,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 10240
+              }
+            }
+          },
+          "direct_mlp": {
+            "ensemble_size": 3,
+            "rollout": {
+              "h1": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.006963997489194754,
+                    0.0074113731720535725
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.007187865205651178,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.008714705539373428,
+                      0.00913476862324842
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.008923282402611222,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.008123442904907277,
+                      0.008589622344406961
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.008352288412788766,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.007666060598407967,
+                      0.008149270028520731
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.007903272569274122,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 20480
+              },
+              "h3": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.016199543714355967,
+                    0.017456419500972514
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.01683626770882256,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.021680632868192332,
+                      0.02282863864590581
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.022246391645967378,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.019195233075620308,
+                      0.020470649975900413
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.019819334444946435,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.01757184858347955,
+                      0.018870102344367295
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.018208285896980668,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 15360
+              },
+              "h5": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.025368359257222438,
+                    0.0273587334581498
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.026361609390914965,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.034365919147840034,
+                      0.03616713584529862
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.035242853133240715,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.030007234603344844,
+                      0.032026092161031555
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.031014084882554017,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.02733875083145449,
+                      0.02945684909375359
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.028401915397807898,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 10240
+              }
+            }
+          },
+          "gru_dynamics": {
+            "ensemble_size": 3,
+            "rollout": {
+              "h1": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.010398575760802942,
+                    0.010924548351156317
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.010658977175626205,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.01318922855162782,
+                      0.01369903264995628
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.01344058428931021,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.011816640997244577,
+                      0.012367604425762693
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.012090699783220771,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.012233923913349825,
+                      0.012741287322551215
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.012485868648582255,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 20480
+              },
+              "h3": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.025570991062741088,
+                    0.026890872844901423
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.026231477283363346,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.032357348908008135,
+                      0.03360232008086314
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.03297563106898451,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.027791668108011435,
+                      0.029131016826295306
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.0284569413652207,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.03166337102795296,
+                      0.032915539689229265
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.032274544159008656,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 15360
+              },
+              "h5": {
+                "ensemble": {
+                  "bootstrap_95_percent": [
+                    0.03849434294119419,
+                    0.040594668360981814
+                  ],
+                  "episodes": 2560,
+                  "estimate": 0.03954197688944987,
+                  "resamples": 10000
+                },
+                "members": [
+                  {
+                    "bootstrap_95_percent": [
+                      0.04860384097662973,
+                      0.05059183982648392
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.0495821099364548,
+                    "resamples": 10000,
+                    "seed": 17
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.04034242811023432,
+                      0.04247000311746888
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.0414005163431284,
+                    "resamples": 10000,
+                    "seed": 43
+                  },
+                  {
+                    "bootstrap_95_percent": [
+                      0.04980809791806678,
+                      0.05176813164749546
+                    ],
+                    "episodes": 2560,
+                    "estimate": 0.050767004233784975,
+                    "resamples": 10000,
+                    "seed": 101
+                  }
+                ],
+                "rollout_endpoints": 10240
+              }
+            }
+          }
+        },
+        "paired_architecture_comparisons": {
+          "action_conditioned_jepa_minus_gru_dynamics": {
+            "h1": {
+              "bootstrap_95_percent": [
+                -0.008344827873891063,
+                -0.0080180239108995
+              ],
+              "episodes": 2560,
+              "estimate": -0.00818310486001792,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h3": {
+              "bootstrap_95_percent": [
+                -0.019895818170302847,
+                -0.01921668560154103
+              ],
+              "episodes": 2560,
+              "estimate": -0.019551114944806613,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h5": {
+              "bootstrap_95_percent": [
+                -0.029619634094337925,
+                -0.028555461210103203
+              ],
+              "episodes": 2560,
+              "estimate": -0.02907725430541177,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            }
+          },
+          "direct_mlp_minus_action_conditioned_jepa": {
+            "h1": {
+              "bootstrap_95_percent": [
+                0.004565715088747879,
+                0.004855417117093452
+              ],
+              "episodes": 2560,
+              "estimate": 0.0047119929173504715,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h3": {
+              "bootstrap_95_percent": [
+                0.009818120782877032,
+                0.010498181575003969
+              ],
+              "episodes": 2560,
+              "estimate": 0.010155905371379958,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h5": {
+              "bootstrap_95_percent": [
+                0.015362459096677413,
+                0.016438851517277725
+              ],
+              "episodes": 2560,
+              "estimate": 0.015896886823611567,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            }
+          },
+          "direct_mlp_minus_gru_dynamics": {
+            "h1": {
+              "bootstrap_95_percent": [
+                -0.0035436162782181667,
+                -0.0034008843156053104
+              ],
+              "episodes": 2560,
+              "estimate": -0.003471111965518503,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h3": {
+              "bootstrap_95_percent": [
+                -0.00954912935608002,
+                -0.009241441777892235
+              ],
+              "episodes": 2560,
+              "estimate": -0.009395209560271667,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            },
+            "h5": {
+              "bootstrap_95_percent": [
+                -0.013456807862937693,
+                -0.0128992472934965
+              ],
+              "episodes": 2560,
+              "estimate": -0.013180367440963892,
+              "interval_excludes_zero": true,
+              "resamples": 10000
+            }
+          }
+        }
+      }
+    },
+    "original_registered_result_retained": true,
+    "selection_or_training_changed": false
+  },
+  "protocol": {
+    "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_protocol_v1.json",
+    "registered_commit": "0bb77780ef91354ebf8e352c2a9d9a23019f8464",
+    "sha256": "5a66543c2693650502e8692f70c1e73999eb8cef9dae3d92db08a3c8971e137e"
+  },
+  "schema": "cross-domain-world-model-posthoc-sensitivity-result-v1"
+}

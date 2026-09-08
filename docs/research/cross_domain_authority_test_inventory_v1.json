@@ -1,0 +1,76 @@
+{
+  "all_checks_pass": true,
+  "claim_boundary": "The inventory distinguishes host unit, host integration, and QEMU in-guest coverage. Physical permit tests do not establish FerrumOS syscall-path enforcement, and no physical actuator was available.",
+  "components": [
+    {
+      "committed_evidence": "docs/research/world_model_failure_modes.json",
+      "committed_pass": true,
+      "component": "FerrumOS learned-plus-deterministic gate",
+      "execution_available": true,
+      "execution_scope": "disposable QEMU guest command path; valid false-safe, missing, non-finite, and forbidden-coverage artifacts",
+      "test_class": "in-guest integration"
+    },
+    {
+      "committed_evidence": "docs/research/world_model_natural_use_verification_v1.json",
+      "committed_pass": true,
+      "component": "FerrumOS assistant mediation",
+      "execution_available": true,
+      "execution_scope": "authorized guest reads executed; writes awaited confirmation; deletes were blocked",
+      "test_class": "in-guest system observation"
+    },
+    {
+      "committed_evidence": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "committed_pass": true,
+      "component": "signed neural permit protocol",
+      "execution_available": true,
+      "execution_scope": "protocol library only; does not exercise the FerrumOS syscall path",
+      "test_class": "host unit test"
+    },
+    {
+      "committed_evidence": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "committed_pass": true,
+      "component": "physical runtime permit and actuator-disabled driver",
+      "execution_available": false,
+      "execution_scope": "simulated/offline physical adapter; physical actuator delivery remains structurally disabled",
+      "test_class": "host unit test"
+    },
+    {
+      "committed_evidence": "docs/research/physical_jepa_safety_gymnasium_runtime_verification_v14.json",
+      "committed_pass": true,
+      "component": "Safety-Gymnasium risk adapter runtime",
+      "execution_available": false,
+      "execution_scope": "malformed/non-finite adapter behavior and simulator-only commands; no physical delivery",
+      "test_class": "host integration verification"
+    }
+  ],
+  "evidence_inputs": {
+    "docs/research/physical_jepa_safety_gymnasium_runtime_verification_v14.json": "568b3736273367cdc4ba88ae6039bf55e36081bd8833874785623d81e32a2618",
+    "docs/research/world_model_failure_modes.json": "807546a890b264cd8082c49890864d47e6d77c45fb21dba4fcfc78a66b6b5726",
+    "docs/research/world_model_natural_use_verification_v1.json": "49b0b14f57328e555f830fb43df8a552d007a8706a8956a10210f2bf54d67b8f"
+  },
+  "fresh_test_runs": {
+    "neural_protocol": {
+      "command": "cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "output_sha256": "cb855dfdf9060efb9f76a4f64d1e24baa92c3f213a5e207bfa770e0475038d5e",
+      "passed": true,
+      "summaries": [
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ]
+    },
+    "physical_daemon": {
+      "command": "cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc",
+      "exit_code": 0,
+      "output_sha256": "a4874b0edc61f6fe9633fb9ad23eff7982fbb74a32d43d878a4f4a7242479afa",
+      "passed": true,
+      "summaries": [
+        "test result: ok. 128 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ]
+    }
+  },
+  "promotion_eligible": false,
+  "schema": "cross-domain-authority-test-inventory-v1",
+  "source_commit": "6430b48bf64a1d067bc86ad6ce2839b146b5121a"
+}

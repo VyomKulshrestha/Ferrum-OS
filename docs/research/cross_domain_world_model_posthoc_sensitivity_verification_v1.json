@@ -1,0 +1,20 @@
+{
+  "all_checks_pass": true,
+  "checks": {
+    "common_proposal_full_arm_reproduced": true,
+    "no_promotion": true,
+    "no_retraining": true,
+    "original_registered_result_retained": true,
+    "protocol_digest_matches": true,
+    "result_recomputes_exactly": true,
+    "selection_or_training_unchanged": true,
+    "simulator_not_executed": true,
+    "zero_physical_actuation": true
+  },
+  "promotion_eligible": false,
+  "result": {
+    "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+    "sha256": "cbef9025b01570f01c8cee4f84b90a7a87ba31cf0cf428a5eb033c85749f23c0"
+  },
+  "schema": "cross-domain-world-model-posthoc-sensitivity-verification-v1"
+}
