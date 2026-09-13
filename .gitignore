@@ -31,6 +31,8 @@ nextpath.md
 brain.md
 physical.md
 implementation.md
+Future.md
+docs/product/FIRST_DEPLOYMENT_SPEC.md
 
 # Ignore custom certificate keys and intermediate files
 userland/heliox-daemon/certs/*.key
