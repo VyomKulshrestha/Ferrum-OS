@@ -6,6 +6,7 @@ import torch
 
 import incident_dynamics_data as data
 import train_incident_dynamics as train
+import evaluate_incident_dynamics_development as evaluation
 
 
 class CausalWindowsTests(unittest.TestCase):
@@ -66,6 +67,29 @@ class CausalWindowsTests(unittest.TestCase):
         result[:, -1].sum().backward()
         self.assertTrue(torch.isfinite(model.linear.weight.grad).all())
         self.assertGreater(float(model.linear.weight.grad.abs().sum()), 0)
+
+    def test_nonfinite_forecast_rejected(self):
+        windows = data.windows(self.rows, self.spec, complete=True)
+        values = windows.targets.copy()
+        values[0, 0, 0] = np.nan
+        with self.assertRaises(ValueError):
+            evaluation.risk_score(values, windows, "ferrumos")
+
+    def test_threshold_obeys_bound_and_handles_ties(self):
+        scores = np.asarray([0.] * 100 + [1.] * 5)
+        labels = np.asarray([False] * 100 + [True] * 5)
+        threshold, calibration = evaluation.calibrate(scores, labels)
+        metrics = evaluation.warning_metrics(scores, labels, threshold, calibration)
+        self.assertEqual(metrics["fp"], 0)
+        self.assertEqual(metrics["tp"], 5)
+
+    def test_action_heads_do_not_use_future_targets(self):
+        windows = data.windows(self.rows, self.spec, complete=True)
+        model = train.ActionResidual(self.spec, 16)
+        states, actions = torch.tensor(windows.states), torch.tensor(windows.actions)
+        a = model(states, actions, torch.zeros((len(states), 48)))[0]
+        b = model(states, actions, torch.ones((len(states), 48)))[0]
+        torch.testing.assert_close(a, b, atol=0, rtol=0)
 
 
 if __name__ == "__main__":

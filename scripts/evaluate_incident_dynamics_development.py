@@ -14,6 +14,7 @@ import evaluate_cross_domain_world_models as architecture
 import incident_dynamics_data as data
 import train_incident_dynamics as training
 import train_physical_world_model as physical
+import fit_incident_dynamics_ridge as ridge
 
 
 def load_candidate(path, spec, device="cpu"):
@@ -30,6 +31,8 @@ def risk_score(predictions, windows, domain):
     These are simulator state constraints, NOT real incident risk probabilities.
     Unlike legacy calibration, all five forecast steps enter the score.
     """
+    if predictions.shape != windows.targets.shape or not np.isfinite(predictions).all():
+        raise ValueError("invalid forecast: evaluation fails closed, never returns a permit")
     if domain == "ferrumos":
         return (predictions[:, :, [0, 1, 3]].max((1, 2)) - .95).astype(np.float64)
     moving = windows.future_actions[:, :, physical.MOVE] > .5
@@ -41,6 +44,8 @@ def risk_score(predictions, windows, domain):
 
 
 def warning_metrics(score, labels, threshold, calibrator):
+    if not np.isfinite(score).all() or not np.isfinite([threshold, *calibrator]).all():
+        raise ValueError("non-finite warning input")
     warn = score >= threshold
     tp, fp = int(np.sum(warn & labels)), int(np.sum(warn & ~labels))
     positive, negative = int(labels.sum()), int((~labels).sum())
@@ -53,6 +58,8 @@ def warning_metrics(score, labels, threshold, calibrator):
 
 def calibrate(score, labels):
     """Monotonic logistic calibration and validation-only 1 percent FPR cutoff."""
+    if not np.isfinite(score).all() or not labels.any() or labels.all():
+        raise ValueError("calibration needs finite scores and both outcome classes")
     def objective(weights):
         logits = weights[0] + weights[1] * score
         return float(np.mean(np.logaddexp(0, logits) - labels * logits) + 1e-8 * weights[1] ** 2)
@@ -110,6 +117,11 @@ def main():
         predictions[f"paper-{method}-{len(pieces)}-members"] = np.mean(pieces, axis=0)
     for mode in ("persistence", "constant_velocity"):
         predictions[mode] = simple_predictions(windows, mode)
+    ridge_path = data.WORK / args.domain / "ridge-selection.json"
+    if ridge_path.exists():
+        selected = architecture.load_json(ridge_path)["selected"]
+        with np.load(data.ROOT / selected["checkpoint"]["path"], allow_pickle=False) as archive:
+            predictions["ridge"] = ridge.predict(archive["weights"], windows, spec)
     new = np.asarray([x.startswith("new:") for x in windows.episodes])
     calibration = new & episode_subset(windows, 0)
     diagnostic = new & ~calibration
