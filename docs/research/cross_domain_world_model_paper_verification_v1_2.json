@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "ab0bab0afa4bc3908cd2d57cfb86ef18235ed3b92ffd2e3101c0a055a8175ed8"
+      "sha256": "325e475cb2fb201e0560fc65169d7c16c78a668ce2f88bf0199cd594ef218325"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "1c9a99f53ed7526655f3f00c09052fa7167947a1ad60d50dc678c7622727b509"
+      "sha256": "80c192a90e59bdd21de357018204250081b5339b4f37f30060c84cdbcf24656d"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "4aa306f52c8b3ee5157367dd8b21ace6568122315ff737278c6cd8329303ddf9"
+      "sha256": "7512f6cf92604445d193e128d3aea5c03a584fc3546a902668b4a37d61b64050"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -81,6 +81,16 @@
     "external_scope_and_nonpromotion_honest": true,
     "external_verification_confirms_all_gates": true,
     "forbidden_placeholders_and_review_wording_absent": true,
+    "incident_clean_archive_audit_matches": true,
+    "incident_four_adjusted_prediction_contrasts_pass": true,
+    "incident_models_and_thresholds_unchanged_in_amendment": true,
+    "incident_no_promotion_or_actuator_authority": true,
+    "incident_os_false_positive_increase_retained": true,
+    "incident_primary_and_warning_gates_pass": true,
+    "incident_primary_table_matches_result": true,
+    "incident_six_historical_guards_pass": true,
+    "incident_verification_bound_and_48_checks_pass": true,
+    "incident_warning_table_matches_counts": true,
     "intervention_precision_recomputed": true,
     "output_ablation_all_output_family_same_survivors": true,
     "output_ablation_failed_v1_retained": true,
@@ -96,7 +106,9 @@
     "pdf_body_typography_matches_publication_scale": true,
     "pdf_fonts_are_embedded_and_character_spacing_is_normal": true,
     "pdf_has_no_replacement_character": true,
+    "pdf_has_no_text_outside_page_bounds": true,
     "pdf_page_count_is_readable_submission_length": true,
+    "pdf_reference_links_preserve_complete_source_urls": true,
     "pdf_required_phrases_present": true,
     "pdf_subject_versioned": true,
     "pdf_title_exact": true,
@@ -126,7 +138,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "ab0bab0afa4bc3908cd2d57cfb86ef18235ed3b92ffd2e3101c0a055a8175ed8",
+    "freeze_manifest_sha256": "325e475cb2fb201e0560fc65169d7c16c78a668ce2f88bf0199cd594ef218325",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -289,8 +301,9 @@
         "subtype": "/TrueType"
       }
     ],
+    "pdf_missing_source_urls": [],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 27,
+    "pdf_pages": 33,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -301,14 +314,18 @@
       "Frozen-gate and artifact audit": true,
       "Neither interval excludes zero": true,
       "ORCID: 0009-0009-1434-7148": true,
+      "OS FPR rises by 1.00 point": true,
       "Observed minus development-mean masked": true,
       "Prediction Is Not Permission": true,
       "References": true,
+      "Registered incident-informed prediction and warning improvement": true,
       "Retained-catalog Physical JEPA output-value ablation": true,
       "Safety-Gymnasium controller and shield benchmark": true,
+      "Source identities are assigned to generated episodes": true,
       "Technical Report v1.2": true,
       "The design and simulator execution were prospective": true,
       "The empirical contributions are:": true,
+      "The study is not architecture-only, parameter-matched, or FLOP-matched.": true,
       "Threats to validity and limitations": true,
       "Validation FPR": true,
       "Vyom Kulshrestha": true,
@@ -318,11 +335,11 @@
       "writes await confirmation": true
     },
     "pdf_typography": {
-      "character_share_at_least_9_4_points": 0.7086448004068141,
+      "character_share_at_least_9_4_points": 0.706707077986075,
       "dominant_body_font_size_points": 9.5,
       "maximum_first_page_font_size_points": 21.5
     },
-    "pdf_words_extracted": 11766,
+    "pdf_words_extracted": 14111,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -350,13 +367,20 @@
       24,
       25,
       26,
-      27
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33
     ],
     "public_graphic_uses_typographic_evidence_chain": true,
     "source_required_phrases": {
       "1.478%": true,
       "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
       "5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately": true,
+      "All 48 retained-catalog checks pass": true,
       "Appendix A. Claim-to-evidence ledger": true,
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
@@ -369,22 +393,28 @@
       "Intervention precision | [-34.86661, 1.35705] | Includes zero": true,
       "Intervention rate | **[0.47780, 1.57510]** | **Excludes zero**": true,
       "Neither interval excludes zero": true,
+      "OS FPR rises by 1.00 point [0.45, 1.59]": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
       "Publication or tagging makes that source, PDF, verifier, and manifest immutable": true,
       "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124": true,
       "Recovery protocol v2 reused the retained catalogs without simulator execution": true,
+      "Registered incident-informed prediction and warning improvement": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
+      "Source identities are assigned to generated episodes; they do not cause distinct learned transition laws.": true,
       "Table 2 reports the complete post-hoc common-episode comparison": true,
+      "Technical Report v1.2 - 18 October 2026": true,
       "Technical Report v1.2 is the prepublication evidence-changing successor to v1.1": true,
-      "Technical Report v1.2 \u2014 8 September 2026": true,
       "The design and simulator execution were prospective, but the v1 result remains failed and ineligible": true,
       "The empirical contributions are:": true,
       "The original warning metrics are on-policy": true,
       "The primary contribution is an evaluation method, not a new JEPA objective.": true,
+      "The study is not architecture-only, parameter-matched, or FLOP-matched.": true,
+      "The successful v2 final is not a rerun of v1 evidence.": true,
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "The v2 attribution opens seeds 8000-8127 once": true,
       "These leave-one-out checks are sensitivity analyses, not independent replications.": true,
+      "This local revised release is not an external publication.": true,
       "Validation FPR": true,
       "Validation means checking an existing record": true,
       "Warning FPR | **[0.78468, 2.81866]** | **Excludes zero**": true,
@@ -397,10 +427,11 @@
       "descriptive rather than statistically stable": true,
       "effective action-change recall": true,
       "effective action-change recall is 55.00%": true,
-      "exact pre-report scientific-evidence snapshot for this review freeze is Git commit `6a6da0a2dd1a352df5c929ee1e93831b29640acd`": true,
+      "exact pre-report scientific-evidence snapshot for this review freeze is Git commit `f6b45c759830c0148a06b674c980fb9761ac0c8c`": true,
       "exploratory pipeline-level evidence": true,
       "false-negative rate is 256/256": true,
       "identical 23,815-proposal catalog": true,
+      "implements neither Dream-RSI's replay-policy optimization nor a controlled RSI ablation": true,
       "intervention rate counts only commands that actually change": true,
       "no independent replication is claimed": true,
       "no statistically resolved difference and is not a non-inferiority result": true,

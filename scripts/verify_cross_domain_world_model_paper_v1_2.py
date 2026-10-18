@@ -91,9 +91,15 @@ FIGURES = [
 FREEZE = ROOT / "docs/research/cross_domain_world_model_paper_freeze_v1_2.json"
 RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_2.json"
 BUILDER = ROOT / "scripts/build_world_model_technical_report_v1_2.py"
+REPORT_BUILDER = ROOT / "scripts/build_prediction_is_not_permission_v1_2.py"
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
-EVIDENCE_SNAPSHOT_COMMIT = "6a6da0a2dd1a352df5c929ee1e93831b29640acd"
+EVIDENCE_SNAPSHOT_COMMIT = "f6b45c759830c0148a06b674c980fb9761ac0c8c"
+INCIDENT_FILES = {
+    name: ROOT / f"docs/research/incident_dynamics_{name}.json"
+    for name in ("sources_v1", "protocol_v1", "protocol_v2", "selection_v2",
+                 "result_v2", "verification_v2", "portable_verification_v2")
+}
 ABLATION_DISPLAYED_ENDPOINTS = (
     "task_completion_percentage_points",
     "warning_recall_percentage_points",
@@ -111,7 +117,15 @@ ABLATION_ALL_REGISTERED_OUTPUTS = (
     "mean_episode_steps",
 )
 REQUIRED_SOURCE_PHRASES = [
-    "Technical Report v1.2 — 8 September 2026",
+    "Technical Report v1.2 - 18 October 2026",
+    "Registered incident-informed prediction and warning improvement",
+    "The study is not architecture-only, parameter-matched, or FLOP-matched.",
+    "Source identities are assigned to generated episodes; they do not cause distinct learned transition laws.",
+    "The successful v2 final is not a rerun of v1 evidence.",
+    "OS FPR rises by 1.00 point [0.45, 1.59]",
+    "All 48 retained-catalog checks pass",
+    "implements neither Dream-RSI's replay-policy optimization nor a controlled RSI ablation",
+    "This local revised release is not an external publication.",
     "The primary contribution is an evaluation method, not a new JEPA objective.",
     "The empirical contributions are:",
     "same six evidence objects named in the abstract",
@@ -203,6 +217,10 @@ REQUIRED_PDF_PHRASES = [
     "superiority over the planner was not established",
     "Validation FPR",
     "Retained-catalog Physical JEPA output-value ablation",
+    "Registered incident-informed prediction and warning improvement",
+    "Source identities are assigned to generated episodes",
+    "The study is not architecture-only, parameter-matched, or FLOP-matched.",
+    "OS FPR rises by 1.00 point",
     "Observed minus development-mean masked",
     "Bonferroni-adjusted 99.29% CI",
     "The design and simulator execution were prospective",
@@ -488,6 +506,7 @@ def main() -> None:
         SOURCE,
         PDF,
         BUILDER,
+        REPORT_BUILDER,
         UMBRELLA,
         EXTERNAL_RESULT,
         EXTERNAL_VERIFICATION,
@@ -505,6 +524,7 @@ def main() -> None:
         ABLATION_RECOVERY_RESULT,
         ABLATION_VERIFICATION_AMENDMENT,
         ABLATION_RECOVERY_VERIFICATION,
+        *INCIDENT_FILES.values(),
         *FIGURES,
     ]
     missing = [rel(path) for path in required_paths if not path.is_file()]
@@ -543,7 +563,25 @@ def main() -> None:
     ablation_verification = json.loads(
         ABLATION_RECOVERY_VERIFICATION.read_text(encoding="utf-8")
     )
+    incident = {
+        name: json.loads(path.read_text(encoding="utf-8"))
+        for name, path in INCIDENT_FILES.items()
+    }
+    incident_result = incident["result_v2"]
+    incident_verification = incident["verification_v2"]
+    incident_domains = incident_result["domains"]
     reader = PdfReader(str(PDF))
+    source_urls = set(re.findall(r"https?://[^\s<>\"']+", source_text))
+    pdf_urls = {
+        str(annotation.get_object().get("/A", {}).get("/URI", ""))
+        for page in reader.pages for annotation in page.get("/Annots", [])
+    }
+    with pdfplumber.open(PDF) as document:
+        all_text_within_page = all(
+            0 <= char["x0"] <= char["x1"] <= page.width + .1
+            and 0 <= char["top"] <= char["bottom"] <= page.height + .1
+            for page in document.pages for char in page.chars
+        )
     font_inventory, nonzero_character_spacing = pdf_font_inventory(reader)
     typography = pdf_typography_metrics()
     pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
@@ -649,7 +687,8 @@ def main() -> None:
         "forbidden_placeholders_and_review_wording_absent": all(
             forbidden_absent.values()
         ),
-        "pdf_page_count_is_readable_submission_length": 20 <= len(reader.pages) <= 32,
+        # October adds a registered study, full controls and ten primary references.
+        "pdf_page_count_is_readable_submission_length": 20 <= len(reader.pages) <= 40,
         "pdf_body_typography_matches_publication_scale": 9.4
         <= typography["dominant_body_font_size_points"]
         <= 9.6
@@ -660,6 +699,9 @@ def main() -> None:
         "pdf_subject_versioned": metadata.subject
         == "Cross-domain world-model runtime authority Technical Report v1.2",
         "pdf_has_no_replacement_character": "\ufffd" not in pdf_text,
+        "pdf_has_no_text_outside_page_bounds": all_text_within_page,
+        "pdf_reference_links_preserve_complete_source_urls": bool(source_urls)
+        and source_urls <= pdf_urls,
         "pdf_fonts_are_embedded_and_character_spacing_is_normal": bool(font_inventory)
         and all(item["embedded"] is True for item in font_inventory)
         and not nonzero_character_spacing
@@ -1075,10 +1117,55 @@ def main() -> None:
             for item in protected.values()
         ),
     }
+    checks.update({
+        "incident_primary_and_warning_gates_pass": incident_result["primary_prediction_objective_pass"]
+        and incident_result["secondary_warning_objective_pass"]
+        and all(domain["primary_prediction_objective_pass"] and domain["secondary_warning_objective_pass"]
+                for domain in incident_domains.values()),
+        "incident_four_adjusted_prediction_contrasts_pass": all(
+            comparison["pass"] and comparison["relative_reduction"] >= .2
+            and comparison["interval"][1] < 0 and comparison["interval_level"] == .9875
+            and comparison["episodes"] == 1024 and comparison["resamples"] == 10000
+            for domain in incident_domains.values()
+            for comparison in domain["primary_prediction_comparisons"].values()),
+        "incident_six_historical_guards_pass": all(
+            guard["pass"] and guard["relative_change"] <= .05
+            for domain in incident_domains.values() for guard in domain["historical_guards"].values()),
+        "incident_verification_bound_and_48_checks_pass": incident_verification["all_checks_pass"]
+        and len(incident_verification["checks"]) == 48 and all(incident_verification["checks"].values())
+        and incident_verification["result"]["path"] == rel(INCIDENT_FILES["result_v2"])
+        and incident_verification["result"]["sha256"] in text_sha256_candidates(INCIDENT_FILES["result_v2"]),
+        "incident_clean_archive_audit_matches": incident["portable_verification_v2"]["all_checks_pass"]
+        and incident["portable_verification_v2"]["scientific_checks"] == 48
+        and incident["portable_verification_v2"]["scientific_report_exact_match"]
+        and incident["portable_verification_v2"]["retained_result_sha256"] == incident_verification["result"]["sha256"],
+        "incident_models_and_thresholds_unchanged_in_amendment": not incident["selection_v2"]["model_and_threshold_reselection"]
+        and incident_verification["checks"]["v1_models_and_thresholds_unchanged"]
+        and incident_verification["checks"]["v1_failed_attempt_retained"],
+        "incident_no_promotion_or_actuator_authority": incident_result["promotion_eligible"] is False
+        and incident_result["actuator_attempts"] == incident_result["actuator_deliveries"] == 0
+        and all(incident_result["protected_unchanged"].values()),
+        "incident_primary_table_matches_result": all(
+            f"{domain['methods']['selected']['prediction'][h]['episode_macro_mae']:.6f}" in source_text
+            and f"{comparison['relative_reduction'] * 100:.2f}%" in source_text
+            and f"[{comparison['interval'][0]:.6f}, {comparison['interval'][1]:.6f}]" in source_text
+            for domain in incident_domains.values()
+            for h, comparison in domain["primary_prediction_comparisons"].items()),
+        "incident_warning_table_matches_counts": all(
+            f"{warning['tp']} / {warning['fp']} / {warning['tn']} / {warning['fn']}" in source_text
+            and f"{warning['recall'] * 100:.2f}%" in source_text
+            and f"{warning['fpr'] * 100:.2f}%" in source_text
+            for domain_name, domain in incident_domains.items()
+            for name, method in domain["methods"].items()
+            if name in ("selected", "paper-gru_dynamics" if domain_name == "ferrumos" else "paper-action_conditioned_jepa")
+            for warning in [method["warning"]]),
+        "incident_os_false_positive_increase_retained": incident_domains["ferrumos"]["paired_warning"]["fpr"]["interval_97_5_percent"][0] > 0
+        and "OS FPR rises by 1.00 point [0.45, 1.59]" in source_text,
+    })
     freeze = {
         "schema": "cross-domain-world-model-paper-freeze-v1-2",
         "report_version": "1.2",
-        "evidence_frozen_date": "2026-09-08",
+        "evidence_frozen_date": "2026-10-18",
         "title": TITLE,
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
@@ -1088,6 +1175,11 @@ def main() -> None:
             "repository_tag": None,
         },
         "artifacts": {
+            **{f"incident_dynamics_{name}": {"path": rel(path), "sha256": sha256(path)}
+               for name, path in INCIDENT_FILES.items()},
+            "report_builder": {"path": rel(REPORT_BUILDER), "sha256": sha256(REPORT_BUILDER)},
+            "shared_report_builder": {"path": rel(BUILDER), "sha256": sha256(BUILDER)},
+            "paper_verifier": {"path": rel(Path(__file__)), "sha256": sha256(Path(__file__))},
             "manuscript": {"path": rel(SOURCE), "sha256": sha256(SOURCE)},
             "pdf": {
                 "path": rel(PDF),
@@ -1173,6 +1265,10 @@ def main() -> None:
             "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
             "The output-ablation design, estimands, fresh seed range, and bootstrap seeds were fixed before either catalog existed. The simulator execution was prospective, but its result failed the final protected-file gate; recovery v2 is the retrospective reportable analysis.",
             "The output-ablation multiplicity checks are post-hoc. Seven displayed endpoints and all 11 registered paired outputs leave only warning FPR and intervention rate separated from zero; neither result establishes benefit.",
+            "Incident-dynamics v2 passes four adjusted prediction and two warning gates on fresh locally generated episodes, with six historical point-estimate regression guards; source labels are not independent dynamics or telemetry holdout.",
+            "The new study changes data, objective, model and calibration together, with unequal budgets and seed counts; it does not identify architecture-only, Dream-RSI, controller-outcome or physical-safety benefit.",
+            "The new OS warning gain has a statistically resolved false-positive increase; the 1 percent calibration target is not a population guarantee.",
+            "The failed incident-dynamics v1 schema attempt is retained; v2 uses unchanged selected models and thresholds with a prospectively registered fresh seed.",
         ],
         "promotion_eligible": False,
         "protected_deployed_artifacts": protected,
@@ -1194,6 +1290,7 @@ def main() -> None:
             ],
             "forbidden_patterns_absent": forbidden_absent,
             "pdf_pages": len(reader.pages),
+            "pdf_missing_source_urls": sorted(source_urls - pdf_urls),
             "pdf_words_extracted": len(pdf_text.split()),
             "positionally_checked_pdf_table_pages": sorted(table_rows),
             "pdf_font_inventory": font_inventory,

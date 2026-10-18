@@ -38,9 +38,37 @@
         "sha256": "7560813b9384a3eac5bc81b2a22384d0fa03437cba8961f519951321c72b52eb"
       }
     ],
+    "incident_dynamics_portable_verification_v2": {
+      "path": "docs/research/incident_dynamics_portable_verification_v2.json",
+      "sha256": "1b82505df4e79deebfd401f4d3337d18e601b2762a0f514e36c613e5c9cdaa33"
+    },
+    "incident_dynamics_protocol_v1": {
+      "path": "docs/research/incident_dynamics_protocol_v1.json",
+      "sha256": "8388ca452659e8f34b71acc76d7cf2b1474772b82984eb0553add296b3221905"
+    },
+    "incident_dynamics_protocol_v2": {
+      "path": "docs/research/incident_dynamics_protocol_v2.json",
+      "sha256": "c246bc267837220995101e55a3899dc1944ecf80dd442d31c3a285c74fde9d6b"
+    },
+    "incident_dynamics_result_v2": {
+      "path": "docs/research/incident_dynamics_result_v2.json",
+      "sha256": "00affcfbce46f3d6c518e0d96e7851fac622c6f09cef38cce4b5f46ee0861a55"
+    },
+    "incident_dynamics_selection_v2": {
+      "path": "docs/research/incident_dynamics_selection_v2.json",
+      "sha256": "c6f15ee487c16d66c5f3ca35d9a43e2df8013b56e041d6b0d12a764651125cb1"
+    },
+    "incident_dynamics_sources_v1": {
+      "path": "docs/research/incident_dynamics_sources_v1.json",
+      "sha256": "43242ced846c67fc4ee6c959ead2cd344baec18bbb7069b7acf1f5a9d4b2da16"
+    },
+    "incident_dynamics_verification_v2": {
+      "path": "docs/research/incident_dynamics_verification_v2.json",
+      "sha256": "408170698214a3c9a9058e01af7007071c2ebceab848ed7e93a91c93213fe543"
+    },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "1c9a99f53ed7526655f3f00c09052fa7167947a1ad60d50dc678c7622727b509"
+      "sha256": "80c192a90e59bdd21de357018204250081b5339b4f37f30060c84cdbcf24656d"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -74,10 +102,14 @@
       "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
       "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
     },
+    "paper_verifier": {
+      "path": "scripts/verify_cross_domain_world_model_paper_v1_2.py",
+      "sha256": "d35a1f37c9f895b68385e3e7432250e2d6af135f9e29db0018322173c7ebe119"
+    },
     "pdf": {
-      "pages": 27,
+      "pages": 33,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "4aa306f52c8b3ee5157367dd8b21ace6568122315ff737278c6cd8329303ddf9"
+      "sha256": "7512f6cf92604445d193e128d3aea5c03a584fc3546a902668b4a37d61b64050"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -87,6 +119,10 @@
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json",
       "sha256": "6210266b9ea215f9e8dcca832504b9990cb58e13102a0e1317520774c8eaa4df"
     },
+    "report_builder": {
+      "path": "scripts/build_prediction_is_not_permission_v1_2.py",
+      "sha256": "c280ffa1d5b700580d9bc59a22c40b03e91f167a71ecc6216b493a4de83014d8"
+    },
     "risk_source_attribution_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
       "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
@@ -94,6 +130,10 @@
     "risk_source_attribution_verification": {
       "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
       "sha256": "4fd14399205e6cd71870ba7c24a33971471e91f3a6d7756c4c2b1b522813caee"
+    },
+    "shared_report_builder": {
+      "path": "scripts/build_world_model_technical_report_v1_2.py",
+      "sha256": "920637303c93522d93eb44440a27fe232e74b13fe8f172c239e77e8cc1f9a85b"
     }
   },
   "author": "Vyom Kulshrestha",
@@ -117,9 +157,13 @@
     "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
     "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
     "The output-ablation design, estimands, fresh seed range, and bootstrap seeds were fixed before either catalog existed. The simulator execution was prospective, but its result failed the final protected-file gate; recovery v2 is the retrospective reportable analysis.",
-    "The output-ablation multiplicity checks are post-hoc. Seven displayed endpoints and all 11 registered paired outputs leave only warning FPR and intervention rate separated from zero; neither result establishes benefit."
+    "The output-ablation multiplicity checks are post-hoc. Seven displayed endpoints and all 11 registered paired outputs leave only warning FPR and intervention rate separated from zero; neither result establishes benefit.",
+    "Incident-dynamics v2 passes four adjusted prediction and two warning gates on fresh locally generated episodes, with six historical point-estimate regression guards; source labels are not independent dynamics or telemetry holdout.",
+    "The new study changes data, objective, model and calibration together, with unequal budgets and seed counts; it does not identify architecture-only, Dream-RSI, controller-outcome or physical-safety benefit.",
+    "The new OS warning gain has a statistically resolved false-positive increase; the 1 percent calibration target is not a population guarantee.",
+    "The failed incident-dynamics v1 schema attempt is retained; v2 uses unchanged selected models and thresholds with a prospectively registered fresh seed."
   ],
-  "evidence_frozen_date": "2026-09-08",
+  "evidence_frozen_date": "2026-10-18",
   "orcid": "0009-0009-1434-7148",
   "promotion_eligible": false,
   "protected_deployed_artifacts": {
@@ -145,7 +189,7 @@
     }
   },
   "release": {
-    "evidence_snapshot_commit": "6a6da0a2dd1a352df5c929ee1e93831b29640acd",
+    "evidence_snapshot_commit": "f6b45c759830c0148a06b674c980fb9761ac0c8c",
     "repository_tag": null,
     "status": "prepublication v1.2 candidate; v1.1 remains retained"
   },
