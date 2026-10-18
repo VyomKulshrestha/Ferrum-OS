@@ -31,6 +31,7 @@ ARTIFACTS = ROOT / "docs/research/artifacts/incident-dynamics-v1"
 SELECTION = ROOT / "docs/research/incident_dynamics_selection_v1.json"
 RESULT = ROOT / "docs/research/incident_dynamics_result_v1.json"
 VERIFICATION = ROOT / "docs/research/incident_dynamics_verification_v1.json"
+VERSION = 1
 CODE = ["scripts/incident_dynamics_data.py", "scripts/train_incident_dynamics.py",
         "scripts/fit_incident_dynamics_ridge.py", "scripts/evaluate_incident_dynamics_development.py",
         "scripts/incident_dynamics_metrics.py", "scripts/run_incident_dynamics_study.py",
@@ -57,6 +58,27 @@ def json_write_once(path, value):
 
 def record(path):
     return {"path": path.relative_to(ROOT).as_posix(), "sha256": legacy.sha256(path)}
+
+
+def record_matches(item):
+    path = ROOT / item["path"]
+    raw = path.read_bytes()
+    candidates = {hashlib.sha256(raw).hexdigest()}
+    if path.suffix == ".json":
+        normalized = raw.replace(b"\r\n", b"\n")
+        candidates.update(hashlib.sha256(value).hexdigest() for value in (normalized, normalized.replace(b"\n", b"\r\n")))
+    return item["sha256"] in candidates
+
+
+def read_protocol():
+    protocol = architecture.load_json(PROTOCOL)
+    if "inherits_protocol" in protocol:
+        amendment = protocol
+        protocol = architecture.load_json(ROOT / amendment["inherits_protocol"])
+        protocol["study_id"] = amendment["study_id"]
+        protocol["final_generation"]["seed"] = amendment["final_seed_override"]
+        protocol["amendment"] = amendment
+    return protocol
 
 
 def copy_artifact(source, destination):
@@ -159,7 +181,9 @@ def paper_pipelines(domain):
 def select():
     if SELECTION.exists() or (ARTIFACTS / "final").exists():
         raise FileExistsError("selection already frozen or final already opened")
-    protocol = architecture.load_json(PROTOCOL)
+    if VERSION == 2:
+        return reuse_frozen_selection()
+    protocol = read_protocol()
     for path in [PROTOCOL, data.PLAN, data.SOURCES, *[ROOT / name for name in CODE]]:
         committed(path)
     guard = architecture.install_final_guard(architecture.load_json(architecture.PROTOCOL))
@@ -229,6 +253,31 @@ def select():
     json_write_once(SELECTION, result)
 
 
+def reuse_frozen_selection():
+    """V2 repairs input eligibility only; no model or threshold reselection."""
+    original_path = ROOT / "docs/research/incident_dynamics_selection_v1.json"
+    original = architecture.load_json(original_path)
+    current_runner = "scripts/run_incident_dynamics_study.py"
+    archived_runner = ROOT / "docs/research/artifacts/incident-dynamics-v1/historical-implementation/run_incident_dynamics_study.py"
+    if text_digest(archived_runner) != original["source_bindings"][current_runner]:
+        raise AssertionError("failed-v1 implementation archive drift")
+    for name, digest in original["source_bindings"].items():
+        if name != current_runner and text_digest(ROOT / name) != digest:
+            raise AssertionError(f"v2 may not alter the selected model/data code: {name}")
+    for path in (PROTOCOL, ROOT / current_runner):
+        committed(path)
+    original["study_id"] = read_protocol()["study_id"]
+    original["created_at"] = datetime.now(timezone.utc).isoformat()
+    original["selection_commit_parent"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    original["reused_selection"] = record(original_path)
+    original["model_and_threshold_reselection"] = False
+    original["source_bindings"][current_runner] = text_digest(ROOT / current_runner)
+    original["source_bindings"][PROTOCOL.relative_to(ROOT).as_posix()] = text_digest(PROTOCOL)
+    verify_bindings(original)
+    json_write_once(SELECTION, original)
+    print(json.dumps({"frozen_v2_selection": str(SELECTION), "models_and_thresholds_unchanged": True}))
+
+
 def verify_bindings(selection):
     for name, digest in selection["source_bindings"].items():
         if text_digest(ROOT / name) != digest:
@@ -242,7 +291,7 @@ def verify_bindings(selection):
     for domain in selection["domains"].values():
         for name in ("calibration", "validation", "data_manifest"):
             item = domain[name]
-            if legacy.sha256(ROOT / item["path"]) != item["sha256"]:
+            if not record_matches(item):
                 raise AssertionError(f"frozen {name} drift")
     protected()
 
@@ -320,7 +369,28 @@ def retained_analysis(selection, protocol, check_predictions=False):
                 inferred = pipeline_predictions(selection["domains"][domain]["pipelines"][name], historical, spec)
                 checks[f"{domain}/historical/{name}/inference"] = bool(np.allclose(saved, inferred, atol=1e-7, rtol=0))
         domains[domain] = analyze_domain(domain, windows, historical, predicted, previous, selection, protocol)
+        exclusions_path = folder / "historical_exclusions.json"
+        if exclusions_path.exists():
+            domains[domain]["historical_exclusions"] = architecture.load_json(exclusions_path)
     return domains, checks
+
+
+def historical_inputs(domain, spec):
+    old_protocol = architecture.load_json(architecture.PROTOCOL)
+    _, rows, _ = (architecture.os_final if domain == "ferrumos" else architecture.physical_final)(old_protocol)
+    grouped = {}
+    for row in rows:
+        grouped.setdefault(row["episode"], []).append(row["step"])
+    ambiguous = {name: steps for name, steps in grouped.items() if len(steps) != len(set(steps))}
+    if VERSION == 2:
+        rows = [row for row in rows if row["episode"] not in ambiguous]
+    common_ids = set(data.windows(rows, spec, complete=True).episodes)
+    historical = data.windows([row for row in rows if row["episode"] in common_ids], spec)
+    exclusions = {"rule": "Exclude duplicate-step episodes before model inference, then require five contiguous transitions.",
+                  "ambiguous_episodes": ambiguous, "ambiguous_episode_count": len(ambiguous),
+                  "all_ambiguous_episodes_shorter_than_five_rows": all(len(x) < 5 for x in ambiguous.values()),
+                  "retained_common_episodes": len(common_ids), "applied_identically_to_all_methods": True}
+    return historical, exclusions
 
 
 def final():
@@ -328,8 +398,10 @@ def final():
         raise FileExistsError("final has already been opened; use verify on retained catalogs")
     committed(SELECTION)
     selection = architecture.load_json(SELECTION)
-    protocol = architecture.load_json(PROTOCOL)
+    protocol = read_protocol()
     verify_bindings(selection)
+    # Historical-schema preflight cannot consume the new final RNG or predictions.
+    historical_sets = {domain: historical_inputs(domain, data.spec_for(domain)) for domain in ("ferrumos", "physical")}
     root = ARTIFACTS / "final"
     root.mkdir(parents=True)
     event = {"opened_at": datetime.now(timezone.utc).isoformat(), "selection": record(SELECTION),
@@ -341,13 +413,11 @@ def final():
             spec = data.spec_for(domain)
             new = data.windows(data.incident_rows(domain, "final", protocol["final_generation"]["episodes_per_domain"],
                                                  protocol["final_generation"]["seed"]), spec, complete=True)
-            old_protocol = architecture.load_json(architecture.PROTOCOL)
-            _, old_rows, _ = (architecture.os_final if domain == "ferrumos" else architecture.physical_final)(old_protocol)
-            common_ids = set(data.windows(old_rows, spec, complete=True).episodes)
-            historical = data.windows([row for row in old_rows if row["episode"] in common_ids], spec)
+            historical, exclusions = historical_sets[domain]
             folder = root / domain
             data.save_windows(folder / "new_catalog.npz", new)
             data.save_windows(folder / "historical_catalog.npz", historical)
+            json_write_once(folder / "historical_exclusions.json", exclusions)
             predictions = {}
             for name, pipeline in selection["domains"][domain]["pipelines"].items():
                 predictions[f"new_{name}"] = pipeline_predictions(pipeline, new, spec)
@@ -359,7 +429,7 @@ def final():
         verify_bindings(selection)
         result = {"study_id": protocol["study_id"], "evidence_class": "prospective locally designed software benchmark; shared-mechanism narrative-source holdout",
                   "domains": domains, "selection": record(SELECTION), "open_event": record(root / "open_event.json"),
-                  "final_artifacts": [record(path) for path in sorted(root.rglob("*.npz"))],
+                  "final_artifacts": [record(path) for path in sorted([*root.rglob("*.npz"), *root.rglob("historical_exclusions.json")])],
                   "primary_prediction_objective_pass": all(x["primary_prediction_objective_pass"] for x in domains.values()),
                   "secondary_warning_objective_pass": all(x["secondary_warning_objective_pass"] for x in domains.values()),
                   "protected_unchanged": protected(), "promotion_eligible": False, "actuator_attempts": 0, "actuator_deliveries": 0,
@@ -378,7 +448,7 @@ def final():
 
 def verify():
     selection = architecture.load_json(SELECTION)
-    protocol = architecture.load_json(PROTOCOL)
+    protocol = read_protocol()
     original = architecture.load_json(RESULT)
     verify_bindings(selection)
     domains, checks = retained_analysis(selection, protocol, check_predictions=True)
@@ -399,8 +469,14 @@ def verify():
             checks[f"{domain}/{name}/calibration"] = (threshold == pipeline["warning"]["threshold"] and
                                                       coefficients == pipeline["warning"]["logistic_coefficients"])
     checks["all_metrics_recompute_exactly"] = domains == original["domains"]
-    checks["selection_digest"] = original["selection"]["sha256"] == legacy.sha256(SELECTION)
-    checks["final_artifact_digests"] = all(legacy.sha256(ROOT / item["path"]) == item["sha256"] for item in original["final_artifacts"])
+    checks["selection_digest"] = record_matches(original["selection"])
+    checks["open_event_digest"] = record_matches(original["open_event"])
+    checks["final_artifact_digests"] = all(record_matches(item) for item in original["final_artifacts"])
+    if "reused_selection" in selection:
+        parent = architecture.load_json(ROOT / selection["reused_selection"]["path"])
+        checks["v1_models_and_thresholds_unchanged"] = (selection["domains"] == parent["domains"] and
+                                                       not selection["model_and_threshold_reselection"])
+        checks["v1_failed_attempt_retained"] = architecture.load_json(ROOT / protocol["amendment"]["failed_attempt"])["prospective_result_eligible"] is False
     checks["no_failed_final_attempt"] = not (ARTIFACTS / "final/failed_attempt.json").exists()
     checks["no_authority"] = not original["promotion_eligible"] and original["actuator_attempts"] == original["actuator_deliveries"] == 0
     checks["protected_unchanged"] = all(protected().values())
@@ -418,9 +494,18 @@ def verify():
 
 
 def main():
+    global VERSION, PROTOCOL, ARTIFACTS, SELECTION, RESULT, VERIFICATION
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", choices=["select", "final", "verify"])
+    parser.add_argument("--version", type=int, choices=[1, 2], default=1)
     args = parser.parse_args()
+    VERSION = args.version
+    if VERSION == 2:
+        PROTOCOL = ROOT / "docs/research/incident_dynamics_protocol_v2.json"
+        ARTIFACTS = ROOT / "docs/research/artifacts/incident-dynamics-v2"
+        SELECTION = ROOT / "docs/research/incident_dynamics_selection_v2.json"
+        RESULT = ROOT / "docs/research/incident_dynamics_result_v2.json"
+        VERIFICATION = ROOT / "docs/research/incident_dynamics_verification_v2.json"
     torch.set_num_threads(4)
     {"select": select, "final": final, "verify": verify}[args.stage]()
 

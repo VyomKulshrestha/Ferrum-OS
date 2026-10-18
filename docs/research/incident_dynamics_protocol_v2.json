@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "study_id": "incident-dynamics-v2",
+  "registered_at": "2026-10-18",
+  "inherits_protocol": "docs/research/incident_dynamics_protocol_v1.json",
+  "amendment": "Repair historical episode eligibility before a new untouched final opening. No model, candidate choice, calibration, threshold, estimand, effect gate or bootstrap setting changes.",
+  "failed_attempt": "docs/research/artifacts/incident-dynamics-v1/final/failed_attempt.json",
+  "failure_boundary": "The v1 attempt generated the OS new-catalog arrays in memory, then stopped on duplicate historical step identifiers before saving catalogs or running any final model prediction. The failed attempt remains ineligible and is not reused.",
+  "frozen_selection_reused": "docs/research/incident_dynamics_selection_v1.json",
+  "final_seed_override": 281014,
+  "historical_exclusion": "Before computing eligibility or model predictions, exclude every historical episode containing duplicate step identifiers. Record exact excluded episode IDs and counts. Apply this rule equally to every comparator; do not collapse duplicates or invent an order. Retain the prior requirement for five contiguous eligible transitions.",
+  "portable_digest_rule": "Model, NPZ catalog and PDF identities are byte-exact. UTF-8 JSON metadata may use LF or CRLF line endings; verify against explicit equivalent encodings without accepting any other content change. Source-code bindings already normalize CRLF to LF.",
+  "scientific_policy": "V1 remains a failed attempt. V2 is a new prospectively registered opening with unchanged selected models and thresholds, not a rerun or recovery of v1 final evidence.",
+  "publication_authorized": false,
+  "promotion_eligible": false
+}

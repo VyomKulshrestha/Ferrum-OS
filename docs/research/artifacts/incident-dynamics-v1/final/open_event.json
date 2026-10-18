@@ -1,0 +1,10 @@
+{
+  "episodes_per_domain": 1024,
+  "new_seed": 281004,
+  "opened_at": "2026-10-18T15:45:45.789753+00:00",
+  "registration_commit": "fd036c32960b2fca47b8b2c78400d8e56377cc7b",
+  "selection": {
+    "path": "docs/research/incident_dynamics_selection_v1.json",
+    "sha256": "340fe250bbdeb27850160118db3d34395f9238daa39498324cb2636803fef995"
+  }
+}
