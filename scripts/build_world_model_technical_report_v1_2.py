@@ -123,7 +123,7 @@ def inline(text: str) -> str:
     value = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", value)
     value = re.sub(r"\*([^*]+)\*", r"<i>\1</i>", value)
     value = re.sub(
-        r"(?<!href=')(https?://[^\s&lt;]+)",
+        r"(?<!href=')(https?://[^\s<>\"']+)",
         r"<link href='\1' color='#16777A'>\1</link>",
         value,
     )
@@ -464,7 +464,10 @@ def make_styles() -> dict[str, ParagraphStyle]:
             alignment=TA_LEFT,
             textColor=INK,
             spaceAfter=2,
-            splitLongWords=False,
+            # Primary-source URLs must wrap rather than run beyond the page.
+            splitLongWords=True,
+            allowWidows=False,
+            allowOrphans=False,
         ),
         "abstract": ParagraphStyle(
             "Abstract",
