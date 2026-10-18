@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "study_id": "incident-dynamics-v3",
+  "registered_at": "2026-10-18",
+  "status": "development_only_before_final_selection",
+  "parent_report": "Prediction Is Not Permission, prepublication v1.2 (revised local release of 18 October 2026)",
+  "parent_study": "incident-dynamics-v2 (docs/research/incident_dynamics_result_v2.json); its selected pipelines are the primary comparators",
+  "purpose": "Test whether a broader incident-motivated mechanism library, longer causal history, new model families, uncertainty-aware warnings and a Dream-RSI-inspired evolving-world curriculum improve prediction and delayed-constraint warnings beyond the v2-selected models, without changing execution authority or rewriting earlier negative results.",
+  "research_sources": "docs/research/incident_dynamics_sources_v3.json (24 newly verified primary sources plus the eight v1 sources; narratives motivate abstract perturbation families only)",
+  "development": {
+    "domains": ["ferrumos", "physical"],
+    "history": 8,
+    "horizons": [1, 3, 5],
+    "mechanism_library": "scripts/incident_dynamics_v3_data.py OS_MECHANISMS and PHYSICAL_MECHANISMS (10 families per domain)",
+    "development_mechanisms": {
+      "ferrumos": ["constant_pressure", "accelerating_leak", "sudden_step", "retry_oscillation", "coupled_cascade", "log_storm", "regime_shift"],
+      "physical": ["constant_pressure", "accelerating_drain", "link_jamming", "position_bias", "vibration_degradation", "regime_shift", "stale_observation"]
+    },
+    "held_out_mechanisms": {
+      "ferrumos": ["exponential_amplification", "crash_restart", "frozen_telemetry"],
+      "physical": ["actuator_gain_fault", "replayed_sensors", "approaching_obstacle"],
+      "rule": "Generated only for the registered final catalog; mechanism_rows raises PermissionError for any other partition."
+    },
+    "data": {
+      "base": "Unchanged v2 development partitions: original legacy development rows plus incident_rows(train, 1200, 281001) and incident_rows(validation, 256, 281002). History-3 windows are verified byte-identical to v2.",
+      "mechanism_train": "400 episodes per development mechanism, seed 391001",
+      "mechanism_validation": "64 episodes per development mechanism, seed 391002",
+      "calibration": "incident_rows(calibration, 512, 281003) plus 64 episodes per development mechanism, seed 391003"
+    },
+    "selection_metric": "Equal-weight mean of (a) the v2-identical base validation score and (b) the development-mechanism validation score; each is the mean of H1/H3/H5 episode-macro normalized MAE. No final or held-out-mechanism input.",
+    "candidate_families": ["per-action ridge on longer history", "hybrid ridge plus neural residual", "autoregressive action-residual network", "direct multi-horizon plan network", "seed ensembles", "uniform versus evolving-world curricula"],
+    "dream_rsi": "Adapted, not reimplemented: online probing of candidate development worlds, an evolving world pool, offline replay scoring of candidate continuations on every stored world, and retention of the current model among candidates. No held-out mechanism or final input enters probing or replay.",
+    "warnings": "Score = maximum signed constraint margin over the forecast; optional uncertainty shift of k times the predicted Laplace scale (k=0 reproduces v2). Threshold rule unchanged from v2: smallest score threshold with at most 1 percent empirical calibration FPR.",
+    "ledger": "target/incident-dynamics-v3/development_ledger.jsonl and per-trial JSON records; archived with the selection manifest."
+  },
+  "pre_plan_probes_disclosed": [
+    "Noise-only oracle on the development generator and on the public v2 final generator with an unregistered seed (999): true state, drift and regime known, only stochastic noise unknown. No model was evaluated on final-generator samples.",
+    "Generator sanity probe: 64 episodes of every mechanism, including the three held-out families per domain, under partition 'probe', reporting only window counts, hazard prevalence and finiteness. No model was scored on held-out mechanisms. The partition guard was added immediately afterwards."
+  ],
+  "evaluation_policy": {
+    "populations": {
+      "A_paper_population": "Fresh seed from the unchanged v2 final generator (incident_rows partition 'final'). Directly comparable with the paper's Section 8.7 population. The v3 development curriculum contains regime-change mechanisms, so A is no longer a timing holdout for v3 models; this must be stated.",
+      "B_novel_mechanisms": "Fresh seed; held-out mechanism families only. Novel-mechanism holdout within the same researcher-designed simulator.",
+      "historical": "Previously opened paper final families; regression guard only."
+    },
+    "comparators": ["v2-selected pipeline (primary)", "v2 per-action ridge", "paper ensembles", "state persistence", "causal constant velocity", "v3 uniform-curriculum counterpart (RSI ablation)"],
+    "gates": "Registered in docs/research/incident_dynamics_protocol_v3.json before the selection manifest is frozen."
+  },
+  "authority": {"promotion_eligible": false, "actuator_delivery": false, "runtime_model_replacement": false},
+  "claim_boundaries": [
+    "Prediction or warning improvement does not establish fewer real incidents, controller benefit, physical safety, or permission.",
+    "No exploit code, live attacks, or network capability. Public incident mechanisms are represented by local abstract perturbations only; source identities do not supply numeric coefficients or labels.",
+    "All earlier negative and failed results remain unchanged and retained."
+  ]
+}
