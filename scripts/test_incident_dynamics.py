@@ -7,6 +7,8 @@ import torch
 import incident_dynamics_data as data
 import train_incident_dynamics as train
 import evaluate_incident_dynamics_development as evaluation
+import incident_dynamics_metrics as metrics
+import run_incident_dynamics_study as study
 
 
 class CausalWindowsTests(unittest.TestCase):
@@ -90,6 +92,34 @@ class CausalWindowsTests(unittest.TestCase):
         a = model(states, actions, torch.zeros((len(states), 48)))[0]
         b = model(states, actions, torch.ones((len(states), 48)))[0]
         torch.testing.assert_close(a, b, atol=0, rtol=0)
+
+    def test_paired_warning_interval_uses_episode_counts(self):
+        left = np.asarray([[8, 1, 9, 2]] * 6, dtype=float)
+        right = np.asarray([[2, 1, 9, 8]] * 6, dtype=float)
+        result = metrics.paired_warning_difference(left, right, 42)
+        self.assertAlmostEqual(result["recall"]["difference"], .6)
+        np.testing.assert_allclose(result["recall"]["interval_97_5_percent"], [.6, .6])
+
+    def test_complete_analysis_on_known_fixture(self):
+        states = np.zeros((8, 3, 48), np.float32)
+        states[:, :, 0] = .5
+        targets = np.zeros((8, 5, 48), np.float32)
+        targets[::2, :, 0] = 1
+        targets[1::2, :, 0] = .5
+        actions = np.zeros((8, 3, 57), np.float32)
+        future = np.zeros((8, 5, 57), np.float32)
+        windows = data.Windows(states, actions, future, targets, np.ones((8, 5), np.float32),
+                               np.repeat(["a", "b", "c", "d"], 2), np.asarray(["fixture"] * 8))
+        wrong = targets.copy()
+        wrong[:, :, 0] = .8
+        predictions = {"selected": targets, "paper-gru_dynamics": wrong}
+        warning = {"threshold": 0., "logistic_coefficients": [0., 50.]}
+        selection = {"domains": {"ferrumos": {"pipelines": {key: {"warning": warning} for key in predictions}}}}
+        protocol = {"comparison": {"primary_baseline": {"ferrumos": "paper-gru_dynamics"}}, "statistics": {"seed": 42}}
+        result = study.analyze_domain("ferrumos", windows, windows, predictions, predictions, selection, protocol)
+        self.assertTrue(result["primary_prediction_objective_pass"])
+        self.assertTrue(result["secondary_warning_objective_pass"])
+        self.assertEqual(result["methods"]["selected"]["warning"]["recall"], 1)
 
 
 if __name__ == "__main__":
