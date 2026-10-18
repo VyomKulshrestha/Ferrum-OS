@@ -1,0 +1,2867 @@
+{
+  "actuator_attempts": 0,
+  "actuator_deliveries": 0,
+  "domains": {
+    "ferrumos": {
+      "historical_guards": {
+        "h1": {
+          "best_v2_or_paper": 0.0001421486614121823,
+          "pass": true,
+          "relative_change": 0.001103205229867843,
+          "selected": 0.00014230548055887092
+        },
+        "h3": {
+          "best_v2_or_paper": 0.003178014080387692,
+          "pass": true,
+          "relative_change": 0.00019480712155761637,
+          "selected": 0.003178633180162962
+        },
+        "h5": {
+          "best_v2_or_paper": 0.003005037699642062,
+          "pass": true,
+          "relative_change": 0.00037600065666221205,
+          "selected": 0.003006167595790422
+        }
+      },
+      "populations": {
+        "A": {
+          "episodes": 1024,
+          "methods": {
+            "constant_velocity": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0003361115161802932,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0009391527226803772,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.001572528616242389,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.05824837991317607,
+                "ece_10_bins": 0.03511029819501515,
+                "episodes": 1024,
+                "fn": 1043,
+                "fp": 68,
+                "fpr": 0.00788771604222248,
+                "prevalence": 0.15810546875,
+                "recall": 0.355775169857937,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 6655,
+                    "frequency": 0.0019534184823441023,
+                    "mean_probability": 0.016557164127011196
+                  },
+                  {
+                    "bin": 1,
+                    "count": 988,
+                    "frequency": 0.09817813765182186,
+                    "mean_probability": 0.1444281950885565
+                  },
+                  {
+                    "bin": 2,
+                    "count": 674,
+                    "frequency": 0.2344213649851632,
+                    "mean_probability": 0.24736574725255625
+                  },
+                  {
+                    "bin": 3,
+                    "count": 446,
+                    "frequency": 0.452914798206278,
+                    "mean_probability": 0.3438929451077246
+                  },
+                  {
+                    "bin": 4,
+                    "count": 342,
+                    "frequency": 0.6403508771929824,
+                    "mean_probability": 0.44718292074038174
+                  },
+                  {
+                    "bin": 5,
+                    "count": 281,
+                    "frequency": 0.6832740213523132,
+                    "mean_probability": 0.5491244636618333
+                  },
+                  {
+                    "bin": 6,
+                    "count": 223,
+                    "frequency": 0.7713004484304933,
+                    "mean_probability": 0.6497946796149666
+                  },
+                  {
+                    "bin": 7,
+                    "count": 205,
+                    "frequency": 0.8439024390243902,
+                    "mean_probability": 0.7507431302947427
+                  },
+                  {
+                    "bin": 8,
+                    "count": 208,
+                    "frequency": 0.8557692307692307,
+                    "mean_probability": 0.8507622929587506
+                  },
+                  {
+                    "bin": 9,
+                    "count": 218,
+                    "frequency": 0.9862385321100917,
+                    "mean_probability": 0.9481474552468364
+                  }
+                ],
+                "tn": 8553,
+                "tp": 576
+              }
+            },
+            "persistence": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0003324412576638291,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0007837018350617342,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.001135149586363582,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.0468682427343328,
+                "ece_10_bins": 0.035144464386322814,
+                "episodes": 1024,
+                "fn": 404,
+                "fp": 222,
+                "fpr": 0.02575107296137339,
+                "prevalence": 0.15810546875,
+                "recall": 0.7504632489190859,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7007,
+                    "frequency": 0.0021407164264307123,
+                    "mean_probability": 0.008549484330556226
+                  },
+                  {
+                    "bin": 1,
+                    "count": 506,
+                    "frequency": 0.06719367588932806,
+                    "mean_probability": 0.14141608279409248
+                  },
+                  {
+                    "bin": 2,
+                    "count": 329,
+                    "frequency": 0.12158054711246201,
+                    "mean_probability": 0.24461956205403435
+                  },
+                  {
+                    "bin": 3,
+                    "count": 265,
+                    "frequency": 0.23018867924528302,
+                    "mean_probability": 0.34892652152963355
+                  },
+                  {
+                    "bin": 4,
+                    "count": 214,
+                    "frequency": 0.26635514018691586,
+                    "mean_probability": 0.45005431016434944
+                  },
+                  {
+                    "bin": 5,
+                    "count": 288,
+                    "frequency": 0.375,
+                    "mean_probability": 0.5532336412574624
+                  },
+                  {
+                    "bin": 6,
+                    "count": 337,
+                    "frequency": 0.5044510385756676,
+                    "mean_probability": 0.6530393331458075
+                  },
+                  {
+                    "bin": 7,
+                    "count": 356,
+                    "frequency": 0.6769662921348315,
+                    "mean_probability": 0.7582988683097223
+                  },
+                  {
+                    "bin": 8,
+                    "count": 385,
+                    "frequency": 0.8987012987012987,
+                    "mean_probability": 0.849803282186665
+                  },
+                  {
+                    "bin": 9,
+                    "count": 553,
+                    "frequency": 0.9891500904159132,
+                    "mean_probability": 0.9584559190000994
+                  }
+                ],
+                "tn": 8399,
+                "tp": 1215
+              }
+            },
+            "selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 5.444995827077331e-05,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.00022274371396708849,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.0004647866655417166,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.023119686227452772,
+                "ece_10_bins": 0.020686010299087752,
+                "episodes": 1024,
+                "fn": 54,
+                "fp": 209,
+                "fpr": 0.024243127247419092,
+                "prevalence": 0.15810546875,
+                "recall": 0.9666460778258185,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7721,
+                    "frequency": 0.0014246859215127573,
+                    "mean_probability": 0.004318919797265642
+                  },
+                  {
+                    "bin": 1,
+                    "count": 302,
+                    "frequency": 0.033112582781456956,
+                    "mean_probability": 0.14534084066334557
+                  },
+                  {
+                    "bin": 2,
+                    "count": 184,
+                    "frequency": 0.04891304347826087,
+                    "mean_probability": 0.24645693246768707
+                  },
+                  {
+                    "bin": 3,
+                    "count": 166,
+                    "frequency": 0.060240963855421686,
+                    "mean_probability": 0.3507872998369757
+                  },
+                  {
+                    "bin": 4,
+                    "count": 174,
+                    "frequency": 0.2988505747126437,
+                    "mean_probability": 0.44690101073009025
+                  },
+                  {
+                    "bin": 5,
+                    "count": 130,
+                    "frequency": 0.6923076923076923,
+                    "mean_probability": 0.5469575635727927
+                  },
+                  {
+                    "bin": 6,
+                    "count": 139,
+                    "frequency": 0.697841726618705,
+                    "mean_probability": 0.6512543176338002
+                  },
+                  {
+                    "bin": 7,
+                    "count": 180,
+                    "frequency": 0.8166666666666667,
+                    "mean_probability": 0.7524910933363634
+                  },
+                  {
+                    "bin": 8,
+                    "count": 232,
+                    "frequency": 0.875,
+                    "mean_probability": 0.8516872704775406
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1012,
+                    "frequency": 0.9782608695652174,
+                    "mean_probability": 0.9811408750795536
+                  }
+                ],
+                "tn": 8412,
+                "tp": 1565
+              }
+            },
+            "v2-paper-action_conditioned_jepa": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.03695837643153937,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.04481051149359701,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.04829030518340005,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.0870983307717687,
+                "ece_10_bins": 0.047635720857009824,
+                "episodes": 1024,
+                "fn": 1317,
+                "fp": 121,
+                "fpr": 0.014035494722190001,
+                "prevalence": 0.15810546875,
+                "recall": 0.1865348980852378,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 6110,
+                    "frequency": 0.0022913256955810145,
+                    "mean_probability": 0.023933768494815644
+                  },
+                  {
+                    "bin": 1,
+                    "count": 1520,
+                    "frequency": 0.17763157894736842,
+                    "mean_probability": 0.14412384314518586
+                  },
+                  {
+                    "bin": 2,
+                    "count": 808,
+                    "frequency": 0.3849009900990099,
+                    "mean_probability": 0.2468566464332286
+                  },
+                  {
+                    "bin": 3,
+                    "count": 497,
+                    "frequency": 0.5211267605633803,
+                    "mean_probability": 0.3480159807613682
+                  },
+                  {
+                    "bin": 4,
+                    "count": 354,
+                    "frequency": 0.5169491525423728,
+                    "mean_probability": 0.44691429228415386
+                  },
+                  {
+                    "bin": 5,
+                    "count": 285,
+                    "frequency": 0.49122807017543857,
+                    "mean_probability": 0.5530606788108005
+                  },
+                  {
+                    "bin": 6,
+                    "count": 224,
+                    "frequency": 0.5669642857142857,
+                    "mean_probability": 0.6472234186748803
+                  },
+                  {
+                    "bin": 7,
+                    "count": 196,
+                    "frequency": 0.6377551020408163,
+                    "mean_probability": 0.7495823854053332
+                  },
+                  {
+                    "bin": 8,
+                    "count": 165,
+                    "frequency": 0.703030303030303,
+                    "mean_probability": 0.8438052028840031
+                  },
+                  {
+                    "bin": 9,
+                    "count": 81,
+                    "frequency": 0.9135802469135802,
+                    "mean_probability": 0.9321990693656983
+                  }
+                ],
+                "tn": 8500,
+                "tp": 302
+              }
+            },
+            "v2-paper-gru_dynamics": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.04338957049949386,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.046261178536951775,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.04715984977956395,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.08242804293960557,
+                "ece_10_bins": 0.029090362971724324,
+                "episodes": 1024,
+                "fn": 1348,
+                "fp": 110,
+                "fpr": 0.012759540656536365,
+                "prevalence": 0.15810546875,
+                "recall": 0.16738727609635579,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 6187,
+                    "frequency": 0.009697753353806368,
+                    "mean_probability": 0.022509248653323186
+                  },
+                  {
+                    "bin": 1,
+                    "count": 1334,
+                    "frequency": 0.15742128935532235,
+                    "mean_probability": 0.14525377265961778
+                  },
+                  {
+                    "bin": 2,
+                    "count": 831,
+                    "frequency": 0.2611311672683514,
+                    "mean_probability": 0.2477423814346643
+                  },
+                  {
+                    "bin": 3,
+                    "count": 505,
+                    "frequency": 0.4277227722772277,
+                    "mean_probability": 0.34796498482450844
+                  },
+                  {
+                    "bin": 4,
+                    "count": 382,
+                    "frequency": 0.6204188481675392,
+                    "mean_probability": 0.4514772291209486
+                  },
+                  {
+                    "bin": 5,
+                    "count": 318,
+                    "frequency": 0.6477987421383647,
+                    "mean_probability": 0.5457928858898192
+                  },
+                  {
+                    "bin": 6,
+                    "count": 241,
+                    "frequency": 0.6680497925311203,
+                    "mean_probability": 0.6460627673709128
+                  },
+                  {
+                    "bin": 7,
+                    "count": 205,
+                    "frequency": 0.6634146341463415,
+                    "mean_probability": 0.7453743122204293
+                  },
+                  {
+                    "bin": 8,
+                    "count": 162,
+                    "frequency": 0.6851851851851852,
+                    "mean_probability": 0.8502741204187195
+                  },
+                  {
+                    "bin": 9,
+                    "count": 75,
+                    "frequency": 0.8666666666666667,
+                    "mean_probability": 0.9355571881252501
+                  }
+                ],
+                "tn": 8511,
+                "tp": 271
+              }
+            },
+            "v2-ridge": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 7.903156054585581e-05,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0002639381286912768,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.0004927364714101045,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.027924181916089457,
+                "ece_10_bins": 0.0391809769425948,
+                "episodes": 1024,
+                "fn": 129,
+                "fp": 161,
+                "fpr": 0.018675327688203226,
+                "prevalence": 0.15810546875,
+                "recall": 0.9203211859172329,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7405,
+                    "frequency": 0.0005401755570560432,
+                    "mean_probability": 0.007734336845469277
+                  },
+                  {
+                    "bin": 1,
+                    "count": 365,
+                    "frequency": 0.030136986301369864,
+                    "mean_probability": 0.14636480816782127
+                  },
+                  {
+                    "bin": 2,
+                    "count": 319,
+                    "frequency": 0.06896551724137931,
+                    "mean_probability": 0.24716322179836317
+                  },
+                  {
+                    "bin": 3,
+                    "count": 245,
+                    "frequency": 0.12244897959183673,
+                    "mean_probability": 0.3477981345191334
+                  },
+                  {
+                    "bin": 4,
+                    "count": 263,
+                    "frequency": 0.2509505703422053,
+                    "mean_probability": 0.45123133262651605
+                  },
+                  {
+                    "bin": 5,
+                    "count": 228,
+                    "frequency": 0.6359649122807017,
+                    "mean_probability": 0.5467494274801161
+                  },
+                  {
+                    "bin": 6,
+                    "count": 224,
+                    "frequency": 0.8125,
+                    "mean_probability": 0.653505460469197
+                  },
+                  {
+                    "bin": 7,
+                    "count": 223,
+                    "frequency": 0.9327354260089686,
+                    "mean_probability": 0.7499570951945737
+                  },
+                  {
+                    "bin": 8,
+                    "count": 261,
+                    "frequency": 0.9540229885057471,
+                    "mean_probability": 0.849294594132585
+                  },
+                  {
+                    "bin": 9,
+                    "count": 707,
+                    "frequency": 0.9929278642149929,
+                    "mean_probability": 0.9692528326928742
+                  }
+                ],
+                "tn": 8460,
+                "tp": 1490
+              }
+            },
+            "v2-selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 7.903156054585581e-05,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0002639381286912768,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.0004927364714101045,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.027924181916089457,
+                "ece_10_bins": 0.0391809769425948,
+                "episodes": 1024,
+                "fn": 129,
+                "fp": 161,
+                "fpr": 0.018675327688203226,
+                "prevalence": 0.15810546875,
+                "recall": 0.9203211859172329,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7405,
+                    "frequency": 0.0005401755570560432,
+                    "mean_probability": 0.007734336845469277
+                  },
+                  {
+                    "bin": 1,
+                    "count": 365,
+                    "frequency": 0.030136986301369864,
+                    "mean_probability": 0.14636480816782127
+                  },
+                  {
+                    "bin": 2,
+                    "count": 319,
+                    "frequency": 0.06896551724137931,
+                    "mean_probability": 0.24716322179836317
+                  },
+                  {
+                    "bin": 3,
+                    "count": 245,
+                    "frequency": 0.12244897959183673,
+                    "mean_probability": 0.3477981345191334
+                  },
+                  {
+                    "bin": 4,
+                    "count": 263,
+                    "frequency": 0.2509505703422053,
+                    "mean_probability": 0.45123133262651605
+                  },
+                  {
+                    "bin": 5,
+                    "count": 228,
+                    "frequency": 0.6359649122807017,
+                    "mean_probability": 0.5467494274801161
+                  },
+                  {
+                    "bin": 6,
+                    "count": 224,
+                    "frequency": 0.8125,
+                    "mean_probability": 0.653505460469197
+                  },
+                  {
+                    "bin": 7,
+                    "count": 223,
+                    "frequency": 0.9327354260089686,
+                    "mean_probability": 0.7499570951945737
+                  },
+                  {
+                    "bin": 8,
+                    "count": 261,
+                    "frequency": 0.9540229885057471,
+                    "mean_probability": 0.849294594132585
+                  },
+                  {
+                    "bin": 9,
+                    "count": 707,
+                    "frequency": 0.9929278642149929,
+                    "mean_probability": 0.9692528326928742
+                  }
+                ],
+                "tn": 8460,
+                "tp": 1490
+              }
+            }
+          },
+          "prevalence": 0.15810546875,
+          "primary_prediction": {
+            "h3": {
+              "episodes": 1024,
+              "estimate": -4.119441472418827e-05,
+              "interval": [
+                -4.402047532471948e-05,
+                -3.856182723028853e-05
+              ],
+              "interval_level": 0.99375,
+              "pass": false,
+              "relative_reduction": 0.15607602784958963,
+              "resamples": 10000
+            },
+            "h5": {
+              "episodes": 1024,
+              "estimate": -2.7949805868388025e-05,
+              "interval": [
+                -3.28184927706019e-05,
+                -2.3333710612422938e-05
+              ],
+              "interval_level": 0.99375,
+              "pass": false,
+              "relative_reduction": 0.05672363928816082,
+              "resamples": 10000
+            }
+          },
+          "rsi_ablation": {},
+          "warning": {
+            "fpr_difference": {
+              "difference": 0.005567799559215866,
+              "interval": [
+                0.0011727436939387257,
+                0.010081819567310734
+              ],
+              "interval_level": 0.9875
+            },
+            "miss_rate_reduction": 0.5813953488372099,
+            "pass": false,
+            "recall_difference": {
+              "difference": 0.046324891908585575,
+              "interval": [
+                0.03015633661108159,
+                0.06335769586220678
+              ],
+              "interval_level": 0.9875
+            },
+            "selected_fpr": 0.024243127247419092
+          },
+          "windows": 10240
+        },
+        "B": {
+          "episodes": 1024,
+          "methods": {
+            "constant_velocity": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.00044658264188309404,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0012888419209613035,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.002251643344553395,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.0542921532534309,
+                "ece_10_bins": 0.014004698176758208,
+                "episodes": 1024,
+                "fn": 760,
+                "fp": 91,
+                "fpr": 0.01001100110011001,
+                "prevalence": 0.1123046875,
+                "recall": 0.3391304347826087,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7739,
+                    "frequency": 0.01382607572037731,
+                    "mean_probability": 0.0166032331402385
+                  },
+                  {
+                    "bin": 1,
+                    "count": 844,
+                    "frequency": 0.13151658767772512,
+                    "mean_probability": 0.14290263158866554
+                  },
+                  {
+                    "bin": 2,
+                    "count": 368,
+                    "frequency": 0.3070652173913043,
+                    "mean_probability": 0.2463144191705908
+                  },
+                  {
+                    "bin": 3,
+                    "count": 272,
+                    "frequency": 0.48161764705882354,
+                    "mean_probability": 0.34931794532993315
+                  },
+                  {
+                    "bin": 4,
+                    "count": 212,
+                    "frequency": 0.5330188679245284,
+                    "mean_probability": 0.44733402986323967
+                  },
+                  {
+                    "bin": 5,
+                    "count": 183,
+                    "frequency": 0.5573770491803278,
+                    "mean_probability": 0.5477682791856988
+                  },
+                  {
+                    "bin": 6,
+                    "count": 148,
+                    "frequency": 0.5945945945945946,
+                    "mean_probability": 0.6510900590615507
+                  },
+                  {
+                    "bin": 7,
+                    "count": 137,
+                    "frequency": 0.6934306569343066,
+                    "mean_probability": 0.7512448732447411
+                  },
+                  {
+                    "bin": 8,
+                    "count": 134,
+                    "frequency": 0.8507462686567164,
+                    "mean_probability": 0.85030791300142
+                  },
+                  {
+                    "bin": 9,
+                    "count": 203,
+                    "frequency": 0.8669950738916257,
+                    "mean_probability": 0.9541864422163782
+                  }
+                ],
+                "tn": 8999,
+                "tp": 390
+              }
+            },
+            "persistence": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0005818078090655376,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.001682435716757169,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.002916137015746756,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.061815248352029215,
+                "ece_10_bins": 0.05109657416326024,
+                "episodes": 1024,
+                "fn": 864,
+                "fp": 33,
+                "fpr": 0.0036303630363036304,
+                "prevalence": 0.1123046875,
+                "recall": 0.24869565217391304,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 8880,
+                    "frequency": 0.04054054054054054,
+                    "mean_probability": 0.00845178199658632
+                  },
+                  {
+                    "bin": 1,
+                    "count": 442,
+                    "frequency": 0.27828054298642535,
+                    "mean_probability": 0.14384025343264106
+                  },
+                  {
+                    "bin": 2,
+                    "count": 221,
+                    "frequency": 0.4298642533936652,
+                    "mean_probability": 0.244523780441136
+                  },
+                  {
+                    "bin": 3,
+                    "count": 122,
+                    "frequency": 0.6967213114754098,
+                    "mean_probability": 0.3423936525325277
+                  },
+                  {
+                    "bin": 4,
+                    "count": 113,
+                    "frequency": 0.7079646017699115,
+                    "mean_probability": 0.4500531686324535
+                  },
+                  {
+                    "bin": 5,
+                    "count": 90,
+                    "frequency": 0.8555555555555555,
+                    "mean_probability": 0.5512427020809174
+                  },
+                  {
+                    "bin": 6,
+                    "count": 83,
+                    "frequency": 0.8674698795180723,
+                    "mean_probability": 0.649397124314238
+                  },
+                  {
+                    "bin": 7,
+                    "count": 85,
+                    "frequency": 0.8823529411764706,
+                    "mean_probability": 0.7542980100877773
+                  },
+                  {
+                    "bin": 8,
+                    "count": 77,
+                    "frequency": 0.8831168831168831,
+                    "mean_probability": 0.8513886416563329
+                  },
+                  {
+                    "bin": 9,
+                    "count": 127,
+                    "frequency": 0.905511811023622,
+                    "mean_probability": 0.958346342448727
+                  }
+                ],
+                "tn": 9057,
+                "tp": 286
+              }
+            },
+            "selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0001778795401785688,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0006100796140366183,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.0012209377562096058,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.04220739446462472,
+                "ece_10_bins": 0.03399152525418697,
+                "episodes": 1024,
+                "fn": 288,
+                "fp": 174,
+                "fpr": 0.01914191419141914,
+                "prevalence": 0.1123046875,
+                "recall": 0.7495652173913043,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 8793,
+                    "frequency": 0.023313999772546345,
+                    "mean_probability": 0.0032988675908467145
+                  },
+                  {
+                    "bin": 1,
+                    "count": 180,
+                    "frequency": 0.16666666666666666,
+                    "mean_probability": 0.14494385234244467
+                  },
+                  {
+                    "bin": 2,
+                    "count": 109,
+                    "frequency": 0.1559633027522936,
+                    "mean_probability": 0.24743415753980322
+                  },
+                  {
+                    "bin": 3,
+                    "count": 83,
+                    "frequency": 0.20481927710843373,
+                    "mean_probability": 0.34733001776517336
+                  },
+                  {
+                    "bin": 4,
+                    "count": 74,
+                    "frequency": 0.6081081081081081,
+                    "mean_probability": 0.4503933740686857
+                  },
+                  {
+                    "bin": 5,
+                    "count": 68,
+                    "frequency": 0.7205882352941176,
+                    "mean_probability": 0.5531968868071271
+                  },
+                  {
+                    "bin": 6,
+                    "count": 64,
+                    "frequency": 0.84375,
+                    "mean_probability": 0.6504300401586758
+                  },
+                  {
+                    "bin": 7,
+                    "count": 80,
+                    "frequency": 0.875,
+                    "mean_probability": 0.7523205844899798
+                  },
+                  {
+                    "bin": 8,
+                    "count": 111,
+                    "frequency": 0.8648648648648649,
+                    "mean_probability": 0.8521340885059517
+                  },
+                  {
+                    "bin": 9,
+                    "count": 678,
+                    "frequency": 0.8362831858407079,
+                    "mean_probability": 0.9833597215958163
+                  }
+                ],
+                "tn": 8916,
+                "tp": 862
+              }
+            },
+            "v2-paper-action_conditioned_jepa": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.03671347697236343,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.04447358747638645,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.047924433403932196,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.07924533377866615,
+                "ece_10_bins": 0.029454476149244953,
+                "episodes": 1024,
+                "fn": 1049,
+                "fp": 76,
+                "fpr": 0.008360836083608362,
+                "prevalence": 0.1123046875,
+                "recall": 0.08782608695652173,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7546,
+                    "frequency": 0.027829313543599257,
+                    "mean_probability": 0.023346014635320454
+                  },
+                  {
+                    "bin": 1,
+                    "count": 1110,
+                    "frequency": 0.23423423423423423,
+                    "mean_probability": 0.1428249149417948
+                  },
+                  {
+                    "bin": 2,
+                    "count": 537,
+                    "frequency": 0.3743016759776536,
+                    "mean_probability": 0.24557970013458838
+                  },
+                  {
+                    "bin": 3,
+                    "count": 335,
+                    "frequency": 0.3850746268656716,
+                    "mean_probability": 0.3442684137104927
+                  },
+                  {
+                    "bin": 4,
+                    "count": 210,
+                    "frequency": 0.4380952380952381,
+                    "mean_probability": 0.45016648913180224
+                  },
+                  {
+                    "bin": 5,
+                    "count": 175,
+                    "frequency": 0.4742857142857143,
+                    "mean_probability": 0.5520446155424008
+                  },
+                  {
+                    "bin": 6,
+                    "count": 136,
+                    "frequency": 0.49264705882352944,
+                    "mean_probability": 0.6479974323810145
+                  },
+                  {
+                    "bin": 7,
+                    "count": 88,
+                    "frequency": 0.5568181818181818,
+                    "mean_probability": 0.7437706554619807
+                  },
+                  {
+                    "bin": 8,
+                    "count": 82,
+                    "frequency": 0.5365853658536586,
+                    "mean_probability": 0.8461830409592874
+                  },
+                  {
+                    "bin": 9,
+                    "count": 21,
+                    "frequency": 0.7142857142857143,
+                    "mean_probability": 0.9245470036354883
+                  }
+                ],
+                "tn": 9014,
+                "tp": 101
+              }
+            },
+            "v2-paper-gru_dynamics": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.04341897068989056,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.04616693442912947,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.04685698464454617,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.07880550691730588,
+                "ece_10_bins": 0.030012164795220217,
+                "episodes": 1024,
+                "fn": 1041,
+                "fp": 76,
+                "fpr": 0.008360836083608362,
+                "prevalence": 0.1123046875,
+                "recall": 0.09478260869565218,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 7578,
+                    "frequency": 0.0319345473739773,
+                    "mean_probability": 0.02177185864277171
+                  },
+                  {
+                    "bin": 1,
+                    "count": 1105,
+                    "frequency": 0.216289592760181,
+                    "mean_probability": 0.14270046995809696
+                  },
+                  {
+                    "bin": 2,
+                    "count": 509,
+                    "frequency": 0.3300589390962672,
+                    "mean_probability": 0.24415743920395827
+                  },
+                  {
+                    "bin": 3,
+                    "count": 323,
+                    "frequency": 0.4055727554179567,
+                    "mean_probability": 0.3466456407969108
+                  },
+                  {
+                    "bin": 4,
+                    "count": 218,
+                    "frequency": 0.4724770642201835,
+                    "mean_probability": 0.44680631264372767
+                  },
+                  {
+                    "bin": 5,
+                    "count": 153,
+                    "frequency": 0.5032679738562091,
+                    "mean_probability": 0.5474815115315712
+                  },
+                  {
+                    "bin": 6,
+                    "count": 132,
+                    "frequency": 0.4772727272727273,
+                    "mean_probability": 0.6462592799165507
+                  },
+                  {
+                    "bin": 7,
+                    "count": 116,
+                    "frequency": 0.5603448275862069,
+                    "mean_probability": 0.745946058836281
+                  },
+                  {
+                    "bin": 8,
+                    "count": 74,
+                    "frequency": 0.5540540540540541,
+                    "mean_probability": 0.8443631060300791
+                  },
+                  {
+                    "bin": 9,
+                    "count": 32,
+                    "frequency": 0.65625,
+                    "mean_probability": 0.9237086689273808
+                  }
+                ],
+                "tn": 9014,
+                "tp": 109
+              }
+            },
+            "v2-ridge": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0002130664673462679,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0007626206289792492,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.0015423731630580305,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.04339254298351876,
+                "ece_10_bins": 0.03233155268461717,
+                "episodes": 1024,
+                "fn": 455,
+                "fp": 98,
+                "fpr": 0.01078107810781078,
+                "prevalence": 0.1123046875,
+                "recall": 0.6043478260869565,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 8747,
+                    "frequency": 0.021378758431462214,
+                    "mean_probability": 0.006263042709314992
+                  },
+                  {
+                    "bin": 1,
+                    "count": 307,
+                    "frequency": 0.23452768729641693,
+                    "mean_probability": 0.14012846778928187
+                  },
+                  {
+                    "bin": 2,
+                    "count": 178,
+                    "frequency": 0.34269662921348315,
+                    "mean_probability": 0.2447147428940497
+                  },
+                  {
+                    "bin": 3,
+                    "count": 120,
+                    "frequency": 0.5333333333333333,
+                    "mean_probability": 0.3456001494288257
+                  },
+                  {
+                    "bin": 4,
+                    "count": 98,
+                    "frequency": 0.7448979591836735,
+                    "mean_probability": 0.444144907056258
+                  },
+                  {
+                    "bin": 5,
+                    "count": 103,
+                    "frequency": 0.8640776699029126,
+                    "mean_probability": 0.5483992953831532
+                  },
+                  {
+                    "bin": 6,
+                    "count": 91,
+                    "frequency": 0.8681318681318682,
+                    "mean_probability": 0.6575805146667332
+                  },
+                  {
+                    "bin": 7,
+                    "count": 101,
+                    "frequency": 0.8910891089108911,
+                    "mean_probability": 0.7508221563638001
+                  },
+                  {
+                    "bin": 8,
+                    "count": 132,
+                    "frequency": 0.8712121212121212,
+                    "mean_probability": 0.8536408058506291
+                  },
+                  {
+                    "bin": 9,
+                    "count": 363,
+                    "frequency": 0.8815426997245179,
+                    "mean_probability": 0.9704501244144497
+                  }
+                ],
+                "tn": 8992,
+                "tp": 695
+              }
+            },
+            "v2-selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0002130664673462679,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0007626206289792492,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.0015423731630580305,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.04339254298351876,
+                "ece_10_bins": 0.03233155268461717,
+                "episodes": 1024,
+                "fn": 455,
+                "fp": 98,
+                "fpr": 0.01078107810781078,
+                "prevalence": 0.1123046875,
+                "recall": 0.6043478260869565,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 8747,
+                    "frequency": 0.021378758431462214,
+                    "mean_probability": 0.006263042709314992
+                  },
+                  {
+                    "bin": 1,
+                    "count": 307,
+                    "frequency": 0.23452768729641693,
+                    "mean_probability": 0.14012846778928187
+                  },
+                  {
+                    "bin": 2,
+                    "count": 178,
+                    "frequency": 0.34269662921348315,
+                    "mean_probability": 0.2447147428940497
+                  },
+                  {
+                    "bin": 3,
+                    "count": 120,
+                    "frequency": 0.5333333333333333,
+                    "mean_probability": 0.3456001494288257
+                  },
+                  {
+                    "bin": 4,
+                    "count": 98,
+                    "frequency": 0.7448979591836735,
+                    "mean_probability": 0.444144907056258
+                  },
+                  {
+                    "bin": 5,
+                    "count": 103,
+                    "frequency": 0.8640776699029126,
+                    "mean_probability": 0.5483992953831532
+                  },
+                  {
+                    "bin": 6,
+                    "count": 91,
+                    "frequency": 0.8681318681318682,
+                    "mean_probability": 0.6575805146667332
+                  },
+                  {
+                    "bin": 7,
+                    "count": 101,
+                    "frequency": 0.8910891089108911,
+                    "mean_probability": 0.7508221563638001
+                  },
+                  {
+                    "bin": 8,
+                    "count": 132,
+                    "frequency": 0.8712121212121212,
+                    "mean_probability": 0.8536408058506291
+                  },
+                  {
+                    "bin": 9,
+                    "count": 363,
+                    "frequency": 0.8815426997245179,
+                    "mean_probability": 0.9704501244144497
+                  }
+                ],
+                "tn": 8992,
+                "tp": 695
+              }
+            }
+          },
+          "prevalence": 0.1123046875,
+          "primary_prediction": {
+            "h3": {
+              "episodes": 1024,
+              "estimate": -0.00015254101494263094,
+              "interval": [
+                -0.0001622668582841514,
+                -0.0001426791954589931
+              ],
+              "interval_level": 0.99375,
+              "pass": true,
+              "relative_reduction": 0.2000221461971251,
+              "resamples": 10000
+            },
+            "h5": {
+              "episodes": 1024,
+              "estimate": -0.00032143540684842486,
+              "interval": [
+                -0.00034200264221190615,
+                -0.0003004345537752897
+              ],
+              "interval_level": 0.99375,
+              "pass": true,
+              "relative_reduction": 0.20840313780558883,
+              "resamples": 10000
+            }
+          },
+          "rsi_ablation": {},
+          "warning": {
+            "fpr_difference": {
+              "difference": 0.00836083608360836,
+              "interval": [
+                0.005025945777121109,
+                0.012069465149082506
+              ],
+              "interval_level": 0.9875
+            },
+            "miss_rate_reduction": 0.36703296703296706,
+            "pass": true,
+            "recall_difference": {
+              "difference": 0.14521739130434785,
+              "interval": [
+                0.11384606139953596,
+                0.17717500775534145
+              ],
+              "interval_level": 0.9875
+            },
+            "selected_fpr": 0.01914191419141914
+          },
+          "windows": 10240
+        }
+      },
+      "primary_prediction_pass": false,
+      "warning_pass": false
+    },
+    "physical": {
+      "historical_guards": {
+        "h1": {
+          "best_v2_or_paper": 0.00090012739532348,
+          "pass": true,
+          "relative_change": -0.6412287236310921,
+          "selected": 0.00032293985451482544
+        },
+        "h3": {
+          "best_v2_or_paper": 0.0019319922542498113,
+          "pass": true,
+          "relative_change": -0.584454621780861,
+          "selected": 0.0008028304520086849
+        },
+        "h5": {
+          "best_v2_or_paper": 0.0025965996880216837,
+          "pass": true,
+          "relative_change": -0.5533004199166638,
+          "selected": 0.0011598999902838081
+        }
+      },
+      "populations": {
+        "A": {
+          "episodes": 1024,
+          "methods": {
+            "constant_velocity": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.05075370024594576,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.10869497441012754,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.16659983276699677,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.13191405027734465,
+                "ece_10_bins": 0.041780414131925944,
+                "episodes": 1024,
+                "fn": 2843,
+                "fp": 56,
+                "fpr": 0.007936507936507936,
+                "prevalence": 0.3109375,
+                "recall": 0.10709798994974874,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 2997,
+                    "frequency": 0.016349683016349682,
+                    "mean_probability": 0.042518426760350655
+                  },
+                  {
+                    "bin": 1,
+                    "count": 1632,
+                    "frequency": 0.08946078431372549,
+                    "mean_probability": 0.1457015102038732
+                  },
+                  {
+                    "bin": 2,
+                    "count": 1174,
+                    "frequency": 0.22487223168654175,
+                    "mean_probability": 0.2464949918455503
+                  },
+                  {
+                    "bin": 3,
+                    "count": 888,
+                    "frequency": 0.40427927927927926,
+                    "mean_probability": 0.3483901288721514
+                  },
+                  {
+                    "bin": 4,
+                    "count": 758,
+                    "frequency": 0.49076517150395776,
+                    "mean_probability": 0.45040700210895157
+                  },
+                  {
+                    "bin": 5,
+                    "count": 628,
+                    "frequency": 0.5907643312101911,
+                    "mean_probability": 0.5483024489420525
+                  },
+                  {
+                    "bin": 6,
+                    "count": 676,
+                    "frequency": 0.6849112426035503,
+                    "mean_probability": 0.6470528164527674
+                  },
+                  {
+                    "bin": 7,
+                    "count": 526,
+                    "frequency": 0.7186311787072244,
+                    "mean_probability": 0.7519350039090463
+                  },
+                  {
+                    "bin": 8,
+                    "count": 484,
+                    "frequency": 0.7706611570247934,
+                    "mean_probability": 0.8465497363625561
+                  },
+                  {
+                    "bin": 9,
+                    "count": 477,
+                    "frequency": 0.8574423480083857,
+                    "mean_probability": 0.9528436689095462
+                  }
+                ],
+                "tn": 7000,
+                "tp": 341
+              }
+            },
+            "persistence": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.031018391710142625,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.044503817266172516,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.05638714991255256,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.07695382700754407,
+                "ece_10_bins": 0.0384984713360747,
+                "episodes": 1024,
+                "fn": 1112,
+                "fp": 77,
+                "fpr": 0.010912698412698412,
+                "prevalence": 0.3109375,
+                "recall": 0.6507537688442211,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 4803,
+                    "frequency": 0.022485946283572766,
+                    "mean_probability": 0.018255310319962016
+                  },
+                  {
+                    "bin": 1,
+                    "count": 831,
+                    "frequency": 0.13357400722021662,
+                    "mean_probability": 0.14802225204212405
+                  },
+                  {
+                    "bin": 2,
+                    "count": 521,
+                    "frequency": 0.1708253358925144,
+                    "mean_probability": 0.24588992016274908
+                  },
+                  {
+                    "bin": 3,
+                    "count": 409,
+                    "frequency": 0.19559902200489,
+                    "mean_probability": 0.3505667353540331
+                  },
+                  {
+                    "bin": 4,
+                    "count": 371,
+                    "frequency": 0.3018867924528302,
+                    "mean_probability": 0.45083475981004517
+                  },
+                  {
+                    "bin": 5,
+                    "count": 411,
+                    "frequency": 0.36253041362530414,
+                    "mean_probability": 0.5500336195319794
+                  },
+                  {
+                    "bin": 6,
+                    "count": 392,
+                    "frequency": 0.5408163265306123,
+                    "mean_probability": 0.6509926882938031
+                  },
+                  {
+                    "bin": 7,
+                    "count": 433,
+                    "frequency": 0.7297921478060047,
+                    "mean_probability": 0.749686528172366
+                  },
+                  {
+                    "bin": 8,
+                    "count": 582,
+                    "frequency": 0.9020618556701031,
+                    "mean_probability": 0.8544460176703929
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1487,
+                    "frequency": 0.9966375252185609,
+                    "mean_probability": 0.9646480594527379
+                  }
+                ],
+                "tn": 6979,
+                "tp": 2072
+              }
+            },
+            "selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0018365923422704713,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.004101342168974042,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.005934608476579228,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.03495213416785469,
+                "ece_10_bins": 0.01259581527729169,
+                "episodes": 1024,
+                "fn": 499,
+                "fp": 114,
+                "fpr": 0.016156462585034014,
+                "prevalence": 0.3109375,
+                "recall": 0.8432788944723618,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 6170,
+                    "frequency": 0.00713128038897893,
+                    "mean_probability": 0.007369829103238294
+                  },
+                  {
+                    "bin": 1,
+                    "count": 323,
+                    "frequency": 0.13622291021671826,
+                    "mean_probability": 0.14567175406062485
+                  },
+                  {
+                    "bin": 2,
+                    "count": 227,
+                    "frequency": 0.16740088105726872,
+                    "mean_probability": 0.24619229001753534
+                  },
+                  {
+                    "bin": 3,
+                    "count": 176,
+                    "frequency": 0.22727272727272727,
+                    "mean_probability": 0.3491127298114682
+                  },
+                  {
+                    "bin": 4,
+                    "count": 150,
+                    "frequency": 0.36,
+                    "mean_probability": 0.45496054569061734
+                  },
+                  {
+                    "bin": 5,
+                    "count": 153,
+                    "frequency": 0.48366013071895425,
+                    "mean_probability": 0.5526088266651088
+                  },
+                  {
+                    "bin": 6,
+                    "count": 167,
+                    "frequency": 0.8383233532934131,
+                    "mean_probability": 0.6524022159723151
+                  },
+                  {
+                    "bin": 7,
+                    "count": 226,
+                    "frequency": 0.831858407079646,
+                    "mean_probability": 0.7533985594648261
+                  },
+                  {
+                    "bin": 8,
+                    "count": 287,
+                    "frequency": 0.818815331010453,
+                    "mean_probability": 0.8527879603812802
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2361,
+                    "frequency": 0.9855993223210504,
+                    "mean_probability": 0.984835364856522
+                  }
+                ],
+                "tn": 6942,
+                "tp": 2685
+              }
+            },
+            "v2-paper-action_conditioned_jepa": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.006341291969789609,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.015200719204858614,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.023027899199564675,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.10071113173774364,
+                "ece_10_bins": 0.03603720424180322,
+                "episodes": 1024,
+                "fn": 2026,
+                "fp": 72,
+                "fpr": 0.01020408163265306,
+                "prevalence": 0.3109375,
+                "recall": 0.3636934673366834,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 4752,
+                    "frequency": 0.010311447811447811,
+                    "mean_probability": 0.024717656368575647
+                  },
+                  {
+                    "bin": 1,
+                    "count": 942,
+                    "frequency": 0.14331210191082802,
+                    "mean_probability": 0.14536795693434984
+                  },
+                  {
+                    "bin": 2,
+                    "count": 586,
+                    "frequency": 0.4112627986348123,
+                    "mean_probability": 0.24961735399320403
+                  },
+                  {
+                    "bin": 3,
+                    "count": 477,
+                    "frequency": 0.4591194968553459,
+                    "mean_probability": 0.3489429113025762
+                  },
+                  {
+                    "bin": 4,
+                    "count": 491,
+                    "frequency": 0.5112016293279023,
+                    "mean_probability": 0.4516730771852733
+                  },
+                  {
+                    "bin": 5,
+                    "count": 426,
+                    "frequency": 0.5446009389671361,
+                    "mean_probability": 0.5509735152543126
+                  },
+                  {
+                    "bin": 6,
+                    "count": 408,
+                    "frequency": 0.5588235294117647,
+                    "mean_probability": 0.6491407823905735
+                  },
+                  {
+                    "bin": 7,
+                    "count": 472,
+                    "frequency": 0.6758474576271186,
+                    "mean_probability": 0.7507225870852925
+                  },
+                  {
+                    "bin": 8,
+                    "count": 595,
+                    "frequency": 0.7815126050420168,
+                    "mean_probability": 0.853776493459063
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1091,
+                    "frequency": 0.9578368469294225,
+                    "mean_probability": 0.9617019620015214
+                  }
+                ],
+                "tn": 6984,
+                "tp": 1158
+              }
+            },
+            "v2-ridge": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.007037093134213279,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.014028923911546087,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.019333437075229654,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.06261381217934424,
+                "ece_10_bins": 0.020497760379531493,
+                "episodes": 1024,
+                "fn": 1439,
+                "fp": 82,
+                "fpr": 0.011621315192743764,
+                "prevalence": 0.3109375,
+                "recall": 0.5480527638190955,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 5319,
+                    "frequency": 0.012032336905433353,
+                    "mean_probability": 0.016587257199212897
+                  },
+                  {
+                    "bin": 1,
+                    "count": 683,
+                    "frequency": 0.09077598828696926,
+                    "mean_probability": 0.14527811293966386
+                  },
+                  {
+                    "bin": 2,
+                    "count": 409,
+                    "frequency": 0.18581907090464547,
+                    "mean_probability": 0.2473716260223283
+                  },
+                  {
+                    "bin": 3,
+                    "count": 342,
+                    "frequency": 0.23684210526315788,
+                    "mean_probability": 0.35086809119311846
+                  },
+                  {
+                    "bin": 4,
+                    "count": 285,
+                    "frequency": 0.4245614035087719,
+                    "mean_probability": 0.45208945025087516
+                  },
+                  {
+                    "bin": 5,
+                    "count": 318,
+                    "frequency": 0.6037735849056604,
+                    "mean_probability": 0.5511147791061162
+                  },
+                  {
+                    "bin": 6,
+                    "count": 344,
+                    "frequency": 0.7238372093023255,
+                    "mean_probability": 0.6505593872348313
+                  },
+                  {
+                    "bin": 7,
+                    "count": 362,
+                    "frequency": 0.8204419889502762,
+                    "mean_probability": 0.7503482050383491
+                  },
+                  {
+                    "bin": 8,
+                    "count": 532,
+                    "frequency": 0.8477443609022557,
+                    "mean_probability": 0.8545079138068206
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1646,
+                    "frequency": 0.9665856622114216,
+                    "mean_probability": 0.9699282427682268
+                  }
+                ],
+                "tn": 6974,
+                "tp": 1745
+              }
+            },
+            "v2-selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0031387751989825578,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.0066966603184425814,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.009564534369474131,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.041241716539500185,
+                "ece_10_bins": 0.010291481192255819,
+                "episodes": 1024,
+                "fn": 568,
+                "fp": 110,
+                "fpr": 0.015589569160997732,
+                "prevalence": 0.3109375,
+                "recall": 0.821608040201005,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 6015,
+                    "frequency": 0.00997506234413965,
+                    "mean_probability": 0.008602819431511569
+                  },
+                  {
+                    "bin": 1,
+                    "count": 395,
+                    "frequency": 0.09367088607594937,
+                    "mean_probability": 0.1441161412000785
+                  },
+                  {
+                    "bin": 2,
+                    "count": 235,
+                    "frequency": 0.20851063829787234,
+                    "mean_probability": 0.24540576784007453
+                  },
+                  {
+                    "bin": 3,
+                    "count": 223,
+                    "frequency": 0.31390134529147984,
+                    "mean_probability": 0.34659767831631255
+                  },
+                  {
+                    "bin": 4,
+                    "count": 182,
+                    "frequency": 0.3956043956043956,
+                    "mean_probability": 0.4494908483281839
+                  },
+                  {
+                    "bin": 5,
+                    "count": 183,
+                    "frequency": 0.4371584699453552,
+                    "mean_probability": 0.5496563465996214
+                  },
+                  {
+                    "bin": 6,
+                    "count": 187,
+                    "frequency": 0.6737967914438503,
+                    "mean_probability": 0.6461084430784035
+                  },
+                  {
+                    "bin": 7,
+                    "count": 256,
+                    "frequency": 0.7734375,
+                    "mean_probability": 0.7536350177012113
+                  },
+                  {
+                    "bin": 8,
+                    "count": 374,
+                    "frequency": 0.8903743315508021,
+                    "mean_probability": 0.8545135069310693
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2190,
+                    "frequency": 0.9858447488584475,
+                    "mean_probability": 0.9825617981898691
+                  }
+                ],
+                "tn": 6946,
+                "tp": 2616
+              }
+            },
+            "v3-selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0018203784446589211,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.004443941089019177,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.006790751256039585,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.032807578087690345,
+                "ece_10_bins": 0.01036077110823247,
+                "episodes": 1024,
+                "fn": 407,
+                "fp": 107,
+                "fpr": 0.015164399092970522,
+                "prevalence": 0.3109375,
+                "recall": 0.8721733668341709,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 6203,
+                    "frequency": 0.007899403514428503,
+                    "mean_probability": 0.006888136723735918
+                  },
+                  {
+                    "bin": 1,
+                    "count": 302,
+                    "frequency": 0.09933774834437085,
+                    "mean_probability": 0.1448709411283595
+                  },
+                  {
+                    "bin": 2,
+                    "count": 218,
+                    "frequency": 0.18807339449541285,
+                    "mean_probability": 0.247731085882226
+                  },
+                  {
+                    "bin": 3,
+                    "count": 177,
+                    "frequency": 0.1977401129943503,
+                    "mean_probability": 0.34795572541783004
+                  },
+                  {
+                    "bin": 4,
+                    "count": 148,
+                    "frequency": 0.3918918918918919,
+                    "mean_probability": 0.44969840725496474
+                  },
+                  {
+                    "bin": 5,
+                    "count": 147,
+                    "frequency": 0.5034013605442177,
+                    "mean_probability": 0.5521122123903134
+                  },
+                  {
+                    "bin": 6,
+                    "count": 149,
+                    "frequency": 0.7583892617449665,
+                    "mean_probability": 0.6541158302690726
+                  },
+                  {
+                    "bin": 7,
+                    "count": 204,
+                    "frequency": 0.7745098039215687,
+                    "mean_probability": 0.7512331050920071
+                  },
+                  {
+                    "bin": 8,
+                    "count": 279,
+                    "frequency": 0.8673835125448028,
+                    "mean_probability": 0.8543283639257944
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2413,
+                    "frequency": 0.987981765437215,
+                    "mean_probability": 0.9851498507697324
+                  }
+                ],
+                "tn": 6949,
+                "tp": 2777
+              }
+            }
+          },
+          "prevalence": 0.3109375,
+          "primary_prediction": {
+            "h3": {
+              "episodes": 1024,
+              "estimate": -0.002595318149468539,
+              "interval": [
+                -0.0028486891173735043,
+                -0.002359823468244114
+              ],
+              "interval_level": 0.99375,
+              "pass": true,
+              "relative_reduction": 0.3875540980212243,
+              "resamples": 10000
+            },
+            "h5": {
+              "episodes": 1024,
+              "estimate": -0.003629925892894903,
+              "interval": [
+                -0.004015743137229038,
+                -0.003295172001465554
+              ],
+              "interval_level": 0.99375,
+              "pass": true,
+              "relative_reduction": 0.3795193527120422,
+              "resamples": 10000
+            }
+          },
+          "rsi_ablation": {},
+          "warning": {
+            "fpr_difference": {
+              "difference": 0.0005668934240362824,
+              "interval": [
+                -0.002455835275565957,
+                0.0034322519233846464
+              ],
+              "interval_level": 0.9875
+            },
+            "miss_rate_reduction": 0.12147887323943696,
+            "pass": false,
+            "recall_difference": {
+              "difference": 0.021670854271356843,
+              "interval": [
+                0.0076920405936534274,
+                0.03537644671701727
+              ],
+              "interval_level": 0.9875
+            },
+            "selected_fpr": 0.016156462585034014
+          },
+          "windows": 10240
+        },
+        "B": {
+          "episodes": 1024,
+          "methods": {
+            "constant_velocity": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.05156181250531802,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.10952485490461186,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.1685636346381216,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.14556775330117153,
+                "ece_10_bins": 0.04333012991274584,
+                "episodes": 1024,
+                "fn": 3195,
+                "fp": 119,
+                "fpr": 0.01909499358151476,
+                "prevalence": 0.39140625,
+                "recall": 0.2028443113772455,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 2843,
+                    "frequency": 0.049947238832219486,
+                    "mean_probability": 0.04383373868117374
+                  },
+                  {
+                    "bin": 1,
+                    "count": 1518,
+                    "frequency": 0.16666666666666666,
+                    "mean_probability": 0.1456552816048108
+                  },
+                  {
+                    "bin": 2,
+                    "count": 1030,
+                    "frequency": 0.2543689320388349,
+                    "mean_probability": 0.24713826184695478
+                  },
+                  {
+                    "bin": 3,
+                    "count": 769,
+                    "frequency": 0.4564369310793238,
+                    "mean_probability": 0.34536633363587993
+                  },
+                  {
+                    "bin": 4,
+                    "count": 701,
+                    "frequency": 0.5392296718972895,
+                    "mean_probability": 0.4479952970044798
+                  },
+                  {
+                    "bin": 5,
+                    "count": 573,
+                    "frequency": 0.612565445026178,
+                    "mean_probability": 0.5496794494839397
+                  },
+                  {
+                    "bin": 6,
+                    "count": 517,
+                    "frequency": 0.7001934235976789,
+                    "mean_probability": 0.6463353464568217
+                  },
+                  {
+                    "bin": 7,
+                    "count": 690,
+                    "frequency": 0.8217391304347826,
+                    "mean_probability": 0.7644882555993004
+                  },
+                  {
+                    "bin": 8,
+                    "count": 556,
+                    "frequency": 0.8093525179856115,
+                    "mean_probability": 0.8477755043483153
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1043,
+                    "frequency": 0.8552253116011506,
+                    "mean_probability": 0.9634360545925416
+                  }
+                ],
+                "tn": 6113,
+                "tp": 813
+              }
+            },
+            "persistence": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.03178973291636283,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.04551582569197307,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.05742566614762836,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.12112423515322215,
+                "ece_10_bins": 0.06744619574437324,
+                "episodes": 1024,
+                "fn": 1697,
+                "fp": 94,
+                "fpr": 0.015083440308087292,
+                "prevalence": 0.39140625,
+                "recall": 0.5765968063872255,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 4560,
+                    "frequency": 0.0875,
+                    "mean_probability": 0.01889772394707892
+                  },
+                  {
+                    "bin": 1,
+                    "count": 747,
+                    "frequency": 0.2878179384203481,
+                    "mean_probability": 0.14654243006542444
+                  },
+                  {
+                    "bin": 2,
+                    "count": 495,
+                    "frequency": 0.32727272727272727,
+                    "mean_probability": 0.24744490054457974
+                  },
+                  {
+                    "bin": 3,
+                    "count": 475,
+                    "frequency": 0.3452631578947368,
+                    "mean_probability": 0.34952833524942867
+                  },
+                  {
+                    "bin": 4,
+                    "count": 386,
+                    "frequency": 0.38860103626943004,
+                    "mean_probability": 0.45015037452789347
+                  },
+                  {
+                    "bin": 5,
+                    "count": 389,
+                    "frequency": 0.4704370179948586,
+                    "mean_probability": 0.5514116828739801
+                  },
+                  {
+                    "bin": 6,
+                    "count": 388,
+                    "frequency": 0.44072164948453607,
+                    "mean_probability": 0.6478940702471797
+                  },
+                  {
+                    "bin": 7,
+                    "count": 489,
+                    "frequency": 0.6728016359918201,
+                    "mean_probability": 0.7528891839993906
+                  },
+                  {
+                    "bin": 8,
+                    "count": 573,
+                    "frequency": 0.8743455497382199,
+                    "mean_probability": 0.8544076097848698
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1738,
+                    "frequency": 0.997698504027618,
+                    "mean_probability": 0.9720818248703108
+                  }
+                ],
+                "tn": 6138,
+                "tp": 2311
+              }
+            },
+            "selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.003457242675586869,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.006899207332191537,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.009470565681473886,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.07115871048874084,
+                "ece_10_bins": 0.053192996729281405,
+                "episodes": 1024,
+                "fn": 960,
+                "fp": 75,
+                "fpr": 0.012034659820282413,
+                "prevalence": 0.39140625,
+                "recall": 0.7604790419161677,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 5877,
+                    "frequency": 0.06908286540752084,
+                    "mean_probability": 0.007548082805753747
+                  },
+                  {
+                    "bin": 1,
+                    "count": 316,
+                    "frequency": 0.27848101265822783,
+                    "mean_probability": 0.1433988158099277
+                  },
+                  {
+                    "bin": 2,
+                    "count": 199,
+                    "frequency": 0.3316582914572864,
+                    "mean_probability": 0.24879538226103648
+                  },
+                  {
+                    "bin": 3,
+                    "count": 177,
+                    "frequency": 0.3785310734463277,
+                    "mean_probability": 0.351039717488981
+                  },
+                  {
+                    "bin": 4,
+                    "count": 168,
+                    "frequency": 0.35714285714285715,
+                    "mean_probability": 0.4495132249898324
+                  },
+                  {
+                    "bin": 5,
+                    "count": 139,
+                    "frequency": 0.4316546762589928,
+                    "mean_probability": 0.5510843453473557
+                  },
+                  {
+                    "bin": 6,
+                    "count": 157,
+                    "frequency": 0.8598726114649682,
+                    "mean_probability": 0.6524267997540539
+                  },
+                  {
+                    "bin": 7,
+                    "count": 212,
+                    "frequency": 0.910377358490566,
+                    "mean_probability": 0.7488540258909173
+                  },
+                  {
+                    "bin": 8,
+                    "count": 298,
+                    "frequency": 0.9161073825503355,
+                    "mean_probability": 0.8544865777342004
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2697,
+                    "frequency": 0.9862810530218762,
+                    "mean_probability": 0.9869191032377337
+                  }
+                ],
+                "tn": 6157,
+                "tp": 3048
+              }
+            },
+            "v2-paper-action_conditioned_jepa": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.007078174647756441,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.014688349703919811,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.02107887861100153,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.08742281340417724,
+                "ece_10_bins": 0.051518383134218707,
+                "episodes": 1024,
+                "fn": 2193,
+                "fp": 58,
+                "fpr": 0.009306803594351733,
+                "prevalence": 0.39140625,
+                "recall": 0.4528443113772455,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 4355,
+                    "frequency": 0.009414466130884041,
+                    "mean_probability": 0.023530786715356064
+                  },
+                  {
+                    "bin": 1,
+                    "count": 869,
+                    "frequency": 0.08515535097813579,
+                    "mean_probability": 0.14524901992980205
+                  },
+                  {
+                    "bin": 2,
+                    "count": 563,
+                    "frequency": 0.4227353463587922,
+                    "mean_probability": 0.2500837486847499
+                  },
+                  {
+                    "bin": 3,
+                    "count": 482,
+                    "frequency": 0.6203319502074689,
+                    "mean_probability": 0.35119619608689284
+                  },
+                  {
+                    "bin": 4,
+                    "count": 422,
+                    "frequency": 0.6635071090047393,
+                    "mean_probability": 0.45027467112790015
+                  },
+                  {
+                    "bin": 5,
+                    "count": 371,
+                    "frequency": 0.6765498652291105,
+                    "mean_probability": 0.5490187421807619
+                  },
+                  {
+                    "bin": 6,
+                    "count": 410,
+                    "frequency": 0.724390243902439,
+                    "mean_probability": 0.6506344172562479
+                  },
+                  {
+                    "bin": 7,
+                    "count": 440,
+                    "frequency": 0.7613636363636364,
+                    "mean_probability": 0.7514361673872281
+                  },
+                  {
+                    "bin": 8,
+                    "count": 593,
+                    "frequency": 0.8431703204047217,
+                    "mean_probability": 0.8543242077663952
+                  },
+                  {
+                    "bin": 9,
+                    "count": 1735,
+                    "frequency": 0.975792507204611,
+                    "mean_probability": 0.9709489222256895
+                  }
+                ],
+                "tn": 6174,
+                "tp": 1815
+              }
+            },
+            "v2-ridge": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0080155343404134,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.014726066595679299,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.019570033785510074,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.07610588809710006,
+                "ece_10_bins": 0.02815852670521185,
+                "episodes": 1024,
+                "fn": 1757,
+                "fp": 62,
+                "fpr": 0.00994865211810013,
+                "prevalence": 0.39140625,
+                "recall": 0.5616267465069861,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 4799,
+                    "frequency": 0.03479891644092519,
+                    "mean_probability": 0.015628691186280866
+                  },
+                  {
+                    "bin": 1,
+                    "count": 642,
+                    "frequency": 0.20249221183800623,
+                    "mean_probability": 0.14709500346745713
+                  },
+                  {
+                    "bin": 2,
+                    "count": 412,
+                    "frequency": 0.2645631067961165,
+                    "mean_probability": 0.2476768940631367
+                  },
+                  {
+                    "bin": 3,
+                    "count": 322,
+                    "frequency": 0.30434782608695654,
+                    "mean_probability": 0.3517256148511665
+                  },
+                  {
+                    "bin": 4,
+                    "count": 283,
+                    "frequency": 0.3710247349823322,
+                    "mean_probability": 0.4519335597125121
+                  },
+                  {
+                    "bin": 5,
+                    "count": 328,
+                    "frequency": 0.5853658536585366,
+                    "mean_probability": 0.5496512912206498
+                  },
+                  {
+                    "bin": 6,
+                    "count": 338,
+                    "frequency": 0.7869822485207101,
+                    "mean_probability": 0.6522238502948973
+                  },
+                  {
+                    "bin": 7,
+                    "count": 389,
+                    "frequency": 0.8406169665809768,
+                    "mean_probability": 0.7526143169848573
+                  },
+                  {
+                    "bin": 8,
+                    "count": 586,
+                    "frequency": 0.8822525597269625,
+                    "mean_probability": 0.8511558019542963
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2141,
+                    "frequency": 0.9794488556749182,
+                    "mean_probability": 0.9766688538831807
+                  }
+                ],
+                "tn": 6170,
+                "tp": 2251
+              }
+            },
+            "v2-selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0045894520020638655,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.009048406881470327,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.01248443614564394,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.07077399789061087,
+                "ece_10_bins": 0.047474208779215314,
+                "episodes": 1024,
+                "fn": 878,
+                "fp": 80,
+                "fpr": 0.012836970474967908,
+                "prevalence": 0.39140625,
+                "recall": 0.780938123752495,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 5561,
+                    "frequency": 0.05952166876461068,
+                    "mean_probability": 0.009098190253689912
+                  },
+                  {
+                    "bin": 1,
+                    "count": 410,
+                    "frequency": 0.28780487804878047,
+                    "mean_probability": 0.14854393274054192
+                  },
+                  {
+                    "bin": 2,
+                    "count": 236,
+                    "frequency": 0.2754237288135593,
+                    "mean_probability": 0.2470814655905083
+                  },
+                  {
+                    "bin": 3,
+                    "count": 183,
+                    "frequency": 0.30601092896174864,
+                    "mean_probability": 0.3496466010178756
+                  },
+                  {
+                    "bin": 4,
+                    "count": 169,
+                    "frequency": 0.40236686390532544,
+                    "mean_probability": 0.44658929855786017
+                  },
+                  {
+                    "bin": 5,
+                    "count": 196,
+                    "frequency": 0.3877551020408163,
+                    "mean_probability": 0.551431873958161
+                  },
+                  {
+                    "bin": 6,
+                    "count": 204,
+                    "frequency": 0.5147058823529411,
+                    "mean_probability": 0.6497841679792057
+                  },
+                  {
+                    "bin": 7,
+                    "count": 249,
+                    "frequency": 0.8674698795180723,
+                    "mean_probability": 0.7567192294918925
+                  },
+                  {
+                    "bin": 8,
+                    "count": 395,
+                    "frequency": 0.9215189873417722,
+                    "mean_probability": 0.8535903913003106
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2637,
+                    "frequency": 0.9893818733409178,
+                    "mean_probability": 0.9846640394751941
+                  }
+                ],
+                "tn": 6152,
+                "tp": 3130
+              }
+            },
+            "v3-selected": {
+              "prediction": {
+                "h1": {
+                  "episode_macro_mae": 0.0034392520883738346,
+                  "episodes": 1024
+                },
+                "h3": {
+                  "episode_macro_mae": 0.007244891666420017,
+                  "episodes": 1024
+                },
+                "h5": {
+                  "episode_macro_mae": 0.010392966728295506,
+                  "episodes": 1024
+                }
+              },
+              "warning": {
+                "brier": 0.06972670957407381,
+                "ece_10_bins": 0.052012036778278176,
+                "episodes": 1024,
+                "fn": 863,
+                "fp": 89,
+                "fpr": 0.014281129653401798,
+                "prevalence": 0.39140625,
+                "recall": 0.7846806387225549,
+                "reliability_bins": [
+                  {
+                    "bin": 0,
+                    "count": 5860,
+                    "frequency": 0.06467576791808874,
+                    "mean_probability": 0.0073164443892200105
+                  },
+                  {
+                    "bin": 1,
+                    "count": 307,
+                    "frequency": 0.31921824104234525,
+                    "mean_probability": 0.14441459148302718
+                  },
+                  {
+                    "bin": 2,
+                    "count": 215,
+                    "frequency": 0.3302325581395349,
+                    "mean_probability": 0.2478579166579928
+                  },
+                  {
+                    "bin": 3,
+                    "count": 165,
+                    "frequency": 0.3575757575757576,
+                    "mean_probability": 0.3504128816030769
+                  },
+                  {
+                    "bin": 4,
+                    "count": 156,
+                    "frequency": 0.38461538461538464,
+                    "mean_probability": 0.44941565007287393
+                  },
+                  {
+                    "bin": 5,
+                    "count": 129,
+                    "frequency": 0.3488372093023256,
+                    "mean_probability": 0.5514028945732256
+                  },
+                  {
+                    "bin": 6,
+                    "count": 152,
+                    "frequency": 0.8552631578947368,
+                    "mean_probability": 0.6515371769879702
+                  },
+                  {
+                    "bin": 7,
+                    "count": 230,
+                    "frequency": 0.9,
+                    "mean_probability": 0.7509046896367408
+                  },
+                  {
+                    "bin": 8,
+                    "count": 267,
+                    "frequency": 0.9063670411985019,
+                    "mean_probability": 0.8558049737522566
+                  },
+                  {
+                    "bin": 9,
+                    "count": 2759,
+                    "frequency": 0.9847770931496919,
+                    "mean_probability": 0.9880109896922157
+                  }
+                ],
+                "tn": 6143,
+                "tp": 3145
+              }
+            }
+          },
+          "prevalence": 0.39140625,
+          "primary_prediction": {
+            "h3": {
+              "episodes": 1024,
+              "estimate": -0.002149199549278791,
+              "interval": [
+                -0.00244345126898188,
+                -0.0018961419240977099
+              ],
+              "interval_level": 0.99375,
+              "pass": true,
+              "relative_reduction": 0.23752242548685587,
+              "resamples": 10000
+            },
+            "h5": {
+              "episodes": 1024,
+              "estimate": -0.003013870464170054,
+              "interval": [
+                -0.0034427666834094418,
+                -0.002623850628129932
+              ],
+              "interval_level": 0.99375,
+              "pass": true,
+              "relative_reduction": 0.24141021901270654,
+              "resamples": 10000
+            }
+          },
+          "rsi_ablation": {},
+          "warning": {
+            "fpr_difference": {
+              "difference": -0.0008023106546854956,
+              "interval": [
+                -0.003173353531628612,
+                0.0017002054362331741
+              ],
+              "interval_level": 0.9875
+            },
+            "miss_rate_reduction": -0.09339407744874739,
+            "pass": false,
+            "recall_difference": {
+              "difference": -0.020459081836327386,
+              "interval": [
+                -0.030804129462364167,
+                -0.010192366804252234
+              ],
+              "interval_level": 0.9875
+            },
+            "selected_fpr": 0.012034659820282413
+          },
+          "windows": 10240
+        }
+      },
+      "primary_prediction_pass": true,
+      "warning_pass": false
+    }
+  },
+  "evidence_class": "prospective locally designed software benchmark; paper-population replication plus a novel-mechanism holdout within the same researcher-designed simulator",
+  "final_artifacts": [
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/ferrumos/A_h3.npz",
+      "sha256": "5090858e50052031996906269b9fcac0cfa54e0ba44c855b9d73d08eb4d9129c"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/ferrumos/B_h3.npz",
+      "sha256": "6243665691dc0e0690305a10ad639c7361e98b404493f74ee4d5d82f6b84da42"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/ferrumos/evidence.npz",
+      "sha256": "ccce840108ee1bc39bc1b3041b359dbe4c1fd8104c516ffc48dbc7da1dd7b07e"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/ferrumos/historical_h3.npz",
+      "sha256": "aecd9d7697ce59ed9017b9c4bf5e4a505b7bfa1e7ce0301c3e39c5fcdb52095b"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/physical/A_h3.npz",
+      "sha256": "41d9685f7c9f484fac5084ca3642f4f88de4e89fe684b26dfaee2f57c8efce1e"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/physical/B_h3.npz",
+      "sha256": "4cbf2ea1468453ee7fcc38278eae9a2c82f2790ede897fa24cb71152f51c5f08"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/physical/evidence.npz",
+      "sha256": "7c478478ffd444029a991f127eeb6326b8dce53b6c9c48e2fc679a67edf62151"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/physical/historical_h3.npz",
+      "sha256": "ad8c6f51d0bbe3c75c890bdcc2721052b1d53a35afd83e62a6b8578585b3a749"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/ferrumos/historical_exclusions.json",
+      "sha256": "2321c969d16ae644e774e42fd9e36904ed6af829d44232d48d8ca5e54dc58ce4"
+    },
+    {
+      "path": "docs/research/artifacts/incident-dynamics-v4/final/physical/historical_exclusions.json",
+      "sha256": "8c1922dea96a306228145b3294056a930314725b5b7887fdcc80f50805f718b9"
+    }
+  ],
+  "limitations": [
+    "Prediction and warning gains are measured in a researcher-designed simulator; they are not real incident telemetry, controller benefit, physical safety, or permission.",
+    "Population A uses the v2 final generator; the v3 development curriculum includes regime-change mechanisms, so A is not a timing holdout for v3 models.",
+    "Population B holds out mechanism families and their motivating sources, not the simulator, labels or analysis, which remain local.",
+    "Intervals condition on the fixed selected checkpoints; retraining variability is reported separately through seed members.",
+    "Warning thresholds target 1 percent calibration FPR; shifted-population FPR is observed, not guaranteed.",
+    "v4 follows a failed v3 primary rule; its populations are fresh, but its design was informed by v3 results, so it is a registered successor rather than an independent confirmation of v3."
+  ],
+  "open_event": {
+    "path": "docs/research/artifacts/incident-dynamics-v4/final/open_event.json",
+    "sha256": "065c6947dd8578b557860a747bd478acbd97c5edfdc975e4e97d5856aaba5843"
+  },
+  "primary_prediction_objective_pass": false,
+  "promotion_eligible": false,
+  "protected_unchanged": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "secondary_warning_objective_pass": false,
+  "selection": {
+    "path": "docs/research/incident_dynamics_selection_v4.json",
+    "sha256": "498963bc1b5cf652e4ed3ecc4eb435709006984ade3a33431d6914cfd575b4fc"
+  },
+  "study_id": "incident-dynamics-v4"
+}

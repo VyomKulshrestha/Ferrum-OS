@@ -1,0 +1,12 @@
+{
+  "opened_at": "2026-10-18T21:58:18.205448+00:00",
+  "registration_commit": "4b66f7cd55b04c1955bee35381797f7e006daef0",
+  "seeds": {
+    "A": 391024,
+    "B": 391025
+  },
+  "selection": {
+    "path": "docs/research/incident_dynamics_selection_v4.json",
+    "sha256": "498963bc1b5cf652e4ed3ecc4eb435709006984ade3a33431d6914cfd575b4fc"
+  }
+}
