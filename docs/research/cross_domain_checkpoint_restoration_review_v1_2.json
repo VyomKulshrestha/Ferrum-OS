@@ -1,0 +1,345 @@
+{
+  "schema": "historical-checkpoint-restoration-review-v1.2",
+  "scope": "Restoration only; no final scoring, reselection or deployment. Checkpoints admitted only on byte identity to original selection.",
+  "accepted_thread16": 9,
+  "rejected_thread4": 7,
+  "interrupted_attempt": "The four-thread physical GRU run was stopped during seed 43 after seed 17 failed byte identity; no partially trained checkpoint was admitted.",
+  "attempts": [
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 402608,
+        "path": "target/incident-dynamics-v1/replication/ferrumos/threads-4/direct_mlp-seed-101.pt",
+        "sha256": "c6423e0b7160750f62fd0831375a9c2e0cedc588f322f75bd1ad23b0dfdd10b7"
+      },
+      "domain": "ferrumos",
+      "expected_checkpoint": {
+        "bytes": 402608,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-101.pt",
+        "sha256": "351d4a4624ab9fddbb66a9dd4baa1f3e122cf0189b6be6ca245c1efa1569426a"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.5182228004266132,
+      "method": "direct_mlp",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 101,
+      "threads": 4
+    },
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 402600,
+        "path": "target/incident-dynamics-v1/replication/ferrumos/threads-4/direct_mlp-seed-17.pt",
+        "sha256": "3c29e360da3bc7cd1dc8c5beb528e03a3ec088a0511b4ec469a602f181506397"
+      },
+      "domain": "ferrumos",
+      "expected_checkpoint": {
+        "bytes": 402600,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-17.pt",
+        "sha256": "fe68a5fb3e9a58a2389e3710e1f986bbf6a5398e2013b29070d821ed84dac556"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.108566861997891,
+      "method": "direct_mlp",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 17,
+      "threads": 4
+    },
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 402600,
+        "path": "target/incident-dynamics-v1/replication/ferrumos/threads-4/direct_mlp-seed-43.pt",
+        "sha256": "6916132a22829e1601ae03f4233e17409a0fa3002d7ebe833f1b5ad8105c7604"
+      },
+      "domain": "ferrumos",
+      "expected_checkpoint": {
+        "bytes": 402600,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-43.pt",
+        "sha256": "ab12d97fa4a7551157a514b5c76506163d8488661082ac2bfb65e21cfae57eda"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.1309797718339567,
+      "method": "direct_mlp",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 43,
+      "threads": 4
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 402608,
+        "path": "target/incident-dynamics-v1/replication/ferrumos/threads-16/direct_mlp-seed-101.pt",
+        "sha256": "351d4a4624ab9fddbb66a9dd4baa1f3e122cf0189b6be6ca245c1efa1569426a"
+      },
+      "domain": "ferrumos",
+      "expected_checkpoint": {
+        "bytes": 402608,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-101.pt",
+        "sha256": "351d4a4624ab9fddbb66a9dd4baa1f3e122cf0189b6be6ca245c1efa1569426a"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "direct_mlp",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 101,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 402600,
+        "path": "target/incident-dynamics-v1/replication/ferrumos/threads-16/direct_mlp-seed-17.pt",
+        "sha256": "fe68a5fb3e9a58a2389e3710e1f986bbf6a5398e2013b29070d821ed84dac556"
+      },
+      "domain": "ferrumos",
+      "expected_checkpoint": {
+        "bytes": 402600,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-17.pt",
+        "sha256": "fe68a5fb3e9a58a2389e3710e1f986bbf6a5398e2013b29070d821ed84dac556"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "direct_mlp",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 17,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 402600,
+        "path": "target/incident-dynamics-v1/replication/ferrumos/threads-16/direct_mlp-seed-43.pt",
+        "sha256": "ab12d97fa4a7551157a514b5c76506163d8488661082ac2bfb65e21cfae57eda"
+      },
+      "domain": "ferrumos",
+      "expected_checkpoint": {
+        "bytes": 402600,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-43.pt",
+        "sha256": "ab12d97fa4a7551157a514b5c76506163d8488661082ac2bfb65e21cfae57eda"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "direct_mlp",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 43,
+      "threads": 16
+    },
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 403120,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-4/direct_mlp-seed-101.pt",
+        "sha256": "59115e54422ba583ae3f6ebb1f9e13d9e10c76cd7b0504e28f1da65bf4b3fff9"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 403120,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-101.pt",
+        "sha256": "93652f14b267acd6d04cb11ed5096b7e7d8e713649a58cba696879f56858701d"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.3770517886524467,
+      "method": "direct_mlp",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 101,
+      "threads": 4
+    },
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 403112,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-4/direct_mlp-seed-17.pt",
+        "sha256": "834deddb4e9040af156a63061f8e064f8ebfa0b79a4e1e2f0a633e18d6954af4"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 403112,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-17.pt",
+        "sha256": "fc7c8cfc2f24ef5e8464ca8e1b218e8f0f385bf0792a73e0ba6bee221fad95a6"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.24392240013874744,
+      "method": "direct_mlp",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 17,
+      "threads": 4
+    },
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 403112,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-4/direct_mlp-seed-43.pt",
+        "sha256": "d71b5d43cf0b5eb199bcaf145804b032ce207cbbe5b46b0b6dae58be7c6b0a7e"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 403112,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-43.pt",
+        "sha256": "6c528ed13fff2918402162cf32ebd29f6b4fce0067f9ece84f3e0b45c238e89e"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.34313953023561305,
+      "method": "direct_mlp",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 43,
+      "threads": 4
+    },
+    {
+      "byte_identical": false,
+      "checkpoint": {
+        "bytes": 402826,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-4/gru_dynamics-seed-17.pt",
+        "sha256": "d4a43f808b1f93447b29c8df171c22a299b158fb6693ba70ac01c13b891b99f4"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 402826,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-17.pt",
+        "sha256": "759a2d1c90216fa9f2bf7f9162d678710e29a49e9db8a6925b69ac59489b31f3"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0.31732925092670294,
+      "method": "gru_dynamics",
+      "metrics_identical": false,
+      "promotion_eligible": false,
+      "seed": 17,
+      "threads": 4
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 403120,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-16/direct_mlp-seed-101.pt",
+        "sha256": "93652f14b267acd6d04cb11ed5096b7e7d8e713649a58cba696879f56858701d"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 403120,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-101.pt",
+        "sha256": "93652f14b267acd6d04cb11ed5096b7e7d8e713649a58cba696879f56858701d"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "direct_mlp",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 101,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 403112,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-16/direct_mlp-seed-17.pt",
+        "sha256": "fc7c8cfc2f24ef5e8464ca8e1b218e8f0f385bf0792a73e0ba6bee221fad95a6"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 403112,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-17.pt",
+        "sha256": "fc7c8cfc2f24ef5e8464ca8e1b218e8f0f385bf0792a73e0ba6bee221fad95a6"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "direct_mlp",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 17,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 403112,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-16/direct_mlp-seed-43.pt",
+        "sha256": "6c528ed13fff2918402162cf32ebd29f6b4fce0067f9ece84f3e0b45c238e89e"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 403112,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-43.pt",
+        "sha256": "6c528ed13fff2918402162cf32ebd29f6b4fce0067f9ece84f3e0b45c238e89e"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "direct_mlp",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 43,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 402836,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-16/gru_dynamics-seed-101.pt",
+        "sha256": "936039506ce23967d6aeee10b63d87c65ea53cebc50bb732fb9309ac6da642c2"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 402836,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-101.pt",
+        "sha256": "936039506ce23967d6aeee10b63d87c65ea53cebc50bb732fb9309ac6da642c2"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "gru_dynamics",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 101,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 402826,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-16/gru_dynamics-seed-17.pt",
+        "sha256": "759a2d1c90216fa9f2bf7f9162d678710e29a49e9db8a6925b69ac59489b31f3"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 402826,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-17.pt",
+        "sha256": "759a2d1c90216fa9f2bf7f9162d678710e29a49e9db8a6925b69ac59489b31f3"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "gru_dynamics",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 17,
+      "threads": 16
+    },
+    {
+      "byte_identical": true,
+      "checkpoint": {
+        "bytes": 402826,
+        "path": "target/incident-dynamics-v1/replication/physical/threads-16/gru_dynamics-seed-43.pt",
+        "sha256": "3919d5cd5a1ae557dd1184a2429a69db5897c24981a561303291359552f507f3"
+      },
+      "domain": "physical",
+      "expected_checkpoint": {
+        "bytes": 402826,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-43.pt",
+        "sha256": "3919d5cd5a1ae557dd1184a2429a69db5897c24981a561303291359552f507f3"
+      },
+      "final_access_attempted": false,
+      "max_trace_nll_difference": 0,
+      "method": "gru_dynamics",
+      "metrics_identical": true,
+      "promotion_eligible": false,
+      "seed": 43,
+      "threads": 16
+    }
+  ]
+}

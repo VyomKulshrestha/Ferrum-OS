@@ -1,0 +1,24 @@
+{
+  "all_checks_pass": true,
+  "archive_manifest": {
+    "path": "docs/research/cross_domain_inference_archive_v1_2.json",
+    "sha256": "15b5d79e7a81336273f748bd88767a71058f8fc44beac480c95b5c587d663b97"
+  },
+  "checks": {
+    "all_18_original_checkpoint_bytes_match": true,
+    "attribution_diagnostics_exact": true,
+    "ferrumos_common_episode_record_exact": true,
+    "ferrumos_original_domain_record_exact": true,
+    "original_base_dataset_bytes_match": true,
+    "physical_common_episode_record_exact": true,
+    "physical_original_domain_record_exact": true,
+    "protected_deployed_bytes_unchanged": true
+  },
+  "promotion_eligible": false,
+  "scope": "Exact historical inference and sensitivity recomputation; same already-opened deterministic rows, no new final seed or result opening, no training, no simulator or QEMU execution.",
+  "torch_cpu_threads": 16,
+  "verifier": {
+    "path": "scripts/verify_cross_domain_archived_inference_v1_2.py",
+    "sha256": "cdad6259f7437d3ad83047829d4c5f777f00eb9d5f8e505d9ba7f90002880cd5"
+  }
+}

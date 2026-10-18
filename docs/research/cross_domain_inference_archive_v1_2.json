@@ -1,0 +1,291 @@
+{
+  "architecture_protocol": {
+    "path": "docs/research/cross_domain_world_model_improvement_protocol_v1.json",
+    "sha256": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b"
+  },
+  "architecture_result": {
+    "path": "docs/research/cross_domain_world_model_architecture_result_v1.json",
+    "sha256": "08c8c3ed38a8d835b8e4a0880501346309bd0200b019dbfa9fbdfd6d2ce2346e"
+  },
+  "architecture_selection": {
+    "path": "docs/research/cross_domain_world_model_selection_v1.json",
+    "sha256": "d9b97fdd17045f6e1747907fc68f4098f182c302b95d04103f3fc24b625c38b5"
+  },
+  "base_dataset": {
+    "archived": {
+      "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos-base.jsonl.gz",
+      "sha256": "4306723470278d1b00c81441e015e6dce918705930ca64caf0025e317149f28b"
+    },
+    "original": {
+      "availability": "local reproduction input; public lineage is identified by DOI 10.5281/zenodo.21829193",
+      "path": "target/world-model-v3-work/world_model_dataset_release_repaired2.jsonl",
+      "rows": 13697,
+      "sha256": "ae7498c7d93b4e35f8bf0a9ac595ca2bacc1ec694b1806c47a33741d911d491f"
+    }
+  },
+  "checkpoints": [
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/action_conditioned_jepa-seed-17.pt",
+        "sha256": "f066fb2282c0c66127c284447d57a73f32560f36084fc85e0323ce18b7ad57bd"
+      },
+      "domain": "ferrumos",
+      "method": "action_conditioned_jepa",
+      "original": {
+        "bytes": 417586,
+        "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-17.pt",
+        "sha256": "f066fb2282c0c66127c284447d57a73f32560f36084fc85e0323ce18b7ad57bd"
+      },
+      "seed": 17
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/action_conditioned_jepa-seed-43.pt",
+        "sha256": "7efcaa7c5733833cc920813ae6c79e2025de13f79cea1e3d401193b5c5327537"
+      },
+      "domain": "ferrumos",
+      "method": "action_conditioned_jepa",
+      "original": {
+        "bytes": 417586,
+        "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-43.pt",
+        "sha256": "7efcaa7c5733833cc920813ae6c79e2025de13f79cea1e3d401193b5c5327537"
+      },
+      "seed": 43
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/action_conditioned_jepa-seed-101.pt",
+        "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+      },
+      "domain": "ferrumos",
+      "method": "action_conditioned_jepa",
+      "original": {
+        "bytes": 417602,
+        "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-101.pt",
+        "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+      },
+      "seed": 101
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/direct_mlp-seed-17.pt",
+        "sha256": "fe68a5fb3e9a58a2389e3710e1f986bbf6a5398e2013b29070d821ed84dac556"
+      },
+      "domain": "ferrumos",
+      "method": "direct_mlp",
+      "original": {
+        "bytes": 402600,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-17.pt",
+        "sha256": "fe68a5fb3e9a58a2389e3710e1f986bbf6a5398e2013b29070d821ed84dac556"
+      },
+      "seed": 17
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/direct_mlp-seed-43.pt",
+        "sha256": "ab12d97fa4a7551157a514b5c76506163d8488661082ac2bfb65e21cfae57eda"
+      },
+      "domain": "ferrumos",
+      "method": "direct_mlp",
+      "original": {
+        "bytes": 402600,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-43.pt",
+        "sha256": "ab12d97fa4a7551157a514b5c76506163d8488661082ac2bfb65e21cfae57eda"
+      },
+      "seed": 43
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/direct_mlp-seed-101.pt",
+        "sha256": "351d4a4624ab9fddbb66a9dd4baa1f3e122cf0189b6be6ca245c1efa1569426a"
+      },
+      "domain": "ferrumos",
+      "method": "direct_mlp",
+      "original": {
+        "bytes": 402608,
+        "path": "target/cross-domain-world-model-v1/ferrumos/direct_mlp-seed-101.pt",
+        "sha256": "351d4a4624ab9fddbb66a9dd4baa1f3e122cf0189b6be6ca245c1efa1569426a"
+      },
+      "seed": 101
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/gru_dynamics-seed-17.pt",
+        "sha256": "ef1945a7b2f4dbf4e3027deb8835d84d7a0d6549a7223d72e1dc43e77d7cbc2e"
+      },
+      "domain": "ferrumos",
+      "method": "gru_dynamics",
+      "original": {
+        "bytes": 400266,
+        "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-17.pt",
+        "sha256": "ef1945a7b2f4dbf4e3027deb8835d84d7a0d6549a7223d72e1dc43e77d7cbc2e"
+      },
+      "seed": 17
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/gru_dynamics-seed-43.pt",
+        "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+      },
+      "domain": "ferrumos",
+      "method": "gru_dynamics",
+      "original": {
+        "bytes": 400266,
+        "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-43.pt",
+        "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+      },
+      "seed": 43
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/ferrumos/gru_dynamics-seed-101.pt",
+        "sha256": "bffb75d4fd7501f664e7b673478e12b9855283a731a3ff88ed68d12a26b8faab"
+      },
+      "domain": "ferrumos",
+      "method": "gru_dynamics",
+      "original": {
+        "bytes": 400276,
+        "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-101.pt",
+        "sha256": "bffb75d4fd7501f664e7b673478e12b9855283a731a3ff88ed68d12a26b8faab"
+      },
+      "seed": 101
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/action_conditioned_jepa-seed-17.pt",
+        "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+      },
+      "domain": "physical",
+      "method": "action_conditioned_jepa",
+      "original": {
+        "bytes": 407154,
+        "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-17.pt",
+        "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+      },
+      "seed": 17
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/action_conditioned_jepa-seed-43.pt",
+        "sha256": "1caa6621220b329dcd5aadcc6ee40c2a9435857a85172bf5642c828fae2a329c"
+      },
+      "domain": "physical",
+      "method": "action_conditioned_jepa",
+      "original": {
+        "bytes": 407154,
+        "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-43.pt",
+        "sha256": "1caa6621220b329dcd5aadcc6ee40c2a9435857a85172bf5642c828fae2a329c"
+      },
+      "seed": 43
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/action_conditioned_jepa-seed-101.pt",
+        "sha256": "fb5d34effb7e66ac73531b5cc49f3771c32128cfda9fc70690c6ead6a4c70baa"
+      },
+      "domain": "physical",
+      "method": "action_conditioned_jepa",
+      "original": {
+        "bytes": 407170,
+        "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-101.pt",
+        "sha256": "fb5d34effb7e66ac73531b5cc49f3771c32128cfda9fc70690c6ead6a4c70baa"
+      },
+      "seed": 101
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/direct_mlp-seed-17.pt",
+        "sha256": "fc7c8cfc2f24ef5e8464ca8e1b218e8f0f385bf0792a73e0ba6bee221fad95a6"
+      },
+      "domain": "physical",
+      "method": "direct_mlp",
+      "original": {
+        "bytes": 403112,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-17.pt",
+        "sha256": "fc7c8cfc2f24ef5e8464ca8e1b218e8f0f385bf0792a73e0ba6bee221fad95a6"
+      },
+      "seed": 17
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/direct_mlp-seed-43.pt",
+        "sha256": "6c528ed13fff2918402162cf32ebd29f6b4fce0067f9ece84f3e0b45c238e89e"
+      },
+      "domain": "physical",
+      "method": "direct_mlp",
+      "original": {
+        "bytes": 403112,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-43.pt",
+        "sha256": "6c528ed13fff2918402162cf32ebd29f6b4fce0067f9ece84f3e0b45c238e89e"
+      },
+      "seed": 43
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/direct_mlp-seed-101.pt",
+        "sha256": "93652f14b267acd6d04cb11ed5096b7e7d8e713649a58cba696879f56858701d"
+      },
+      "domain": "physical",
+      "method": "direct_mlp",
+      "original": {
+        "bytes": 403120,
+        "path": "target/cross-domain-world-model-v1/physical/direct_mlp-seed-101.pt",
+        "sha256": "93652f14b267acd6d04cb11ed5096b7e7d8e713649a58cba696879f56858701d"
+      },
+      "seed": 101
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/gru_dynamics-seed-17.pt",
+        "sha256": "759a2d1c90216fa9f2bf7f9162d678710e29a49e9db8a6925b69ac59489b31f3"
+      },
+      "domain": "physical",
+      "method": "gru_dynamics",
+      "original": {
+        "bytes": 402826,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-17.pt",
+        "sha256": "759a2d1c90216fa9f2bf7f9162d678710e29a49e9db8a6925b69ac59489b31f3"
+      },
+      "seed": 17
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/gru_dynamics-seed-43.pt",
+        "sha256": "3919d5cd5a1ae557dd1184a2429a69db5897c24981a561303291359552f507f3"
+      },
+      "domain": "physical",
+      "method": "gru_dynamics",
+      "original": {
+        "bytes": 402826,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-43.pt",
+        "sha256": "3919d5cd5a1ae557dd1184a2429a69db5897c24981a561303291359552f507f3"
+      },
+      "seed": 43
+    },
+    {
+      "archived": {
+        "path": "docs/research/artifacts/cross-domain-inference-v1.2/physical/gru_dynamics-seed-101.pt",
+        "sha256": "936039506ce23967d6aeee10b63d87c65ea53cebc50bb732fb9309ac6da642c2"
+      },
+      "domain": "physical",
+      "method": "gru_dynamics",
+      "original": {
+        "bytes": 402836,
+        "path": "target/cross-domain-world-model-v1/physical/gru_dynamics-seed-101.pt",
+        "sha256": "936039506ce23967d6aeee10b63d87c65ea53cebc50bb732fb9309ac6da642c2"
+      },
+      "seed": 101
+    }
+  ],
+  "posthoc_protocol": {
+    "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_protocol_v1.json",
+    "sha256": "5a66543c2693650502e8692f70c1e73999eb8cef9dae3d92db08a3c8971e137e"
+  },
+  "posthoc_result": {
+    "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+    "sha256": "cbef9025b01570f01c8cee4f84b90a7a87ba31cf0cf428a5eb033c85749f23c0"
+  },
+  "promotion_eligible": false,
+  "restoration": "All 18 checkpoint bytes match the original selection. Missing checkpoints were restored on development data with 16 Torch CPU threads, not reselected. Four-thread attempts were non-identical and are not used.",
+  "schema": "cross-domain-inference-archive-v1.2"
+}
