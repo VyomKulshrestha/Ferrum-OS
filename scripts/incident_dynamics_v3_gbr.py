@@ -270,3 +270,37 @@ def load_any(path: Path):
     cls = GBRDirect if payload["mean_kind"] == "direct" else GBRModel
     mean = cls(payload["domain"], payload["history"], [lgb.Booster(model_str=t) for t in payload["mean_boosters"]], payload["mean_params"])
     return ScaledGBR(mean, [lgb.Booster(model_str=t) for t in payload["scale_boosters"]], payload["scale_params"])
+
+
+# ---------------------------------------------------------------- compact archive encoding
+TRAINING_ONLY_FIELDS = ("leaf_weight=", "leaf_count=", "internal_value=", "internal_weight=", "internal_count=",
+                        "split_gain=", "tree_sizes=")
+
+
+def _prediction_only(model_text):
+    """Drop training statistics and the byte-offset index; LightGBM then parses trees sequentially.
+    Prediction uses only split features, thresholds, decision types, children and leaf values."""
+    return "\n".join(line for line in model_text.split("\n") if not line.startswith(TRAINING_ONLY_FIELDS))
+
+
+def export_compact(source: Path, destination: Path) -> str:
+    import lzma
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    for key in ("boosters", "mean_boosters", "scale_boosters"):
+        if key in payload:
+            payload[key] = [_prediction_only(text) for text in payload[key]]
+    destination.write_bytes(lzma.compress(json.dumps(payload, sort_keys=True).encode("utf-8"), preset=9 | lzma.PRESET_EXTREME))
+    return hashlib.sha256(destination.read_bytes()).hexdigest()
+
+
+def load_path(path: Path):
+    """Load a .gbr (JSON text) or compact .gbr.xz archive."""
+    if path.suffix == ".xz":
+        import lzma
+        import tempfile
+        text = lzma.decompress(path.read_bytes()).decode("utf-8")
+        with tempfile.TemporaryDirectory() as folder:
+            temporary = Path(folder) / "model.gbr"
+            temporary.write_text(text, encoding="utf-8")
+            return load_any(temporary)
+    return load_any(path)

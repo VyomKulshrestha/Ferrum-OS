@@ -103,8 +103,8 @@ class Pipeline:
             path = ROOT / item["checkpoint"]["path"]
             if legacy.sha256(path) != item["checkpoint"]["sha256"]:
                 raise AssertionError(f"checkpoint digest mismatch: {path}")
-            if path.suffix == ".gbr":
-                self.members.append((item["group"], "gbr", gbr.load_any(path)))
+            if path.suffix in (".gbr", ".xz"):
+                self.members.append((item["group"], "gbr", gbr.load_path(path)))
             else:
                 self.members.append((item["group"], "torch", models.load_trial(path, "cpu")[0]))
 
@@ -173,6 +173,13 @@ def candidate_committees(domain, configurations, protocol):
     """Single configurations plus registered committees; every member configuration needs >=3 seeds."""
     minimum = protocol["selection"]["minimum_seeds"]
     eligible = {name for name, members in configurations.items() if len(members) >= minimum}
+    # A scale-augmented configuration has the parent's mean forecast; it supersedes the parent when
+    # it covers the same seeds, so the identical prediction score cannot drop the warning scale by tie.
+    for name in list(eligible):
+        parents = {m[3]["settings"].get("parent_trial", "").split("/")[-1].rsplit("-s", 1)[0] for m in configurations[name]}
+        for parent in parents:
+            if parent in eligible and {m[0] for m in configurations[parent]} <= {m[0] for m in configurations[name]}:
+                eligible.discard(parent)
     candidates = {name: [name] for name in sorted(eligible)}
     for committee in protocol["selection"].get("committees", {}).get(domain, []):
         if all(name in eligible for name in committee):
@@ -180,11 +187,31 @@ def candidate_committees(domain, configurations, protocol):
     return candidates
 
 
+def archive_checkpoint(domain, checkpoint):
+    """Torch checkpoints are copied; boosted models are archived in the compact prediction-only xz form
+    after asserting bit-identical predictions on the development-mechanism validation windows."""
+    if checkpoint.suffix != ".gbr":
+        return copy_artifact(checkpoint, ARTIFACTS / "checkpoints" / domain / checkpoint.name)
+    import incident_dynamics_v3_gbr as gbr
+    destination = ARTIFACTS / "checkpoints" / domain / (checkpoint.name + ".xz")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists():
+        gbr.export_compact(checkpoint, destination)
+    original, compact = gbr.load_any(checkpoint), gbr.load_path(destination)
+    probe = dev.load(domain, "mech_validation", original.history)
+    if not np.array_equal(original.predict(probe), compact.predict(probe)):
+        raise AssertionError(f"compact archive changed predictions: {checkpoint.name}")
+    if destination.stat().st_size > 45 * 1024 * 1024:
+        raise AssertionError(f"compact archive exceeds 45 MB: {destination}")
+    return {**record(destination), "uncompressed_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+            "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical"}
+
+
 def committee_record(domain, configurations, names):
     members = []
     for name in names:
         for seed, info_path, checkpoint, info in configurations[name]:
-            stored = copy_artifact(checkpoint, ARTIFACTS / "checkpoints" / domain / checkpoint.name)
+            stored = archive_checkpoint(domain, checkpoint)
             ledger = copy_artifact(info_path, ARTIFACTS / "checkpoints" / domain / info_path.name)
             members.append({"group": name, "seed": seed, "checkpoint": stored, "training_record": ledger,
                             "settings": info["settings"]})
@@ -320,6 +347,21 @@ def evidence_for(pipeline, item, domain, windows):
     return errors, score
 
 
+def paired_warning_difference(left, right, seed, quantiles):
+    """Episode-paired bootstrap of recall and FPR differences (left minus right) at the given quantiles."""
+    rng = np.random.default_rng(seed)
+    draws = rng.integers(len(left), size=(10000, len(left)))
+    a, b = left[draws].sum(1), right[draws].sum(1)
+    result = {}
+    for name, numerator, denominator in (("recall", 0, (0, 3)), ("fpr", 1, (1, 2))):
+        samples = a[:, numerator] / a[:, denominator].sum(1) - b[:, numerator] / b[:, denominator].sum(1)
+        aa, bb = left.sum(0), right.sum(0)
+        point = aa[numerator] / aa[list(denominator)].sum() - bb[numerator] / bb[list(denominator)].sum()
+        result[name] = {"difference": float(point), "interval": np.quantile(samples, quantiles).tolist(),
+                        "interval_level": 1 - 2 * quantiles[0]}
+    return result
+
+
 def analyze(selection, protocol, evidence, windows3, domain):
     pipelines = selection["domains"][domain]["pipelines"]
     stats = protocol["statistics"]
@@ -348,7 +390,8 @@ def analyze(selection, protocol, evidence, windows3, domain):
             comparison["pass"] = (comparison["relative_reduction"] >= protocol["gates"]["prediction_relative_reduction"]
                                   and comparison["interval"][1] < 0)
             primary[f"h{h}"] = comparison
-        paired = metrics.paired_warning_difference(counts["selected"], counts["v2-selected"], stats["seed"] + (7 if population == "A" else 57))
+        paired = paired_warning_difference(counts["selected"], counts["v2-selected"], stats["seed"] + (7 if population == "A" else 57),
+                                           tuple(stats["warning_quantiles"]))
         miss_new = 1 - methods["selected"]["warning"]["recall"]
         miss_old = 1 - methods["v2-selected"]["warning"]["recall"]
         warning_gate = {"miss_rate_reduction": 1 - miss_new / miss_old if miss_old else None,
@@ -356,7 +399,7 @@ def analyze(selection, protocol, evidence, windows3, domain):
                         "selected_fpr": methods["selected"]["warning"]["fpr"]}
         warning_gate["pass"] = (warning_gate["miss_rate_reduction"] is not None
                                 and warning_gate["miss_rate_reduction"] >= protocol["gates"]["warning_miss_reduction"]
-                                and paired["recall"]["interval_97_5_percent"][0] > 0
+                                and paired["recall"]["interval"][0] > 0
                                 and methods["selected"]["warning"]["fpr"] <= protocol["gates"]["warning_fpr_maximum"])
         ablation = {}
         if "uniform-counterpart" in pipelines and "rsi-counterpart" in pipelines:

@@ -106,7 +106,7 @@ PHYSICAL_MECHANISMS = {
     "actuator_gain_fault": "commanded displacement is scaled by an unknown factor (degraded motor or unit error)",
     "approaching_obstacle": "clearance shrinks independently of own motion (moving obstacle)",
     "replayed_sensors": "position and clearance readings replay an earlier segment (replay attack)",
-    "position_bias": "slowly growing additive bias on observed position (spoofing)",
+    "position_bias": "slowly growing additive bias on observed position (sensor fault or spoofing)",
     "vibration_degradation": "rising vibration and falling health toward a fault",
     "regime_shift": "link or battery drift changes magnitude once at a random step",
     "stale_observation": "periodic stale clearance and position readings",
