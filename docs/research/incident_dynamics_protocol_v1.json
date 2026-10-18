@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "study_id": "incident-dynamics-v1",
+  "registered_at": "2026-10-18",
+  "development_plan": "docs/research/incident_dynamics_development_plan_v1.json",
+  "final_generation": {"episodes_per_domain": 1024, "seed": 281004, "steps_per_episode": 14, "maximum_horizon": 5, "source_partition": "held_out_source"},
+  "calibration": {"episodes_per_domain": 512, "seed": 281003, "partition": "calibration", "source_partition": "development", "maximum_empirical_fpr": 0.01},
+  "selection": {
+    "metric": "Lowest mean H1/H3/H5 episode-macro normalized MAE on existing validation windows with five consecutive transitions.",
+    "candidate_groups": "Group completed neural trials by run-id, method, hidden width, update budget and learning rate. Average predictions over all registered completed seeds in that group; do not select individual lucky seeds. Include validation-selected ridge.",
+    "controls": "Keep the strongest completed same-data JEPA and MLP configurations as controls, with seed counts, parameters and budgets explicit. This is not an architecture-only or FLOP-matched study.",
+    "neural_selected_minimum_seeds": 3,
+    "deterministic_ridge_seeds": "not applicable; closed-form fit",
+    "threshold_rule": "For each pipeline independently, use the smallest score threshold producing no more than 1 percent empirical false positives on calibration episodes. A single increasing logistic calibration fitted on those episodes supplies Brier and reliability diagnostics. No test labels enter either fit."
+  },
+  "comparison": {
+    "primary_baseline": {"ferrumos": "paper-gru_dynamics", "physical": "paper-action_conditioned_jepa"},
+    "secondary_baselines": ["other available paper architectures", "retrained JEPA", "retrained MLP", "ridge", "persistence", "constant_velocity"],
+    "new_population": "Identical five-step-eligible causal windows for every method and every horizon; episode-macro prediction errors. Narrative identities are held out but primitive equations are shared.",
+    "historical_population": "Previously opened paper final source families, restricted prospectively to episodes with five contiguous eligible transitions. H1/H3/H5 then use all contiguous eligible endpoints in those episodes. Recompute every comparator on identical rows; this is a regression check, not fresh confirmation or a verbatim reproduction of the paper's differently composed table.",
+    "primary_prediction_gate": {"relative_error_reduction_at_least": 0.2, "horizons": [3, 5], "both_domains_required": true, "adjusted_interval_upper_less_than": 0.0},
+    "historical_guardrail": {"maximum_relative_mae_increase": 0.05, "horizons": [1, 3, 5], "comparison": "best available paper ensemble at each endpoint", "interpretation": "point-estimate regression guard, not a statistical noninferiority claim"},
+    "secondary_warning_gate": {"minimum_recall_gain_percentage_points": 20, "maximum_observed_fpr": 0.02, "paired_recall_interval_lower_greater_than": 0.0},
+    "warning_labels": "Any represented constraint breach in the five true future states. OS uses resource dimensions 0/1/3 >=0.95. Physical uses |x| or |y| >=1, battery or link <=0.08, or movement with clearance <=0.16. These labels are not vendor incident outcomes.",
+    "additional_outputs": ["warning-relevant-dimension prediction error", "per-source results", "current-observation-safe warning subset", "Brier and ten-bin reliability", "training-seed variability", "all trial selection scores", "protected artifact digests"]
+  },
+  "statistics": {"bootstrap_unit": "episode", "resamples": 10000, "seed": 281005, "prediction_family_endpoints": 4, "prediction_interval_level": 0.9875, "warning_recall_family_endpoints": 2, "warning_recall_interval_level": 0.975},
+  "access": {"final_requires_committed_selection": true, "write_once_outputs": true, "verification": "Read retained final catalogs and recompute inference and metrics; never refit or rerun selection on a final catalog."},
+  "release": {"report_version": "1.2", "publication_authorized": false, "promotion_eligible": false, "retain_previous_negatives": true, "primary_success_rule": "All four prediction endpoints and all historical guards pass. Secondary warning objective is reported separately and cannot be implied by prediction success."}
+}
