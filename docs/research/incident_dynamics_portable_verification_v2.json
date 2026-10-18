@@ -1,0 +1,11 @@
+{
+  "all_checks_pass": true,
+  "checkout_result_sha256": "b5ff8a93a567adf7838e9a40da23a85fd970dbc22b8b13abbcf52d3168f5bcc3",
+  "promotion_eligible": false,
+  "result_metadata_lf_crlf_equivalent": true,
+  "retained_result_sha256": "00affcfbce46f3d6c518e0d96e7851fac622c6f09cef38cce4b5f46ee0861a55",
+  "scientific_checks": 48,
+  "scientific_report_exact_match": true,
+  "study_id": "incident-dynamics-v2",
+  "verification_mode": "retained catalog inference and metric recomputation; no retraining or final generation"
+}
