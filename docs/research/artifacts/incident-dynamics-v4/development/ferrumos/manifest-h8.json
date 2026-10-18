@@ -1,0 +1,42 @@
+{
+  "domain": "ferrumos",
+  "files": {
+    "base_train": {
+      "episodes": 5178,
+      "sha256": "ae29772e1e7214850b17065fdcfa72feb593585e768cde642d8b7fb187279898",
+      "windows": 30512
+    },
+    "base_validation": {
+      "episodes": 515,
+      "sha256": "97e4483de16707826e0face760b93a3bbec9462145dc729b268bc7763a301198",
+      "windows": 4028
+    },
+    "mech_train": {
+      "episodes": 2800,
+      "sha256": "09c8d10a5305711406bbfbe83ad6869aba4da19c30286d595ba88e6a206de335",
+      "windows": 39200
+    },
+    "mech_validation": {
+      "episodes": 448,
+      "sha256": "0c7aabb3deb08484e89b781646d95f16b49f8cc185f03cc114468169d06afa43",
+      "windows": 4480
+    }
+  },
+  "final_access_attempted": false,
+  "history": 8,
+  "mechanisms": [
+    "constant_pressure",
+    "accelerating_leak",
+    "sudden_step",
+    "retry_oscillation",
+    "coupled_cascade",
+    "log_storm",
+    "regime_shift"
+  ],
+  "seeds": {
+    "calibration": 391003,
+    "probe": 391010,
+    "train": 391001,
+    "validation": 391002
+  }
+}

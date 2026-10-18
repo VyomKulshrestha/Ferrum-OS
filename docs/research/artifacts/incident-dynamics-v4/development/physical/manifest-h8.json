@@ -1,0 +1,42 @@
+{
+  "domain": "physical",
+  "files": {
+    "base_train": {
+      "episodes": 24600,
+      "sha256": "71491423f372f258f2d30ca7abae10b60df04eb686c48da3c028456a64fbb2b2",
+      "windows": 204000
+    },
+    "base_validation": {
+      "episodes": 5936,
+      "sha256": "4cd83da6301d866f73ca95c7ddb1e1055e936a31ce01f8ce0e9b9cfa3efa0eb8",
+      "windows": 25280
+    },
+    "mech_train": {
+      "episodes": 2800,
+      "sha256": "c096261d76bf3da7eaaff7d502c47962e04dc7b66459e063c359e501f274c659",
+      "windows": 39200
+    },
+    "mech_validation": {
+      "episodes": 448,
+      "sha256": "97a7b34f2c326b79cb8438d185f631e74ba28b5f0b77d731b303aa13b9408587",
+      "windows": 4480
+    }
+  },
+  "final_access_attempted": false,
+  "history": 8,
+  "mechanisms": [
+    "constant_pressure",
+    "accelerating_drain",
+    "link_jamming",
+    "position_bias",
+    "vibration_degradation",
+    "regime_shift",
+    "stale_observation"
+  ],
+  "seeds": {
+    "calibration": 391003,
+    "probe": 391010,
+    "train": 391001,
+    "validation": 391002
+  }
+}

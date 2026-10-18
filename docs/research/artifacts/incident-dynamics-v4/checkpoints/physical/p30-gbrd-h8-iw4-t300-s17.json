@@ -1,0 +1,71 @@
+{
+  "checkpoint_file": "p30-gbrd-h8-iw4-t300-s17.gbr",
+  "checkpoint_sha256": "074f9fa3c78a4ee4f7af23c1418bcc944226e85cbeb2cd23127cf2eef3c955a6",
+  "code_sha256": {
+    "incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "incident_dynamics_v3_gbr.py": "2e17eb4f14858a4bac3ee52cc03d243d06f1df47747e2bbf8acc83748f572b94",
+    "incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133"
+  },
+  "created_at": "2026-10-18T21:43:09.251641+00:00",
+  "final_access_attempted": false,
+  "params": {
+    "bagging_fraction": 0.8,
+    "kind": "direct",
+    "learning_rate": 0.08,
+    "n_estimators": 300,
+    "num_leaves": 63,
+    "objective": "l1",
+    "seed": 17
+  },
+  "scores": {
+    "incident_validation": {
+      "h1": 0.0018402168967320165,
+      "h3": 0.00401586436799164,
+      "h5": 0.00571286039618144,
+      "relative": 0.6301089533859641,
+      "score": 0.0038563138869683656
+    },
+    "legacy_validation": {
+      "h1": 0.001100347251061071,
+      "h3": 0.003166020074962146,
+      "h5": 0.00450553685450531,
+      "relative": 0.553130742059457,
+      "score": 0.0029239680601761756
+    },
+    "mech_validation": {
+      "h1": 0.00246016924582863,
+      "h3": 0.0051062586831952615,
+      "h5": 0.007336938071895409,
+      "relative": 0.5662633376071728,
+      "score": 0.0049677886669731
+    },
+    "selection_score": 0.583167677684198
+  },
+  "seed": 17,
+  "settings": {
+    "batch": 512,
+    "block_balance": 0,
+    "curriculum": "uniform",
+    "device": "cpu",
+    "domain": "physical",
+    "gbr_lr": 0.08,
+    "hidden": 256,
+    "history": 8,
+    "incident_weight": 4.0,
+    "leaves": 63,
+    "lr": 0.001,
+    "mechanisms": 1,
+    "method": "gbr_direct",
+    "round_updates": 4000,
+    "rounds": 4,
+    "seed": 17,
+    "trees": 300,
+    "trial_id": "p30-gbrd-h8-iw4-t300",
+    "updates": 12000
+  },
+  "trial": "p30-gbrd-h8-iw4-t300"
+}
