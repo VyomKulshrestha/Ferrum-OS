@@ -1,0 +1,71 @@
+{
+  "checkpoint_file": "o26-gbrd-h8-iw8-s43.gbr",
+  "checkpoint_sha256": "46700ea8129fbab553f42b302d1c1581fffd0bf9be18edd423d639bfa82c9caa",
+  "code_sha256": {
+    "incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "incident_dynamics_v3_gbr.py": "9870ee570f82d0ccdd4b139f53f0f1126890d2c3f5b1ef6b44216bb03ed04c6f",
+    "incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133"
+  },
+  "created_at": "2026-10-18T18:28:35.781007+00:00",
+  "final_access_attempted": false,
+  "params": {
+    "bagging_fraction": 0.8,
+    "kind": "direct",
+    "learning_rate": 0.05,
+    "n_estimators": 600,
+    "num_leaves": 63,
+    "objective": "l1",
+    "seed": 43
+  },
+  "scores": {
+    "incident_validation": {
+      "h1": 3.246321212854175e-05,
+      "h3": 0.00010760998132206546,
+      "h5": 0.00022258435235684713,
+      "relative": 0.586758204225925,
+      "score": 0.00012088584860248478
+    },
+    "legacy_validation": {
+      "h1": 4.606020968560738e-05,
+      "h3": 0.0036427091538811756,
+      "h5": 0.003539913713979143,
+      "relative": 1.0004300949312082,
+      "score": 0.002409561025848642
+    },
+    "mech_validation": {
+      "h1": 0.00010963092816321002,
+      "h3": 0.00032247159178478823,
+      "h5": 0.00055244947501732,
+      "relative": 0.4915919380225828,
+      "score": 0.00032818399832177275
+    },
+    "selection_score": 0.692926745726572
+  },
+  "seed": 43,
+  "settings": {
+    "batch": 512,
+    "block_balance": 0,
+    "curriculum": "uniform",
+    "device": "cpu",
+    "domain": "ferrumos",
+    "gbr_lr": 0.05,
+    "hidden": 256,
+    "history": 8,
+    "incident_weight": 8.0,
+    "leaves": 63,
+    "lr": 0.001,
+    "mechanisms": 1,
+    "method": "gbr_direct",
+    "round_updates": 4000,
+    "rounds": 4,
+    "seed": 43,
+    "trees": 600,
+    "trial_id": "o26-gbrd-h8-iw8",
+    "updates": 12000
+  },
+  "trial": "o26-gbrd-h8-iw8"
+}

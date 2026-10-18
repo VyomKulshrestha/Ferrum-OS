@@ -1,0 +1,71 @@
+{
+  "checkpoint_file": "o26-gbrd-h8-iw8-s101.gbr",
+  "checkpoint_sha256": "213b32ad0e95298bf5db7294321e981ffb1893f58c1ee227c668907a02542d0f",
+  "code_sha256": {
+    "incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "incident_dynamics_v3_gbr.py": "9870ee570f82d0ccdd4b139f53f0f1126890d2c3f5b1ef6b44216bb03ed04c6f",
+    "incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133"
+  },
+  "created_at": "2026-10-18T18:38:34.318520+00:00",
+  "final_access_attempted": false,
+  "params": {
+    "bagging_fraction": 0.8,
+    "kind": "direct",
+    "learning_rate": 0.05,
+    "n_estimators": 600,
+    "num_leaves": 63,
+    "objective": "l1",
+    "seed": 101
+  },
+  "scores": {
+    "incident_validation": {
+      "h1": 3.2901993022851904e-05,
+      "h3": 0.00010788719604615249,
+      "h5": 0.00022357066779701284,
+      "relative": 0.5895124416361307,
+      "score": 0.00012145328562200575
+    },
+    "legacy_validation": {
+      "h1": 4.647498896003199e-05,
+      "h3": 0.003643393163404037,
+      "h5": 0.003540755543375446,
+      "relative": 1.0006986712158248,
+      "score": 0.0024102078985798383
+    },
+    "mech_validation": {
+      "h1": 0.00010958334508717829,
+      "h3": 0.00032177230257229687,
+      "h5": 0.0005531863222315231,
+      "relative": 0.4915869324507704,
+      "score": 0.00032818065663033275
+    },
+    "selection_score": 0.6939326817675752
+  },
+  "seed": 101,
+  "settings": {
+    "batch": 512,
+    "block_balance": 0,
+    "curriculum": "uniform",
+    "device": "cpu",
+    "domain": "ferrumos",
+    "gbr_lr": 0.05,
+    "hidden": 256,
+    "history": 8,
+    "incident_weight": 8.0,
+    "leaves": 63,
+    "lr": 0.001,
+    "mechanisms": 1,
+    "method": "gbr_direct",
+    "round_updates": 4000,
+    "rounds": 4,
+    "seed": 101,
+    "trees": 600,
+    "trial_id": "o26-gbrd-h8-iw8",
+    "updates": 12000
+  },
+  "trial": "o26-gbrd-h8-iw8"
+}

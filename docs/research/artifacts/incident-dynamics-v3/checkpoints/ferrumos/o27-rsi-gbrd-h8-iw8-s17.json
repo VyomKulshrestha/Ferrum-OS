@@ -1,0 +1,140 @@
+{
+  "checkpoint_file": "o27-rsi-gbrd-h8-iw8-s17.gbr",
+  "checkpoint_sha256": "1ca3e8d96ee981655b438b504eb8e8ce80f6ab097cb9be7fe881e988c3f2b49b",
+  "code_sha256": {
+    "incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "incident_dynamics_v3_gbr.py": "2e17eb4f14858a4bac3ee52cc03d243d06f1df47747e2bbf8acc83748f572b94",
+    "incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133"
+  },
+  "created_at": "2026-10-18T19:57:43.547516+00:00",
+  "final_access_attempted": false,
+  "rsi": {
+    "rounds": [
+      {
+        "replay_score": 1.0,
+        "round": 0,
+        "selected": "bootstrap_uniform"
+      },
+      {
+        "added_worlds": [
+          "sudden_step@2.0-2.8",
+          "retry_oscillation@2.0-2.8",
+          "sudden_step@1.4-2.0"
+        ],
+        "candidates": {
+          "error": 1.1211929966259861,
+          "keep_current": 1.0,
+          "recent": 0.9964919046898622,
+          "uniform": 0.9770080160072977
+        },
+        "pool_size": 10,
+        "replay_score": 0.9770080160072977,
+        "round": 1,
+        "selected": "uniform"
+      },
+      {
+        "added_worlds": [
+          "retry_oscillation@1.4-2.0",
+          "regime_shift@2.0-2.8",
+          "retry_oscillation@0.2-0.6"
+        ],
+        "candidates": {
+          "error": 1.0460340288682757,
+          "keep_current": 1.0,
+          "recent": 0.9875642085325006,
+          "uniform": 0.9748249260564885
+        },
+        "pool_size": 13,
+        "replay_score": 0.9748249260564885,
+        "round": 2,
+        "selected": "uniform"
+      },
+      {
+        "added_worlds": [
+          "regime_shift@1.4-2.0",
+          "sudden_step@0.2-0.6",
+          "accelerating_leak@2.0-2.8"
+        ],
+        "candidates": {
+          "error": 1.0254164517930016,
+          "keep_current": 1.0,
+          "recent": 0.9774430631403416,
+          "uniform": 0.9736525675537444
+        },
+        "pool_size": 16,
+        "replay_score": 0.9736525675537444,
+        "round": 3,
+        "selected": "uniform"
+      }
+    ],
+    "worlds": [
+      "accelerating_leak@0.6-1.4",
+      "constant_pressure@0.6-1.4",
+      "coupled_cascade@0.6-1.4",
+      "log_storm@0.6-1.4",
+      "regime_shift@0.6-1.4",
+      "retry_oscillation@0.6-1.4",
+      "sudden_step@0.6-1.4",
+      "sudden_step@2.0-2.8",
+      "retry_oscillation@2.0-2.8",
+      "sudden_step@1.4-2.0",
+      "retry_oscillation@1.4-2.0",
+      "regime_shift@2.0-2.8",
+      "retry_oscillation@0.2-0.6",
+      "regime_shift@1.4-2.0",
+      "sudden_step@0.2-0.6",
+      "accelerating_leak@2.0-2.8"
+    ]
+  },
+  "scores": {
+    "incident_validation": {
+      "h1": 3.390693556046265e-05,
+      "h3": 0.00010861125294239215,
+      "h5": 0.0002308100912238764,
+      "relative": 0.604022813068703,
+      "score": 0.0001244427599089104
+    },
+    "legacy_validation": {
+      "h1": 4.6330468872154906e-05,
+      "h3": 0.003646993585885571,
+      "h5": 0.003548547898252154,
+      "relative": 1.0022553994563748,
+      "score": 0.0024139573176699598
+    },
+    "mech_validation": {
+      "h1": 0.00010774241729632246,
+      "h3": 0.0003211791499909467,
+      "h5": 0.0005521234277460557,
+      "relative": 0.489840874694257,
+      "score": 0.0003270149983444416
+    },
+    "selection_score": 0.6987063624064449
+  },
+  "seed": 17,
+  "settings": {
+    "batch": 512,
+    "block_balance": 0,
+    "curriculum": "rsi",
+    "device": "cpu",
+    "domain": "ferrumos",
+    "gbr_lr": 0.05,
+    "hidden": 256,
+    "history": 8,
+    "incident_weight": 8.0,
+    "leaves": 63,
+    "lr": 0.001,
+    "mechanisms": 1,
+    "method": "gbr_direct",
+    "round_updates": 4000,
+    "rounds": 4,
+    "seed": 17,
+    "trees": 600,
+    "trial_id": "o27-rsi-gbrd-h8-iw8",
+    "updates": 12000
+  },
+  "trial": "o27-rsi-gbrd-h8-iw8"
+}

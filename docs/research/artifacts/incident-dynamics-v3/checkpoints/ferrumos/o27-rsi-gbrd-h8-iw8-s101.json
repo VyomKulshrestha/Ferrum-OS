@@ -1,0 +1,140 @@
+{
+  "checkpoint_file": "o27-rsi-gbrd-h8-iw8-s101.gbr",
+  "checkpoint_sha256": "375a497cc37896cdc2130023b9f2372e3c31d311a381e33e2fee7c6e60ad1357",
+  "code_sha256": {
+    "incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "incident_dynamics_v3_gbr.py": "2e17eb4f14858a4bac3ee52cc03d243d06f1df47747e2bbf8acc83748f572b94",
+    "incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133"
+  },
+  "created_at": "2026-10-18T20:04:48.162189+00:00",
+  "final_access_attempted": false,
+  "rsi": {
+    "rounds": [
+      {
+        "replay_score": 1.0,
+        "round": 0,
+        "selected": "bootstrap_uniform"
+      },
+      {
+        "added_worlds": [
+          "sudden_step@2.0-2.8",
+          "retry_oscillation@2.0-2.8",
+          "sudden_step@1.4-2.0"
+        ],
+        "candidates": {
+          "error": 1.1207415813931725,
+          "keep_current": 1.0,
+          "recent": 0.9947379721453377,
+          "uniform": 0.9754856186149858
+        },
+        "pool_size": 10,
+        "replay_score": 0.9754856186149858,
+        "round": 1,
+        "selected": "uniform"
+      },
+      {
+        "added_worlds": [
+          "retry_oscillation@1.4-2.0",
+          "regime_shift@2.0-2.8",
+          "retry_oscillation@0.2-0.6"
+        ],
+        "candidates": {
+          "error": 1.0453040752165081,
+          "keep_current": 1.0,
+          "recent": 0.9826768708480788,
+          "uniform": 0.9729517098659168
+        },
+        "pool_size": 13,
+        "replay_score": 0.9729517098659168,
+        "round": 2,
+        "selected": "uniform"
+      },
+      {
+        "added_worlds": [
+          "regime_shift@1.4-2.0",
+          "sudden_step@0.2-0.6",
+          "accelerating_leak@2.0-2.8"
+        ],
+        "candidates": {
+          "error": 1.0261356317114099,
+          "keep_current": 1.0,
+          "recent": 0.9793202113330535,
+          "uniform": 0.975503213035263
+        },
+        "pool_size": 16,
+        "replay_score": 0.975503213035263,
+        "round": 3,
+        "selected": "uniform"
+      }
+    ],
+    "worlds": [
+      "accelerating_leak@0.6-1.4",
+      "constant_pressure@0.6-1.4",
+      "coupled_cascade@0.6-1.4",
+      "log_storm@0.6-1.4",
+      "regime_shift@0.6-1.4",
+      "retry_oscillation@0.6-1.4",
+      "sudden_step@0.6-1.4",
+      "sudden_step@2.0-2.8",
+      "retry_oscillation@2.0-2.8",
+      "sudden_step@1.4-2.0",
+      "retry_oscillation@1.4-2.0",
+      "regime_shift@2.0-2.8",
+      "retry_oscillation@0.2-0.6",
+      "regime_shift@1.4-2.0",
+      "sudden_step@0.2-0.6",
+      "accelerating_leak@2.0-2.8"
+    ]
+  },
+  "scores": {
+    "incident_validation": {
+      "h1": 3.4021192933209046e-05,
+      "h3": 0.00010929162661703628,
+      "h5": 0.0002286103780731352,
+      "relative": 0.6017494743190117,
+      "score": 0.0001239743992077935
+    },
+    "legacy_validation": {
+      "h1": 4.6289468639457004e-05,
+      "h3": 0.0036445985390238626,
+      "h5": 0.003542169841694675,
+      "relative": 1.001035551462128,
+      "score": 0.0024110192831193317
+    },
+    "mech_validation": {
+      "h1": 0.00010768578286869866,
+      "h3": 0.0003210214200231677,
+      "h5": 0.0005503463828201153,
+      "relative": 0.4888465536500853,
+      "score": 0.00032635119523732723
+    },
+    "selection_score": 0.697210526477075
+  },
+  "seed": 101,
+  "settings": {
+    "batch": 512,
+    "block_balance": 0,
+    "curriculum": "rsi",
+    "device": "cpu",
+    "domain": "ferrumos",
+    "gbr_lr": 0.05,
+    "hidden": 256,
+    "history": 8,
+    "incident_weight": 8.0,
+    "leaves": 63,
+    "lr": 0.001,
+    "mechanisms": 1,
+    "method": "gbr_direct",
+    "round_updates": 4000,
+    "rounds": 4,
+    "seed": 101,
+    "trees": 600,
+    "trial_id": "o27-rsi-gbrd-h8-iw8",
+    "updates": 12000
+  },
+  "trial": "o27-rsi-gbrd-h8-iw8"
+}

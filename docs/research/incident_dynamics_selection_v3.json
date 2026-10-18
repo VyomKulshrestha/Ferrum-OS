@@ -1,0 +1,1897 @@
+{
+  "actuator_deliveries": 0,
+  "created_at": "2026-10-18T20:42:17.022145+00:00",
+  "domains": {
+    "ferrumos": {
+      "candidate_scores": {
+        "o20-gbr-h8-iw8": {
+          "blocks": {
+            "incident_validation": {
+              "h1": 3.216238098766033e-05,
+              "h3": 0.0001267702726645226,
+              "h5": 0.0003297725977837729,
+              "relative": 0.7906958480345135,
+              "score": 0.00016290175047865192
+            },
+            "legacy_validation": {
+              "h1": 4.611560999576415e-05,
+              "h3": 0.003693943038962361,
+              "h5": 0.0036851644995737095,
+              "relative": 1.0276307066837116,
+              "score": 0.0024750743828439448
+            },
+            "mech_validation": {
+              "h1": 0.00010886090019507831,
+              "h3": 0.00033950062882637564,
+              "h5": 0.0006374968700425499,
+              "relative": 0.5421747531300024,
+              "score": 0.00036195279968800133
+            }
+          },
+          "members": [
+            "o20-gbr-h8-iw8"
+          ],
+          "seeds": {
+            "o20-gbr-h8-iw8": [
+              17,
+              43,
+              101
+            ]
+          },
+          "selection_score": 0.7868337692827425
+        },
+        "o27-rsi-gbrd-h8-iw8": {
+          "blocks": {
+            "incident_validation": {
+              "h1": 3.330912647668271e-05,
+              "h3": 0.0001072761917785936,
+              "h5": 0.0002273271986019232,
+              "relative": 0.5952604328767656,
+              "score": 0.00012263750561906648
+            },
+            "legacy_validation": {
+              "h1": 4.6294925739901824e-05,
+              "h3": 0.0036440174848596605,
+              "h5": 0.003542784732950647,
+              "relative": 1.0010409896715537,
+              "score": 0.002411032381183403
+            },
+            "mech_validation": {
+              "h1": 0.00010680828057854721,
+              "h3": 0.00031805782716059887,
+              "h5": 0.0005472911658880467,
+              "relative": 0.48540318911443225,
+              "score": 0.00032405242454239757
+            }
+          },
+          "members": [
+            "o27-rsi-gbrd-h8-iw8"
+          ],
+          "seeds": {
+            "o27-rsi-gbrd-h8-iw8": [
+              17,
+              43,
+              101
+            ]
+          },
+          "selection_score": 0.6939015372209173
+        },
+        "o28-gbrd-h8-iw8-scaled": {
+          "blocks": {
+            "incident_validation": {
+              "h1": 3.2209782418674e-05,
+              "h3": 0.00010636338533691613,
+              "h5": 0.00022135323961869346,
+              "relative": 0.582339385698458,
+              "score": 0.0001199754691247612
+            },
+            "legacy_validation": {
+              "h1": 4.623344562937147e-05,
+              "h3": 0.0036424994570212997,
+              "h5": 0.003539038911561924,
+              "relative": 1.0003039785621142,
+              "score": 0.0024092572714041983
+            },
+            "mech_validation": {
+              "h1": 0.00010892119607336858,
+              "h3": 0.0003199593573815004,
+              "h5": 0.0005492999952911605,
+              "relative": 0.4884106417467501,
+              "score": 0.00032606018291534317
+            }
+          },
+          "members": [
+            "o28-gbrd-h8-iw8-scaled"
+          ],
+          "seeds": {
+            "o28-gbrd-h8-iw8-scaled": [
+              17,
+              43,
+              101
+            ]
+          },
+          "selection_score": 0.6903513353357741
+        }
+      },
+      "pipelines": {
+        "constant_velocity": {
+          "history": 3,
+          "kind": "simple",
+          "method": "constant_velocity",
+          "warning": {
+            "development_validation": {
+              "brier": 0.0513,
+              "fn": 554,
+              "fp": 74,
+              "fpr": 0.01202,
+              "prevalence": 0.12557,
+              "recall": 0.3733,
+              "tn": 6082,
+              "tp": 330
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.7321499185736139,
+                  31.503980019968786
+                ],
+                "k": 0,
+                "threshold": 0.049532771110534675,
+                "validation": {
+                  "brier": 0.0513,
+                  "fn": 554,
+                  "fp": 74,
+                  "fpr": 0.01202,
+                  "prevalence": 0.12557,
+                  "recall": 0.3733,
+                  "tn": 6082,
+                  "tp": 330
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.7321499185736139,
+              31.503980019968786
+            ],
+            "threshold": 0.049532771110534675
+          }
+        },
+        "persistence": {
+          "history": 3,
+          "kind": "simple",
+          "method": "persistence",
+          "warning": {
+            "development_validation": {
+              "brier": 0.04127,
+              "fn": 414,
+              "fp": 18,
+              "fpr": 0.00292,
+              "prevalence": 0.12557,
+              "recall": 0.53167,
+              "tn": 6138,
+              "tp": 470
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  1.5392683483308478,
+                  66.56234725771775
+                ],
+                "k": 0,
+                "threshold": -0.013072609901428221,
+                "validation": {
+                  "brier": 0.04127,
+                  "fn": 414,
+                  "fp": 18,
+                  "fpr": 0.00292,
+                  "prevalence": 0.12557,
+                  "recall": 0.53167,
+                  "tn": 6138,
+                  "tp": 470
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              1.5392683483308478,
+              66.56234725771775
+            ],
+            "threshold": -0.013072609901428221
+          }
+        },
+        "rsi-counterpart": {
+          "configuration": "o27-rsi-gbrd-h8-iw8",
+          "history": 8,
+          "kind": "v3",
+          "members": [
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o27-rsi-gbrd-h8-iw8-s17.gbr.xz",
+                "sha256": "1c29d6672b9f085fe3d2fcaab314a76472d63a1f358ced6d6597fe16bd13f676",
+                "uncompressed_sha256": "1ca3e8d96ee981655b438b504eb8e8ce80f6ab097cb9be7fe881e988c3f2b49b"
+              },
+              "group": "o27-rsi-gbrd-h8-iw8",
+              "seed": 17,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "rsi",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "round_updates": 4000,
+                "rounds": 4,
+                "seed": 17,
+                "trees": 600,
+                "trial_id": "o27-rsi-gbrd-h8-iw8",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o27-rsi-gbrd-h8-iw8-s17.json",
+                "sha256": "d5bc853fea1cc82de192a7bd52121cf29c7dcf20eb18d49ce1285a91b0c73441"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o27-rsi-gbrd-h8-iw8-s43.gbr.xz",
+                "sha256": "394cdce2a8ede02c867ca1f8538e822926f9b30bcf6cc89fdf47620c649a7fe0",
+                "uncompressed_sha256": "e56706e10f90986870b325cdc48fa798b0f8b7ee093e622cf134a0815d126ed3"
+              },
+              "group": "o27-rsi-gbrd-h8-iw8",
+              "seed": 43,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "rsi",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "round_updates": 4000,
+                "rounds": 4,
+                "seed": 43,
+                "trees": 600,
+                "trial_id": "o27-rsi-gbrd-h8-iw8",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o27-rsi-gbrd-h8-iw8-s43.json",
+                "sha256": "bcfb10826744228c175c8cc1dc4568444ab8481ce47ea6be3abe6bd981db9928"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o27-rsi-gbrd-h8-iw8-s101.gbr.xz",
+                "sha256": "d346a7bc3e53573120d2fc3a4bb29be8986471d1edde1ad89652f6aa10120875",
+                "uncompressed_sha256": "375a497cc37896cdc2130023b9f2372e3c31d311a381e33e2fee7c6e60ad1357"
+              },
+              "group": "o27-rsi-gbrd-h8-iw8",
+              "seed": 101,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "rsi",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "round_updates": 4000,
+                "rounds": 4,
+                "seed": 101,
+                "trees": 600,
+                "trial_id": "o27-rsi-gbrd-h8-iw8",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o27-rsi-gbrd-h8-iw8-s101.json",
+                "sha256": "115909b2fd8a2fa252315cc5212c1b0728b0f8da5df8cb6654fd6320550d7e62"
+              }
+            }
+          ],
+          "warning": {
+            "development_validation": {
+              "brier": 0.01687,
+              "fn": 69,
+              "fp": 44,
+              "fpr": 0.00715,
+              "prevalence": 0.12557,
+              "recall": 0.92195,
+              "tn": 6112,
+              "tp": 815
+            },
+            "k": 1.5,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.16745580095612025,
+                  118.83730066209684
+                ],
+                "k": 0,
+                "threshold": -0.0002596378326416015,
+                "validation": {
+                  "brier": 0.01676,
+                  "fn": 74,
+                  "fp": 40,
+                  "fpr": 0.0065,
+                  "prevalence": 0.12557,
+                  "recall": 0.91629,
+                  "tn": 6116,
+                  "tp": 810
+                }
+              },
+              {
+                "coefficients": [
+                  -0.1995733678023712,
+                  118.44088759020649
+                ],
+                "k": 0.5,
+                "threshold": -9.065866470336913e-05,
+                "validation": {
+                  "brier": 0.01677,
+                  "fn": 71,
+                  "fp": 42,
+                  "fpr": 0.00682,
+                  "prevalence": 0.12557,
+                  "recall": 0.91968,
+                  "tn": 6114,
+                  "tp": 813
+                }
+              },
+              {
+                "coefficients": [
+                  -0.23228012935890752,
+                  117.8617585137149
+                ],
+                "k": 1.0,
+                "threshold": 9.500980377197267e-05,
+                "validation": {
+                  "brier": 0.01681,
+                  "fn": 71,
+                  "fp": 44,
+                  "fpr": 0.00715,
+                  "prevalence": 0.12557,
+                  "recall": 0.91968,
+                  "tn": 6112,
+                  "tp": 813
+                }
+              },
+              {
+                "coefficients": [
+                  -0.26510820646019784,
+                  117.1154889773151
+                ],
+                "k": 1.5,
+                "threshold": 0.00023466348648071292,
+                "validation": {
+                  "brier": 0.01687,
+                  "fn": 69,
+                  "fp": 44,
+                  "fpr": 0.00715,
+                  "prevalence": 0.12557,
+                  "recall": 0.92195,
+                  "tn": 6112,
+                  "tp": 815
+                }
+              },
+              {
+                "coefficients": [
+                  -0.29817240685037466,
+                  116.18526196305699
+                ],
+                "k": 2.0,
+                "threshold": 0.0006421804428100587,
+                "validation": {
+                  "brier": 0.01695,
+                  "fn": 71,
+                  "fp": 42,
+                  "fpr": 0.00682,
+                  "prevalence": 0.12557,
+                  "recall": 0.91968,
+                  "tn": 6114,
+                  "tp": 813
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.26510820646019784,
+              117.1154889773151
+            ],
+            "threshold": 0.00023466348648071292
+          }
+        },
+        "selected": {
+          "configuration": "o28-gbrd-h8-iw8-scaled",
+          "history": 8,
+          "kind": "v3",
+          "members": [
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o28-gbrd-h8-iw8-scaled-s17.gbr.xz",
+                "sha256": "15833dbedb3b4f27b9d230e12325be3d69e77af55217b53fbc1fdc7af8021451",
+                "uncompressed_sha256": "271a1d0d3f863edf8e91701452a0a0f6c30e8f559b2fdb25effa577242418abf"
+              },
+              "group": "o28-gbrd-h8-iw8-scaled",
+              "seed": 17,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "parent_trial": "ferrumos/o26-gbrd-h8-iw8-s17.json",
+                "round_updates": 4000,
+                "rounds": 4,
+                "scale_model": true,
+                "seed": 17,
+                "trees": 600,
+                "trial_id": "o28-gbrd-h8-iw8-scaled",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o28-gbrd-h8-iw8-scaled-s17.json",
+                "sha256": "e1001f9293d39d25a3a3962f14ed112c9e898fbe5aeb2a820f78c7bc533cf2d1"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o28-gbrd-h8-iw8-scaled-s43.gbr.xz",
+                "sha256": "81190aa72c784916160915474a5661cf33e4a264e2e8e985829b9e0a86400e12",
+                "uncompressed_sha256": "4158806f437eb3198288c64e1de4baf9c402e42051f8ce5a2784b690e9ffcf59"
+              },
+              "group": "o28-gbrd-h8-iw8-scaled",
+              "seed": 43,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "parent_trial": "ferrumos/o26-gbrd-h8-iw8-s43.json",
+                "round_updates": 4000,
+                "rounds": 4,
+                "scale_model": true,
+                "seed": 43,
+                "trees": 600,
+                "trial_id": "o28-gbrd-h8-iw8-scaled",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o28-gbrd-h8-iw8-scaled-s43.json",
+                "sha256": "7dc590803fa5d84210d46ad0f694c42255beeaf0a3f6fa002b9fdb6590f1fe76"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o28-gbrd-h8-iw8-scaled-s101.gbr.xz",
+                "sha256": "5c9a61f85b52aab30b6bb35d4b632f3ff82304d4800a59545dfd698cb4932cd3",
+                "uncompressed_sha256": "4bdc20741adf3ff8315b9234123a24c23ff745dc271b8bd0ff037fb19198026f"
+              },
+              "group": "o28-gbrd-h8-iw8-scaled",
+              "seed": 101,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "parent_trial": "ferrumos/o26-gbrd-h8-iw8-s101.json",
+                "round_updates": 4000,
+                "rounds": 4,
+                "scale_model": true,
+                "seed": 101,
+                "trees": 600,
+                "trial_id": "o28-gbrd-h8-iw8-scaled",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o28-gbrd-h8-iw8-scaled-s101.json",
+                "sha256": "754a3e9b80e12261a0ed9d6c8729fd43d3305b8fdd18c7be8d70210c661341a8"
+              }
+            }
+          ],
+          "warning": {
+            "development_validation": {
+              "brier": 0.01744,
+              "fn": 71,
+              "fp": 38,
+              "fpr": 0.00617,
+              "prevalence": 0.12557,
+              "recall": 0.91968,
+              "tn": 6118,
+              "tp": 813
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.16286397139039202,
+                  115.09712257942093
+                ],
+                "k": 0,
+                "threshold": -0.00034832954406738276,
+                "validation": {
+                  "brier": 0.01744,
+                  "fn": 71,
+                  "fp": 38,
+                  "fpr": 0.00617,
+                  "prevalence": 0.12557,
+                  "recall": 0.91968,
+                  "tn": 6118,
+                  "tp": 813
+                }
+              },
+              {
+                "coefficients": [
+                  -0.302943961977951,
+                  113.6669043445947
+                ],
+                "k": 0.5,
+                "threshold": 0.0006446838378906251,
+                "validation": {
+                  "brier": 0.01747,
+                  "fn": 74,
+                  "fp": 44,
+                  "fpr": 0.00715,
+                  "prevalence": 0.12557,
+                  "recall": 0.91629,
+                  "tn": 6112,
+                  "tp": 810
+                }
+              },
+              {
+                "coefficients": [
+                  -0.4458300138053413,
+                  110.33649862780234
+                ],
+                "k": 1.0,
+                "threshold": 0.0027035474777221684,
+                "validation": {
+                  "brier": 0.01795,
+                  "fn": 90,
+                  "fp": 45,
+                  "fpr": 0.00731,
+                  "prevalence": 0.12557,
+                  "recall": 0.89819,
+                  "tn": 6111,
+                  "tp": 794
+                }
+              },
+              {
+                "coefficients": [
+                  -0.5840658933941418,
+                  105.3557339927364
+                ],
+                "k": 1.5,
+                "threshold": 0.006290793418884278,
+                "validation": {
+                  "brier": 0.01888,
+                  "fn": 123,
+                  "fp": 43,
+                  "fpr": 0.00699,
+                  "prevalence": 0.12557,
+                  "recall": 0.86086,
+                  "tn": 6113,
+                  "tp": 761
+                }
+              },
+              {
+                "coefficients": [
+                  -0.7124582871856633,
+                  99.41239964833777
+                ],
+                "k": 2.0,
+                "threshold": 0.009287595748901369,
+                "validation": {
+                  "brier": 0.02019,
+                  "fn": 157,
+                  "fp": 40,
+                  "fpr": 0.0065,
+                  "prevalence": 0.12557,
+                  "recall": 0.8224,
+                  "tn": 6116,
+                  "tp": 727
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.16286397139039202,
+              115.09712257942093
+            ],
+            "threshold": -0.00034832954406738276
+          }
+        },
+        "uniform-counterpart": {
+          "configuration": "o26-gbrd-h8-iw8",
+          "history": 8,
+          "kind": "v3",
+          "members": [
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o26-gbrd-h8-iw8-s17.gbr.xz",
+                "sha256": "edc87c0acb4c1b5da118ba4fea3db6d8bed5541993e2a8020a3dcaf3a9501c97",
+                "uncompressed_sha256": "307c1bbdb7f0c19acb5d8cbde50a07e521705755d8b21bffc3d2a05357436d8d"
+              },
+              "group": "o26-gbrd-h8-iw8",
+              "seed": 17,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "round_updates": 4000,
+                "rounds": 4,
+                "seed": 17,
+                "trees": 600,
+                "trial_id": "o26-gbrd-h8-iw8",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o26-gbrd-h8-iw8-s17.json",
+                "sha256": "8cb6bc8a31a0300582be923f1bbaf54e155e760d29b48b8dc1650ec051f8282f"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o26-gbrd-h8-iw8-s43.gbr.xz",
+                "sha256": "0e740a3df9de57baf689d9c34829c80bfedc95f59871b3559c95182fa47f6d47",
+                "uncompressed_sha256": "46700ea8129fbab553f42b302d1c1581fffd0bf9be18edd423d639bfa82c9caa"
+              },
+              "group": "o26-gbrd-h8-iw8",
+              "seed": 43,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "round_updates": 4000,
+                "rounds": 4,
+                "seed": 43,
+                "trees": 600,
+                "trial_id": "o26-gbrd-h8-iw8",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o26-gbrd-h8-iw8-s43.json",
+                "sha256": "d027cb223572dc1f80e82d51d7d7e343e85efb3e52227963e3894ee9e7f2daa4"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o26-gbrd-h8-iw8-s101.gbr.xz",
+                "sha256": "d258126e7207c2188682afb716d7eb4942575f92988973df77e5b6c1d7a304c7",
+                "uncompressed_sha256": "213b32ad0e95298bf5db7294321e981ffb1893f58c1ee227c668907a02542d0f"
+              },
+              "group": "o26-gbrd-h8-iw8",
+              "seed": 101,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "ferrumos",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 8.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr_direct",
+                "round_updates": 4000,
+                "rounds": 4,
+                "seed": 101,
+                "trees": 600,
+                "trial_id": "o26-gbrd-h8-iw8",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/ferrumos/o26-gbrd-h8-iw8-s101.json",
+                "sha256": "6e752bae3bd05c8100d452bbe9c7f47d2acc654ce460562f46c54e12630fc6d1"
+              }
+            }
+          ],
+          "warning": {
+            "development_validation": {
+              "brier": 0.01745,
+              "fn": 68,
+              "fp": 41,
+              "fpr": 0.00666,
+              "prevalence": 0.12557,
+              "recall": 0.92308,
+              "tn": 6115,
+              "tp": 816
+            },
+            "k": 1.0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.16286397139039202,
+                  115.09712257942093
+                ],
+                "k": 0,
+                "threshold": -0.00034832954406738276,
+                "validation": {
+                  "brier": 0.01744,
+                  "fn": 71,
+                  "fp": 38,
+                  "fpr": 0.00617,
+                  "prevalence": 0.12557,
+                  "recall": 0.91968,
+                  "tn": 6118,
+                  "tp": 813
+                }
+              },
+              {
+                "coefficients": [
+                  -0.1880443216227909,
+                  114.8721137702144
+                ],
+                "k": 0.5,
+                "threshold": -0.0002045035362243652,
+                "validation": {
+                  "brier": 0.01744,
+                  "fn": 69,
+                  "fp": 40,
+                  "fpr": 0.0065,
+                  "prevalence": 0.12557,
+                  "recall": 0.92195,
+                  "tn": 6116,
+                  "tp": 815
+                }
+              },
+              {
+                "coefficients": [
+                  -0.21434473919010447,
+                  114.60838356822039
+                ],
+                "k": 1.0,
+                "threshold": 1.59144401550293e-05,
+                "validation": {
+                  "brier": 0.01745,
+                  "fn": 68,
+                  "fp": 41,
+                  "fpr": 0.00666,
+                  "prevalence": 0.12557,
+                  "recall": 0.92308,
+                  "tn": 6115,
+                  "tp": 816
+                }
+              },
+              {
+                "coefficients": [
+                  -0.2417661900005826,
+                  114.17737604026163
+                ],
+                "k": 1.5,
+                "threshold": 0.0001757144927978516,
+                "validation": {
+                  "brier": 0.01747,
+                  "fn": 70,
+                  "fp": 43,
+                  "fpr": 0.00699,
+                  "prevalence": 0.12557,
+                  "recall": 0.92081,
+                  "tn": 6113,
+                  "tp": 814
+                }
+              },
+              {
+                "coefficients": [
+                  -0.2696720101459725,
+                  113.61174456772571
+                ],
+                "k": 2.0,
+                "threshold": 0.0003226399421691895,
+                "validation": {
+                  "brier": 0.01752,
+                  "fn": 68,
+                  "fp": 42,
+                  "fpr": 0.00682,
+                  "prevalence": 0.12557,
+                  "recall": 0.92308,
+                  "tn": 6114,
+                  "tp": 816
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.21434473919010447,
+              114.60838356822039
+            ],
+            "threshold": 1.59144401550293e-05
+          }
+        },
+        "v2-paper-action_conditioned_jepa": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "kind": "paper",
+            "members": [
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/action_conditioned_jepa-seed-17.pt",
+                  "sha256": "f066fb2282c0c66127c284447d57a73f32560f36084fc85e0323ce18b7ad57bd"
+                },
+                "hidden_size": 211,
+                "parameters": 99748,
+                "seed": 17,
+                "updates": 2400
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/action_conditioned_jepa-seed-43.pt",
+                  "sha256": "7efcaa7c5733833cc920813ae6c79e2025de13f79cea1e3d401193b5c5327537"
+                },
+                "hidden_size": 211,
+                "parameters": 99748,
+                "seed": 43,
+                "updates": 2400
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/action_conditioned_jepa-seed-101.pt",
+                  "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+                },
+                "hidden_size": 211,
+                "parameters": 99748,
+                "seed": 101,
+                "updates": 2400
+              }
+            ],
+            "method": "action_conditioned_jepa",
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.09372058395600809,
+                "fn": 767,
+                "fp": 42,
+                "fpr": 0.009810791871058164,
+                "prevalence": 0.1638671875,
+                "recall": 0.08581644815256258,
+                "threshold": 0.13495224714279178,
+                "tn": 4239,
+                "tp": 72
+              },
+              "logistic_coefficients": [
+                -1.5557786177341668,
+                21.426475945696897
+              ],
+              "threshold": 0.13495224714279178
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.07634,
+              "fn": 791,
+              "fp": 27,
+              "fpr": 0.00439,
+              "prevalence": 0.12557,
+              "recall": 0.1052,
+              "tn": 6129,
+              "tp": 93
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -1.6160806466104076,
+                  20.293964820975877
+                ],
+                "k": 0,
+                "threshold": 0.12347012758255006,
+                "validation": {
+                  "brier": 0.07634,
+                  "fn": 791,
+                  "fp": 27,
+                  "fpr": 0.00439,
+                  "prevalence": 0.12557,
+                  "recall": 0.1052,
+                  "tn": 6129,
+                  "tp": 93
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -1.6160806466104076,
+              20.293964820975877
+            ],
+            "threshold": 0.12347012758255006
+          }
+        },
+        "v2-paper-gru_dynamics": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "kind": "paper",
+            "members": [
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/gru_dynamics-seed-17.pt",
+                  "sha256": "ef1945a7b2f4dbf4e3027deb8835d84d7a0d6549a7223d72e1dc43e77d7cbc2e"
+                },
+                "hidden_size": 125,
+                "parameters": 99096,
+                "seed": 17,
+                "updates": 2400
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/gru_dynamics-seed-43.pt",
+                  "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+                },
+                "hidden_size": 125,
+                "parameters": 99096,
+                "seed": 43,
+                "updates": 2400
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/gru_dynamics-seed-101.pt",
+                  "sha256": "bffb75d4fd7501f664e7b673478e12b9855283a731a3ff88ed68d12a26b8faab"
+                },
+                "hidden_size": 125,
+                "parameters": 99096,
+                "seed": 101,
+                "updates": 2400
+              }
+            ],
+            "method": "gru_dynamics",
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.08727593383448085,
+                "fn": 733,
+                "fp": 42,
+                "fpr": 0.009810791871058164,
+                "prevalence": 0.1638671875,
+                "recall": 0.1263408820023838,
+                "threshold": 0.14239209890365603,
+                "tn": 4239,
+                "tp": 106
+              },
+              "logistic_coefficients": [
+                -2.1350857625281616,
+                24.2414519161938
+              ],
+              "threshold": 0.14239209890365603
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.07233,
+              "fn": 787,
+              "fp": 31,
+              "fpr": 0.00504,
+              "prevalence": 0.12557,
+              "recall": 0.10973,
+              "tn": 6125,
+              "tp": 97
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -2.1271650194207994,
+                  22.45291231528201
+                ],
+                "k": 0,
+                "threshold": 0.13764625787734988,
+                "validation": {
+                  "brier": 0.07233,
+                  "fn": 787,
+                  "fp": 31,
+                  "fpr": 0.00504,
+                  "prevalence": 0.12557,
+                  "recall": 0.10973,
+                  "tn": 6125,
+                  "tp": 97
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -2.1271650194207994,
+              22.45291231528201
+            ],
+            "threshold": 0.13764625787734988
+          }
+        },
+        "v2-ridge": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "checkpoint": {
+              "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/ridge-0.001.npz",
+              "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+            },
+            "kind": "ridge",
+            "method": "per_action_ridge",
+            "parameters": 621888,
+            "regularization": 0.001,
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.01535318272420268,
+                "fn": 55,
+                "fp": 42,
+                "fpr": 0.009810791871058164,
+                "prevalence": 0.1638671875,
+                "recall": 0.9344457687723481,
+                "threshold": -0.0007002949714660643,
+                "tn": 4239,
+                "tp": 784
+              },
+              "logistic_coefficients": [
+                0.093555424891578,
+                214.95330612700957
+              ],
+              "threshold": -0.0007002949714660643
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.02819,
+              "fn": 184,
+              "fp": 52,
+              "fpr": 0.00845,
+              "prevalence": 0.12557,
+              "recall": 0.79186,
+              "tn": 6104,
+              "tp": 700
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.011078452512455244,
+                  74.59230368214565
+                ],
+                "k": 0,
+                "threshold": -1.4066696166992186e-05,
+                "validation": {
+                  "brier": 0.02819,
+                  "fn": 184,
+                  "fp": 52,
+                  "fpr": 0.00845,
+                  "prevalence": 0.12557,
+                  "recall": 0.79186,
+                  "tn": 6104,
+                  "tp": 700
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.011078452512455244,
+              74.59230368214565
+            ],
+            "threshold": -1.4066696166992186e-05
+          }
+        },
+        "v2-selected": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "checkpoint": {
+              "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/ridge-0.001.npz",
+              "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+            },
+            "kind": "ridge",
+            "method": "per_action_ridge",
+            "parameters": 621888,
+            "regularization": 0.001,
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.01535318272420268,
+                "fn": 55,
+                "fp": 42,
+                "fpr": 0.009810791871058164,
+                "prevalence": 0.1638671875,
+                "recall": 0.9344457687723481,
+                "threshold": -0.0007002949714660643,
+                "tn": 4239,
+                "tp": 784
+              },
+              "logistic_coefficients": [
+                0.093555424891578,
+                214.95330612700957
+              ],
+              "threshold": -0.0007002949714660643
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.02819,
+              "fn": 184,
+              "fp": 52,
+              "fpr": 0.00845,
+              "prevalence": 0.12557,
+              "recall": 0.79186,
+              "tn": 6104,
+              "tp": 700
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.011078452512455244,
+                  74.59230368214565
+                ],
+                "k": 0,
+                "threshold": -1.4066696166992186e-05,
+                "validation": {
+                  "brier": 0.02819,
+                  "fn": 184,
+                  "fp": 52,
+                  "fpr": 0.00845,
+                  "prevalence": 0.12557,
+                  "recall": 0.79186,
+                  "tn": 6104,
+                  "tp": 700
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.011078452512455244,
+              74.59230368214565
+            ],
+            "threshold": -1.4066696166992186e-05
+          }
+        }
+      },
+      "selected_configuration": "o28-gbrd-h8-iw8-scaled",
+      "warning_k": {
+        "constant_velocity": 0,
+        "persistence": 0,
+        "rsi-counterpart": 1.5,
+        "selected": 0,
+        "uniform-counterpart": 1.0,
+        "v2-paper-action_conditioned_jepa": 0,
+        "v2-paper-gru_dynamics": 0,
+        "v2-ridge": 0,
+        "v2-selected": 0
+      }
+    },
+    "physical": {
+      "candidate_scores": {
+        "p24-gbr-h8-iw4-scaled": {
+          "blocks": {
+            "incident_validation": {
+              "h1": 0.0018041032038951244,
+              "h3": 0.004334362377608158,
+              "h5": 0.00646306651933628,
+              "relative": 0.6863495759471598,
+              "score": 0.004200510700279853
+            },
+            "legacy_validation": {
+              "h1": 0.0010791260261407772,
+              "h3": 0.0034355610355696242,
+              "h5": 0.00563045124349436,
+              "relative": 0.6397228883906506,
+              "score": 0.0033817127684015874
+            },
+            "mech_validation": {
+              "h1": 0.0024079771590160303,
+              "h3": 0.005620800659919821,
+              "h5": 0.008302086707668162,
+              "relative": 0.6205020967930966,
+              "score": 0.005443621508868005
+            }
+          },
+          "members": [
+            "p24-gbr-h8-iw4-scaled"
+          ],
+          "seeds": {
+            "p24-gbr-h8-iw4-scaled": [
+              17,
+              43,
+              101
+            ]
+          },
+          "selection_score": 0.6488581870436357
+        }
+      },
+      "pipelines": {
+        "constant_velocity": {
+          "history": 3,
+          "kind": "simple",
+          "method": "constant_velocity",
+          "warning": {
+            "development_validation": {
+              "brier": 0.13344,
+              "fn": 2094,
+              "fp": 36,
+              "fpr": 0.0077,
+              "prevalence": 0.33608,
+              "recall": 0.11496,
+              "tn": 4638,
+              "tp": 272
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.31370877484571685,
+                  10.549014644021407
+                ],
+                "k": 0,
+                "threshold": 0.25891497731208807,
+                "validation": {
+                  "brier": 0.13344,
+                  "fn": 2094,
+                  "fp": 36,
+                  "fpr": 0.0077,
+                  "prevalence": 0.33608,
+                  "recall": 0.11496,
+                  "tn": 4638,
+                  "tp": 272
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.31370877484571685,
+              10.549014644021407
+            ],
+            "threshold": 0.25891497731208807
+          }
+        },
+        "persistence": {
+          "history": 3,
+          "kind": "simple",
+          "method": "persistence",
+          "warning": {
+            "development_validation": {
+              "brier": 0.08094,
+              "fn": 865,
+              "fp": 45,
+              "fpr": 0.00963,
+              "prevalence": 0.33608,
+              "recall": 0.6344,
+              "tn": 4629,
+              "tp": 1501
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  2.8011707469755076,
+                  29.182808877548574
+                ],
+                "k": 0,
+                "threshold": -0.05229653418064117,
+                "validation": {
+                  "brier": 0.08094,
+                  "fn": 865,
+                  "fp": 45,
+                  "fpr": 0.00963,
+                  "prevalence": 0.33608,
+                  "recall": 0.6344,
+                  "tn": 4629,
+                  "tp": 1501
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              2.8011707469755076,
+              29.182808877548574
+            ],
+            "threshold": -0.05229653418064117
+          }
+        },
+        "selected": {
+          "configuration": "p24-gbr-h8-iw4-scaled",
+          "history": 8,
+          "kind": "v3",
+          "members": [
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/physical/p24-gbr-h8-iw4-scaled-s17.gbr.xz",
+                "sha256": "68372846d10791bc9f79bee30e38e77c5036d3ab6ed23875258bebc00715017c",
+                "uncompressed_sha256": "aa6ce822fa51252c16521ab8605fc65d5639c2977ffa8ab0a3cd67b8ea9c8a4e"
+              },
+              "group": "p24-gbr-h8-iw4-scaled",
+              "seed": 17,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "physical",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 4.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr",
+                "parent_trial": "physical/p21-gbr-h8-iw4-s17.json",
+                "round_updates": 4000,
+                "rounds": 4,
+                "scale_model": true,
+                "seed": 17,
+                "trees": 600,
+                "trial_id": "p24-gbr-h8-iw4-scaled",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/physical/p24-gbr-h8-iw4-scaled-s17.json",
+                "sha256": "2f2cc4beea7dd50ab215ae8c08e364f4c01b00aac4d4c22b9677653537dbe196"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/physical/p24-gbr-h8-iw4-scaled-s43.gbr.xz",
+                "sha256": "7056ae326521727b2366bb37e47ca682031a6de09a66c647260be37cc4d2a4af",
+                "uncompressed_sha256": "e94d4dc1f2e41618a5f0732e52a29adaa23a8eb10ed41c17d6ed2073565cb5de"
+              },
+              "group": "p24-gbr-h8-iw4-scaled",
+              "seed": 43,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "physical",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 4.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr",
+                "parent_trial": "physical/p21-gbr-h8-iw4-s43.json",
+                "round_updates": 4000,
+                "rounds": 4,
+                "scale_model": true,
+                "seed": 43,
+                "trees": 600,
+                "trial_id": "p24-gbr-h8-iw4-scaled",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/physical/p24-gbr-h8-iw4-scaled-s43.json",
+                "sha256": "44eae421c6d397d9b400bdf85307beab12204fc8accacd9b5fabadd5e016b3e3"
+              }
+            },
+            {
+              "checkpoint": {
+                "encoding": "prediction-only LightGBM text in sorted JSON, xz preset 9e; predictions verified identical",
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/physical/p24-gbr-h8-iw4-scaled-s101.gbr.xz",
+                "sha256": "af19770b6ca2d0f3c78a560a27b0ac376a4505d324e443cf77f58101a897045d",
+                "uncompressed_sha256": "bebd3d3572c79023f2c4fc88b76528ca515106a41d81cc2ac6776819f4aa19ba"
+              },
+              "group": "p24-gbr-h8-iw4-scaled",
+              "seed": 101,
+              "settings": {
+                "batch": 512,
+                "block_balance": 0,
+                "curriculum": "uniform",
+                "device": "cpu",
+                "domain": "physical",
+                "gbr_lr": 0.05,
+                "hidden": 256,
+                "history": 8,
+                "incident_weight": 4.0,
+                "leaves": 63,
+                "lr": 0.001,
+                "mechanisms": 1,
+                "method": "gbr",
+                "parent_trial": "physical/p21-gbr-h8-iw4-s101.json",
+                "round_updates": 4000,
+                "rounds": 4,
+                "scale_model": true,
+                "seed": 101,
+                "trees": 600,
+                "trial_id": "p24-gbr-h8-iw4-scaled",
+                "updates": 12000
+              },
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v3/checkpoints/physical/p24-gbr-h8-iw4-scaled-s101.json",
+                "sha256": "43570c304fff7b2fb4d8c2b3d68b288f4961e8d38e05795fc05b6ff1be53258a"
+              }
+            }
+          ],
+          "warning": {
+            "development_validation": {
+              "brier": 0.03346,
+              "fn": 293,
+              "fp": 52,
+              "fpr": 0.01113,
+              "prevalence": 0.33608,
+              "recall": 0.87616,
+              "tn": 4622,
+              "tp": 2073
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  0.3797724133241513,
+                  63.34384267991485
+                ],
+                "k": 0,
+                "threshold": 0.008023813366889955,
+                "validation": {
+                  "brier": 0.03346,
+                  "fn": 293,
+                  "fp": 52,
+                  "fpr": 0.01113,
+                  "prevalence": 0.33608,
+                  "recall": 0.87616,
+                  "tn": 4622,
+                  "tp": 2073
+                }
+              },
+              {
+                "coefficients": [
+                  -0.004763774801334334,
+                  65.27975198884552
+                ],
+                "k": 0.5,
+                "threshold": 0.018623765558004383,
+                "validation": {
+                  "brier": 0.03367,
+                  "fn": 357,
+                  "fp": 51,
+                  "fpr": 0.01091,
+                  "prevalence": 0.33608,
+                  "recall": 0.84911,
+                  "tn": 4623,
+                  "tp": 2009
+                }
+              },
+              {
+                "coefficients": [
+                  -0.4145672231202619,
+                  64.79502961073844
+                ],
+                "k": 1.0,
+                "threshold": 0.029358848929405216,
+                "validation": {
+                  "brier": 0.03581,
+                  "fn": 429,
+                  "fp": 58,
+                  "fpr": 0.01241,
+                  "prevalence": 0.33608,
+                  "recall": 0.81868,
+                  "tn": 4616,
+                  "tp": 1937
+                }
+              },
+              {
+                "coefficients": [
+                  -0.8036052243155639,
+                  61.74692669013083
+                ],
+                "k": 1.5,
+                "threshold": 0.03980642557144166,
+                "validation": {
+                  "brier": 0.03922,
+                  "fn": 494,
+                  "fp": 63,
+                  "fpr": 0.01348,
+                  "prevalence": 0.33608,
+                  "recall": 0.79121,
+                  "tn": 4611,
+                  "tp": 1872
+                }
+              },
+              {
+                "coefficients": [
+                  -1.1213878743239927,
+                  56.523415126850594
+                ],
+                "k": 2.0,
+                "threshold": 0.05366340279579163,
+                "validation": {
+                  "brier": 0.044,
+                  "fn": 611,
+                  "fp": 69,
+                  "fpr": 0.01476,
+                  "prevalence": 0.33608,
+                  "recall": 0.74176,
+                  "tn": 4605,
+                  "tp": 1755
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              0.3797724133241513,
+              63.34384267991485
+            ],
+            "threshold": 0.008023813366889955
+          }
+        },
+        "v2-paper-action_conditioned_jepa": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "kind": "paper",
+            "members": [
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/physical/action_conditioned_jepa-seed-17.pt",
+                  "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+                },
+                "hidden_size": 777,
+                "parameters": 99911,
+                "seed": 17,
+                "updates": 2400
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/physical/action_conditioned_jepa-seed-43.pt",
+                  "sha256": "1caa6621220b329dcd5aadcc6ee40c2a9435857a85172bf5642c828fae2a329c"
+                },
+                "hidden_size": 777,
+                "parameters": 99911,
+                "seed": 43,
+                "updates": 2400
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/physical/action_conditioned_jepa-seed-101.pt",
+                  "sha256": "fb5d34effb7e66ac73531b5cc49f3771c32128cfda9fc70690c6ead6a4c70baa"
+                },
+                "hidden_size": 777,
+                "parameters": 99911,
+                "seed": 101,
+                "updates": 2400
+              }
+            ],
+            "method": "action_conditioned_jepa",
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.09987344434195848,
+                "fn": 1040,
+                "fp": 34,
+                "fpr": 0.009869375907111757,
+                "prevalence": 0.3271484375,
+                "recall": 0.37910447761194027,
+                "threshold": 0.13516667485237124,
+                "tn": 3411,
+                "tp": 635
+              },
+              "logistic_coefficients": [
+                -1.0362003136870022,
+                22.80452757277272
+              ],
+              "threshold": 0.13516667485237124
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.09956,
+              "fn": 1501,
+              "fp": 36,
+              "fpr": 0.0077,
+              "prevalence": 0.33608,
+              "recall": 0.3656,
+              "tn": 4638,
+              "tp": 865
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  -0.9907005793135597,
+                  22.149218762774353
+                ],
+                "k": 0,
+                "threshold": 0.1351626515388489,
+                "validation": {
+                  "brier": 0.09956,
+                  "fn": 1501,
+                  "fp": 36,
+                  "fpr": 0.0077,
+                  "prevalence": 0.33608,
+                  "recall": 0.3656,
+                  "tn": 4638,
+                  "tp": 865
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              -0.9907005793135597,
+              22.149218762774353
+            ],
+            "threshold": 0.1351626515388489
+          }
+        },
+        "v2-ridge": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "checkpoint": {
+              "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/ridge-0.001.npz",
+              "sha256": "a6bc2dd2cd57a4fc99bcd8784555f4999dd99a8ce9c4b6213721c479d6d57b0b"
+            },
+            "kind": "ridge",
+            "method": "per_action_ridge",
+            "parameters": 8848,
+            "regularization": 0.001,
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.06485148815269262,
+                "fn": 754,
+                "fp": 34,
+                "fpr": 0.009869375907111757,
+                "prevalence": 0.3271484375,
+                "recall": 0.5498507462686567,
+                "threshold": 0.04841145128011704,
+                "tn": 3411,
+                "tp": 921
+              },
+              "logistic_coefficients": [
+                0.14641422621626174,
+                39.1427043938223
+              ],
+              "threshold": 0.04841145128011704
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.06717,
+              "fn": 1060,
+              "fp": 43,
+              "fpr": 0.0092,
+              "prevalence": 0.33608,
+              "recall": 0.55199,
+              "tn": 4631,
+              "tp": 1306
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  0.19090880666642673,
+                  36.21971677983974
+                ],
+                "k": 0,
+                "threshold": 0.04765684902668,
+                "validation": {
+                  "brier": 0.06717,
+                  "fn": 1060,
+                  "fp": 43,
+                  "fpr": 0.0092,
+                  "prevalence": 0.33608,
+                  "recall": 0.55199,
+                  "tn": 4631,
+                  "tp": 1306
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              0.19090880666642673,
+              36.21971677983974
+            ],
+            "threshold": 0.04765684902668
+          }
+        },
+        "v2-selected": {
+          "history": 3,
+          "kind": "v2",
+          "v2_pipeline": {
+            "kind": "neural",
+            "members": [
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-101.pt",
+                  "sha256": "e702988816098173417bd661125cbd0c4f40da0bc40ad4a849a3195b41b55e3e"
+                },
+                "parameters": 73840,
+                "seed": 101,
+                "training_record": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-101.json",
+                  "sha256": "6452233c4a718a9c2b181786d8c5c02e1ead0ac3adfaa6cad2c94a6ed8afba16"
+                },
+                "updates": 12000
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-17.pt",
+                  "sha256": "7a8917bc106b58b96eb0ae512a84a78d30daecab29751234f5e197d567676c14"
+                },
+                "parameters": 73840,
+                "seed": 17,
+                "training_record": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-17.json",
+                  "sha256": "3205cc5fe3ece9ee221b5c7295d0286c82afe52b3729d309ca3d184c00a3d5d5"
+                },
+                "updates": 12000
+              },
+              {
+                "checkpoint": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-43.pt",
+                  "sha256": "c83ee7cf6e92fa5d401761af07d643d6190e44afecceff1dff16413c69f540a5"
+                },
+                "parameters": 73840,
+                "seed": 43,
+                "training_record": {
+                  "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-43.json",
+                  "sha256": "8d901827da2da8edd84a549c2f1ff80f863f93995e4aa238ac4e5ba04e4dc68e"
+                },
+                "updates": 12000
+              }
+            ],
+            "method": "action_residual",
+            "warning": {
+              "calibration_metrics": {
+                "brier": 0.03561456125077718,
+                "fn": 280,
+                "fp": 34,
+                "fpr": 0.009869375907111757,
+                "prevalence": 0.3271484375,
+                "recall": 0.8328358208955224,
+                "threshold": 0.007961541414260866,
+                "tn": 3411,
+                "tp": 1395
+              },
+              "logistic_coefficients": [
+                0.6305236387141622,
+                71.96259419902394
+              ],
+              "threshold": 0.007961541414260866
+            }
+          },
+          "warning": {
+            "development_validation": {
+              "brier": 0.04083,
+              "fn": 388,
+              "fp": 60,
+              "fpr": 0.01284,
+              "prevalence": 0.33608,
+              "recall": 0.83601,
+              "tn": 4614,
+              "tp": 1978
+            },
+            "k": 0,
+            "k_grid": [
+              {
+                "coefficients": [
+                  0.5910201060806924,
+                  58.512483722847755
+                ],
+                "k": 0,
+                "threshold": 0.0077842622995376596,
+                "validation": {
+                  "brier": 0.04083,
+                  "fn": 388,
+                  "fp": 60,
+                  "fpr": 0.01284,
+                  "prevalence": 0.33608,
+                  "recall": 0.83601,
+                  "tn": 4614,
+                  "tp": 1978
+                }
+              }
+            ],
+            "logistic_coefficients": [
+              0.5910201060806924,
+              58.512483722847755
+            ],
+            "threshold": 0.0077842622995376596
+          }
+        }
+      },
+      "selected_configuration": "p24-gbr-h8-iw4-scaled",
+      "warning_k": {
+        "constant_velocity": 0,
+        "persistence": 0,
+        "selected": 0,
+        "v2-paper-action_conditioned_jepa": 0,
+        "v2-ridge": 0,
+        "v2-selected": 0
+      }
+    }
+  },
+  "final_access_attempted": false,
+  "promotion_eligible": false,
+  "protected_after": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "protected_before": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "selection_commit_parent": "c574edb4358e47af14f17b485f10146766ab440d",
+  "source_bindings": {
+    "docs/research/incident_dynamics_protocol_v3.json": "5c7970cd873a0d19ea2b1435a419c7818c6aef6733cb634d6435ac51fc455082",
+    "docs/research/incident_dynamics_sources_v3.json": "7f059a8a6618098b3f5800cf7b438fca8f5923a658d530c9965893b9ff643a28",
+    "docs/research/incident_dynamics_v3_development_plan.json": "fe00780653a0d62294bea8dcfbc3304e04427f51a11cc3c9e6d895bf89e21246",
+    "scripts/cross_domain_world_model_models.py": "213154687f93b367c446251312a1343a3ddaf4be3c1c83f59448ee27f023fc4f",
+    "scripts/evaluate_cross_domain_learned_contribution.py": "50bf204b2b4096fc4809409ed250eb06f6456090964205ab8bf4666565879cc4",
+    "scripts/evaluate_cross_domain_world_models.py": "6d1e8bff6e3a7c21af4b1503679bdfb2100e94c3ceffc02bc014a0e2a8401ba5",
+    "scripts/evaluate_incident_dynamics_development.py": "e02b3ada140cf72b2b7457124f52fef1725e7815de1b55ebb32d8c8a5f062d34",
+    "scripts/incident_dynamics_data.py": "214e4572e0c73b87bb477526487df2a20fc0d57956da9f15286f281e6093f8b8",
+    "scripts/incident_dynamics_metrics.py": "c42ff12da3e15fedfad3d3a50cf16c0b63806180598e9252793246a3c1646ad4",
+    "scripts/incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "scripts/incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "scripts/incident_dynamics_v3_eval.py": "839d6e5f841d936b0a909c8303051ca74171d3837befa0f8ca2d8a8c52469fbc",
+    "scripts/incident_dynamics_v3_gbr.py": "2e17eb4f14858a4bac3ee52cc03d243d06f1df47747e2bbf8acc83748f572b94",
+    "scripts/incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "scripts/incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "scripts/incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "scripts/incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133",
+    "scripts/run_incident_dynamics_study.py": "b7fc7dd642442bf069e6d115af096be7842142d3187097f6089af432068ed79b",
+    "scripts/run_incident_dynamics_v3_study.py": "d1f3f786b0dbc4d270cc0ec15f4e7a9c9339e29fcf92a3fef0c680790fcda4ae",
+    "scripts/train_incident_dynamics.py": "dbdebeff4dc84012f83300c41a27ddbac6e1e5e23b8f63ed3e84600ca90e4a7b",
+    "scripts/train_physical_world_model.py": "60777a079c0a517180a69349fd7845202905d597155fa381aaed9288938def61"
+  },
+  "study_id": "incident-dynamics-v3"
+}

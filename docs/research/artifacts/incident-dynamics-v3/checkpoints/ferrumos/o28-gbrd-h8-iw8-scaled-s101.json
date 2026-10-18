@@ -1,0 +1,71 @@
+{
+  "checkpoint_file": "o28-gbrd-h8-iw8-scaled-s101.gbr",
+  "checkpoint_sha256": "4bdc20741adf3ff8315b9234123a24c23ff745dc271b8bd0ff037fb19198026f",
+  "code_sha256": {
+    "incident_dynamics_v3_data.py": "f6a5998e5d0d38c8f4b547e384e834a6e4a6cee0a0140f307e063467c5923668",
+    "incident_dynamics_v3_dev.py": "fc63e34ee0723ca523a3a3d942f59fb8c962e6da89899af40f69e639a3ac59bd",
+    "incident_dynamics_v3_gbr.py": "9870ee570f82d0ccdd4b139f53f0f1126890d2c3f5b1ef6b44216bb03ed04c6f",
+    "incident_dynamics_v3_models.py": "58c2f8bf74955059f471c7e8e8f4ccc62fd6f457ba42896acd4ea4eab34532a6",
+    "incident_dynamics_v3_scale.py": "152b92a27cca1bf26109d270dca26bd76439bbc3a6a168308ddb40a61d74788e",
+    "incident_dynamics_v3_trial.py": "ee5d3be86400afd1127278b024eb8cf6ac592a5f8f43f952dea1faf870cb6e72",
+    "incident_dynamics_v3_warning.py": "fc87d49e12af9e9056511d7cd1384403087166e36515b5c92d56f49cba4d1133"
+  },
+  "created_at": "2026-10-18T18:53:43.292933+00:00",
+  "final_access_attempted": false,
+  "parent_checkpoint_sha256": "213b32ad0e95298bf5db7294321e981ffb1893f58c1ee227c668907a02542d0f",
+  "scale_params": {
+    "n_estimators": 300,
+    "num_leaves": 31,
+    "objective": "l1 on |error|",
+    "seed": 101
+  },
+  "scores": {
+    "incident_validation": {
+      "h1": 3.2901993910453006e-05,
+      "h3": 0.00010788719627370381,
+      "h5": 0.00022357066970304376,
+      "relative": 0.5895124465242246,
+      "score": 0.00012145328662906687
+    },
+    "legacy_validation": {
+      "h1": 4.6475493255993956e-05,
+      "h3": 0.0036433929448511527,
+      "h5": 0.0035407537713706655,
+      "relative": 1.0006984655212436,
+      "score": 0.0024102074031592704
+    },
+    "mech_validation": {
+      "h1": 0.00010958334509210132,
+      "h3": 0.00032177230414807766,
+      "h5": 0.000553186321612742,
+      "relative": 0.49158693293106337,
+      "score": 0.0003281806569509736
+    },
+    "selection_score": 0.6939326149921773
+  },
+  "seed": 101,
+  "settings": {
+    "batch": 512,
+    "block_balance": 0,
+    "curriculum": "uniform",
+    "device": "cpu",
+    "domain": "ferrumos",
+    "gbr_lr": 0.05,
+    "hidden": 256,
+    "history": 8,
+    "incident_weight": 8.0,
+    "leaves": 63,
+    "lr": 0.001,
+    "mechanisms": 1,
+    "method": "gbr_direct",
+    "parent_trial": "ferrumos/o26-gbrd-h8-iw8-s101.json",
+    "round_updates": 4000,
+    "rounds": 4,
+    "scale_model": true,
+    "seed": 101,
+    "trees": 600,
+    "trial_id": "o28-gbrd-h8-iw8-scaled",
+    "updates": 12000
+  },
+  "trial": "o28-gbrd-h8-iw8-scaled"
+}
