@@ -4,6 +4,10 @@
       "path": "docs/research/cross_domain_authority_test_inventory_v1.json",
       "sha256": "e4bd63ecb9432847ee3fa6d3a08d7c1b77e2bb851572d040c713c8a91eb9b812"
     },
+    "checkpoint_restoration_review": {
+      "path": "docs/research/cross_domain_checkpoint_restoration_review_v1_2.json",
+      "sha256": "43e23285d6ab3c50f821603dd6833b458447ccc5e19eeb48403ad64d370d637d"
+    },
     "evidence_snapshot": {
       "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
       "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
@@ -38,6 +42,18 @@
         "sha256": "7560813b9384a3eac5bc81b2a22384d0fa03437cba8961f519951321c72b52eb"
       }
     ],
+    "historical_inference_archive": {
+      "path": "docs/research/cross_domain_inference_archive_v1_2.json",
+      "sha256": "15b5d79e7a81336273f748bd88767a71058f8fc44beac480c95b5c587d663b97"
+    },
+    "historical_inference_verification": {
+      "path": "docs/research/cross_domain_archived_inference_verification_v1_2.json",
+      "sha256": "cf85f585f63df0306c3cb43c3d4ae5cf6b18d608bb1cce3e71e3cfb86e2f9038"
+    },
+    "historical_inference_verifier": {
+      "path": "scripts/verify_cross_domain_archived_inference_v1_2.py",
+      "sha256": "cdad6259f7437d3ad83047829d4c5f777f00eb9d5f8e505d9ba7f90002880cd5"
+    },
     "incident_dynamics_portable_verification_v2": {
       "path": "docs/research/incident_dynamics_portable_verification_v2.json",
       "sha256": "1b82505df4e79deebfd401f4d3337d18e601b2762a0f514e36c613e5c9cdaa33"
@@ -68,7 +84,7 @@
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "80c192a90e59bdd21de357018204250081b5339b4f37f30060c84cdbcf24656d"
+      "sha256": "8b79f0746e3c477cd6023802f8ad0634f57f5e247ce83ba51c40244cbf14b7e0"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -104,12 +120,12 @@
     },
     "paper_verifier": {
       "path": "scripts/verify_cross_domain_world_model_paper_v1_2.py",
-      "sha256": "d35a1f37c9f895b68385e3e7432250e2d6af135f9e29db0018322173c7ebe119"
+      "sha256": "914401101a222ec545e27b87154eac3067cbae67c7ea00ba4c6b28ff33ce45ae"
     },
     "pdf": {
-      "pages": 33,
+      "pages": 34,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "7512f6cf92604445d193e128d3aea5c03a584fc3546a902668b4a37d61b64050"
+      "sha256": "21c7433d119736318c6749a60334a0f61929a160631714a825ac5a07241265ec"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -122,6 +138,10 @@
     "report_builder": {
       "path": "scripts/build_prediction_is_not_permission_v1_2.py",
       "sha256": "c280ffa1d5b700580d9bc59a22c40b03e91f167a71ecc6216b493a4de83014d8"
+    },
+    "reproduction_requirements": {
+      "path": "requirements-prediction-report-v1_2.txt",
+      "sha256": "f26382513f0355af5b59b80e69d635c163831afe340e16504126acc035226a3c"
     },
     "risk_source_attribution_result": {
       "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",

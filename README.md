@@ -25,7 +25,7 @@ authority.
 Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf),
 with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md)
 and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_2.json).
-The 33-page report retains the matched architecture study and all earlier negative
+The 34-page report retains the matched architecture study and all earlier negative
 results. A separately registered incident-informed synthetic study improves prediction
 and warnings in both domains, with an explicit OS false-positive cost; it does not
 establish controller benefit, real-incident prevention, or deployment eligibility.
@@ -33,6 +33,12 @@ The [earlier v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Re
 remains available. Its [external-execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md)
 is replication-ready but has not yet been run by a non-author. No archival DOI is
 claimed before a record is reserved or published.
+
+The v1.2 audit now includes all 18 original matched-study checkpoints and the frozen
+base input. Section 11 provides the read-only reproduction commands and
+[pinned audit dependencies](requirements-prediction-report-v1_2.txt); the paper
+checker rejects changed release bindings unless an explicit prepublication refresh
+is requested. Reproduction is not independent validation or deployment approval.
 
 **Open-access research:** [Read *When Agents Control the Kernel: A JEPA World
 Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.22116399).

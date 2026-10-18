@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Verify and freeze Prediction Is Not Permission Technical Report v1.2."""
+"""Check the frozen report read-only; --refresh explicitly replaces a candidate."""
 
 from __future__ import annotations
 
 from collections import Counter
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -92,6 +93,11 @@ FREEZE = ROOT / "docs/research/cross_domain_world_model_paper_freeze_v1_2.json"
 RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_2.json"
 BUILDER = ROOT / "scripts/build_world_model_technical_report_v1_2.py"
 REPORT_BUILDER = ROOT / "scripts/build_prediction_is_not_permission_v1_2.py"
+REPRO_REQUIREMENTS = ROOT / "requirements-prediction-report-v1_2.txt"
+HISTORICAL_ARCHIVE = ROOT / "docs/research/cross_domain_inference_archive_v1_2.json"
+HISTORICAL_VERIFICATION = ROOT / "docs/research/cross_domain_archived_inference_verification_v1_2.json"
+HISTORICAL_VERIFIER = ROOT / "scripts/verify_cross_domain_archived_inference_v1_2.py"
+RESTORATION_REVIEW = ROOT / "docs/research/cross_domain_checkpoint_restoration_review_v1_2.json"
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
 EVIDENCE_SNAPSHOT_COMMIT = "f6b45c759830c0148a06b674c980fb9761ac0c8c"
@@ -191,7 +197,7 @@ REQUIRED_SOURCE_PHRASES = [
     "Validation means checking an existing record",
     "protected artifacts remain unchanged",
     "Revisiting Feature Prediction for Learning Visual Representations from Video",
-    "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
+    "Safety Gymnasium: A Unified Safe Reinforcement Learning Benchmark",
     "Appendix A. Claim-to-evidence ledger",
     "Appendix B. Frozen-gate and artifact audit",
     "Appendix C. Artifact locator",
@@ -261,6 +267,58 @@ def text_sha256_candidates(path: Path) -> set[str]:
         normalized.replace("\n", "\r\n").encode("utf-8"),
     }
     return {hashlib.sha256(value).hexdigest() for value in variants}
+
+
+def records_match(retained: object, recomputed: object) -> bool:
+    """Only UTF-8 text record digests may differ through Git newline conversion."""
+    if isinstance(retained, dict) and isinstance(recomputed, dict):
+        if retained.keys() != recomputed.keys():
+            return False
+        for key in retained:
+            if key == "sha256" and "path" in retained:
+                if retained["path"] != recomputed["path"]:
+                    return False
+                path = (ROOT / retained["path"]).resolve()
+                if not path.is_relative_to(ROOT.resolve()) or not path.is_file():
+                    return False
+                candidates = (text_sha256_candidates(path)
+                              if path.suffix in {".json", ".md", ".py", ".txt"}
+                              else {sha256(path)})
+                if retained[key] not in candidates or recomputed[key] not in candidates:
+                    return False
+            elif key == "freeze_manifest_sha256":
+                candidates = text_sha256_candidates(FREEZE)
+                if retained[key] not in candidates or recomputed[key] not in candidates:
+                    return False
+            elif not records_match(retained[key], recomputed[key]):
+                return False
+        return True
+    if isinstance(retained, list) and isinstance(recomputed, list):
+        return len(retained) == len(recomputed) and all(
+            records_match(left, right) for left, right in zip(retained, recomputed)
+        )
+    return type(retained) is type(recomputed) and retained == recomputed
+
+
+def finalize_records(freeze: dict, result: dict, *, refresh: bool) -> None:
+    """Never overwrite a failed audit or silently bless changed release bytes."""
+    if not result["overall_pass"] or not all(result["checks"].values()):
+        failed = [name for name, passed in result["checks"].items() if not passed]
+        raise SystemExit(f"paper checks failed; retained records unchanged: {failed}")
+    if refresh:
+        if FREEZE.exists():
+            release = json.loads(FREEZE.read_text(encoding="utf-8"))["release"]
+            if release.get("repository_tag") or not release.get("status", "").startswith("prepublication"):
+                raise SystemExit("refusing to refresh a published or tagged release")
+        for path, record in ((FREEZE, freeze), (RESULT, result)):
+            path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8", newline="\n")
+    else:
+        for path, record in ((FREEZE, freeze), (RESULT, result)):
+            if not path.is_file() or not records_match(
+                json.loads(path.read_text(encoding="utf-8")), record
+            ):
+                raise SystemExit(f"release record mismatch; no files changed: {path.name}")
 
 
 def rel(path: Path) -> str:
@@ -502,11 +560,20 @@ def pdf_typography_metrics() -> dict[str, float]:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--refresh", action="store_true",
+                        help="explicitly replace passing prepublication freeze records")
+    args = parser.parse_args()
     required_paths = [
         SOURCE,
         PDF,
         BUILDER,
         REPORT_BUILDER,
+        REPRO_REQUIREMENTS,
+        HISTORICAL_ARCHIVE,
+        HISTORICAL_VERIFICATION,
+        HISTORICAL_VERIFIER,
+        RESTORATION_REVIEW,
         UMBRELLA,
         EXTERNAL_RESULT,
         EXTERNAL_VERIFICATION,
@@ -531,6 +598,9 @@ def main() -> None:
     if missing:
         raise SystemExit(f"missing required paper artifacts: {missing}")
     source_text = SOURCE.read_text(encoding="utf-8")
+    historical_archive = json.loads(HISTORICAL_ARCHIVE.read_text(encoding="utf-8"))
+    historical_verification = json.loads(HISTORICAL_VERIFICATION.read_text(encoding="utf-8"))
+    restoration_review = json.loads(RESTORATION_REVIEW.read_text(encoding="utf-8"))
     builder_text = BUILDER.read_text(encoding="utf-8")
     umbrella = json.loads(UMBRELLA.read_text(encoding="utf-8"))
     external = json.loads(EXTERNAL_RESULT.read_text(encoding="utf-8"))
@@ -1118,6 +1188,37 @@ def main() -> None:
         ),
     }
     checks.update({
+        "historical_archived_inference_eight_checks_pass":
+            historical_verification["all_checks_pass"]
+            and len(historical_verification["checks"]) == 8
+            and all(historical_verification["checks"].values())
+            and historical_verification["archive_manifest"]["sha256"] in text_sha256_candidates(HISTORICAL_ARCHIVE)
+            and historical_verification["verifier"]["sha256"] in text_sha256_candidates(HISTORICAL_VERIFIER),
+        "historical_18_archived_checkpoints_and_base_input_bound":
+            len(historical_archive["checkpoints"]) == 18
+            and all(sha256(ROOT / item["archived"]["path"]) == item["archived"]["sha256"] == item["original"]["sha256"]
+                    for item in historical_archive["checkpoints"])
+            and sha256(ROOT / historical_archive["base_dataset"]["archived"]["path"])
+            == historical_archive["base_dataset"]["archived"]["sha256"],
+        "restoration_failures_retained_and_no_final_access":
+            restoration_review["accepted_thread16"] == 9
+            and restoration_review["rejected_thread4"] == 7
+            and all(not item["final_access_attempted"] for item in restoration_review["attempts"]),
+        "matched_study_collapse_limit_reported":
+            "no explicit latent-variance or effective-rank collapse diagnostic" in source_text
+            and "constant-representation trials are separately rejected" not in source_text,
+        "incident_source_strata_confound_reported":
+            "source-label strata are confounded with pressure regime" in source_text,
+        "incident_strong_control_context_correct": all(
+            round(100 * (1 - incident_domains[domain]["methods"]["selected"]["prediction"]["h5"]["episode_macro_mae"]
+                         / incident_domains[domain]["methods"][baseline]["prediction"]["h5"]["episode_macro_mae"]), 2) == expected
+            for domain, baseline, expected in (("ferrumos", "persistence", 55.35),
+                                               ("physical", "retrained-jepa", 15.42)))
+            and "55.35% and 15.42%" in source_text,
+        "reproduction_scope_and_read_only_contract_reported":
+            "paper checker is read-only by default" in source_text
+            and "does not independently rerun every underlying study" in source_text
+            and "torch==2.6.0" in REPRO_REQUIREMENTS.read_text(encoding="utf-8"),
         "incident_primary_and_warning_gates_pass": incident_result["primary_prediction_objective_pass"]
         and incident_result["secondary_warning_objective_pass"]
         and all(domain["primary_prediction_objective_pass"] and domain["secondary_warning_objective_pass"]
@@ -1180,6 +1281,12 @@ def main() -> None:
             "report_builder": {"path": rel(REPORT_BUILDER), "sha256": sha256(REPORT_BUILDER)},
             "shared_report_builder": {"path": rel(BUILDER), "sha256": sha256(BUILDER)},
             "paper_verifier": {"path": rel(Path(__file__)), "sha256": sha256(Path(__file__))},
+            "reproduction_requirements": {"path": rel(REPRO_REQUIREMENTS), "sha256": sha256(REPRO_REQUIREMENTS)},
+            **{name: {"path": rel(path), "sha256": sha256(path)} for name, path in (
+                ("historical_inference_archive", HISTORICAL_ARCHIVE),
+                ("historical_inference_verification", HISTORICAL_VERIFICATION),
+                ("historical_inference_verifier", HISTORICAL_VERIFIER),
+                ("checkpoint_restoration_review", RESTORATION_REVIEW))},
             "manuscript": {"path": rel(SOURCE), "sha256": sha256(SOURCE)},
             "pdf": {
                 "path": rel(PDF),
@@ -1273,9 +1380,9 @@ def main() -> None:
         "promotion_eligible": False,
         "protected_deployed_artifacts": protected,
     }
-    FREEZE.write_text(
-        json.dumps(freeze, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    freeze_digest = (hashlib.sha256(
+        (json.dumps(freeze, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    ).hexdigest() if args.refresh else sha256(FREEZE))
     overall_pass = all(checks.values())
     result = {
         "schema": "cross-domain-world-model-paper-verification-v1-2",
@@ -1298,12 +1405,12 @@ def main() -> None:
             "pdf_typography": typography,
             "output_ablation_bonferroni_7_endpoint": displayed_adjusted,
             "output_ablation_bonferroni_11_output": all_registered_adjusted,
-            "freeze_manifest_sha256": sha256(FREEZE),
+            "freeze_manifest_sha256": freeze_digest,
         },
         "artifacts": {
             "manuscript": {"path": rel(SOURCE), "sha256": sha256(SOURCE)},
             "pdf": {"path": rel(PDF), "sha256": sha256(PDF)},
-            "freeze_manifest": {"path": rel(FREEZE), "sha256": sha256(FREEZE)},
+            "freeze_manifest": {"path": rel(FREEZE), "sha256": freeze_digest},
             "evidence_snapshot": {"path": rel(UMBRELLA), "sha256": sha256(UMBRELLA)},
             "paired_uncertainty_result": {
                 "path": rel(PAIRED_RESULT),
@@ -1360,12 +1467,11 @@ def main() -> None:
         },
         "promotion_eligible": False,
     }
-    RESULT.write_text(
-        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    finalize_records(freeze, result, refresh=args.refresh)
     print(
         json.dumps(
-            {"overall_pass": overall_pass, "result": rel(RESULT), "freeze": rel(FREEZE)}
+            {"overall_pass": overall_pass, "read_only": not args.refresh,
+             "result": rel(RESULT), "freeze": rel(FREEZE)}
         )
     )
     if not overall_pass:

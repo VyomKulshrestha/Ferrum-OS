@@ -16,7 +16,7 @@ Research artifact accompanying the FerrumOS world-model evidence lineage.
 
 World-model accuracy is not operational safety. This report separates six evidence objects: dynamics prediction, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority. An 18-run matched study in FerrumOS and Physical JEPA shows that model ranking depends on domain and episode composition. Earlier frozen tests retain zero learned intervention on delayed hazards, an all-stop PyBullet policy, and a Safety-Gymnasium result for which superiority over the planner was not established. A retrospectively recovered output-value ablation increases warning false positives and interventions without resolving completion or hazard-cost benefit.
 
-A subsequent registered study adds incident-informed synthetic training, causal multi-step objectives, simple baselines, and separate calibration. On 1,024 fresh simulated episodes per domain, validation-selected per-action ridge regression and a three-seed action-residual ensemble reduce five-step normalized error by 98.9% and 58.7% against the earlier paper ensembles. All four primary three- and five-step contrasts meet a 20% improvement gate with multiplicity-adjusted intervals excluding zero. Warning recall rises from 13.2% to 94.1% and from 39.6% to 85.4%; observed false-positive rates are 1.67% and 1.42%. The OS false-positive increase is statistically resolved. Simpler and same-data retrained baselines contextualize the large gains; the study is not architecture-only or compute-matched.
+A subsequent registered study adds incident-informed synthetic training, causal multi-step objectives, simple baselines, and separate calibration. On 1,024 fresh simulated episodes per domain, validation-selected per-action ridge regression and a three-seed action-residual ensemble reduce five-step normalized error by 98.9% and 58.7% against the earlier paper ensembles. Against the strongest non-selected controls on that endpoint, the descriptive reductions are 55.4% for OS versus persistence and 15.4% for physical versus same-data retrained JEPA. All four primary three- and five-step contrasts against the earlier ensembles meet a 20% improvement gate with multiplicity-adjusted intervals excluding zero. Warning recall rises from 13.2% to 94.1% and from 39.6% to 85.4%; observed false-positive rates are 1.67% and 1.42%. The OS false-positive increase is statistically resolved. The study is not architecture-only or compute-matched.
 
 Public narratives motivate local perturbations, not observed incident telemetry or independently controlled mechanisms. Dream-RSI informs experiment-search assessment but is not implemented or credited with gains. Retained failures, frozen selections, historical regression checks, and a 48-check clean-checkout audit bound the result. Prediction and warning improvements do not establish controller benefit, physical safety, independent replication, or deployment eligibility; protected artifacts remain unchanged.
 
@@ -119,7 +119,7 @@ FerrumOS uses 48-state and 57-action-feature vectors for canonical operating-sys
 
 All methods predict the same normalized observable next-state delta, `(next_state - current_state) / registered_scale`, and a diagonal log variance. H-step rollout repeatedly adds the predicted delta in physical units while consuming the registered future action sequence. Normalized rollout error is the per-row mean absolute endpoint error divided componentwise by the same scale. Gaussian NLL and MAE therefore evaluate the same normalized target; NLL differs only by incorporating the predicted variance.
 
-The direct MLP flattens three state-action pairs into `Linear-GELU-Linear`. The action-conditioned JEPA applies a linear state encoder, `tanh`, and a `Linear-GELU-Linear` latent predictor; a stop-gradient target encoder is updated with EMA coefficient 0.99, and training minimizes Gaussian NLL plus 0.25 times latent-target MSE. The GRU receives the same state-action sequence, uses its zero-initialized recurrent state, and maps the final hidden state to mean and variance. Collapse prevention is the stop-gradient EMA target plus the observable-delta NLL; constant-representation trials are separately rejected.
+The direct MLP flattens three state-action pairs into `Linear-GELU-Linear`. The action-conditioned JEPA applies a linear state encoder, `tanh`, and a `Linear-GELU-Linear` latent predictor; a stop-gradient target encoder is updated with EMA coefficient 0.99, and training minimizes Gaussian NLL plus 0.25 times latent-target MSE. The GRU receives the same state-action sequence, uses its zero-initialized recurrent state, and maps the final hidden state to mean and variance. The stop-gradient EMA target and observable-delta NLL are anti-collapse design choices, not a proof that collapse cannot occur. Selection checks prediction finiteness, but this matched study retains no explicit latent-variance or effective-rank collapse diagnostic.
 
 | Domain | Method | Hidden / latent | Trainable parameters | Selected checkpoint updates for seeds 17 / 43 / 101 |
 |---|---|---:|---:|---:|
@@ -389,7 +389,7 @@ These tables report a retrospectively recovered analysis of complete catalogs pr
 | Cloudflare MadeYouReset; AWS DynamoDB outage [24, 25] | OS final source labels | Altered pressure/recovery timing using shared equations; not a novel-mechanism holdout |
 | Rockwell advisory; NTSB San Antonio investigation [26, 27] | Physical final source labels | Stronger late degradation and stale clearance; not road-driving or vendor-security validation |
 
-The advisories do not establish exploitation, and the outages are not classified as attacks. NASA's likely navigation explanation retains investigative uncertainty. Source identities are assigned to generated episodes; they do not cause distinct learned transition laws. Final OS recovery begins at step nine with a reversed half-strength drift rather than the development stop at step eleven; physical degradation increases by 50% after step seven. Thus the fresh test changes timing and severity within a researcher-designed generator, not the underlying independent source of dynamics. No incident text is treated as measured state-action telemetry.
+The advisories do not establish exploitation, and the outages are not classified as attacks. NASA's likely navigation explanation retains investigative uncertainty. Source identities are assigned to generated episodes; they do not cause distinct learned transition laws. With two source labels assigned by episode index modulo two and four pressure regimes assigned modulo four, source-label strata are confounded with pressure regime; they cannot estimate source-specific transfer. Final OS recovery begins at step nine with a reversed half-strength drift rather than the development stop at step eleven; physical degradation increases by 50% after step seven. Thus the fresh test changes timing and severity within a researcher-designed generator, not the underlying independent source of dynamics. No incident text is treated as measured state-action telemetry.
 
 **Development and selection.** Original development partitions are augmented with 1,200 new 14-step episodes per domain (seed 281001); 256 additional validation episodes use seed 281002. There are 30,512 OS and 204,000 physical training windows, and 4,028 and 25,280 complete validation windows. Inputs contain three causal state/action observations and the proposed action sequence, never future states, exogenous drift, or hazard labels. Short training tails are masked. Neural candidates minimize normalized smooth-L1 rollout error at all five future steps without teacher forcing after the first prediction; the JEPA control also retains a 0.01-weighted latent loss. AdamW uses learning rate 0.001, batch 256, gradient clipping, and deterministic cosine decay. Thirteen completed neural trials, all checkpoint traces, and ridge regularization trials are retained. Selection minimizes mean validation H=1/3/5 episode-macro MAE and averages every completed seed within a candidate configuration; it never chooses a lucky individual seed.
 
@@ -418,6 +418,8 @@ All four primary gates pass. The large OS reduction is against an earlier ensemb
 | Same-data retrained MLP | 0.001201 | 0.012153 |
 | Per-action ridge | **0.000511** | 0.019034 |
 | Selected physical residual ensemble | Not selected | **0.009369** |
+
+At H=5, the strongest non-selected controls in this table are OS persistence and physical retrained JEPA. The selected models reduce error by 55.35% and 15.42% against these controls, respectively. Those comparisons were not the registered primary family: in particular, the physical comparison does not meet the 20% primary effect size, and no adjusted superiority claim against that control is made.
 
 On the historical common-episode population, all six regression guards pass. OS H=1/3/5 MAE decreases by 88.20%/33.59%/41.42% against the best available paper ensemble; physical decreases by 63.64%/71.08%/75.19%. These are recomputed comparisons on 238 OS and 2,560 physical episodes, not replacements for the earlier differently composed table and not fresh confirmation.
 
@@ -498,32 +500,28 @@ This work does not claim the first JEPA world model, safety filter, calibrated p
 
 Every evidence object names its scope and digest. Hashes prove byte identity only; they do not validate labels, scientific assumptions, or instrument completeness. Result producers and verifiers share repository code in places, so independent replication remains a higher evidence tier. The report uses three distinct verbs: **validate** an existing record and gates; **recompute** metrics from committed rows without environment execution; and **rerun** the registered environment or QEMU workload. Commands below are labelled accordingly.
 
-The architecture and post-hoc analysis record Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124 on Windows; `requirements-research.txt` pins the remaining analysis and PDF packages. Safety-Gymnasium uses its separate locked environment: Python 3.10.20, Safety-Gymnasium 1.0.0, Gymnasium 0.28.1, Gymnasium-Robotics 1.2.2, MuJoCo 2.3.3, NumPy 1.23.5, and pygame 2.1.0. Protocols bind simulator source trees, checkpoints, catalogs, and results. Wall time is machine-dependent; the post-hoc verifier performs checkpoint inference and 10,000-resample analyses without launching the simulator.
+The architecture and post-hoc analysis record Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124 on Windows. `requirements-prediction-report-v1_2.txt` pins the direct audit dependencies, including PyTorch 2.6.0. The CUDA-enabled wheel was used with CPU inference: four Torch threads for incident dynamics and 16 for the historical table audit and checkpoint restoration. A fresh Python 3.12 virtual environment is recommended. This is a direct-dependency specification, not a cross-platform bitwise lock; another platform or wheel must pass the exact recomputation checks rather than assume equivalence. The broader `requirements-research.txt` alone is insufficient because it omits PyTorch.
 
-The exact pre-report scientific-evidence snapshot for this review freeze is Git commit `f6b45c759830c0148a06b674c980fb9761ac0c8c`. A short headline-table audit is: run the umbrella verifier, run the post-hoc verifier, run the portable output-ablation verifier, run the incident-dynamics portable verifier, then run the paper verifier. These validate or recompute committed evidence; they do not rerun a final simulator catalog.
+The exact pre-report scientific-evidence snapshot for this review freeze is Git commit `f6b45c759830c0148a06b674c980fb9761ac0c8c`. Use the revised report's own checkout for the commands below; that earlier commit locates scientific evidence, not the later manuscript, checkpoint archive, or release-checker fixes. The supported clean-source path recomputes the historical architecture tables and post-hoc sensitivity, incident-dynamics inference/calibration/selection/statistics, then checks the report against its retained freeze. The paper checker verifies selected evidence arithmetic and document bindings; it does not independently rerun every underlying study or certify the scientific assumptions.
 
-The readable cross-domain PDF is built with `python scripts/build_prediction_is_not_permission_v1_2.py`; the generic shared builder's default metadata targets a different report and should not be used directly for this artifact.
+The prepublication audit found nine of the original 18 matched-study checkpoints missing from the distributed archive. All nine were restored from the original development recipe at 16 Torch CPU threads, with exact checkpoint hashes and validation traces and no final-data access. Seven completed four-thread attempts differed and were rejected; the interrupted four-thread physical-GRU attempt was not admitted. `cross_domain_checkpoint_restoration_review_v1_2.json` retains that history. All 18 original checkpoints and the byte-identical frozen OS base input are now packaged under `artifacts/cross-domain-inference-v1.2/` and bound by `cross_domain_inference_archive_v1_2.json`.
+
+The separate archived-inference wrapper reconstructs the same already-opened deterministic rows, recomputes all original domain records, common-episode tables, and attribution sensitivity diagnostics, and compares them exactly to the retained results. All eight checks pass. It uses temporary storage for the compressed base input, requires no local `target/` data or historical Git objects, and does not write the old results, retrain, select thresholds, open new final seeds, or execute QEMU or the external simulator. This is reproduction of historical evidence, not new confirmatory evidence; the producer and checker share numerical routines.
+
+The older Safety-Gymnasium audits additionally require historical Git objects and a separate locked environment: Python 3.10.20, Safety-Gymnasium 1.0.0, Gymnasium 0.28.1, Gymnasium-Robotics 1.2.2, MuJoCo 2.3.3, NumPy 1.23.5, and pygame 2.1.0. They are not included in the minimal clean-source audit. The umbrella checker reads prior verification records rather than repeating their experiments; several legacy checkers write their default report paths. Inspect their prerequisites and redirect supported outputs before running them against a frozen release.
 
 ```powershell
-# Recompute or validate committed evidence; no new final simulator execution
-python scripts/verify_cross_domain_world_models.py
-python scripts/verify_cross_domain_learned_contribution.py
-python scripts/verify_cross_domain_world_model_posthoc_sensitivity_v1.py
-python scripts/verify_physical_jepa_safety_gymnasium_v14.py
-python scripts/verify_physical_jepa_safety_gymnasium_paired_uncertainty.py
-target\safety-gymnasium-venv\Scripts\python.exe scripts/verify_physical_jepa_safety_gymnasium_attribution_v1.py
-target\safety-gymnasium-venv\Scripts\python.exe scripts/verify_physical_jepa_safety_gymnasium_output_ablation_recovery_v3.py
-python scripts/verify_cross_domain_world_model_improvement_study.py
+# From the repository root; Python 3.12 in a fresh environment
+python -m pip install -r requirements-prediction-report-v1_2.txt
+# Read-only audits; no retraining or new final simulator execution
+python scripts/verify_cross_domain_archived_inference_v1_2.py
 python scripts/verify_incident_dynamics_portable_v2.py
 python -m unittest discover -s scripts -p test_incident_dynamics.py
+python -m unittest discover -s scripts -p "test_prediction_report*.py"
 python scripts/verify_cross_domain_world_model_paper_v1_2.py
-cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc
-cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
-
-# Rerun only under a new prospective protocol and output paths
-# node scripts/verify_world_model_combined_gate.mjs
-# target\safety-gymnasium-venv\Scripts\python.exe scripts/evaluate_physical_jepa_safety_gymnasium_attribution_v1.py
 ```
+
+The paper checker is read-only by default: it refuses changed release bindings and preserves the retained records on any failed check. UTF-8 text bindings permit only LF/CRLF conversion; PDF, checkpoint, and catalog digests remain byte-exact. For deliberate prepublication authoring only, build with `python scripts/build_prediction_is_not_permission_v1_2.py`, visually inspect the PDF, then explicitly use the paper checker's `--refresh` option. Never refresh to make an unexplained mismatch pass. The generic shared builder's defaults target a different report. After publication, changes require a new version rather than refreshing this release.
 
 The attribution verifier recomputes every aggregate from 128 per-seed summaries, checks all four compressed row catalogs, exact seed membership, 10,000 paired resamples, adapter/protocol digests, locked runtime source, zero actuator authority, and non-promotion. The output-ablation v3 verifier performs the analogous retained-catalog recomputation for both arms and 51 provenance, toolchain, authority, and interpretation checks without simulator execution; it validates the historical report blob at the recovery registration commit rather than treating later report versions as experimental drift. The post-hoc verifier independently reconstructs the common-episode rollouts, adjusted intervals, leave-one-out results, and common-proposal scores. The authority inventory records 9/9 neural-protocol and 128/128 physical-runtime tests while distinguishing them from QEMU evidence. The paper verifier recomputes the seven-endpoint and 11-output Bonferroni sensitivities and checks required claim boundaries, PDF metadata, figures, tables, page count, source/PDF digests, and the evidence snapshot.
 
@@ -628,7 +626,7 @@ The umbrella record protects four deployed objects: the FerrumOS encoder, Ferrum
 
 #### B.3 Reproduction order
 
-A reviewer can begin with `verify_cross_domain_world_model_improvement_study.py`, which checks the original subordinate verification records and protected digests. For deeper inspection, the architecture and learned-contribution verifiers expose selection-access logs and final-open accounting; runtime verifiers expose no-execution and source-disk checks; physical verifiers expose actuator-authority counters and result attribution. Run `verify_physical_jepa_safety_gymnasium_output_ablation_recovery_v3.py` separately because the output ablation postdates the original umbrella record; it validates the recovery record, historical report blob, both retained catalogs, and all paired effects without simulator execution. The final v1.2 paper verifier then checks that the manuscript says what the evidence permits, not merely that a PDF exists.
+Start with the read-only commands and explicit availability limits in Section 11. The archived-inference wrapper reproduces the old architecture and sensitivity records from the completed checkpoint archive; the incident-dynamics portable verifier recomputes its separate evidence; the paper verifier checks the retained release without rewriting its freeze. For runtime studies, inspect selection-access logs, final-open accounting, no-execution records, and actuator-authority counters as retained evidence. The separate output-ablation v3 verifier needs its historical Git blob and locked runtime. A prior verifier's recorded pass is not a fresh independent execution, and the paper checker's bounded assertions are not a general proof of scientific validity.
 
 #### B.4 Archival boundary
 
@@ -721,7 +719,7 @@ The selected physical ensemble's validation score is 0.0053222; OS ridge's is 0.
 
 [1] A. Bardes, Q. Garrido, J. Ponce, X. Chen, M. Rabbat, Y. LeCun, M. Assran, and N. Ballas. "Revisiting Feature Prediction for Learning Visual Representations from Video." arXiv:2404.08471, 2024. https://arxiv.org/abs/2404.08471
 
-[2] A. Bardes et al. "V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning." arXiv:2506.09985, 2025. https://arxiv.org/abs/2506.09985
+[2] M. Assran et al. "V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning." arXiv:2506.09985, 2025. https://arxiv.org/abs/2506.09985
 
 [3] G. Zhou et al. "DINO-WM: World Models on Pre-trained Visual Features enable Zero-shot Planning." arXiv:2411.04983, 2024. https://arxiv.org/abs/2411.04983
 
@@ -735,7 +733,7 @@ The selected physical ensemble's validation score is 0.0053222; OS ridge's is 0.
 
 [8] J. T. Slagel, L. M. White, A. Dutle, C. Muñoz, and N. Crespo. "A Formal Verification Framework for Runtime Assurance." NASA Formal Methods, LNCS 14627, pp. 322–328, 2024. https://doi.org/10.1007/978-3-031-60698-4_19
 
-[9] J. T. Slagel, L. M. White, A. Dutle, C. Muñoz, and N. Crespo. "A Verification Framework for Runtime Assurance of Autonomous UAS." 43rd Digital Avionics Systems Conference, 2024. https://shemesh.larc.nasa.gov/fm/plaidypvs/
+[9] J. T. Slagel, L. M. White, A. Dutle, C. Muñoz, and N. Crespo. "A Verification Framework for Runtime Assurance of Autonomous UAS." 43rd Digital Avionics Systems Conference, 2024. https://ntrs.nasa.gov/citations/20240007986
 
 [10] L. Yang, B. Werner, R. K. Cosner, D. Fridovich-Keil, P. Culbertson, and A. D. Ames. "SHIELD: Safety on Humanoids via CBFs In Expectation on Learned Dynamics." arXiv:2505.11494, 2025. https://arxiv.org/abs/2505.11494
 
@@ -751,7 +749,7 @@ The selected physical ensemble's validation score is 0.0053222; OS ridge's is 0.
 
 [16] Vyom Kulshrestha. "Learned Caution, Deterministic Authority: An Action-Conditioned JEPA Safety Runtime for Cyber-Physical Systems." Technical Report v1.1, 2026. https://doi.org/10.5281/zenodo.22092356
 
-[17] Safety-Gymnasium Contributors. "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark." Thirty-seventh Conference on Neural Information Processing Systems Datasets and Benchmarks Track, 2023. https://openreview.net/forum?id=WZmlxIuIGR
+[17] J. Ji et al. "Safety Gymnasium: A Unified Safe Reinforcement Learning Benchmark." Thirty-seventh Conference on Neural Information Processing Systems Datasets and Benchmarks Track, 2023. https://openreview.net/forum?id=WZmlxIuIGR
 
 [18] T. Zheng et al. "Dream-RSI: Recursive Self-Improvement through Evolving Worlds." arXiv:2609.14858v1, 2026. https://arxiv.org/html/2609.14858v1
 

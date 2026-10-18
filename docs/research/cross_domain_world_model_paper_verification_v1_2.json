@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "325e475cb2fb201e0560fc65169d7c16c78a668ce2f88bf0199cd594ef218325"
+      "sha256": "a79fa5a81a01203067c7e4f2452242a72560a88aa986ac67210132f7a1f59cf2"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "80c192a90e59bdd21de357018204250081b5339b4f37f30060c84cdbcf24656d"
+      "sha256": "8b79f0746e3c477cd6023802f8ad0634f57f5e247ce83ba51c40244cbf14b7e0"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "7512f6cf92604445d193e128d3aea5c03a584fc3546a902668b4a37d61b64050"
+      "sha256": "21c7433d119736318c6749a60334a0f61929a160631714a825ac5a07241265ec"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -81,6 +81,8 @@
     "external_scope_and_nonpromotion_honest": true,
     "external_verification_confirms_all_gates": true,
     "forbidden_placeholders_and_review_wording_absent": true,
+    "historical_18_archived_checkpoints_and_base_input_bound": true,
+    "historical_archived_inference_eight_checks_pass": true,
     "incident_clean_archive_audit_matches": true,
     "incident_four_adjusted_prediction_contrasts_pass": true,
     "incident_models_and_thresholds_unchanged_in_amendment": true,
@@ -89,9 +91,12 @@
     "incident_primary_and_warning_gates_pass": true,
     "incident_primary_table_matches_result": true,
     "incident_six_historical_guards_pass": true,
+    "incident_source_strata_confound_reported": true,
+    "incident_strong_control_context_correct": true,
     "incident_verification_bound_and_48_checks_pass": true,
     "incident_warning_table_matches_counts": true,
     "intervention_precision_recomputed": true,
+    "matched_study_collapse_limit_reported": true,
     "output_ablation_all_output_family_same_survivors": true,
     "output_ablation_failed_v1_retained": true,
     "output_ablation_headline_effects_exact": true,
@@ -115,6 +120,8 @@
     "posthoc_sensitivity_recomputes_and_is_nonpromotable": true,
     "protected_deployed_artifacts_unchanged": true,
     "public_graphic_uses_typographic_evidence_chain": true,
+    "reproduction_scope_and_read_only_contract_reported": true,
+    "restoration_failures_retained_and_no_final_access": true,
     "risk_source_attribution_authority_disabled": true,
     "risk_source_attribution_verified": true,
     "source_required_phrases_present": true,
@@ -138,7 +145,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "325e475cb2fb201e0560fc65169d7c16c78a668ce2f88bf0199cd594ef218325",
+    "freeze_manifest_sha256": "a79fa5a81a01203067c7e4f2452242a72560a88aa986ac67210132f7a1f59cf2",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -303,7 +310,7 @@
     ],
     "pdf_missing_source_urls": [],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 33,
+    "pdf_pages": 34,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -335,11 +342,11 @@
       "writes await confirmation": true
     },
     "pdf_typography": {
-      "character_share_at_least_9_4_points": 0.706707077986075,
+      "character_share_at_least_9_4_points": 0.7214020994223483,
       "dominant_body_font_size_points": 9.5,
       "maximum_first_page_font_size_points": 21.5
     },
-    "pdf_words_extracted": 14111,
+    "pdf_words_extracted": 14581,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -373,7 +380,8 @@
       30,
       31,
       32,
-      33
+      33,
+      34
     ],
     "public_graphic_uses_typographic_evidence_chain": true,
     "source_required_phrases": {
@@ -400,7 +408,7 @@
       "Recovery protocol v2 reused the retained catalogs without simulator execution": true,
       "Registered incident-informed prediction and warning improvement": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
-      "Safety-Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
+      "Safety Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
       "Source identities are assigned to generated episodes; they do not cause distinct learned transition laws.": true,
       "Table 2 reports the complete post-hoc common-episode comparison": true,
       "Technical Report v1.2 - 18 October 2026": true,
