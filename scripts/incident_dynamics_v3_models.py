@@ -326,7 +326,11 @@ class FrozenV2Base(nn.Module):
         if self.kind == "ridge":
             x = plain_features(states, actions, self.scale)
             ids = actions[:, -1, :self.ridge.shape[0]].argmax(1)
-            return torch.einsum("bf,bfs->bs", x, self.ridge[ids])
+            out = x.new_zeros((len(x), self.ridge.shape[2]))
+            for action in torch.unique(ids):
+                selected = ids == action
+                out[selected] = x[selected] @ self.ridge[action]
+            return out
         self.members.eval()
         return torch.stack([member(states, actions)[0] for member in self.members]).mean(0)
 
@@ -350,7 +354,57 @@ class BoostedV2(UncertainAR):
         return self
 
 
+class EffectDrift(UncertainAR):
+    """Effect-drift decomposition with in-context drift identification.
+
+    delta(t) = E(s_t, a_t) + D(history) + C(history)
+      E: learned per-action effect network of the current state and action only.
+      D: drift identified in context: gated average of history residuals
+         r_j = observed change_j - E(s_{j-1}, a_{j-1}), with learned per-step, per-dimension
+         gates (so frozen or stale readings can be down-weighted) plus a learned trend term.
+      C: zero-initialised nonlinear correction and the Laplace scale head (UncertainAR body).
+    Nothing here encodes simulator coefficients; E, the gates and C are all fitted.
+    """
+
+    def __init__(self, spec, hidden=256, encoder="mlp"):
+        super().__init__(spec, hidden, encoder)
+        width = spec.state_size + spec.action_size
+        self.effect = nn.Sequential(nn.Linear(width, hidden), nn.SiLU(), nn.Linear(hidden, hidden), nn.SiLU())
+        self.effect_heads = nn.Linear(hidden, self.count * spec.state_size)
+        nn.init.zeros_(self.effect_heads.weight)
+        nn.init.zeros_(self.effect_heads.bias)
+        self.gate = nn.Sequential(nn.Linear(3 * spec.state_size + 1, 64), nn.SiLU(), nn.Linear(64, spec.state_size))
+        self.position = nn.Parameter(torch.linspace(-1.0, 0.0, spec.history - 1)[:, None].repeat(1, spec.state_size))
+        self.trend = nn.Parameter(torch.zeros(spec.state_size))
+
+    def effect_of(self, s, a):
+        z = self.effect(torch.cat((s, a), -1))
+        heads = self.effect_heads(z).view(*s.shape[:-1], self.count, self.spec.state_size)
+        return (heads * a[..., :self.count, None]).sum(-2)
+
+    def step(self, states, actions, mask):
+        s = states / self.scale
+        current = self.effect_of(s[:, -1], actions[:, -1])
+        observed = s[:, 1:] - s[:, :-1]
+        expected = self.effect_of(s[:, :-1], actions[:, :-1])
+        residual = observed - expected
+        pair = (mask[:, 1:] * mask[:, :-1])[..., None]
+        gate_in = torch.cat((observed, residual, (observed.abs() < 1e-7).float(), pair), -1)
+        logits = self.gate(gate_in) + self.position
+        logits = logits.masked_fill(pair < 0.5, -1e4)
+        weights = torch.softmax(logits, 1) * (pair.sum(1, keepdim=True) > 0)
+        drift = (weights * residual).sum(1)
+        trend = residual[:, -1] - residual[:, -2] if residual.shape[1] > 1 else torch.zeros_like(drift)
+        trend = trend * (pair[:, -1] * pair[:, -2] if residual.shape[1] > 1 else 0)
+        correction, log_b = super().step(states, actions, mask)
+        return current + drift + self.trend * trend + correction, log_b
+
+
 def make(method, spec, hidden, ridge_weights=None):
+    if method == "edd":
+        return EffectDrift(spec, hidden, "mlp")
+    if method == "edd_attention":
+        return EffectDrift(spec, hidden, "attention")
     if method == "boost_v2":
         return BoostedV2(spec, hidden, "mlp")
     if method == "boost_v2_attention":
@@ -404,7 +458,9 @@ def macro_errors(predicted, data, spec):
 
 
 def train(method, spec, train_data, validation, seed, updates=12000, batch=512, lr=1e-3, hidden=256,
-          device="cuda", log=None, weights=None, init=None):
+          device="cuda", log=None, weights=None, init=None, select_fn=None, evaluate_every=500):
+    """select_fn(model) -> score (lower is better) chooses the retained checkpoint; boosted
+    models are also scored at update 0 so they never select a state worse than the frozen base."""
     torch.manual_seed(seed)
     np.random.seed(seed)
     ridge_weights = plain_ridge_fit(train_data, spec) if method in ("hybrid_residual", "uar_hybrid", "uar_hybrid_attention") and init is None else None
@@ -421,6 +477,23 @@ def train(method, spec, train_data, validation, seed, updates=12000, batch=512, 
     sample_weights = None if weights is None else torch.as_tensor(weights, dtype=torch.float32)
     best, best_state, trace = float("inf"), None, []
     started = time.monotonic()
+
+    def evaluate(update, loss_value):
+        nonlocal best, best_state
+        model.eval()
+        metrics = macro_errors(predict(model, validation), validation, spec)
+        score = select_fn(model) if select_fn else sum(metrics.values()) / 3
+        model.train()
+        record = {"update": update, "loss": loss_value, "selection_score": score,
+                  "elapsed_seconds": round(time.monotonic() - started, 1), **metrics}
+        trace.append(record)
+        if log:
+            log(json.dumps({"method": method, "seed": seed, **record}))
+        if score < best:
+            best, best_state = score, copy.deepcopy(model.state_dict())
+
+    if method.startswith("boost") or init is not None:
+        evaluate(0, None)
     for update in range(1, updates + 1):
         if sample_weights is None:
             index = torch.randint(len(states), (batch,), generator=generator)
@@ -440,18 +513,8 @@ def train(method, spec, train_data, validation, seed, updates=12000, batch=512, 
         optimizer.step()
         for group in optimizer.param_groups:
             group["lr"] = lr * (.05 + .95 * (1 + np.cos(np.pi * update / updates)) / 2)
-        if update % 500 == 0 or update == updates:
-            model.eval()
-            metrics = macro_errors(predict(model, validation), validation, spec)
-            model.train()
-            score = sum(metrics.values()) / 3
-            record = {"update": update, "loss": float(loss.detach()), "selection_score": score,
-                      "elapsed_seconds": round(time.monotonic() - started, 1), **metrics}
-            trace.append(record)
-            if log:
-                log(json.dumps({"method": method, "seed": seed, **record}))
-            if score < best:
-                best, best_state = score, copy.deepcopy(model.state_dict())
+        if update % evaluate_every == 0 or update == updates:
+            evaluate(update, float(loss.detach()))
     model.load_state_dict(best_state)
     model.eval()
     return model, {"trace": trace, "selected_score": best,

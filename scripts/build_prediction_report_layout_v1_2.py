@@ -1451,10 +1451,10 @@ def build(
             flush_paragraph()
             index += 1
             continue
-        if re.match(r"^Table \d+\. ", line):
+        if re.match(r"^Table [A-D]?\d+\. ", line):
             # Numbered caption rendered above the next table and kept with it.
             flush_paragraph()
-            pending_caption.append(re.sub(r"^(Table \d+\.)", r"**\1**", line.strip()))
+            pending_caption.append(re.sub(r"^(Table [A-D]?\d+\.)", r"**\1**", line.strip()))
             index += 1
             continue
         if line.startswith("# "):

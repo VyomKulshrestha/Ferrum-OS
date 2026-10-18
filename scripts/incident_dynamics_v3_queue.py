@@ -16,12 +16,24 @@ import incident_dynamics_v3_data as v3
 INFRA = v3.WORK / "infrastructure_failures.jsonl"
 
 
+def gpu_trials_running():
+    """Count running trial processes that use the GPU (any trial without --device cpu)."""
+    command = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like "
+               "'*incident_dynamics_v3_trial*' -and $_.CommandLine -notlike '*--device cpu*' } | Measure-Object | "
+               "Select-Object -ExpandProperty Count")
+    output = subprocess.run(["powershell", "-NoProfile", "-Command", command], capture_output=True, text=True).stdout.strip()
+    return int(output or 0)
+
+
 def main():
     queue = Path(sys.argv[1])
     for line in queue.read_text().splitlines():
         if not line.strip() or line.startswith("#"):
             continue
         args = line.split()
+        if "cpu" not in args:
+            while gpu_trials_running():
+                time.sleep(20)
         for attempt in range(3):
             started = time.time()
             process = subprocess.run([sys.executable, "-u", "incident_dynamics_v3_trial.py", *args],

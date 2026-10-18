@@ -148,84 +148,116 @@ def world_rows(domain, mechanism, strength, partition, episodes, seed):
     return v3.mechanism_rows(domain, partition, [mechanism], episodes, seed, strength_range=strength)
 
 
-def rsi_curriculum(domain, method, seed, rounds=4, candidates_per_round=3, updates_per_round=4000,
-                   hidden=256, device="cuda", log=print):
+def split_by_source(data):
+    return {name: v3.Windows(**{k: getattr(data, k)[data.sources == name] for k in v3.Windows.__dataclass_fields__})
+            for name in np.unique(data.sources)}
+
+
+def neural_family(method, hidden=256, device="cuda", bootstrap_updates=8000, round_updates=4000):
+    def fit(domain, data, weights, seed, init, select):
+        spec = v3.spec_for(domain, HISTORY)
+        updates = bootstrap_updates if init is None else round_updates
+        validation = combined_validation(domain)
+        return models.train(method, spec, data, validation, seed, updates=updates, hidden=hidden, device=device,
+                            weights=weights, init=init, select_fn=select)[0]
+    return fit, models.predict
+
+
+def gbr_family(trees=600, leaves=63, learning_rate=0.05, direct=False):
+    import incident_dynamics_v3_gbr as gbr
+
+    def fit(domain, data, weights, seed, init, select):
+        w = np.ones(len(data.states)) if weights is None else weights / weights.mean()
+        family = gbr.GBRDirect if direct else gbr.GBRModel
+        return family(domain, HISTORY).fit(data, w, seed, n_estimators=trees, learning_rate=learning_rate,
+                                                 num_leaves=leaves, log=lambda line: None)
+    return fit, lambda model, data: model.predict(data)
+
+
+def rsi_curriculum(domain, family, seed, rounds=4, candidates_per_round=3, log=print, incident_weight=1.0):
+    """Dream-RSI-inspired evolving-world curriculum for any model family.
+
+    Round 0 fits on exactly the uniform-curriculum data. Each later round probes mutated development
+    worlds with the current model, adds the worst-predicted worlds to the pool, fits candidate
+    continuations under three pool-weighting rules, scores every candidate (and the unchanged current
+    model) by replay on the stored validation samples of all worlds, and keeps the best.
+    """
+    import evaluate_incident_dynamics_development as v2dev
+    fit, predict = family
     spec = v3.spec_for(domain, HISTORY)
     base = training_set(domain, include_mechanisms=False)
-    validation = combined_validation(domain)
-    rng = np.random.default_rng(seed)
-    # Initial pool: every development mechanism at its registered default strength range.
-    cells = [(m, (0.6, 1.4)) for m in v3.DEV_MECHANISMS[domain]]
-    mutations = [(m, r) for m in v3.DEV_MECHANISMS[domain] for r in ((0.3, 0.8), (1.2, 2.0), (1.8, 2.6))]
-    pool, replay, history = [], {}, []
+    mech_train, mech_val = load(domain, "mech_train"), load(domain, "mech_validation")
+    pool = [(f"{name}@0.6-1.4", data) for name, data in split_by_source(mech_train).items()]
+    replay = {f"{name}@0.6-1.4": data for name, data in split_by_source(mech_val).items()}
+    mutations = [(m, r) for m in v3.DEV_MECHANISMS[domain] for r in ((0.2, 0.6), (1.4, 2.0), (2.0, 2.8))]
+    reference, history = {}, []
+    select = lambda model: selection_score(lambda data: predict(model, data), domain)["selection_score"]
 
-    def add_world(cell, index):
-        mechanism, strength = cell
-        key = f"{mechanism}@{strength[0]}-{strength[1]}"
-        train_rows = world_rows(domain, mechanism, strength, f"rsi-train-{index}", 240, SEEDS["train"] + 7 * index)
-        val_rows = world_rows(domain, mechanism, strength, f"rsi-val-{index}", 48, SEEDS["validation"] + 7 * index)
-        pool.append((key, v3.windows(train_rows, spec)))
-        replay[key] = v3.windows(val_rows, spec, complete=True)
+    def error(model, data):
+        return sum(models.macro_errors(predict(model, data), data, spec).values())
 
-    for index, cell in enumerate(cells):
-        add_world(cell, index)
-    current = None
-    reference = {}
+    def relative_to_persistence(model, data):
+        persistence = sum(models.macro_errors(v2dev.simple_predictions(data, "persistence"), data, spec).values())
+        return error(model, data) / max(persistence, 1e-12)
 
     def replay_score(model):
-        scores = []
+        values = []
         for key, data in replay.items():
-            value = models.macro_errors(models.predict(model, data), data, spec)
-            raw = sum(value.values()) / 3
-            # Normalise by the first-round reference so no single world dominates.
+            raw = error(model, data)
             reference.setdefault(key, raw)
-            scores.append(raw / max(reference[key], 1e-9))
-        base_values = models.macro_errors(models.predict(model, validation), validation, spec)
-        return float(np.mean(scores)), sum(base_values.values()) / 3
+            values.append(raw / max(reference[key], 1e-12))
+        return float(np.mean(values))
 
-    for round_index in range(rounds):
-        mixtures = {"uniform": None, "error_weighted": "error", "recent": "recent"}
-        trained = []
-        world_data = v3.concat(*[data for _, data in pool])
-        world_ids = np.concatenate([[i] * len(data.states) for i, (_, data) in enumerate(pool)])
-        for name, rule in list(mixtures.items())[:candidates_per_round]:
-            train_data = v3.concat(base, world_data)
-            weights = np.ones(len(train_data.states), np.float64)
-            offset = len(base.states)
-            if rule == "error" and current is not None:
-                errs = []
-                for key, _ in pool:
-                    data = replay[key]
-                    errs.append(sum(models.macro_errors(models.predict(current, data), data, spec).values()) / 3 / reference.get(key, 1))
-                weights[offset:] = np.asarray(errs)[world_ids] / np.mean(errs)
-            elif rule == "recent":
-                weights[offset:] = 1 + (world_ids >= len(pool) - candidates_per_round)
-            candidate, info = models.train(method, spec, train_data, validation, seed + 100 * round_index,
-                                           updates=updates_per_round, hidden=hidden, device=device,
-                                           weights=weights / weights.sum(), init=current)
-            score, base_score = replay_score(candidate)
-            trained.append((score, name, candidate, info, base_score))
-            log(json.dumps({"round": round_index, "candidate": name, "replay_score": score, "validation_score": base_score}))
-        if current is not None:
-            score, base_score = replay_score(current)
-            trained.append((score, "keep_current", current, None, base_score))
-        trained.sort(key=lambda item: (item[0], item[1]))
-        best = trained[0]
-        current = best[2]
-        history.append({"round": round_index, "selected": best[1], "replay_score": best[0], "validation_score": best[4],
-                        "pool": [key for key, _ in pool]})
-        log(json.dumps(history[-1]))
-        # Online probe: evolve the world pool toward the mutations the current model predicts worst.
+    def pooled(rule, current):
+        world = v3.concat(*[data for _, data in pool])
+        ids = np.concatenate([[i] * len(data.states) for i, (_, data) in enumerate(pool)])
+        data = v3.concat(base, world)
+        incident = np.array([e.startswith(("new:", "v3:")) for e in data.episodes])
+        weights = np.where(incident, incident_weight, 1.0).astype(np.float64)
+        offset = len(base.states)
+        if rule == "error":
+            errs = np.asarray([relative_to_persistence(current, replay[key]) for key, _ in pool])
+            weights[offset:] *= (errs / errs.mean())[ids]
+        elif rule == "recent":
+            weights[offset:] *= np.where(ids >= len(pool) - candidates_per_round, 2.0, 1.0)
+        return data, weights / weights.sum()
+
+    data, weights = pooled("uniform", None)
+    current = fit(domain, data, weights, seed, None, select)
+    history.append({"round": 0, "selected": "bootstrap_uniform", "replay_score": replay_score(current)})
+    log(json.dumps(history[-1]))
+    for round_index in range(1, rounds):
         probes = []
-        for cell in mutations:
-            if any(key.startswith(f"{cell[0]}@{cell[1][0]}-") for key, _ in pool):
+        for mechanism, strength in mutations:
+            key = f"{mechanism}@{strength[0]}-{strength[1]}"
+            if key in replay:
                 continue
-            rows = world_rows(domain, cell[0], cell[1], f"probe-{round_index}", 32, SEEDS["probe"] + round_index)
-            data = v3.windows(rows, spec, complete=True)
-            probes.append((sum(models.macro_errors(models.predict(current, data), data, spec).values()) / 3, cell))
-        probes.sort(key=lambda item: -item[0])
-        for k, (_, cell) in enumerate(probes[:candidates_per_round]):
-            add_world(cell, len(pool) + 100 * (round_index + 1) + k)
+            rows = v3.mechanism_rows(domain, f"rsi-probe-{round_index}", [mechanism], 32, SEEDS["probe"] + round_index,
+                                     strength_range=strength)
+            probe = v3.windows(rows, spec, complete=True)
+            probes.append((relative_to_persistence(current, probe), key, mechanism, strength))
+        probes.sort(key=lambda item: (-item[0], item[1]))
+        for k, (_, key, mechanism, strength) in enumerate(probes[:candidates_per_round]):
+            offset = 1000 * round_index + k
+            train_rows = v3.mechanism_rows(domain, f"rsi-train-{offset}", [mechanism], 240, SEEDS["train"] + offset,
+                                           strength_range=strength)
+            val_rows = v3.mechanism_rows(domain, f"rsi-val-{offset}", [mechanism], 48, SEEDS["validation"] + offset,
+                                         strength_range=strength)
+            pool.append((key, v3.windows(train_rows, spec)))
+            replay[key] = v3.windows(val_rows, spec, complete=True)
+        reference.clear()
+        replay_score(current)
+        candidates = [(1.0, "keep_current", current)]
+        for rule in ("uniform", "error", "recent")[:candidates_per_round]:
+            data, weights = pooled(rule, current)
+            candidate = fit(domain, data, weights, seed + 100 * round_index, current, select)
+            candidates.append((replay_score(candidate), rule, candidate))
+        candidates.sort(key=lambda item: (item[0], item[1]))
+        score, name, current = candidates[0]
+        history.append({"round": round_index, "selected": name, "replay_score": score,
+                        "candidates": {n: v for v, n, _ in candidates},
+                        "added_worlds": [p[1] for p in probes[:candidates_per_round]], "pool_size": len(pool)})
+        log(json.dumps(history[-1]))
     return current, {"rounds": history, "worlds": list(replay)}
 
 
