@@ -19,6 +19,6 @@
   "torch_cpu_threads": 16,
   "verifier": {
     "path": "scripts/verify_cross_domain_archived_inference_v1_2.py",
-    "sha256": "cdad6259f7437d3ad83047829d4c5f777f00eb9d5f8e505d9ba7f90002880cd5"
+    "sha256": "9e6f1f31efce5e2392ea9c3307fecea7bd6b7de86df3dc44874c6593d64d7e5e"
   }
 }

@@ -49,6 +49,27 @@ def metadata_matches(item: dict) -> bool:
     }
 
 
+def portable_attribution_analysis(protocol: dict) -> dict:
+    """Apply newline equivalence only to the four registered JSON adapters."""
+    attribution = architecture.load_json(ROOT / protocol["inputs"]["attribution_protocol"]["path"])
+    adapters = {(ROOT / item["path"]).resolve(): item
+                for item in attribution["risk_source_variants"]}
+    for item in adapters.values():
+        if not metadata_matches(item):
+            raise AssertionError(f"attribution adapter content drift: {item['path']}")
+    original_digest = sensitivity.sha256
+
+    def registered_adapter_digest(path: Path) -> str:
+        item = adapters.get(path.resolve())
+        return item["sha256"] if item and metadata_matches(item) else digest(path)
+
+    try:
+        sensitivity.sha256 = registered_adapter_digest
+        return sensitivity.attribution_analysis(protocol)
+    finally:
+        sensitivity.sha256 = original_digest
+
+
 def pack() -> None:
     if MANIFEST.exists() or ARCHIVE.exists():
         raise FileExistsError("retain the existing archive; do not overwrite it")
@@ -152,7 +173,7 @@ def verify() -> dict:
                 posthoc_protocol["randomness"]["resamples"])
             checks[f"{domain}_common_episode_record_exact"] = canonical(common) == canonical(
                 posthoc["common_episode_horizon_analysis"]["domains"][domain])
-    checks["attribution_diagnostics_exact"] = canonical(sensitivity.attribution_analysis(posthoc_protocol)) == canonical(posthoc["attribution_diagnostics"])
+    checks["attribution_diagnostics_exact"] = canonical(portable_attribution_analysis(posthoc_protocol)) == canonical(posthoc["attribution_diagnostics"])
     checks["protected_deployed_bytes_unchanged"] = protected == architecture.verify_digest_map(
         protocol["protected_deployed_artifacts"])
     report = {"all_checks_pass": all(checks.values()), "checks": checks,

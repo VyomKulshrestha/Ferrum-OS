@@ -10,7 +10,7 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "a79fa5a81a01203067c7e4f2452242a72560a88aa986ac67210132f7a1f59cf2"
+      "sha256": "ef447b7a453cd9f5c3e5ab2285dedbc2254c2046aaaafeff0267416afa9bc746"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
@@ -145,7 +145,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "a79fa5a81a01203067c7e4f2452242a72560a88aa986ac67210132f7a1f59cf2",
+    "freeze_manifest_sha256": "ef447b7a453cd9f5c3e5ab2285dedbc2254c2046aaaafeff0267416afa9bc746",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,

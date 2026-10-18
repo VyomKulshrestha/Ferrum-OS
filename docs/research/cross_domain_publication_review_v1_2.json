@@ -1,0 +1,57 @@
+{
+  "schema": "cross-domain-publication-review-v1.2",
+  "review_date": "2026-10-18",
+  "verdict": "Ready as a bounded systems/evaluation technical report or preprint after these corrections; not evidence of a new world-model algorithm, beneficial deployed interventions, or validated physical safety.",
+  "findings_fixed": [
+    {
+      "finding": "The matched-study methods claimed explicit rejection of constant representations, but selection checked prediction finiteness without a retained latent-collapse diagnostic.",
+      "fix": "Removed the unsupported rejection claim and stated the diagnostic limitation. Frozen training code and results are unchanged."
+    },
+    {
+      "finding": "Headline relative gains against old ensembles lacked immediate strongest-control context.",
+      "fix": "Added descriptive H5 gains versus OS persistence (55.35%) and physical same-data JEPA (15.42%), including their non-primary status and the physical comparison's failure to meet a 20% effect size."
+    },
+    {
+      "finding": "Assigned source-label strata are confounded with the generator's pressure regimes.",
+      "fix": "Disclosed the modulo-two/modulo-four assignment and excluded source-specific transfer claims. No relabelling or test regeneration."
+    },
+    {
+      "finding": "Bibliographic attribution and a source locator needed correction.",
+      "fix": "Corrected V-JEPA 2 to M. Assran et al., Safety Gymnasium to J. Ji et al. with its official title, and replaced the generic NASA project locator with the paper's NTRS record."
+    },
+    {
+      "finding": "Nine legacy checkpoints and the frozen base dataset were not distributed with the clean-source audit; the dependency list omitted Torch.",
+      "fix": "Restored the nine checkpoints byte-exactly from development data, archived all 18 and the exact base input, added pinned direct dependencies, and reproduced complete historical records and sensitivity diagnostics. Failed restoration attempts are retained separately."
+    },
+    {
+      "finding": "The paper verifier overwrote its freeze records by default, and legacy adapter hashing was checkout-dependent.",
+      "fix": "Made release checking read-only and fail-closed, restricted refresh to explicit prepublication use, and added a narrow newline-compatible adapter audit wrapper with tamper and restoration tests."
+    }
+  ],
+  "verification": {
+    "paper_checks_passed": 59,
+    "incident_inference_checks_passed": 48,
+    "historical_inference_checks_passed": 8,
+    "regression_tests_passed": 29,
+    "rendered_and_visually_reviewed_pdf_pages": 34,
+    "pdf_sha256": "21c7433d119736318c6749a60334a0f61929a160631714a825ac5a07241265ec",
+    "clean_source_base_commit": "e39f35468cabb52c81e47a6494ae1e6bbcde59e8",
+    "clean_source_overlay": "The final portable attribution wrapper, its tests, and refreshed verification/freeze records were copied into the source archive. The numerical wrapper hash is bound in cross_domain_archived_inference_verification_v1_2.json.",
+    "clean_source_had_git_history": false,
+    "clean_source_had_local_target_directory": false,
+    "initial_clean_source_failure": "The historical attribution helper rejected an LF checkout of a registered JSON adapter. The wrapper now permits only newline-equivalent text; all numerical comparisons remain exact.",
+    "read_only_checker_rejected_changed_release_without_rewriting_records": true,
+    "new_final_simulator_execution": false,
+    "fresh_dependency_install_tested": false,
+    "note": "Checks overlap and share producer routines; their count is not a count of independent replications. Clean-source audits used the installed Python 3.12 environment."
+  },
+  "remaining_research_limits": [
+    "No independent execution or externally controlled dynamics/labels for the new synthetic study.",
+    "No isolated causal attribution of gains to data, architecture, objective, ensembling, or calibration.",
+    "No demonstrated beneficial controller outcome or physical safety from the new warnings.",
+    "Older QEMU and external-simulator executions were not repeated; their audit prerequisites and evidence boundaries remain explicit."
+  ],
+  "publication_performed": false,
+  "push_performed": false,
+  "deployment_or_promotion_performed": false
+}

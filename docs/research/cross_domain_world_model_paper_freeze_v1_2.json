@@ -48,11 +48,11 @@
     },
     "historical_inference_verification": {
       "path": "docs/research/cross_domain_archived_inference_verification_v1_2.json",
-      "sha256": "cf85f585f63df0306c3cb43c3d4ae5cf6b18d608bb1cce3e71e3cfb86e2f9038"
+      "sha256": "04dff4e06574b3127e25bda4949bfd91679fa73bce1b7903fa159e69188eba51"
     },
     "historical_inference_verifier": {
       "path": "scripts/verify_cross_domain_archived_inference_v1_2.py",
-      "sha256": "cdad6259f7437d3ad83047829d4c5f777f00eb9d5f8e505d9ba7f90002880cd5"
+      "sha256": "9e6f1f31efce5e2392ea9c3307fecea7bd6b7de86df3dc44874c6593d64d7e5e"
     },
     "incident_dynamics_portable_verification_v2": {
       "path": "docs/research/incident_dynamics_portable_verification_v2.json",
