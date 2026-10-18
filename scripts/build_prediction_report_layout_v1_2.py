@@ -845,6 +845,38 @@ def column_widths(column_count: int, width: float) -> list[float]:
     return [width * value / total for value in fractions]
 
 
+def content_column_widths(lines: list[str], width: float, styles=None) -> list[float]:
+    """Reserve each column's longest word at the table font size, then share the rest by content length."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    table_rows, bold_rows = [], []
+    for line in lines:
+        raw = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if all(cell and set(cell) <= {"-", ":"} for cell in raw):
+            continue
+        table_rows.append([re.sub(r"[*`]", "", cell) for cell in raw])
+        bold_rows.append(["**" in cell for cell in raw])
+    body_style, header_style = styles["small"], styles["table_header"]
+    padding = 6.6 + 1.5
+
+    def measure(text, bold):
+        # Bold cells render in the bold face, which is wider than the regular body face.
+        return stringWidth(text, "ReportSans-Bold" if bold else body_style.fontName, body_style.fontSize)
+
+    minimum, weights = [], []
+    for column in range(len(table_rows[0])):
+        body = [(row[column], bold[column]) for row, bold in zip(table_rows[1:], bold_rows[1:]) if column < len(row)]
+        word = max([measure(w, b) for cell, b in body for w in cell.split()] + [0])
+        head = max([stringWidth(w, header_style.fontName, header_style.fontSize) for w in table_rows[0][column].split()] + [0])
+        minimum.append(max(word, head) + padding)
+        longest = max([measure(cell, b) for cell, b in body] + [0])
+        weights.append(max(min(longest, 46 * body_style.fontSize * 0.55) + padding - minimum[-1], 0.0) + 1.0)
+    spare = width - sum(minimum)
+    if spare <= 0:
+        return [width * value / sum(minimum) for value in minimum]
+    total = sum(weights)
+    return [low + spare * weight / total for low, weight in zip(minimum, weights)]
+
+
 def parse_table(
     lines: list[str], width: float, styles: dict[str, ParagraphStyle]
 ) -> Table:
@@ -857,7 +889,7 @@ def parse_table(
         rows.append([Paragraph(inline(cell), paragraph_style) for cell in cells])
     table = Table(
         rows,
-        colWidths=column_widths(len(rows[0]), width),
+        colWidths=content_column_widths(lines, width, styles),
         repeatRows=1,
         splitByRow=1,
         splitInRow=0,
@@ -995,7 +1027,7 @@ def build(
         styles["front_abstract"].fontName = "ReportSerif-Italic"
         styles["front_abstract"].fontSize = 9.4
         styles["front_abstract"].leading = 13.2
-        styles["front_abstract"].alignment = TA_JUSTIFY
+        styles["front_abstract"].alignment = TA_LEFT
         styles["front_abstract"].backColor = colors.HexColor("#F5F8FA")
         styles["front_abstract"].borderColor = colors.HexColor("#A9B9C8")
         styles["front_abstract"].borderWidth = 0.6

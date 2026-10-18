@@ -48,8 +48,8 @@ def pct(x):
     return f"{100 * x:.1f}%"
 
 
-def table_primary(result):
-    rows = ["| Population | Domain | Horizon | v2-selected MAE | v3-selected MAE | Reduction | v3 minus v2, 99.375% CI | Gate |",
+def table_primary(result, label="v3"):
+    rows = [f"| Population | Domain | Horizon | v2-selected MAE | {label}-selected MAE | Reduction | {label} minus v2, 99.375% CI | Gate |",
             "|---|---|---|---|---|---|---|---|"]
     for population in ("A", "B"):
         for domain in ("ferrumos", "physical"):
@@ -82,17 +82,17 @@ def table_controls(result):
     return "\n".join(rows)
 
 
-def table_warnings(result):
+def table_warnings(result, label="v3"):
     rows = ["| Population | Domain | Pipeline | TP / FP / TN / FN | Recall | FPR | Brier | Miss reduction | Gate |",
             "|---|---|---|---|---|---|---|---|---|"]
     for population in ("A", "B"):
         for domain in ("ferrumos", "physical"):
             data = result["domains"][domain]["populations"][population]
-            for name, label in (("v2-selected", "v2-selected, recalibrated"), ("selected", "v3-selected")):
+            for name, pipeline_label in (("v2-selected", "v2-selected, recalibrated"), ("selected", f"{label}-selected")):
                 w = data["methods"][name]["warning"]
                 tail = (f"{pct(data['warning']['miss_rate_reduction'])} | {'pass' if data['warning']['pass'] else 'fail'}"
                         if name == "selected" else "- | -")
-                rows.append(f"| {population} | {LABEL[domain]} | {label} | {w['tp']} / {w['fp']} / {w['tn']} / {w['fn']} | "
+                rows.append(f"| {population} | {LABEL[domain]} | {pipeline_label} | {w['tp']} / {w['fp']} / {w['tn']} / {w['fn']} | "
                             f"{pct(w['recall'])} | {100 * w['fpr']:.2f}% | {w['brier']:.4f} | {tail} |")
     return "\n".join(rows)
 
@@ -130,25 +130,39 @@ def table_development_trials():
         record = json.loads(Path(path).read_text(encoding="utf-8"))
         settings = record["settings"]
         groups[(settings["domain"], settings["trial_id"])].append(record)
-    family = {"ar_residual": "AR residual net", "boost_v2": "net correction on v2", "boost_v2_attention": "net correction on v2 (attention)",
-              "edd": "effect-drift net", "edd_attention": "effect-drift net (attention)", "uar_hybrid": "ridge + uncertainty net",
-              "gbr": "boosted correction on v2 (one-step)", "gbr_direct": "boosted correction on v2 (direct)"}
-    rows = ["| Domain | Configuration | Family | History | Weighting | Seeds | Score (v2 = 1) | Legacy | v2 incident | Mechanisms |",
+    family = {"ar_residual": "AR net", "boost_v2": "net on v2", "boost_v2_attention": "net on v2 (attn)",
+              "edd": "effect-drift net", "edd_attention": "effect-drift net (attn)", "uar_hybrid": "ridge + net",
+              "gbr": "trees on v2, one-step", "gbr_direct": "trees on v2, direct"}
+    rows = ["| Domain | Configuration | Family | H | Weighting | Seeds | Score | Legacy | Incident | Mechanism |",
             "|---|---|---|---|---|---|---|---|---|---|"]
     for (domain, name), records in sorted(groups.items()):
         s = records[0]["settings"]
-        weighting = "block-balanced" if s.get("block_balance") else (f"incident x{s.get('incident_weight', 1):g}" if s.get("incident_weight", 1) != 1 else "uniform")
+        weighting = "balanced" if s.get("block_balance") else (f"incident x{s.get('incident_weight', 1):g}" if s.get("incident_weight", 1) != 1 else "uniform")
         if s.get("curriculum") == "rsi":
-            weighting += ", evolving worlds"
+            weighting += ", RSI"
         if not s.get("mechanisms", 1):
-            weighting += ", no mechanism data"
+            weighting += ", no mech."
         if s.get("scale_model"):
-            weighting += ", + warning scale"
+            weighting += ", + scale"
         rescored = json.loads((ROOT / "target/incident-dynamics-v3/trial_rescores.json").read_text())
         scores = [rescored[f"{name}-s{r['seed']}.json"] for r in records]
         mean = lambda key: sum(x[key] for x in scores) / len(scores)
         rows.append(f"| {LABEL[domain]} | {name} | {family.get(s['method'], s['method'])} | {s['history']} | {weighting} | "
                     f"{', '.join(str(r['seed']) for r in sorted(records, key=lambda r: r['seed']))} | "
-                    f"{sum(x['selection_score'] for x in scores) / len(scores):.4f} | {mean('legacy_validation'):.3f} | "
+                    f"{sum(x['selection_score'] for x in scores) / len(scores):.3f} | {mean('legacy_validation'):.3f} | "
                     f"{mean('incident_validation'):.3f} | {mean('mech_validation'):.3f} |")
+    return "\n".join(rows)
+
+
+def table_v4_physical_lineage(result):
+    """Physical v4 against v3-selected and v2-selected on the fresh v4 populations and the historical guard."""
+    rows = ["| Evidence | Horizon | v2-selected | v3-selected (one-step) | v4-selected (direct) | v4 vs v2 | v4 vs v3 |", "|---|---|---|---|---|---|---|"]
+    domain = result["domains"]["physical"]
+    for population in ("A", "B"):
+        methods = domain["populations"][population]["methods"]
+        for h in ("h3", "h5"):
+            v2, v3s, v4 = (methods[n]["prediction"][h]["episode_macro_mae"] for n in ("v2-selected", "v3-selected", "selected"))
+            rows.append(f"| Population {population} | H={h[1]} | {v2:.6f} | {v3s:.6f} | {v4:.6f} | {pct(1 - v4 / v2)} | {pct(1 - v4 / v3s)} |")
+    for h, guard in domain["historical_guards"].items():
+        rows.append(f"| Historical guard | H={h[1]} | {guard['best_v2_or_paper']:.6f} | - | {guard['selected']:.6f} | {pct(-guard['relative_change'])} | - |")
     return "\n".join(rows)

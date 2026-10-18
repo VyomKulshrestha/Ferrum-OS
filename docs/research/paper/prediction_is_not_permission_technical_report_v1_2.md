@@ -1,8 +1,8 @@
 # Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority
 
-## Architecture-Controlled and Incident-Informed Evidence Across Two Runtime Domains
+## Architecture-Controlled and Incident-Motivated Evidence in Two Runtime Domains
 
-Technical Report v1.2 - 18 October 2026
+Technical Report v1.2 - 19 October 2026
 
 Vyom Kulshrestha
 Independent Researcher, India
@@ -14,11 +14,11 @@ Research artifact accompanying the FerrumOS world-model evidence lineage.
 
 ### Abstract
 
-World-model accuracy is not operational safety. This report separates six evidence objects: dynamics prediction, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority. An 18-run matched study in FerrumOS and Physical JEPA shows that model ranking depends on domain and episode composition. Earlier frozen tests retain zero learned intervention on delayed hazards, an all-stop PyBullet policy, and a Safety-Gymnasium result for which superiority over the planner was not established. A retrospectively recovered output-value ablation increases warning false positives and interventions without resolving completion or hazard-cost benefit.
+World-model accuracy is not operational safety. This report separates six evidence objects: dynamics prediction, counterfactual response, warning quality, effective intervention, realized outcome, and independently enforced authority. An 18-run matched study in FerrumOS and Physical JEPA shows that model ranking depends on domain and episode composition. Frozen tests retain zero learned intervention on delayed hazards, an all-stop PyBullet policy, a Safety-Gymnasium result for which superiority over the planner was not established, and an output-value ablation that raises false warnings without resolving benefit.
 
-A subsequent registered study adds incident-informed synthetic training, causal multi-step objectives, simple baselines, and separate calibration. On 1,024 fresh simulated episodes per domain, validation-selected per-action ridge regression and a three-seed action-residual ensemble reduce five-step normalized error by 98.9% and 58.7% against the earlier paper ensembles. Against the strongest non-selected controls on that endpoint, the descriptive reductions are 55.4% for OS versus persistence and 15.4% for physical versus same-data retrained JEPA. All four primary three- and five-step contrasts against the earlier ensembles meet a 20% improvement gate with multiplicity-adjusted intervals excluding zero. Warning recall rises from 13.2% to 94.1% and from 39.6% to 85.4%; observed false-positive rates are 1.67% and 1.42%. The OS false-positive increase is statistically resolved. The study is not architecture-only or compute-matched.
+Three registered prediction studies follow. The v2 study reduces five-step error by 55.4% against OS persistence and 15.4% against same-data physical retraining. Studies v3 and v4 add 24 newly verified incident sources, ten abstract mechanism families per domain with three held out, and gradient-boosted residual corrections on the frozen v2 models. In v4, five-step error is 38.0% and 24.1% below the v2 physical model on the v2 population and on held-out mechanisms, and 20.8% below the v2 OS model on held-out mechanisms, with adjusted intervals excluding zero. The registered rule still fails: on the v2 OS population, where every episode reverses its drift unannounced, the five-step gain is 5.7%. The broader v3 failure is retained. A Dream-RSI-inspired evolving-world curriculum was 1.6% worse than its uniform counterpart. Warning gains are uneven: OS recall rises with false-positive rates up to 2.42%, and physical recall does not improve.
 
-Public narratives motivate local perturbations, not observed incident telemetry or independently controlled mechanisms. Dream-RSI informs experiment-search assessment but is not implemented or credited with gains. Retained failures, frozen selections, historical regression checks, and a 48-check clean-checkout audit bound the result. Prediction and warning improvements do not establish controller benefit, physical safety, independent replication, or deployment eligibility; protected artifacts remain unchanged.
+Public narratives motivate local perturbations, not telemetry. Prediction gains do not establish controller benefit, physical safety, independent replication, or deployment eligibility; protected artifacts remain unchanged.
 
 ### 1. Introduction
 
@@ -26,11 +26,11 @@ An autonomous system can predict what may happen without possessing the authorit
 
 This report asks two connected questions. First, when training conditions are controlled, is one common model family consistently better at multi-horizon prediction across an agentic operating system and a cyber-physical state space? Second, does the selected learned model add useful caution beyond a frozen deterministic authority boundary at a registered false-positive operating point? The first question concerns predictive modeling. The second concerns operational decision value. Treating them as different estimands is the paper's central methodological choice.
 
-The study extends two artifact-backed FerrumOS lineages: unprivileged action-conditioned OS forecasts before capability-gated effects, and a compact physical model evaluated with actuator authority disabled. It adds matched architectures, paired interventions, calibration, authority-disabled runtime tests, external-data intake, retained negative stress tests, a prospective Safety-Gymnasium evaluation [17], and a retrospective analysis of complete catalogs retained from a failed prospective output-value ablation. Section 8.7 then asks a distinct question: can incident-informed development substantially improve prediction and warnings under a new frozen protocol without granting runtime authority?
+The study extends two artifact-backed FerrumOS lineages: unprivileged action-conditioned OS forecasts before capability-gated effects, and a compact physical model evaluated with actuator authority disabled. It adds matched architectures, paired interventions, calibration, authority-disabled runtime tests, external-data intake, retained negative stress tests, a prospective Safety-Gymnasium evaluation [17], and a retrospective analysis of complete catalogs retained from a failed prospective output-value ablation. Section 8.7 then asks a distinct question: can incident-motivated development substantially improve prediction and warnings under a new frozen protocol without granting runtime authority? Section 8.8 asks whether a broader incident-motivated mechanism library, new model families, and a Dream-RSI-inspired curriculum improve on the models selected in Section 8.7, on that paper population and on mechanism families held out entirely from development.
 
 #### 1.1 Contributions
 
-The primary contribution is an evaluation method, not a new JEPA objective. It predefines the same six evidence objects named in the abstract; specifies how final data are sealed; retains invalid, failed, and non-beneficial stages; and binds each claim to a machine-readable record. The empirical contributions are: (1) an 18-run matched small-model comparison in two distinct domains; (2) paired temporal, calibration, and common-episode analyses that expose when predictive skill fails to become operational value; (3) an authority factorization in which learning may only add caution; (4) QEMU, recorded-sensor, PyBullet, and Safety-Gymnasium integrations labelled by evidence class; (5) a prospective controller/shield benchmark with planner-relative uncertainty; (6) a fresh risk-source attribution with multiplicity, paired-direction, leave-one-out, and common-proposal diagnostics; (7) a retained-catalog output-value intervention preserving its failed prospective record; and (8) a separately registered incident-informed study with significant prediction and warning gains, unchanged authority, and explicit simple-model and retraining controls.
+The primary contribution is an evaluation method, not a new JEPA objective. It predefines the same six evidence objects named in the abstract; specifies how final data are sealed; retains invalid, failed, and non-beneficial stages; and binds each claim to a machine-readable record. The empirical contributions are: (1) an 18-run matched small-model comparison in two distinct domains; (2) paired temporal, calibration, and common-episode analyses that expose when predictive skill fails to become operational value; (3) an authority factorization in which learning may only add caution; (4) QEMU, recorded-sensor, PyBullet, and Safety-Gymnasium integrations labelled by evidence class; (5) a prospective controller/shield benchmark with planner-relative uncertainty; (6) a fresh risk-source attribution with multiplicity, paired-direction, leave-one-out, and common-proposal diagnostics; (7) a retained-catalog output-value intervention preserving its failed prospective record; (8) a separately registered incident-motivated study with significant prediction and warning gains, unchanged authority, and explicit simple-model and retraining controls; and (9) two further registered studies (v3 and v4) that add 24 verified incident sources, a novel-mechanism holdout, boosted residual world models, and a negative Dream-RSI-inspired ablation, with the failed v3 rule retained.
 
 #### 1.2 Claim boundary
 
@@ -62,7 +62,7 @@ Thresholded safety decisions depend on probability quality, not only rank order 
 
 #### 2.5 Improving the model versus improving experiment search
 
-Dream-RSI reuses discovery histories to evaluate experiment-selection policies through replay, with decisions restricted to revealed prefixes [18]. It is not a drop-in optimizer for these world-model weights. This study retains every development trial and selects by validation evidence, but implements neither Dream-RSI's replay-policy optimization nor a controlled RSI ablation; no gain is attributed to RSI. TD-MPC2 motivates multi-step model training [19]. The new study borrows that general training principle, not TD-MPC2's reinforcement-learning algorithm, planning system, or claimed results. Fitted ridge regression remains an eligible competitor: complexity is not an outcome.
+Dream-RSI reuses discovery histories to evaluate experiment-selection policies through replay, with decisions restricted to revealed prefixes [18]. It is not a drop-in optimizer for these world-model weights. The v2 study (Section 8.7) retains every development trial and selects by validation evidence, but implements neither Dream-RSI's replay-policy optimization nor a controlled RSI ablation; no v2 gain is attributed to RSI. The v3 study (Section 8.8) adapts the loop structure to training worlds and registers an equal-family, equal-seed uniform counterpart, so an RSI contribution is tested rather than assumed. TD-MPC2 motivates multi-step model training [19]. The new study borrows that general training principle, not TD-MPC2's reinforcement-learning algorithm, planning system, or claimed results. Gradient-boosted decision trees [28] enter v3 as learned corrections on top of the frozen v2-selected model, and per-horizon correction models act like a learned damped trend [29]. Fitted ridge regression and boosted trees remain eligible competitors: complexity is not an outcome.
 
 ### 3. Authority factorization
 
@@ -93,11 +93,13 @@ The architecture is fail-closed only within stated boundaries. A missing or non-
 
 The study uses an evidence ladder rather than a single benchmark label. Sealed prediction supports comparative accuracy; deterministic catalogs support controlled estimands; QEMU shadow execution supports tested integration and no-dispatch claims; recorded testbed replay supports a bounded external-stream projection; and software physics supports simulated geometry and contact. Higher rungs add realism but do not retroactively turn lower-rung evidence into physical or independent assurance.
 
-![Figure 2. Evidence ladder and the strongest claim supported at each level. Higher levels add realism but do not erase the boundaries of lower-level measurements.](docs/research/figures/cross_domain_world_model/evidence_ladder.png)
+![Figure 2. Evidence ladder and the strongest claim supported at each level. Higher levels add realism but do not erase the boundaries of lower-level measurements.](docs/research/figures/cross_domain_world_model/evidence_ladder_v1_2.png)
 
 #### 3.4 Authority threat model and enforcement tests
 
 The threat model assumes a learned component may be wrong, missing, malformed, non-finite, stale, delayed, replayed, or paired with changed arguments or state. It also assumes callers may lack a capability or attempt to reach an effect through a separately enumerated interface. The tested contract is monotone blocking and independent authorization—not that blocking necessarily improves safety.
+
+Table 1. Authority enforcement tests, their committed pass evidence, and what was executable during each test.
 
 | Component exercised | Test class | Committed pass evidence | Execution availability during test |
 |---|---|---|---|
@@ -121,6 +123,8 @@ All methods predict the same normalized observable next-state delta, `(next_stat
 
 The direct MLP flattens three state-action pairs into `Linear-GELU-Linear`. The action-conditioned JEPA applies a linear state encoder, `tanh`, and a `Linear-GELU-Linear` latent predictor; a stop-gradient target encoder is updated with EMA coefficient 0.99, and training minimizes Gaussian NLL plus 0.25 times latent-target MSE. The GRU receives the same state-action sequence, uses its zero-initialized recurrent state, and maps the final hidden state to mean and variance. The stop-gradient EMA target and observable-delta NLL are anti-collapse design choices, not a proof that collapse cannot occur. Selection checks prediction finiteness, but this matched study retains no explicit latent-variance or effective-rank collapse diagnostic.
 
+Table 2. Matched architecture configurations: width, trainable parameters, and selected checkpoint updates per seed.
+
 | Domain | Method | Hidden / latent | Trainable parameters | Selected checkpoint updates for seeds 17 / 43 / 101 |
 |---|---|---:|---:|---:|
 | FerrumOS | Direct MLP | 242 / — | 99,800 | 1800 / 2000 / 2100 |
@@ -134,7 +138,7 @@ Every run receives the same domain-specific split, seed set, batch size 512, max
 
 #### 4.3 Aggregation, temporal causality, and uncertainty
 
-Table 1 uses an ensemble prediction: the three seed checkpoints each predict, their state predictions are averaged, and the endpoint error is then computed. It is not the best seed or the mean of the three member errors. Appendix D reports every member result. Episode bootstrap intervals resample final episodes while holding the trained checkpoints fixed; they measure final-layout sampling uncertainty, not the variability of retraining the architecture on new seeds.
+Table 3 uses an ensemble prediction: the three seed checkpoints each predict, their state predictions are averaged, and the endpoint error is then computed. It is not the best seed or the mean of the three member errors. Appendix D (Table D1) reports every member result. Episode bootstrap intervals resample final episodes while holding the trained checkpoints fixed; they measure final-layout sampling uncertainty, not the variability of retraining the architecture on new seeds.
 
 Paired temporal catalogs vary an intervention while sharing the initial state and random schedule. Directional accuracy asks whether the consequence ranking changes in the registered direction; ITE normalized MAE measures the magnitude difference. Multi-action rollouts use the actual registered action sequence rather than repeating one command. Uncertainty diagnostics include ensemble dispersion, learned variance, OOD distance, reliability bins, Brier score, ECE, and risk-coverage curves; none is an authority token.
 
@@ -170,7 +174,9 @@ Validation means checking an existing record against its schema, hashes, and gat
 
 #### 5.1 Domain-dependent ranking
 
-Table 1 reports the error of the three-seed ensemble prediction defined in Section 4.3. Physical JEPA wins at every horizon. FerrumOS does not reproduce that ranking: the GRU is best at H=1 and H=3, while the JEPA is best at H=5. The registered pairwise intervals for the stated leaders exclude zero, conditional on the fixed trained checkpoints; Appendix D shows all seed members.
+Table 3 reports the error of the three-seed ensemble prediction defined in Section 4.3. Physical JEPA wins at every horizon. FerrumOS does not reproduce that ranking: the GRU is best at H=1 and H=3, while the JEPA is best at H=5. The registered pairwise intervals for the stated leaders exclude zero, conditional on the fixed trained checkpoints; Appendix D shows all seed members.
+
+Table 3. Registered matched rollout error of each three-seed ensemble (normalized MAE; lower is better).
 
 | Domain | Method | H=1 | H=3 | H=5 |
 |---|---|---:|---:|---:|
@@ -189,7 +195,9 @@ The physical MLP-minus-JEPA H=3 difference is 0.010156 with 95% interval [0.0098
 
 The result closes data, parameter-count, and update-budget confounds that affected historical comparisons, but not FLOP or training-time differences. In the registered table, the tested three-member FerrumOS GRU ensemble leads at H=1 and H=3; this does not describe the mean individual checkpoint at H=1, where MLP is lower by only 0.000008. H=3 averages 318 eligible episodes, whereas H=5 averages 238 and excludes a source whose sequences are too short. Thus the registered ranking reversal cannot be isolated as a horizon effect: episode composition changes it. The original table and model selection remain unchanged.
 
-Table 2 reports the complete post-hoc common-episode comparison. All estimates are three-member ensemble normalized errors on the same 238 FerrumOS episodes; lower is better. Contrast intervals are paired, unadjusted 10,000-resample 95% bootstrap intervals conditional on the fixed checkpoints and this episode population.
+Table 4 reports the complete post-hoc common-episode comparison. All estimates are three-member ensemble normalized errors on the same 238 FerrumOS episodes; lower is better. Contrast intervals are paired, unadjusted 10,000-resample 95% bootstrap intervals conditional on the fixed checkpoints and this episode population.
+
+Table 4. Post-hoc common-episode comparison on the same 238 FerrumOS episodes, with paired 95% bootstrap intervals.
 
 | Horizon | Direct MLP | JEPA | GRU | MLP - JEPA, paired 95% | JEPA - GRU, paired 95% |
 |---|---:|---:|---:|---:|---:|
@@ -207,12 +215,14 @@ The matched study also changes how the two earlier reports should be read. The P
 
 The selected FerrumOS GRU produces the correct counterfactual direction in 100.00% of pairs, ITE normalized MAE 0.002571, H=3 multi-action error 0.044558, and H=5 error 0.046720. The selected Physical JEPA reaches 93.36% directional accuracy, ITE normalized MAE 0.016819, H=3 error 0.026772, and H=5 error 0.046361.
 
+Table 5. Paired temporal results for the originally selected models.
+
 | Domain | Selected model | Direction | ITE MAE | H=3 multi | H=5 multi |
 |---|---|---:|---:|---:|---:|
 | FerrumOS | GRU dynamics | 100.00% | 0.002571 | 0.044558 | 0.046720 |
 | Physical | JEPA | 93.36% | 0.016819 | 0.026772 | 0.046361 |
 
-Directional sensitivity establishes that the models do not merely reproduce a static current-state score. It does not establish calibrated hazard probability, adequate recall, or useful intervention. Multi-action errors are also substantially larger than the matched single-policy H=3 values in Table 1, which is consistent with a harder shifted temporal task.
+Directional sensitivity establishes that the models do not merely reproduce a static current-state score. It does not establish calibrated hazard probability, adequate recall, or useful intervention. Multi-action errors are also substantially larger than the matched single-policy H=3 values in Table 3, which is consistent with a harder shifted temporal task.
 
 #### 6.2 Calibration under shift
 
@@ -223,6 +233,8 @@ The frozen 0.99 threshold was selected on 256 development cases per domain to ma
 #### 6.3 Primary operational result
 
 On each 512-case balanced final catalog, rules-only, learned-only, and union record TP=0, FP=0, TN=256, and FN=256 at threshold 0.99.
+
+Table 6. Primary operational result on the 512-case final catalogs at the frozen threshold 0.99.
 
 | Domain | Arm | TP | FP | TN | FN | Intervention |
 |---|---|---:|---:|---:|---:|---:|
@@ -241,7 +253,9 @@ For each domain, the learned branch produces 0/256 marginal interventions on dan
 
 #### 7.1 Lineage and measurement boundaries
 
-Three original model objects must not be conflated. The architecture study trains approximately 100k-parameter research models solely for matched offline comparison. The QEMU runtime loads the earlier 193,229-parameter FerrumOS v3.4 encoder-plus-transition lineage. Physical experiments use the distinct frozen Physical JEPA v5 binary. The later incident-informed candidates form a fourth, separately archived research lineage. Neither architecture-study nor incident-informed checkpoints are substituted into either runtime.
+Three original model objects must not be conflated. The architecture study trains approximately 100k-parameter research models solely for matched offline comparison. The QEMU runtime loads the earlier 193,229-parameter FerrumOS v3.4 encoder-plus-transition lineage. Physical experiments use the distinct frozen Physical JEPA v5 binary. The later incident-motivated candidates form a fourth, separately archived research lineage. Neither architecture-study nor incident-motivated checkpoints are substituted into either runtime.
+
+Table 7. Runtime evidence objects, their clocks, and the timing claim each supports.
 
 | Evidence object | Model object | Clock and workload | Supported timing claim |
 |---|---|---|---|
@@ -276,6 +290,8 @@ Six Anchor-Lab Parquet files contain 2,925,558 finite timestamped rows, includin
 
 The frozen Physical JEPA v5 artifact is evaluated over 284,398 one-second transitions from HAI 23.05 test1 and test2 using previously frozen projection statistics. Six conditions apply clean replay, two-second latency, zero-to-three-second jitter, 0.02 sensor noise, 5% hold-last dropout, and a combined fault with proxy-command feature saturation.
 
+Table 8. Recorded HAI replay under registered observation faults (Physical JEPA v5, actuator delivery disabled).
+
 | Condition | H=1 MAE | Delta | AUROC | Event recall |
 |---|---:|---:|---:|---:|
 | Clean | 0.046627 | 0.000000 | 0.6115 | 38.46% |
@@ -295,6 +311,8 @@ A separate PyBullet DIRECT protocol varies three bodies, three obstacle geometri
 
 The learned branch contributes 23 interventions not produced by the rule; 13 coincide with an unshielded contact. Those cases cannot be credited as useful learned collision avoidance because the policy has no selectivity and completes no task. Simulated return-to-start recovery succeeds in 181 of 205 contact cases, or 88.29%, with Wilson interval [83.17%, 92.01%]. This locally designed software-physics test adds geometry and contact coverage while failing the completion-versus-intervention objective.
 
+Table 9. PyBullet DIRECT multi-embodiment stress outcomes (288 cases).
+
 | 3D outcome | Count | Rate or interval |
 |---|---:|---:|
 | Union interventions | 288 / 288 | 100.00% |
@@ -309,6 +327,8 @@ No shielded contact was observed in this run; this does not establish a zero und
 #### 8.4 Prospective Safety-Gymnasium controller and shield benchmark
 
 The v14 amendment freezes Safety-Gymnasium v1.0.0, Gymnasium 0.28.1, MuJoCo 2.3.3, the installed simulator-source digest, the protected Physical JEPA v5 digest, a deterministic risk adapter fitted on opened seeds 4000-4095, candidate choice on opened seeds 4096-4127, and untouched final seeds 6000-6127. The 20-step oracle rolls out the nominal receding-horizon controller from synchronized simulator state; it does not repeat the current command for 20 steps. Warning recall and warning FPR evaluate the detector, whereas intervention rate counts only commands that actually change. The external project supplies the task, layouts, observations, goal condition, and hazard costs [17]. This study supplies the adapter, privileged planner, tangent shield, execution, and analysis. Execution is local, actuator authority is disabled, and no independent replication is claimed.
+
+Table 10. Prospective Safety-Gymnasium final arms on untouched seeds 6000-6127.
 
 | Final arm | Completion | Effective intervention | Warning recall | Warning FPR | Effective-action recall | Hazard-cost events |
 |---|---:|---:|---:|---:|---:|---:|
@@ -326,7 +346,9 @@ Attribution remains essential. The privileged planner alone reduces hazard cost 
 
 #### 8.5 Frozen risk-source attribution on fresh layouts
 
-The v2 attribution opens seeds 8000-8127 once after committing every adapter, threshold, and simulator setting. The planner baseline records 122/128 completions, 116 hazard steps, and 7/128 hazardous episodes. Table 6 changes only the warning source; all rows retain the deterministic rule union and the same one-command tangent correction.
+The v2 attribution opens seeds 8000-8127 once after committing every adapter, threshold, and simulator setting. The planner baseline records 122/128 completions, 116 hazard steps, and 7/128 hazardous episodes. Table 11 changes only the warning source; all rows retain the deterministic rule union and the same one-command tangent correction.
+
+Table 11. Frozen risk-source attribution on seeds 8000-8127; only the warning source changes.
 
 | Risk source | Completion | Effective recall | Intervention | Precision | Hazard steps | Hazardous episodes | Mean steps |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -337,7 +359,9 @@ The v2 attribution opens seeds 8000-8127 once after committing every adapter, th
 
 JEPA-only versus full was a prospectively specified member of a four-pipeline family, but not the uniquely designated primary contrast. The original 95% intervals are pointwise and unadjusted, so confirmatory interpretation would be inappropriate. A registered post-hoc sensitivity controls a 5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately; it does not adjust jointly across every endpoint or comparison in the report. For JEPA-only minus full, the Bonferroni-adjusted 98.33% interval is [-57, -3] for a -25-step hazard contrast and [-1.58, -0.01] for a -0.81-point intervention contrast. Both exclude zero. Hazard steps improve/worsen/remain unchanged in 6/0/122 paired episodes; intervention counts are lower/higher/unchanged in 26/16/86. Every one of 128 leave-one-seed-out 95% intervals still excludes zero for both quantities (hazard endpoints across omissions [-51, -3]; intervention endpoints [-1.52, -0.07]). These leave-one-out checks are sensitivity analyses, not independent replications. Its +1.56-point completion contrast has pointwise CI [0.00, 3.91], which shows no statistically resolved difference and is not a non-inferiority result. Against the unshielded planner, JEPA-only changes hazard cost by -12 steps with CI [-39, 4], so superiority to the planner is not established.
 
-The original warning metrics are on-policy: each pipeline changes actions and therefore changes the states and proposals it later visits. Keeping the oracle logic fixed does not keep the evaluation population fixed. Table 7 reports both those on-policy values and a direct post-hoc detector comparison on the identical 23,815-proposal catalog visited by the full pipeline. The common catalog contains 263 dangerous and 23,552 safe proposals and reproduces the full arm exactly; it remains conditional on full-arm visitation and is not an independent sample.
+The original warning metrics are on-policy: each pipeline changes actions and therefore changes the states and proposals it later visits. Keeping the oracle logic fixed does not keep the evaluation population fixed. Table 12 reports both those on-policy values and a direct post-hoc detector comparison on the identical 23,815-proposal catalog visited by the full pipeline. The common catalog contains 263 dangerous and 23,552 safe proposals and reproduces the full arm exactly; it remains conditional on full-arm visitation and is not an independent sample.
+
+Table 12. On-policy warning metrics and the post-hoc common-proposal detector comparison.
 
 | Risk source | Validation FPR | Final on-policy recall | Final on-policy FPR | Common recall | Common FPR |
 |---|---:|---:|---:|---:|---:|
@@ -352,6 +376,8 @@ Warning recall and realized outcomes rank differently: full has higher 20-step d
 
 The output-value ablation compares the same frozen model, adapter, operating threshold, planner, correction, and 128 seeds under two feature interventions. `observed-frozen-jepa` uses the three observed frozen JEPA outputs. `development-mean-masked-jepa` replaces only those values with the preregistered development means immediately before the unchanged adapter score. The observed arm completes 118/128 episodes with 173 hazard steps; the masked arm completes 119/128 with 183 hazard steps. The observed and masked catalogs contain 25,497 and 25,389 proposal rows respectively, so proposal-rate metrics are computed within arm while the uncertainty analysis pairs episodes by seed.
 
+Table 13. Output-value ablation: observed minus development-mean-masked JEPA outputs, pointwise paired 95% intervals.
+
 | Observed minus development-mean masked | Estimate | Pointwise paired bootstrap 95% CI | Pointwise conclusion |
 |---|---:|---:|---|
 | Task completion, percentage points | -0.78125 | [-2.34375, 0.00000] | Includes zero |
@@ -363,6 +389,8 @@ The output-value ablation compares the same frozen model, adapter, operating thr
 | Realized hazard-cost steps | -10 | [-98, 59] | Includes zero |
 
 The seven displayed endpoints form the report-level multiplicity family. The post-hoc seven-endpoint Bonferroni-adjusted 99.29% intervals control 5% familywise error using the same 10,000 paired resamples and two-sided 0.003571 and 0.996429 quantiles:
+
+Table 14. Output-value ablation with seven-endpoint Bonferroni-adjusted 99.29% intervals.
 
 | Observed minus development-mean masked | Bonferroni-adjusted 99.29% CI | Adjusted conclusion |
 |---|---:|---|
@@ -378,9 +406,11 @@ Observed JEPA output values therefore produce more false-positive warnings and m
 
 These tables report a retrospectively recovered analysis of complete catalogs produced by a prospectively specified and executed experiment that failed its final protected-file check. The failed v1 result remains ineligible; recovery v2 did not rerun the simulator; verification v3 recomputes the catalogs, scores, aggregates, paired effects, seeds, and feature intervention and passes all 51 checks. The multiplicity sensitivity is post-hoc and changes no registered endpoint, seed, or bootstrap replicate. The evidence supports only the direct effect of observed-versus-masked output values in this fixed local pipeline. It does not provide a successful prospective result, architecture-wide causality, independent assessment, HIL, physical safety, deployment safety, or promotion eligibility.
 
-#### 8.7 Registered incident-informed prediction and warning improvement
+#### 8.7 Registered incident-motivated prediction and warning improvement (v2)
 
 **Question and evidence class.** This additional study changes development data, training objectives, model families, and calibration together. It tests a better prediction-and-warning pipeline, not an isolated JEPA innovation or a controller. Eight primary-source narratives motivate synthetic pressure, degradation, recovery, and stale-observation patterns. They supply neither numeric transition coefficients nor ground-truth labels.
+
+Table 15. Incident narratives used in the v2 study and the abstract perturbation each motivates.
 
 | Narrative sources | Role | Representation and boundary |
 |---|---|---|
@@ -399,6 +429,8 @@ The selected OS model is per-action ridge regression with 621,888 fitted coeffic
 
 **Frozen comparison.** The new catalog has 1,024 episodes and 10,240 common five-step-eligible windows per domain. Primary prediction gates require at least 20% lower normalized MAE at H=3 and H=5 in both domains, with 10,000 paired episode-bootstrap 98.75% intervals excluding zero (Bonferroni across four endpoints). The primary comparators are the original paper-selected OS GRU and physical JEPA ensembles; all nine required legacy checkpoints were reproduced byte-exactly and archived. Historical final families, already opened by the earlier paper, are regression checks only. Their prespecified point-estimate guard allows at most 5% error increase against the best available paper ensemble on the common H=5-eligible episode population; it is not statistical non-inferiority.
 
+Table 16. Incident-dynamics v2 primary prediction endpoints on the fresh v2 catalog.
+
 | Fresh-catalog endpoint | Earlier paper ensemble | Selected model | Relative reduction | Selected minus paper, 98.75% CI |
 |---|---:|---:|---:|---|
 | OS H=3 | 0.046242 | 0.000273 | 99.41% | [-0.046133, -0.045806] |
@@ -407,6 +439,8 @@ The selected OS model is per-action ridge regression with 621,888 fitted coeffic
 | Physical H=5 | 0.022689 | 0.009369 | 58.71% | [-0.013665, -0.012970] |
 
 All four primary gates pass. The large OS reduction is against an earlier ensemble shifted onto a new sparse-state catalog; many state coordinates are inactive, so the headline is not sufficient by itself. At H=5 on the three OS warning dimensions, MAE falls from 0.063280 to 0.007786 (87.70%). The following complete control table gives the more informative comparison with retraining and simple extrapolation. These control contrasts are descriptive, not additional multiplicity-adjusted discoveries.
+
+Table 17. Incident-dynamics v2 control comparison at H=5 on the fresh v2 catalog.
 
 | Method | OS H=5 normalized MAE | Physical H=5 normalized MAE |
 |---|---:|---:|
@@ -425,6 +459,8 @@ On the historical common-episode population, all six regression guards pass. OS 
 
 **Warning results and cost.** Each pipeline receives its own calibration on 512 separate episodes (seed 281003): an increasing logistic map for probabilities and the smallest score threshold yielding at most 1% empirical calibration FPR. Test labels mean any represented constraint breach in the next five states: OS resource coordinates 0/1/3 at least 0.95; physical boundary magnitude at least 1, battery or link at most 0.08, or moving clearance at most 0.16. The secondary gate requires at least 20 percentage points higher recall, a positive paired 97.5% interval across the two recall endpoints, and observed final FPR at most 2%. It does not require equal final FPR or guarantee the 1% calibration target under shift.
 
+Table 18. Incident-dynamics v2 warning results with independent calibration.
+
 | Domain / pipeline | TP / FP / TN / FN | Recall | FPR | Brier |
 |---|---|---:|---:|---:|
 | OS paper GRU, newly calibrated | 191 / 59 / 8731 / 1259 | 13.17% | 0.67% | 0.075390 |
@@ -434,13 +470,159 @@ On the historical common-episode population, all six regression guards pass. OS 
 
 Recall gains are 80.97 points [77.08, 84.68] and 45.85 points [42.12, 49.56] at 97.5% confidence; both warning gates pass. This is not cost-free: OS FPR rises by 1.00 point [0.45, 1.59], while the physical increase of 0.34 point [-0.08, 0.79] is unresolved. These FPR intervals are descriptive and not included in the registered recall multiplicity family. On the currently observed-safe subset, selected recall is 87.48% for OS and 77.16% for physical, so the result is not solely detection of already-visible constraint breaches. Ten-bin ECE is 0.007886 and 0.009405; the associated prevalences are 14.16% and 36.02%, and complete reliability bins and source-label strata remain in the result JSON.
 
-**Interpretation and audit.** Incident-informed training and model selection substantially improve prediction and thresholded warnings within this simulator family. The experiment does not identify the separate causal contribution of additional data, multi-step loss, architecture, ensemble size, or calibration. It does not evaluate applied interventions, realized hazard reduction, Safety-Gymnasium controller improvement, or live incidents. The earlier zero-intervention and unfavorable output-ablation results therefore stand unchanged. All 48 retained-catalog checks pass in the working tree and a clean source archive; the portable wrapper permits only the already registered LF/CRLF equivalence for JSON metadata. Checkpoints, NPZ catalogs, and the archived earlier PDF remain byte-exact. No new model replaces a deployed binary and no actuator authority is enabled.
+**Interpretation and audit.** Incident-motivated training and model selection substantially improve prediction and thresholded warnings within this simulator family. The experiment does not identify the separate causal contribution of additional data, multi-step loss, architecture, ensemble size, or calibration. It does not evaluate applied interventions, realized hazard reduction, Safety-Gymnasium controller improvement, or live incidents. The earlier zero-intervention and unfavorable output-ablation results therefore stand unchanged. All 48 retained-catalog checks pass in the working tree and a clean source archive; the portable wrapper permits only the already registered LF/CRLF equivalence for JSON metadata. Checkpoints, NPZ catalogs, and the archived earlier PDF remain byte-exact. No new model replaces a deployed binary and no actuator authority is enabled.
+
+#### 8.8 Incident-dynamics v3: broader mechanisms, boosted residual models, and an evolving-world curriculum
+
+**Question and evidence class.** Section 8.7 improved prediction and warnings against the earlier paper ensembles. This study asks whether the models selected there can themselves be improved, on two registered populations: (A) a fresh seed from the unchanged v2 final generator, which is the population behind Tables 16-18, and (B) mechanism families held out entirely from development. The comparator is the v2-selected pipeline: per-action ridge for FerrumOS and the three-seed action-residual ensemble for Physical. The evidence class is unchanged: a prospective, locally designed software benchmark with no authority change.
+
+**Sources and mechanisms.** Twenty-four newly verified primary sources motivate ten abstract mechanism families per domain (Table 19). OS sources include official root-cause analyses and summaries (CrowdStrike, AWS, Cloudflare, GitLab, Meta, Instapaper), a regulator order (SEC, Knight Capital), a peer-reviewed measurement study (Mirai), and vulnerability guidance (CISA Log4Shell; the xz-utils disclosure). Physical sources include CISA alerts, NTSB investigations, NASA and ESA mishap reports, an EASA airworthiness directive on GNSS interference, the Stuxnet dossier, MITRE ATT&CK, TRITON threat research, and the Jeep Cherokee remote-compromise paper. A narrative fixes only a qualitative signature such as a monotone leak, a retry oscillation, a replayed sensor, or an actuator gain error. Every coefficient, range, label, and equation is researcher-authored, and no source supplies telemetry. Titles, publishers, dates, URLs, and caveats are in `incident_dynamics_sources_v3.json`.
+
+Table 19. Incident-motivated mechanism families, their partition, and motivating sources.
+
+| Domain | Mechanism family | Partition | Motivating sources | Abstract perturbation |
+|---|---|---|---|---|
+| OS | constant pressure | development | v1/v2 sources; GitLab 2017 | per-episode constant drift on process/heap/disk (v2 pressure regimes) |
+| OS | accelerating leak | development | AWS 2012 | heap (and optionally disk) growth whose per-step increment rises linearly |
+| OS | exponential amplification | held out | SEC Knight Capital; Mirai (USENIX) | process count grows geometrically (retry or fork amplification) from a small seed |
+| OS | sudden step | development | Cloudflare 2019 | one-time jump in heap or process count at a random step (faulty update or config push) |
+| OS | retry oscillation | development | AWS 2021 | periodic process/heap load (retry storm or thundering herd) |
+| OS | coupled cascade | development | AWS S3 2017 | process growth induces lagged heap growth that later drives disk writes |
+| OS | crash restart | held out | CrowdStrike RCA 2024 | rising heap until a crash drops processes and heap, then gradual restart |
+| OS | log storm | development | Instapaper 2017 | file count and disk usage grow together (log or temp-file storm) |
+| OS | frozen telemetry | held out | Meta 2021 | monitoring stalls: one resource reading repeats for several steps |
+| OS | regime shift | development | CISA Log4Shell; xz-utils disclosure | drift changes sign or magnitude once at a random step (mitigation or escalation) |
+| Physical | constant pressure | development | v1/v2 sources | per-episode link and battery drift (v2 pressure regimes) |
+| Physical | accelerating drain | development | NTSB JAL 787 | battery drain increment rises over time (aging or thermal stress) |
+| Physical | link jamming | development | EASA GNSS AD | intermittent bursts of severe link degradation with partial recovery |
+| Physical | actuator gain fault | held out | Jeep Cherokee paper; NASA MCO; ESA Ariane 501 | commanded displacement is scaled by an unknown factor (degraded motor or unit error) |
+| Physical | approaching obstacle | held out | NTSB Uber ATG | clearance shrinks independently of own motion (moving obstacle) |
+| Physical | replayed sensors | held out | Stuxnet dossier | position and clearance readings replay an earlier segment (replay attack) |
+| Physical | position bias | development | NTSB 737 MAX | slowly growing additive bias on observed position (sensor fault or spoofing) |
+| Physical | vibration degradation | development | generic wear (no incident claimed) | rising vibration and falling health toward a fault |
+| Physical | regime shift | development | CISA Oldsmar; MITRE Maroochy; TRITON | link or battery drift changes magnitude once at a random step |
+| Physical | stale observation | development | CISA Ukraine 2015 | periodic stale clearance and position readings |
+
+**Novel-mechanism holdout.** Three families per domain are held out, and their motivating sources are disjoint from development sources. The generator refuses to emit a held-out family outside the registered final partition. The development plan discloses two pre-plan probes: a noise-only oracle on the public generators, and a sanity check that generated every family (including held-out ones) and reported only counts, prevalence, and finiteness. No model was scored on held-out or final-generator samples before the single final opening.
+
+**Development and selection.** Development uses the unchanged v2 partitions, whose history-3 windows are verified byte-identical to v2, plus 400 training and 64 validation episodes per development family. Nineteen v3 configurations were retained (Appendix D, Table D3): autoregressive residual networks, network and gradient-boosted [28] residual corrections on top of the frozen v2-selected model, an effect-drift network with in-context drift identification, and a learned warning-scale add-on. Longer-history ridge and ridge-plus-network hybrids were explored in development probes; the hybrid and uncertainty-aware network trials were lost to GPU faults or stopped when the boosted families dominated, and are logged rather than retained. Selection minimizes the mean, over legacy, v2-incident, and development-mechanism validation blocks, of each block score divided by the v2-selected block score, so v2-selected scores exactly 1.0 and no block dominates by error scale. This metric replaced an earlier unbalanced one before any selection; the amendment and the three trials scored under the old metric are recorded. A configuration needs three seeds. The selected FerrumOS model applies direct per-horizon LightGBM corrections to the frozen ridge rollout (score 0.690); the selected Physical model applies one-step LightGBM corrections to the frozen v2 ensemble (score 0.649). Neural corrections lost precision on the v2-incident block (scores 0.94-1.37 for FerrumOS); a one-step boosted FerrumOS model was 46-67% better than ridge on five-step windows that end before an unannounced drift change but 52-70% worse on windows that cross it, which the direct per-horizon form removed by learning how far to extrapolate drift, much like a damped trend [29]. The learned warning scale lowered Physical development recall at matched FPR, so the registered rule chose k=0 for both domains.
+
+**Evolving-world curriculum.** Dream-RSI optimizes an agent's exploration policy by replaying stored discovery trees [18]. Our adaptation keeps its loop structure but applies it to training worlds. Round 0 fits on exactly the uniform development data. Each later round probes mutated development worlds with the current model, adds the three it predicts worst relative to persistence, fits three candidate continuations under different pool weightings, and keeps the candidate with the best replay score over the stored validation samples of every world, with the unchanged current model always eligible. The registered ablation compares this arm with the uniform counterpart of the same FerrumOS family and seeds. The arms are not compute-matched, and no physical arm was run.
+
+**Registered outcome.** All eight primary endpoints improve on the v2-selected models with Bonferroni-adjusted 99.375% intervals excluding zero (Table 20), but only Physical population A meets the registered 20% effect size. The Physical historical H=5 guard also fails: one-step corrections compound across five steps on the earlier paper families, raising H=5 error by 7.9% against v2-selected while H=1 and H=3 fall by 63.4% and 24.2%. The primary success rule therefore fails, and the v3 result is retained as a failure.
+
+Table 20. Incident-dynamics v3 primary endpoints against the v2-selected models (lower is better).
+
+| Population | Domain | Horizon | v2-selected MAE | v3-selected MAE | Reduction | v3 minus v2, 99.375% CI | Gate |
+|---|---|---|---|---|---|---|---|
+| A | OS | H=3 | 0.000269 | 0.000225 | 16.3% | [-0.000047, -0.000041] | fail |
+| A | OS | H=5 | 0.000499 | 0.000468 | 6.3% | [-0.000036, -0.000026] | fail |
+| A | Physical | H=3 | 0.006600 | 0.004368 | 33.8% | [-0.002509, -0.001981] | pass |
+| A | Physical | H=5 | 0.009249 | 0.006618 | 28.4% | [-0.003043, -0.002238] | pass |
+| B | OS | H=3 | 0.000887 | 0.000742 | 16.4% | [-0.000156, -0.000134] | fail |
+| B | OS | H=5 | 0.001667 | 0.001361 | 18.4% | [-0.000329, -0.000283] | fail |
+| B | Physical | H=3 | 0.008811 | 0.007224 | 18.0% | [-0.001851, -0.001343] | fail |
+| B | Physical | H=5 | 0.012080 | 0.010273 | 15.0% | [-0.002193, -0.001438] | fail |
+
+FerrumOS population A shows why the five-step gain is small. Every A episode reverses its drift at step nine, so half of the five-step windows cross a change that no causal model can anticipate; v3 is 16.3% better at H=3 but only 6.3% better at H=5. Against simple controls the gains are larger (Table 21): at H=5 v3 is 58.3% below persistence on OS population A and 88.2% below persistence on Physical population A.
+
+Table 21. H=5 normalized MAE on the v3 final populations for every registered pipeline.
+
+| Method | OS A | OS B | Physical A | Physical B |
+|---|---|---|---|---|
+| State persistence | 0.001123 | 0.002903 | 0.056037 | 0.057246 |
+| Causal constant velocity | 0.001550 | 0.002452 | 0.165764 | 0.168603 |
+| Paper GRU ensemble | 0.047127 | 0.046822 | not run | not run |
+| Paper JEPA ensemble | 0.048046 | 0.047854 | 0.022815 | 0.020999 |
+| v2 per-action ridge | 0.000499 | 0.001667 | 0.019018 | 0.019401 |
+| v2-selected (Section 8.7) | 0.000499 | 0.001667 | 0.009249 | 0.012080 |
+| v3 uniform curriculum | 0.000468 | 0.001361 | not run | not run |
+| v3 evolving-world curriculum | 0.000474 | 0.001382 | not run | not run |
+| **v3-selected** | 0.000468 | 0.001361 | 0.006618 | 0.010273 |
+
+**Warnings.** Recall rises in three of four cells, most strongly for FerrumOS (93.2% to 98.6% on A and 60.0% to 76.7% on B), but observed FerrumOS FPR (2.02% and 2.12%) exceeds the registered 2% cap, so those cells fail. Physical A passes with 22.0% fewer missed hazards at 0.95% FPR; Physical B does not (3.2%). The secondary warning objective therefore fails (Table 22).
+
+Table 22. Incident-dynamics v3 warnings; every pipeline is recalibrated on the same calibration episodes.
+
+| Population | Domain | Pipeline | TP / FP / TN / FN | Recall | FPR | Brier | Miss reduction | Gate |
+|---|---|---|---|---|---|---|---|---|
+| A | OS | v2-selected, recalibrated | 1183 / 132 / 8839 / 86 | 93.2% | 1.47% | 0.0227 | - | - |
+| A | OS | v3-selected | 1251 / 181 / 8790 / 18 | 98.6% | 2.02% | 0.0194 | 79.1% | fail |
+| A | Physical | v2-selected, recalibrated | 2860 / 63 / 6776 / 541 | 84.1% | 0.92% | 0.0364 | - | - |
+| A | Physical | v3-selected | 2979 / 65 / 6774 / 422 | 87.6% | 0.95% | 0.0301 | 22.0% | pass |
+| B | OS | v2-selected, recalibrated | 674 / 106 / 9011 / 449 | 60.0% | 1.16% | 0.0413 | - | - |
+| B | OS | v3-selected | 861 / 193 / 8924 / 262 | 76.7% | 2.12% | 0.0412 | 41.6% | fail |
+| B | Physical | v2-selected, recalibrated | 3147 / 95 / 6102 / 896 | 77.8% | 1.53% | 0.0718 | - | - |
+| B | Physical | v3-selected | 3176 / 86 / 6111 / 867 | 78.6% | 1.39% | 0.0699 | 3.2% | fail |
+
+**RSI ablation.** The evolving-world arm improved its own replay objective in every round, but on the registered populations it was 1.3% (A) and 1.6% (B) worse than the uniform counterpart at H=5, with paired intervals excluding zero in that direction (Table 23). Under the registered claim rule, v3 provides no evidence of an RSI gain: targeting the hardest synthetic worlds did not transfer to held-out mechanisms.
+
+Table 23. FerrumOS evolving-world (Dream-RSI-inspired) arm versus its uniform counterpart.
+
+| Population | Horizon | Uniform MAE | Evolving-world MAE | Reduction | Paired 95% CI (RSI minus uniform) |
+|---|---|---|---|---|---|
+| A | H=3 | 0.000225 | 0.000225 | 0.1% | [-0.000001, 0.000000] |
+| A | H=5 | 0.000468 | 0.000474 | -1.3% | [0.000005, 0.000007] |
+| B | H=3 | 0.000742 | 0.000739 | 0.4% | [-0.000007, 0.000001] |
+| B | H=5 | 0.001361 | 0.001382 | -1.6% | [0.000013, 0.000029] |
+
+**Audit.** The verifier regenerates every registered catalog from its seed, reloads the compact archived checkpoints, recomputes inference and statistics, and passes all 48 checks. Boosted checkpoints are archived as prediction-only LightGBM text compressed with xz after selection asserted bit-identical predictions. Seven laptop-GPU "illegal instruction" faults (three in the first unqueued concurrent batch), two RAM exhaustions, one RSI run killed with its queue runner and rerun, and the mid-development stop of the neural queues are logged in `infrastructure_failures.jsonl` and the development ledger. No checkpoint replaces a deployed binary, and no actuator authority is enabled.
+
+#### 8.9 Incident-dynamics v4: a registered successor after the failed v3 rule
+
+**Design.** v3 is retained as a failure. Its Physical guard failure pointed to a specific, fixable weakness: one-step corrections compound across five steps. v4 therefore adds a Physical direct multi-horizon boosted family (300 trees per horizon and dimension) and a registered committee, carries the FerrumOS models forward unchanged, keeps every v3 gate, and opens fresh populations A (seed 391024) and B (seed 391025). v4 is a registered successor informed by v3 results, not an independent confirmation of v3. No v3 final catalog entered v4 development, selection, or calibration. On development data the direct Physical ensemble scored 0.579, ahead of the committee (0.600) and the v3 one-step model (0.649), and was selected.
+
+**Outcome.** Physical meets every registered gate: H=3 and H=5 error fall 38.8% and 38.0% on population A and 23.8% and 24.1% on population B, and the historical guard turns from a 7.9% H=5 regression into a 55.3% improvement (Tables 24 and 25). FerrumOS population B also passes (20.0% and 20.8%). FerrumOS population A does not: 15.6% and 5.7%, with intervals excluding zero. The primary rule therefore fails on that one population, for the reason identified in Section 8.8: every A episode reverses its drift at step nine, after the last observation available to any five-step window that crosses it. Raising that number would require training on the known reversal of the test generator, which this study does not do.
+
+Table 24. Incident-dynamics v4 primary endpoints against the v2-selected models.
+
+| Population | Domain | Horizon | v2-selected MAE | v4-selected MAE | Reduction | v4 minus v2, 99.375% CI | Gate |
+|---|---|---|---|---|---|---|---|
+| A | OS | H=3 | 0.000264 | 0.000223 | 15.6% | [-0.000044, -0.000039] | fail |
+| A | OS | H=5 | 0.000493 | 0.000465 | 5.7% | [-0.000033, -0.000023] | fail |
+| A | Physical | H=3 | 0.006697 | 0.004101 | 38.8% | [-0.002849, -0.002360] | pass |
+| A | Physical | H=5 | 0.009565 | 0.005935 | 38.0% | [-0.004016, -0.003295] | pass |
+| B | OS | H=3 | 0.000763 | 0.000610 | 20.0% | [-0.000162, -0.000143] | pass |
+| B | OS | H=5 | 0.001542 | 0.001221 | 20.8% | [-0.000342, -0.000300] | pass |
+| B | Physical | H=3 | 0.009048 | 0.006899 | 23.8% | [-0.002443, -0.001896] | pass |
+| B | Physical | H=5 | 0.012484 | 0.009471 | 24.1% | [-0.003443, -0.002624] | pass |
+
+Table 25. Physical v4 direct model against the v2-selected and v3-selected models, and the historical guard.
+
+| Evidence | Horizon | v2-selected | v3-selected (one-step) | v4-selected (direct) | v4 vs v2 | v4 vs v3 |
+|---|---|---|---|---|---|---|
+| Population A | H=3 | 0.006697 | 0.004444 | 0.004101 | 38.8% | 7.7% |
+| Population A | H=5 | 0.009565 | 0.006791 | 0.005935 | 38.0% | 12.6% |
+| Population B | H=3 | 0.009048 | 0.007245 | 0.006899 | 23.8% | 4.8% |
+| Population B | H=5 | 0.012484 | 0.010393 | 0.009471 | 24.1% | 8.9% |
+| Historical guard | H=1 | 0.000900 | - | 0.000323 | 64.1% | - |
+| Historical guard | H=3 | 0.001932 | - | 0.000803 | 58.4% | - |
+| Historical guard | H=5 | 0.002597 | - | 0.001160 | 55.3% | - |
+
+![Figure 5. Incident-dynamics v3 and v4 against the v2-selected models on each study's own fresh populations. Left: H=5 error ratio (0.8 is the registered 20% gate). Right: reduction in missed delayed-constraint hazards at the 1% calibration threshold.](docs/research/figures/cross_domain_world_model/incident_dynamics_v3_v4_results.png)
+
+**Warnings do not follow the prediction gains.** FerrumOS B passes the warning gate (36.7% fewer misses at 1.91% FPR). FerrumOS A recall rises from 92.0% to 96.7%, but observed FPR is 2.42%, above the 2% cap. Physical warnings barely move: 12.1% fewer misses on A and 9.3% more on B (Table 26). Lower mean error does not by itself sharpen a thresholded constraint margin on noisy dimensions, and the learned warning scale did not help on development data. The secondary warning objective fails.
+
+Table 26. Incident-dynamics v4 warnings; every pipeline is recalibrated on the same calibration episodes.
+
+| Population | Domain | Pipeline | TP / FP / TN / FN | Recall | FPR | Brier | Miss reduction | Gate |
+|---|---|---|---|---|---|---|---|---|
+| A | OS | v2-selected, recalibrated | 1490 / 161 / 8460 / 129 | 92.0% | 1.87% | 0.0279 | - | - |
+| A | OS | v4-selected | 1565 / 209 / 8412 / 54 | 96.7% | 2.42% | 0.0231 | 58.1% | fail |
+| A | Physical | v2-selected, recalibrated | 2616 / 110 / 6946 / 568 | 82.2% | 1.56% | 0.0412 | - | - |
+| A | Physical | v4-selected | 2685 / 114 / 6942 / 499 | 84.3% | 1.62% | 0.0350 | 12.1% | fail |
+| B | OS | v2-selected, recalibrated | 695 / 98 / 8992 / 455 | 60.4% | 1.08% | 0.0434 | - | - |
+| B | OS | v4-selected | 862 / 174 / 8916 / 288 | 75.0% | 1.91% | 0.0422 | 36.7% | pass |
+| B | Physical | v2-selected, recalibrated | 3130 / 80 / 6152 / 878 | 78.1% | 1.28% | 0.0708 | - | - |
+| B | Physical | v4-selected | 3048 / 75 / 6157 / 960 | 76.0% | 1.20% | 0.0712 | -9.3% | fail |
+
+**Audit.** The v4 runner is a thin wrapper around the frozen v3 runner, so the v3 bindings stay reproducible; reused FerrumOS checkpoints point to the v3 compact archives after a bit-identity check. The verifier regenerates every v4 catalog, recomputes inference and statistics, and passes all 46 checks.
 
 ### 9. Cross-domain synthesis
 
 #### 9.1 Prediction quality is domain-specific
 
-The registered table rejects a universal architecture story. Physical dynamics favor the tested three-member JEPA ensemble at all horizons. FerrumOS favors the tested three-member GRU ensemble at H=1 and H=3, with JEPA leading at H=5; however, the common-H5-eligible episode sensitivity favors JEPA at every horizon. The apparent FerrumOS reversal is therefore composition-sensitive and cannot be isolated as a horizon effect. This makes architecture selection an empirical, estimand-specific decision rather than a model-family claim.
+The registered table rejects a universal architecture story. Physical dynamics favor the tested three-member JEPA ensemble at all horizons. FerrumOS favors the tested three-member GRU ensemble at H=1 and H=3, with JEPA leading at H=5; however, the common-H5-eligible episode sensitivity favors JEPA at every horizon. The apparent FerrumOS reversal is therefore composition-sensitive and cannot be isolated as a horizon effect. This makes architecture selection an empirical, estimand-specific decision rather than a model-family claim. The incident-dynamics studies add a second pattern: in these compact, structured state spaces, boosted corrections on a frozen simple model beat every neural family tried, and per-horizon models beat one-step rollouts at five steps. That is a finding about these simulators, not a general ranking of model families.
 
 #### 9.2 Causal response is not calibrated authority
 
@@ -490,11 +672,21 @@ This work does not claim the first JEPA world model, safety filter, calibrated p
 
 15. There is no live actuator timing, physical contact, hardware emergency stop, human-contact dynamics, or independent execution. All research artifacts remain ineligible for promotion and protected deployed artifacts are unchanged.
 
-16. The incident-informed study uses researcher-authored equations, perturbation ranges, labels, and analysis. Narrative-source holdout is not independent dynamics or telemetry holdout; source labels do not instantiate separate transition laws. The extreme OS relative gain partly reflects the old model's mismatch to a sparse synthetic population, making persistence, same-data controls, and warning-dimension errors essential context.
+16. The incident-motivated study uses researcher-authored equations, perturbation ranges, labels, and analysis. Narrative-source holdout is not independent dynamics or telemetry holdout; source labels do not instantiate separate transition laws. The extreme OS relative gain partly reflects the old model's mismatch to a sparse synthetic population, making persistence, same-data controls, and warning-dimension errors essential context.
 
 17. New pipeline budgets and seed counts differ, so additional data, objective, architecture, ensembling, and calibration effects are not separately identified. Bootstrap intervals condition on selected checkpoints. Historical checks are previously exposed regression populations, not new confirmation. The two-domain warning gate constrains observed FPR, not a population upper confidence bound; the significant OS FPR increase remains a cost.
 
 18. Incident-dynamics v1 failed on historical input schema before final model scoring. V2 is a prospectively registered fresh-seed amendment with unchanged selection and thresholds, not a successful v1 result. Its prediction and warning success is not an intervention-outcome, exploit-detection, physical-safety, or Dream-RSI result.
+
+19. The v3 mechanism library, strength ranges, constraint labels, and analysis are researcher-authored. The novel-mechanism holdout is within one simulator family: held-out families share the state representation, the action ontology, and the labels, and their motivating narratives supply no telemetry.
+
+20. v3 corrections are learned on top of the frozen v2-selected models. Gains belong to the whole pipeline (mechanism data, eight-step history, incident weighting, boosted direct or one-step corrections, three-seed averaging); no architecture-only or compute-matched claim is made, and the boosted models are larger than the corrected base.
+
+21. Population A is not a timing holdout for v3 models because the development curriculum includes regime-change families. Its five-step gain is bounded by an unannounced reversal that every causal model shares. The v3 primary rule failed on six of eight effect sizes and one historical guard, and that failure is retained rather than reclassified.
+
+22. The evolving-world arm adapts only Dream-RSI's loop structure to training worlds; it is FerrumOS-only, not compute-matched, and its registered comparison is negative. It is not a test of Dream-RSI's exploration-policy optimization.
+
+23. v4 is a registered successor designed after the v3 result. Its populations are fresh and no v3 final catalog entered its development, but its added family was chosen because of v3's Physical guard failure, so v4 is not an independent confirmation of v3. FerrumOS v4 re-measures the unchanged v3 models on a new sample.
 
 ### 11. Reproducibility and artifact integrity
 
@@ -502,7 +694,7 @@ Every evidence object names its scope and digest. Hashes prove byte identity onl
 
 The architecture and post-hoc analysis record Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124 on Windows. `requirements-prediction-report-v1_2.txt` pins the direct audit dependencies, including PyTorch 2.6.0. The CUDA-enabled wheel was used with CPU inference: four Torch threads for incident dynamics and 16 for the historical table audit and checkpoint restoration. A fresh Python 3.12 virtual environment is recommended. This is a direct-dependency specification, not a cross-platform bitwise lock; another platform or wheel must pass the exact recomputation checks rather than assume equivalence. The broader `requirements-research.txt` alone is insufficient because it omits PyTorch.
 
-The exact pre-report scientific-evidence snapshot for this review freeze is Git commit `f6b45c759830c0148a06b674c980fb9761ac0c8c`. Use the revised report's own checkout for the commands below; that earlier commit locates scientific evidence, not the later manuscript, checkpoint archive, or release-checker fixes. The supported clean-source path recomputes the historical architecture tables and post-hoc sensitivity, incident-dynamics inference/calibration/selection/statistics, then checks the report against its retained freeze. The paper checker verifies selected evidence arithmetic and document bindings; it does not independently rerun every underlying study or certify the scientific assumptions.
+The exact pre-report scientific-evidence snapshot for this review freeze is Git commit `c5098bfd099e8ef6c441f42dba90071f3bf71668`, which contains the retained v3 and v4 results; the earlier v2 evidence snapshot was `f6b45c759830c0148a06b674c980fb9761ac0c8c`. Use the revised report's own checkout for the commands below; that earlier commit locates scientific evidence, not the later manuscript, checkpoint archive, or release-checker fixes. The supported clean-source path recomputes the historical architecture tables and post-hoc sensitivity, incident-dynamics inference/calibration/selection/statistics, then checks the report against its retained freeze. The paper checker verifies selected evidence arithmetic and document bindings; it does not independently rerun every underlying study or certify the scientific assumptions.
 
 The prepublication audit found nine of the original 18 matched-study checkpoints missing from the distributed archive. All nine were restored from the original development recipe at 16 Torch CPU threads, with exact checkpoint hashes and validation traces and no final-data access. Seven completed four-thread attempts differed and were rejected; the interrupted four-thread physical-GRU attempt was not admitted. `cross_domain_checkpoint_restoration_review_v1_2.json` retains that history. All 18 original checkpoints and the byte-identical frozen OS base input are now packaged under `artifacts/cross-domain-inference-v1.2/` and bound by `cross_domain_inference_archive_v1_2.json`.
 
@@ -516,6 +708,9 @@ python -m pip install -r requirements-prediction-report-v1_2.txt
 # Read-only audits; no retraining or new final simulator execution
 python scripts/verify_cross_domain_archived_inference_v1_2.py
 python scripts/verify_incident_dynamics_portable_v2.py
+# Regenerates the v3 and v4 catalogs from their seeds and recomputes inference (LightGBM, PyTorch; about 30 CPU-minutes each)
+python scripts/run_incident_dynamics_v3_study.py verify
+python scripts/run_incident_dynamics_v4_study.py verify
 python -m unittest discover -s scripts -p test_incident_dynamics.py
 python -m unittest discover -s scripts -p "test_prediction_report*.py"
 python scripts/verify_cross_domain_world_model_paper_v1_2.py
@@ -527,7 +722,7 @@ The attribution verifier recomputes every aggregate from 128 per-seed summaries,
 
 ### 12. Conclusion
 
-The paper's central contribution remains methodological, with a new positive prediction-and-warning result. Incident-informed development meets all four registered error-reduction gates and both warning gates, while historical regression checks pass. The selected models are fitted per-action ridge regression for OS and a three-seed action-residual ensemble for physical states, not a new JEPA objective or demonstrated Dream-RSI gain. The OS warning improvement carries a resolved false-positive increase.
+The paper's central contribution remains methodological, with registered prediction results that improve in stages. Incident-motivated development (v2) meets its four error-reduction gates against the earlier paper ensembles. Studies v3 and v4 then improve on the v2-selected models themselves: v4 meets every Physical gate, including the historical guard that v3 failed, and the FerrumOS gain passes on held-out mechanisms but not on the v2 population, where an unannounced drift reversal bounds five-step accuracy. The selected models are boosted per-horizon corrections on the frozen v2 ridge (OS) and on the frozen v2 ensemble (Physical), not a new JEPA objective. The Dream-RSI-inspired curriculum provided no gain, and warning improvements are uneven and carry false-positive costs.
 
 A world model can lead a matched rollout table, respond directionally to interventions, fail at a frozen operational threshold, and still remain correctly subordinate to policy and capability. The earlier horizon-composition-sensitive ranking, zero-coverage latent-hazard estimand, all-stop PyBullet policy, planner-dominated Safety-Gymnasium outcomes, exploratory risk-source comparison, and unfavorable output-value ablation remain intact. Better predictions and warnings in a new synthetic population do not establish that applying those warnings improves outcomes.
 
@@ -543,13 +738,15 @@ The targeted local attribution, its registered post-hoc sensitivity checks, and 
 
 #### 12.3 Release rule
 
-Technical Report v1.2 is the prepublication evidence-changing successor to v1.1. Version 1.1 and its repository tag remain intact; v1.2 adds the retained-catalog output-value evidence and the registered incident-informed prediction/warning improvement. The earlier September v1.2 PDF and manuscript remain byte-identifiable historical artifacts. Until v1.2 is published or tagged, review-driven corrections replace the previous candidate and refresh its freeze manifest. Publication or tagging makes that source, PDF, verifier, and manifest immutable; later evidence-changing work must then create a new report version and retain failed frozen results. This local revised release is not an external publication. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
+Technical Report v1.2 is the prepublication evidence-changing successor to v1.1. Version 1.1 and its repository tag remain intact; v1.2 adds the retained-catalog output-value evidence and the registered incident-dynamics v2, v3 and v4 studies, including the failed v3 rule. The earlier September v1.2 PDF and manuscript remain byte-identifiable historical artifacts. Until v1.2 is published or tagged, review-driven corrections replace the previous candidate and refresh its freeze manifest. Publication or tagging makes that source, PDF, verifier, and manifest immutable; later evidence-changing work must then create a new report version and retain failed frozen results. This local revised release is not an external publication. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
 
 ### Appendix A. Claim-to-evidence ledger
 
-The incident-informed addition supports only prediction and warnings: four adjusted primary contrasts and two recall gates pass on a fresh generated population, with all historical point-estimate guards passing. Its complete control table, FPR cost, source-label boundary, failed v1 attempt, and unchanged-authority record are in Section 8.7 and `incident_dynamics_result_v2.json`. It supplies no additional intervention or outcome claim.
+The incident-motivated addition supports only prediction and warnings: four adjusted primary contrasts and two recall gates pass on a fresh generated population, with all historical point-estimate guards passing. Its complete control table, FPR cost, source-label boundary, failed v1 attempt, and unchanged-authority record are in Section 8.7 and `incident_dynamics_result_v2.json`. It supplies no additional intervention or outcome claim.
 
 This ledger is part of the report rather than a supplementary marketing summary. It identifies the evidence object that supports each major statement and the closest claim that the same object does not support. The purpose is to make category errors visible during review.
+
+Table A1. Claim-to-evidence ledger.
 
 | Claim | Primary evidence | Supported result | Explicit exclusion |
 |---|---|---|---|
@@ -567,6 +764,7 @@ This ledger is part of the report rather than a supplementary marketing summary.
 | Controller and shield are jointly evaluated | Safety-Gymnasium final seeds 6000-6127 | Planner-only explains most cost reduction; union passes naive-baseline gates; no statistically resolved planner difference in completion or cost | Not independent, sensor-only, physical, or learned-superiority evidence |
 | Risk-source pipelines are compared | Frozen attribution seeds 8000-8127 | Exploratory JEPA-only versus full: -25 hazard steps and -0.81 intervention points; adjusted and leave-one-out intervals exclude zero | Not architecture-only causality, preserved completion, or superiority to planner |
 | Observed JEPA output values are intervened on | Prospectively specified experiment; complete retained paired catalogs, seeds 9000-9127 | Warning FPR +1.67 and intervention +0.96 points survive seven-endpoint and 11-output Bonferroni checks; precision -15.26 points is pointwise only; completion and hazard intervals include zero | Recovered result is retrospective; not architecture-wide causality, successful prospective evidence, or benefit |
+| Incident-dynamics v3/v4 improve on v2-selected models | v3 and v4 results on fresh populations A and B | v4: Physical passes every gate; OS passes on held-out mechanisms (20.0%/20.8%) | Not a pass of the registered rule (OS population A: 15.6%/5.7%); v3 rule failed; no RSI gain |
 | Deployment stayed unchanged | Recomputed protected SHA-256 digests | Every protected artifact is byte-identical | Not a deployment or release result |
 
 #### A.1 Evidence precedence
@@ -581,6 +779,8 @@ The study distinguishes several types of negative evidence. A scientific negativ
 ### Appendix B. Frozen-gate and artifact audit
 
 The paper inherits the study's frozen-gate discipline. Each verifier checks its own source objects and writes a result that is subsequently bound by the umbrella verification record. The paper verifier does not recompute every experiment; it requires the already committed umbrella result to pass, verifies its non-promotion and protected-digest assertions, and then binds the manuscript and rendered PDF to that evidence snapshot.
+
+Table B1. Frozen-gate and artifact audit by stage.
 
 | Stage | Frozen before final access | Verification requirement | Mutation boundary |
 |---|---|---|---|
@@ -604,6 +804,8 @@ The paper inherits the study's frozen-gate discipline. Each verifier checks its 
 
 Hosted Git history timestamps the registered files after commit; it does not prove absence of any earlier equivalent observation. The table is an audit index, not a claim that every stage was scientifically successful.
 
+Table B2. Protocol and amendment chronology.
+
 | Stage | Registration commit / time (IST) | Frozen change | Outcome |
 |---|---|---|---|
 | Safety-Gym v1–v4 | `383e525`–`f9d1a52`, 30 Aug 17:32–19:24 | Initial recovery, new final ranges, realized-cost gate | v1 selection failed; v3 final failed; v4 retained mixed record |
@@ -619,6 +821,12 @@ Hosted Git history timestamps the registered files after commit; it does not pro
 | Incident-dynamics v1 | `63a1059`-`fd036c3`, 18 Oct | New curriculum, validation-selected models, independent calibration, frozen primary gates | Historical duplicate-step schema rejection before final model scoring; failed attempt retained |
 | Incident-dynamics v2 | `3086e52`-`645fd8f`, 18 Oct | General duplicate-step exclusion, unchanged models and thresholds, fresh seed 281014 | All four prediction and both warning gates pass; six historical regression guards pass |
 | Incident portable audit | `dc8d9dd`-`f6b45c7`, 18 Oct | Retained-catalog inference, calibration, selection and metric recomputation | 48/48 checks match in a clean source archive; only JSON newline encoding may differ |
+| Incident-dynamics v3 plan | `d68a1c1`-`2b76913`, 18 Oct 22:50-23:45 | 24 verified sources, ten families per domain with three held out, candidate families, guarded generator | Development only; no final access |
+| Incident-dynamics v3 protocol | `c574edb`, 19 Oct 01:37 | Populations A/B, three-block selection metric, 20% gates, 5% guard, RSI claim rule | Registered before selection |
+| Incident-dynamics v3 selection | `7e51a28`, 19 Oct 02:12 | Direct boosted OS and one-step boosted Physical ensembles; k=0 warnings | Frozen before final access |
+| Incident-dynamics v3 final | `366dee6`, 19 Oct 02:24 | One opening of seeds 391014 and 391015 | Primary rule failed (six effect sizes, one guard); 48/48 verification checks pass |
+| Incident-dynamics v4 protocol | `c9418e0`, 19 Oct 03:13 | Physical direct family and committee; unchanged gates; fresh seeds | Registered after the v3 failure |
+| Incident-dynamics v4 selection and final | `4b66f7c`-`c5098bf`, 19 Oct 03:27-03:34 | Direct Physical ensemble; FerrumOS carried forward | Physical passes all gates; OS population A fails; 46/46 checks pass |
 
 #### B.2 Protected deployment inventory
 
@@ -637,7 +845,9 @@ Technical Report v1.2 is intended to be archived together with its manuscript, f
 
 The October addition is rooted at `docs/research/incident_dynamics_protocol_v1.json` and its `v2` amendment. The adjacent `incident_dynamics_selection_v2.json`, `incident_dynamics_result_v2.json`, `incident_dynamics_verification_v2.json`, and `incident_dynamics_portable_verification_v2.json` bind selected weights, calibration, results, and the 48-check audit. `incident_dynamics_sources_v1.json` records all source URLs and representation limits. `docs/research/artifacts/incident-dynamics-v1/` retains development traces, checkpoints, validation/calibration catalogs, the earlier report, and the failed final attempt; `incident-dynamics-v2/final/` contains the successful retained final catalogs and predictions. Run `scripts/verify_incident_dynamics_portable_v2.py` to reproduce inference and statistics without retraining or generating another final catalog.
 
-The repository is the executable supplement to the narrative. Table C.1 lists the shortest path from a headline claim to its primary machine-readable evidence. Verification files are intentionally separate from result files so that a result producer is not the sole authority for its own gate.
+The repository is the executable supplement to the narrative. Table C1 lists the shortest path from a headline claim to its primary machine-readable evidence. Verification files are intentionally separate from result files so that a result producer is not the sole authority for its own gate.
+
+Table C1. Artifact locator from headline claim to machine-readable evidence.
 
 | Evidence object | Repository path | Review use |
 |---|---|---|
@@ -668,6 +878,12 @@ The repository is the executable supplement to the narrative. Table C.1 lists th
 | Authority test inventory | `docs/research/cross_domain_authority_test_inventory_v1.json` | Map component, test class, committed pass, and execution availability |
 | Umbrella verification | `docs/research/cross_domain_world_model_improvement_verification_v1.json` | Confirm subordinate passes, claim boundaries and protected hashes |
 | Narrative study | `docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md` | Read the compact evidence-first study before this full report |
+| Incident-dynamics v3 sources | `docs/research/incident_dynamics_sources_v3.json` | Inspect 24 source URLs, verification notes, family mapping and caveats |
+| Incident-dynamics v3 protocol and plan | `docs/research/incident_dynamics_protocol_v3.json`, `incident_dynamics_v3_development_plan.json` | Inspect populations, gates, holdout rule, disclosed probes and amendments |
+| Incident-dynamics v3 selection | `docs/research/incident_dynamics_selection_v3.json` | Recompute candidate scores; confirm compact archives and k rule |
+| Incident-dynamics v3 result | `docs/research/incident_dynamics_result_v3.json` | Read primary endpoints, warnings, RSI ablation and historical guards |
+| Incident-dynamics v3 verification | `docs/research/incident_dynamics_verification_v3.json` | Confirm 48 regeneration, inference and statistics checks |
+| Incident-dynamics v4 records | `docs/research/incident_dynamics_protocol_v4.json`, `incident_dynamics_selection_v4.json`, `incident_dynamics_result_v4.json`, `incident_dynamics_verification_v4.json` | Inspect the successor design, its fresh results, and 46 checks |
 
 #### C.1 Recommended audit path
 
@@ -675,12 +891,14 @@ Begin with the prospective protocol and umbrella verification. Confirm `promotio
 
 #### C.2 Versioning rule
 
-The report version identifies a fixed document, not a promise that every moving repository file will remain identical forever. Version 1.2 is evidence-changing because it binds the retained-catalog output ablation and incident-informed study; it does not mutate or supersede the evidentiary status of v1.1. Once published or tagged, corrections that alter prose, evidence binding, or layout should create a new immutable report version and retain the old version in archival history. Dataset and software deposits should use their own versioned records when they are independently reusable. A concept DOI may identify the evolving record, while the paper should cite the immutable version DOI used during review.
+The report version identifies a fixed document, not a promise that every moving repository file will remain identical forever. Version 1.2 is evidence-changing because it binds the retained-catalog output ablation and incident-motivated study; it does not mutate or supersede the evidentiary status of v1.1. Once published or tagged, corrections that alter prose, evidence binding, or layout should create a new immutable report version and retain the old version in archival history. Dataset and software deposits should use their own versioned records when they are independently reusable. A concept DOI may identify the evolving record, while the paper should cite the immutable version DOI used during review.
 
 
 ### Appendix D. Seed-level architecture results
 
-Each cell reports H=1/H=3/H=5 normalized endpoint error for one independently initialized checkpoint. Table 1 instead reports error after averaging the three state predictions. These seed results show training variability; the paper's episode bootstrap does not resample this training process.
+Each cell reports H=1/H=3/H=5 normalized endpoint error for one independently initialized checkpoint. Table 3 instead reports error after averaging the three state predictions. These seed results show training variability; the paper's episode bootstrap does not resample this training process.
+
+Table D1. Seed-level architecture results (H=1 / H=3 / H=5 normalized endpoint error).
 
 | Domain | Method | Seed 17 | Seed 43 | Seed 101 |
 |---|---|---:|---:|---:|
@@ -691,9 +909,11 @@ Each cell reports H=1/H=3/H=5 normalized endpoint error for one independently in
 | Physical | Action-conditioned JEPA | 0.002967 / 0.007682 / 0.011869 | 0.003056 / 0.008098 / 0.012635 | 0.003017 / 0.007989 / 0.012481 |
 | Physical | GRU dynamics | 0.013441 / 0.032976 / 0.049582 | 0.012091 / 0.028457 / 0.041401 | 0.012486 / 0.032275 / 0.050767 |
 
-#### D.1 Incident-informed development trials
+#### D.1 Incident-dynamics v2 development trials
 
 The table retains all 13 completed neural trials. Scores are individual checkpoints' mean validation H=1/3/5 MAE, not test performance. Configuration selection uses the ensemble prediction score, not the average score in this table and not the best individual seed. OS ridge separately searches regularization 0.001, 0.1, and 10 and wins the configuration-level selection; its fit is deterministic. Initial physical controls are retained even when later wider controls improve on them.
+
+Table D2. Incident-dynamics v2 development trials (individual checkpoint validation scores).
 
 | Domain / model / width | Seed | Parameters | Completed / selected updates | Individual validation score |
 |---|---:|---:|---|---:|
@@ -714,6 +934,35 @@ The table retains all 13 completed neural trials. Scores are individual checkpoi
 The selected physical ensemble's validation score is 0.0053222; OS ridge's is 0.0013137. These validation scores combine old and added development episodes and should not be compared as if they came from the fresh final population. Selected-model versus same-data control differences also combine ensemble-size and budget effects. All trial settings and checkpoint traces are retained under the artifact locator in Appendix C.
 
 <!-- PAGE BREAK -->
+
+#### D.2 Incident-dynamics v3 and v4 development trials
+
+Every retained configuration is listed with its seeds and its mean single-seed development score under the registered three-block metric (v2-selected = 1). Ensemble selection scores differ slightly from these means. Crashed, stopped, and never-run trials are recorded in the development ledger and `infrastructure_failures.jsonl`.
+
+Table D3. Retained incident-dynamics v3 and v4 development configurations. H is history length; Score is the mean single-seed three-block score (v2-selected = 1), with per-block ratios.
+
+| Domain | Configuration | Family | H | Weighting | Seeds | Score | Legacy | Incident | Mechanism |
+|---|---|---|---|---|---|---|---|---|---|
+| OS | o01-ar-mech | AR net | 8 | uniform | 17 | 1.058 | 0.958 | 1.395 | 0.820 |
+| OS | o02-ar-mech-iw4 | AR net | 8 | incident x4 | 17 | 0.940 | 0.955 | 1.143 | 0.722 |
+| OS | o09-boost-mech | net on v2 | 8 | uniform | 17 | 1.375 | 1.015 | 2.074 | 1.036 |
+| OS | o12-boost-bb | net on v2 | 8 | balanced | 17 | 1.000 | 1.000 | 1.000 | 1.000 |
+| OS | o16-edd-bb | effect-drift net | 8 | balanced | 17 | 1.048 | 1.054 | 1.328 | 0.763 |
+| OS | o20-gbr-h8-iw8 | trees on v2, one-step | 8 | incident x8 | 17, 43, 101 | 0.791 | 1.028 | 0.799 | 0.545 |
+| OS | o21-gbr-h3-iw8 | trees on v2, one-step | 3 | incident x8 | 17 | 0.792 | 1.028 | 0.776 | 0.571 |
+| OS | o22-gbr-h3-iw16 | trees on v2, one-step | 3 | incident x16 | 17 | 0.787 | 1.029 | 0.765 | 0.568 |
+| OS | o23-gbr-h8-iw8-t1500 | trees on v2, one-step | 8 | incident x8 | 17 | 0.825 | 1.028 | 0.884 | 0.563 |
+| OS | o24-gbr-h8-iw8-l127 | trees on v2, one-step | 8 | incident x8 | 17 | 0.827 | 1.023 | 0.890 | 0.568 |
+| OS | o26-gbrd-h8-iw8 | trees on v2, direct | 8 | incident x8 | 17, 43, 101 | 0.693 | 1.001 | 0.588 | 0.491 |
+| OS | o27-rsi-gbrd-h8-iw8 | trees on v2, direct | 8 | incident x8, RSI | 17, 43, 101 | 0.698 | 1.001 | 0.602 | 0.489 |
+| OS | o28-gbrd-h8-iw8-scaled | trees on v2, direct | 8 | incident x8, + scale | 17, 43, 101 | 0.693 | 1.001 | 0.588 | 0.491 |
+| Physical | p01-ar-base | AR net | 8 | uniform, no mech. | 17 | 0.902 | 0.921 | 0.860 | 0.926 |
+| Physical | p13-ar-bb | AR net | 8 | balanced | 17 | 0.948 | 1.192 | 0.855 | 0.797 |
+| Physical | p17-boost-bb | net on v2 | 8 | balanced | 17 | 0.907 | 1.039 | 0.890 | 0.792 |
+| Physical | p21-gbr-h8-iw4 | trees on v2, one-step | 8 | incident x4 | 17, 43, 101 | 0.660 | 0.653 | 0.697 | 0.631 |
+| Physical | p23-ar-mech-u20k-h384 | AR net | 8 | uniform | 17 | 0.781 | 0.856 | 0.752 | 0.735 |
+| Physical | p24-gbr-h8-iw4-scaled | trees on v2, one-step | 8 | incident x4, + scale | 17, 43, 101 | 0.660 | 0.653 | 0.697 | 0.631 |
+| Physical | p30-gbrd-h8-iw4-t300 | trees on v2, direct | 8 | incident x4 | 17, 43, 101 | 0.584 | 0.554 | 0.630 | 0.568 |
 
 ### References
 
@@ -770,3 +1019,7 @@ The selected physical ensemble's validation score is 0.0053222; OS ridge's is 0.
 [26] CISA. "Rockwell Automation FactoryTalk Policy Manager." ICSA-25-317-09, 2025. https://www.cisa.gov/news-events/ics-advisories/icsa-25-317-09
 
 [27] NTSB. "Collision Between a Sport Utility Vehicle Operating with Partial Driving Automation and a Stationary Passenger Car." HWY24FH006, San Antonio, Texas, 2024 crash investigation. https://www.ntsb.gov/investigations/Pages/HWY24FH006.aspx
+
+[28] G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y. Liu. "LightGBM: A Highly Efficient Gradient Boosting Decision Tree." Advances in Neural Information Processing Systems 30, 2017. https://papers.nips.cc/paper_files/paper/2017/hash/6449f44a102fde848669bdd9eb6b76fa-Abstract.html
+
+[29] E. S. Gardner and E. McKenzie. "Forecasting Trends in Time Series." Management Science 31(10), pp. 1237-1246, 1985. https://doi.org/10.1287/mnsc.31.10.1237

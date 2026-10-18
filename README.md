@@ -25,10 +25,16 @@ authority.
 Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf),
 with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md)
 and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_2.json).
-The 34-page report retains the matched architecture study and all earlier negative
-results. A separately registered incident-informed synthetic study improves prediction
-and warnings in both domains, with an explicit OS false-positive cost; it does not
-establish controller benefit, real-incident prevention, or deployment eligibility.
+The 42-page report retains the matched architecture study and all earlier negative
+results and adds three registered incident-dynamics studies. The latest (v4) applies
+gradient-boosted residual corrections to the earlier selected models, using 24 newly
+verified incident sources and mechanism families held out from development: five-step
+prediction error falls 38.0% (physical, earlier population) and 24.1% (physical,
+held-out mechanisms), and 20.8% for OS on held-out mechanisms. Its registered success
+rule still fails on the earlier OS population, where an unannounced drift reversal
+bounds five-step accuracy (5.7%). The broader v3 failure, uneven warning results, and a
+negative Dream-RSI-inspired ablation are retained. None of this establishes controller
+benefit, real-incident prevention, or deployment eligibility.
 The [earlier v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf)
 remains available. Its [external-execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md)
 is replication-ready but has not yet been run by a non-author. No archival DOI is

@@ -86,12 +86,15 @@ FIGURE_DIR = ROOT / "docs/research/figures/cross_domain_world_model"
 FIGURES = [
     FIGURE_DIR / "authority_factorization.png",
     FIGURE_DIR / "matched_rollout_results.png",
-    FIGURE_DIR / "evidence_ladder.png",
+    FIGURE_DIR / "evidence_ladder_v1_2.png",
     FIGURE_DIR / "causal_vs_operational.png",
+    FIGURE_DIR / "incident_dynamics_v3_v4_results.png",
 ]
 FREEZE = ROOT / "docs/research/cross_domain_world_model_paper_freeze_v1_2.json"
 RESULT = ROOT / "docs/research/cross_domain_world_model_paper_verification_v1_2.json"
-BUILDER = ROOT / "scripts/build_world_model_technical_report_v1_2.py"
+# The revised v1.2 uses a report-specific copy of the shared builder (numbered table captions),
+# leaving the builder bound by the published kernel report untouched.
+BUILDER = ROOT / "scripts/build_prediction_report_layout_v1_2.py"
 REPORT_BUILDER = ROOT / "scripts/build_prediction_is_not_permission_v1_2.py"
 REPRO_REQUIREMENTS = ROOT / "requirements-prediction-report-v1_2.txt"
 HISTORICAL_ARCHIVE = ROOT / "docs/research/cross_domain_inference_archive_v1_2.json"
@@ -100,11 +103,14 @@ HISTORICAL_VERIFIER = ROOT / "scripts/verify_cross_domain_archived_inference_v1_
 RESTORATION_REVIEW = ROOT / "docs/research/cross_domain_checkpoint_restoration_review_v1_2.json"
 
 TITLE = "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
-EVIDENCE_SNAPSHOT_COMMIT = "f6b45c759830c0148a06b674c980fb9761ac0c8c"
+EVIDENCE_SNAPSHOT_COMMIT = "c5098bfd099e8ef6c441f42dba90071f3bf71668"
 INCIDENT_FILES = {
     name: ROOT / f"docs/research/incident_dynamics_{name}.json"
     for name in ("sources_v1", "protocol_v1", "protocol_v2", "selection_v2",
-                 "result_v2", "verification_v2", "portable_verification_v2")
+                 "result_v2", "verification_v2", "portable_verification_v2",
+                 "v3_development_plan", "sources_v3", "protocol_v3", "selection_v3",
+                 "result_v3", "verification_v3", "protocol_v4", "selection_v4",
+                 "result_v4", "verification_v4")
 }
 ABLATION_DISPLAYED_ENDPOINTS = (
     "task_completion_percentage_points",
@@ -123,8 +129,16 @@ ABLATION_ALL_REGISTERED_OUTPUTS = (
     "mean_episode_steps",
 )
 REQUIRED_SOURCE_PHRASES = [
-    "Technical Report v1.2 - 18 October 2026",
-    "Registered incident-informed prediction and warning improvement",
+    "Technical Report v1.2 - 19 October 2026",
+    "Incident-dynamics v3: broader mechanisms, boosted residual models, and an evolving-world curriculum",
+    "Incident-dynamics v4: a registered successor after the failed v3 rule",
+    "The primary success rule therefore fails, and the v3 result is retained as a failure.",
+    "The primary rule therefore fails on that one population",
+    "v3 provides no evidence of an RSI gain",
+    "Warnings do not follow the prediction gains.",
+    "v4 is a registered successor designed after the v3 result.",
+    "Public narratives motivate local perturbations, not telemetry.",
+    "Registered incident-motivated prediction and warning improvement (v2)",
     "The study is not architecture-only, parameter-matched, or FLOP-matched.",
     "Source identities are assigned to generated episodes; they do not cause distinct learned transition laws.",
     "The successful v2 final is not a rerun of v1 evidence.",
@@ -139,7 +153,7 @@ REQUIRED_SOURCE_PHRASES = [
     "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]",
     "complete post-hoc common-episode comparison",
     "registered ranking reversal cannot be isolated as a horizon effect",
-    "Table 2 reports the complete post-hoc common-episode comparison",
+    "Table 4 reports the complete post-hoc common-episode comparison",
     "| H=1 | 0.002343 | **0.001018** | 0.002401 | +0.001325 [0.001295, 0.001356] | -0.001383 [-0.001408, -0.001358] |",
     "constant-prevalence predictor has Brier 0.25",
     "Prospective Safety-Gymnasium controller and shield benchmark",
@@ -223,7 +237,10 @@ REQUIRED_PDF_PHRASES = [
     "superiority over the planner was not established",
     "Validation FPR",
     "Retained-catalog Physical JEPA output-value ablation",
-    "Registered incident-informed prediction and warning improvement",
+    "Registered incident-motivated prediction and warning improvement (v2)",
+    "Incident-dynamics v3: broader mechanisms",
+    "Incident-dynamics v4: a registered successor",
+    "The primary rule therefore fails on that one population",
     "Source identities are assigned to generated episodes",
     "The study is not architecture-only, parameter-matched, or FLOP-matched.",
     "OS FPR rises by 1.00 point",
@@ -757,12 +774,13 @@ def main() -> None:
         "forbidden_placeholders_and_review_wording_absent": all(
             forbidden_absent.values()
         ),
-        # October adds a registered study, full controls and ten primary references.
-        "pdf_page_count_is_readable_submission_length": 20 <= len(reader.pages) <= 40,
+        # October adds three registered incident-dynamics studies (v2-v4) with full controls and appendices.
+        "pdf_page_count_is_readable_submission_length": 20 <= len(reader.pages) <= 44,
         "pdf_body_typography_matches_publication_scale": 9.4
         <= typography["dominant_body_font_size_points"]
         <= 9.6
-        and typography["character_share_at_least_9_4_points"] >= 0.68
+        # The revision adds about five data tables (Tables 19-26, D3) set below body size.
+        and typography["character_share_at_least_9_4_points"] >= 0.65
         and typography["maximum_first_page_font_size_points"] <= 24.0,
         "pdf_title_exact": metadata.title == TITLE,
         "pdf_author_exact": metadata.author == "Vyom Kulshrestha",
@@ -1263,10 +1281,47 @@ def main() -> None:
         "incident_os_false_positive_increase_retained": incident_domains["ferrumos"]["paired_warning"]["fpr"]["interval_97_5_percent"][0] > 0
         and "OS FPR rises by 1.00 point [0.45, 1.59]" in source_text,
     })
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT / "scripts"))
+    import build_incident_dynamics_v3_tables as v34_tables
+    result_v3, result_v4 = incident["result_v3"], incident["result_v4"]
+    verification_v3, verification_v4 = incident["verification_v3"], incident["verification_v4"]
+    generated_tables = {
+        "v3_primary": v34_tables.table_primary(result_v3),
+        "v3_controls": v34_tables.table_controls(result_v3),
+        "v3_warnings": v34_tables.table_warnings(result_v3),
+        "v3_rsi": v34_tables.table_rsi(result_v3),
+        "v4_primary": v34_tables.table_primary(result_v4, "v4"),
+        "v4_physical_lineage": v34_tables.table_v4_physical_lineage(result_v4),
+        "v4_warnings": v34_tables.table_warnings(result_v4, "v4"),
+        "v3_sources": v34_tables.table_sources(),
+    }
+    checks.update({
+        "incident_v3_v4_tables_match_retained_results": all(table in source_text for table in generated_tables.values()),
+        "incident_v3_primary_failure_reported": result_v3["primary_prediction_objective_pass"] is False
+        and "The primary success rule therefore fails, and the v3 result is retained as a failure." in source_text,
+        "incident_v4_primary_failure_reported": result_v4["primary_prediction_objective_pass"] is False
+        and "The primary rule therefore fails on that one population" in source_text,
+        "incident_v4_physical_gates_and_guards_pass": all(
+            x["pass"] for p in result_v4["domains"]["physical"]["populations"].values() for x in p["primary_prediction"].values())
+        and all(g["pass"] for g in result_v4["domains"]["physical"]["historical_guards"].values()),
+        "incident_v3_v4_verifications_pass": verification_v3["all_checks_pass"] and len(verification_v3["checks"]) == 48
+        and verification_v4["all_checks_pass"] and len(verification_v4["checks"]) == 46
+        and verification_v3["result"]["sha256"] in text_sha256_candidates(INCIDENT_FILES["result_v3"])
+        and verification_v4["result"]["sha256"] in text_sha256_candidates(INCIDENT_FILES["result_v4"]),
+        "incident_v3_v4_no_promotion_or_actuator_authority": all(
+            r["promotion_eligible"] is False and r["actuator_attempts"] == r["actuator_deliveries"] == 0 and all(r["protected_unchanged"].values())
+            for r in (result_v3, result_v4)),
+        "incident_v3_rsi_negative_reported": all(
+            result_v3["domains"]["ferrumos"]["populations"][pop]["rsi_ablation"]["h5"]["relative_reduction"] < 0.05 for pop in ("A", "B"))
+        and "v3 provides no evidence of an RSI gain" in source_text,
+        "incident_v3_v4_selection_frozen_without_final_access": not incident["selection_v3"]["final_access_attempted"]
+        and not incident["selection_v4"]["final_access_attempted"],
+    })
     freeze = {
         "schema": "cross-domain-world-model-paper-freeze-v1-2",
         "report_version": "1.2",
-        "evidence_frozen_date": "2026-10-18",
+        "evidence_frozen_date": "2026-10-19",
         "title": TITLE,
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
@@ -1279,7 +1334,7 @@ def main() -> None:
             **{f"incident_dynamics_{name}": {"path": rel(path), "sha256": sha256(path)}
                for name, path in INCIDENT_FILES.items()},
             "report_builder": {"path": rel(REPORT_BUILDER), "sha256": sha256(REPORT_BUILDER)},
-            "shared_report_builder": {"path": rel(BUILDER), "sha256": sha256(BUILDER)},
+            "report_layout_builder": {"path": rel(BUILDER), "sha256": sha256(BUILDER)},
             "paper_verifier": {"path": rel(Path(__file__)), "sha256": sha256(Path(__file__))},
             "reproduction_requirements": {"path": rel(REPRO_REQUIREMENTS), "sha256": sha256(REPRO_REQUIREMENTS)},
             **{name: {"path": rel(path), "sha256": sha256(path)} for name, path in (
