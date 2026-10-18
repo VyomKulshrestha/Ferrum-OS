@@ -1,0 +1,13 @@
+{
+  "all_ambiguous_episodes_shorter_than_five_rows": true,
+  "ambiguous_episode_count": 1,
+  "ambiguous_episodes": {
+    "hybrid-000017-512m": [
+      0,
+      0
+    ]
+  },
+  "applied_identically_to_all_methods": true,
+  "retained_common_episodes": 238,
+  "rule": "Exclude duplicate-step episodes before model inference, then require five contiguous transitions."
+}

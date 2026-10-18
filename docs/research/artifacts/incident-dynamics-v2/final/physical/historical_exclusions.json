@@ -1,0 +1,8 @@
+{
+  "all_ambiguous_episodes_shorter_than_five_rows": true,
+  "ambiguous_episode_count": 0,
+  "ambiguous_episodes": {},
+  "applied_identically_to_all_methods": true,
+  "retained_common_episodes": 2560,
+  "rule": "Exclude duplicate-step episodes before model inference, then require five contiguous transitions."
+}
