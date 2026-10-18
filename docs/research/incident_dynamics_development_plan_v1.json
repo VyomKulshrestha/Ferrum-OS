@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "study_id": "incident-dynamics-v1",
+  "registered_at": "2026-10-18",
+  "status": "development_only_before_final_selection",
+  "purpose": "Improve measured prediction and delayed-hazard warning without changing execution authority or rewriting previous negative results.",
+  "parent_report": "Prediction Is Not Permission, prepublication v1.2",
+  "parent_commit": "e585dda",
+  "inherit_protected_inventory": "docs/research/cross_domain_world_model_improvement_protocol_v1.json",
+  "research_sources": "docs/research/incident_dynamics_sources_v1.json",
+  "development": {
+    "domains": ["ferrumos", "physical"],
+    "history": 3,
+    "horizons": [1, 3, 5],
+    "training_seeds": [17, 43, 101],
+    "candidate_methods": ["causal_residual", "action_conditioned_jepa", "direct_mlp", "ridge"],
+    "initial_updates": 6000,
+    "batch_size": 256,
+    "neural_objective": "equally weighted normalized smooth-L1 state rollout loss at all five steps; no teacher forcing after the first prediction",
+    "checkpoint_selection": "mean validation H1/H3/H5 normalized MAE on fixed episode populations; no test input",
+    "curriculum": "original development partitions plus synthetic incident-mechanism trajectories; source texts are not numeric observations",
+    "candidate_changes": "Allowed during development, each attempted configuration and result must remain recorded. Freeze exact code, data, checkpoints and thresholds in a separate selection manifest before final generation.",
+    "dream_rsi": "Literature-informed logging only, not a faithful Dream-RSI implementation or a demonstrated RSI gain. No completed-tree hindsight is passed to model selection."
+  },
+  "evaluation_policy": {
+    "historical_catalogs": "Already opened in the paper; regression evidence only. No claim of fresh confirmation. Do not read during development selection.",
+    "new_catalogs": "Generated only after a committed selection manifest; fresh seeds and source-held-out mechanism compositions. Exact counts and seeds must be committed before generation.",
+    "source_boundary": "Narrative-source holdout is not independent telemetry or a novel-mechanism holdout. Shared equations and researcher-designed labels must be explicit.",
+    "primary_prediction_gate": "At least 20 percent lower H3 and H5 episode-macro normalized MAE than the paper-selected ensemble in each domain, with familywise 95 percent paired bootstrap intervals excluding zero across four endpoints on the new catalog.",
+    "historical_guardrail": "No more than 5 percent relative regression in historical common-H5-eligible episode H1/H3/H5 macro MAE versus the best paper ensemble at that endpoint. A failure must be reported and prohibits a general improvement claim.",
+    "warning_gate": "At validation-selected threshold targeting at most 1 percent false-positive rate, improve dangerous-trajectory recall by at least 20 percentage points over the paper model with the same new calibration procedure; held-out observed FPR at most 2 percent. Report counts, episode intervals, Brier, prevalence, and per-family results.",
+    "comparators": ["paper frozen checkpoints", "same-data retrained JEPA", "same-data retrained MLP", "ridge", "state persistence", "causal constant velocity"],
+    "uncertainty": "10000 episode-paired bootstrap draws; four primary prediction endpoints use Bonferroni 98.75 percent intervals; retraining-seed results separately reported",
+    "failure_policy": "Retain every failed frozen result. Any post-final change requires a new protocol and fresh seeds; do not recycle a final catalog as confirmation."
+  },
+  "authority": {"promotion_eligible": false, "actuator_delivery": false, "runtime_model_replacement": false},
+  "claim_boundaries": [
+    "Prediction improvement does not establish fewer real incidents, physical safety, controller benefit, or permission.",
+    "No live attacks or exploit code are used. Public incident mechanisms are represented by local abstract simulator perturbations only.",
+    "Keep all prior paper results and failed experiments intact; revise the untagged v1.2 candidate only after verified improvement."
+  ]
+}
