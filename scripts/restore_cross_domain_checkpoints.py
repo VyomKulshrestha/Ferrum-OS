@@ -42,7 +42,9 @@ def main():
             raise FileExistsError(destination)
         print(json.dumps({"reproducing": args.domain, "method": args.method, "seed": seed}), flush=True)
         model, metrics = models.fit_model(args.method, spec, train, validation, seed, settings)
-        scratch = study.ROOT / "target/incident-dynamics-v1/replication" / args.domain / destination.name
+        scratch = study.ROOT / "target/incident-dynamics-v1/replication" / args.domain / f"threads-{args.threads}" / destination.name
+        if scratch.exists():
+            raise FileExistsError(f"retain the existing replication: {scratch}")
         record = models.save_model(scratch, model, metrics)
         exact = record["sha256"] == expected["checkpoint"]["sha256"]
         expected_metrics = {key: value for key, value in expected.items() if key != "checkpoint"}

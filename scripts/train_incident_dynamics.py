@@ -45,9 +45,33 @@ class CausalResidual(nn.Module):
         return mean, mean.new_full(mean.shape, -8), mean.new_zeros(())
 
 
+class ActionResidual(nn.Module):
+    """Shared history encoder with learned action-specific delta heads."""
+    def __init__(self, spec, hidden=192):
+        super().__init__()
+        self.register_buffer("scale", torch.tensor(spec.scale))
+        self.action_count = 41 if spec.name == "ferrumos" else 7
+        self.state_size = spec.state_size
+        width = spec.history * (spec.state_size + spec.action_size)
+        self.encoder = nn.Sequential(nn.Linear(width, hidden), nn.SiLU(), nn.Linear(hidden, hidden), nn.SiLU())
+        self.heads = nn.Linear(hidden, self.action_count * spec.state_size)
+        nn.init.zeros_(self.heads.weight)
+        nn.init.zeros_(self.heads.bias)
+
+    def forward(self, states, actions, next_state=None):
+        normalized = states / self.scale
+        causal = torch.cat((normalized[:, -1:], normalized[:, 1:] - normalized[:, :-1]), dim=1)
+        inputs = torch.cat((causal.flatten(1), actions.flatten(1)), dim=1)
+        experts = self.heads(self.encoder(inputs)).view(-1, self.action_count, self.state_size)
+        mean = (experts * actions[:, -1, :self.action_count, None]).sum(1)
+        return mean, mean.new_full(mean.shape, -8), mean.new_zeros(())
+
+
 def make_model(method, spec, hidden=192):
     if method == "causal_residual":
         return CausalResidual(spec, hidden)
+    if method == "action_residual":
+        return ActionResidual(spec, hidden)
     return legacy.make_model(method, spec, hidden)
 
 
@@ -156,7 +180,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", choices=["prepare", "train"])
     parser.add_argument("--domain", choices=["ferrumos", "physical"], required=True)
-    parser.add_argument("--method", default="causal_residual", choices=["causal_residual", "action_conditioned_jepa", "direct_mlp"])
+    parser.add_argument("--method", default="causal_residual", choices=["causal_residual", "action_residual", "action_conditioned_jepa", "direct_mlp"])
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--run-id", default="trial01")
     parser.add_argument("--hidden", type=int, default=192)
