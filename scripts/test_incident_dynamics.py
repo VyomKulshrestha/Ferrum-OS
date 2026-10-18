@@ -1,5 +1,9 @@
 """Focused invariants for the new causal training path (no final catalogs)."""
 import unittest
+from unittest.mock import patch
+from pathlib import Path
+import hashlib
+import tempfile
 
 import numpy as np
 import torch
@@ -120,6 +124,29 @@ class CausalWindowsTests(unittest.TestCase):
         self.assertTrue(result["primary_prediction_objective_pass"])
         self.assertTrue(result["secondary_warning_objective_pass"])
         self.assertEqual(result["methods"]["selected"]["warning"]["recall"], 1)
+
+    def test_ambiguous_historical_episode_excluded_before_windowing(self):
+        duplicate = {**self.rows[0], "episode": "ambiguous", "step": 0}
+        rows = self.rows + [duplicate, duplicate.copy()]
+        with patch.object(study, "VERSION", 2), patch.object(study.architecture, "os_final", return_value=(self.spec, rows, {})):
+            windows, exclusions = study.historical_inputs("ferrumos", self.spec)
+        self.assertNotIn("ambiguous", windows.episodes)
+        self.assertEqual(exclusions["ambiguous_episode_count"], 1)
+        self.assertTrue(exclusions["all_ambiguous_episodes_shorter_than_five_rows"])
+        self.assertEqual(exclusions["retained_common_episodes"], 2)
+
+    def test_metadata_newline_equivalence_is_explicit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "record.json"
+            path.write_bytes(b'{"a":1}\n')
+            self.assertTrue(study.record_matches({"path": str(path), "sha256": hashlib.sha256(b'{"a":1}\r\n').hexdigest()}))
+            self.assertFalse(study.record_matches({"path": str(path), "sha256": hashlib.sha256(b'{"a":2}\r\n').hexdigest()}))
+
+    def test_binary_digest_does_not_allow_newline_conversion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "model.pt"
+            path.write_bytes(b'abc\n')
+            self.assertFalse(study.record_matches({"path": str(path), "sha256": hashlib.sha256(b'abc\r\n').hexdigest()}))
 
 
 if __name__ == "__main__":
