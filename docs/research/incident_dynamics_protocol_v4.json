@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "study_id": "incident-dynamics-v4",
+  "registered_at": "2026-10-19",
+  "status": "registered before the v4 selection manifest",
+  "development_plan": "docs/research/incident_dynamics_v3_development_plan.json",
+  "sources": "docs/research/incident_dynamics_sources_v3.json",
+  "evidence_class": "prospective locally designed software benchmark; paper-population replication plus a novel-mechanism holdout within the same researcher-designed simulator",
+  "selection": {
+    "metric": "Mean over the legacy, v2-incident and development-mechanism validation blocks of block score divided by the v2-selected block score; block score = mean H1/H3/H5 episode-macro normalized MAE. Ensemble prediction = mean of member predictions.",
+    "minimum_seeds": 3,
+    "rule": "Lowest ensemble selection score among configurations with at least three completed seeds; ties broken by configuration name.",
+    "registered_v3_comparators": {
+      "ferrumos": {},
+      "physical": {
+        "v3-selected": [
+          "p24-gbr-h8-iw4-scaled"
+        ]
+      }
+    },
+    "committees": {
+      "ferrumos": [],
+      "physical": [
+        [
+          "p24-gbr-h8-iw4-scaled",
+          "p30-gbrd-h8-iw4-t300"
+        ]
+      ]
+    },
+    "scale_supersession": "A scale-augmented configuration (settings.parent_trial) has its parent's mean forecast and supersedes the parent when it covers the same seeds."
+  },
+  "warning": {
+    "score": "maximum signed constraint margin over the five forecast states, shifted by k times the predicted Laplace scale (ensemble scale = mean member scale + member disagreement)",
+    "k_grid": [
+      0,
+      0.5,
+      1.0,
+      1.5,
+      2.0
+    ],
+    "threshold_rule": "smallest score threshold with at most 1 percent empirical FPR on the registered calibration episodes (unchanged v2 rule)",
+    "k_rule": "maximize development warning-validation recall among k with development warning-validation FPR at most validation_fpr_maximum; ties to the smaller k",
+    "validation_fpr_maximum": 0.015,
+    "comparators": "Every pipeline, including the v2-selected comparator, is recalibrated on the same calibration episodes; v2 pipelines use k=0."
+  },
+  "final": {
+    "episodes_per_domain": 1024,
+    "seed_population_a": 391024,
+    "seed_population_b": 391025,
+    "population_a": "incident_dynamics_data.incident_rows(domain, 'final', 1024, 391024): unchanged v2 final generator, fresh seed",
+    "population_b": "incident_dynamics_v3_data.mechanism_rows(domain, 'final', HELD_OUT_MECHANISMS[domain], 1024, 391025): same held-out families, fresh seed",
+    "historical": "paper final families with duplicate-step episodes excluded and five-contiguous-transition episodes retained (v2 rule)"
+  },
+  "gates": {
+    "prediction_relative_reduction": 0.2,
+    "prediction_endpoints": "populations A and B x domains ferrumos and physical x H3 and H5 (8 endpoints), selected versus v2-selected",
+    "historical_maximum_regression": 0.05,
+    "warning_miss_reduction": 0.2,
+    "warning_fpr_maximum": 0.02,
+    "primary_success_rule": "All eight prediction endpoints pass (relative reduction at least 20 percent and Bonferroni-adjusted upper interval below zero) and all historical guards pass.",
+    "secondary_warning_rule": "For each population and domain: miss-rate reduction at least 20 percent versus the identically recalibrated v2-selected pipeline, paired recall interval lower bound above zero, and observed FPR at most 2 percent."
+  },
+  "statistics": {
+    "bootstrap_unit": "episode",
+    "resamples": 10000,
+    "seed": 391030,
+    "prediction_quantiles": [
+      0.003125,
+      0.996875
+    ],
+    "prediction_interval_level": 0.99375,
+    "warning_interval": "Bonferroni across four warning endpoints (two populations x two domains): paired episode-bootstrap 98.75 percent intervals",
+    "warning_quantiles": [
+      0.00625,
+      0.99375
+    ],
+    "rsi_interval": "paired episode-bootstrap 95 percent, exploratory and unadjusted"
+  },
+  "rsi": {
+    "status": "not rerun; the v3 registered RSI ablation (no gain) stands"
+  },
+  "access": {
+    "final_requires_committed_selection": true,
+    "write_once_outputs": true,
+    "verification": "Regenerate catalogs from registered seeds, reload retained checkpoints, recompute inference and every statistic; never refit or reselect."
+  },
+  "release": {
+    "report_version": "1.2",
+    "publication_authorized": false,
+    "promotion_eligible": false,
+    "retain_previous_negatives": true
+  },
+  "claim_boundaries": [
+    "Prediction and warning gains are measured in a researcher-designed simulator; they are not real incident telemetry, controller benefit, physical safety, or permission.",
+    "Population A uses the v2 final generator; the v3 development curriculum includes regime-change mechanisms, so A is not a timing holdout for v3 models.",
+    "Population B holds out mechanism families and their motivating sources, not the simulator, labels or analysis, which remain local.",
+    "Intervals condition on the fixed selected checkpoints; retraining variability is reported separately through seed members.",
+    "Warning thresholds target 1 percent calibration FPR; shifted-population FPR is observed, not guaranteed.",
+    "v4 follows a failed v3 primary rule; its populations are fresh, but its design was informed by v3 results, so it is a registered successor rather than an independent confirmation of v3."
+  ],
+  "archive": "Boosted checkpoints are archived as prediction-only LightGBM text (training statistics and the tree_sizes index removed) in sorted JSON compressed with xz preset 9e; selection asserts bit-identical predictions against the development checkpoint before archiving.",
+  "predecessor": {
+    "protocol": "docs/research/incident_dynamics_protocol_v3.json",
+    "result": "docs/research/incident_dynamics_result_v3.json",
+    "outcome": "v3 primary rule failed: all eight endpoints improved with adjusted intervals excluding zero, but only Physical A met the 20 percent effect size and the Physical historical H5 guard regressed 7.9 percent. v3 is retained unchanged.",
+    "disclosed_influence": "The v3 final result motivated adding a Physical direct multi-horizon boosted family (to address autoregressive five-step compounding) and a registered Physical committee. No v3 final catalog enters development, selection, calibration or thresholds. FerrumOS models are carried forward unchanged; v4 re-measures them on fresh populations."
+  }
+}
