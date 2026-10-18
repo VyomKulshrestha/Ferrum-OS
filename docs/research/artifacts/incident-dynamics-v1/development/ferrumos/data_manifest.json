@@ -1,0 +1,51 @@
+{
+  "domain": "ferrumos",
+  "final_access_attempted": false,
+  "legacy_metadata": {
+    "base_train_rows": 9104,
+    "base_validation_rows": 2197,
+    "incident_train": {
+      "catalog": "world_model_incident_sources_v3.json",
+      "catalog_sha256": "97a4176f4ac3b1b5cbd3996fcfd6705a6b9142c44b70a31e40f8a7f3348850a0",
+      "dangerous": 768,
+      "episodes": 1536,
+      "episodes_per_source": 256,
+      "maximum_steps": 8,
+      "partition": "train",
+      "safe": 768,
+      "seed": 20260826,
+      "sources": [
+        "gitlab-2017-primary-database-deletion",
+        "aws-2017-s3-capacity-removal",
+        "fastly-2021-valid-configuration-trigger",
+        "meta-2021-backbone-configuration",
+        "azure-2026-openai-retry-amplification",
+        "cloudflare-2025-workers-kv-dependency"
+      ]
+    },
+    "incident_validation": {
+      "catalog": "world_model_incident_sources_v3.json",
+      "catalog_sha256": "97a4176f4ac3b1b5cbd3996fcfd6705a6b9142c44b70a31e40f8a7f3348850a0",
+      "dangerous": 256,
+      "episodes": 512,
+      "episodes_per_source": 128,
+      "maximum_steps": 8,
+      "partition": "validation",
+      "safe": 256,
+      "seed": 20260827,
+      "sources": [
+        "atlassian-2022-site-deletion",
+        "cloudflare-2020-router-configuration",
+        "azure-2024-resource-group-deletion",
+        "github-2018-network-partition-failover"
+      ]
+    }
+  },
+  "train_episodes": 5178,
+  "train_sha256": "efca01374db839a5f924d0e3c515369622fc3f9331a52e6434ecbba75c747c06",
+  "train_validation_disjoint": true,
+  "train_windows": 30512,
+  "validation_episodes": 1290,
+  "validation_sha256": "22197627302def926606e45e396da4e1d72b80345b03920ff17c4d20b98d9353",
+  "validation_windows": 4028
+}

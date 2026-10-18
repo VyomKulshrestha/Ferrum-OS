@@ -1,0 +1,173 @@
+{
+  "domain": "physical",
+  "final_access_attempted": false,
+  "legacy_metadata": {
+    "base_train_rows": 67200,
+    "base_validation_rows": 14400,
+    "incident_train": {
+      "action_transition_counts": {
+        "approve": 15362,
+        "diagnose": 15011,
+        "inspect": 3475,
+        "move": 9175,
+        "repair": 16513,
+        "stop": 21417,
+        "verify": 15047
+      },
+      "dangerous_transitions": 19641,
+      "episodes": 12000,
+      "hazard_tag_episode_counts": {
+        "availability_loss": 2338,
+        "logic_or_configuration_tamper": 1334,
+        "loss_of_control": 1334,
+        "loss_of_view": 3004,
+        "manual_fallback": 2999,
+        "process_divergence": 333,
+        "recovery_inhibition": 2664,
+        "safety_interlock_compromise": 334,
+        "unauthorized_actuation": 1001,
+        "unsafe_command_sequence": 667
+      },
+      "source_episode_counts": {
+        "cisa_triton_2017": 1000,
+        "cisa_ukraine_power_2015": 1000,
+        "cisa_unitronics_2023": 1000,
+        "cisa_water_kansas_insider_2019": 1000,
+        "clorox_cyber_2023": 1000,
+        "doj_bowman_dam_2013": 1000,
+        "doj_discovery_bay_2021": 1000,
+        "hse_conti_2021": 1000,
+        "hydro_ransomware_2019": 1000,
+        "maersk_notpetya_2017": 1000,
+        "molson_coors_cyber_2021": 1000,
+        "west_pharma_cyber_2026": 1000
+      },
+      "source_family_episode_counts": {
+        "bowman_dam_2013": 1000,
+        "clorox_cyber_2023": 1000,
+        "discovery_bay_2021": 1000,
+        "hse_conti_2021": 1000,
+        "kansas_water_insider_2019": 1000,
+        "maersk_notpetya_2017": 1000,
+        "molson_coors_cyber_2021": 1000,
+        "norsk_hydro_2019": 1000,
+        "triton_2017": 1000,
+        "ukraine_power_2015": 1000,
+        "unitronics_2023": 1000,
+        "west_pharma_cyber_2026": 1000
+      },
+      "transitions": 96000
+    },
+    "incident_validation": {
+      "action_transition_counts": {
+        "approve": 3784,
+        "diagnose": 3473,
+        "inspect": 1139,
+        "move": 2782,
+        "repair": 3248,
+        "stop": 5094,
+        "verify": 3520
+      },
+      "dangerous_transitions": 4829,
+      "episodes": 2880,
+      "hazard_tag_episode_counts": {
+        "availability_loss": 641,
+        "logic_or_configuration_tamper": 106,
+        "loss_of_control": 320,
+        "loss_of_view": 534,
+        "manual_fallback": 532,
+        "process_divergence": 642,
+        "recovery_inhibition": 320,
+        "sensor_or_view_deception": 213,
+        "unauthorized_actuation": 321,
+        "unsafe_command_sequence": 214
+      },
+      "source_episode_counts": {
+        "cisa_california_water_ransomware_2021": 320,
+        "cisa_crashoverride_2016": 320,
+        "cisa_oldsmar_water_2021": 320,
+        "nature_swat_wadi_2025": 320,
+        "ncsc_viasat_2022": 320,
+        "qao_maroochy_2000": 320,
+        "uscg_mtsa_ryuk_2019": 320,
+        "uscg_vessel_malware_2019": 320,
+        "vestas_cyber_2021": 320
+      },
+      "source_family_episode_counts": {
+        "california_water_ghost_2021": 320,
+        "maroochy_2000": 320,
+        "mtsa_ryuk_2019": 320,
+        "oldsmar_water_2021": 320,
+        "swat_wadi_ghl": 320,
+        "ukraine_power_2016": 320,
+        "us_vessel_malware_2019": 320,
+        "vestas_cyber_2021": 320,
+        "viasat_ka_sat_2022": 320
+      },
+      "transitions": 23040
+    },
+    "stress_train": {
+      "action_transition_counts": {
+        "approve": 3429,
+        "diagnose": 3430,
+        "inspect": 3427,
+        "move": 2855,
+        "repair": 3999,
+        "stop": 3430,
+        "verify": 3430
+      },
+      "case_episode_counts": {
+        "compound_motion_hazard": 250,
+        "emergency_stop": 250,
+        "geofence_edge": 250,
+        "heavy_payload": 250,
+        "high_vibration": 250,
+        "human_proximity": 250,
+        "low_battery": 250,
+        "low_clearance": 250,
+        "offline_controller": 250,
+        "recovery_state": 250,
+        "repair_without_approval": 250,
+        "weak_link": 250
+      },
+      "dangerous_transitions": 6292,
+      "episodes": 3000,
+      "transitions": 24000
+    },
+    "stress_validation": {
+      "action_transition_counts": {
+        "approve": 1144,
+        "diagnose": 1143,
+        "inspect": 1142,
+        "move": 952,
+        "repair": 1332,
+        "stop": 1144,
+        "verify": 1143
+      },
+      "case_episode_counts": {
+        "compound_motion_hazard": 83,
+        "emergency_stop": 83,
+        "geofence_edge": 84,
+        "heavy_payload": 83,
+        "high_vibration": 83,
+        "human_proximity": 84,
+        "low_battery": 84,
+        "low_clearance": 84,
+        "offline_controller": 83,
+        "recovery_state": 83,
+        "repair_without_approval": 83,
+        "weak_link": 83
+      },
+      "dangerous_transitions": 2200,
+      "episodes": 1000,
+      "transitions": 8000
+    }
+  },
+  "train_episodes": 24600,
+  "train_sha256": "3cb4f28e2617f0a608e7f8bf5c9881221372fed8a5e731e4cb6b0e54d2d04563",
+  "train_validation_disjoint": true,
+  "train_windows": 204000,
+  "validation_episodes": 5936,
+  "validation_sha256": "39c55edadc7988b253489c5f60c3b73da29f151dae1b0ae7cae35b32dc777600",
+  "validation_windows": 25280
+}

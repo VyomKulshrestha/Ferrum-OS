@@ -1,0 +1,21 @@
+{
+  "byte_identical": true,
+  "checkpoint": {
+    "bytes": 400266,
+    "path": "C:/Users/marcu/Videos/cursor-os-base/target/incident-dynamics-v1/replication/ferrumos/threads-16/gru_dynamics-seed-43.pt",
+    "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+  },
+  "domain": "ferrumos",
+  "expected_checkpoint": {
+    "bytes": 400266,
+    "path": "target/cross-domain-world-model-v1/ferrumos/gru_dynamics-seed-43.pt",
+    "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+  },
+  "final_access_attempted": false,
+  "max_trace_nll_difference": 0.0,
+  "method": "gru_dynamics",
+  "metrics_identical": true,
+  "promotion_eligible": false,
+  "seed": 43,
+  "threads": 16
+}

@@ -1,0 +1,63 @@
+{
+  "domain": "ferrumos",
+  "final_access": false,
+  "method": "per-action ridge on normalized causal history and actions; one-step target",
+  "selected": {
+    "checkpoint": {
+      "path": "target/incident-dynamics-v1/ferrumos/ridge-0.001.npz",
+      "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+    },
+    "metrics": {
+      "h1": 5.550212162403039e-05,
+      "h3": 0.0019297266398325928,
+      "h5": 0.0019558390144011994
+    },
+    "parameters": 621888,
+    "regularization": 0.001,
+    "score": 0.0013136892586192743
+  },
+  "trials": [
+    {
+      "checkpoint": {
+        "path": "target/incident-dynamics-v1/ferrumos/ridge-0.001.npz",
+        "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+      },
+      "metrics": {
+        "h1": 5.550212162403039e-05,
+        "h3": 0.0019297266398325928,
+        "h5": 0.0019558390144011994
+      },
+      "parameters": 621888,
+      "regularization": 0.001,
+      "score": 0.0013136892586192743
+    },
+    {
+      "checkpoint": {
+        "path": "target/incident-dynamics-v1/ferrumos/ridge-0.1.npz",
+        "sha256": "2167a7d5668852cedf03a77eed09ed48c1b95336b0881f110fba5610951b28ce"
+      },
+      "metrics": {
+        "h1": 0.0001416142734250071,
+        "h3": 0.002106311645987528,
+        "h5": 0.00219255392414848
+      },
+      "parameters": 621888,
+      "regularization": 0.1,
+      "score": 0.0014801599478536716
+    },
+    {
+      "checkpoint": {
+        "path": "target/incident-dynamics-v1/ferrumos/ridge-10.0.npz",
+        "sha256": "be335d7eb07bd8ac8f672f581f658067dbb937a22ac1a314225d375c8a630710"
+      },
+      "metrics": {
+        "h1": 0.001238334257796855,
+        "h3": 0.0037909739196865288,
+        "h5": 0.004347513724971827
+      },
+      "parameters": 621888,
+      "regularization": 10.0,
+      "score": 0.003125607300818404
+    }
+  ]
+}

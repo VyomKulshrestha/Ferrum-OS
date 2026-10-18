@@ -1,0 +1,21 @@
+{
+  "byte_identical": true,
+  "checkpoint": {
+    "bytes": 407154,
+    "path": "C:/Users/marcu/Videos/cursor-os-base/target/incident-dynamics-v1/replication/physical/threads-16/action_conditioned_jepa-seed-17.pt",
+    "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+  },
+  "domain": "physical",
+  "expected_checkpoint": {
+    "bytes": 407154,
+    "path": "target/cross-domain-world-model-v1/physical/action_conditioned_jepa-seed-17.pt",
+    "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+  },
+  "final_access_attempted": false,
+  "max_trace_nll_difference": 0.0,
+  "method": "action_conditioned_jepa",
+  "metrics_identical": true,
+  "promotion_eligible": false,
+  "seed": 17,
+  "threads": 16
+}

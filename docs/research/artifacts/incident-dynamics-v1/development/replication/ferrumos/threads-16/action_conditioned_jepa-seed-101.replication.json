@@ -1,0 +1,21 @@
+{
+  "byte_identical": true,
+  "checkpoint": {
+    "bytes": 417602,
+    "path": "C:/Users/marcu/Videos/cursor-os-base/target/incident-dynamics-v1/replication/ferrumos/threads-16/action_conditioned_jepa-seed-101.pt",
+    "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+  },
+  "domain": "ferrumos",
+  "expected_checkpoint": {
+    "bytes": 417602,
+    "path": "target/cross-domain-world-model-v1/ferrumos/action_conditioned_jepa-seed-101.pt",
+    "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+  },
+  "final_access_attempted": false,
+  "max_trace_nll_difference": 0.0,
+  "method": "action_conditioned_jepa",
+  "metrics_identical": true,
+  "promotion_eligible": false,
+  "seed": 101,
+  "threads": 16
+}

@@ -1,0 +1,63 @@
+{
+  "domain": "physical",
+  "final_access": false,
+  "method": "per-action ridge on normalized causal history and actions; one-step target",
+  "selected": {
+    "checkpoint": {
+      "path": "target/incident-dynamics-v1/physical/ridge-0.001.npz",
+      "sha256": "a6bc2dd2cd57a4fc99bcd8784555f4999dd99a8ce9c4b6213721c479d6d57b0b"
+    },
+    "metrics": {
+      "h1": 0.007155818763613357,
+      "h3": 0.01796747762914676,
+      "h5": 0.02672913437356483
+    },
+    "parameters": 8848,
+    "regularization": 0.001,
+    "score": 0.017284143588774982
+  },
+  "trials": [
+    {
+      "checkpoint": {
+        "path": "target/incident-dynamics-v1/physical/ridge-0.001.npz",
+        "sha256": "a6bc2dd2cd57a4fc99bcd8784555f4999dd99a8ce9c4b6213721c479d6d57b0b"
+      },
+      "metrics": {
+        "h1": 0.007155818763613357,
+        "h3": 0.01796747762914676,
+        "h5": 0.02672913437356483
+      },
+      "parameters": 8848,
+      "regularization": 0.001,
+      "score": 0.017284143588774982
+    },
+    {
+      "checkpoint": {
+        "path": "target/incident-dynamics-v1/physical/ridge-0.1.npz",
+        "sha256": "d64d3a0ed159defda9c52f8e8db3e77bbac936991f6195b136355dbefdafc3e3"
+      },
+      "metrics": {
+        "h1": 0.00715668805236835,
+        "h3": 0.017969329278127524,
+        "h5": 0.026732743023465427
+      },
+      "parameters": 8848,
+      "regularization": 0.1,
+      "score": 0.017286253451320434
+    },
+    {
+      "checkpoint": {
+        "path": "target/incident-dynamics-v1/physical/ridge-10.0.npz",
+        "sha256": "3c9ccf59a34a0c65f562d896abb20f9929bcbd0c514ab2111499829cf6292969"
+      },
+      "metrics": {
+        "h1": 0.007346969472503869,
+        "h3": 0.018216974731949498,
+        "h5": 0.027040306847223628
+      },
+      "parameters": 8848,
+      "regularization": 10.0,
+      "score": 0.017534750350558997
+    }
+  ]
+}

@@ -1,0 +1,1093 @@
+{
+  "actuator_deliveries": 0,
+  "created_at": "2026-10-18T15:44:42.762409+00:00",
+  "domains": {
+    "ferrumos": {
+      "calibration": {
+        "path": "docs/research/artifacts/incident-dynamics-v1/calibration/ferrumos.npz",
+        "sha256": "3dac3d9dc8169fba58ed36edf5625f1864197255dba3f4116d0202d1bf279085"
+      },
+      "candidate_scores": {
+        "ridge": {
+          "horizons": {
+            "h1": 5.550212162403039e-05,
+            "h3": 0.0019297266398325928,
+            "h5": 0.0019558390144011994
+          },
+          "selection_score": 0.0013136892586192743
+        },
+        "trial01-action_conditioned_jepa-h211-u6000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.0011296770183039386,
+            "h3": 0.0022847783596653235,
+            "h5": 0.00242972885761379
+          },
+          "selection_score": 0.0019480614118610174
+        },
+        "trial01-causal_residual-h192-u6000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.0006096301307478334,
+            "h3": 0.0017305798769525192,
+            "h5": 0.0017647501333904808
+          },
+          "selection_score": 0.0013683200470302776
+        },
+        "trial01-direct_mlp-h242-u6000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.0012522849819095324,
+            "h3": 0.002182719044820449,
+            "h5": 0.0022275484344304554
+          },
+          "selection_score": 0.001887517487053479
+        },
+        "trial02-action_residual-h64-u12000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.000581838255885195,
+            "h3": 0.0018209991976505296,
+            "h5": 0.0019352975074132354
+          },
+          "selection_score": 0.0014460449869829865
+        }
+      },
+      "candidates": {
+        "ridge": {
+          "checkpoint": {
+            "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/ridge-0.001.npz",
+            "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+          },
+          "kind": "ridge",
+          "method": "per_action_ridge",
+          "parameters": 621888,
+          "regularization": 0.001,
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.01535318272420268,
+              "fn": 55,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.9344457687723481,
+              "threshold": -0.0007002949714660643,
+              "tn": 4239,
+              "tp": 784
+            },
+            "logistic_coefficients": [
+              0.093555424891578,
+              214.95330612700957
+            ],
+            "threshold": -0.0007002949714660643
+          }
+        },
+        "trial01-action_conditioned_jepa-h211-u6000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-action_conditioned_jepa-17.pt",
+                "sha256": "455e3bc189766a8e4b9269d6d0bffa5c4091324fda4d2cc6dbb746473ffadc42"
+              },
+              "parameters": 99748,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-action_conditioned_jepa-17.json",
+                "sha256": "6f4214383037667bc23bfce173d85cd59b70deb7d6589968f43689156e88daf7"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "action_conditioned_jepa",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.028345022240613894,
+              "fn": 153,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.8176400476758046,
+              "threshold": 0.0042827725410461434,
+              "tn": 4239,
+              "tp": 686
+            },
+            "logistic_coefficients": [
+              0.07647807943799827,
+              132.27019950308306
+            ],
+            "threshold": 0.0042827725410461434
+          }
+        },
+        "trial01-causal_residual-h192-u6000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-causal_residual-101.pt",
+                "sha256": "fa68235f76c7be4e1798c957df3b3c66b5d3ec82497b257bfc3fd0bd41aabbe4"
+              },
+              "parameters": 122160,
+              "seed": 101,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-causal_residual-101.json",
+                "sha256": "fa5f37a700bf7043e42f731b0d373488571ecd30611339bdec72bba8eb862d7a"
+              },
+              "updates": 6000
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-causal_residual-17.pt",
+                "sha256": "b02534ec486e429f53963ab539429d2ace481f23a39443df4859090ba534d6d3"
+              },
+              "parameters": 122160,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-causal_residual-17.json",
+                "sha256": "1357fea89ce2a0bb95cc113f2c65df65f0924fde95d373ace6c58a6179c22e19"
+              },
+              "updates": 6000
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-causal_residual-43.pt",
+                "sha256": "c5a685d4b0d1ab17b138bc3de3e2c7bff013be69095e252e768a588f16179780"
+              },
+              "parameters": 122160,
+              "seed": 43,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-causal_residual-43.json",
+                "sha256": "ab8c8b9b2fdf278039905873d8723d5577b29aba2b9b83e60666fe1a3b87a195"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "causal_residual"
+        },
+        "trial01-direct_mlp-h242-u6000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-direct_mlp-17.pt",
+                "sha256": "bcf3761aca55b6aaede07e551b15dbb572ca8f055a4ecfa2f05fda9bdf1bb517"
+              },
+              "parameters": 99800,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-direct_mlp-17.json",
+                "sha256": "8d59e5aa3f2f044bf328dd17070a982a067c8818dfa38b0c6103cebf928acabd"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "direct_mlp",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.028122385280058403,
+              "fn": 152,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.8188319427890346,
+              "threshold": 0.0031738281250000004,
+              "tn": 4239,
+              "tp": 687
+            },
+            "logistic_coefficients": [
+              0.16428523312619028,
+              133.39932825425726
+            ],
+            "threshold": 0.0031738281250000004
+          }
+        },
+        "trial02-action_residual-h64-u12000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial02-action_residual-17.pt",
+                "sha256": "9022db61477bde219bbabd0fc1e095f0dd8889947605df52b97d8d32a989b6a5"
+              },
+              "parameters": 152304,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial02-action_residual-17.json",
+                "sha256": "10a4da42b77edbce1a17a17a5e908cc2319ac4644fddc1ec2c89a81b26d13b15"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "action_residual"
+        }
+      },
+      "data_manifest": {
+        "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/data_manifest.json",
+        "sha256": "167391080b90a6d7cd7d7216a777a81f842def5230d1ba7b6c883fbe0fbc98c9"
+      },
+      "pipelines": {
+        "constant_velocity": {
+          "kind": "simple",
+          "method": "constant_velocity",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.05479336779435366,
+              "fn": 507,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.3957091775923719,
+              "threshold": 0.044115900993347175,
+              "tn": 4239,
+              "tp": 332
+            },
+            "logistic_coefficients": [
+              -0.5304341116872967,
+              48.98935756782896
+            ],
+            "threshold": 0.044115900993347175
+          }
+        },
+        "paper-action_conditioned_jepa": {
+          "kind": "paper",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/action_conditioned_jepa-seed-17.pt",
+                "sha256": "f066fb2282c0c66127c284447d57a73f32560f36084fc85e0323ce18b7ad57bd"
+              },
+              "hidden_size": 211,
+              "parameters": 99748,
+              "seed": 17,
+              "updates": 2400
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/action_conditioned_jepa-seed-43.pt",
+                "sha256": "7efcaa7c5733833cc920813ae6c79e2025de13f79cea1e3d401193b5c5327537"
+              },
+              "hidden_size": 211,
+              "parameters": 99748,
+              "seed": 43,
+              "updates": 2400
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/action_conditioned_jepa-seed-101.pt",
+                "sha256": "efbfa8f70b2e0036fb78cf10b247f0d98b96d4183aeb2cf3293b0f9b7b4c83cc"
+              },
+              "hidden_size": 211,
+              "parameters": 99748,
+              "seed": 101,
+              "updates": 2400
+            }
+          ],
+          "method": "action_conditioned_jepa",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.09372058395600809,
+              "fn": 767,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.08581644815256258,
+              "threshold": 0.13495224714279178,
+              "tn": 4239,
+              "tp": 72
+            },
+            "logistic_coefficients": [
+              -1.5557786177341668,
+              21.426475945696897
+            ],
+            "threshold": 0.13495224714279178
+          }
+        },
+        "paper-gru_dynamics": {
+          "kind": "paper",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/gru_dynamics-seed-17.pt",
+                "sha256": "ef1945a7b2f4dbf4e3027deb8835d84d7a0d6549a7223d72e1dc43e77d7cbc2e"
+              },
+              "hidden_size": 125,
+              "parameters": 99096,
+              "seed": 17,
+              "updates": 2400
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/gru_dynamics-seed-43.pt",
+                "sha256": "5f245a79d4c71e30b3232877a1b7253a8aad579f9d55e8f77fe02638227a7c1d"
+              },
+              "hidden_size": 125,
+              "parameters": 99096,
+              "seed": 43,
+              "updates": 2400
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/ferrumos/gru_dynamics-seed-101.pt",
+                "sha256": "bffb75d4fd7501f664e7b673478e12b9855283a731a3ff88ed68d12a26b8faab"
+              },
+              "hidden_size": 125,
+              "parameters": 99096,
+              "seed": 101,
+              "updates": 2400
+            }
+          ],
+          "method": "gru_dynamics",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.08727593383448085,
+              "fn": 733,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.1263408820023838,
+              "threshold": 0.14239209890365603,
+              "tn": 4239,
+              "tp": 106
+            },
+            "logistic_coefficients": [
+              -2.1350857625281616,
+              24.2414519161938
+            ],
+            "threshold": 0.14239209890365603
+          }
+        },
+        "persistence": {
+          "kind": "simple",
+          "method": "persistence",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.0407287718512067,
+              "fn": 283,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.6626936829558999,
+              "threshold": -0.008353829383850096,
+              "tn": 4239,
+              "tp": 556
+            },
+            "logistic_coefficients": [
+              1.7910404179524733,
+              94.66406304751618
+            ],
+            "threshold": -0.008353829383850096
+          }
+        },
+        "retrained-jepa": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-action_conditioned_jepa-17.pt",
+                "sha256": "455e3bc189766a8e4b9269d6d0bffa5c4091324fda4d2cc6dbb746473ffadc42"
+              },
+              "parameters": 99748,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-action_conditioned_jepa-17.json",
+                "sha256": "6f4214383037667bc23bfce173d85cd59b70deb7d6589968f43689156e88daf7"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "action_conditioned_jepa",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.028345022240613894,
+              "fn": 153,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.8176400476758046,
+              "threshold": 0.0042827725410461434,
+              "tn": 4239,
+              "tp": 686
+            },
+            "logistic_coefficients": [
+              0.07647807943799827,
+              132.27019950308306
+            ],
+            "threshold": 0.0042827725410461434
+          }
+        },
+        "retrained-mlp": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-direct_mlp-17.pt",
+                "sha256": "bcf3761aca55b6aaede07e551b15dbb572ca8f055a4ecfa2f05fda9bdf1bb517"
+              },
+              "parameters": 99800,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/trial01-direct_mlp-17.json",
+                "sha256": "8d59e5aa3f2f044bf328dd17070a982a067c8818dfa38b0c6103cebf928acabd"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "direct_mlp",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.028122385280058403,
+              "fn": 152,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.8188319427890346,
+              "threshold": 0.0031738281250000004,
+              "tn": 4239,
+              "tp": 687
+            },
+            "logistic_coefficients": [
+              0.16428523312619028,
+              133.39932825425726
+            ],
+            "threshold": 0.0031738281250000004
+          }
+        },
+        "ridge": {
+          "checkpoint": {
+            "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/ridge-0.001.npz",
+            "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+          },
+          "kind": "ridge",
+          "method": "per_action_ridge",
+          "parameters": 621888,
+          "regularization": 0.001,
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.01535318272420268,
+              "fn": 55,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.9344457687723481,
+              "threshold": -0.0007002949714660643,
+              "tn": 4239,
+              "tp": 784
+            },
+            "logistic_coefficients": [
+              0.093555424891578,
+              214.95330612700957
+            ],
+            "threshold": -0.0007002949714660643
+          }
+        },
+        "selected": {
+          "checkpoint": {
+            "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/ridge-0.001.npz",
+            "sha256": "60e6c0dcec32e15d9963b08af8d2d4becf9c14ae56115d15952b0b612084971f"
+          },
+          "kind": "ridge",
+          "method": "per_action_ridge",
+          "parameters": 621888,
+          "regularization": 0.001,
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.01535318272420268,
+              "fn": 55,
+              "fp": 42,
+              "fpr": 0.009810791871058164,
+              "prevalence": 0.1638671875,
+              "recall": 0.9344457687723481,
+              "threshold": -0.0007002949714660643,
+              "tn": 4239,
+              "tp": 784
+            },
+            "logistic_coefficients": [
+              0.093555424891578,
+              214.95330612700957
+            ],
+            "threshold": -0.0007002949714660643
+          }
+        }
+      },
+      "selected_configuration": "ridge",
+      "validation": {
+        "path": "docs/research/artifacts/incident-dynamics-v1/development/ferrumos/validation.npz",
+        "sha256": "22197627302def926606e45e396da4e1d72b80345b03920ff17c4d20b98d9353"
+      }
+    },
+    "physical": {
+      "calibration": {
+        "path": "docs/research/artifacts/incident-dynamics-v1/calibration/physical.npz",
+        "sha256": "636ea261deb38c7834aaac14176d6c0064d6c7cc43e0d599a3838022e81b49cd"
+      },
+      "candidate_scores": {
+        "ridge": {
+          "horizons": {
+            "h1": 0.007155818763613357,
+            "h3": 0.01796747762914676,
+            "h5": 0.02672913437356483
+          },
+          "selection_score": 0.017284143588774982
+        },
+        "trial01-action_conditioned_jepa-h372-u6000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.004861217902558231,
+            "h3": 0.012299562718151406,
+            "h5": 0.018897102632065385
+          },
+          "selection_score": 0.012019294417591675
+        },
+        "trial01-causal_residual-h192-u6000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.004873450506555171,
+            "h3": 0.0112704147776853,
+            "h5": 0.0168617835973852
+          },
+          "selection_score": 0.011001882960541888
+        },
+        "trial02-action_conditioned_jepa-h777-u12000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.004027757805452572,
+            "h3": 0.010072667794362021,
+            "h5": 0.01531506190057447
+          },
+          "selection_score": 0.009805162500129689
+        },
+        "trial02-action_residual-h192-u12000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.0021576650800335545,
+            "h3": 0.005596811977933381,
+            "h5": 0.008212052938972066
+          },
+          "selection_score": 0.005322176665646334
+        },
+        "trial02-direct_mlp-h900-u12000-lr0.001-b256": {
+          "horizons": {
+            "h1": 0.004853962411917905,
+            "h3": 0.011707391485847034,
+            "h5": 0.01762813291137904
+          },
+          "selection_score": 0.011396495603047993
+        }
+      },
+      "candidates": {
+        "ridge": {
+          "checkpoint": {
+            "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/ridge-0.001.npz",
+            "sha256": "a6bc2dd2cd57a4fc99bcd8784555f4999dd99a8ce9c4b6213721c479d6d57b0b"
+          },
+          "kind": "ridge",
+          "method": "per_action_ridge",
+          "parameters": 8848,
+          "regularization": 0.001,
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.06485148815269262,
+              "fn": 754,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.5498507462686567,
+              "threshold": 0.04841145128011704,
+              "tn": 3411,
+              "tp": 921
+            },
+            "logistic_coefficients": [
+              0.14641422621626174,
+              39.1427043938223
+            ],
+            "threshold": 0.04841145128011704
+          }
+        },
+        "trial01-action_conditioned_jepa-h372-u6000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial01-action_conditioned_jepa-17.pt",
+                "sha256": "478754ffac563e8b90e3fb5f89c1cc6555359c50f786f2ec188c5601fffe70c6"
+              },
+              "parameters": 48476,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial01-action_conditioned_jepa-17.json",
+                "sha256": "e19c01594aa7207328a2617786938521474542ce84f533c824547ddefdb23206"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "action_conditioned_jepa"
+        },
+        "trial01-causal_residual-h192-u6000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial01-causal_residual-17.pt",
+                "sha256": "0f6893d9e9d872785c3c264a435505a0376b8a1080371e3861989c9c9ff875ee"
+              },
+              "parameters": 56576,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial01-causal_residual-17.json",
+                "sha256": "7eec7c34969c03257c0a6e78627f8162ba67e01aed763ce10ac9fd626ff0f3b6"
+              },
+              "updates": 6000
+            }
+          ],
+          "method": "causal_residual"
+        },
+        "trial02-action_conditioned_jepa-h777-u12000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_conditioned_jepa-17.pt",
+                "sha256": "e589a89bd06e5dcc11f56d69998bcdd50b0739c5f228a9dfcaf1a53b8ca0f594"
+              },
+              "parameters": 99911,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_conditioned_jepa-17.json",
+                "sha256": "0ff3747c0c1b41c26915e0f5abcb502088c74ef03c97e394b3e40320ca8bffb8"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "action_conditioned_jepa",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.039057473680633704,
+              "fn": 294,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.8244776119402986,
+              "threshold": 0.005214989185333253,
+              "tn": 3411,
+              "tp": 1381
+            },
+            "logistic_coefficients": [
+              0.8408339108405017,
+              68.46174311329847
+            ],
+            "threshold": 0.005214989185333253
+          }
+        },
+        "trial02-action_residual-h192-u12000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-101.pt",
+                "sha256": "e702988816098173417bd661125cbd0c4f40da0bc40ad4a849a3195b41b55e3e"
+              },
+              "parameters": 73840,
+              "seed": 101,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-101.json",
+                "sha256": "6452233c4a718a9c2b181786d8c5c02e1ead0ac3adfaa6cad2c94a6ed8afba16"
+              },
+              "updates": 12000
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-17.pt",
+                "sha256": "7a8917bc106b58b96eb0ae512a84a78d30daecab29751234f5e197d567676c14"
+              },
+              "parameters": 73840,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-17.json",
+                "sha256": "3205cc5fe3ece9ee221b5c7295d0286c82afe52b3729d309ca3d184c00a3d5d5"
+              },
+              "updates": 12000
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-43.pt",
+                "sha256": "c83ee7cf6e92fa5d401761af07d643d6190e44afecceff1dff16413c69f540a5"
+              },
+              "parameters": 73840,
+              "seed": 43,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-43.json",
+                "sha256": "8d901827da2da8edd84a549c2f1ff80f863f93995e4aa238ac4e5ba04e4dc68e"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "action_residual",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.03561456125077718,
+              "fn": 280,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.8328358208955224,
+              "threshold": 0.007961541414260866,
+              "tn": 3411,
+              "tp": 1395
+            },
+            "logistic_coefficients": [
+              0.6305236387141622,
+              71.96259419902394
+            ],
+            "threshold": 0.007961541414260866
+          }
+        },
+        "trial02-direct_mlp-h900-u12000-lr0.001-b256": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-direct_mlp-17.pt",
+                "sha256": "e802c0a9ac7511c0738acd8a1a0e7228c51f17461c37d059c94392fa7903f7bb"
+              },
+              "parameters": 99932,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-direct_mlp-17.json",
+                "sha256": "b6dc66bd8ef82e6564105deb9f40318f0f0ad7b47cd554a0b17c8a7ef4501d8d"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "direct_mlp",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.04180302016370184,
+              "fn": 295,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.8238805970149253,
+              "threshold": -0.0001259595155715942,
+              "tn": 3411,
+              "tp": 1380
+            },
+            "logistic_coefficients": [
+              1.1282633336102355,
+              61.29817281963372
+            ],
+            "threshold": -0.0001259595155715942
+          }
+        }
+      },
+      "data_manifest": {
+        "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/data_manifest.json",
+        "sha256": "c87e534e8db76d11dccb63378be61dec613ae57c8b437e908c2a0b1211635204"
+      },
+      "pipelines": {
+        "constant_velocity": {
+          "kind": "simple",
+          "method": "constant_velocity",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.13643788877834787,
+              "fn": 1470,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.12238805970149254,
+              "threshold": 0.24136078357696536,
+              "tn": 3411,
+              "tp": 205
+            },
+            "logistic_coefficients": [
+              -0.3420240836198199,
+              10.813134282482775
+            ],
+            "threshold": 0.24136078357696536
+          }
+        },
+        "paper-action_conditioned_jepa": {
+          "kind": "paper",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/physical/action_conditioned_jepa-seed-17.pt",
+                "sha256": "629d7ccf182b3ef3e9b062e7404f7b7233007bc522353b79cd4132a103ac447e"
+              },
+              "hidden_size": 777,
+              "parameters": 99911,
+              "seed": 17,
+              "updates": 2400
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/physical/action_conditioned_jepa-seed-43.pt",
+                "sha256": "1caa6621220b329dcd5aadcc6ee40c2a9435857a85172bf5642c828fae2a329c"
+              },
+              "hidden_size": 777,
+              "parameters": 99911,
+              "seed": 43,
+              "updates": 2400
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/paper-checkpoints/physical/action_conditioned_jepa-seed-101.pt",
+                "sha256": "fb5d34effb7e66ac73531b5cc49f3771c32128cfda9fc70690c6ead6a4c70baa"
+              },
+              "hidden_size": 777,
+              "parameters": 99911,
+              "seed": 101,
+              "updates": 2400
+            }
+          ],
+          "method": "action_conditioned_jepa",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.09987344434195848,
+              "fn": 1040,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.37910447761194027,
+              "threshold": 0.13516667485237124,
+              "tn": 3411,
+              "tp": 635
+            },
+            "logistic_coefficients": [
+              -1.0362003136870022,
+              22.80452757277272
+            ],
+            "threshold": 0.13516667485237124
+          }
+        },
+        "persistence": {
+          "kind": "simple",
+          "method": "persistence",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.07936363335196976,
+              "fn": 602,
+              "fp": 32,
+              "fpr": 0.009288824383164005,
+              "prevalence": 0.3271484375,
+              "recall": 0.6405970149253731,
+              "threshold": -0.05010868608951568,
+              "tn": 3413,
+              "tp": 1073
+            },
+            "logistic_coefficients": [
+              2.7227462030789082,
+              29.431962125913135
+            ],
+            "threshold": -0.05010868608951568
+          }
+        },
+        "retrained-jepa": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_conditioned_jepa-17.pt",
+                "sha256": "e589a89bd06e5dcc11f56d69998bcdd50b0739c5f228a9dfcaf1a53b8ca0f594"
+              },
+              "parameters": 99911,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_conditioned_jepa-17.json",
+                "sha256": "0ff3747c0c1b41c26915e0f5abcb502088c74ef03c97e394b3e40320ca8bffb8"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "action_conditioned_jepa",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.039057473680633704,
+              "fn": 294,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.8244776119402986,
+              "threshold": 0.005214989185333253,
+              "tn": 3411,
+              "tp": 1381
+            },
+            "logistic_coefficients": [
+              0.8408339108405017,
+              68.46174311329847
+            ],
+            "threshold": 0.005214989185333253
+          }
+        },
+        "retrained-mlp": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-direct_mlp-17.pt",
+                "sha256": "e802c0a9ac7511c0738acd8a1a0e7228c51f17461c37d059c94392fa7903f7bb"
+              },
+              "parameters": 99932,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-direct_mlp-17.json",
+                "sha256": "b6dc66bd8ef82e6564105deb9f40318f0f0ad7b47cd554a0b17c8a7ef4501d8d"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "direct_mlp",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.04180302016370184,
+              "fn": 295,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.8238805970149253,
+              "threshold": -0.0001259595155715942,
+              "tn": 3411,
+              "tp": 1380
+            },
+            "logistic_coefficients": [
+              1.1282633336102355,
+              61.29817281963372
+            ],
+            "threshold": -0.0001259595155715942
+          }
+        },
+        "ridge": {
+          "checkpoint": {
+            "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/ridge-0.001.npz",
+            "sha256": "a6bc2dd2cd57a4fc99bcd8784555f4999dd99a8ce9c4b6213721c479d6d57b0b"
+          },
+          "kind": "ridge",
+          "method": "per_action_ridge",
+          "parameters": 8848,
+          "regularization": 0.001,
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.06485148815269262,
+              "fn": 754,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.5498507462686567,
+              "threshold": 0.04841145128011704,
+              "tn": 3411,
+              "tp": 921
+            },
+            "logistic_coefficients": [
+              0.14641422621626174,
+              39.1427043938223
+            ],
+            "threshold": 0.04841145128011704
+          }
+        },
+        "selected": {
+          "kind": "neural",
+          "members": [
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-101.pt",
+                "sha256": "e702988816098173417bd661125cbd0c4f40da0bc40ad4a849a3195b41b55e3e"
+              },
+              "parameters": 73840,
+              "seed": 101,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-101.json",
+                "sha256": "6452233c4a718a9c2b181786d8c5c02e1ead0ac3adfaa6cad2c94a6ed8afba16"
+              },
+              "updates": 12000
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-17.pt",
+                "sha256": "7a8917bc106b58b96eb0ae512a84a78d30daecab29751234f5e197d567676c14"
+              },
+              "parameters": 73840,
+              "seed": 17,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-17.json",
+                "sha256": "3205cc5fe3ece9ee221b5c7295d0286c82afe52b3729d309ca3d184c00a3d5d5"
+              },
+              "updates": 12000
+            },
+            {
+              "checkpoint": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-43.pt",
+                "sha256": "c83ee7cf6e92fa5d401761af07d643d6190e44afecceff1dff16413c69f540a5"
+              },
+              "parameters": 73840,
+              "seed": 43,
+              "training_record": {
+                "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/trial02-action_residual-43.json",
+                "sha256": "8d901827da2da8edd84a549c2f1ff80f863f93995e4aa238ac4e5ba04e4dc68e"
+              },
+              "updates": 12000
+            }
+          ],
+          "method": "action_residual",
+          "warning": {
+            "calibration_metrics": {
+              "brier": 0.03561456125077718,
+              "fn": 280,
+              "fp": 34,
+              "fpr": 0.009869375907111757,
+              "prevalence": 0.3271484375,
+              "recall": 0.8328358208955224,
+              "threshold": 0.007961541414260866,
+              "tn": 3411,
+              "tp": 1395
+            },
+            "logistic_coefficients": [
+              0.6305236387141622,
+              71.96259419902394
+            ],
+            "threshold": 0.007961541414260866
+          }
+        }
+      },
+      "selected_configuration": "trial02-action_residual-h192-u12000-lr0.001-b256",
+      "validation": {
+        "path": "docs/research/artifacts/incident-dynamics-v1/development/physical/validation.npz",
+        "sha256": "39c55edadc7988b253489c5f60c3b73da29f151dae1b0ae7cae35b32dc777600"
+      }
+    }
+  },
+  "final_access_attempted": false,
+  "historical_report": {
+    "path": "docs/research/artifacts/incident-dynamics-v1/historical-report/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
+    "sha256": "4aa306f52c8b3ee5157367dd8b21ace6568122315ff737278c6cd8329303ddf9"
+  },
+  "promotion_eligible": false,
+  "protected_after": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "protected_before": {
+    "ferrumos_encoder": true,
+    "ferrumos_manifest": true,
+    "ferrumos_transition": true,
+    "physical_transition": true
+  },
+  "selection_commit_parent": "cc6e3d90f80a9f2d58f72e97d0a26970d6696658",
+  "source_bindings": {
+    "docs/research/cross_domain_world_model_improvement_protocol_v1.json": "ece357d2b0a28c8ba1069cbe8c1ddaa6db1a39a01618a22f1a0c8e0e0278459b",
+    "docs/research/incident_dynamics_development_plan_v1.json": "fc3e18b0fb03622edcd7bea010b730a47640561d092301471c40e78cac44710e",
+    "docs/research/incident_dynamics_protocol_v1.json": "8388ca452659e8f34b71acc76d7cf2b1474772b82984eb0553add296b3221905",
+    "docs/research/incident_dynamics_sources_v1.json": "43242ced846c67fc4ee6c959ead2cd344baec18bbb7069b7acf1f5a9d4b2da16",
+    "docs/research/physical_jepa_v5_protocol.json": "68f93d8b94bc6ce0881601729e734a986881eac267d1cee64fbf2eca9a951378",
+    "docs/research/world_model_jepa_v3_4_protocol.json": "6ed7a501274953fc457674eacc29cc54155cf577b428e90ac18234ab7dadab38",
+    "docs/research/world_model_jepa_v3_protocol.json": "a0ae6ea472a34c65d834e50145d55af8dc28412a6e6942c496acaa4c2b56d132",
+    "scripts/cross_domain_world_model_models.py": "213154687f93b367c446251312a1343a3ddaf4be3c1c83f59448ee27f023fc4f",
+    "scripts/evaluate_cross_domain_learned_contribution.py": "50bf204b2b4096fc4809409ed250eb06f6456090964205ab8bf4666565879cc4",
+    "scripts/evaluate_cross_domain_world_models.py": "6d1e8bff6e3a7c21af4b1503679bdfb2100e94c3ceffc02bc014a0e2a8401ba5",
+    "scripts/evaluate_incident_dynamics_development.py": "e02b3ada140cf72b2b7457124f52fef1725e7815de1b55ebb32d8c8a5f062d34",
+    "scripts/fit_incident_dynamics_ridge.py": "7427e2fe29d15c8d7fb68a0e80ff6ed172f673e19645df84001dfa63a460884d",
+    "scripts/incident_dynamics_data.py": "214e4572e0c73b87bb477526487df2a20fc0d57956da9f15286f281e6093f8b8",
+    "scripts/incident_dynamics_metrics.py": "c42ff12da3e15fedfad3d3a50cf16c0b63806180598e9252793246a3c1646ad4",
+    "scripts/physical_incident_scenarios.py": "85daecebeada9ec7b228bcf6b824cd9398a63930adb61f8a28f4d8c6f7a9f2f5",
+    "scripts/physical_stress_scenarios.py": "bf85ea5ed219b7a1ea2fc4c6e6de038b5c95bbde48ad20641bfe6d3fc7336ce4",
+    "scripts/run_incident_dynamics_study.py": "deca34b75462c2e0a62857359096fe25b01d8bd581ff88378bbf714fced517a1",
+    "scripts/train_incident_dynamics.py": "dbdebeff4dc84012f83300c41a27ddbac6e1e5e23b8f63ed3e84600ca90e4a7b",
+    "scripts/train_physical_world_model.py": "60777a079c0a517180a69349fd7845202905d597155fa381aaed9288938def61",
+    "scripts/train_world_model.py": "ddb805c810c18f6387605b88623ba1fd3a04c81aa72ac19d65d4a263e51cdbaf",
+    "scripts/train_world_model_encoder.py": "e464d3a7925e94e6757aefa5fd90eed5cf3e96e792031ed4e38d277d34b84567"
+  },
+  "study_id": "incident-dynamics-v1"
+}
