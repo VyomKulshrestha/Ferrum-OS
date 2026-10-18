@@ -212,6 +212,12 @@ def select():
     parent_record = copy_artifact(parent, ARTIFACTS / "historical-report" / parent.name)
     parent_source = ROOT / "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md"
     copy_artifact(parent_source, ARTIFACTS / "historical-report" / parent_source.name)
+    for source in sorted((data.WORK / "replication").rglob("*.replication.json")):
+        relative = source.relative_to(data.WORK / "replication")
+        copy_artifact(source, ARTIFACTS / "development/replication" / relative)
+    for domain in ("ferrumos", "physical"):
+        for source in sorted((data.WORK / domain).glob("development*.json")):
+            copy_artifact(source, ARTIFACTS / "development" / domain / source.name)
     frozen = {name: text_digest(ROOT / name) for name in CODE}
     frozen.update({path.relative_to(ROOT).as_posix(): text_digest(path) for path in (PROTOCOL, data.PLAN, data.SOURCES)})
     result = {"study_id": protocol["study_id"], "created_at": datetime.now(timezone.utc).isoformat(),
