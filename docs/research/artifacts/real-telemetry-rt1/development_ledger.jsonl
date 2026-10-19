@@ -1,0 +1,55 @@
+{"at": "2026-10-19T09:57:42.940225+00:00", "kind": "world_model", "domain": "hai", "config": "persistence", "validation_mae": {"H1": 0.07690305473602846, "H5": 0.1151316054335168}, "seconds": 0.3}
+{"at": "2026-10-19T09:57:46.001077+00:00", "kind": "world_model", "domain": "hai", "config": "ridge_autonomous", "validation_mae": {"H1": 0.07122262554973764, "H5": 0.10627203846191334}, "seconds": 3.1}
+{"at": "2026-10-19T09:57:50.412551+00:00", "kind": "world_model", "domain": "hai", "config": "ridge_actions", "validation_mae": {"H1": 0.07066041644242088, "H5": 0.09886249210183055}, "seconds": 4.4}
+{"at": "2026-10-19T10:03:34.486638+00:00", "kind": "world_model", "domain": "hai", "config": "ridge_gbr_actions", "validation_mae": {"H1": 0.06206676642602093, "H5": 0.09038942425046319}, "seconds": 344.1}
+{"at": "2026-10-19T10:04:01.832690+00:00", "kind": "world_model", "domain": "smd", "config": "persistence", "validation_mae": {"H1": 0.20823281919360248, "H5": 0.25782784365185796}, "seconds": 0.1}
+{"at": "2026-10-19T10:04:05.404192+00:00", "kind": "world_model", "domain": "smd", "config": "ridge_autonomous", "validation_mae": {"H1": 0.21423894110282493, "H5": 0.24413132807366336}, "seconds": 3.6}
+{"at": "2026-10-19T10:04:56.405382+00:00", "kind": "world_model_selection", "domain": "hai", "selected": "ridge_gbr_actions", "candidates": {"ridge_autonomous": {"H1": 0.07122262554973764, "H5": 0.10627203846191334}, "ridge_actions": {"H1": 0.07066041644242088, "H5": 0.09886249210183055}, "ridge_gbr_actions": {"H1": 0.06206676642602093, "H5": 0.09038942425046319}}}
+{"at": "2026-10-19T10:17:39.899039+00:00", "kind": "world_model", "domain": "smd", "config": "ridge_gbr_autonomous", "validation_mae": {"H1": 0.20576972112779823, "H5": 0.2410252292488134}, "seconds": 814.5}
+{"at": "2026-10-19T10:18:20.434168+00:00", "kind": "world_model_selection", "domain": "smd", "selected": "ridge_gbr_autonomous", "candidates": {"ridge_autonomous": {"H1": 0.21423894110282493, "H5": 0.24413132807366336}, "ridge_gbr_autonomous": {"H1": 0.20576972112779823, "H5": 0.2410252292488134}}}
+{"at": "2026-10-19T10:32:54.448620+00:00", "kind": "classifier", "domain": "hai", "detector": "D2", "rows": 198966, "positives": 96966}
+{"at": "2026-10-19T10:33:08.279303+00:00", "kind": "classifier", "domain": "hai", "detector": "D3", "rows": 191643, "positives": 89643}
+{"at": "2026-10-19T10:37:40.656559+00:00", "kind": "classifier", "domain": "smd", "detector": "D2", "rows": 58578, "positives": 24978}
+{"at": "2026-10-19T10:37:45.923816+00:00", "kind": "classifier", "domain": "smd", "detector": "D3", "rows": 58090, "positives": 24490}
+{"at": "2026-10-19T10:40:30.808258+00:00", "kind": "smoothing", "domain": "smd", "detector": "D0", "window": 1, "validation_recall": 0.22767857142857142}
+{"at": "2026-10-19T10:40:31.054010+00:00", "kind": "smoothing", "domain": "smd", "detector": "D0", "window": 3, "validation_recall": 0.20535714285714285}
+{"at": "2026-10-19T10:40:31.272013+00:00", "kind": "smoothing", "domain": "smd", "detector": "D0", "window": 10, "validation_recall": 0.19642857142857142}
+{"at": "2026-10-19T10:40:31.275018+00:00", "kind": "selection", "domain": "smd", "detector": "D0", "window": 1, "validation_recall": 0.22767857142857142, "held_out_recall": {"staircase_leak": 0.05357142857142857, "retry_storm": 0.3392857142857143, "partial_partition": 0.4642857142857143}}
+{"at": "2026-10-19T10:40:31.454810+00:00", "kind": "smoothing", "domain": "smd", "detector": "DR", "window": 1, "validation_recall": 0.33482142857142855}
+{"at": "2026-10-19T10:40:31.606711+00:00", "kind": "smoothing", "domain": "smd", "detector": "DR", "window": 3, "validation_recall": 0.33482142857142855}
+{"at": "2026-10-19T10:40:31.753041+00:00", "kind": "smoothing", "domain": "smd", "detector": "DR", "window": 10, "validation_recall": 0.3482142857142857}
+{"at": "2026-10-19T10:40:31.761053+00:00", "kind": "selection", "domain": "smd", "detector": "DR", "window": 10, "validation_recall": 0.3482142857142857, "held_out_recall": {"staircase_leak": 0.16071428571428573, "retry_storm": 0.375, "partial_partition": 0.44642857142857145}}
+{"at": "2026-10-19T10:40:32.010801+00:00", "kind": "smoothing", "domain": "smd", "detector": "D1", "window": 1, "validation_recall": 0.25}
+{"at": "2026-10-19T10:40:32.240519+00:00", "kind": "smoothing", "domain": "smd", "detector": "D1", "window": 3, "validation_recall": 0.29910714285714285}
+{"at": "2026-10-19T10:40:32.456677+00:00", "kind": "smoothing", "domain": "smd", "detector": "D1", "window": 10, "validation_recall": 0.40625}
+{"at": "2026-10-19T10:40:32.462677+00:00", "kind": "selection", "domain": "smd", "detector": "D1", "window": 10, "validation_recall": 0.40625, "held_out_recall": {"staircase_leak": 0.125, "retry_storm": 0.5357142857142857, "partial_partition": 0.5714285714285714}}
+{"at": "2026-10-19T10:40:32.683676+00:00", "kind": "smoothing", "domain": "smd", "detector": "D2", "window": 1, "validation_recall": 0.65625}
+{"at": "2026-10-19T10:40:32.898688+00:00", "kind": "smoothing", "domain": "smd", "detector": "D2", "window": 3, "validation_recall": 0.6741071428571429}
+{"at": "2026-10-19T10:40:33.112079+00:00", "kind": "smoothing", "domain": "smd", "detector": "D2", "window": 10, "validation_recall": 0.6383928571428571}
+{"at": "2026-10-19T10:40:33.119597+00:00", "kind": "selection", "domain": "smd", "detector": "D2", "window": 3, "validation_recall": 0.6741071428571429, "held_out_recall": {"staircase_leak": 0.30357142857142855, "retry_storm": 0.6428571428571429, "partial_partition": 0.8928571428571429}}
+{"at": "2026-10-19T10:40:33.361298+00:00", "kind": "smoothing", "domain": "smd", "detector": "D3", "window": 1, "validation_recall": 0.45982142857142855}
+{"at": "2026-10-19T10:40:33.604725+00:00", "kind": "smoothing", "domain": "smd", "detector": "D3", "window": 3, "validation_recall": 0.5669642857142857}
+{"at": "2026-10-19T10:40:33.823265+00:00", "kind": "smoothing", "domain": "smd", "detector": "D3", "window": 10, "validation_recall": 0.5535714285714286}
+{"at": "2026-10-19T10:40:33.830269+00:00", "kind": "selection", "domain": "smd", "detector": "D3", "window": 3, "validation_recall": 0.5669642857142857, "held_out_recall": {"staircase_leak": 0.25, "retry_storm": 0.6428571428571429, "partial_partition": 0.75}}
+{"at": "2026-10-19T10:40:41.906893+00:00", "kind": "frozen_bundle", "domain": "smd", "path": "target\\real-telemetry\\frozen\\smd-bundle.pkl", "seconds": 1341}
+{"at": "2026-10-19T10:41:41.956468+00:00", "kind": "smoothing", "domain": "hai", "detector": "D0", "window": 1, "validation_recall": 0.095}
+{"at": "2026-10-19T10:41:42.061128+00:00", "kind": "smoothing", "domain": "hai", "detector": "D0", "window": 10, "validation_recall": 0.09}
+{"at": "2026-10-19T10:41:42.134408+00:00", "kind": "smoothing", "domain": "hai", "detector": "D0", "window": 60, "validation_recall": 0.1}
+{"at": "2026-10-19T10:41:42.151572+00:00", "kind": "selection", "domain": "hai", "detector": "D0", "window": 60, "validation_recall": 0.1, "held_out_recall": {"oscillating_actuator": 0.34, "trip_without_cause": 0.04, "masked_coordinated": 0.1}}
+{"at": "2026-10-19T10:41:42.204357+00:00", "kind": "smoothing", "domain": "hai", "detector": "DR", "window": 1, "validation_recall": 0.325}
+{"at": "2026-10-19T10:41:42.273853+00:00", "kind": "smoothing", "domain": "hai", "detector": "DR", "window": 10, "validation_recall": 0.305}
+{"at": "2026-10-19T10:41:42.343921+00:00", "kind": "smoothing", "domain": "hai", "detector": "DR", "window": 60, "validation_recall": 0.23}
+{"at": "2026-10-19T10:41:42.347992+00:00", "kind": "selection", "domain": "hai", "detector": "DR", "window": 1, "validation_recall": 0.325, "held_out_recall": {"oscillating_actuator": 0.48, "trip_without_cause": 0.18, "masked_coordinated": 0.34}}
+{"at": "2026-10-19T10:41:42.446802+00:00", "kind": "smoothing", "domain": "hai", "detector": "D1", "window": 1, "validation_recall": 0.47}
+{"at": "2026-10-19T10:41:42.534537+00:00", "kind": "smoothing", "domain": "hai", "detector": "D1", "window": 10, "validation_recall": 0.59}
+{"at": "2026-10-19T10:41:42.608549+00:00", "kind": "smoothing", "domain": "hai", "detector": "D1", "window": 60, "validation_recall": 0.635}
+{"at": "2026-10-19T10:41:42.625011+00:00", "kind": "selection", "domain": "hai", "detector": "D1", "window": 60, "validation_recall": 0.635, "held_out_recall": {"oscillating_actuator": 0.92, "trip_without_cause": 0.84, "masked_coordinated": 0.96}}
+{"at": "2026-10-19T10:41:42.687528+00:00", "kind": "smoothing", "domain": "hai", "detector": "D2", "window": 1, "validation_recall": 0.69}
+{"at": "2026-10-19T10:41:42.769000+00:00", "kind": "smoothing", "domain": "hai", "detector": "D2", "window": 10, "validation_recall": 0.71}
+{"at": "2026-10-19T10:41:42.834474+00:00", "kind": "smoothing", "domain": "hai", "detector": "D2", "window": 60, "validation_recall": 0.66}
+{"at": "2026-10-19T10:41:42.851094+00:00", "kind": "selection", "domain": "hai", "detector": "D2", "window": 10, "validation_recall": 0.71, "held_out_recall": {"oscillating_actuator": 0.92, "trip_without_cause": 0.88, "masked_coordinated": 1.0}}
+{"at": "2026-10-19T10:41:42.927857+00:00", "kind": "smoothing", "domain": "hai", "detector": "D3", "window": 1, "validation_recall": 0.645}
+{"at": "2026-10-19T10:41:43.008217+00:00", "kind": "smoothing", "domain": "hai", "detector": "D3", "window": 10, "validation_recall": 0.65}
+{"at": "2026-10-19T10:41:43.081357+00:00", "kind": "smoothing", "domain": "hai", "detector": "D3", "window": 60, "validation_recall": 0.68}
+{"at": "2026-10-19T10:41:43.099763+00:00", "kind": "selection", "domain": "hai", "detector": "D3", "window": 60, "validation_recall": 0.68, "held_out_recall": {"oscillating_actuator": 0.9, "trip_without_cause": 0.9, "masked_coordinated": 0.98}}
+{"at": "2026-10-19T10:41:43.638904+00:00", "kind": "frozen_bundle", "domain": "hai", "path": "target\\real-telemetry\\frozen\\hai-bundle.pkl", "seconds": 2207}

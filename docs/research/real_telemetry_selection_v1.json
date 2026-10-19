@@ -1,0 +1,291 @@
+{
+ "schema_version": "real-telemetry-selection-v1",
+ "study_id": "real-telemetry-rt1",
+ "frozen_at": "2026-10-19",
+ "protocol": "docs/research/real_telemetry_protocol_v1.json",
+ "protocol_sha256": "df8f2382ed28b9bf4aea76c8c02195ef17f08ffa88b8fed20e7e09717670cdbc",
+ "final_access_before_freeze": false,
+ "code": {
+  "scripts/real_telemetry_core.py": "6dbe22854de1d5321478296434214196de1cb978a3ce1b6f7eaa8162ad31488e",
+  "scripts/real_telemetry_data.py": "eb68f7e85a80a92e05adb5dad6e4ab2f82ee92582b9414fc26c76e799461ee21",
+  "scripts/real_telemetry_dev.py": "7f2637355e36c639e9beadd28da77dcee936b381c873cca3f6aeee1cc1e3fd89",
+  "scripts/real_telemetry_injections.py": "779464dbfabf18d13ce4e46c33aea7835ad57891303f1f007529ecc320333b5c",
+  "scripts/real_telemetry_detect.py": "aaa2382f7227d5c5c7c8845913181f5f5ed52107e34c56f55f891dcb86f0e5b4",
+  "scripts/real_telemetry_final.py": "f5ffaefd6d34f52fc216a68ea2bcded22c795291fc595c9f563d9559933c37d4"
+ },
+ "development_ledger": {
+  "path": "docs/research/artifacts/real-telemetry-rt1/development_ledger.jsonl",
+  "sha256": "621590bd6729224838b0eba85f247dd97e0401fa3e5236c3309bd4a0e7821562"
+ },
+ "bundles": {
+  "hai": {
+   "path": "target/real-telemetry/frozen/hai-bundle.pkl",
+   "sha256": "6bb7d4f916e95d7697242d7eb114487d0c157f1674881f85452d8fabf6ab8276",
+   "bytes": 17756446,
+   "retention": "local frozen bundle (pickle); regenerable from the registered code and seeds"
+  },
+  "smd": {
+   "path": "target/real-telemetry/frozen/smd-bundle.pkl",
+   "sha256": "59aa88a4c50fad3720aa1f237dc60cd34bee3e626e1876d808f21cea4410ead8",
+   "bytes": 335343653,
+   "retention": "local frozen bundle (pickle); regenerable from the registered code and seeds"
+  }
+ },
+ "selected": {
+  "hai": {
+   "world_model": "ridge_gbr_actions",
+   "detectors": {
+    "D0": {
+     "smoothing_window": 60,
+     "validation_recall_development_families": 0.1,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.34,
+      "trip_without_cause": 0.04,
+      "masked_coordinated": 0.1
+     },
+     "threshold": 4.998875790905648
+    },
+    "DR": {
+     "smoothing_window": 1,
+     "validation_recall_development_families": 0.325,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.48,
+      "trip_without_cause": 0.18,
+      "masked_coordinated": 0.34
+     },
+     "threshold": 4.338699371563015
+    },
+    "D1": {
+     "smoothing_window": 60,
+     "validation_recall_development_families": 0.635,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.92,
+      "trip_without_cause": 0.84,
+      "masked_coordinated": 0.96
+     },
+     "threshold": 15.010856607911668
+    },
+    "D2": {
+     "smoothing_window": 10,
+     "validation_recall_development_families": 0.71,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.92,
+      "trip_without_cause": 0.88,
+      "masked_coordinated": 1.0
+     },
+     "threshold": 0.9907110115502004
+    },
+    "D3": {
+     "smoothing_window": 60,
+     "validation_recall_development_families": 0.68,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.9,
+      "trip_without_cause": 0.9,
+      "masked_coordinated": 0.98
+     },
+     "threshold": 0.5229561264302924
+    }
+   }
+  },
+  "smd": {
+   "world_model": "ridge_gbr_autonomous",
+   "detectors": {
+    "D0": {
+     "smoothing_window": 1,
+     "validation_recall_development_families": 0.22767857142857142,
+     "held_out_family_recall": {
+      "staircase_leak": 0.05357142857142857,
+      "retry_storm": 0.3392857142857143,
+      "partial_partition": 0.4642857142857143
+     },
+     "thresholds_per_machine": {
+      "machine-1-1": 19.982672057614643,
+      "machine-1-2": 23.75935564949701,
+      "machine-1-3": 246.76190726363765,
+      "machine-1-4": 308.21327376271586,
+      "machine-1-5": 15.416241794070721,
+      "machine-1-6": 23.00009565176214,
+      "machine-1-7": 50.71982065371361,
+      "machine-1-8": 12.058512871888196,
+      "machine-2-1": 11.094851325908305,
+      "machine-2-2": 16.521093946553492,
+      "machine-2-3": 10.45195511231151,
+      "machine-2-4": 13.517230876584614,
+      "machine-2-5": 31.10719675850857,
+      "machine-2-6": 14.59780535667648,
+      "machine-2-7": 25.449609312109693,
+      "machine-2-8": 19.46979535075885,
+      "machine-2-9": 14.666624955666292,
+      "machine-3-1": 8.923157350429268,
+      "machine-3-2": 67.32248222557453,
+      "machine-3-3": 12.826279497764252,
+      "machine-3-4": 9.449654224276243,
+      "machine-3-5": 11.091707501700443,
+      "machine-3-6": 15.650538734091342,
+      "machine-3-7": 15.553851116226054,
+      "machine-3-8": 14.221551043335724,
+      "machine-3-9": 6.3783072068031705,
+      "machine-3-10": 5.426488281350327,
+      "machine-3-11": 10.70121236490554
+     }
+    },
+    "DR": {
+     "smoothing_window": 10,
+     "validation_recall_development_families": 0.3482142857142857,
+     "held_out_family_recall": {
+      "staircase_leak": 0.16071428571428573,
+      "retry_storm": 0.375,
+      "partial_partition": 0.44642857142857145
+     },
+     "thresholds_per_machine": {
+      "machine-1-1": 7.555138588267359,
+      "machine-1-2": 1.0494182705879211,
+      "machine-1-3": 262.59576808996854,
+      "machine-1-4": 158.2432910741912,
+      "machine-1-5": 1.0722249507904054,
+      "machine-1-6": 1.217627432763117,
+      "machine-1-7": 6.568482208251953,
+      "machine-1-8": 0.0438262939453125,
+      "machine-2-1": 0.7393719375133514,
+      "machine-2-2": 0.4931354641914368,
+      "machine-2-3": 0.0,
+      "machine-2-4": 0.36200750470161436,
+      "machine-2-5": 0.36826606640438453,
+      "machine-2-6": 0.1031445187448539,
+      "machine-2-7": 0.792975664138794,
+      "machine-2-8": 1.8926451882570903,
+      "machine-2-9": 0.3869902312755585,
+      "machine-3-1": 0.518571498207824,
+      "machine-3-2": 33.758004449359966,
+      "machine-3-3": 0.582336163520813,
+      "machine-3-4": 0.19652109146118163,
+      "machine-3-5": 0.06669505834579467,
+      "machine-3-6": 0.43195960117386306,
+      "machine-3-7": 3.7051753997802734,
+      "machine-3-8": 0.3770893752321961,
+      "machine-3-9": 0.4774933016838097,
+      "machine-3-10": 0.0,
+      "machine-3-11": 2.1425202006554622
+     }
+    },
+    "D1": {
+     "smoothing_window": 10,
+     "validation_recall_development_families": 0.40625,
+     "held_out_family_recall": {
+      "staircase_leak": 0.125,
+      "retry_storm": 0.5357142857142857,
+      "partial_partition": 0.5714285714285714
+     },
+     "thresholds_per_machine": {
+      "machine-1-1": 10.644884535505737,
+      "machine-1-2": 13.630092712473507,
+      "machine-1-3": 50.04981622908636,
+      "machine-1-4": 114.14657371800634,
+      "machine-1-5": 18.284863522508857,
+      "machine-1-6": 17.78310383035041,
+      "machine-1-7": 0.2938984441353264,
+      "machine-1-8": 10.088092208924483,
+      "machine-2-1": 10.262535694196332,
+      "machine-2-2": 14.258854069682593,
+      "machine-2-3": 7.338539356176231,
+      "machine-2-4": 14.141489427045697,
+      "machine-2-5": 108.17063302006835,
+      "machine-2-6": 10.942690155262902,
+      "machine-2-7": 94.31156257825462,
+      "machine-2-8": 21.614040304221966,
+      "machine-2-9": 10.033121308388278,
+      "machine-3-1": 7.837303429693572,
+      "machine-3-2": 42.89695636190014,
+      "machine-3-3": 8.334841056180228,
+      "machine-3-4": 7.875453921710002,
+      "machine-3-5": 15.672575892207096,
+      "machine-3-6": 9.965148191776171,
+      "machine-3-7": 7.360358574333421,
+      "machine-3-8": 10.994483880837487,
+      "machine-3-9": 6.363892073672969,
+      "machine-3-10": 7.897857224860602,
+      "machine-3-11": 7.019441961453816
+     }
+    },
+    "D2": {
+     "smoothing_window": 3,
+     "validation_recall_development_families": 0.6741071428571429,
+     "held_out_family_recall": {
+      "staircase_leak": 0.30357142857142855,
+      "retry_storm": 0.6428571428571429,
+      "partial_partition": 0.8928571428571429
+     },
+     "thresholds_per_machine": {
+      "machine-1-1": 0.8764347610251756,
+      "machine-1-2": 0.891753777094882,
+      "machine-1-3": 0.9856945252458098,
+      "machine-1-4": 0.9837571027463573,
+      "machine-1-5": 0.9517805571768084,
+      "machine-1-6": 0.8831146676761088,
+      "machine-1-7": 0.7024915732829445,
+      "machine-1-8": 0.8187780081993153,
+      "machine-2-1": 0.9435846362912553,
+      "machine-2-2": 0.9480935359953053,
+      "machine-2-3": 0.7191982303176503,
+      "machine-2-4": 0.8676042632198863,
+      "machine-2-5": 0.9741331245203861,
+      "machine-2-6": 0.8580066897383963,
+      "machine-2-7": 0.9870875075559916,
+      "machine-2-8": 0.974778556324587,
+      "machine-2-9": 0.7325484518775331,
+      "machine-3-1": 0.6626477272675273,
+      "machine-3-2": 0.7769411984586303,
+      "machine-3-3": 0.768610540726793,
+      "machine-3-4": 0.6773652242694335,
+      "machine-3-5": 0.8826845468662439,
+      "machine-3-6": 0.8455531392925401,
+      "machine-3-7": 0.7449000622258835,
+      "machine-3-8": 0.8323052400461927,
+      "machine-3-9": 0.5718505537936031,
+      "machine-3-10": 0.572814895417434,
+      "machine-3-11": 0.6490934407774209
+     }
+    },
+    "D3": {
+     "smoothing_window": 3,
+     "validation_recall_development_families": 0.5669642857142857,
+     "held_out_family_recall": {
+      "staircase_leak": 0.25,
+      "retry_storm": 0.6428571428571429,
+      "partial_partition": 0.75
+     },
+     "thresholds_per_machine": {
+      "machine-1-1": 0.4710775813002242,
+      "machine-1-2": 0.7647115263566118,
+      "machine-1-3": 0.9877583774550787,
+      "machine-1-4": 0.9975083244077719,
+      "machine-1-5": 0.9336895307473578,
+      "machine-1-6": 0.8868570732300398,
+      "machine-1-7": 0.8946499863383196,
+      "machine-1-8": 0.664231893742383,
+      "machine-2-1": 0.8372178230996813,
+      "machine-2-2": 0.9125965794420953,
+      "machine-2-3": 0.5442340180255387,
+      "machine-2-4": 0.9431821451209366,
+      "machine-2-5": 0.9894708462841402,
+      "machine-2-6": 0.7217798380388861,
+      "machine-2-7": 0.9967625748514346,
+      "machine-2-8": 0.969626783818041,
+      "machine-2-9": 0.7094111937484883,
+      "machine-3-1": 0.6278524743225274,
+      "machine-3-2": 0.7293334062531738,
+      "machine-3-3": 0.2692841797374405,
+      "machine-3-4": 0.5139136833409428,
+      "machine-3-5": 0.9662293259871966,
+      "machine-3-6": 0.6026250673667168,
+      "machine-3-7": 0.45770789743283374,
+      "machine-3-8": 0.5487522521346384,
+      "machine-3-9": 0.4595202930812739,
+      "machine-3-10": 0.17887895178824972,
+      "machine-3-11": 0.1977133671088519
+     }
+    }
+   }
+  }
+ }
+}
