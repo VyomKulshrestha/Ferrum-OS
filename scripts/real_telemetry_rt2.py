@@ -109,7 +109,11 @@ def test_segments(release, reason):
             y = frame["attack"].to_numpy(np.int8)
         else:
             label = _read(D.RAW / release / f.name.replace("hai-test", "label-test"))
-            assert len(label) == len(frame) and (label["timestamp"].values == frame["timestamp"].values).all()
+            # Amendment 2: row order with minute-resolution timestamp equality, the rule registered by the earlier
+            # HAI 23.05 evaluator (label-test2.csv repeats minute timestamps on its per-second rows).
+            label_minute = pd.to_datetime(label["timestamp"], errors="raise").to_numpy(dtype="datetime64[m]")
+            data_minute = pd.to_datetime(frame["timestamp"], errors="raise").to_numpy(dtype="datetime64[m]")
+            assert len(label) == len(frame) and np.array_equal(label_minute, data_minute), f"{f.name}: label alignment failed"
             y = label["label"].to_numpy(np.int8)
         out.append((frame[cols["sensors"]].to_numpy(np.float32), frame[cols["actions"]].to_numpy(np.float32), y))
     return out
@@ -226,7 +230,7 @@ def final():
         out = {d: {"found": [], "delays": [], "events": [], "false_episodes": 0, "normal_steps": 0, "alarm_normal_steps": 0,
                    "scores": [], "labels": []} for d in DETECTORS}
         out["_wm"] = {h: {"model": 0.0, "persistence": 0.0, "count": 0} for h in (1, 5)}
-        for k, (x, u, y) in enumerate(test_segments(release, "registered final evaluation rt2")):
+        for k, (x, u, y) in enumerate(test_segments(release, "registered final evaluation rt2 attempt 2 (amendment 2)")):
             Z, V = xs(x), us(u)
             scores = R.scores_for(bundle["scorer"], bundle["classifiers"], Z, V)
             scores["D2c"] = scores["D2"]

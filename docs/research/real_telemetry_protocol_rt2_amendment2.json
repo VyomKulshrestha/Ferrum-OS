@@ -1,0 +1,15 @@
+{
+ "schema_version": "real-telemetry-protocol-rt2-amendment",
+ "amendment": 2,
+ "study_id": "real-telemetry-rt2",
+ "registered_at": "2026-10-19",
+ "registered_before": "rt2 final attempt 2; no rt2 test outcome had been produced or seen",
+ "reason": "Final attempt 1 stopped at a label-alignment assertion for HAI 23.05 (docs/research/real_telemetry_rt2_failed_attempt1.json).",
+ "change": "HAI 23.05 labels are aligned by row order with minute-resolution timestamp equality and equal row counts, the rule already registered by the earlier HAI 23.05 evaluator (scripts/evaluate_physical_hai_final.py), because label-test2.csv repeats minute timestamps on its per-second rows. No shifting, interpolation or fill.",
+ "unchanged": "Frozen bundles, thresholds, smoothing windows, detectors, gates, seeds and every other line of the evaluation.",
+ "code": {
+  "rt2_py_sha256_attempt1": "3abc9320897dbbe4de17f0532567f7e89cad59692c6d1327338b8e554059a0c9",
+  "rt2_py_sha256_attempt2": "8aa482ceba864e43b421d0e96e76fd3e677d0b9e5e67ae12b18c117485d2792e"
+ },
+ "ledger_rule": "Attempt-1 ledger entries are retained. Attempt 2 reads each release once more with reason 'registered final evaluation rt2 attempt 2 (amendment 2)'."
+}

@@ -1,0 +1,22 @@
+{
+ "schema_version": "real-telemetry-rt2-failed-attempt",
+ "attempt": 1,
+ "study_id": "real-telemetry-rt2",
+ "selection_commit": "a857e89",
+ "ledger_entries": [
+  {
+   "dataset": "hai-21.03",
+   "reason": "registered final evaluation rt2",
+   "at": "2026-10-19T12:10:30.206017+00:00"
+  },
+  {
+   "dataset": "hai-23.05",
+   "reason": "registered final evaluation rt2",
+   "at": "2026-10-19T12:11:52.824078+00:00"
+  }
+ ],
+ "failure": "AssertionError in real_telemetry_rt2.test_segments for hai-23.05: label-test rows did not equal data timestamps exactly (string comparison).",
+ "what_ran": "HAI 21.03 test files were read and scored in memory; HAI 23.05 test1 data and labels were read; the run stopped at the alignment assertion.",
+ "what_was_not_produced": "No result file, metric, count, table or log line with detector outputs was written or displayed; the author has seen no rt2 test outcome.",
+ "rt2_py_sha256_attempt1": "3abc9320897dbbe4de17f0532567f7e89cad59692c6d1327338b8e554059a0c9"
+}
