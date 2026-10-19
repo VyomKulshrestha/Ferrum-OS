@@ -6,6 +6,8 @@
   "rt1_selection_recorded_no_final_access": true,
   "rt1_one_final_read_per_dataset": true,
   "rt1_final_reads_after_selection_commit": true,
+  "rt1_other_reads_are_labelled_post_hoc": true,
+  "rt1_post_hoc_after_result_commit": true,
   "rt1:hai-22.04:D0:counts": true,
   "rt1:hai-22.04:DR:counts": true,
   "rt1:hai-22.04:D1:counts": true,
@@ -62,7 +64,7 @@
   "rt2:hai-23.05:primary_gate_recomputed": true,
   "rt2_success_rule_recomputed": true
  },
- "check_count": 60,
+ "check_count": 62,
  "overall_pass": true,
  "notes": {
   "rt1_hai_D1": 44

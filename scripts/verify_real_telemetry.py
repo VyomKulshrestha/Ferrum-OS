@@ -77,6 +77,9 @@ def main() -> None:
     checks["rt1_one_final_read_per_dataset"] = sorted(e["dataset"] for e in finals) == ["hai-22.04", "smd"]
     freeze_time = commit_time("docs/research/real_telemetry_selection_v1.json")
     checks["rt1_final_reads_after_selection_commit"] = all(datetime.fromisoformat(e["at"]) > freeze_time for e in finals)
+    others = [e for e in led if e not in finals]
+    checks["rt1_other_reads_are_labelled_post_hoc"] = all(e["dataset"] == "hai-22.04" and e["reason"].startswith("post-hoc") for e in others)
+    checks["rt1_post_hoc_after_result_commit"] = all(datetime.fromisoformat(e["at"]) > commit_time("docs/research/real_telemetry_result_v1.json") for e in others)
     detectors1 = ["D0", "DR", "D1", "D2", "D3"]
     comps1 = {"D2_vs_D1": ("D1", "D2", 0.975), "D2_vs_D3": ("D3", "D2", 0.975), "D1_vs_D0": ("D0", "D1", 0.975),
               "D1_vs_DR": ("DR", "D1", 0.975)}

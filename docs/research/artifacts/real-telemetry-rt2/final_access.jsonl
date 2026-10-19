@@ -1,6 +1,3 @@
-{"dataset": "hai-22.04", "reason": "registered final evaluation rt1", "at": "2026-10-19T10:43:51.007095+00:00"}
-{"dataset": "smd", "reason": "registered final evaluation rt1", "at": "2026-10-19T10:45:17.747040+00:00"}
-{"dataset": "hai-22.04", "reason": "post-hoc analysis after the retained rt1 final (matched false-alarm rate)", "at": "2026-10-19T11:26:13.842408+00:00"}
 {"dataset": "hai-21.03", "reason": "registered final evaluation rt2", "at": "2026-10-19T12:10:30.206017+00:00"}
 {"dataset": "hai-23.05", "reason": "registered final evaluation rt2", "at": "2026-10-19T12:11:52.824078+00:00"}
 {"dataset": "hai-21.03", "reason": "registered final evaluation rt2 attempt 2 (amendment 2)", "at": "2026-10-19T12:13:00.968032+00:00"}
