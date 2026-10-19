@@ -170,7 +170,7 @@
     },
     "paper_verifier": {
       "path": "scripts/verify_cross_domain_world_model_paper_v1_3.py",
-      "sha256": "91e048fafc1549b277903e1f4632590fbef48d2990273adbdb62ce1b40056d3b"
+      "sha256": "ef4f9b577a1742515d00c1ec8aa9498674e6e90efa8b0d3815a2f473805eeb8d"
     },
     "pdf": {
       "pages": 48,
@@ -307,9 +307,10 @@
     }
   },
   "release": {
+    "dataset_doi": "10.5281/zenodo.23473185",
     "evidence_snapshot_commit": "cd1054e5c4f85b2ec92c0ce4048f4b3fabf7783f",
-    "repository_tag": null,
-    "status": "prepublication v1.3 candidate; v1.2 (10.5281/zenodo.23469363) remains retained",
+    "repository_tag": "prediction-is-not-permission-v1.3",
+    "status": "published v1.3 (Zenodo version DOI 10.5281/zenodo.23473173); v1.2 (10.5281/zenodo.23469363) remains retained",
     "version_doi": "10.5281/zenodo.23473173"
   },
   "report_version": "1.3",

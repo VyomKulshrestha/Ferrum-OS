@@ -1361,9 +1361,10 @@ def main() -> None:
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
         "release": {
-            "status": "prepublication v1.3 candidate; v1.2 (10.5281/zenodo.23469363) remains retained",
+            "status": "published v1.3 (Zenodo version DOI 10.5281/zenodo.23473173); v1.2 (10.5281/zenodo.23469363) remains retained",
             "evidence_snapshot_commit": EVIDENCE_SNAPSHOT_COMMIT,
-            "repository_tag": None,
+            "repository_tag": "prediction-is-not-permission-v1.3",
+            "dataset_doi": "10.5281/zenodo.23473185",
             "version_doi": "10.5281/zenodo.23473173",
         },
         "artifacts": {
