@@ -1,7 +1,7 @@
 {
  "schema_version": "prediction-is-not-permission-zenodo-v1-2",
  "reserved_at": "2026-10-19",
- "publication_state": "reserved_draft_awaiting_author_publication",
+ "publication_state": "draft_complete_awaiting_author_publication",
  "record": {
   "title": "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority",
   "subtitle": "Architecture-Controlled and Incident-Motivated Evidence in Two Runtime Domains",
@@ -53,5 +53,18 @@
   "md5": "034fa15c5abc1f7d465aa6a80bb8141a",
   "pages": 43
  },
- "note": "The DOI was reserved on a private Zenodo draft before the final build so the PDF could carry its own identifier. Publication is performed by the author; this record is updated after public verification."
+ "note": "The DOI was reserved on a private Zenodo draft before the final build so the PDF could carry its own identifier. The author publishes the draft; this record is updated after the public record and DOI resolution are verified.",
+ "draft_check": {
+  "checked_at": "2026-10-19",
+  "status": "draft",
+  "is_published": false,
+  "file_status": "completed",
+  "file_size": 930031,
+  "file_checksum": "md5:034fa15c5abc1f7d465aa6a80bb8141a",
+  "file_matches_repository_pdf": true,
+  "metadata_errors": [],
+  "access": "public record, public files, no embargo",
+  "repository_tag": "prediction-is-not-permission-v1.2",
+  "repository_tag_commit": "549cdf6a251eaebaa80fbeeda13d2aba401f95aa"
+ }
 }
