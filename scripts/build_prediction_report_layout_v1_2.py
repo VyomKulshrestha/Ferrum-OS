@@ -1244,6 +1244,8 @@ def build(
             ),
             Paragraph(inline(meta[0]), styles["front_eyebrow"]),
             Paragraph(inline(meta[6]), styles["front_meta"]),
+            # Optional archival lines (for example the version DOI and licence) follow the fixed seven.
+            *[Paragraph(inline(value), styles["front_meta"]) for value in meta[7:]],
             Paragraph("Abstract", styles["front_abstract_heading"]),
             Paragraph(
                 inline(" ".join(abstract_paragraphs)),

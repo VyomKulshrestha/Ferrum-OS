@@ -1,6 +1,6 @@
 # Citing FerrumOS
 
-FerrumOS publishes software and two report-dataset pairs with different scopes.
+FerrumOS publishes software, two report-dataset pairs, and a cross-domain report with different scopes.
 Cite the artifact you actually used rather than treating the repository,
 report, and dataset as interchangeable.
 
@@ -31,6 +31,17 @@ The dataset and report do not establish formal safety, natural-use prevalence,
 live-EEG performance, physical-robot safety, or a material JEPA advantage over
 the published per-action mean baseline. See the [benchmark boundaries](BENCHMARKS.md)
 before reusing a metric.
+
+## Cross-domain technical report
+
+**Prediction Is Not Permission: Cross-Domain World Models Under Deterministic
+Runtime Authority**, Technical Report version 1.2.
+
+- Version DOI: <https://doi.org/10.5281/zenodo.23469363>
+- Frozen release: tag `prediction-is-not-permission-v1.2`
+- Scope: matched architecture study, frozen operational benchmarks, and the
+  registered incident-dynamics v2-v4 studies; the v3 and v4 primary rules
+  failed and are reported as such
 
 ## Physical-runtime technical report
 

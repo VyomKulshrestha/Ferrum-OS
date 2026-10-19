@@ -21,11 +21,11 @@ systems. The AI brain runs natively as a freestanding userspace process
 operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
-**Cross-domain technical report, revised local v1.2:** [Read *Prediction Is Not Permission:
+**Cross-domain technical report v1.2** ([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)): [Read *Prediction Is Not Permission:
 Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf),
 with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md)
 and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_2.json).
-The 42-page report retains the matched architecture study and all earlier negative
+The 43-page report retains the matched architecture study and all earlier negative
 results and adds three registered incident-dynamics studies. The latest (v4) applies
 gradient-boosted residual corrections to the earlier selected models, using 24 newly
 verified incident sources and mechanism families held out from development: five-step
@@ -37,8 +37,8 @@ negative Dream-RSI-inspired ablation are retained. None of this establishes cont
 benefit, real-incident prevention, or deployment eligibility.
 The [earlier v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf)
 remains available. Its [external-execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md)
-is replication-ready but has not yet been run by a non-author. No archival DOI is
-claimed before a record is reserved or published.
+is replication-ready but has not yet been run by a non-author. The v1.2 version DOI
+was reserved on Zenodo before the final build, so the PDF carries its own identifier.
 
 The v1.2 audit now includes all 18 original matched-study checkpoints and the frozen
 base input. Section 11 provides the read-only reproduction commands and

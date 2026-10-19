@@ -1,0 +1,57 @@
+{
+ "schema_version": "prediction-is-not-permission-zenodo-v1-2",
+ "reserved_at": "2026-10-19",
+ "publication_state": "reserved_draft_awaiting_author_publication",
+ "record": {
+  "title": "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority",
+  "subtitle": "Architecture-Controlled and Incident-Motivated Evidence in Two Runtime Domains",
+  "version": "1.2",
+  "resource_type": "publication-report",
+  "license": "CC-BY-4.0",
+  "reserved_doi": "10.5281/zenodo.23469363",
+  "draft_url": "https://zenodo.org/uploads/23469363",
+  "publication_date": "2026-10-19",
+  "creator": {
+   "name": "Kulshrestha, Vyom",
+   "orcid": "0009-0009-1434-7148",
+   "affiliation": "Independent Researcher, India"
+  },
+  "related_identifiers": [
+   {
+    "identifier": "10.5281/zenodo.22116399",
+    "relation": "references",
+    "resource_type": "publication-report"
+   },
+   {
+    "identifier": "10.5281/zenodo.22092356",
+    "relation": "references",
+    "resource_type": "publication-report"
+   },
+   {
+    "identifier": "10.5281/zenodo.21829193",
+    "relation": "references",
+    "resource_type": "dataset"
+   },
+   {
+    "identifier": "10.5281/zenodo.22092320",
+    "relation": "references",
+    "resource_type": "dataset"
+   },
+   {
+    "identifier": "https://github.com/VyomKulshrestha/Ferrum-OS/tree/prediction-is-not-permission-v1.2",
+    "relation": "isSupplementedBy",
+    "resource_type": "software"
+   }
+  ],
+  "code_repository": "https://github.com/VyomKulshrestha/Ferrum-OS",
+  "repository_tag": "prediction-is-not-permission-v1.2"
+ },
+ "file": {
+  "name": "Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
+  "bytes": 930031,
+  "sha256": "41cd6b34e69d6ee6df7f79eb4c75f8eb350a11e7398fc59a7e8d755a10b24e7c",
+  "md5": "034fa15c5abc1f7d465aa6a80bb8141a",
+  "pages": 43
+ },
+ "note": "The DOI was reserved on a private Zenodo draft before the final build so the PDF could carry its own identifier. Publication is performed by the author; this record is updated after public verification."
+}

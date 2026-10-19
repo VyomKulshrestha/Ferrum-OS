@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_2.json",
-      "sha256": "85c4538143b36e920890a313cdc2e6a45b3eb26a6f9b7b0444fa5552c6ffa219"
+      "sha256": "b4a3db7793efdcf2be9500988366087b2df0ca298da2637d29ebf6d479486301"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "ef8fd0666115f7cb52b2ef2f245a512a4f57857c8e9cf15d12c21489827a644b"
+      "sha256": "506979b796c15c826388e69d882a3530fa115d0e09a061adf6497ba48501d2f8"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "f93217beb513555f31057fdd589b93248b0e0a48a70ff3a7673b2b8cb0ff0b8c"
+      "sha256": "41cd6b34e69d6ee6df7f79eb4c75f8eb350a11e7398fc59a7e8d755a10b24e7c"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -153,7 +153,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "85c4538143b36e920890a313cdc2e6a45b3eb26a6f9b7b0444fa5552c6ffa219",
+    "freeze_manifest_sha256": "b4a3db7793efdcf2be9500988366087b2df0ca298da2637d29ebf6d479486301",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -318,7 +318,7 @@
     ],
     "pdf_missing_source_urls": [],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 42,
+    "pdf_pages": 43,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -353,11 +353,11 @@
       "writes await confirmation": true
     },
     "pdf_typography": {
-      "character_share_at_least_9_4_points": 0.669610808295666,
+      "character_share_at_least_9_4_points": 0.6635847111565724,
       "dominant_body_font_size_points": 9.5,
       "maximum_first_page_font_size_points": 21.5
     },
-    "pdf_words_extracted": 18647,
+    "pdf_words_extracted": 19438,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -400,10 +400,13 @@
       39,
       40,
       41,
-      42
+      42,
+      43
     ],
     "public_graphic_uses_typographic_evidence_chain": true,
     "source_required_phrases": {
+      "### Declarations": true,
+      "**Use of generative AI.**": true,
       "1.478%": true,
       "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
       "5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately": true,
@@ -414,6 +417,7 @@
       "Bonferroni-adjusted 98.33% interval": true,
       "Every one of 128 leave-one-seed-out 95% intervals": true,
       "Executed intervention precision is 23.04% (88/382)": true,
+      "Findings at a glance": true,
       "Frozen risk-source attribution on fresh layouts": true,
       "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]": true,
       "Hashes prove byte identity only": true,
@@ -421,20 +425,21 @@
       "Incident-dynamics v4: a registered successor after the failed v3 rule": true,
       "Intervention precision | [-34.86661, 1.35705] | Includes zero": true,
       "Intervention rate | **[0.47780, 1.57510]** | **Excludes zero**": true,
+      "Its source, PDF, verifier, and freeze manifest are therefore immutable": true,
       "Neither interval excludes zero": true,
       "OS FPR rises by 1.00 point [0.45, 1.59]": true,
       "Prospective Safety-Gymnasium controller and shield benchmark": true,
       "Public narratives motivate local perturbations, not telemetry.": true,
-      "Publication or tagging makes that source, PDF, verifier, and manifest immutable": true,
       "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124": true,
       "Recovery protocol v2 reused the retained catalogs without simulator execution": true,
       "Registered incident-motivated prediction and warning improvement (v2)": true,
       "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
       "Safety Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
       "Source identities are assigned to generated episodes; they do not cause distinct learned transition laws.": true,
-      "Table 4 reports the complete post-hoc common-episode comparison": true,
+      "Table 1. Summary of findings.": true,
+      "Table 5 reports the complete post-hoc common-episode comparison": true,
       "Technical Report v1.2 - 19 October 2026": true,
-      "Technical Report v1.2 is the prepublication evidence-changing successor to v1.1": true,
+      "Technical Report v1.2 is the evidence-changing successor to v1.1": true,
       "The design and simulator execution were prospective, but the v1 result remains failed and ineligible": true,
       "The empirical contributions are:": true,
       "The original warning metrics are on-policy": true,
@@ -446,7 +451,8 @@
       "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
       "The v2 attribution opens seeds 8000-8127 once": true,
       "These leave-one-out checks are sensitivity analyses, not independent replications.": true,
-      "This local revised release is not an external publication.": true,
+      "This version is archived on Zenodo under version DOI 10.5281/zenodo.23469363": true,
+      "This work received no external funding.": true,
       "Validation FPR": true,
       "Validation means checking an existing record": true,
       "Warning FPR | **[0.78468, 2.81866]** | **Excludes zero**": true,

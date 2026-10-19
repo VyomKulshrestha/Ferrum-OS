@@ -129,7 +129,7 @@
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md",
-      "sha256": "ef8fd0666115f7cb52b2ef2f245a512a4f57857c8e9cf15d12c21489827a644b"
+      "sha256": "506979b796c15c826388e69d882a3530fa115d0e09a061adf6497ba48501d2f8"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -165,12 +165,12 @@
     },
     "paper_verifier": {
       "path": "scripts/verify_cross_domain_world_model_paper_v1_2.py",
-      "sha256": "dc4b165980b4f0dd0bf096f388805fcacb90a18fe1bb83b24fffef991ca88f8a"
+      "sha256": "b9b22dde556d043832d07e81d78ff269f77b5604c11eb4e7d7a230fcc0663581"
     },
     "pdf": {
-      "pages": 42,
+      "pages": 43,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
-      "sha256": "f93217beb513555f31057fdd589b93248b0e0a48a70ff3a7673b2b8cb0ff0b8c"
+      "sha256": "41cd6b34e69d6ee6df7f79eb4c75f8eb350a11e7398fc59a7e8d755a10b24e7c"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -186,7 +186,7 @@
     },
     "report_layout_builder": {
       "path": "scripts/build_prediction_report_layout_v1_2.py",
-      "sha256": "160df39231027d44ed4a5044ba2650e887b204ca70eef4d481c124589778730b"
+      "sha256": "b55dae59df62eac5ca2b556ebfb60464ed64da13cba644f13ee7a39e4f6f0549"
     },
     "reproduction_requirements": {
       "path": "requirements-prediction-report-v1_2.txt",
@@ -255,8 +255,9 @@
   },
   "release": {
     "evidence_snapshot_commit": "c5098bfd099e8ef6c441f42dba90071f3bf71668",
-    "repository_tag": null,
-    "status": "prepublication v1.2 candidate; v1.1 remains retained"
+    "repository_tag": "prediction-is-not-permission-v1.2",
+    "status": "published v1.2 (Zenodo version DOI 10.5281/zenodo.23469363); v1.1 remains retained",
+    "version_doi": "10.5281/zenodo.23469363"
   },
   "report_version": "1.2",
   "schema": "cross-domain-world-model-paper-freeze-v1-2",

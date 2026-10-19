@@ -1,0 +1,42 @@
+{
+ "purpose": "Development-only probe after v4; never registered and never run on final populations.",
+ "training_episodes": "incident_rows(warntrain, 1024, 391006) plus 150 episodes per development mechanism (warntrain, 391007)",
+ "threshold_rule": "unchanged 1 percent empirical FPR on the registered calibration episodes",
+ "evaluation": "development warning-validation windows",
+ "domains": {
+  "ferrumos": {
+   "v2 margin": {
+    "recall": 0.7918552036199095,
+    "fpr": 0.008447043534762833,
+    "miss_reduction_vs_v2": 0.0
+   },
+   "v4 margin": {
+    "recall": 0.919683257918552,
+    "fpr": 0.006172839506172839,
+    "miss_reduction_vs_v2": 0.6141304347826085
+   },
+   "v4 + breach classifier": {
+    "recall": 0.9140271493212669,
+    "fpr": 0.00682261208576998,
+    "miss_reduction_vs_v2": 0.5869565217391304
+   }
+  },
+  "physical": {
+   "v2 margin": {
+    "recall": 0.8360101437024514,
+    "fpr": 0.012836970474967908,
+    "miss_reduction_vs_v2": 0.0
+   },
+   "v4 margin": {
+    "recall": 0.8588334742180896,
+    "fpr": 0.01176722293538725,
+    "miss_reduction_vs_v2": 0.13917525773195893
+   },
+   "v4 + breach classifier": {
+    "recall": 0.8740490278951818,
+    "fpr": 0.009841677364142062,
+    "miss_reduction_vs_v2": 0.23195876288659822
+   }
+  }
+ }
+}
