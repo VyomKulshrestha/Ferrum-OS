@@ -1,0 +1,11 @@
+{
+ "schema_version": "real-telemetry-protocol-rt2-amendment",
+ "amendment": 1,
+ "study_id": "real-telemetry-rt2",
+ "registered_at": "2026-10-19",
+ "registered_before": "the rt2 selection freeze and any rt2 read of HAI 21.03 or HAI 23.05 test files",
+ "correction": "The rt2 protocol states that the attacks of HAI 21.03 and HAI 23.05 'have never been opened'. That is wrong at the project level. HAI 23.05 test2 was the final test of the earlier Physical JEPA HAI transfer study (docs/research/physical_hai_v1_final_test.json), HAI 23.05 test1 and test2 were then used for model selection in the cross-version study (docs/research/physical_hai_v2_cross_version_protocol.json), and all five HAI 21.03 test files were that study's final test (docs/research/physical_hai_v2_final_test.json). Paper v1.2 Section 8.2 also replays HAI 23.05 test1 and test2.",
+ "what_remains_true": "The rt2 test files are unopened by this lineage: no rt2 code, detector, threshold, smoothing choice or the D2c rule read them, and the rt2 method is fixed from rt1 (HAI 22.04, which no earlier study used). The author has seen the earlier studies' aggregate results on these files (for example 48 of 50 HAI 21.03 attack windows detected by the cross-version study's site-adapted detector) but not per-detector outputs of the rt2 detectors.",
+ "revised_claim_scope": "rt2 is a within-lineage prospective replication on previously used public data, not a test on data unseen by the project. Results are reported with this label, and the earlier studies' results on the same files are cited alongside rt2 for context, not as rt2 comparators.",
+ "unchanged": "Gates, detectors, partitions, seeds and the single-final-evaluation rule."
+}
