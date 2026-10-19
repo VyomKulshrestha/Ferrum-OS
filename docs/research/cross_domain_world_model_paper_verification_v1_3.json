@@ -1,0 +1,519 @@
+{
+  "artifacts": {
+    "authority_test_inventory": {
+      "path": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "sha256": "e4bd63ecb9432847ee3fa6d3a08d7c1b77e2bb851572d040c713c8a91eb9b812"
+    },
+    "evidence_snapshot": {
+      "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
+      "sha256": "e29ef8ddc733643fbca95d8a2a4e433e9d0733f5ed4370ff07052488a2882804"
+    },
+    "freeze_manifest": {
+      "path": "docs/research/cross_domain_world_model_paper_freeze_v1_3.json",
+      "sha256": "8c57e8d6570bd638adaf779400c327d126bb1ca3a5fc0e7b9893124071bf696c"
+    },
+    "manuscript": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_3.md",
+      "sha256": "3706c132ec7e0801db8dee02fb6eed5951bdd7b4a1517b84b1705d9d0f804f5f"
+    },
+    "output_ablation_failed_attempt": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
+      "sha256": "ed68b02869e8a178450e67b2951638747f7c3c6f123ed35b505bc0ad6a84bc41"
+    },
+    "output_ablation_recovery_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_protocol_v2.json",
+      "sha256": "e85fee2c795f07d490108766405306d16ee3b7b0e7334ab3160db73882defce6"
+    },
+    "output_ablation_recovery_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_result_v2.json",
+      "sha256": "6ac231e8616b235c09436d62ebed61978d742cb3b7a511e5334af70f66e4a372"
+    },
+    "output_ablation_recovery_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_verification_v3.json",
+      "sha256": "9e685077dd2656c4d79c87e3c05f98aba0a6eeaef39b674afc63c736d42823a6"
+    },
+    "output_ablation_v1_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json",
+      "sha256": "79104c1443c3e4a51ac32e5539c5564e7acbb47a186ad137ff1b4e93ac8407a7"
+    },
+    "output_ablation_verification_amendment": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_verification_amendment_v3.json",
+      "sha256": "d6555034df03e660e0de567aa26f0b820f5585daa9b214cf4d547fe15d0c248e"
+    },
+    "paired_uncertainty_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+      "sha256": "994689b4d2901424efe3d1a9b76a1af6aa478997818e679c9871148a9b4f12ad"
+    },
+    "paired_uncertainty_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+      "sha256": "58e826ac72bd5b56b377bf087123a19894edf96434950f66b897ea4c2fcbc4c9"
+    },
+    "pdf": {
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf",
+      "sha256": "215aae5db228f68d175c239c4f7eed9bbd6a75012e2fcd4dc21a5056aac14f4f"
+    },
+    "posthoc_sensitivity_result": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+      "sha256": "cbef9025b01570f01c8cee4f84b90a7a87ba31cf0cf428a5eb033c85749f23c0"
+    },
+    "posthoc_sensitivity_verification": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json",
+      "sha256": "6210266b9ea215f9e8dcca832504b9990cb58e13102a0e1317520774c8eaa4df"
+    },
+    "risk_source_attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "9a31b3fa6eb75f5e05ee617af8843a98a4fe422d4cacc7eb426572d20be8db8a"
+    },
+    "risk_source_attribution_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+      "sha256": "4fd14399205e6cd71870ba7c24a33971471e91f3a6d7756c4c2b1b522813caee"
+    }
+  },
+  "checks": {
+    "all_figures_nonempty": true,
+    "attribution_multiplicity_and_influence_checks_pass": true,
+    "authority_test_inventory_passes_with_scoped_execution": true,
+    "common_episode_horizon_confound_is_measured": true,
+    "common_proposal_warning_comparison_is_reproduced": true,
+    "delayed_hazard_construct_coverage_recomputed": true,
+    "external_frozen_pass_recomputes": true,
+    "external_result_effective_and_attributed": true,
+    "external_scope_and_nonpromotion_honest": true,
+    "external_verification_confirms_all_gates": true,
+    "forbidden_placeholders_and_review_wording_absent": true,
+    "historical_18_archived_checkpoints_and_base_input_bound": true,
+    "historical_archived_inference_eight_checks_pass": true,
+    "incident_clean_archive_audit_matches": true,
+    "incident_four_adjusted_prediction_contrasts_pass": true,
+    "incident_models_and_thresholds_unchanged_in_amendment": true,
+    "incident_no_promotion_or_actuator_authority": true,
+    "incident_os_false_positive_increase_retained": true,
+    "incident_primary_and_warning_gates_pass": true,
+    "incident_primary_table_matches_result": true,
+    "incident_six_historical_guards_pass": true,
+    "incident_source_strata_confound_reported": true,
+    "incident_strong_control_context_correct": true,
+    "incident_v3_primary_failure_reported": true,
+    "incident_v3_rsi_negative_reported": true,
+    "incident_v3_v4_no_promotion_or_actuator_authority": true,
+    "incident_v3_v4_selection_frozen_without_final_access": true,
+    "incident_v3_v4_tables_match_retained_results": true,
+    "incident_v3_v4_verifications_pass": true,
+    "incident_v4_physical_gates_and_guards_pass": true,
+    "incident_v4_primary_failure_reported": true,
+    "incident_verification_bound_and_48_checks_pass": true,
+    "incident_warning_table_matches_counts": true,
+    "intervention_precision_recomputed": true,
+    "matched_study_collapse_limit_reported": true,
+    "output_ablation_all_output_family_same_survivors": true,
+    "output_ablation_failed_v1_retained": true,
+    "output_ablation_headline_effects_exact": true,
+    "output_ablation_pre_catalog_registration_exact": true,
+    "output_ablation_protocol_and_result_are_bound": true,
+    "output_ablation_recovery_is_retrospective": true,
+    "output_ablation_seven_endpoint_bonferroni_recomputes": true,
+    "output_ablation_v3_all_51_checks_pass": true,
+    "output_ablation_verification_amendment_is_nonexperimental": true,
+    "paired_planner_union_uncertainty_verified": true,
+    "pdf_author_exact": true,
+    "pdf_body_typography_matches_publication_scale": true,
+    "pdf_fonts_are_embedded_and_character_spacing_is_normal": true,
+    "pdf_has_no_replacement_character": true,
+    "pdf_has_no_text_outside_page_bounds": true,
+    "pdf_page_count_is_readable_submission_length": true,
+    "pdf_reference_links_preserve_complete_source_urls": true,
+    "pdf_required_phrases_present": true,
+    "pdf_subject_versioned": true,
+    "pdf_title_exact": true,
+    "posthoc_sensitivity_recomputes_and_is_nonpromotable": true,
+    "protected_deployed_artifacts_unchanged": true,
+    "public_graphic_uses_typographic_evidence_chain": true,
+    "real_telemetry_read_only_verification_passes": true,
+    "real_telemetry_rt1_failure_reported": true,
+    "real_telemetry_rt2_disclosure_present": true,
+    "real_telemetry_tables_match_results": true,
+    "reproduction_scope_and_read_only_contract_reported": true,
+    "restoration_failures_retained_and_no_final_access": true,
+    "risk_source_attribution_authority_disabled": true,
+    "risk_source_attribution_verified": true,
+    "source_required_phrases_present": true,
+    "umbrella_all_checks_pass": true,
+    "umbrella_binds_external_verification": true,
+    "umbrella_promotion_ineligible": true,
+    "wrapped_pdf_table_cells_positionally_correct": true
+  },
+  "diagnostics": {
+    "forbidden_patterns_absent": {
+      "Submission candidate": true,
+      "The later Safety-Gymnasium families also sit outside": true,
+      "The union passes every registered gate": true,
+      "\\bTBD\\b": true,
+      "\\bTODO\\b": true,
+      "holds compute and data constant": true,
+      "independently executed third-party": true,
+      "missed population rate is 1\\.478%": true,
+      "opposite unusable extreme": true,
+      "requested by the present review": true,
+      "reviewer-requested": true,
+      "safety recall": true
+    },
+    "freeze_manifest_sha256": "8c57e8d6570bd638adaf779400c327d126bb1ca3a5fc0e7b9893124071bf696c",
+    "output_ablation_bonferroni_11_output": {
+      "actual_hazard_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -137.37499999999997,
+          83.0
+        ]
+      },
+      "actual_total_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -137.37499999999997,
+          83.0
+        ]
+      },
+      "actual_vase_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          0.0,
+          0.0
+        ]
+      },
+      "effective_intervention_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -8.396415631469978,
+          6.456016330575844
+        ]
+      },
+      "hazardous_episode_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -3.125,
+          4.6875
+        ]
+      },
+      "intervention_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.45555900060583593,
+          1.5993617791065153
+        ]
+      },
+      "intervention_precision_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -36.31721310801085,
+          2.173919474589823
+        ]
+      },
+      "mean_episode_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -0.1875,
+          2.109375
+        ]
+      },
+      "task_completion_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -3.90625,
+          0.0
+        ]
+      },
+      "warning_false_positive_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.7363828601763047,
+          2.8972508163281856
+        ]
+      },
+      "warning_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -13.191450207277706,
+          20.03179881736974
+        ]
+      }
+    },
+    "output_ablation_bonferroni_7_endpoint": {
+      "actual_hazard_cost_steps": {
+        "excludes_zero": false,
+        "interval": [
+          -134.0,
+          81.0
+        ]
+      },
+      "effective_intervention_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -7.629120645358498,
+          6.2211752780409935
+        ]
+      },
+      "intervention_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.4778018711832064,
+          1.5751027845626882
+        ]
+      },
+      "intervention_precision_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -34.86661087127528,
+          1.3570538582529057
+        ]
+      },
+      "task_completion_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -3.125,
+          0.0
+        ]
+      },
+      "warning_false_positive_percentage_points": {
+        "excludes_zero": true,
+        "interval": [
+          0.7846824039950231,
+          2.81866234561309
+        ]
+      },
+      "warning_recall_percentage_points": {
+        "excludes_zero": false,
+        "interval": [
+          -11.253300870202505,
+          18.182549363264535
+        ]
+      }
+    },
+    "pdf_font_inventory": [
+      {
+        "base_font": "/AAAAAA+BitstreamVeraSans-Bold",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+BitstreamVeraSans-Oblique",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+BitstreamVeraSans-Roman",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+DejaVuSerif",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+DejaVuSerif-Bold",
+        "embedded": true,
+        "subtype": "/TrueType"
+      },
+      {
+        "base_font": "/AAAAAA+DejaVuSerif-Italic",
+        "embedded": true,
+        "subtype": "/TrueType"
+      }
+    ],
+    "pdf_missing_source_urls": [],
+    "pdf_nonzero_character_spacing": [],
+    "pdf_pages": 48,
+    "pdf_required_phrases": {
+      "Architecture-controlled results": true,
+      "Artifact locator": true,
+      "Bonferroni-adjusted 98.33% interval": true,
+      "Bonferroni-adjusted 99.29% CI": true,
+      "Claim-to-evidence ledger": true,
+      "Frozen risk-source attribution on fresh layouts": true,
+      "Frozen-gate and artifact audit": true,
+      "Incident-dynamics v3: broader mechanisms": true,
+      "Incident-dynamics v4: a registered successor": true,
+      "Neither interval excludes zero": true,
+      "ORCID: 0009-0009-1434-7148": true,
+      "OS FPR rises by 1.00 point": true,
+      "Observed minus development-mean masked": true,
+      "Prediction Is Not Permission": true,
+      "References": true,
+      "Registered incident-motivated prediction and warning improvement (v2)": true,
+      "Retained-catalog Physical JEPA output-value ablation": true,
+      "Safety-Gymnasium controller and shield benchmark": true,
+      "Source identities are assigned to generated episodes": true,
+      "Technical Report v1.3": true,
+      "The design and simulator execution were prospective": true,
+      "The empirical contributions are:": true,
+      "The primary rule therefore fails on that one population": true,
+      "The study is not architecture-only, parameter-matched, or FLOP-matched.": true,
+      "Threats to validity and limitations": true,
+      "Validation FPR": true,
+      "Vyom Kulshrestha": true,
+      "common-episode sensitivity": true,
+      "complete post-hoc common-episode comparison": true,
+      "superiority over the planner was not established": true,
+      "writes await confirmation": true
+    },
+    "pdf_typography": {
+      "character_share_at_least_9_4_points": 0.6485899599165581,
+      "dominant_body_font_size_points": 9.5,
+      "maximum_first_page_font_size_points": 21.5
+    },
+    "pdf_words_extracted": 22180,
+    "positionally_checked_pdf_table_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48
+    ],
+    "public_graphic_uses_typographic_evidence_chain": true,
+    "source_required_phrases": {
+      "### Declarations": true,
+      "**Use of generative AI.**": true,
+      "1.478%": true,
+      "294 of 382 changed commands occur on oracle-labelled non-dangerous trajectories": true,
+      "5% familywise error rate across the three non-full-versus-full pipeline contrasts within each endpoint separately": true,
+      "All 48 retained-catalog checks pass": true,
+      "Appendix A. Claim-to-evidence ledger": true,
+      "Appendix B. Frozen-gate and artifact audit": true,
+      "Appendix C. Artifact locator": true,
+      "Bonferroni-adjusted 98.33% interval": true,
+      "Every one of 128 leave-one-seed-out 95% intervals": true,
+      "Executed intervention precision is 23.04% (88/382)": true,
+      "Findings at a glance": true,
+      "Frozen risk-source attribution on fresh layouts": true,
+      "GRU-minus-JEPA at H=3 is -0.004439 [-0.005735, -0.003203]": true,
+      "Hashes prove byte identity only": true,
+      "Incident-dynamics v3: broader mechanisms, boosted residual models, and an evolving-world curriculum": true,
+      "Incident-dynamics v4: a registered successor after the failed v3 rule": true,
+      "Intervention precision | [-34.86661, 1.35705] | Includes zero": true,
+      "Intervention rate | **[0.47780, 1.57510]** | **Excludes zero**": true,
+      "It does not support giving the model authority to act.": true,
+      "Its source, PDF, verifier, and freeze manifest are therefore immutable": true,
+      "Neither interval excludes zero": true,
+      "OS FPR rises by 1.00 point [0.45, 1.59]": true,
+      "Prospective Safety-Gymnasium controller and shield benchmark": true,
+      "Public narratives motivate local perturbations, not telemetry.": true,
+      "Python 3.12.6, NumPy 2.2.6, and PyTorch 2.6.0+cu124": true,
+      "Recorded attacks and production incidents (real-telemetry studies rt1 and rt2)": true,
+      "Recovery protocol v2 reused the retained catalogs without simulator execution": true,
+      "Registered incident-motivated prediction and warning improvement (v2)": true,
+      "Revisiting Feature Prediction for Learning Visual Representations from Video": true,
+      "SMD is reported as inconclusive": true,
+      "Safety Gymnasium: A Unified Safe Reinforcement Learning Benchmark": true,
+      "Source identities are assigned to generated episodes; they do not cause distinct learned transition laws.": true,
+      "Table 1. Summary of findings.": true,
+      "Table 5 reports the complete post-hoc common-episode comparison": true,
+      "Technical Report v1.3 - 19 October 2026": true,
+      "Technical Report v1.3 is the evidence-changing successor to v1.2": true,
+      "The design and simulator execution were prospective, but the v1 result remains failed and ineligible": true,
+      "The empirical contributions are:": true,
+      "The original warning metrics are on-policy": true,
+      "The primary contribution is an evaluation method, not a new JEPA objective.": true,
+      "The primary rule therefore fails on that one population": true,
+      "The primary success rule therefore fails, and the v3 result is retained as a failure.": true,
+      "The study is not architecture-only, parameter-matched, or FLOP-matched.": true,
+      "The successful v2 final is not a rerun of v1 evidence.": true,
+      "The union passes every registered joint-objective gate relative to the frozen benchmark criteria": true,
+      "The v2 attribution opens seeds 8000-8127 once": true,
+      "These leave-one-out checks are sensitivity analyses, not independent replications.": true,
+      "This analysis uses test labels to set thresholds and is not a registered result.": true,
+      "This version is archived on Zenodo under version DOI 10.5281/zenodo.23473173": true,
+      "This work received no external funding.": true,
+      "Validation FPR": true,
+      "Validation means checking an existing record": true,
+      "Warning FPR | **[0.78468, 2.81866]** | **Excludes zero**": true,
+      "Warning recall and warning FPR evaluate the detector": true,
+      "Warnings do not follow the prediction gains.": true,
+      "`rule_block` is false in all 1,024 records by construction of this estimand": true,
+      "adjustment across all 11 registered paired outputs gives the same survivor set": true,
+      "complete post-hoc common-episode comparison": true,
+      "completion/cost tradeoff over the planner": true,
+      "constant-prevalence predictor has Brier 0.25": true,
+      "descriptive rather than statistically stable": true,
+      "effective action-change recall": true,
+      "effective action-change recall is 55.00%": true,
+      "exact pre-report scientific-evidence snapshot for this review freeze is Git commit `cd1054e5c4f85b2ec92c0ce4048f4b3fabf7783f`": true,
+      "exploratory pipeline-level evidence": true,
+      "false-negative rate is 256/256": true,
+      "identical 23,815-proposal catalog": true,
+      "implements neither Dream-RSI's replay-policy optimization nor a controlled RSI ablation": true,
+      "intervention rate counts only commands that actually change": true,
+      "no independent replication is claimed": true,
+      "no statistically resolved difference and is not a non-inferiority result": true,
+      "nominal receding-horizon controller": true,
+      "not learned collision-avoidance superiority over privileged planning": true,
+      "not strictly compute-controlled": true,
+      "not the uniquely designated primary contrast": true,
+      "paired 10,000-resample episode-bootstrap 95% CI": true,
+      "physical permit unit tests do not establish FerrumOS syscall-path enforcement": true,
+      "post-hoc seven-endpoint Bonferroni-adjusted 99.29% intervals": true,
+      "protected artifacts remain unchanged": true,
+      "registered ranking reversal cannot be isolated as a horizon effect": true,
+      "rt2 is a replication within this lineage on previously used data": true,
+      "same six evidence objects named in the abstract": true,
+      "these gates do not require superiority over the privileged planner": true,
+      "thresholded latent-hazard coverage negative": true,
+      "v3 provides no evidence of an RSI gain": true,
+      "v4 is a registered successor designed after the v3 result.": true,
+      "verification v3 recomputes the catalogs, scores, aggregates, paired effects, seeds, and feature intervention and passes all 51 checks": true,
+      "warning FPR [0.73638, 2.89725] and intervention rate [0.45556, 1.59936]": true,
+      "| H=1 | 0.002343 | **0.001018** | 0.002401 | +0.001325 [0.001295, 0.001356] | -0.001383 [-0.001408, -0.001358] |": true,
+      "| Intervention precision, percentage points | -15.25735 | [-29.32521, -3.00212] | Excludes zero |": true,
+      "| Intervention rate, percentage points | +0.96180 | [0.58641, 1.38473] | Excludes zero |": true,
+      "| Naive unshielded | 100.00% | 0.00% | \u2014 | \u2014 | 0.00% | 542 |": true,
+      "| Planner unshielded | 94.53% | 0.00% | \u2014 | \u2014 | 0.00% | **70** |": true,
+      "| Realized hazard-cost steps | -10 | [-98, 59] | Includes zero |": true
+    }
+  },
+  "overall_pass": true,
+  "promotion_eligible": false,
+  "report_version": "1.3",
+  "schema": "cross-domain-world-model-paper-verification-v1-2"
+}

@@ -35,14 +35,23 @@ before reusing a metric.
 ## Cross-domain technical report
 
 **Prediction Is Not Permission: Cross-Domain World Models Under Deterministic
-Runtime Authority**, Technical Report version 1.2.
+Runtime Authority**, Technical Report version 1.3.
 
-- Version DOI: <https://doi.org/10.5281/zenodo.23469363>
+- Version DOI: <https://doi.org/10.5281/zenodo.23473173>
 - All-versions DOI: <https://doi.org/10.5281/zenodo.23469362>
-- Frozen release: tag `prediction-is-not-permission-v1.2`
-- Scope: matched architecture study, frozen operational benchmarks, and the
-  registered incident-dynamics v2-v4 studies; the v3 and v4 primary rules
-  failed and are reported as such
+- Frozen release: tag `prediction-is-not-permission-v1.3`
+- Scope: everything in v1.2 plus the registered real-telemetry studies rt1 and
+  rt2 on public HAI and SMD recordings; failed rules are reported as such
+- Earlier version: v1.2, <https://doi.org/10.5281/zenodo.23469363>
+
+## Incident-dynamics and real-telemetry dataset
+
+**FerrumOS Incident-Dynamics and Real-Telemetry Evidence Dataset**, version 1.0.0.
+
+- DOI: <https://doi.org/10.5281/zenodo.23473185>
+- Scope: protocols, selections, results, ledgers, retained catalogs, compact
+  models, source catalogs and code for incident-dynamics v1-v4 and real-telemetry
+  rt1-rt2; upstream HAI and SMD data are not redistributed
 
 ## Physical-runtime technical report
 

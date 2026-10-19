@@ -1,0 +1,25 @@
+{
+ "schema_version": "prediction-is-not-permission-zenodo-reservations-v1-3",
+ "reserved_at": "2026-10-19",
+ "publication_state": "reserved_drafts_awaiting_publication",
+ "technical_report_v1_3": {
+  "draft_url": "https://zenodo.org/uploads/23473173",
+  "reserved_doi": "10.5281/zenodo.23473173",
+  "created_as": "Zenodo new version of record 23469363 (v1.2)",
+  "concept_doi": "10.5281/zenodo.23469362",
+  "license": "CC-BY-4.0",
+  "version": "1.3"
+ },
+ "dataset": {
+  "draft_url": "https://zenodo.org/uploads/23473185",
+  "reserved_doi": "10.5281/zenodo.23473185",
+  "title": "FerrumOS Incident-Dynamics and Real-Telemetry Evidence Dataset v1.0.0",
+  "license": "MIT",
+  "version": "1.0.0"
+ },
+ "planned_relationships": {
+  "dataset": "isSupplementTo the v1.3 report",
+  "technical_report_v1_3": "isSupplementedBy the dataset"
+ },
+ "note": "DOIs are reserved before the final build so the report and dataset can cite each other. Publication is performed only after the replication result, rebuild, verification and author approval."
+}

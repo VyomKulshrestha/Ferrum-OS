@@ -21,20 +21,23 @@ systems. The AI brain runs natively as a freestanding userspace process
 operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
-**Cross-domain technical report v1.2** ([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)): [Read *Prediction Is Not Permission:
-Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf),
-with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_2.md)
-and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_2.json).
-The 43-page report retains the matched architecture study and all earlier negative
-results and adds three registered incident-dynamics studies. The latest (v4) applies
-gradient-boosted residual corrections to the earlier selected models, using 24 newly
-verified incident sources and mechanism families held out from development: five-step
-prediction error falls 38.0% (physical, earlier population) and 24.1% (physical,
-held-out mechanisms), and 20.8% for OS on held-out mechanisms. Its registered success
-rule still fails on the earlier OS population, where an unannounced drift reversal
-bounds five-step accuracy (5.7%). The broader v3 failure, uneven warning results, and a
-negative Dream-RSI-inspired ablation are retained. None of this establishes controller
-benefit, real-incident prevention, or deployment eligibility.
+**Cross-domain technical report v1.3** ([DOI 10.5281/zenodo.23473173](https://doi.org/10.5281/zenodo.23473173); all versions [10.5281/zenodo.23469362](https://doi.org/10.5281/zenodo.23469362)): [Read *Prediction Is Not Permission:
+Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf),
+with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_3.md)
+and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_3.json).
+The 48-page report keeps every earlier study and failure and adds two registered
+studies on public recordings. On 58 attacks staged on the HAI 22.04 control testbed, a
+world model trained only on normal operation flags 44 at about one false alarm episode
+per day, against 22 for a persistence residual and 24 for a bound check. Training a
+detector on attack patterns from 35 verified incident sources failed its registered
+test: its threshold did not transfer. A registered replication on HAI 21.03 and 23.05
+(test files earlier FerrumOS studies had used) found 50 of 50 and 33 of 52 attacks; its
+rule passed on one release. Server incidents (SMD) were inconclusive. The evidence is
+archived as a [dataset](https://doi.org/10.5281/zenodo.23473185). None of this
+establishes attack prevention, controller benefit, or deployment eligibility.
+[Version 1.2](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf)
+([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)) remains
+unchanged.
 The [earlier v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf)
 remains available. Its [external-execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md)
 is replication-ready but has not yet been run by a non-author. The v1.2 version DOI
