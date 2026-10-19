@@ -868,6 +868,126 @@
      "upstream_check": "git blob sha1 at pinned commit"
     }
    ]
+  },
+  "hai-21.03": {
+   "repository": "icsdataset/hai",
+   "commit": "2a814cebc9a66b06c9e5cd545e2d72e65d383737",
+   "license": "CC BY-SA 4.0 (README licence section and technical manual v4.0; repository has no LICENSE file)",
+   "citation": "H.-K. Shin, W. Lee, S. Choi, J.-H. Yun, B.-G. Min. HAI security datasets, https://github.com/icsdataset/hai, 2023; H.-K. Shin, W. Lee, J.-H. Yun, B.-G. Min. Two ICS Security Datasets and Anomaly Detection Contest on the HIL-based Augmented ICS Testbed. CSET '21, pp. 36-40. https://doi.org/10.1145/3474718.3474719",
+   "files": [
+    {
+     "file": "train1.csv.gz",
+     "bytes": 30651421,
+     "sha256": "fdd0162315b32817ba665e2cc8990eb09c47c4edc29683a86b11dc9df062b3a9",
+     "git_blob_sha1": "2940eeeb2018c68fc01586da77986a5771b12585",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train2.csv.gz",
+     "bytes": 31430645,
+     "sha256": "c330af06a24f5fe3df864dddc0e9cbbbfd27db2e005bd32dc8ab3eb2ab356337",
+     "git_blob_sha1": "4810e976c30ff9a15c2cadb69319bd7e9fe922e7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train3.csv.gz",
+     "bytes": 67961579,
+     "sha256": "de09120c617bad5f4f3cab86705137fe7ced4b1123fb67ffdf67fd645f3d1b8f",
+     "git_blob_sha1": "207e4b9f4c157505d5cb4a66e8ebe84d03575dab",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test1.csv.gz",
+     "bytes": 6149549,
+     "sha256": "532de41bed372206941609d05b763958f59abecfd63c8c123649f823452e445e",
+     "git_blob_sha1": "7dee74e72e440cbf2d18fd61fc8de3a7066dda29",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test2.csv.gz",
+     "bytes": 16765328,
+     "sha256": "c5572e0ed19906107ceb56c4b4f40e165153fc7ba87b3506230d53d2478c29bb",
+     "git_blob_sha1": "bef13733742259bbd54912cde2ee6ec5fcb2fe54",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test3.csv.gz",
+     "bytes": 15477098,
+     "sha256": "bff835894baff0c73871bc01ece4f5cf759d455a049e808b012128767420caaf",
+     "git_blob_sha1": "12d16f3c2d59250be667bb6a942a85137ccf35b6",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test4.csv.gz",
+     "bytes": 5602841,
+     "sha256": "51380fd28fd985b94a10cae3d8b80926becb3af9f233f2d3a38ab8be9482a482",
+     "git_blob_sha1": "9c9c5ae3a6a0586dc8398006cc31d1023fbbbce2",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test5.csv.gz",
+     "bytes": 13199829,
+     "sha256": "f0d59308b167ed95d0e81fb3e27c906682c9b21d3dba0ab4c4d696565df35179",
+     "git_blob_sha1": "a63954461979734ca056e2f6aee3abf0397e36b4",
+     "upstream_check": "git blob sha1 at pinned commit"
+    }
+   ]
+  },
+  "hai-23.05": {
+   "repository": "icsdataset/hai",
+   "commit": "2a814cebc9a66b06c9e5cd545e2d72e65d383737",
+   "license": "CC BY-SA 4.0 (README licence section and technical manual v4.0; repository has no LICENSE file)",
+   "citation": "H.-K. Shin, W. Lee, S. Choi, J.-H. Yun, B.-G. Min. HAI security datasets, https://github.com/icsdataset/hai, 2023; H.-K. Shin, W. Lee, J.-H. Yun, B.-G. Min. Two ICS Security Datasets and Anomaly Detection Contest on the HIL-based Augmented ICS Testbed. CSET '21, pp. 36-40. https://doi.org/10.1145/3474718.3474719",
+   "files": [
+    {
+     "file": "hai-train1.csv",
+     "bytes": 162418984,
+     "sha256": "53007b0ba604fbf338e7ac2e08cd81d874b5d1388f3aecb213ddcba5bf2bec4a",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "hai-train2.csv",
+     "bytes": 169121615,
+     "sha256": "0e520e82bf78a661ab19ce4967f3c766bd809820f457a9c90c365102d4534c56",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "hai-train3.csv",
+     "bytes": 72774793,
+     "sha256": "bfcec2dc05adea103e7491546b0e28268faaa26d3cc717d10f4595c94b81e85d",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "hai-train4.csv",
+     "bytes": 114494940,
+     "sha256": "56658c83657d42a65db982b864362e0d0ffeb96d1f7b357d5e76e3a5c522d940",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "hai-test1.csv",
+     "bytes": 31255559,
+     "sha256": "78c7f1d4de1f2ab9ccc2f8c719f80f831033543adb0c81d0d78f84f40838d4be",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "hai-test2.csv",
+     "bytes": 132946575,
+     "sha256": "b2b8dd295aefd87e39260fe43cb4c73ee86d6264b0ac4b0761e7efb0c2b545c3",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "label-test1.csv",
+     "bytes": 1242017,
+     "sha256": "eaf69edb9c5834bc393afd7bf658b5e408d34fd7bfc3261f80516765fb818fbc",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "label-test2.csv",
+     "bytes": 4500018,
+     "sha256": "8090c44981176e39b0f01a7126a80248ac0b93355c00f9db4d4e2f2106452b92",
+     "upstream_check": "git-lfs oid sha256 and size"
+    }
+   ]
   }
  }
 }

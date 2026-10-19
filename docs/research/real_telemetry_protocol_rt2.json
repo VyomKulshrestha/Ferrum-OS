@@ -1,0 +1,37 @@
+{
+ "schema_version": "real-telemetry-protocol-rt2",
+ "study_id": "real-telemetry-rt2",
+ "registered_at": "2026-10-19",
+ "inherits": "docs/research/real_telemetry_protocol_v1.json (rt1); rt1 is retained unchanged, including its failed primary rule",
+ "motivation": "rt1 found that a normal-only world-model residual detector (D1) caught 44 of 58 recorded HAI 22.04 attacks at about one false alarm episode per day, far above persistence and bound/gradient baselines, while the incident-informed classifier (D2) failed its registered rule. A labelled post-hoc analysis (docs/research/real_telemetry_posthoc_rt1.json) showed that at a matched test false-alarm rate D2 ranked attacks best (47/58 versus 44/58), so its failure came from threshold transfer: its calibrated threshold sat at the 99.999th percentile of normal test scores. rt2 tests both findings prospectively on two HAI releases whose attacks have never been opened.",
+ "data": {
+  "releases": {
+   "hai-21.03": {"train": "train1-3.csv.gz (normal)", "final": "test1-5.csv.gz with the per-second attack label", "attacks_documented": 50},
+   "hai-23.05": {"train": "hai-train1-4.csv (normal)", "final": "hai-test1-2.csv with label-test1-2.csv", "attacks_documented": 52}
+  },
+  "manifest": "docs/research/real_telemetry_data_manifest_v1.json (same repository and pinned commit as HAI 22.04; files verified against Git LFS oids or Git blob hashes)",
+  "actions": "rt1's HAI_ACTIONS plus the release-specific setpoint, demand and command tags P2_ASD, P2_MSD, P2_CO_rpm, P3_LH, P3_LL, P1_PP04D and the 23.05 DCS outputs named x10*_SETPOINT_OUT, x10*_ASSIGN_OUT and x10*_SUM_OUT; all other varying tags are sensors; constant training tags are dropped.",
+  "partitions": "Training files in chronological order are cut at 50% and 80% of total normal time: world-model fit, detector training, calibration and selection.",
+  "final_access_rule": "Test files and labels are read only through real_telemetry_rt2.test_segments, which appends to target/real-telemetry/final_access.jsonl. Neither release has an entry before the rt2 selection freeze. The final evaluation runs once."
+ },
+ "method": {
+  "unchanged_from_rt1": "real_telemetry_core, real_telemetry_injections and the Scorer, classifier, smoothing grid, episode-budget calibration and seeds of real_telemetry_detect at commit 53de7a9.",
+  "world_model": "Fixed to rt1's selected HAI class: ridge plus LightGBM residual corrections, action-conditioned, horizons 1 and 5, history 3. No re-selection.",
+  "detectors": ["D0 persistence residual", "DR bound/gradient check", "D1 normal-only world-model residual", "D2 incident-informed classifier (rt1 design and calibration)", "D3 generic-noise classifier", "D2c: D2 scores with the threshold set so that D2's clean-calibration alarm fraction equals D1's calibrated clean alarm fraction (registered calibration fix)"],
+  "windows": {"length": 8000, "count": 600, "injected_fraction": 0.7},
+  "calibration": "2 false alarm episodes per day of clean calibration data, merge gap 60 s; smoothing window per detector from {1, 10, 60} by injected development-family validation recall; D2c uses D2's window."
+ },
+ "windows": {"length": 8000, "count": 600, "injected_fraction": 0.7},
+ "gates": {
+  "primary_hypothesis": "Replication of rt1's world-model finding. For each release, D1 versus D0 and D1 versus DR: relative miss reduction at least 20% and the lower bound of the 98.75% paired event-bootstrap interval (10,000 resamples; Bonferroni across 2 releases x 2 baselines) above zero; and D1's final false-alarm rate at most 4 episodes per day.",
+  "primary_interval_level": 0.9875,
+  "primary_success_rule": "Both releases pass.",
+  "secondary": "For each release, D2c versus D1 and D2 versus D1 relative miss reduction with 95% paired event-bootstrap intervals; D2c is called an improvement over D1 only if its interval lower bound is above zero and its final false-alarm rate is at most 4 episodes per day. D3 versus D1 and D2c versus D3 are reported.",
+  "reporting": "All detectors, both releases and all failures are reported. No claim of runtime authority, deployment safety or real-incident prevention follows."
+ },
+ "limitations_registered_in_advance": [
+  "All three HAI releases come from one testbed and one group of attack designers; rt2 is a within-testbed replication, not an independent-site replication.",
+  "The D2c rule was chosen after seeing rt1's test results; rt2's unopened releases are its only test.",
+  "The author viewed the HAI technical manual's attack table before rt1; targeting stays random."
+ ]
+}

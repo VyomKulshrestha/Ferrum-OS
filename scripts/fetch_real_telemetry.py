@@ -76,6 +76,46 @@ def git_blob_sha1(path: Path) -> str:
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 
+HAI_REPLICATION = {
+    "hai-21.03": {"folder": "hai-21.03", "lfs": False,
+                  "files": [f"train{i}.csv.gz" for i in range(1, 4)] + [f"test{i}.csv.gz" for i in range(1, 6)]},
+    "hai-23.05": {"folder": "hai-23.05", "lfs": True,
+                  "files": [f"hai-train{i}.csv" for i in range(1, 5)] + ["hai-test1.csv", "hai-test2.csv",
+                                                                        "label-test1.csv", "label-test2.csv"]},
+}
+
+
+def fetch_hai_release(release: str) -> dict:
+    """Registered replication releases (rt2): same repository and pinned commit as HAI 22.04."""
+    spec = HAI_REPLICATION[release]
+    out, records = RAW / release, []
+    if spec["lfs"]:
+        for name in spec["files"]:
+            pointer = get(f"https://raw.githubusercontent.com/{HAI['repository']}/{HAI['commit']}/{spec['folder']}/{name}").decode()
+            oid = re.search(r"oid sha256:([0-9a-f]{64})", pointer).group(1)
+            expected = int(re.search(r"size (\d+)", pointer).group(1))
+            path = out / name
+            if not (path.exists() and path.stat().st_size == expected and sha256(path) == oid):
+                size, digest = download(f"https://media.githubusercontent.com/media/{HAI['repository']}/{HAI['commit']}/{spec['folder']}/{name}", path)
+                assert size == expected and digest == oid, f"{name}: LFS verification failed"
+            records.append({"file": name, "bytes": expected, "sha256": oid, "upstream_check": "git-lfs oid sha256 and size"})
+            print(f"{release} {name} {expected} ok", flush=True)
+    else:
+        tree = json.loads(subprocess.run(["gh", "api", f"repos/{HAI['repository']}/git/trees/{HAI['commit']}?recursive=1"],
+                                         capture_output=True, text=True, check=True).stdout)
+        blobs = {item["path"]: item for item in tree["tree"] if item["type"] == "blob"}
+        for name in spec["files"]:
+            item = blobs[f"{spec['folder']}/{name}"]
+            path = out / name
+            if not (path.exists() and path.stat().st_size == item["size"] and git_blob_sha1(path) == item["sha"]):
+                download(f"https://raw.githubusercontent.com/{HAI['repository']}/{HAI['commit']}/{item['path']}", path)
+                assert path.stat().st_size == item["size"] and git_blob_sha1(path) == item["sha"], f"{name}: blob check failed"
+            records.append({"file": name, "bytes": item["size"], "sha256": sha256(path), "git_blob_sha1": item["sha"],
+                            "upstream_check": "git blob sha1 at pinned commit"})
+            print(f"{release} {name} {item['size']} ok", flush=True)
+    return {key: HAI[key] for key in ("repository", "commit", "license", "citation")} | {"files": records}
+
+
 def fetch_hai() -> dict:
     out, records = RAW / HAI["name"], []
     for name in HAI["files"]:
@@ -110,7 +150,7 @@ def fetch_smd() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--only", choices=["hai", "smd"])
+    parser.add_argument("--only", choices=["hai", "smd", "hai-21.03", "hai-23.05"])
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {
         "schema_version": "real-telemetry-data-manifest-v1",
@@ -120,6 +160,9 @@ def main() -> None:
         manifest["datasets"]["hai-22.04"] = fetch_hai()
     if args.only in (None, "smd"):
         manifest["datasets"]["smd"] = fetch_smd()
+    for release in ("hai-21.03", "hai-23.05"):
+        if args.only == release:
+            manifest["datasets"][release] = fetch_hai_release(release)
     MANIFEST.write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     print("manifest", MANIFEST)
 
