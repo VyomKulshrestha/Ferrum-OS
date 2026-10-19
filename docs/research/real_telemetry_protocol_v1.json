@@ -1,0 +1,86 @@
+{
+ "schema_version": "real-telemetry-protocol-v1",
+ "study_id": "real-telemetry-rt1",
+ "registered_at": "2026-10-19",
+ "question": "Does training a warning detector with incident-informed synthetic anomalies, derived from verified attack and failure literature, improve detection of recorded real attacks (HAI 22.04) and recorded real production incidents (SMD) over a normal-only world-model residual detector at the same false-alarm budget, and is any gain specific to the incident knowledge rather than to synthetic anomalies in general?",
+ "evidence_class": "External real-telemetry check. HAI 22.04: real boiler, turbine and water-treatment hardware with a HIL power-generation stage and attacks staged by the dataset authors. SMD: real production servers with incidents labelled by domain experts from incident reports. No runtime authority, actuator or deployment is involved.",
+ "data": {
+  "manifest": "docs/research/real_telemetry_data_manifest_v1.json",
+  "hai-22.04": {
+   "development": "train1-6 (normal operation only)",
+   "final": "test1-4 with the per-second Attack label",
+   "sensors_and_actions": "Actions are the setpoint, demand, schedule, controller-output and operator-command tags listed in scripts/real_telemetry_data.py (HAI_ACTIONS); all other varying tags are sensors; tags constant over train1-6 are dropped. Decided from training files only.",
+   "partitions": {
+    "world_model_selection": "fit train1-4, validate train5-6 (probe run before this registration and retained)",
+    "detector_world_model_fit": "train1-3",
+    "detector_training": "injected and clean windows from train4-5",
+    "calibration_and_selection": "train6 (clean for thresholds; injected copies for selection)"
+   }
+  },
+  "smd": {
+   "development": "train files of 28 machines (normal period; may contain unlabelled anomalies)",
+   "final": "test files with test_label",
+   "partitions": {
+    "world_model_selection": "per machine: fit first 80% of train, validate last 20% (probe run before this registration and retained)",
+    "detector_world_model_fit": "per machine: first 50% of train",
+    "detector_training": "per machine: injected and clean windows from 50-80% of train, pooled across machines",
+    "calibration_and_selection": "per machine: last 20% of train"
+   }
+  },
+  "final_access_rule": "Test files and labels are read only through real_telemetry_data.hai_test / smd_test, which append to target/real-telemetry/final_access.jsonl. Before the selection freeze the ledger must not exist. The final evaluation runs once."
+ },
+ "sources": "docs/research/real_telemetry_sources_v1.json",
+ "injection": {
+  "implementation": "scripts/real_telemetry_injections.py",
+  "families": {
+   "hai": {"development": ["setpoint_step", "slow_drift", "actuator_forcing", "replay_loop", "freeze", "saturation", "command_pulse", "offset_polyline", "regime_flip"],
+           "held_out": ["oscillating_actuator", "trip_without_cause", "masked_coordinated"]},
+   "smd": {"development": ["cpu_saturation", "leak_ramp", "exhaustion_ramp", "partition", "fail_slow", "transient_stop", "burst_or_stall", "hang", "config_shift"],
+           "held_out": ["staircase_leak", "retry_storm", "partial_partition"]}
+  },
+  "generic_control": "generic_noise: Gaussian corruption of 1-4 random variables with the same duration and magnitude distributions",
+  "shared_distributions": {"duration_steps": {"hai": [60, 3600], "smd": [5, 600]}, "magnitude_robust_units": [0.5, 5.0], "response_time_constant_steps": {"hai": [10, 300], "smd": [1, 30]}, "sampling": "log-uniform"},
+  "targeting": "Actions uniformly at random; sensors coupled to an action by absolute correlation of first differences; correlated sensor groups by absolute correlation of first differences between sensors; all computed on normal fitting data. HAI attack targets are never used.",
+  "held_out_use": "Held-out families are never used to train or select any detector; they are a development diagnostic of generalization to unseen mechanisms."
+ },
+ "world_model": {
+  "horizons": [1, 5],
+  "history": 3,
+  "candidates": {"hai": ["persistence", "ridge_autonomous", "ridge_actions", "ridge_gbr_actions"], "smd": ["persistence", "ridge_autonomous", "ridge_gbr_autonomous"]},
+  "selection_rule": "Lowest mean of validation H1 and H5 MAE (robust-scaled units) among the non-persistence candidates."
+ },
+ "detectors": {
+  "D0_persistence_residual": "Top-3 mean of |Z_t - Z_{t-1}| / sigma, sigma from the world-model fitting data.",
+  "DR_range_gradient": "Bound and gradient check in the style of Wolsing et al. (ESORICS 2022): max over variables of the exceedance beyond the normal fitting range and beyond the maximum normal step, in robust units.",
+  "D1_world_model_residual": "Normal-only: top-3 mean of |H1 residual| / sigma1 plus top-3 mean of |H5 residual| / sigma5, sigmas from the detector-training partition's clean residuals.",
+  "D2_incident_informed": "LightGBM classifier on per-step residual, delta and action features, trained on clean windows plus windows with one development-family injection each.",
+  "D3_generic_control": "Same classifier, features, windows and budget as D2, with generic_noise injections only.",
+  "classifier": {"n_estimators": 300, "learning_rate": 0.05, "num_leaves": 31, "min_child_samples": 200, "subsample": 0.8, "subsample_freq": 1, "colsample_bytree": 0.8, "class_weight": "balanced by scale_pos_weight", "max_training_rows": 250000},
+  "windows": {"hai": {"length": 8000, "count": 600, "injected_fraction": 0.7}, "smd": {"length": 1500, "count_per_machine": 30, "injected_fraction": 0.7}},
+  "smoothing_grid": {"hai": [1, 10, 60], "smd": [1, 3, 10]},
+  "selection_rule": "For each detector independently, choose the smoothing window that maximizes event recall on injected development-family validation windows at the calibrated threshold. No other detector setting is tuned."
+ },
+ "calibration": {
+  "alarm_episodes": "Steps with score above threshold are merged into episodes when separated by at most the merge gap (HAI 60 s; SMD 10 min).",
+  "budget": {"hai": "2 false alarm episodes per day of clean calibration data", "smd": "1 false alarm episode per machine-day of calibration data"},
+  "threshold": "The smallest threshold whose clean-calibration false-episode rate is within the budget (per machine for SMD)."
+ },
+ "endpoints": {
+  "primary": "Event recall on the final data: a labelled attack or incident run is detected if any alarm step falls inside it.",
+  "false_alarms": "False alarm episodes per day on the final data (episodes overlapping no labelled run).",
+  "secondary": ["point-level AUC-PR and AUC-ROC (no point adjustment)", "median detection delay of detected events", "world-model H1/H5 MAE on final normal periods versus persistence", "per-event outcomes for every detector"]
+ },
+ "gates": {
+  "primary_hypothesis": "For each dataset, D2 versus D1: relative miss reduction at least 20% and the lower bound of the 97.5% paired event-bootstrap interval (10,000 resamples, Bonferroni across two datasets) above zero, and D2's final false-alarm rate at most twice its calibration budget.",
+  "primary_success_rule": "Both datasets pass the primary hypothesis.",
+  "specificity": "Secondary, per dataset: D2 versus D3 relative miss reduction with a 97.5% paired event-bootstrap interval excluding zero.",
+  "reporting": "All detectors, both datasets, failures and inconclusive results are reported. No claim of runtime authority, deployment safety or real-incident prevention follows from any outcome."
+ },
+ "seeds": {"injection": 51001, "windows": 51002, "classifier": 51003, "bootstrap": 51004},
+ "limitations_registered_in_advance": [
+  "HAI attacks are staged by the dataset authors on a testbed; SMD labels have documented quality issues (Wu and Keogh, TKDE 2021).",
+  "Injected anomalies modify recorded telemetry; process responses to injected commands are generic first-order responses, not plant physics.",
+  "The author viewed the HAI technical manual's attack table before registration; targeting was made random to limit leakage.",
+  "SMD has no command variables, so its world models are autonomous forecasters."
+ ]
+}

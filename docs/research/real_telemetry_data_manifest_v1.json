@@ -1,0 +1,873 @@
+{
+ "schema_version": "real-telemetry-data-manifest-v1",
+ "policy": "Upstream files are fetched at pinned commits, verified, stored only under target/, and never redistributed here.",
+ "datasets": {
+  "hai-22.04": {
+   "repository": "icsdataset/hai",
+   "commit": "2a814cebc9a66b06c9e5cd545e2d72e65d383737",
+   "license": "CC BY-SA 4.0 (README licence section and technical manual v4.0; repository has no LICENSE file)",
+   "citation": "H.-K. Shin, W. Lee, S. Choi, J.-H. Yun, B.-G. Min. HAI security datasets, https://github.com/icsdataset/hai, 2023; H.-K. Shin, W. Lee, J.-H. Yun, B.-G. Min. Two ICS Security Datasets and Anomaly Detection Contest on the HIL-based Augmented ICS Testbed. CSET '21, pp. 36-40. https://doi.org/10.1145/3474718.3474719",
+   "files": [
+    {
+     "file": "train1.csv",
+     "bytes": 53190281,
+     "sha256": "63383690ffc5344ba68a019c7000854a4d341a22d743ac035f5207072a197b33",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "train2.csv",
+     "bytes": 114199064,
+     "sha256": "f496991bbef4a6ef5881505aa242fe05cc500b4d5c4cea0d2cf1cf79e4e99285",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "train3.csv",
+     "bytes": 69953332,
+     "sha256": "4910c49dc07cce238e05c449972a30b7588139ef92d36067f32aadd820e63de7",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "train4.csv",
+     "bytes": 47917707,
+     "sha256": "81a1c3a8e1726c92c9253602b8628b72d0508a9c260ff21109433ad2b82687bf",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "train5.csv",
+     "bytes": 131777589,
+     "sha256": "298468467991e73689b61f3cd3975ca21685ef8ba5b5ced4d6a7874f304d9cf7",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "train6.csv",
+     "bytes": 143438209,
+     "sha256": "717b37b7b88b40885cb6994c9fe00d08a941ec0c3c73801e378f84e846ae35d4",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "test1.csv",
+     "bytes": 50536532,
+     "sha256": "19627f5dac40c3a5039e7468cfd6c6e4ccd37a85055671e8c349b6bce5f50ed1",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "test2.csv",
+     "bytes": 46616720,
+     "sha256": "b2ba5d6665deee1c86870a3970417b51a3e640a2cc18b9f8de2d6d8a21979923",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "test3.csv",
+     "bytes": 35066591,
+     "sha256": "f253f1c78a4a4654d843f8f670a24caa7a72ac91e4418b4505009822b3c55940",
+     "upstream_check": "git-lfs oid sha256 and size"
+    },
+    {
+     "file": "test4.csv",
+     "bytes": 72931406,
+     "sha256": "2d2e99ed3364d75d27ab84f0a6523496f7295decf363c90b8a1b9b84e1070376",
+     "upstream_check": "git-lfs oid sha256 and size"
+    }
+   ]
+  },
+  "smd": {
+   "repository": "NetManAIOps/OmniAnomaly",
+   "commit": "7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4",
+   "license": "MIT (ServerMachineDataset/LICENSE)",
+   "citation": "Y. Su, Y. Zhao, C. Niu, R. Liu, W. Sun, D. Pei. Robust Anomaly Detection for Multivariate Time Series through Stochastic Recurrent Neural Network. KDD 2019, pp. 2828-2837. https://doi.org/10.1145/3292500.3330672",
+   "files": [
+    {
+     "file": "LICENSE",
+     "bytes": 1072,
+     "sha256": "c9bef1aab5be4ae6e0735a9f5974de043b8a1894bd8a2a7a163e36027b8895df",
+     "git_blob_sha1": "a35f9e98caf3d5d6d6164ef9a303ec4216780c01",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-1.txt",
+     "bytes": 311,
+     "sha256": "ea2b75dacb9cd140d81962203b18706e8e85d70c87dcced69746a37ba133fa48",
+     "git_blob_sha1": "d61a908e062bd383f968dabe416ff521269cb220",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-2.txt",
+     "bytes": 294,
+     "sha256": "761b4b339a14d4781f34a3cd03fb3d983b01e3bece3f638fa21bb887128d3a11",
+     "git_blob_sha1": "3de06f16510cf1c8d41f2972b56ed506b50469e7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-3.txt",
+     "bytes": 352,
+     "sha256": "dbe9970c43e64445b89211f26eb13f0eccb4da869deaea298218d7c094672c8f",
+     "git_blob_sha1": "d91dde2f34ba28bbf85fd17e403fa937f7eae16e",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-4.txt",
+     "bytes": 421,
+     "sha256": "25978fb0b28261b327a6a50e21ec0c7a232b6a2ad796b1a023b7bfc3d3c19c8a",
+     "git_blob_sha1": "1f1b1cb1fb6f978ee60486eb493b15cbd8b3f0d7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-5.txt",
+     "bytes": 276,
+     "sha256": "c3ab9437aeb07763bba39298dc99905a9365f27f441411d979a9bb66e26a53e9",
+     "git_blob_sha1": "e9a8b7190bb538cf6bbed56f387e9b02d95709e4",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-6.txt",
+     "bytes": 1127,
+     "sha256": "2cc68339b99fbf9ec0891c2a081c2d05ee04087a766d6200572fc74e99867f8f",
+     "git_blob_sha1": "b5f6c5f48b1ece06b47a508ed528735e0a0ce553",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-7.txt",
+     "bytes": 499,
+     "sha256": "3a272c538dce66358e9d8f7c18f62f14c652ffb1e52dfc18464cd092860a363b",
+     "git_blob_sha1": "1422cf5a40c3ea314d8d18862a7d89ce2a23322f",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-1-8.txt",
+     "bytes": 494,
+     "sha256": "0908b5d09296f8379a70c055fdf7e5ebd5f19419e886eab7fca0c766512187ae",
+     "git_blob_sha1": "9a570cd70069deb2ef8e8f1a3eb040108afefa69",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-1.txt",
+     "bytes": 389,
+     "sha256": "fe4e3a67039d46045b9a3b18fd4dd6138f5c228447fcefb0c5f4beb1f46ede37",
+     "git_blob_sha1": "e1dcecdd2c53646ff41b34c5b541cc5cebb38bb3",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-2.txt",
+     "bytes": 313,
+     "sha256": "a27f31facae7a9948ab6ba4ce039271df95763c53c1de7f7db699c317db7b233",
+     "git_blob_sha1": "5d32f19de76e85456606c2124df4c8ea2022dc20",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-3.txt",
+     "bytes": 329,
+     "sha256": "2ae064468235de25955439978c56d8fb217bf4682eab73636834e9d69086a777",
+     "git_blob_sha1": "189c869ce8241a05ae8face51380804f27336601",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-4.txt",
+     "bytes": 460,
+     "sha256": "b559b694af8d02d23714ea74c526e85f951e1b57b0cb9d59dcd677da84947327",
+     "git_blob_sha1": "2bbe352b2042d0dc6fa312cdf095a94e80c5e57c",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-5.txt",
+     "bytes": 513,
+     "sha256": "7a83c2c8058f60c76c9b57cdeafb857594fc92c09f77fe704d2910f554b1cd87",
+     "git_blob_sha1": "7a3dcac3f25506cd340099683cfacf31ee524cd9",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-6.txt",
+     "bytes": 320,
+     "sha256": "31f40cffdcc5ff99f00eb605fcfc30fe1fe80b4a59aef6567110cbd3d27e9074",
+     "git_blob_sha1": "737bd2fbdcb9628af3acc9f81f7ec66685597923",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-7.txt",
+     "bytes": 457,
+     "sha256": "61b6ffc489cc22c3c08c514c59dde1bc6a0f3991cc964aff0626555e151241fe",
+     "git_blob_sha1": "388f91825a82e59511cc97172a982c3084fcebc9",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-8.txt",
+     "bytes": 106,
+     "sha256": "9d8a9f766645f5cca4c9dd48cbeea15db5defe872c0e6eb002e575a9c381c844",
+     "git_blob_sha1": "fca07cc58ff17dc327fcdfcbcd31da2b27242659",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-2-9.txt",
+     "bytes": 376,
+     "sha256": "253ca7dab14449f92c7ee08a270b0627808c5dc715ff39ded1cc492ef62fce52",
+     "git_blob_sha1": "5ef64ed19b06c57cfd79c7a952a6977eed783a29",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-1.txt",
+     "bytes": 151,
+     "sha256": "52f67a2be8538138b614850392a232b3f96c9eda987eba41aa2c31b534fd3e2f",
+     "git_blob_sha1": "10f44107441d76b0ae524bd311cbfece62512d99",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-10.txt",
+     "bytes": 416,
+     "sha256": "cd1f1df76a273f3df12bc5389850a0376a361256e0a9ebd6014e08e216661eb7",
+     "git_blob_sha1": "d0746beb2a227a927b3df8c265a15326947495f5",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-11.txt",
+     "bytes": 159,
+     "sha256": "ebfd4cd3802c4813de72003d5cee76905c9912d5c0f81403708881e187d27083",
+     "git_blob_sha1": "cfc667a65e0136341baff9dc7d995cfc7850fc89",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-2.txt",
+     "bytes": 188,
+     "sha256": "3b76375af29ae9bd873f0746650d293cdb043235953c7b3ca19d893971a44c69",
+     "git_blob_sha1": "3176eea5fa50af3b2661f7c6b32f3580ead66fc7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-3.txt",
+     "bytes": 785,
+     "sha256": "25da8eda22a12fedc4a3009351d6bbbfa45ed5d5f7b7aaec458840bae2378239",
+     "git_blob_sha1": "e29ee5f4aa05f89e742fb94aca43325f9410267c",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-4.txt",
+     "bytes": 166,
+     "sha256": "0a43f6c9ca99345a95ad7de615f275c72692c905e9e92061cdf28ce488a390fc",
+     "git_blob_sha1": "1161482ce070a054fb0e7f2a252cd1af6476e290",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-5.txt",
+     "bytes": 254,
+     "sha256": "baf251f03b57247b4f15f77e48f5238beb16a429c6211d599a825c69c23f6d96",
+     "git_blob_sha1": "fbd87c033da75285c9f2513bd4b6558106e656b6",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-6.txt",
+     "bytes": 379,
+     "sha256": "add62013ecd204670dedf2f0b4c4960ccbcbecf77088dd7712e4714c6311d7f6",
+     "git_blob_sha1": "afabf91e5c27d4a198037cc4b8d99c720f7dc413",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-7.txt",
+     "bytes": 247,
+     "sha256": "55534eeb66ba496b494c8bac83fe6102d45308bfd2411d152a633d003a20b0c2",
+     "git_blob_sha1": "3544dd60d76181271e4bb6ae6c06022f7f91f4be",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-8.txt",
+     "bytes": 226,
+     "sha256": "7dda43ca582298295fc84348fd577f7f8b0c6ab67be94bf1e8f9adcf1f26992b",
+     "git_blob_sha1": "8c72b2c5164cf0170e62a99b9910132bbd9e2f86",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "interpretation_label/machine-3-9.txt",
+     "bytes": 166,
+     "sha256": "8f1e4987c967faefb63ad7ebd9d6f01101507e3d908336e4e86bde33b1cb8acb",
+     "git_blob_sha1": "0af845563eff0f0d49c299543ca7fad48f526dcc",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-1.txt",
+     "bytes": 9739818,
+     "sha256": "bdb801d8d52ce6b0c4a20c310edf31b5cee9bc82eb84fb38e7d4a19309b16ddb",
+     "git_blob_sha1": "0c48ff71d3d72128731b7045f49a33d9383a969e",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-2.txt",
+     "bytes": 8103348,
+     "sha256": "f409991af7c049d3f286a8cf89dc2fa99114bea8753f6c3aea4bd24cb03eb015",
+     "git_blob_sha1": "86e8b1a03db0aa31edd8b95130fd79ba6693619c",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-3.txt",
+     "bytes": 8106426,
+     "sha256": "f3c134d45ffa7aed66587dba893111396c8c7ea3b6fa7f76895955b26b1a75ef",
+     "git_blob_sha1": "620621931063671396a635b296b9eed93aa77e9e",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-4.txt",
+     "bytes": 8107794,
+     "sha256": "98ade00e57eac63e8f81a506a8e848803b58590835ab2b3cf53d1f0459900bd3",
+     "git_blob_sha1": "4ce08f550455ae6e6e383f85c8f93246d3f7a789",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-5.txt",
+     "bytes": 8107452,
+     "sha256": "98b8979f21b4b68c7308f38dd093b9bff4275814578365103c692f28f60f61c5",
+     "git_blob_sha1": "093b8d44af05b4d3a92ac81bc0e1bda5a8ccca35",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-6.txt",
+     "bytes": 8101638,
+     "sha256": "0797fe4bfd25ef13c830955cb9f2a36b4c9d5da265b8e91702408b6b048267f4",
+     "git_blob_sha1": "345df3517fa084e52c8958709a3cb68ff0f376fb",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-7.txt",
+     "bytes": 8104374,
+     "sha256": "785a3f542ef6ac171a3af55c534f9ca598d53fa0371010172c72e33af4588d16",
+     "git_blob_sha1": "f717524daf4167710f1cacf81aeaed43b220fabe",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-1-8.txt",
+     "bytes": 8105058,
+     "sha256": "b8784c3b4169f8a0a2ed9f47b00070d72ed214dae0307553b8cfdb80c712d779",
+     "git_blob_sha1": "b29fdf6ce95c8ae47cfd8c061fd4bb5a57a8f781",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-1.txt",
+     "bytes": 8103348,
+     "sha256": "2d103661799271be958227907950a1c76803356442d60a4070671cc0abbefb20",
+     "git_blob_sha1": "f6d71b1f1595d2333dd963b39e4c54d5812cb7c8",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-2.txt",
+     "bytes": 8105400,
+     "sha256": "1cb0dd0a4b8738b184c62bb07700e6800e029f7a76a715fe0ee147c603b2f2c8",
+     "git_blob_sha1": "45867eb9cff6cf0f434ed9f4b3981dedbe923b16",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-3.txt",
+     "bytes": 8101638,
+     "sha256": "eaa24c78ff438eec2f847c09eb4de6ab8dbe8a0bb8d77b52ac4ecdee5bd21a7d",
+     "git_blob_sha1": "e6b14abd219100263093255532d8d13db5a53bad",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-4.txt",
+     "bytes": 8101638,
+     "sha256": "85ba3101b9ab6a7684cd897b2d4c78e85caa6f5ef1c4f0e153479f4fca01cf38",
+     "git_blob_sha1": "72895129d2a243d78d64a25fc1a9d1ef6d66e3b2",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-5.txt",
+     "bytes": 8101638,
+     "sha256": "842588acfb9299735a785757fcadd98cc7f69b6a511d28e54e1af05c5e95137b",
+     "git_blob_sha1": "774b3bb9e7603a4eb992dafd3a3b30ec07e75b43",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-6.txt",
+     "bytes": 9830106,
+     "sha256": "c895144b7c7fb1ff960f506132d5aeefebce4325efad908d071fb7df5b3b1cf1",
+     "git_blob_sha1": "a7973287dcd76c15ef068ab63fbb95156559ff11",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-7.txt",
+     "bytes": 8104032,
+     "sha256": "58c3dfd109437ccbedab9d36608d32874c2ae5473484c5941f85349baf32cef8",
+     "git_blob_sha1": "db7058cc2e31c0f456e2b6aa0b0bc206e724e7bc",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-8.txt",
+     "bytes": 8106426,
+     "sha256": "846207955c546f0c3ea57aa7032b8e3c207ad67632a0605c8273f182059d1a72",
+     "git_blob_sha1": "72ebea6c02c13112d10001f91d5e153774d4e766",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-2-9.txt",
+     "bytes": 9822924,
+     "sha256": "8d93ccd1a6606de3f665cb2e905d206b60ad2b2a58f47e9561b9bb67a2cd4f28",
+     "git_blob_sha1": "853289b07c1067c4ae998592655dd292d644f50d",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-1.txt",
+     "bytes": 9815400,
+     "sha256": "b110b204ba4919250351eba7aa253d73ab54af0cf18e272b9b284de5fa7df88d",
+     "git_blob_sha1": "936b6ddf1b981f049dca104c135b5e057fa41f7d",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-10.txt",
+     "bytes": 8103006,
+     "sha256": "febaf197d4a8864f3a70a5e5c0926d6dab8f1b515cf0d90d31ee81a22d80392f",
+     "git_blob_sha1": "7191328c304bd94cf16433b6cfa24334752a5a33",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-11.txt",
+     "bytes": 9814032,
+     "sha256": "c62f52e65d1b892ef8c556b38aa5c1d3504cf0cdd97a94e7df08985b922d7af0",
+     "git_blob_sha1": "5f51ad22b02c859025936b8dc19cf43755edd238",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-2.txt",
+     "bytes": 8106426,
+     "sha256": "5f83ded5fbfb9b682030bdd7dd82eb53a77f9caa3773ddcc7e38db73c25db46e",
+     "git_blob_sha1": "fbedbc03660c4207ad3f52748bf850252b8a8cf8",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-3.txt",
+     "bytes": 8106426,
+     "sha256": "ecc3140ce24869a44ebac9b03ca372fb1a6eb7e5bde96946f1a350283d4b152a",
+     "git_blob_sha1": "d41089fc31be0c609f736a1913f485c807dfc69e",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-4.txt",
+     "bytes": 8100954,
+     "sha256": "07e1b43e20b7d8300fcd4b4f45ea47ea8c851f3dbd7d1fe971139c32f039357e",
+     "git_blob_sha1": "994417b8a350a406452ae0a45bc7ae91f69a0651",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-5.txt",
+     "bytes": 8102322,
+     "sha256": "85dbb13b3076981ad917f42081b71a1440d8b2aafd9bee626f0d1cacff43fcd6",
+     "git_blob_sha1": "b46ef99fb34a08613b2a50412b7242bb6d78e72e",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-6.txt",
+     "bytes": 9824292,
+     "sha256": "04f746a4dde41adbfe5727c6ff77839d1b0b21d6d65bdb0253557e0391c5d44c",
+     "git_blob_sha1": "d074b9c2bad837079fc2eda5356a6a4d0ad6dde3",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-7.txt",
+     "bytes": 9817110,
+     "sha256": "a4588c1f39905d03bd24fce65052e7b175fba336d081843325ef780c9ed8cdad",
+     "git_blob_sha1": "4deaedf4f43b736d5fc13f0b4b7d50863a71fdd4",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-8.txt",
+     "bytes": 9816768,
+     "sha256": "fa79d5dad3a703fbc13faf0eab26d9466b74789f2bb0d22776f2adaa4236f085",
+     "git_blob_sha1": "1fc673c2e62c047739db649e88c91efb045b10ca",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test/machine-3-9.txt",
+     "bytes": 9819846,
+     "sha256": "5a8968c269a8a3562e54235aa05344b262f44829c2bae04cf9f5d364f388310d",
+     "git_blob_sha1": "b76365fa344c435f64ce54259882186b0b10be72",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-1.txt",
+     "bytes": 56958,
+     "sha256": "cddf33441ae480c6074e173c897d4715eb893f24a7078d3d3e1b79b200c7cd19",
+     "git_blob_sha1": "2b1063d42ba0fa3db0fd9296e4686cb4bca50260",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-2.txt",
+     "bytes": 47388,
+     "sha256": "c2dbb3e4f89c9eb48f30fd1ddae48b80e7ae7ad7ca9abf2ffd71b6557ef2bb20",
+     "git_blob_sha1": "29bdb081f95cf546ba6d499302fbdc4f6137de79",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-3.txt",
+     "bytes": 47406,
+     "sha256": "755d57179625682172ae85f9483749cff576ff3282d0af294271a40ab6ea7b28",
+     "git_blob_sha1": "2eed09ad2e98125d25f2700918d86796ed22b0c4",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-4.txt",
+     "bytes": 47414,
+     "sha256": "a470a3f7b66ec3d080fc5ee3d9565e0f3bfcfa16a1650259f771736327fa9a8b",
+     "git_blob_sha1": "b1745658b4a2efcd2b3c6af1f260b1a27a5a7ff3",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-5.txt",
+     "bytes": 47412,
+     "sha256": "e7e2e611e12b5e9e2558ed955ad271f1f408fbdd7fbbfdfc72eb745ade567815",
+     "git_blob_sha1": "2ba2cb279b1a6f813743db93af4f1fe832caf8b2",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-6.txt",
+     "bytes": 47378,
+     "sha256": "8359ffa67b5421b0b9967ccf396a58c7b3bf52fa24c3f95e6b9df6486f1d6365",
+     "git_blob_sha1": "bff3b67fc10d2b7c89c778f746390852b2c24bc8",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-7.txt",
+     "bytes": 47394,
+     "sha256": "24b3ce00bf2c56b571775a2b28d4e50ed27d050d77a031fa16c11ef3e51809b8",
+     "git_blob_sha1": "120964780cc40a4c68ff1b68ddb7258094b564e9",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-1-8.txt",
+     "bytes": 47398,
+     "sha256": "8019476032c4c5b4b80127cfb9e74ee7d57fbbd558aa15097518713e16463a47",
+     "git_blob_sha1": "40eea4944b436383e255f2eeb7255fac0f0edac4",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-1.txt",
+     "bytes": 47388,
+     "sha256": "416dd20a447f38b8d9394382293ed44f509c1c3f99c4aa2fbff179498626dbdc",
+     "git_blob_sha1": "d072491a7f5d4fc5d6854e5d9cb782352834adcf",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-2.txt",
+     "bytes": 47400,
+     "sha256": "b09e71b3aafe71d9ee73a4058b30efcf67dc80df98d3b7b7a8ec019ea3b769c4",
+     "git_blob_sha1": "1cedfe43e4c6e25f6f416b2af78c6a95d0e63b2f",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-3.txt",
+     "bytes": 47378,
+     "sha256": "5768ce5280cb5ce4bee6d8bb3c7105819574d5e82f7d517d61495efa9d4f566e",
+     "git_blob_sha1": "60880105c01c983ef1158f1cf7f4e2feb0607e98",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-4.txt",
+     "bytes": 47378,
+     "sha256": "c26a6dabfd2ab4aec34c40919100e13e52e17ad0e6b702dd038f582b2c633b01",
+     "git_blob_sha1": "eb0965c3ff1e5c0168950dc51e5050ffdeb18c32",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-5.txt",
+     "bytes": 47378,
+     "sha256": "9966e4092bece4e0ef60ef54d85396c49c22da64334aad82a9fc2f3842d2ef15",
+     "git_blob_sha1": "18e0cf48f655bc8021f2222c928a411d69c59eae",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-6.txt",
+     "bytes": 57486,
+     "sha256": "6fe3dd209542dc6a20879618c40ef6f5d55ce60f2da2902c311d9f0fff3c1ee0",
+     "git_blob_sha1": "bcd73d41f984013358d1fbba9ef6dfd0bc74bbf7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-7.txt",
+     "bytes": 47392,
+     "sha256": "d9d7aceca750277dd28883f7b5b34da3653652ea9c96de78baa84daeebc4a9b7",
+     "git_blob_sha1": "2384b0bcdd87afa2b3b2d430a29062da66f33c51",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-8.txt",
+     "bytes": 47406,
+     "sha256": "22fbe94e06e56b6035fcc10383bac90d84ff4604f9063009a3940747f92d8105",
+     "git_blob_sha1": "43edaf5e053c966a0aa520eb7e0d20ba6dabbd30",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-2-9.txt",
+     "bytes": 57444,
+     "sha256": "eab9425847aa5c7c63485047a49b1bfc9cf44ed88a0d1be84e2fd0a16d0ba895",
+     "git_blob_sha1": "7e7bf05e3943348231d940b8f1654e147240f921",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-1.txt",
+     "bytes": 57400,
+     "sha256": "549348a9c63ed922e85157885bcb21289a8c9f5af94b50147a21cb7b928220ec",
+     "git_blob_sha1": "46242ec08583cddd5f08dcfe3191cef3f5a88624",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-10.txt",
+     "bytes": 47386,
+     "sha256": "d2b87c9c1d1950f0b29eaca0edf4706b917984799f6d9b5c1472435832fe3abd",
+     "git_blob_sha1": "accb1de8b01fe9199e428de06ba78382f4a18c0b",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-11.txt",
+     "bytes": 57392,
+     "sha256": "ce306777bd66e9ea81de726018e440d49afcc98415cb0db7d99367dddf398f1b",
+     "git_blob_sha1": "c027c2f0e38da95ddbd49a0c1d2a49ffc67bc251",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-2.txt",
+     "bytes": 47406,
+     "sha256": "1bbf4223cc6083f718f1d6022e2a48d48af44b08cdfa80048aa51af34d5111c3",
+     "git_blob_sha1": "3bfe413eb37c82db4a823c49da9f35105ada73b6",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-3.txt",
+     "bytes": 47406,
+     "sha256": "4e2c657f613759f11f167c5540d047723d41d8a3c76467fa4daafcc8a7112035",
+     "git_blob_sha1": "ef7b8f1126c1e4d94dfa4f3879f262081b441ddb",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-4.txt",
+     "bytes": 47374,
+     "sha256": "5c1f09b85c53d1936eff1e044c5f7413b07f10fd641934b4aba9b2669485b7be",
+     "git_blob_sha1": "71ccfd12e7bc504320f7fbe6cd9974d1df93368d",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-5.txt",
+     "bytes": 47382,
+     "sha256": "8a17a0dff8cc0062124997d665a2055cc1c08daffffb9a63ccfd21f7d10bea8f",
+     "git_blob_sha1": "d2b038344a723186fcdc788ea67faf1dc5e7e145",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-6.txt",
+     "bytes": 57452,
+     "sha256": "2bef9db1d998172c61008f593a7537377179ef4f24963001203c1e48345e9b61",
+     "git_blob_sha1": "98c30e746dc8b08c4c3883fc84396a2c06f3541b",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-7.txt",
+     "bytes": 57410,
+     "sha256": "80b3a19dfd0af2d800c2388474543bdcb723ba582b0f4a986d68f920b757c73c",
+     "git_blob_sha1": "34e2fa46ab80de19e65a02d016fdae28583a0351",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-8.txt",
+     "bytes": 57408,
+     "sha256": "dc834a5b5e9a194f5367423c29410afcb622e0e47d7d3362979dd280de713220",
+     "git_blob_sha1": "f175565bd6b285e1b3cce05d685280ed166324ad",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test_label/machine-3-9.txt",
+     "bytes": 57426,
+     "sha256": "bdaf308affb4653e3e5826177e7e27c883294d2fa8cf48364850ef5a4dac2282",
+     "git_blob_sha1": "69f83c4d58b4410473ae9c6904c81e87da669b82",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-1.txt",
+     "bytes": 9739818,
+     "sha256": "ecebd2933ccdc1126e2abbfb538762dbde16410cebc77257a7b96e1e1fbcf753",
+     "git_blob_sha1": "01303e82d3033210d1bfd6272199fc42f2cf82d1",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-2.txt",
+     "bytes": 8103348,
+     "sha256": "7f6f63ec34ce616c87b4c30d66fd52ad1b21149634ae3ff7bb1827a76d6ef79a",
+     "git_blob_sha1": "5027d3a80976a974afc4597a8e7402354a3d14a7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-3.txt",
+     "bytes": 8106084,
+     "sha256": "a4ef16a49d921e0ba9497ce2690d3833eb4a85f9a8a88392de4c3fde42e413ac",
+     "git_blob_sha1": "253862b50af3ba881aac527e4cc2a56e32e25509",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-4.txt",
+     "bytes": 8107452,
+     "sha256": "2ec56c43f91684aa4751a6b72d359669266712dd69bdc7efda3dc60c0ade1156",
+     "git_blob_sha1": "e05a441ace8bb76b4949fe8930e809f5b1ebd51a",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-5.txt",
+     "bytes": 8107110,
+     "sha256": "69061055f43413863434cb9c0424c14b13a7a0817056a8fd9439e53dc365fc0b",
+     "git_blob_sha1": "6f916154de35a59f2b03afca1fcd096d14c2ebb7",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-6.txt",
+     "bytes": 8101296,
+     "sha256": "27e1765c04c2a5d08f39d98e7979e7764886fc733c36382fe081157a5ac0b9d8",
+     "git_blob_sha1": "52c895f51cd4cac94b3800c98cda8b5bf5ceaede",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-7.txt",
+     "bytes": 8104374,
+     "sha256": "dddb9f770bdb8b1b952263e0cc4f000b6f8ec612941dd3eb7a303994f257edf8",
+     "git_blob_sha1": "b0f9440d017fb64821604d2efca1300ebf507161",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-1-8.txt",
+     "bytes": 8104716,
+     "sha256": "3b46e9754ec06bebd0bf3fe68dbe28b2a4b67298e795c9501d97f42083e337fc",
+     "git_blob_sha1": "a38a45e1ae0f6e1f7d8ad4c3de9aca9f21d530c4",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-1.txt",
+     "bytes": 8103006,
+     "sha256": "d6eb13ff74a537cf33686319fffdd4cdcb394862570a3acd519b4c37af97cd2e",
+     "git_blob_sha1": "85e6986e5955ad1137ee0492ab663c9998ab8c2b",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-2.txt",
+     "bytes": 8105058,
+     "sha256": "e2e0f52994c8c884f9552c6289e42268d9d988ba7c7abadcc0d8dcd8ba993c30",
+     "git_blob_sha1": "28275bdc7f3ced6550e78d840489869548c8d315",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-3.txt",
+     "bytes": 8101296,
+     "sha256": "d2b0fc37d08cb727438598a1b09ced94f71f7792a9b4d057242e2ce8f2580e13",
+     "git_blob_sha1": "c82505805b7c9166bf52734dea07a6557ce1ffba",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-4.txt",
+     "bytes": 8101638,
+     "sha256": "077a5c18649b9d260d8dcbd4cfbf10b16cb83719a52013410cf3b5dc6a802fa6",
+     "git_blob_sha1": "52d3c0c19b4de102e9c0724236cc6b2e064fcbc0",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-5.txt",
+     "bytes": 8101296,
+     "sha256": "940cdf20a8345fdeeb8043efd7ce9f7506fe0e7f5f89f8b50edf19b61b304136",
+     "git_blob_sha1": "cb59861e3f1164470cb1f5dce8ca05a869a8e7dd",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-6.txt",
+     "bytes": 9830106,
+     "sha256": "dc30adaef939060aebea3836c691e3d1bb47da593fa43553acbc52c6825dc8ae",
+     "git_blob_sha1": "0cef966acf151b747c40c15a902b81bd6710cde5",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-7.txt",
+     "bytes": 8104032,
+     "sha256": "32e9d88b18bf1b377a2bd0a6d5de2a766f36c58781e76dbe2491b0347557dec2",
+     "git_blob_sha1": "c695bfc4b42d688680d0825b577a97809c7c1831",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-8.txt",
+     "bytes": 8106084,
+     "sha256": "01ae9289566e3518cf738518a25edb0812f889e8ed1dada057f4693ac5dda23c",
+     "git_blob_sha1": "dc8c8fa5f78f9037108c806e45b155eea7ec493a",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-2-9.txt",
+     "bytes": 9822924,
+     "sha256": "465db893338b6f14985dd30ac2ff20a319246bb8584cd0a9a4aaacf52cbc2f1f",
+     "git_blob_sha1": "ae01edd03cf87342fdb9d768c78e423f4b239747",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-1.txt",
+     "bytes": 9815400,
+     "sha256": "c1186ac085809c0590467dd42f4f12180012ebd994c1e615250dbed2a3588111",
+     "git_blob_sha1": "e2e5d6b3382370e36b2336dcde0d388a125eb016",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-10.txt",
+     "bytes": 8102664,
+     "sha256": "8f8258b3a85fe8aa5badb05e66b0cdd3405be5f180f0d418bc24c30503207fd2",
+     "git_blob_sha1": "7fd68b1d1cfb6619b5426f760ae53b9b1273dfa1",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-11.txt",
+     "bytes": 9813690,
+     "sha256": "a2e531cf2bf9b8d833a0b6e7c42a596b1d3a64578a1c140537add46156bde4e9",
+     "git_blob_sha1": "335ca33f5670a73acef4da557cb3f32974a38ea9",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-2.txt",
+     "bytes": 8106084,
+     "sha256": "7cabed178422f7772425c6cabc3c20a1f7dedc3ab2a950f90a9edfcef3b5b3e3",
+     "git_blob_sha1": "0159c59a689e376a08c120248579579d1d2799c2",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-3.txt",
+     "bytes": 8106426,
+     "sha256": "6bbad775c6ef6319abba08aaa6faa2befb2cd570f9db85b80413ae6fdf1047a4",
+     "git_blob_sha1": "aaf865412f625af2a91f2dfd388ffd513393fb05",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-4.txt",
+     "bytes": 8100954,
+     "sha256": "a27a88c5d96c3384e07776dd2ced9956f7ea78b1070b87786352bc6024129d72",
+     "git_blob_sha1": "a62c27c9396e64b7bff50ca09af2be46d33439a9",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-5.txt",
+     "bytes": 8101980,
+     "sha256": "7eb4f157d5aace0f5758c8035a4cc90445fc0d3ae59c57b1bf00d7e62c363bba",
+     "git_blob_sha1": "376264a15daa939208680dff40299d3807c9dbfe",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-6.txt",
+     "bytes": 9824292,
+     "sha256": "88b8164dccfe67704e83c0919aa40bf1d4b8d682aff0b947d4cdd1ec4f900b84",
+     "git_blob_sha1": "bd86ae5dd7c9393b56a4b614f95232c79ccfc299",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-7.txt",
+     "bytes": 9817110,
+     "sha256": "5eb1f16e62c30eb498e968b2c6da3e8f60c8367e264f771245a970362d7d8574",
+     "git_blob_sha1": "af5f4b0c9f67306e312a94e49eb19149d7ff45f8",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-8.txt",
+     "bytes": 9816426,
+     "sha256": "414ba622ae70118948a3940009ce4e90580b494ea07f9e03893c26e102edd855",
+     "git_blob_sha1": "200305b1ea1e87d45fb0568f7d73bf1c76100200",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train/machine-3-9.txt",
+     "bytes": 9819846,
+     "sha256": "7896b57b65da1d48ee992ba128fb914ae7e6d2bef8ea4ed8df039657fc017468",
+     "git_blob_sha1": "11713d81ed1d844a6930af2a4c41c5154587f74c",
+     "upstream_check": "git blob sha1 at pinned commit"
+    }
+   ]
+  }
+ }
+}

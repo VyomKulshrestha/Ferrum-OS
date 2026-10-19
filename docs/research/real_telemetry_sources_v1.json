@@ -1,0 +1,421 @@
+{
+ "schema_version": "real-telemetry-sources-v1",
+ "retrieved_at": "2026-10-19",
+ "evidence_class": "Peer-reviewed studies, vendor postmortems, government advisories and MITRE ATT&CK pages describing how real attacks and failures appear in telemetry. They supply signature shapes and targeting rules, not data.",
+ "verification": "Each source was fetched and read (DOI resolver, publisher, USENIX, MITRE, CISA or vendor page) on 2026-10-19; only source-stated mechanisms were used.",
+ "excluded_from_design": [
+  {
+   "source": "HAI 1.0 (Shin et al., USENIX CSET 2020), the HAI technical manual and the HAI 21.03 contest paper",
+   "reason": "They describe the attack primitives, targets and durations of the evaluation dataset; using them would leak the test design."
+  },
+  {
+   "source": "OmniAnomaly / SMD (Su et al., KDD 2019) anomaly descriptions and SMD interpretation labels",
+   "reason": "They describe the evaluation incidents and their affected dimensions."
+  }
+ ],
+ "disclosure": "During data familiarization the author viewed the HAI 22.04 technical manual, including its attack-primitive table. The injection families were therefore fixed to target-agnostic random selection: actions are drawn uniformly and coupled sensors by data-driven correlation, never by the HAI attack targets.",
+ "sources": [
+  {
+   "id": "mitre-t0831",
+   "domain": "ics",
+   "title": "MITRE ATT&CK for ICS T0831 Manipulation of Control",
+   "publisher": "MITRE",
+   "year": null,
+   "url": "https://attack.mitre.org/techniques/T0831/",
+   "families": [
+    "actuator_forcing"
+   ]
+  },
+  {
+   "id": "mitre-t0832",
+   "domain": "ics",
+   "title": "MITRE ATT&CK for ICS T0832 Manipulation of View",
+   "publisher": "MITRE",
+   "year": null,
+   "url": "https://attack.mitre.org/techniques/T0832/",
+   "families": [
+    "replay_loop",
+    "masked_coordinated"
+   ]
+  },
+  {
+   "id": "mitre-t0836",
+   "domain": "ics",
+   "title": "MITRE ATT&CK for ICS T0836 Modify Parameter",
+   "publisher": "MITRE",
+   "year": null,
+   "url": "https://attack.mitre.org/techniques/T0836/",
+   "families": [
+    "setpoint_step"
+   ]
+  },
+  {
+   "id": "mitre-t1692-001",
+   "domain": "ics",
+   "title": "MITRE ATT&CK for ICS T1692.001 Unauthorized Message: Command Message (formerly T0855)",
+   "publisher": "MITRE",
+   "year": null,
+   "url": "https://attack.mitre.org/techniques/T1692/001/",
+   "families": [
+    "command_pulse"
+   ]
+  },
+  {
+   "id": "mitre-t1692-002",
+   "domain": "ics",
+   "title": "MITRE ATT&CK for ICS T1692.002 Unauthorized Message: Reporting Message (formerly T0856)",
+   "publisher": "MITRE",
+   "year": null,
+   "url": "https://attack.mitre.org/techniques/T1692/002/",
+   "families": [
+    "offset_polyline"
+   ]
+  },
+  {
+   "id": "mitre-c0020-maroochy",
+   "domain": "ics",
+   "title": "Maroochy Water Breach (campaign C0020)",
+   "publisher": "MITRE",
+   "year": 2000,
+   "url": "https://attack.mitre.org/campaigns/C0020/",
+   "families": [
+    "regime_flip"
+   ]
+  },
+  {
+   "id": "mitre-c0030-triton",
+   "domain": "ics",
+   "title": "Triton Safety Instrumented System Attack (campaign C0030)",
+   "publisher": "MITRE",
+   "year": 2017,
+   "url": "https://attack.mitre.org/campaigns/C0030/",
+   "families": [
+    "trip_without_cause"
+   ]
+  },
+  {
+   "id": "cisa-hatman",
+   "domain": "ics",
+   "title": "MAR-17-352-01 HatMan: Safety System Targeted Malware (Update B)",
+   "publisher": "CISA",
+   "year": 2019,
+   "url": "https://www.cisa.gov/sites/default/files/documents/MAR-17-352-01%20HatMan%20-%20Safety%20System%20Targeted%20Malware%20%28Update%20B%29.pdf",
+   "families": [
+    "trip_without_cause"
+   ]
+  },
+  {
+   "id": "symantec-stuxnet",
+   "domain": "ics",
+   "title": "W32.Stuxnet Dossier v1.4 (Falliere, O Murchu, Chien)",
+   "publisher": "Symantec",
+   "year": 2011,
+   "url": "https://docs.broadcom.com/doc/security-response-w32-stuxnet-dossier-11-en",
+   "families": [
+    "replay_loop",
+    "masked_coordinated"
+   ]
+  },
+  {
+   "id": "cardenas-asiaccs11",
+   "domain": "ics",
+   "title": "Attacks Against Process Control Systems: Risk Assessment, Detection, and Response",
+   "publisher": "ASIACCS",
+   "year": 2011,
+   "url": "https://doi.org/10.1145/1966913.1966959",
+   "families": [
+    "slow_drift",
+    "freeze"
+   ]
+  },
+  {
+   "id": "giraldo-csur18",
+   "domain": "ics",
+   "title": "A Survey of Physics-Based Attack Detection in Cyber-Physical Systems",
+   "publisher": "ACM Computing Surveys 51(4)",
+   "year": 2018,
+   "url": "https://doi.org/10.1145/3203245",
+   "families": [
+    "slow_drift"
+   ]
+  },
+  {
+   "id": "urbina-ccs16",
+   "domain": "ics",
+   "title": "Limiting the Impact of Stealthy Attacks on Industrial Control Systems",
+   "publisher": "ACM CCS",
+   "year": 2016,
+   "url": "https://doi.org/10.1145/2976749.2978388",
+   "families": [
+    "actuator_forcing",
+    "oscillating_actuator"
+   ]
+  },
+  {
+   "id": "taormina-batadal18",
+   "domain": "ics",
+   "title": "Battle of the Attack Detection Algorithms (BATADAL)",
+   "publisher": "J. Water Resour. Plann. Manage. 144(8)",
+   "year": 2018,
+   "url": "https://doi.org/10.1061/(ASCE)WR.1943-5452.0000969",
+   "families": [
+    "offset_polyline",
+    "regime_flip",
+    "freeze"
+   ]
+  },
+  {
+   "id": "kravchik-sac21",
+   "domain": "ics",
+   "title": "Poisoning Attacks on Cyber Attack Detectors for Industrial Control Systems (SWaT attack table)",
+   "publisher": "ACM SAC",
+   "year": 2021,
+   "url": "https://doi.org/10.1145/3412841.3441892",
+   "families": [
+    "saturation",
+    "slow_drift"
+   ]
+  },
+  {
+   "id": "eisac-ukraine16",
+   "domain": "ics",
+   "title": "Analysis of the Cyber Attack on the Ukrainian Power Grid (Defense Use Case)",
+   "publisher": "E-ISAC and SANS",
+   "year": 2016,
+   "url": "https://nsarchive.gwu.edu/sites/default/files/documents/3891751/SANS-and-Electricity-Information-Sharing-and.pdf",
+   "families": [
+    "command_pulse"
+   ]
+  },
+  {
+   "id": "cisa-ukraine16",
+   "domain": "ics",
+   "title": "Cyber-Attack Against Ukrainian Critical Infrastructure (IR-ALERT-H-16-056-01)",
+   "publisher": "CISA",
+   "year": 2016,
+   "url": "https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01",
+   "families": [
+    "command_pulse"
+   ]
+  },
+  {
+   "id": "cisa-oldsmar21",
+   "domain": "ics",
+   "title": "Compromise of U.S. Water Treatment Facility (AA21-042A)",
+   "publisher": "CISA",
+   "year": 2021,
+   "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-042a",
+   "families": [
+    "setpoint_step"
+   ]
+  },
+  {
+   "id": "cisa-crashoverride17",
+   "domain": "ics",
+   "title": "CrashOverride Malware (TA17-163A)",
+   "publisher": "CISA",
+   "year": 2017,
+   "url": "https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware",
+   "families": [
+    "oscillating_actuator"
+   ]
+  },
+  {
+   "id": "ni-tosn09",
+   "domain": "ics",
+   "title": "Sensor Network Data Fault Types",
+   "publisher": "ACM Trans. Sensor Networks 5(3)",
+   "year": 2009,
+   "url": "https://doi.org/10.1145/1525856.1525863",
+   "families": [
+    "freeze",
+    "saturation"
+   ]
+  },
+  {
+   "id": "gunawi-socc16",
+   "domain": "server",
+   "title": "Why Does the Cloud Stop Computing? Lessons from Hundreds of Service Outages",
+   "publisher": "ACM SoCC",
+   "year": 2016,
+   "url": "https://doi.org/10.1145/2987550.2987583",
+   "families": [
+    "config_shift"
+   ]
+  },
+  {
+   "id": "yuan-osdi14",
+   "domain": "server",
+   "title": "Simple Testing Can Prevent Most Critical Failures",
+   "publisher": "USENIX OSDI",
+   "year": 2014,
+   "url": "https://www.usenix.org/conference/osdi14/technical-sessions/presentation/yuan",
+   "families": [
+    "hang",
+    "exhaustion_ramp"
+   ]
+  },
+  {
+   "id": "huang-hotos17",
+   "domain": "server",
+   "title": "Gray Failure: The Achilles' Heel of Cloud-Scale Systems",
+   "publisher": "HotOS",
+   "year": 2017,
+   "url": "https://doi.org/10.1145/3102980.3103005",
+   "families": [
+    "fail_slow"
+   ]
+  },
+  {
+   "id": "bronson-hotos21",
+   "domain": "server",
+   "title": "Metastable Failures in Distributed Systems",
+   "publisher": "HotOS",
+   "year": 2021,
+   "url": "https://doi.org/10.1145/3458336.3465286",
+   "families": [
+    "retry_storm"
+   ]
+  },
+  {
+   "id": "huang-osdi22",
+   "domain": "server",
+   "title": "Metastable Failures in the Wild",
+   "publisher": "USENIX OSDI",
+   "year": 2022,
+   "url": "https://www.usenix.org/conference/osdi22/presentation/huang-lexiang",
+   "families": [
+    "retry_storm"
+   ]
+  },
+  {
+   "id": "liu-hotos19",
+   "domain": "server",
+   "title": "What Bugs Cause Production Cloud Incidents?",
+   "publisher": "HotOS",
+   "year": 2019,
+   "url": "https://doi.org/10.1145/3317550.3321438",
+   "families": [
+    "hang",
+    "leak_ramp"
+   ]
+  },
+  {
+   "id": "ghosh-socc22",
+   "domain": "server",
+   "title": "How to Fight Production Incidents? An Empirical Study on a Large-scale Cloud Service",
+   "publisher": "ACM SoCC",
+   "year": 2022,
+   "url": "https://doi.org/10.1145/3542929.3563482",
+   "families": [
+    "cpu_saturation",
+    "config_shift"
+   ]
+  },
+  {
+   "id": "alquraan-osdi18",
+   "domain": "server",
+   "title": "An Analysis of Network-Partitioning Failures in Cloud Systems",
+   "publisher": "USENIX OSDI",
+   "year": 2018,
+   "url": "https://www.usenix.org/conference/osdi18/presentation/alquraan",
+   "families": [
+    "partition",
+    "partial_partition"
+   ]
+  },
+  {
+   "id": "gunawi-fast18",
+   "domain": "server",
+   "title": "Fail-Slow at Scale: Evidence of Hardware Performance Faults in Large Production Systems",
+   "publisher": "USENIX FAST",
+   "year": 2018,
+   "url": "https://www.usenix.org/conference/fast18/presentation/gunawi",
+   "families": [
+    "fail_slow",
+    "transient_stop"
+   ]
+  },
+  {
+   "id": "do-socc13",
+   "domain": "server",
+   "title": "Limplock: Understanding the Impact of Limpware on Scale-Out Cloud Systems",
+   "publisher": "ACM SoCC",
+   "year": 2013,
+   "url": "https://doi.org/10.1145/2523616.2523627",
+   "families": [
+    "fail_slow"
+   ]
+  },
+  {
+   "id": "yin-sosp11",
+   "domain": "server",
+   "title": "An Empirical Study on Configuration Errors in Commercial and Open Source Systems",
+   "publisher": "ACM SOSP",
+   "year": 2011,
+   "url": "https://doi.org/10.1145/2043556.2043572",
+   "families": [
+    "config_shift",
+    "exhaustion_ramp"
+   ]
+  },
+  {
+   "id": "jacob-vldb21",
+   "domain": "server",
+   "title": "Exathlon: A Benchmark for Explainable Anomaly Detection over Time Series",
+   "publisher": "PVLDB 14(11)",
+   "year": 2021,
+   "url": "https://doi.org/10.14778/3476249.3476307",
+   "families": [
+    "burst_or_stall",
+    "transient_stop",
+    "cpu_saturation"
+   ]
+  },
+  {
+   "id": "lou-osdi22",
+   "domain": "server",
+   "title": "RESIN: A Holistic Service for Dealing with Memory Leaks in Production Cloud Infrastructure",
+   "publisher": "USENIX OSDI",
+   "year": 2022,
+   "url": "https://www.usenix.org/conference/osdi22/presentation/lou-chang-resin",
+   "families": [
+    "leak_ramp",
+    "staircase_leak"
+   ]
+  },
+  {
+   "id": "aws-kinesis20",
+   "domain": "server",
+   "title": "Summary of the Amazon Kinesis Event in the Northern Virginia (US-EAST-1) Region",
+   "publisher": "Amazon Web Services",
+   "year": 2020,
+   "url": "https://aws.amazon.com/message/11201/",
+   "families": [
+    "exhaustion_ramp"
+   ]
+  },
+  {
+   "id": "aws-useast21",
+   "domain": "server",
+   "title": "Summary of the AWS Service Event in the Northern Virginia (US-EAST-1) Region",
+   "publisher": "Amazon Web Services",
+   "year": 2021,
+   "url": "https://aws.amazon.com/message/12721/",
+   "families": [
+    "retry_storm"
+   ]
+  },
+  {
+   "id": "cloudflare-19",
+   "domain": "server",
+   "title": "Details of the Cloudflare outage on July 2, 2019",
+   "publisher": "Cloudflare",
+   "year": 2019,
+   "url": "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/",
+   "families": [
+    "cpu_saturation"
+   ]
+  }
+ ]
+}
