@@ -1,7 +1,7 @@
 {
  "schema_version": "prediction-is-not-permission-zenodo-v1-2",
  "reserved_at": "2026-10-19",
- "publication_state": "draft_complete_awaiting_author_publication",
+ "publication_state": "published_and_verified",
  "record": {
   "title": "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority",
   "subtitle": "Architecture-Controlled and Incident-Motivated Evidence in Two Runtime Domains",
@@ -44,7 +44,9 @@
    }
   ],
   "code_repository": "https://github.com/VyomKulshrestha/Ferrum-OS",
-  "repository_tag": "prediction-is-not-permission-v1.2"
+  "repository_tag": "prediction-is-not-permission-v1.2",
+  "concept_doi": "10.5281/zenodo.23469362",
+  "record_url": "https://zenodo.org/records/23469363"
  },
  "file": {
   "name": "Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
@@ -53,7 +55,7 @@
   "md5": "034fa15c5abc1f7d465aa6a80bb8141a",
   "pages": 43
  },
- "note": "The DOI was reserved on a private Zenodo draft before the final build so the PDF could carry its own identifier. The author publishes the draft; this record is updated after the public record and DOI resolution are verified.",
+ "note": "The DOI was reserved on a private Zenodo draft before the final build so the PDF could carry its own identifier. The author approved publication on 2026-10-19; the public record, DOI resolution, public file digest and ORCID work entry were verified.",
  "draft_check": {
   "checked_at": "2026-10-19",
   "status": "draft",
@@ -66,5 +68,24 @@
   "access": "public record, public files, no embargo",
   "repository_tag": "prediction-is-not-permission-v1.2",
   "repository_tag_commit": "549cdf6a251eaebaa80fbeeda13d2aba401f95aa"
+ },
+ "publication": {
+  "published_at": "2026-10-19",
+  "published_by": "author-approved publish of draft 23469363",
+  "public_api_status": "published",
+  "version_doi_resolves": true,
+  "concept_doi_resolves": true,
+  "public_file": {
+   "name": "Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf",
+   "size": 930031,
+   "checksum": "md5:034fa15c5abc1f7d465aa6a80bb8141a",
+   "matches_repository_pdf": true
+  },
+  "orcid": {
+   "orcid": "0009-0009-1434-7148",
+   "work_added": "2026-10-19",
+   "method": "ORCID Add work with a DOI",
+   "visibility": "everyone"
+  }
  }
 }

@@ -38,6 +38,7 @@ before reusing a metric.
 Runtime Authority**, Technical Report version 1.2.
 
 - Version DOI: <https://doi.org/10.5281/zenodo.23469363>
+- All-versions DOI: <https://doi.org/10.5281/zenodo.23469362>
 - Frozen release: tag `prediction-is-not-permission-v1.2`
 - Scope: matched architecture study, frozen operational benchmarks, and the
   registered incident-dynamics v2-v4 studies; the v3 and v4 primary rules
