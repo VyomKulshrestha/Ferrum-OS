@@ -1,0 +1,176 @@
+{
+ "schema_version": "real-telemetry-selection-rt2",
+ "study_id": "real-telemetry-rt2",
+ "frozen_at": "2026-10-19",
+ "protocol": "docs/research/real_telemetry_protocol_rt2.json",
+ "protocol_sha256": "18ba696a4949dfc810ba8553ba2f9e8e74c430a11ffe46bfcad3b6905fafbf51",
+ "amendment": "docs/research/real_telemetry_protocol_rt2_amendment1.json",
+ "amendment_sha256": "f0533bdf16e9b3a9ae12be7188eb7e8d7aaa103c61d30aedf5e270a3ae3647ed",
+ "final_access_before_freeze": false,
+ "code": {
+  "scripts/real_telemetry_core.py": "6dbe22854de1d5321478296434214196de1cb978a3ce1b6f7eaa8162ad31488e",
+  "scripts/real_telemetry_detect.py": "aaa2382f7227d5c5c7c8845913181f5f5ed52107e34c56f55f891dcb86f0e5b4",
+  "scripts/real_telemetry_injections.py": "779464dbfabf18d13ce4e46c33aea7835ad57891303f1f007529ecc320333b5c",
+  "scripts/real_telemetry_data.py": "eb68f7e85a80a92e05adb5dad6e4ab2f82ee92582b9414fc26c76e799461ee21",
+  "scripts/real_telemetry_rt2.py": "3abc9320897dbbe4de17f0532567f7e89cad59692c6d1327338b8e554059a0c9"
+ },
+ "development_ledger": {
+  "path": "docs/research/artifacts/real-telemetry-rt2/development_ledger.jsonl",
+  "sha256": "a562c34e0fde91c8917cb68479c57c4b61e632d0eb6bd0dee0a1b277a9a99578"
+ },
+ "world_model": "ridge_gbr_actions (fixed from rt1)",
+ "bundles": {
+  "hai-21.03": {
+   "path": "target/real-telemetry/rt2/hai-21.03-bundle.pkl",
+   "sha256": "391f0f7538c1f952035cf096561b65b8862a083ef3ff74c7a2aa6a0b824c2406",
+   "bytes": 16798183,
+   "retention": "local frozen bundle (pickle); regenerable from the registered code and seeds"
+  },
+  "hai-23.05": {
+   "path": "target/real-telemetry/rt2/hai-23.05-bundle.pkl",
+   "sha256": "aae91bf0e74823caf70941d7d7f5c1b8fc2528c1d136500aa94134234073ca07",
+   "bytes": 17697235,
+   "retention": "local frozen bundle (pickle); regenerable from the registered code and seeds"
+  }
+ },
+ "selected": {
+  "hai-21.03": {
+   "columns": {
+    "sensors": 36,
+    "actions": 21
+   },
+   "detectors": {
+    "D0": {
+     "smoothing_window": 1,
+     "threshold": 29.21543121194921,
+     "validation_recall_development_families": 0.14,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.14,
+      "trip_without_cause": 0.0,
+      "masked_coordinated": 0.12
+     }
+    },
+    "DR": {
+     "smoothing_window": 10,
+     "threshold": 0.42216298580169676,
+     "validation_recall_development_families": 0.56,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.9,
+      "trip_without_cause": 0.52,
+      "masked_coordinated": 0.86
+     }
+    },
+    "D1": {
+     "smoothing_window": 60,
+     "threshold": 11.692983544895867,
+     "validation_recall_development_families": 0.65,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.92,
+      "trip_without_cause": 0.86,
+      "masked_coordinated": 0.98
+     }
+    },
+    "D2": {
+     "smoothing_window": 60,
+     "threshold": 0.5165479135127923,
+     "validation_recall_development_families": 0.87,
+     "held_out_family_recall": {
+      "oscillating_actuator": 1.0,
+      "trip_without_cause": 0.94,
+      "masked_coordinated": 1.0
+     }
+    },
+    "D3": {
+     "smoothing_window": 10,
+     "threshold": 0.646146442652256,
+     "validation_recall_development_families": 0.715,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.92,
+      "trip_without_cause": 0.82,
+      "masked_coordinated": 0.92
+     }
+    },
+    "D2c": {
+     "smoothing_window": 60,
+     "threshold": 0.5989579306593403,
+     "validation_recall_development_families": 0.835,
+     "held_out_family_recall": {
+      "oscillating_actuator": 1.0,
+      "trip_without_cause": 0.94,
+      "masked_coordinated": 1.0
+     },
+     "matched_clean_alarm_fraction": 0.0005642636630477834
+    }
+   }
+  },
+  "hai-23.05": {
+   "columns": {
+    "sensors": 38,
+    "actions": 28
+   },
+   "detectors": {
+    "D0": {
+     "smoothing_window": 60,
+     "threshold": 5.099072183559788,
+     "validation_recall_development_families": 0.095,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.42,
+      "trip_without_cause": 0.0,
+      "masked_coordinated": 0.16
+     }
+    },
+    "DR": {
+     "smoothing_window": 10,
+     "threshold": 1.0042344331741333,
+     "validation_recall_development_families": 0.46,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.66,
+      "trip_without_cause": 0.38,
+      "masked_coordinated": 0.84
+     }
+    },
+    "D1": {
+     "smoothing_window": 60,
+     "threshold": 9.308949627673515,
+     "validation_recall_development_families": 0.75,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.94,
+      "trip_without_cause": 0.92,
+      "masked_coordinated": 0.96
+     }
+    },
+    "D2": {
+     "smoothing_window": 60,
+     "threshold": 0.7531284003488965,
+     "validation_recall_development_families": 0.875,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.98,
+      "trip_without_cause": 0.94,
+      "masked_coordinated": 1.0
+     }
+    },
+    "D3": {
+     "smoothing_window": 10,
+     "threshold": 0.863771734527044,
+     "validation_recall_development_families": 0.705,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.9,
+      "trip_without_cause": 0.76,
+      "masked_coordinated": 0.92
+     }
+    },
+    "D2c": {
+     "smoothing_window": 60,
+     "threshold": 0.7459509672558243,
+     "validation_recall_development_families": 0.875,
+     "held_out_family_recall": {
+      "oscillating_actuator": 0.98,
+      "trip_without_cause": 0.96,
+      "masked_coordinated": 1.0
+     },
+     "matched_clean_alarm_fraction": 0.001288559156579461
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,50 @@
+{"at": "2026-10-19T17:00:16", "kind": "partitions", "release": "hai-23.05", "sensors": 38, "actions": 28, "steps": {"fit": 448200, "train": 268920, "cal": 179280}}
+{"at": "2026-10-19T17:00:17", "kind": "partitions", "release": "hai-21.03", "sensors": 36, "actions": 21, "steps": {"fit": 460801, "train": 276481, "cal": 184321}}
+{"at": "2026-10-19T17:18:45", "kind": "classifier", "release": "hai-21.03", "detector": "D2", "rows": 190034, "positives": 88034}
+{"at": "2026-10-19T17:20:02", "kind": "classifier", "release": "hai-23.05", "detector": "D2", "rows": 188581, "positives": 86581}
+{"at": "2026-10-19T17:29:45", "kind": "classifier", "release": "hai-21.03", "detector": "D3", "rows": 188444, "positives": 86444}
+{"at": "2026-10-19T17:31:53", "kind": "classifier", "release": "hai-23.05", "detector": "D3", "rows": 186011, "positives": 84011}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D0", "window": 1, "validation_recall": 0.14}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D0", "window": 10, "validation_recall": 0.09}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D0", "window": 60, "validation_recall": 0.07}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "DR", "window": 1, "validation_recall": 0.305}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "DR", "window": 10, "validation_recall": 0.56}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "DR", "window": 60, "validation_recall": 0.49}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D1", "window": 1, "validation_recall": 0.515}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D1", "window": 10, "validation_recall": 0.63}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D1", "window": 60, "validation_recall": 0.65}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D2", "window": 1, "validation_recall": 0.745}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D2", "window": 10, "validation_recall": 0.84}
+{"at": "2026-10-19T17:37:11", "kind": "smoothing", "release": "hai-21.03", "detector": "D2", "window": 60, "validation_recall": 0.87}
+{"at": "2026-10-19T17:37:12", "kind": "smoothing", "release": "hai-21.03", "detector": "D3", "window": 1, "validation_recall": 0.68}
+{"at": "2026-10-19T17:37:12", "kind": "smoothing", "release": "hai-21.03", "detector": "D3", "window": 10, "validation_recall": 0.715}
+{"at": "2026-10-19T17:37:12", "kind": "smoothing", "release": "hai-21.03", "detector": "D3", "window": 60, "validation_recall": 0.71}
+{"at": "2026-10-19T17:37:12", "kind": "selection", "release": "hai-21.03", "detector": "D0", "window": 1, "threshold": 29.21543121194921, "validation_recall": 0.14, "held_out_recall": {"oscillating_actuator": 0.14, "trip_without_cause": 0.0, "masked_coordinated": 0.12}}
+{"at": "2026-10-19T17:37:12", "kind": "selection", "release": "hai-21.03", "detector": "DR", "window": 10, "threshold": 0.42216298580169676, "validation_recall": 0.56, "held_out_recall": {"oscillating_actuator": 0.9, "trip_without_cause": 0.52, "masked_coordinated": 0.86}}
+{"at": "2026-10-19T17:37:12", "kind": "selection", "release": "hai-21.03", "detector": "D1", "window": 60, "threshold": 11.692983544895867, "validation_recall": 0.65, "held_out_recall": {"oscillating_actuator": 0.92, "trip_without_cause": 0.86, "masked_coordinated": 0.98}}
+{"at": "2026-10-19T17:37:12", "kind": "selection", "release": "hai-21.03", "detector": "D2", "window": 60, "threshold": 0.5165479135127923, "validation_recall": 0.87, "held_out_recall": {"oscillating_actuator": 1.0, "trip_without_cause": 0.94, "masked_coordinated": 1.0}}
+{"at": "2026-10-19T17:37:12", "kind": "selection", "release": "hai-21.03", "detector": "D3", "window": 10, "threshold": 0.646146442652256, "validation_recall": 0.715, "held_out_recall": {"oscillating_actuator": 0.92, "trip_without_cause": 0.82, "masked_coordinated": 0.92}}
+{"at": "2026-10-19T17:37:12", "kind": "selection", "release": "hai-21.03", "detector": "D2c", "window": 60, "threshold": 0.5989579306593403, "validation_recall": 0.835, "matched_clean_alarm_fraction": 0.0005642636630477834, "held_out_recall": {"oscillating_actuator": 1.0, "trip_without_cause": 0.94, "masked_coordinated": 1.0}}
+{"at": "2026-10-19T17:37:12", "kind": "frozen_bundle", "release": "hai-21.03", "path": "target/real-telemetry/rt2/hai-21.03-bundle.pkl", "sha256": "391f0f7538c1f952035cf096561b65b8862a083ef3ff74c7a2aa6a0b824c2406", "seconds": 2258}
+{"at": "2026-10-19T17:39:09", "kind": "smoothing", "release": "hai-23.05", "detector": "D0", "window": 1, "validation_recall": 0.035}
+{"at": "2026-10-19T17:39:09", "kind": "smoothing", "release": "hai-23.05", "detector": "D0", "window": 10, "validation_recall": 0.08}
+{"at": "2026-10-19T17:39:09", "kind": "smoothing", "release": "hai-23.05", "detector": "D0", "window": 60, "validation_recall": 0.095}
+{"at": "2026-10-19T17:39:09", "kind": "smoothing", "release": "hai-23.05", "detector": "DR", "window": 1, "validation_recall": 0.435}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "DR", "window": 10, "validation_recall": 0.46}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "DR", "window": 60, "validation_recall": 0.36}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D1", "window": 1, "validation_recall": 0.585}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D1", "window": 10, "validation_recall": 0.685}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D1", "window": 60, "validation_recall": 0.75}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D2", "window": 1, "validation_recall": 0.79}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D2", "window": 10, "validation_recall": 0.865}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D2", "window": 60, "validation_recall": 0.875}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D3", "window": 1, "validation_recall": 0.695}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D3", "window": 10, "validation_recall": 0.705}
+{"at": "2026-10-19T17:39:10", "kind": "smoothing", "release": "hai-23.05", "detector": "D3", "window": 60, "validation_recall": 0.7}
+{"at": "2026-10-19T17:39:10", "kind": "selection", "release": "hai-23.05", "detector": "D0", "window": 60, "threshold": 5.099072183559788, "validation_recall": 0.095, "held_out_recall": {"oscillating_actuator": 0.42, "trip_without_cause": 0.0, "masked_coordinated": 0.16}}
+{"at": "2026-10-19T17:39:10", "kind": "selection", "release": "hai-23.05", "detector": "DR", "window": 10, "threshold": 1.0042344331741333, "validation_recall": 0.46, "held_out_recall": {"oscillating_actuator": 0.66, "trip_without_cause": 0.38, "masked_coordinated": 0.84}}
+{"at": "2026-10-19T17:39:10", "kind": "selection", "release": "hai-23.05", "detector": "D1", "window": 60, "threshold": 9.308949627673515, "validation_recall": 0.75, "held_out_recall": {"oscillating_actuator": 0.94, "trip_without_cause": 0.92, "masked_coordinated": 0.96}}
+{"at": "2026-10-19T17:39:10", "kind": "selection", "release": "hai-23.05", "detector": "D2", "window": 60, "threshold": 0.7531284003488965, "validation_recall": 0.875, "held_out_recall": {"oscillating_actuator": 0.98, "trip_without_cause": 0.94, "masked_coordinated": 1.0}}
+{"at": "2026-10-19T17:39:10", "kind": "selection", "release": "hai-23.05", "detector": "D3", "window": 10, "threshold": 0.863771734527044, "validation_recall": 0.705, "held_out_recall": {"oscillating_actuator": 0.9, "trip_without_cause": 0.76, "masked_coordinated": 0.92}}
+{"at": "2026-10-19T17:39:10", "kind": "selection", "release": "hai-23.05", "detector": "D2c", "window": 60, "threshold": 0.7459509672558243, "validation_recall": 0.875, "matched_clean_alarm_fraction": 0.001288559156579461, "held_out_recall": {"oscillating_actuator": 0.98, "trip_without_cause": 0.96, "masked_coordinated": 1.0}}
+{"at": "2026-10-19T17:39:11", "kind": "frozen_bundle", "release": "hai-23.05", "path": "target/real-telemetry/rt2/hai-23.05-bundle.pkl", "sha256": "aae91bf0e74823caf70941d7d7f5c1b8fc2528c1d136500aa94134234073ca07", "seconds": 2376}
