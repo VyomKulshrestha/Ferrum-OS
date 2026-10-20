@@ -218,6 +218,34 @@ pub fn list_capabilities() -> Vec<Capability> {
     SECURITY.lock().capabilities.clone()
 }
 
+/// Does a registered capability `grant` cover the `requested` resource?
+///
+/// Resource names are segment-structured: ':' separates capability segments and
+/// '/' separates filesystem path segments. '.' is deliberately NOT a separator
+/// because it appears inside hostnames. A grant therefore matches only when it
+/// equals the request, meets it at a segment boundary, or ends in an explicit
+/// '*' wildcard - never as a bare string prefix. Bare-prefix matching would let
+/// a grant for `fs:read:/pub` authorize `fs:read:/public-secrets`, or a grant
+/// for `net:connect:api.internal` authorize `net:connect:api.internal.evil.com`.
+fn resource_grant_covers(grant: &str, requested: &str) -> bool {
+    const BOUNDARY: &[char] = &[':', '/'];
+    if let Some(prefix) = grant.strip_suffix('*') {
+        if !requested.starts_with(prefix) {
+            return false;
+        }
+        let rest = &requested[prefix.len()..];
+        prefix.is_empty()
+            || prefix.ends_with(BOUNDARY)
+            || rest.is_empty()
+            || rest.starts_with(BOUNDARY)
+    } else {
+        requested == grant
+            || requested
+                .strip_prefix(grant)
+                .map_or(false, |rest| rest.starts_with(BOUNDARY))
+    }
+}
+
 /// Check if any registered capability covers a resource pattern.
 ///
 /// This validates the policy registry only. Use `has_capability` to verify
@@ -227,7 +255,7 @@ pub fn check_capability(resource: &str) -> bool {
     state
         .capabilities
         .iter()
-        .any(|c| resource.starts_with(c.resource.trim_end_matches('*')))
+        .any(|c| resource_grant_covers(&c.resource, resource))
 }
 
 /// Check whether a caller's held capability tokens grant access to a resource.
@@ -243,8 +271,7 @@ pub fn has_capability(held_capabilities: &[String], resource: &str) -> bool {
 
     held_capabilities.iter().any(|held| {
         state.capabilities.iter().any(|registered| {
-            registered.name == *held
-                && resource.starts_with(registered.resource.trim_end_matches('*'))
+            registered.name == *held && resource_grant_covers(&registered.resource, resource)
         })
     })
 }
