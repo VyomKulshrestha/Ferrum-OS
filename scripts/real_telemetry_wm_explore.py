@@ -158,6 +158,48 @@ CONFIGS2 = {
 }
 
 
+class FeatureForecaster(C.Forecaster):
+    """C.Forecaster plus engineered features: per-sensor rolling mean/std and
+    rate-of-change over a window, appended to the causal design matrix."""
+
+    def __init__(self, horizons, history, window=8, **kw):
+        super().__init__(horizons, history, **kw)
+        self.window = window
+
+    def _extra(self, Z, t):
+        w = self.window
+        stack = np.stack([Z[t - o] for o in range(w)], 1)        # (N, w, d)
+        mean = stack.mean(1)
+        std = stack.std(1)
+        rate = Z[t] - Z[t - (w - 1)]
+        return np.concatenate([mean, std, rate], 1).astype(np.float32)
+
+    def _design(self, Z, V, t, h):
+        base = super()._design(Z, V, t, h)
+        return np.concatenate([base, self._extra(Z, t)], 1)
+
+
+def feat(history, gbr, window=8):
+    return lambda: FeatureForecaster(HORIZONS, history, window=window, use_actions=True, gbr=gbr)
+
+
+CONFIGS4 = {  # does feature engineering add to the history lever?
+    "gbr_big_h8": ridge_gbr(8, _BIG),
+    "feat_h8_w8": feat(8, _BIG, 8),
+    "gbr_big_h12": ridge_gbr(12, _BIG),
+    "feat_h12_w8": feat(12, _BIG, 8),
+    "feat_h12_w16": feat(12, _BIG, 16),
+}
+
+
+CONFIGS5 = {  # rolling-window knee at history 12
+    "gbr_big_h12": ridge_gbr(12, _BIG),
+    "feat_h12_w16": feat(12, _BIG, 16),
+    "feat_h12_w24": feat(12, _BIG, 24),
+    "feat_h12_w32": feat(12, _BIG, 32),
+}
+
+
 CONFIGS3 = {  # map the history-length knee
     "baseline_ridge_gbr_h3": CONFIGS["baseline_ridge_gbr_h3"],
     "gbr_big_h12": ridge_gbr(12, _BIG),
@@ -170,7 +212,7 @@ def main():
     args = sys.argv[1:]
     nums = [a for a in args if a.isdigit()]
     max_rows = int(nums[0]) if nums else 80_000
-    configs = CONFIGS3 if "round3" in args else CONFIGS2 if "round2" in args else CONFIGS
+    configs = CONFIGS5 if "round5" in args else CONFIGS4 if "round4" in args else CONFIGS3 if "round3" in args else CONFIGS2 if "round2" in args else CONFIGS
     parts = dev.hai_partitions()
     fit, val = parts["fit"], parts["val"]
     plan = build_val_eval(val, HORIZONS)
@@ -202,8 +244,9 @@ def main():
                                "results": results}, indent=1) + "\n", encoding="utf-8")
     # honest winner summary
     best5 = min(results, key=lambda k: results[k]["val_mae"]["H5"])
+    ref = next((k for k in ("baseline_ridge_gbr_h3", "gbr_big_h8", "gbr_big_h12") if k in results), best5)
     print(f"\nbest H5: {best5} ({results[best5]['val_mae']['H5']:.5f}); "
-          f"baseline H5 {results['baseline_ridge_gbr_h3']['val_mae']['H5']:.5f}", flush=True)
+          f"ref {ref} H5 {results[ref]['val_mae']['H5']:.5f}", flush=True)
 
 
 if __name__ == "__main__":
