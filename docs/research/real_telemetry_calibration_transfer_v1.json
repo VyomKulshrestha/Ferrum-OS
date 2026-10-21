@@ -1,0 +1,155 @@
+{
+ "schema_version": "real-telemetry-calibration-transfer-v1",
+ "date": "2026-10-21",
+ "forecaster": "gbr_big_h12",
+ "target_fa_per_day": 1.0,
+ "note": "NORMAL data only; false-alarm transfer. Recall on real attacks needs a fresh registered split.",
+ "releases": {
+  "hai-22.04": {
+   "release": "hai-22.04",
+   "calib_steps": 251061,
+   "deploy_steps": 251088,
+   "target_fpr": 0.001,
+   "methods": {
+    "S0_fit_sigma": {
+     "calib_fpr": 0.0010037401269014303,
+     "deploy_fpr": 0.0010076148601287198,
+     "transfer_ratio": 1.0076148601287198
+    },
+    "S1_calib_sigma": {
+     "calib_fpr": 0.0010037401269014303,
+     "deploy_fpr": 0.0008722041674632001,
+     "transfer_ratio": 0.8722041674632001
+    },
+    "S2_calib_mad": {
+     "calib_fpr": 0.0010037401269014303,
+     "deploy_fpr": 0.0005695214426814503,
+     "transfer_ratio": 0.5695214426814503
+    },
+    "S3_per_var_union": {
+     "calib_fpr": 0.0008961965418762771,
+     "deploy_fpr": 0.03446202128337475,
+     "transfer_ratio": 34.462021283374746
+    },
+    "S4_margin2x": {
+     "calib_fpr": 0.0005018700634507151,
+     "deploy_fpr": 0.00024692538074300646,
+     "transfer_ratio": 0.24692538074300646
+    },
+    "S5_daily_recal": {
+     "calib_fpr": 0.001,
+     "deploy_fpr": 0.0009279615115019435,
+     "transfer_ratio": 0.9279615115019435
+    }
+   }
+  },
+  "hai-21.03": {
+   "release": "hai-21.03",
+   "calib_steps": 230388,
+   "deploy_steps": 230388,
+   "target_fpr": 0.001,
+   "methods": {
+    "S0_fit_sigma": {
+     "calib_fpr": 0.00100265638835356,
+     "deploy_fpr": 0.0006423945691615883,
+     "transfer_ratio": 0.6423945691615883
+    },
+    "S1_calib_sigma": {
+     "calib_fpr": 0.00100265638835356,
+     "deploy_fpr": 0.0007899716999149261,
+     "transfer_ratio": 0.7899716999149261
+    },
+    "S2_calib_mad": {
+     "calib_fpr": 0.00100265638835356,
+     "deploy_fpr": 0.0005599249960935466,
+     "transfer_ratio": 0.5599249960935465
+    },
+    "S3_per_var_union": {
+     "calib_fpr": 0.0009071653037484591,
+     "deploy_fpr": 0.0007248641422296301,
+     "transfer_ratio": 0.72486414222963
+    },
+    "S4_margin2x": {
+     "calib_fpr": 0.0005034984460996233,
+     "deploy_fpr": 0.00032119728458079416,
+     "transfer_ratio": 0.32119728458079416
+    },
+    "S5_daily_recal": {
+     "calib_fpr": 0.001,
+     "deploy_fpr": 0.001141552511415525,
+     "transfer_ratio": 1.141552511415525
+    }
+   }
+  },
+  "hai-23.05": {
+   "release": "hai-23.05",
+   "calib_steps": 224074,
+   "deploy_steps": 224074,
+   "target_fpr": 0.001,
+   "methods": {
+    "S0_fit_sigma": {
+     "calib_fpr": 0.0010041325633496077,
+     "deploy_fpr": 0.001097851602595571,
+     "transfer_ratio": 1.0978516025955711
+    },
+    "S1_calib_sigma": {
+     "calib_fpr": 0.0010041325633496077,
+     "deploy_fpr": 0.001164793773485545,
+     "transfer_ratio": 1.1647937734855451
+    },
+    "S2_calib_mad": {
+     "calib_fpr": 0.0010041325633496077,
+     "deploy_fpr": 0.0011558681507002151,
+     "transfer_ratio": 1.155868150700215
+    },
+    "S3_per_var_union": {
+     "calib_fpr": 0.0008523969759990003,
+     "deploy_fpr": 0.0011112400367735658,
+     "transfer_ratio": 1.1112400367735658
+    },
+    "S4_margin2x": {
+     "calib_fpr": 0.0005042976873711364,
+     "deploy_fpr": 0.0006024795380097646,
+     "transfer_ratio": 0.6024795380097646
+    },
+    "S5_daily_recal": {
+     "calib_fpr": 0.001,
+     "deploy_fpr": 0.0011290912823442255,
+     "transfer_ratio": 1.1290912823442254
+    }
+   }
+  }
+ },
+ "geomean_transfer_ratio": {
+  "S0_fit_sigma": 0.8923735478191647,
+  "S1_calib_sigma": 0.9293077886824637,
+  "S2_calib_mad": 0.7169949183040001,
+  "S3_per_var_union": 3.0278550519912653,
+  "S4_margin2x": 0.3628774376487412,
+  "S5_daily_recal": 1.0614958580765108
+ },
+ "methods_legend": {
+  "S0_fit_sigma": "pooled top-3 |residual|/sigma, sigma from the FIT period (rt2-style)",
+  "S1_calib_sigma": "pooled, sigma from the CALIBRATION period",
+  "S2_calib_mad": "pooled, robust MAD scale from calibration",
+  "S3_per_var_union": "per-variable union, each variable Bonferroni-calibrated to target/d",
+  "S4_margin2x": "S2 but calibrated to half the budget (conservative safety margin)",
+  "S5_daily_recal": "daily re-calibration of the threshold on the previous day (online)"
+ },
+ "worst_case_deploy_transfer_ratio": {
+  "S0_fit_sigma": 1.1,
+  "S1_calib_sigma": 1.16,
+  "S2_calib_mad": 1.16,
+  "S3_per_var_union": 34.46,
+  "S4_margin2x": 0.6,
+  "S5_daily_recal": 1.14
+ },
+ "findings": [
+  "Calibration transfer for the world-model residual detector on HAI normal data is a MILD drift: pooled residual scores overshoot the false-alarm budget by at most ~1.16x on the drifty release (23.05) and stay under budget on the others. This is not the catastrophe the rt2 D2/D2c numbers (108-134 false alarms/day) implied -- that was the incident-trained classifier's score distribution failing, a different and worse problem than the world-model residual.",
+  "The adopted better forecaster (gbr_big_h12) slightly IMPROVES calibration transfer too: worst-case overshoot fell from ~1.35x with the baseline ridge+GBR(history 3) to ~1.16x with h12. Tighter, more stationary residuals transfer better. The two improvements compound.",
+  "A conservative safety margin (S4: calibrate the threshold to half the budget) keeps the deploy false-positive rate UNDER budget on all three releases (worst 0.60x). This is the robust, data-free fix for what failed in rt2. Cost: a stricter threshold reduces sensitivity, so the attack-recall impact must be measured on a fresh registered split before this is a detection claim.",
+  "Naive per-variable union (S3) is catastrophic (up to x34 on the low-drift release): a single narrowly-distributed sensor's tiny deploy shift blows past its tight per-variable threshold and the union fires constantly. Do not multi-test per variable without far more conservative calibration.",
+  "Daily re-calibration (S5) tracks the target well (geomean ~1.06) but still mildly overshoots on the drifty release and assumes recent normal data is observable (an attack in the trailing window would relax the threshold)."
+ ],
+ "recommendation": "Use gbr_big_h12 residuals with a pooled robust (MAD) score (S2) and a conservative safety margin (S4, calibrate to ~half the budget). Avoid per-variable union. If online benign data is available, daily re-calibration (S5) is an alternative."
+}
