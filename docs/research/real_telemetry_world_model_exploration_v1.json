@@ -1,0 +1,53 @@
+{
+ "schema_version": "real-telemetry-world-model-exploration-v1",
+ "date": "2026-10-21",
+ "objective": "Development-only search for a better-forecasting world model on real HAI telemetry, measured by multi-step MAE (robust-scaled) on held-out NORMAL validation (HAI train5-6 after fitting on train1-4). No attack/test data read. Lower is better.",
+ "method": "scripts/real_telemetry_world_model_exploration (real_telemetry_wm_explore.py). Reuses the registered real_telemetry_core.Forecaster (ridge + per-horizon LightGBM residual corrections, action-conditioned) with varied history length and boosting size; adds a small MLP and a per-horizon-history model as alternative technologies. Validation evaluated on a fixed seeded 40k-index subsample per horizon; fit rows subsampled per run (30k-50k) for speed. Baseline is the rt1/rt2 selected model (history 3, 60-tree GBR).",
+ "selected_improved_config": {
+  "name": "gbr_big_h12",
+  "description": "ridge + LightGBM residuals (200 estimators, 63 leaves, lr 0.05, colsample 0.8, subsample 0.8), action-conditioned, history length 12",
+  "val_mae_vs_baseline": {"H1_pct": 1.8, "H5_pct": 9.9},
+  "rationale": "History length is the dominant lever; the 5-step gain plateaus at ~history 12 (see knee), so h12 captures nearly all the benefit at lower compute/inference cost than h16/h20."
+ },
+ "findings": [
+  "Temporal history length is the dominant lever for 5-step forecasting. H5 MAE improves monotonically: history 3 -> 5 -> 8 -> 12 gives roughly +0%, +3%, +7%, +9-10% over the baseline.",
+  "The 5-step gain plateaus at ~history 12 (h12 +9.9%, h16 +10.2%, h20 +10.3%). 1-step keeps improving slowly with more history (h12 +1.8% -> h20 +3.9%).",
+  "Nonlinearity is required to exploit the longer context: a longer-context LINEAR (ridge, history 8) was WORSE than the baseline (-4.6% H5). Gradient boosting on the same features captures the gain.",
+  "A small MLP (new technology) was clearly worse than gradient boosting (-12% to -18% H5). Not adopted.",
+  "A robust Huber boosting objective adds a little (gbr_huber_h8 +7.2% vs gbr_big_h8 +6.7% H5).",
+  "A per-horizon-history model (short history for H1, long for H5) balances both horizons but does not beat history-12 everywhere; history-12 improves both H1 and H5."
+ ],
+ "rounds": {
+  "round1_fit50k_eval40k": {
+   "baseline_ridge_gbr_h3": {"H1": 0.06221, "H5": 0.09088},
+   "gbr_big_h3": {"H1": 0.06131, "H5": 0.09025},
+   "gbr_big_h5": {"H1": 0.06410, "H5": 0.08794},
+   "gbr_big_h8": {"H1": 0.06302, "H5": 0.08458},
+   "gbr_huber_h5": {"H1": 0.06398, "H5": 0.08736},
+   "ridge_h8": {"H1": 0.07082, "H5": 0.09505},
+   "mlp_h3": {"H1": 0.06743, "H5": 0.10139},
+   "mlp_h5": {"H1": 0.06726, "H5": 0.10697}
+  },
+  "round2_fit40k_eval40k": {
+   "baseline_ridge_gbr_h3": {"H1": 0.06298, "H5": 0.09152},
+   "gbr_big_h8": {"H1": 0.06314, "H5": 0.08541},
+   "gbr_big_h12": {"H1": 0.06214, "H5": 0.08295},
+   "gbr_huber_h8": {"H1": 0.06321, "H5": 0.08493},
+   "hybrid_h3_h8": {"H1": 0.06227, "H5": 0.08523},
+   "hybrid_h3_h8_huber": {"H1": 0.06222, "H5": 0.08478}
+  },
+  "round3_knee_fit30k_eval40k": {
+   "baseline_ridge_gbr_h3": {"H1": 0.06356, "H5": 0.09176},
+   "gbr_big_h12": {"H1": 0.06240, "H5": 0.08265},
+   "gbr_big_h16": {"H1": 0.06161, "H5": 0.08243},
+   "gbr_big_h20": {"H1": 0.06110, "H5": 0.08227}
+  }
+ },
+ "caveats": [
+  "Measured on held-out NORMAL validation, not on attacks. A better normal-data forecaster gives tighter residuals and plausibly better attack detection, but any detection improvement must be confirmed on a FRESH registered split: the HAI 22.04/21.03/23.05 test attacks were already opened in rt1/rt2 and are spent for a clean final.",
+  "Model selection here is on the same validation that is reported, so the absolute numbers carry mild optimism; the relative ranking is robust across three rounds and fit sizes.",
+  "Longer history enlarges the feature vector, so inference cost and memory grow with history length; history 12 is the recommended compute/accuracy balance.",
+  "The registered rt1/rt2 world models are frozen and were NOT retrained; this is a forward-looking development result, not a change to any published result."
+ ],
+ "reproduce": "python scripts/real_telemetry_wm_explore.py 50000            (round 1)\npython scripts/real_telemetry_wm_explore.py 40000 round2     (per-horizon / huber)\npython scripts/real_telemetry_wm_explore.py 30000 round3     (history knee)"
+}
