@@ -1,0 +1,153 @@
+{
+ "schema_version": "vision-world-model-ccd-result-v1",
+ "protocol": "vision_world_model_ccd_protocol_v1.json",
+ "status": "registered final on real footage, opened once; branch work (not main); advisory only",
+ "horizon_frames": 10,
+ "fps": 10,
+ "frozen_state_sha256": {
+  "cnn_best_caution.pt": "b46da3c1bc417156b0a669b8f178ac355261564d7dbc581a513078bd3e7b9ab7",
+  "dino_head.pt": "55ee3b09133ffd8c53a99a56bc8d9b6134d6bfb771aaa9ab70efc55c959608de",
+  "mbv2_head.pt": "d731a406b131c1563d7c90392eb1b44ec7bfe1e0f95142d999bd5a166530e94f",
+  "probe.npz": "1ca5fb3075369d836e65428ba7f21a0628548aea2bc98b49010fd7e4e2a91aa4",
+  "thresholds.json": "79cbe32763888cd7b2581fb86b5dd3781e38ee3468e2f2d77daa6a0e2aa8f68b"
+ },
+ "dinov2_weights": "facebook/dinov2-small",
+ "test_clips": 900,
+ "test_frames": 39566,
+ "prevalence": 0.07582267603497952,
+ "thresholds": {
+  "dino": {
+   "p05": 2.5770652294158936,
+   "p10": 0.472685307264328
+  },
+  "mbv2": {
+   "p05": 2.103929042816162,
+   "p10": 1.2885345220565796
+  },
+  "cnn": {
+   "p05": 1.9305516481399536,
+   "p10": 0.3076916038990021
+  },
+  "probe": {
+   "p05": 0.8355631353287235,
+   "p10": 0.7662252568393624
+  }
+ },
+ "results": {
+  "dino": {
+   "auc_pr": 0.5606489710411956,
+   "auc_roc": 0.9514657696585171,
+   "prevalence": 0.07582267603497952,
+   "within_crash_clip": {
+    "auc_pr": 0.5615956815971443,
+    "auc_roc": 0.77408747531977,
+    "prevalence": 0.27865502507895223
+   },
+   "p05": {
+    "recall": 0.3993333333333333,
+    "realized_fpr": 0.02278072526390636
+   },
+   "p10": {
+    "recall": 0.601,
+    "realized_fpr": 0.05018323032325111
+   },
+   "video_level_p05": {
+    "crash_clips_alarmed_before_onset": 0.7066666666666667,
+    "mean_time_to_accident_s": 1.4599056603773586,
+    "normal_clips_with_any_alarm": 0.0016666666666666668
+   }
+  },
+  "mbv2": {
+   "auc_pr": 0.531319470639124,
+   "auc_roc": 0.9472371055078489,
+   "prevalence": 0.07582267603497952,
+   "within_crash_clip": {
+    "auc_pr": 0.5346522424354054,
+    "auc_roc": 0.7685483303287836,
+    "prevalence": 0.27865502507895223
+   },
+   "p05": {
+    "recall": 0.4613333333333333,
+    "realized_fpr": 0.03462232675162719
+   },
+   "p10": {
+    "recall": 0.6903333333333334,
+    "realized_fpr": 0.06538861237214899
+   },
+   "video_level_p05": {
+    "crash_clips_alarmed_before_onset": 0.7733333333333333,
+    "mean_time_to_accident_s": 1.6616379310344827,
+    "normal_clips_with_any_alarm": 0.0016666666666666668
+   }
+  },
+  "cnn": {
+   "auc_pr": 0.20621481420686513,
+   "auc_roc": 0.8268560958267243,
+   "prevalence": 0.07582267603497952,
+   "within_crash_clip": {
+    "auc_pr": 0.28780211995570354,
+    "auc_roc": 0.5175514636449481,
+    "prevalence": 0.27865502507895223
+   },
+   "p05": {
+    "recall": 0.14466666666666667,
+    "realized_fpr": 0.04588962424109829
+   },
+   "p10": {
+    "recall": 0.26466666666666666,
+    "realized_fpr": 0.07643712738609637
+   },
+   "video_level_p05": {
+    "crash_clips_alarmed_before_onset": 0.5766666666666667,
+    "mean_time_to_accident_s": 2.4531791907514453,
+    "normal_clips_with_any_alarm": 0.14333333333333334
+   }
+  },
+  "probe": {
+   "auc_pr": 0.204728883323253,
+   "auc_roc": 0.8022905066637495,
+   "prevalence": 0.07582267603497952,
+   "within_crash_clip": {
+    "auc_pr": 0.2825235469260345,
+    "auc_roc": 0.5014733024293931,
+    "prevalence": 0.27865502507895223
+   },
+   "p05": {
+    "recall": 0.13066666666666665,
+    "realized_fpr": 0.034266805228901166
+   },
+   "p10": {
+    "recall": 0.23166666666666666,
+    "realized_fpr": 0.06661926379696986
+   },
+   "video_level_p05": {
+    "crash_clips_alarmed_before_onset": 0.5,
+    "mean_time_to_accident_s": 2.708,
+    "normal_clips_with_any_alarm": 0.06833333333333333
+   }
+  }
+ },
+ "gates": {
+  "G1_pretrained_beats_scratch": true,
+  "G2_budget_holds": true,
+  "auc_pr_diff_dino_minus_cnn_video_cluster_bootstrap": {
+   "auc_pr_difference": 0.35443415683433044,
+   "ci95": [
+    0.31124263370628064,
+    0.39704029718382355
+   ],
+   "resamples": 2000
+  },
+  "primary_success": true
+ },
+ "rescored": false,
+ "audit": {
+  "clips_checked": 300,
+  "frame_encoder_pairs_checked": 3000,
+  "mismatched": 0,
+  "mismatch_rate": 0.0,
+  "tolerance_abs": 0.05,
+  "clips_recomputed_on_cpu": []
+ },
+ "interpretation": "REAL dashcam footage (CCD official test, 900 clips, prevalence 0.076). Registered G1+G2 PASS: frozen DINOv2 AUC-PR 0.561 vs scratch CNN 0.206 and pixel probe 0.205 (diff vs CNN +0.354, video-cluster CI95 [0.311,0.397]); realized FPR 0.023 <= 0.10. The registered SOURCE-CONFOUND CONTROL is the key reading: overall ROC is high for every model (0.80-0.95) because crash clips (YouTube) and normal clips (BDD100K) differ in source/style. Within crash clips only, which removes that confound, the scratch CNN (ROC 0.518) and pixel probe (0.501) are at CHANCE: their apparent skill is source discrimination, not anticipation. The frozen pretrained encoders keep real within-clip anticipation (DINOv2 0.774, MobileNetV2 0.769). At the 5% calibration the pretrained models warn before onset on 71-77% of crash clips with a mean lead of ~1.5 s while alarming on 0.2% of normal clips; the headline numbers are still inflated by the source confound, and within-clip ROC ~0.77 is the honest anticipation measure. Pretraining matters far more on real footage (+0.354 AUC-PR) than in the sim (+0.018). This validates the approach on real video in a DIFFERENT domain; it does not qualify the sim advisory head (vision_caution_integration_protocol_v1.json)."
+}

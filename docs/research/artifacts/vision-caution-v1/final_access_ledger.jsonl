@@ -4,3 +4,5 @@
 {"final_seed": 780, "reason": "vision-world-model amendment3: frozen DINOv2 vs scratch CNN (hard, margin-primary)", "at": "2026-10-22T07:50:55.428291+00:00"}
 {"final_seed": 780, "reason": "RETIRED under amendment3 crash rule: infrastructure crash after open, before any metric; no result observed; rerun on 781", "at": "2026-10-22T07:52:36.896816+00:00"}
 {"final_seed": 781, "reason": "vision-world-model amendment3: frozen DINOv2 vs scratch CNN (hard, margin-primary)", "at": "2026-10-22T08:22:01.165903+00:00"}
+{"final_seed": "ccd-test-featurise", "reason": "CCD official test videos decoded/featurised; no labels read, no metric computed", "at": "2026-10-22T09:53:32.598032+00:00"}
+{"final_seed": "ccd-test", "reason": "vision-world-model CCD v1 final: test labels read, metrics computed once", "at": "2026-10-22T10:39:12.568414+00:00"}
