@@ -1,0 +1,72 @@
+{
+ "schema_version": "real-telemetry-detection-protocol-v2",
+ "study_id": "real-telemetry-detection-v2",
+ "registered_at": "2026-10-22",
+ "status": "registered-awaiting-fresh-attack-data",
+ "status_note": "This protocol is frozen BEFORE any fresh attack data exists. No result file accompanies it. It runs exactly once, the moment a genuinely never-opened ICS attack recording is available, via scripts/real_telemetry_detection_v2.py. Until then no detection or recall claim is made.",
+ "inherits": "docs/research/real_telemetry_protocol_v1.json (rt1) and docs/research/real_telemetry_protocol_rt2.json (rt2); both are retained unchanged, including rt1's failed primary rule. The rt1/rt2 frozen world models are NOT retrained or altered.",
+ "motivation": "rt1/rt2 established that a normal-only world-model residual detector (D1 = top-3 standardised |residual| at horizons 1 and 5, summed) detects recorded HAI attacks well above persistence and bound/gradient baselines at ~1-2 false-alarm episodes per day, while learned incident-informed classifiers (D2/D3) failed to transfer their thresholds. The cycle-2 exploration (docs/research/real_telemetry_world_model_exploration_v1.json) then produced a strictly better NORMAL-data forecaster, WorldModelV2 = feat_h12_w24 (scripts/real_telemetry_wm_v2.py): action-conditioned ridge + LightGBM residuals, history 12, plus per-sensor rolling mean/std/rate over a 24-step window, cutting held-out normal 5-step MAE ~12% and 1-step ~4.5% over the rt1/rt2 baseline. A tighter normal-data forecast gives tighter normal residuals, which SHOULD raise attack recall at a fixed false-alarm budget. That is a hypothesis about ATTACK data and cannot be tested on the HAI 22.04/21.03/23.05 attacks, which were all opened in rt1/rt2 and are spent for a clean final. This protocol pre-registers the test so it is honest when fresh data arrives.",
+ "primary_hypothesis": "On a fresh, never-opened ICS attack recording, swapping only the world model from the rt1/rt2 baseline (ridge+gbr, history 3) to WorldModelV2 (feat_h12_w24) -- holding the D1 detector, residual scale, smoothing and calibration identical -- does not reduce event recall at a matched false-alarm budget, and improves it.",
+ "frozen_components": {
+  "note": "Every item here is fixed by this registration before any fresh final data is seen. No re-selection or tuning on the fresh data is permitted.",
+  "world_model_candidate": {
+   "name": "WorldModelV2 / feat_h12_w24",
+   "module": "scripts/real_telemetry_wm_v2.py (class WorldModelV2, build())",
+   "spec": "action-conditioned; horizons 1 and 5; history 12; rolling mean/std/rate over a 24-step window (offsets clamped at the segment start); ridge (alpha 1.0) + per-horizon LightGBM residuals (n_estimators 200, num_leaves 63, learning_rate 0.05, min_child_samples 100, subsample 0.8, subsample_freq 1, colsample_bytree 0.8); seed 0.",
+   "frozen_by": "git commit of scripts/real_telemetry_wm_v2.py recorded in the result file at run time"
+  },
+  "world_model_baseline": {
+   "name": "rt1/rt2 selected",
+   "spec": "action-conditioned; horizons 1 and 5; history 3; ridge + per-horizon LightGBM residuals (n_estimators 60, num_leaves 31, learning_rate 0.1, min_child_samples 100, subsample 0.8, subsample_freq 1); seed 0.",
+   "role": "paired comparison arm; identical in every other respect to the candidate"
+  },
+  "detector": {
+   "name": "D1 (normal-only world-model residual)",
+   "definition": "exactly real_telemetry_detect.Scorer: S1 = |C.residuals(wm,Z,V,1)|/sigma1, S5 = |C.residuals(wm,Z,V,5)|/sigma5 with the first 10 steps zeroed; D1 = mean(top-3 of S1) + mean(top-3 of S5). sigma1/sigma5 are the per-variable residual std on the held-out normal detector-training split (not the attack data).",
+   "residual_scale": "per-variable std from normal data (identical to rt1/rt2 D1), for an apples-to-apples forecaster comparison",
+   "excluded": "D2/D3 learned classifiers are excluded: rt1/rt2 showed their thresholds do not transfer. No learned detector is fit here.",
+   "smoothing_window": "inherit rt1/rt2's selected D1 smoothing window from the frozen bundle if present; otherwise the registered default w = 10 (the rt1/rt2 grid is {1,10,60}). The window is NOT re-selected on fresh data."
+  },
+  "calibration": {
+   "primary_arm": "episode-budget: smallest threshold on the held-out normal calibration split whose false-alarm episode rate is at most the budget; merge gap 60 s; HAI convention budget 2.0 false-alarm episodes/day (configurable per dataset cadence, recorded in the result).",
+   "safety_margin_arm": "conservative margin from docs/research/real_telemetry_calibration_transfer_v1.json: calibrate to HALF the budget so typical calibration->deploy drift still leaves the normal false-alarm rate at or under budget. Reported as a registered secondary arm with its recall cost.",
+   "steps_per_day": "set from the fresh dataset's sampling rate, recorded in the result file"
+  }
+ },
+ "data_requirements": {
+  "eligibility": "A genuinely never-opened recording with (a) a NORMAL training period and (b) an attack/incident period carrying a per-step binary label, from an industrial-control or cyber-physical system, with sensor channels and (ideally) actuator/setpoint channels usable as world-model actions.",
+  "disqualified": "Any HAI release already in this repository (hai-22.04, hai-21.03, hai-23.05) and SMD -- all opened by rt1/rt2 and recorded in target/real-telemetry/final_access.jsonl. Any dataset whose id already appears in that ledger.",
+  "eligible_examples": "a future HAI release; SWaT or WADI (iTrust) IF never previously used in this repository; a new in-house or partner recording. Cross-testbed sources are welcome but see limitations.",
+  "input_contract": "scripts/real_telemetry_detection_v2.py reads an .npz with keys train_X{i}/train_U{i} (normal segments) and attack_X{i}/attack_U{i}/attack_y{i} (attack segments with labels), same column order across train and attack. A dataset-specific CSV loader may be added later but must feed this same contract and the same single-open ledger.",
+  "partitions": "Normal segments are cut chronologically 50/30/20 into world-model fit / detector residual-scale / calibration (the rt2 split). The attack segments are the FINAL set.",
+  "final_access_rule": "The attack arrays are read only through the harness, which calls real_telemetry_data._record_final_access(dataset_id, reason), appending to target/real-telemetry/final_access.jsonl. The harness REFUSES to run if dataset_id already appears there. The final evaluation runs once."
+ },
+ "endpoints": {
+  "primary": "event recall of D1 at the primary-arm calibrated threshold (an event is detected if any alarm falls within its labelled interval, tolerance 0), for the candidate world model.",
+  "secondary": ["candidate vs baseline paired event recall", "false-alarm episodes/day on the normal portion at the calibrated threshold", "AUC-PR and AUC-ROC (point-wise)", "detection delay distribution", "safety-margin-arm recall and false-alarm rate"]
+ },
+ "gates": {
+  "G1_budget_holds": "The candidate D1 primary-arm false-alarm rate on the normal portion is at most the budget (<= 2 episodes/day, with the rt2 slack of 4/day reported as a pass band).",
+  "G2_noninferior_and_better": "Candidate vs baseline D1, paired event bootstrap over attack events (10,000 resamples, 95% interval): PASS if the interval lower bound on recall(candidate) - recall(baseline) is >= 0 (non-inferior) AND the point miss-reduction of candidate vs baseline is > 0 (improvement).",
+  "primary_success_rule": "G1 and G2 both hold.",
+  "secondary_reporting": "The safety-margin arm is reported as an improvement only if it holds the budget (<= budget/day) with an interval lower bound on its recall difference vs the primary arm above a registered tolerance of -0.05 (i.e. it does not cost more than 5 points of recall).",
+  "reporting": "Both world models, the primary and safety-margin arms, every endpoint and every failure are reported. A failed gate is published, not discarded (as rt1's failed primary rule was retained). No claim of runtime authority, deployment safety or real-incident prevention follows from this study."
+ },
+ "analysis_discipline": [
+  "Single final open enforced by the ledger; a second attempt on the same dataset id is refused.",
+  "Forecaster, baseline, detector, residual scale, smoothing and calibration are frozen by this registration; nothing is tuned on the fresh attack data.",
+  "Negative and null results are retained and reported.",
+  "The git commit of scripts/real_telemetry_wm_v2.py and scripts/real_telemetry_detection_v2.py is recorded in the result file.",
+  "On completion, update docs/research memory and run graphify update ."
+ ],
+ "limitations_registered_in_advance": [
+  "No fresh ICS attack data is in hand at registration; this protocol is a readiness artifact, not a result.",
+  "A better normal-data forecast MAE does not guarantee better attack detection: detection depends on how an attack perturbs the residual relative to its normal scale, and on residual-scale transfer, not on normal MAE alone. G2 can fail honestly.",
+  "If the fresh source is a different testbed, a confound of testbed and forecaster is possible; a same-testbed fresh release is the cleaner test and cross-testbed results are reported as exploratory.",
+  "WorldModelV2's longer history and rolling features raise inference cost and memory versus the baseline; this is a compute/accuracy trade recorded but not gated here."
+ ],
+ "reproduce": {
+  "dry_run": "python scripts/real_telemetry_detection_v2.py <dataset_id> --dry-run   (prints the frozen plan; touches nothing)",
+  "run": "python scripts/real_telemetry_detection_v2.py <dataset_id> --npz <path-to-fresh.npz> --budget 2.0 --steps-per-day 86400"
+ }
+}
