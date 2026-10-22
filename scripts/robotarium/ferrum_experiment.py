@@ -38,6 +38,7 @@ STEP_GAIN = 0.32                       # runtime metres per unit of dx, dy
 FENCE = 1.0 * SCALE                    # projected geofence half-width (arena metres)
 SAFE_X, SAFE_Y = 1.40, 0.82            # targets are clamped inside this box
 D_MIN = 0.20                           # robot 0 centre never closer than this to the obstacle
+OBS_MARK_R = 0.09                      # projected dark disc under the parked obstacle (visual identity)
 DRIVE_S, HOLD_S = 3.0, 0.7             # per step: drive (at most), then hold still
 RESET_TIMEOUT_S = 25.0
 KIND_NAMES = ("move", "inspect", "diagnose", "approve", "repair", "verify", "stop")
@@ -115,10 +116,14 @@ def main():
     init = np.array([[starts[0][0][0], starts[0][1][0]], [starts[0][0][1], starts[0][1][1]], [0.0, 0.0]])
     r = robotarium.Robotarium(number_of_robots=2, show_figure=True, initial_conditions=init, sim_in_real_time=True)
     dt = r.TIME_STEP
-    if r.show_figure:   # the figure is projected onto the testbed floor: draw the geofence only
+    obs_marker = None
+    if r.show_figure:   # the figure is projected onto the bright floor, so black = darker (white was invisible)
+        from matplotlib.patches import Circle
         ax = r._axes_handle
         ax.plot([-FENCE, FENCE, FENCE, -FENCE, -FENCE], [-FENCE, -FENCE, FENCE, FENCE, -FENCE], "-",
-                color="white", linewidth=4, zorder=0)
+                color="black", linewidth=10, zorder=0)
+        obs_marker = Circle((10.0, 10.0), OBS_MARK_R, color="black", zorder=0)   # moved under robot 1 per episode
+        ax.add_patch(obs_marker)
 
     si_ctrl = create_si_position_controller(x_velocity_gain=1.0, y_velocity_gain=1.0, velocity_magnitude_limit=0.15)
     si_to_uni = create_si_to_uni_dynamics(linear_velocity_gain=1.0)
@@ -148,6 +153,8 @@ def main():
             x = tick(dxu, e, -1)
         x = tick(np.zeros((2, 2)), e, -1)
         obs = x[:2, 1].copy()
+        if obs_marker is not None:
+            obs_marker.center = (float(obs[0]), float(obs[1]))
         for s in range(STEPS):
             pos = x[:2, 0].copy()
             kind, f = draw_action(rng, pos / SCALE, goal_rt)

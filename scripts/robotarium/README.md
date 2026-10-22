@@ -18,6 +18,14 @@ obstacle), no robot outside the arena, wheel speeds kept under 90% of the motor 
 Real contact is never produced, so the Robotarium labels cover proximity and geofence
 exit only.
 
+## Pilot (seed 101)
+
+Ran on 2026-10-22 with the version at commit 46a590a. The testbed returned our three data
+files, a log and a 1920x1080, 25 fps overhead video (wide-angle lens, strong barrel
+distortion). The white projected fence was invisible on the bright floor; the projector
+darkens by withholding light, so the fence is now black and 10 px wide, and a dark disc is
+projected under the parked obstacle so the two identical GRITSbots differ visually.
+
 ## Check before uploading
 
 The simulator and `cvxopt` live in a separate venv so the main environment is untouched:
