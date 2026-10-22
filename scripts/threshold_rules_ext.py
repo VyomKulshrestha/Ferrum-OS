@@ -36,7 +36,10 @@ def _zq(t, gamma, sigma, q, k, nt):
     r = q * k / nt
     if abs(gamma) < 1e-6:
         return t - sigma * np.log(r)
-    return t + sigma / gamma * (r ** (-gamma) - 1.0)
+    try:
+        return t + sigma / gamma * (r ** (-gamma) - 1.0)
+    except OverflowError:                              # a runaway tail: the threshold has left the float range
+        return float("inf")
 
 
 def _init(values, q, level):

@@ -1,0 +1,828 @@
+{
+ "schema_version": "threshold-transfer-tt1b-frog-dev-v1",
+ "status": "development evidence on normal data of spent HAI releases; score-level attacker (upper bound)",
+ "releases": {
+  "hai-21.03": {
+   "release": "hai-21.03",
+   "stream_days": 2.666678240740741,
+   "thresholds": {
+    "tau0": 15.727994607082183,
+    "tau_half": 18.407790310125794,
+    "p": 0.0004232184132565029,
+    "m0": 4.222059913476309,
+    "spread": 10.719182812174449,
+    "eta": 0.10719182812174449
+   },
+   "variants": {
+    "closed_24h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1703838137022835,
+      "max_inflation": 1.1703838137022835,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.841701745513296,
+      "max_inflation": 0.97,
+      "median_campaign_alarm_steps": 18.5
+     },
+     "tracker": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.6831926067972681,
+      "max_inflation": 1.0069433747638437,
+      "median_campaign_alarm_steps": 35.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9523932636744589,
+      "max_inflation": 0.9713883215094582,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.6831926067972681,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 35.0
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 8248180542317714.0,
+      "max_inflation": 6.47439619417755e+17,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 2053773812104514.0,
+      "max_inflation": 2.452961980615984e+17,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0435612524989097,
+      "max_inflation": 1.0566132885495827,
+      "median_campaign_alarm_steps": 0.0
+     }
+    },
+    "closed_6h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1703838137022835,
+      "max_inflation": 1.1703838137022835,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.7137085409285524,
+      "max_inflation": 0.7140135908305129,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.6831926067972681,
+      "max_inflation": 1.0069433747638437,
+      "median_campaign_alarm_steps": 10.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9523932636744589,
+      "max_inflation": 0.9713883215094582,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.6831926067972681,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 10.0
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 71893.37953863265,
+      "max_inflation": 275120.49732797284,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 46937.6111814687,
+      "max_inflation": 180772.56469031182,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0435604322489271,
+      "max_inflation": 1.0835228667464851,
+      "median_campaign_alarm_steps": 0.0
+     }
+    },
+    "closed_1h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1703838137022835,
+      "max_inflation": 1.1703838137022835,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.7137085409285524,
+      "max_inflation": 0.7140135908305129,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.6831926067972681,
+      "max_inflation": 1.0069433747638437,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9523932636744589,
+      "max_inflation": 0.9713883215094582,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.6831926067972681,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 4.541842504829392,
+      "max_inflation": 6.274240922810927,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 4.692819483784646,
+      "max_inflation": 6.427478815200883,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0400245698151842,
+      "max_inflation": 1.0741421969579323,
+      "median_campaign_alarm_steps": 0.0
+     }
+    },
+    "fixed_24h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1703838137022835,
+      "max_inflation": 1.1703838137022835,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.97,
+      "max_inflation": 0.97,
+      "median_campaign_alarm_steps": 19187.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.9,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9633583554198683,
+      "max_inflation": 1.2454807139470432,
+      "median_campaign_alarm_steps": 68.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.969355685936688,
+      "max_inflation": 1.0041020137403014,
+      "median_campaign_alarm_steps": 28.5
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9633583554198683,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 68.0
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9303660206259512,
+      "max_inflation": 0.9409517875204594,
+      "median_campaign_alarm_steps": 86400.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9122029202791281,
+      "max_inflation": 1.0362967078507639,
+      "median_campaign_alarm_steps": 86400.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9897376068907513,
+      "max_inflation": 1.043561247826326,
+      "median_campaign_alarm_steps": 86399.0
+     }
+    }
+   }
+  },
+  "hai-22.04": {
+   "release": "hai-22.04",
+   "stream_days": 2.9062615740740743,
+   "thresholds": {
+    "tau0": 16.597016603253422,
+    "tau_half": 19.447656947126188,
+    "p": 0.0010157339175463054,
+    "m0": 5.226932764053345,
+    "spread": 11.40256137549106,
+    "eta": 0.1140256137549106
+   },
+   "variants": {
+    "closed_24h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 81.5
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1717561904055678,
+      "max_inflation": 1.1717561904055678,
+      "median_campaign_alarm_steps": 60.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 2.185161220068163,
+      "max_inflation": 2.252743525843467,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.7,
+      "terminal_control": 0.7,
+      "median_inflation": 0.9677662102823144,
+      "max_inflation": 1.2200123937046288,
+      "median_campaign_alarm_steps": 71.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0146392648144422,
+      "max_inflation": 1.0398638831597458,
+      "median_campaign_alarm_steps": 79.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9669885354654155,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 91.5
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 8247949.756579261,
+      "max_inflation": 426085771.4490529,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 23079563.754910477,
+      "max_inflation": 739646174.9833347,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": Infinity,
+      "max_inflation": Infinity,
+      "median_campaign_alarm_steps": 0.0
+     }
+    },
+    "closed_6h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1717561904055678,
+      "max_inflation": 1.1717561904055678,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 2.185161220068163,
+      "max_inflation": 2.252743525843467,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.7,
+      "terminal_control": 0.7,
+      "median_inflation": 0.9677662102823144,
+      "max_inflation": 1.2200123937046288,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0146392648144422,
+      "max_inflation": 1.0398638831597458,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9669885354654155,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 38.73989085625212,
+      "max_inflation": 69.4647759477253,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 56.30763909500182,
+      "max_inflation": 147.86902802557407,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 39206.64330581917,
+      "max_inflation": 372564.6254706413,
+      "median_campaign_alarm_steps": 0.0
+     }
+    },
+    "closed_1h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1717561904055678,
+      "max_inflation": 1.1717561904055678,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.6202201512161438,
+      "max_inflation": 2.252743525843467,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.7,
+      "terminal_control": 0.7,
+      "median_inflation": 0.9677662102823144,
+      "max_inflation": 1.2200123937046288,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0146392648144422,
+      "max_inflation": 1.0398638831597458,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9669885354654155,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.2098076473779806,
+      "max_inflation": 1.2269422448870357,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.3314194756168742,
+      "max_inflation": 1.5430047488969163,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.5,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0612431746626054,
+      "max_inflation": 1.1626852411167896,
+      "median_campaign_alarm_steps": 0.0
+     }
+    },
+    "fixed_24h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 81.5
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1717561904055678,
+      "max_inflation": 1.1717561904055678,
+      "median_campaign_alarm_steps": 60.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.0552790823641245,
+      "max_inflation": 2.252743525843467,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.4,
+      "terminal_control": 0.7,
+      "median_inflation": 1.1326521530753055,
+      "max_inflation": 1.36428759364846,
+      "median_campaign_alarm_steps": 95.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0146392648144422,
+      "max_inflation": 1.0398638831597458,
+      "median_campaign_alarm_steps": 79.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 114.5
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.8264333445182392,
+      "max_inflation": 0.8319636877350208,
+      "median_campaign_alarm_steps": 110.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.7737148257960182,
+      "max_inflation": 0.9037074180535426,
+      "median_campaign_alarm_steps": 86400.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.6440810241874464,
+      "max_inflation": 1.674703911995969,
+      "median_campaign_alarm_steps": 45.0
+     }
+    }
+   }
+  },
+  "hai-23.05": {
+   "release": "hai-23.05",
+   "stream_days": 2.2916666666666665,
+   "thresholds": {
+    "tau0": 7.832979018918628,
+    "tau_half": 9.169778142858487,
+    "p": 0.0017293316969764587,
+    "m0": 4.542234845956166,
+    "spread": 5.347196495759436,
+    "eta": 0.053471964957594355
+   },
+   "variants": {
+    "closed_24h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 366.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1706629266733832,
+      "max_inflation": 1.1706629266733832,
+      "median_campaign_alarm_steps": 166.5
+     },
+     "daily": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 0.8,
+      "median_inflation": 0.990227657273335,
+      "max_inflation": 1.1838333958777731,
+      "median_campaign_alarm_steps": 386.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.3041057980087785,
+      "max_inflation": 1.540393884777919,
+      "median_campaign_alarm_steps": 170.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.1027003528194839,
+      "max_inflation": 1.1718977242662914,
+      "median_campaign_alarm_steps": 295.5
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 378.5
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 415663.9866366058,
+      "max_inflation": 1765988.3925765238,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.4,
+      "median_inflation": 1.6057864220183935,
+      "max_inflation": 1.781534440301399,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.5123767691976275,
+      "max_inflation": 1.5123773921681531,
+      "median_campaign_alarm_steps": 114.0
+     }
+    },
+    "closed_6h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 190.5
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1706629266733832,
+      "max_inflation": 1.1706629266733832,
+      "median_campaign_alarm_steps": 84.5
+     },
+     "daily": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 0.8,
+      "median_inflation": 0.990227657273335,
+      "max_inflation": 1.1838333958777731,
+      "median_campaign_alarm_steps": 128.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.3041057980087785,
+      "max_inflation": 1.540393884777919,
+      "median_campaign_alarm_steps": 24.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.1027003528194839,
+      "max_inflation": 1.1718977242662914,
+      "median_campaign_alarm_steps": 88.5
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 198.5
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 5.390114202897811,
+      "max_inflation": 7.472629392751354,
+      "median_campaign_alarm_steps": 21.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.4,
+      "median_inflation": 1.2711241523173569,
+      "max_inflation": 1.4106072168145571,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.5071036595632137,
+      "max_inflation": 1.5084954685609833,
+      "median_campaign_alarm_steps": 50.0
+     }
+    },
+    "closed_1h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 34.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1706629266733832,
+      "max_inflation": 1.1706629266733832,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 0.8,
+      "median_inflation": 0.990227657273335,
+      "max_inflation": 1.1838333958777731,
+      "median_campaign_alarm_steps": 7.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.3041057980087785,
+      "max_inflation": 1.540393884777919,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.1027003528194839,
+      "max_inflation": 1.1718977242662914,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 34.0
+     },
+     "spot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.1443401868602465,
+      "max_inflation": 1.1841855852073968,
+      "median_campaign_alarm_steps": 27.5
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.4,
+      "median_inflation": 1.24662261149822,
+      "max_inflation": 1.3080097673343951,
+      "median_campaign_alarm_steps": 0.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0883096033844024,
+      "max_inflation": 1.1255580653247508,
+      "median_campaign_alarm_steps": 36.5
+     }
+    },
+    "fixed_24h": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 366.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1706629266733832,
+      "max_inflation": 1.1706629266733832,
+      "median_campaign_alarm_steps": 166.5
+     },
+     "daily": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 0.8,
+      "median_inflation": 0.990227657273335,
+      "max_inflation": 1.1838333958777731,
+      "median_campaign_alarm_steps": 386.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.4440493978809537,
+      "max_inflation": 1.7315363626521099,
+      "median_campaign_alarm_steps": 190.5
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.1033830045261772,
+      "max_inflation": 1.1718977242662914,
+      "median_campaign_alarm_steps": 296.5
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "max_inflation": 1.0,
+      "median_campaign_alarm_steps": 425.0
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9822870617164198,
+      "max_inflation": 0.9943924928462988,
+      "median_campaign_alarm_steps": 86400.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.4,
+      "median_inflation": 1.095141787845852,
+      "max_inflation": 1.1632883125691893,
+      "median_campaign_alarm_steps": 43274.0
+     },
+     "spot_mle": {
+      "terminal_after_campaign": 0.1,
+      "terminal_control": 1.0,
+      "median_inflation": 1.3665882546098436,
+      "max_inflation": 1.3724983231747114,
+      "median_campaign_alarm_steps": 143.5
+     }
+    }
+   }
+  }
+ }
+}
