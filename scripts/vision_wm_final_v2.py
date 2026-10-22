@@ -150,11 +150,17 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--hard", action="store_true", help="oblique camera + tall occluding obstacles (increment 3)")
+    ap.add_argument("--margin-primary", action="store_true",
+                    help="amendment2: half-budget (0.05) calibration is PRIMARY; G2 = realized FPR <= 0.10")
     a = ap.parse_args()
     scene = "hard" if a.hard else "easy"
-    nt, nc, nf, fseed, epochs = 600, 200, 300, (778 if a.hard else FINAL_SEED), 60
+    arm = "p05" if a.margin_primary else "p10"
+    g2_limit = TARGET_FPR if a.margin_primary else 1.25 * TARGET_FPR
+    fseed = (779 if a.margin_primary else 778) if a.hard else FINAL_SEED
+    nt, nc, nf, epochs = 600, 200, 300, 60
     if a.hard:
-        OUT = ROOT / "docs/research/vision_world_model_result_v3_hard.json"
+        OUT = ROOT / ("docs/research/vision_world_model_result_v3b_hard_margin.json" if a.margin_primary
+                      else "docs/research/vision_world_model_result_v3_hard.json")
     if a.smoke:
         import tempfile
         nt, nc, nf, fseed, epochs = 24, 10, 12, 999998 if a.hard else 999999, 3
@@ -166,7 +172,8 @@ def main():
         print(f"=== {p['study_id']} ({p['status']}) === branch: {p['branch']}")
         print("primary:", p["gates"]["primary_success"])
         print(f"scene={scene} sealed final seed {fseed}: " + ("ALREADY opened -> would REFUSE" if ledger_has(fseed) else "not yet opened -> eligible"))
-        print(f"run: python scripts/vision_wm_final_v2.py{' --hard' if a.hard else ''}")
+        print(f"primary arm {arm}, G2 limit {g2_limit}")
+        print(f"run: python scripts/vision_wm_final_v2.py{' --hard' if a.hard else ''}{' --margin-primary' if a.margin_primary else ''}")
         return
     if ledger_has(fseed):
         raise SystemExit(f"REFUSE: sealed final seed {fseed} already in {LEDGER}; the final runs once.")
@@ -202,21 +209,22 @@ def main():
 
     res = {"caution": {}, "frame": {}}
     for m, sc in (("cnn", cnn_fi), ("probe", probe_fi)):
-        arm = {}
+        per_arm = {}
         for f in ("p10", "p05"):
             r, fp = recall_fpr(sc, y_fi, thr[m][f])
-            arm[f] = {"target_fpr": TARGET_FPR if f == "p10" else TARGET_FPR / 2, "recall": r, "realized_fpr": fp}
-        res["caution"][m] = {**arm, **TR.auc(y_fi, sc)}
+            per_arm[f] = {"target_fpr": TARGET_FPR if f == "p10" else TARGET_FPR / 2, "recall": r, "realized_fpr": fp}
+        res["caution"][m] = {**per_arm, **TR.auc(y_fi, sc)}
     res["caution"]["base_rate"] = {"auc_pr": float(y_fi.mean()), "prevalence": float(y_fi.mean())}
     res["frame"]["persistence"] = TR.mae_report(cur_fi[:, -1], nxt_fi, cur_fi[:, -1])
     res["frame"]["ridge"] = TR.mae_report(TR.ridge_frame(cur_tr, act_tr, nxt_tr, cur_fi, act_fi), nxt_fi, cur_fi[:, -1])
     res["frame"]["cnn_best_frame"] = TR.mae_report(frame_fi_bestf, nxt_fi, cur_fi[:, -1])
 
-    boot = boot_recall_diff(cnn_fi, probe_fi, y_fi, thr["cnn"]["p10"], thr["probe"]["p10"])
-    g1 = (res["caution"]["cnn"]["p10"]["recall"] > res["caution"]["probe"]["p10"]["recall"]
+    boot = boot_recall_diff(cnn_fi, probe_fi, y_fi, thr["cnn"][arm], thr["probe"][arm])
+    g1 = (res["caution"]["cnn"][arm]["recall"] > res["caution"]["probe"][arm]["recall"]
           and res["caution"]["cnn"]["auc_pr"] > res["caution"]["probe"]["auc_pr"] and boot["ci95"][0] > 0)
-    g2 = res["caution"]["cnn"]["p10"]["realized_fpr"] <= 1.25 * TARGET_FPR
-    gates = {"G1_caution_beats_linear": bool(g1), "G2_budget_holds": bool(g2),
+    g2 = res["caution"]["cnn"][arm]["realized_fpr"] <= g2_limit
+    gates = {"primary_arm": arm, "G2_limit": g2_limit,
+             "G1_caution_beats_linear": bool(g1), "G2_budget_holds": bool(g2),
              "recall_diff_bootstrap": boot, "primary_success": bool(g1 and g2)}
 
     print(f"\nFINAL (sealed seed {fseed}, {len(cur_fi)} transitions, prevalence {y_fi.mean():.3f}):")

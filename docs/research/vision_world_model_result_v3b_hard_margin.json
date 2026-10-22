@@ -1,0 +1,86 @@
+{
+ "schema_version": "vision-world-model-result-v2",
+ "protocol": "vision_world_model_protocol_v2.json",
+ "status": "registered final, opened once; branch work (not main); advisory only",
+ "scene": "hard",
+ "final_seed": 779,
+ "trainable_parameters": 5908674,
+ "device": "cuda",
+ "thresholds": {
+  "cnn": {
+   "p10": 5.575289726257324,
+   "p05": 9.678156852722168
+  },
+  "probe": {
+   "p10": 0.8751643300056458,
+   "p05": 0.9441699385643005
+  }
+ },
+ "results": {
+  "caution": {
+   "cnn": {
+    "p10": {
+     "target_fpr": 0.1,
+     "recall": 0.37611559711007225,
+     "realized_fpr": 0.13026590976994323
+    },
+    "p05": {
+     "target_fpr": 0.05,
+     "recall": 0.2690182745431364,
+     "realized_fpr": 0.06543172990737975
+    },
+    "auc_pr": 0.6624147116652608,
+    "auc_roc": 0.7162433427960238,
+    "prevalence": 0.4128070175438596
+   },
+   "probe": {
+    "p10": {
+     "target_fpr": 0.1,
+     "recall": 0.22099447513812154,
+     "realized_fpr": 0.11891245891843442
+    },
+    "p05": {
+     "target_fpr": 0.05,
+     "recall": 0.13387165320866978,
+     "realized_fpr": 0.06363907977293098
+    },
+    "auc_pr": 0.521927586212553,
+    "auc_roc": 0.6017481322751813,
+    "prevalence": 0.4128070175438596
+   },
+   "base_rate": {
+    "auc_pr": 0.4128070175438596,
+    "prevalence": 0.4128070175438596
+   }
+  },
+  "frame": {
+   "persistence": {
+    "overall_mae": 0.0021095359697937965,
+    "dynamic_region_mae": 0.4310044050216675
+   },
+   "ridge": {
+    "overall_mae": 0.025938261300325394,
+    "dynamic_region_mae": 0.32136014103889465
+   },
+   "cnn_best_frame": {
+    "overall_mae": 0.016624948009848595,
+    "dynamic_region_mae": 0.3220777213573456
+   }
+  }
+ },
+ "gates": {
+  "primary_arm": "p05",
+  "G2_limit": 0.1,
+  "G1_caution_beats_linear": true,
+  "G2_budget_holds": true,
+  "recall_diff_bootstrap": {
+   "recall_difference": 0.13514662133446664,
+   "ci95": [
+    0.11814704632384188,
+    0.15299617509562263
+   ]
+  },
+  "primary_success": true
+ },
+ "interpretation": "Amendment2 (margin-primary) on a FRESH sealed hard seed 779 PASSES. Primary arm (calibrated to 0.05): CNN recall 0.269 at realized FPR 0.065 (<= 0.10 budget) vs probe 0.134; recall diff +0.135 CI95 [0.118,0.153]; AUC-PR 0.662 vs 0.522. The 0.10-calibrated reference arm overshot again (realized 0.130), replicating seed 778 (0.139): the calibration-transfer gap on hard scenes is systematic, and the half-budget margin holds the budget on both seeds (0.079 on 778, 0.065 on 779). Cost: recall at the held budget is modest (0.269), though ~2x the linear probe. The margin rule was chosen after seeing 778; 779 was never opened before this run."
+}

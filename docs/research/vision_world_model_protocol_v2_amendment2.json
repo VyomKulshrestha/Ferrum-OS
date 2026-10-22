@@ -1,0 +1,19 @@
+{
+ "schema_version": "vision-world-model-protocol-v2-amendment2",
+ "amends": "docs/research/vision_world_model_protocol_v2.json (with amendment1, hard scene)",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "status": "registered; single final open pending (hard scene, margin-primary)",
+ "motivation": "On the hard/occluded sealed final (seed 778) the CNN caution beat the linear probe (G1 pass) but the threshold calibrated to the 10% false-alarm budget did not transfer (realized FPR 0.139 > 0.125 slack, G2 fail). The registered conservative arm (calibrate to 5%) landed at realized FPR 0.079, under the 10% budget. This amendment was written AFTER seeing seed 778, so seed 778 cannot test it; a fresh, never-opened sealed seed (779) is the honest test.",
+ "amendment": {
+  "primary_calibration": "Half-budget margin is PRIMARY: each detector's threshold is set on the calibration split's benign steps to false-caution rate <= 0.05 (half of the 0.10 operational budget). The 0.10-calibrated arm is still computed and reported for reference.",
+  "G1": "On the sealed final, at the margin-calibrated thresholds: CNN recall > linear-probe recall, CNN AUC-PR > probe AUC-PR, and the 95% bootstrap CI (10,000 resamples over hazard steps) lower bound on recall_cnn - recall_probe > 0.",
+  "G2": "CNN realized false-caution rate on the sealed final's benign steps <= 0.10 (the operational budget itself; no extra slack, since the margin is built in).",
+  "primary_success": "G1 and G2 both hold.",
+  "sealed_final_seed": 779,
+  "outputs": "docs/research/vision_world_model_result_v3b_hard_margin.json; ledger target/vision-wm/final_access.jsonl (seed 779 opened once).",
+  "run": "python scripts/vision_wm_final_v2.py --hard --margin-primary"
+ },
+ "unchanged": "Hard scene (amendment1), model, per-head checkpoint selection, training data (seed 0), calibration data (seed 1), baselines, advisory-only boundary, single-open discipline.",
+ "honest_expectation": "The margin should hold the budget; recall at the stricter threshold will be lower than at 10% (seed 778 showed CNN 0.302 vs probe 0.157 at the 5% arm). A G1 or G2 failure is reported as-is."
+}
