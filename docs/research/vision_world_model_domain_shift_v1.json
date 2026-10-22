@@ -1,0 +1,173 @@
+{
+ "schema_version": "vision-wm-domain-shift-v1",
+ "status": "EXPLORATORY (dev seeds 0/1/3/4, nothing sealed); branch work, not main; advisory only",
+ "scene": "hard",
+ "calibration_fpr": 0.05,
+ "dr_ranges": {
+  "floor": [
+   0.05,
+   0.4
+  ],
+  "obst": [
+   0.35,
+   0.8
+  ],
+  "agent": [
+   0.65,
+   1.0
+  ],
+  "eye_jitter": 0.35,
+  "noise": [
+   0.0,
+   0.05
+  ],
+  "gamma": [
+   0.7,
+   1.4
+  ],
+  "blur_p": 0.5
+ },
+ "shift": {
+  "floor": 0.48,
+  "obst": 0.62,
+  "agent": 0.85,
+  "eye_offset": [
+   0.55,
+   0.45,
+   0.45
+  ],
+  "light": [
+   -0.9,
+   0.6,
+   0.35
+  ],
+  "noise": 0.06,
+  "gamma": 1.5,
+  "blur": true
+ },
+ "test_prevalence": 0.37842105263157894,
+ "results": {
+  "cnn_trained_clean": {
+   "clean": {
+    "auc_pr": 0.5918388374322964,
+    "auc_roc": 0.677274127086378,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.20375521557719053,
+     "realized_fpr": 0.05165114309906858
+    },
+    "target_calibrated": {
+     "recall": 0.1376912378303199,
+     "realized_fpr": 0.026672311600338696
+    }
+   },
+   "shift": {
+    "auc_pr": 0.3902104515454594,
+    "auc_roc": 0.5143418804224044,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.1376912378303199,
+     "realized_fpr": 0.12489415749364945
+    },
+    "target_calibrated": {
+     "recall": 0.05910987482614743,
+     "realized_fpr": 0.05207451312447079
+    }
+   },
+   "seconds": 71
+  },
+  "probe_trained_clean": {
+   "clean": {
+    "auc_pr": 0.47199295309468087,
+    "auc_roc": 0.5968030558012293,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.12726008344923506,
+     "realized_fpr": 0.06265876375952582
+    },
+    "target_calibrated": {
+     "recall": 0.08414464534075104,
+     "realized_fpr": 0.04022015241320914
+    }
+   },
+   "shift": {
+    "auc_pr": 0.3795876016547136,
+    "auc_roc": 0.5012904247714449,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.10292072322670376,
+     "realized_fpr": 0.09568162574089754
+    },
+    "target_calibrated": {
+     "recall": 0.0584144645340751,
+     "realized_fpr": 0.05292125317527519
+    }
+   }
+  },
+  "cnn_trained_dr": {
+   "clean": {
+    "auc_pr": 0.4718009310116042,
+    "auc_roc": 0.5903375360217821,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.09457579972183588,
+     "realized_fpr": 0.04149026248941575
+    },
+    "target_calibrated": {
+     "recall": 0.02851182197496523,
+     "realized_fpr": 0.010160880609652836
+    }
+   },
+   "shift": {
+    "auc_pr": 0.39118275315218837,
+    "auc_roc": 0.5087497453302698,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.20375521557719053,
+     "realized_fpr": 0.18882303132938189
+    },
+    "target_calibrated": {
+     "recall": 0.04450625869262865,
+     "realized_fpr": 0.03683319220999153
+    }
+   },
+   "seconds": 35
+  },
+  "probe_trained_dr": {
+   "clean": {
+    "auc_pr": 0.45600583219216073,
+    "auc_roc": 0.5889389134170024,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.08414464534075104,
+     "realized_fpr": 0.04572396274343776
+    },
+    "target_calibrated": {
+     "recall": 0.012517385257301807,
+     "realized_fpr": 0.00550381033022862
+    }
+   },
+   "shift": {
+    "auc_pr": 0.38589513679466536,
+    "auc_roc": 0.5043998980143416,
+    "prevalence": 0.37842105263157894,
+    "sim_calibrated": {
+     "recall": 0.35048678720445064,
+     "realized_fpr": 0.34758679085520744
+    },
+    "target_calibrated": {
+     "recall": 0.06675938803894298,
+     "realized_fpr": 0.05842506350550381
+    }
+   }
+  },
+  "dr_vs_clean_cnn_shift_recall_targetcal": {
+   "recall_difference": -0.01460361613351878,
+   "ci95": [
+    -0.0305980528511822,
+    0.0013908205841446433
+   ]
+  }
+ },
+ "note": "SHIFT is a synthetic pseudo-real look outside the randomization ranges, not real footage. Target-calibration uses benign steps of a separate SHIFT seed, mirroring 'calibrate on real benign footage'."
+}
