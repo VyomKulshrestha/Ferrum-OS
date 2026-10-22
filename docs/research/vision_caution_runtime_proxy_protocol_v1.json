@@ -1,0 +1,63 @@
+{
+ "schema_version": "vision-caution-runtime-proxy-protocol-v1",
+ "study_id": "vision-caution-runtime-proxy-v1",
+ "registered_at": "2026-10-22",
+ "registered_before": "any training, selection or sealed render for this study",
+ "branch": "vision-world-model (NOT main)",
+ "purpose": "Address the two open promotion conditions of docs/research/vision_caution_integration_protocol_v1.json as far as FerrumOS allows: (1) footage of the deployment domain with labels for the hazard the advisory claims, and (2) an explicit mapping from the runtime action space to the head's action input, re-evaluated under that mapping, with one sealed evaluation.",
+ "honest_scope": {
+  "deployment_domain": "FerrumOS has no real robot, camera or hardware-in-the-loop rig. The only runtime scene is the registered PyBullet world (topology pybullet-direct-box-robot-obstacle-v1, scripts/run_physical_jepa_pybullet_integration.py). This study films THAT world. It is a runtime-scene PROXY in simulation, not real footage. Promotion condition 1 (real footage of the actual deployment camera) stays OPEN whatever the result.",
+  "hazards_in_scope": "camera-visible geometric terms of train_physical_world_model.is_dangerous only: obstacle proximity (moving and clearance_next < 0.16), geofence exit (margin_next < 0), and robot-obstacle contact. Humans, battery, link, e-stop and approval hazards are invisible to a camera and out of scope.",
+  "authority": "advisory diagnostic only; no permit, block, approval, adapter or actuation authority. The deterministic gate stays the sole permit authority; a vision score is never a PhysicalPrediction."
+ },
+ "data": {
+  "generator": "scripts/vision_runtime_domain_render.py collect(n_episodes, seed, steps=12, size=64)",
+  "physics": "unmodified tools/physical_sim_bridge/bridge.py PyBulletBackend; Move -> move_to target = position + 0.32*(dx, dy) m over 240 substeps (one runtime step); Stop -> stop; the other five kinds have no base motion",
+  "camera": "fixed overhead, eye (0, 0, 2.6) m, FOV 60, 64x64 grey, TinyRenderer, rendered in a separate mirror client; floor lighter inside the geofence |x|,|y| <= 1 m",
+  "actions": "runtime PhysicalAction kinds (move, inspect, diagnose, approve, repair, verify, stop) with probabilities (0.60, 0.06, 0.06, 0.06, 0.06, 0.06, 0.10); features from train_physical_world_model.action_features, except half of the Move steps head for a per-episode goal",
+  "episode": "12 steps, 13 frames; robot start uniform in [-0.8, 0.8]^2, obstacle in [-0.9, 0.9]^2 at least 0.45 m away",
+  "label": "per-step danger d_t = (Move with speed > 0.1 and clearance_next < 0.16) or margin_next < 0 or first contact during step t; caution target for the decision at frame t with proposed action a_t: any(d_t, d_t+1, d_t+2) (H = 3)",
+  "decision_points": "t = 1..11 per episode (2-frame stack: frames t-1, t)",
+  "pre_registration_look": "Only the renderer self-test (seed 5, 40 episodes) was run before registration, to check the render and the label prevalence (0.261 at H=3). No model was trained on any seed below before registration.",
+  "splits": {"train": {"seed": 200, "episodes": 800}, "selection": {"seed": 201, "episodes": 300}, "sealed_final": {"seed": 790, "episodes": 400}}
+ },
+ "action_mapping": {
+  "candidate": "identity: the runtime model's own 10-dim action encoding, one-hot over the 7 PhysicalActionKind values + the 3 raw features in [-1, 1] (the same encoding as train_physical_world_model.make_input). Nothing is projected or discarded.",
+  "rejected_alternative_tested": "lossy projection onto the v1 head's five sim impulses (stay, -x, +x, -y, +y): Move keeps only its dominant axis; every other kind becomes stay (vision_runtime_domain_render.lossy_sim_action)",
+  "runtime_validation_mirrored": "features must be finite and within [-1, 1] (physical-runtime model.rs InvalidAction); kind must be one of the 7 kinds"
+ },
+ "models": {
+  "dinov2_runtime (candidate)": "frozen official facebook/dinov2-small (strict-loaded pure-torch ViT); grey frame -> RGB -> bilinear 224 -> ImageNet norm; patch map adaptive-avg-pooled to P x P, fp16; head: 2-frame stack -> Conv1x1(64)+GELU, concat GELU(Linear(10->32)(runtime action)) -> Linear(->128)+GELU -> Linear(128->1)",
+  "dinov2_lossy5": "same encoder and head, action input = one-hot of the lossy 5-impulse projection (Linear(5->32))",
+  "pixel_probe_runtime": "logistic regression (C=0.5, balanced) on the raw 2x64x64 frame stack + the 10-dim runtime action",
+  "action_only": "logistic regression (C=1.0, balanced) on the 10-dim runtime action alone (control: how much the action predicts without the camera)",
+  "v1_zero_shot (reference)": "the frozen vision-caution-v1 artifact (hard sim scene, 5-action input) applied unchanged to the 4x4 features with the lossy mapping, at its own registered fpr_0.05 threshold; reported descriptively, no gate",
+  "state_reference (reference)": "HistGradientBoostingClassifier on TRUE decision-time geometry (robot xy, obstacle xy, relative vector, clearance, margin, kinematic next position/clearance/margin) + the 10-dim action; an upper reference for what the runtime's state estimate already supports; no gate"
+ },
+ "selection_before_open": {
+  "pooling": "P in {4, 8}, chosen for dinov2_runtime by selection-split AUC-PR; dinov2_lossy5 and v1 use the same P except v1, which needs P = 4",
+  "head_training": "AdamW 1e-3, wd 1e-4, batch 256, pos_weight = neg/pos, up to 60 epochs, early stop (patience 8) on selection AUC-PR, seed 0",
+  "calibration": "margin-primary: threshold = benign (y = 0) selection-score quantile at FPR 0.05; the 0.10 threshold is a secondary arm; the false-alarm budget is 0.10",
+  "persistence": "the selected dinov2_runtime head, thresholds and a Platt map fitted on selection logits are written to docs/research/artifacts/vision-caution-v2/selected_caution_head.npz (schema FERRUM_VISION_CAUTION_V2) and hashed BEFORE the sealed seed is opened"
+ },
+ "single_open": {
+  "ledger": "target/vision-wm/final_access.jsonl; the harness refuses a seed already recorded",
+  "crash_rule": "if infrastructure fails after the open and before any metric is computed, seed 790 is retired in the ledger with that reason and the run is repeated once on seed 791; nothing observed on 790 may be used",
+  "compute": "CPU only (CUDA_VISIBLE_DEVICES=-1) for the whole run: the RTX 4060 has produced intermittent CUDA faults and silent non-finite outputs in this study series"
+ },
+ "gates": {
+  "G1_capability": "dinov2_runtime beats BOTH pixel_probe_runtime and action_only on the sealed seed: higher AUC-PR, and higher recall at each model's own fpr_0.05 threshold with the episode-cluster bootstrap CI95 lower bound of the recall difference > 0",
+  "G2_budget": "dinov2_runtime realized benign FPR on the sealed seed <= 0.10 at its fpr_0.05 threshold",
+  "primary_success": "G1 and G2",
+  "S1_mapping (registered secondary)": "dinov2_runtime vs dinov2_lossy5: higher AUC-PR and recall difference CI95 lower bound > 0 means the identity mapping carries information the 5-impulse projection loses",
+  "descriptive": ["v1_zero_shot AUC-PR, recall and realized FPR at its own threshold", "state_reference AUC-PR", "per-hazard-type recall of dinov2_runtime (proximity, geofence, contact)", "recall by action kind"]
+ },
+ "statistics": {
+  "bootstrap": "episode-cluster bootstrap over sealed episodes, 10000 replicates, seed 0; recall difference computed on the positives inside each resampled set of episodes",
+  "metrics": "AUC-PR (average precision), ROC AUC, recall and realized FPR at the frozen thresholds"
+ },
+ "consequences": {
+  "if_primary_passes": "a v2 integration protocol may qualify the advisory for logging on the runtime-scene proxy with the runtime action interface (still simulation, still off by default, still no authority, still not for real cameras or live use)",
+  "if_primary_fails": "the v2 artifact is retained as a negative, the advisory default stays v1, and the failure is reported as is"
+ }
+}
