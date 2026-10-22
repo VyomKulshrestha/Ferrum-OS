@@ -1,0 +1,45 @@
+{
+ "thresholds": {
+  "vision_real_cal": 6.110558986663818,
+  "vision_sim_thr": 1.488970398902893,
+  "action_only": 0.5731449723243713,
+  "state_reference": 0.9146864746638792
+ },
+ "calibration_runs": [
+  "seed201",
+  "seed202",
+  "seed203",
+  "seed204"
+ ],
+ "calibration_quality": {
+  "seed201": {
+   "window_corr_median": 0.6022999720564663,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.640905525593296,
+   "passes": true
+  },
+  "seed202": {
+   "window_corr_median": 0.6262140711564752,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.7258760348565416,
+   "passes": true
+  },
+  "seed203": {
+   "window_corr_median": 0.7183506160282289,
+   "hold_pairing": 0.9891304347826086,
+   "median_err_px": 1.3935777959270546,
+   "passes": true
+  },
+  "seed204": {
+   "window_corr_median": 0.5789652839497876,
+   "hold_pairing": 0.9369369369369369,
+   "median_err_px": 1.1399289489514368,
+   "passes": true
+  }
+ },
+ "calibration_decisions": 352,
+ "calibration_benign": 285,
+ "artifact_sha256": "77e3ea1ed04421818e1efd6aa4b216b92b75b224c1f13e18e307345fc040042f",
+ "dinov2_sha256": "ae1e99fcefd534ed978cdeb8326f08030c96e28b7a81ffcbc98a857c84d14be1",
+ "frozen_at": "2026-10-23T02:59:18"
+}

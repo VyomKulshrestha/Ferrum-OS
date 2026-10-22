@@ -9,7 +9,11 @@
   "package": "tools/vision_caution/ (vision_caution.py, dinov2_small.py, test_vision_caution.py, README.md)",
   "interface_v2": "VisionCaution(...).assess(frames=(prev, cur) 64x64 grey float in [0,1], proposed_action=(kind, features), frame_ids=(prev_id, cur_id)) -> VisionCautionAdvisory; kind = one of move, inspect, diagnose, approve, repair, verify, stop (name or index 0..6); features = 3 finite values in [-1, 1]",
   "action_mapping": "identity: one-hot over the 7 PhysicalActionKind values + the 3 raw features, the runtime model's own encoding (train_physical_world_model.make_input without the state); nothing is projected or discarded",
-  "statuses": ["caution_raised", "no_caution_raised", "no_confident_caution"],
+  "statuses": [
+   "caution_raised",
+   "no_caution_raised",
+   "no_confident_caution"
+  ],
   "no_all_clear": "There is no 'safe' status. 'no_caution_raised' only means the score is below the calibrated threshold.",
   "enable": "environment FERRUM_VISION_CAUTION=advisory or VisionCaution(enabled=True); default is disabled",
   "output": "a JSON record (schema ferrum_vision_caution_advisory_v1) to logs/telemetry only"
@@ -50,12 +54,19 @@
  },
  "qualification": {
   "qualified_for": "advisory logging on the runtime-scene proxy: the registered PyBullet integration world (pybullet-direct-box-robot-obstacle-v1) filmed by a fixed overhead 64x64 grey camera, driven through the unmodified PyBulletBackend by runtime PhysicalAction sequences; camera-visible hazards only (obstacle proximity, geofence exit, contact)",
-  "not_qualified_for": ["live use", "any permit or block decision", "real cameras or real robots", "hazards a camera cannot see (humans, battery, link, e-stop, approval)", "other camera placements, resolutions or scenes"],
+  "not_qualified_for": [
+   "live use",
+   "any permit or block decision",
+   "real cameras or real robots",
+   "hazards a camera cannot see (humans, battery, link, e-stop, approval)",
+   "other camera placements, resolutions or scenes"
+  ],
   "evidence": {
    "sealed_proxy": "vision_caution_runtime_proxy_result_v1.json, seed 790, 4400 decisions in 400 episodes, prevalence 0.255: AUC-PR 0.685 (ROC 0.861), recall 0.464 at realized benign FPR 0.057 (fpr_0.05 threshold, 0.10 budget); beats the pixel probe (AUC-PR 0.323, recall +0.364, episode-cluster CI95 [0.319, 0.407]) and the action-only control (0.295, +0.401, CI95 [0.358, 0.443]); primary PASS",
    "action_mapping": "registered secondary S1 PASS: the identity runtime-action head beats the lossy 5-impulse projection head, recall +0.034 (CI95 [0.013, 0.054]), AUC-PR 0.685 vs 0.679; the projection loses little ranking but costs recall at the frozen threshold",
    "limits_seen": "the true-geometry state reference reaches AUC-PR 0.858 (recall 0.647 at FPR 0.045), so the camera is a weaker, redundant view of what the runtime's state estimate already supports; recall is 0.55 when the proposed action is a Move but 0.20-0.29 for non-motion kinds, whose positives come from later, unseen actions or from already being outside the fence",
-   "real_footage_other_domain": "vision_world_model_ccd_result_v1.json (dashcam crash anticipation) tests the approach on real video in another domain; it does not qualify this head"
+   "real_footage_other_domain": "vision_world_model_ccd_result_v1.json (dashcam crash anticipation) tests the approach on real video in another domain; it does not qualify this head",
+   "real_robot_negative": "vision_caution_robotarium_result_v1.json (registered, Robotarium real robots + overhead camera, sealed seeds 301-306, opened once): primary FAIL. The head scored AUC-PR 0.279 vs a 0.220 base rate and did not beat the action-only control (recall diff 0.0, CI [-0.088, 0.091]); the real-calibrated threshold held the budget (FPR 0.015) but the simulation threshold did not (FPR 0.905). Exploratory diagnosis: vision_caution_robotarium_diagnosis_v1.json (projected black fence/disc reads as 'outside the fence' to the proxy-trained head). Scope unchanged."
   }
  },
  "promotion_conditions": [

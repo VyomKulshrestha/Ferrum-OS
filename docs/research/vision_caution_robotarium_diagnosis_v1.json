@@ -1,0 +1,37 @@
+{
+ "schema_version": "vision-caution-robotarium-diagnosis-v1",
+ "status": "EXPLORATORY, computed after the single sealed open; does not change the registered result (vision_caution_robotarium_result_v1.json: primary FAIL)",
+ "question": "Why did the sim-trained v2 head score AUC-PR 0.717 on the exploratory pilot but near chance on the registered runs?",
+ "vision_logits_by_run_group": {
+  "pilot_101_white_fence_no_disc": {
+   "decisions": 88,
+   "prevalence": 0.455,
+   "benign_logit_median": 0.4,
+   "benign_frac_above_sim_threshold": 0.02,
+   "auc_pr": 0.717,
+   "auc_roc": 0.671
+  },
+  "calibration_201_204_black_fence_disc": {
+   "decisions": 352,
+   "prevalence": 0.19,
+   "benign_logit_median": 3.83,
+   "benign_frac_above_sim_threshold": 0.99,
+   "auc_pr": 0.216,
+   "auc_roc": 0.57
+  },
+  "sealed_301_306_black_fence_disc": {
+   "decisions": 528,
+   "prevalence": 0.22,
+   "benign_logit_median": 3.65,
+   "benign_frac_above_sim_threshold": 0.91,
+   "auc_pr": 0.279,
+   "auc_roc": 0.552
+  }
+ },
+ "sim_threshold_logit": 1.489,
+ "reading": "After the pilot the projected fence was changed from white (invisible) to a thick black line and a dark disc was projected under the parked obstacle. In the proxy the head was trained on, dark floor means OUTSIDE the geofence, which is a hazard. On real frames the black line and disc shifted every logit up by about 3.3 and erased the ranking. The head keys on the proxy's brightness conventions; a real scene that reverses them breaks it. The pilot is one run (88 decisions), so part of its 0.717 may be chance, but the logit shift is unambiguous.",
+ "implications": [
+  "A sim-trained vision head should not be expected to survive scene-convention changes; matching conventions or training on real footage is needed, under a new registered study with fresh sealed seeds.",
+  "Calibration on real hazard-free footage held the false-alarm budget (0.015) even though ranking failed; the simulation threshold did not (0.905)."
+ ]
+}

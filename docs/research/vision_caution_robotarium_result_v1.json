@@ -1,0 +1,157 @@
+{
+ "schema_version": "vision-caution-robotarium-result-v1",
+ "protocol": "vision_caution_robotarium_protocol_v1.json",
+ "status": "registered final on real Robotarium robots and camera, opened once; branch work (not main); advisory only; no model trained on real data",
+ "sealed_runs": [
+  "seed301",
+  "seed302",
+  "seed303",
+  "seed304",
+  "seed305",
+  "seed306"
+ ],
+ "sealed_quality": {
+  "seed301": {
+   "window_corr_median": 0.5195353802171538,
+   "hold_pairing": 0.9891696750902527,
+   "median_err_px": 1.5723338285121171,
+   "passes": true
+  },
+  "seed302": {
+   "window_corr_median": 0.5267664604942792,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.072259606610998,
+   "passes": true
+  },
+  "seed303": {
+   "window_corr_median": 0.5819118260369893,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.7940435414082998,
+   "passes": true
+  },
+  "seed304": {
+   "window_corr_median": 0.6394891789957851,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.6433861886927448,
+   "passes": true
+  },
+  "seed305": {
+   "window_corr_median": 0.6080821504134855,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.3786612966639848,
+   "passes": true
+  },
+  "seed306": {
+   "window_corr_median": 0.553214361205991,
+   "hold_pairing": 0.9541984732824428,
+   "median_err_px": 1.8398416280920287,
+   "passes": true
+  }
+ },
+ "decisions": 528,
+ "episodes": 48,
+ "prevalence": 0.2196969696969697,
+ "thresholds_file": "docs/research/artifacts/vision-caution-v2/robotarium_thresholds_v1.json",
+ "thresholds_sha256": "329f5010b10ea2f9ffc67bfcbd9fbf451fcd384029e117eb70e7a97d0e9b3648",
+ "thresholds": {
+  "vision_real_cal": 6.110558986663818,
+  "vision_sim_thr": 1.488970398902893,
+  "action_only": 0.5731449723243713,
+  "state_reference": 0.9146864746638792
+ },
+ "results": {
+  "vision_real_cal": {
+   "auc_pr": 0.27926647831869317,
+   "auc_roc": 0.5521007700033478,
+   "prevalence": 0.2196969696969697,
+   "recall": 0.05172413793103448,
+   "realized_fpr": 0.014563106796116505
+  },
+  "vision_sim_thr": {
+   "auc_pr": 0.27926647831869317,
+   "auc_roc": 0.5521007700033478,
+   "prevalence": 0.2196969696969697,
+   "recall": 0.9051724137931034,
+   "realized_fpr": 0.9053398058252428
+  },
+  "action_only": {
+   "auc_pr": 0.2195967720879388,
+   "auc_roc": 0.5105352360227653,
+   "prevalence": 0.2196969696969697,
+   "recall": 0.05172413793103448,
+   "realized_fpr": 0.055825242718446605
+  },
+  "state_reference": {
+   "auc_pr": 0.7250640468169481,
+   "auc_roc": 0.8722798794777369,
+   "prevalence": 0.2196969696969697,
+   "recall": 0.5517241379310345,
+   "realized_fpr": 0.050970873786407765
+  }
+ },
+ "bootstrap": {
+  "recall_difference": 0.0,
+  "ci95": [
+   -0.08772411798727588,
+   0.09092394533570983
+  ],
+  "episodes": 48,
+  "positives": 116
+ },
+ "gates": {
+  "G1_camera_beats_action_only": false,
+  "G2_budget_holds": true,
+  "primary_success": false,
+  "S1_sim_threshold_budget_holds": false
+ },
+ "vision_real_cal_recall_by_hazard_type": {
+  "proximity": {
+   "positives": 67,
+   "recall": 0.05970149253731343
+  },
+  "geofence": {
+   "positives": 51,
+   "recall": 0.0392156862745098
+  },
+  "contact": {
+   "positives": 0,
+   "recall": null
+  }
+ },
+ "vision_real_cal_by_action_kind": {
+  "move": {
+   "positives": 75,
+   "recall": 0.06666666666666667
+  },
+  "inspect": {
+   "positives": 5,
+   "recall": 0.0
+  },
+  "diagnose": {
+   "positives": 8,
+   "recall": 0.0
+  },
+  "approve": {
+   "positives": 4,
+   "recall": 0.0
+  },
+  "repair": {
+   "positives": 4,
+   "recall": 0.25
+  },
+  "verify": {
+   "positives": 7,
+   "recall": 0.0
+  },
+  "stop": {
+   "positives": 13,
+   "recall": 0.0
+  }
+ },
+ "code_sha256": {
+  "scripts/robotarium/evaluate_real.py": "166f1eba219a6e3fa99391aa4ba4a4e0e3065a2f2dbeff09e56dd112466408d5",
+  "scripts/robotarium/video_frames.py": "e0dff47ad4bd5062c39b56d2c86c254c5743aafa248d55f0601d02d3bdacafa6",
+  "scripts/robotarium/label_robotarium_log.py": "2b1660267105e29b4b7e29ec3f910d0320a6fd722fcffc76784e96c948e2ce92",
+  "scripts/robotarium/ferrum_experiment.py": "925a337c0a6b69587d6c834199c03f5e1aeb6647ca11b1088a3d0d80c2d3b871"
+ }
+}

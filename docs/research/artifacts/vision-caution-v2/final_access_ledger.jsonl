@@ -7,3 +7,4 @@
 {"final_seed": "ccd-test-featurise", "reason": "CCD official test videos decoded/featurised; no labels read, no metric computed", "at": "2026-10-22T09:53:32.598032+00:00"}
 {"final_seed": "ccd-test", "reason": "vision-world-model CCD v1 final: test labels read, metrics computed once", "at": "2026-10-22T10:39:12.568414+00:00"}
 {"final_seed": 790, "reason": "vision-caution runtime-scene proxy v1: identity runtime-action head (CPU)", "at": "2026-10-22T11:27:41.057268+00:00"}
+{"final_seed": "robotarium-sealed-v1", "reason": "vision-caution Robotarium v1: sealed real-robot runs scored once (CPU)", "at": "2026-10-22T21:29:18.688872+00:00"}

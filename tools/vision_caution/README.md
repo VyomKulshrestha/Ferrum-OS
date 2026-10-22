@@ -27,7 +27,11 @@ the sealed test (registered secondary S1).
 
 **Not qualified for live use or real cameras.** The runtime-scene proxy is the runtime's
 own PyBullet world filmed from a fixed overhead camera: simulation, not real footage.
-FerrumOS has no real robot or camera yet. Real-footage evidence in another domain is in
+FerrumOS has no real robot or camera yet. On real robots (Georgia Tech Robotarium, registered
+study, sealed seeds 301-306) the v2 head FAILED: AUC-PR 0.279 against a 0.220 base rate, no
+better than the action-only control, and its simulation threshold raised alarms on 90% of
+hazard-free steps (`docs/research/vision_caution_robotarium_result_v1.json`; exploratory
+diagnosis in `_diagnosis_v1.json`). Real-footage evidence in another domain is in
 `docs/research/vision_world_model_ccd_result_v1.json`; it does not qualify either head.
 
 ## Statuses

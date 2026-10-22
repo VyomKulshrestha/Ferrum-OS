@@ -40,6 +40,24 @@ What the pilot taught the tooling:
   0.455 base rate on the pilot's 88 decisions (recall 0.275 at its frozen threshold,
   FPR 0.021). One run; not evidence.
 
+## Registered study (seeds 201-204 calibration, 301-306 sealed): primary FAIL
+
+`docs/research/vision_caution_robotarium_protocol_v1.json` (committed 53364ce before the runs),
+scored once by `evaluate_real.py` on 2026-10-23:
+
+| arm (528 sealed decisions, prevalence 0.220) | AUC-PR | ROC | recall | false alarms |
+|---|---|---|---|---|
+| vision head, real-calibrated threshold (primary) | 0.279 | 0.552 | 0.052 | 0.015 |
+| vision head, simulation threshold | 0.279 | 0.552 | 0.905 | 0.905 |
+| action-only control | 0.220 | 0.511 | 0.052 | 0.056 |
+| true-position reference | 0.725 | 0.872 | 0.552 | 0.051 |
+
+G1 (camera beats action-only) FAIL, recall difference 0.0, CI95 [-0.088, 0.091]; G2 (budget)
+PASS. Exploratory diagnosis (`vision_caution_robotarium_diagnosis_v1.json`): the black
+projected fence and obstacle disc, added after the pilot, read as "outside the fence" to the
+proxy-trained head (dark floor = outside in the proxy), lifting every logit by about 3.3 and
+erasing the ranking. All ten runs passed the quality gate.
+
 ## Check before uploading
 
 The simulator and `cvxopt` live in a separate venv so the main environment is untouched:
