@@ -1,0 +1,49 @@
+{
+ "schema_version": "vision-world-model-ccd-protocol-v1",
+ "study_id": "vision-world-model-ccd-v1",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "status": "registered; single final open of the CCD official test split pending",
+ "motivation": "Every vision result so far is rendered simulation, and option (c) showed appearance shift alone takes sim-trained models to chance. This is the first REAL-footage test of the approach: the same pipeline (frozen pretrained encoder + small caution head + budget calibration) trained and evaluated on real dashcam video. It tests the approach on real data. It does NOT test transfer of the sim-trained head (different domain), and it does not qualify the sim advisory for live use.",
+ "data": {
+  "source": "Car Crash Dataset (CCD), Bao et al. 2020, github.com/Cogito2012/CarCrashDataset (repository MIT; normal clips sampled from BDD100K, research use). Public Google Drive, no account or click-through. Stored locally under target/real-footage/ccd (gitignored), never committed or redistributed.",
+  "videos": "Crash-1500: 1,500 real accident clips, 50 frames at 10 fps, 1280x720, per-frame binary accident labels (Crash-1500.txt). Normal: 3,000 normal-driving clips.",
+  "official_split": "vgg16_features/train.txt (1,200 crash, 2,400 normal) and test.txt (300 crash, 600 normal), mapped to the video files by id.",
+  "used_split": {
+   "train_pool": "official train: all 1,200 crash + 1,200 normal sampled with seed 0 (to bound memory)",
+   "train": "80% of the pool by video, stratified, seed 0; transitions subsampled to every 2nd frame for every model alike",
+   "selection_and_calibration": "the other 20% by video, all frames",
+   "sealed_final": "official test: all 300 crash + 600 normal, all frames, read once"
+  }
+ },
+ "task": {
+  "input": "frames t-1 and t (t = 1..48)",
+  "label": "y_t = 1 if the accident onset o (first labelled accident frame) satisfies 0 < o - t <= 10 (onset within 1.0 s); crash-clip frames with t >= o are EXCLUDED (anticipation, not detection); every normal-clip frame has y_t = 0.",
+  "no_action_input": "dashcam footage has no proposed action; the shared heads receive a constant action."
+ },
+ "models_frozen_before_final": {
+  "dinov2_frozen": "official facebook/dinov2-small (strict-loaded pure-torch ViT, scripts/vision_wm_pretrained_encoders.py), RGB frames resized to 224x392, ImageNet mean/std, patch-token map pooled to 4x4; vision_wm_pretrained_encoders.train_head (seed 0), early-stopped on selection AUC-PR.",
+  "mobilenet_v2_frozen": "torchvision IMAGENET1K_V1 features[:-1], same input and head (secondary reference).",
+  "scratch_cnn": "vision_wm_final_v2.train_vwm on 48x48 grey frames (squashed), best-caution checkpoint.",
+  "pixel_probe": "logistic regression on 2x24x24 grey frames (reference)."
+ },
+ "calibration": "Each model's threshold is set on the selection split's benign frames (normal clips plus crash-clip frames with y=0) to a false-caution rate of 0.05 (half of the 0.10 budget, per the margin lesson). The 0.10 arm is reported for reference.",
+ "endpoints": {
+  "primary": "frame-level caution AUC-PR on the sealed official test split.",
+  "secondary": ["AUC-ROC", "frame recall and realized FPR at the calibrated thresholds", "video-level: share of crash clips with an alarm before onset, mean time-to-accident of the first such alarm (s), share of normal clips with any alarm",
+                "SOURCE-CONFOUND CONTROL: within-crash-clip AUC-ROC and AUC-PR (crash-clip frames only: y=1 onset within 1 s vs y=0 earlier frames of the same clips). This removes the YouTube-vs-BDD100K style difference; a model that only separates sources scores ~0.5 here."]
+ },
+ "gates": {
+  "G1_pretrained_beats_scratch": "DINOv2 test AUC-PR > scratch-CNN AUC-PR and > pixel-probe AUC-PR, with the 95% video-cluster bootstrap CI (2,000 resamples of test videos) lower bound on AUC-PR(dinov2) - AUC-PR(scratch_cnn) > 0.",
+  "G2_budget_holds": "DINOv2 realized false-caution rate on the test split's benign frames <= 0.10 at its selection-calibrated (0.05) threshold.",
+  "primary_success": "G1 and G2 both hold.",
+  "reporting": "All four models, both arms and the video-level numbers are reported; a failure is retained."
+ },
+ "final_access_rule": "REVISED BEFORE ANY TEST ACCESS (the RTX 4060 faulted three times this session with no concurrent CUDA job). Two stages. (1) scripts/vision_ccd.py prepare decodes and featurises videos (grey 48x48 frames, frozen DINOv2 and MobileNetV2 4x4 maps) in per-chunk checkpoints, retryable after a GPU crash; it reads NO test labels and computes NO metric, and it logs 'ccd-test-featurise' in target/vision-wm/final_access.jsonl when it first touches a test video. (2) scripts/vision_ccd.py final runs on the CPU: it trains every model on the train split, calibrates on the selection split, persists the frozen heads, then appends 'ccd-test' to the ledger (refusing if already present), and only then reads the test labels from Crash-1500.txt and computes metrics, once. A crash after 'ccd-test' is recorded but before any metric is printed or written is logged, and the study is re-scored once from the persisted frozen heads and cached features (no retraining, no reselection); a crash after any metric ends the study as-is.",
+ "limitations_registered_in_advance": [
+  "Traffic dashcam footage is a different domain from the rendered robot scene; this validates the approach, not the sim-trained head.",
+  "CCD's official test split has been used by others; it is unseen by this project.",
+  "Accident clips come from YouTube and normal clips from BDD100K, so there is a possible source/style confound between classes, which can make frame-level separation easier than in deployment. The video-level and within-crash-clip numbers are reported to expose this.",
+  "Single training seed per model; 50-frame clips at 10 fps."
+ ]
+}
