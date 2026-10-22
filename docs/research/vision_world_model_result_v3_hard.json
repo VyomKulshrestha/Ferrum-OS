@@ -1,0 +1,84 @@
+{
+ "schema_version": "vision-world-model-result-v2",
+ "protocol": "vision_world_model_protocol_v2.json",
+ "status": "registered final, opened once; branch work (not main); advisory only",
+ "scene": "hard",
+ "final_seed": 778,
+ "trainable_parameters": 5908674,
+ "device": "cuda",
+ "thresholds": {
+  "cnn": {
+   "p10": 4.180530548095703,
+   "p05": 7.237045764923096
+  },
+  "probe": {
+   "p10": 0.8751643300056458,
+   "p05": 0.9441699385643005
+  }
+ },
+ "results": {
+  "caution": {
+   "cnn": {
+    "p10": {
+     "target_fpr": 0.1,
+     "recall": 0.41086350974930363,
+     "realized_fpr": 0.13931190073322053
+    },
+    "p05": {
+     "target_fpr": 0.05,
+     "recall": 0.30176415970287834,
+     "realized_fpr": 0.07896221094190638
+    },
+    "auc_pr": 0.6323630144463815,
+    "auc_roc": 0.7280097338547207,
+    "prevalence": 0.3778947368421053
+   },
+   "probe": {
+    "p10": {
+     "target_fpr": 0.1,
+     "recall": 0.24744661095636025,
+     "realized_fpr": 0.11534122955442752
+    },
+    "p05": {
+     "target_fpr": 0.05,
+     "recall": 0.15691736304549675,
+     "realized_fpr": 0.05640157924421884
+    },
+    "auc_pr": 0.5293572814969921,
+    "auc_roc": 0.6400755084652119,
+    "prevalence": 0.3778947368421053
+   },
+   "base_rate": {
+    "auc_pr": 0.3778947368421053,
+    "prevalence": 0.3778947368421053
+   }
+  },
+  "frame": {
+   "persistence": {
+    "overall_mae": 0.00203493470326066,
+    "dynamic_region_mae": 0.4290139377117157
+   },
+   "ridge": {
+    "overall_mae": 0.02573370933532715,
+    "dynamic_region_mae": 0.3213135600090027
+   },
+   "cnn_best_frame": {
+    "overall_mae": 0.016082173213362694,
+    "dynamic_region_mae": 0.3265334963798523
+   }
+  }
+ },
+ "gates": {
+  "G1_caution_beats_linear": true,
+  "G2_budget_holds": false,
+  "recall_diff_bootstrap": {
+   "recall_difference": 0.16341689879294338,
+   "ci95": [
+    0.13974001857010215,
+    0.18709377901578456
+   ]
+  },
+  "primary_success": false
+ },
+ "interpretation": "HARD/OCCLUDED sealed final (seed 778). G1 PASS: the vision CNN caution still significantly beats the linear pixel probe under occlusion -- AUC-PR 0.632 vs 0.529, recall@FPR0.10 0.411 vs 0.247, diff +0.163 CI95 [0.140,0.187]. The margin narrowed vs the easy scene (0.817 vs 0.366) because occlusion raises prevalence and caps both models, but the neural advantage survives. G2 FAIL: the 10%-budget threshold set on the calibration split did NOT transfer -- realized FPR 0.139 on the sealed final, over the 0.125 slack. This is a calibration-transfer miss, the same phenomenon as the real-telemetry work, now in the harder vision regime. MITIGATION (already registered and demonstrated): the conservative half-budget arm (target FPR 0.05) lands at realized FPR 0.079 <= the 10% primary budget, i.e. the half-budget margin holds the real budget under the harder distributions drift. A hard-scene protocol should adopt the half-budget margin as the PRIMARY calibration. Single-open: seed 778 not re-opened; this primary FAIL is retained. Frame dyn-MAE: CNN(best-frame) 0.327 ~ ridge 0.321 (tie) vs persistence 0.429."
+}

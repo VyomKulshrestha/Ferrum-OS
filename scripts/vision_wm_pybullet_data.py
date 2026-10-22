@@ -25,14 +25,21 @@ ACTIONS = np.array([[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], np.float32)
 BOUND = 2.2
 AGENT_R = 0.22
 BOX_HALF = 0.34
-N_OBST = 2
 MARGIN = 0.22
-CAM_H = 5.4
 VEL_DECAY, VEL_GAIN = 0.80, 0.085     # terminal speed ~0.42 units/frame
 
+# Scene presets. "easy" = increments 1-2 (top-down, 2 short obstacles, no occlusion).
+# "hard" = oblique camera + more, TALL obstacles that occlude the low agent behind
+# them, so a single frame can lose the agent and only a temporal model recovers it.
+SCENES = {
+    "easy": {"n_obst": 2, "box_h": BOX_HALF, "eye": [0, 0, 5.4], "target": [0, 0, 0], "up": [0, 1, 0]},
+    "hard": {"n_obst": 4, "box_h": 0.70, "eye": [0.0, -3.4, 3.4], "target": [0, 0, 0], "up": [0, 0, 1]},
+}
 
-def _make_world():
+
+def _make_world(scene):
     import pybullet as p
+    s = SCENES[scene]
     p.connect(p.DIRECT)
     floor_c = p.createCollisionShape(p.GEOM_BOX, halfExtents=[BOUND + 1, BOUND + 1, 0.05])
     floor_v = p.createVisualShape(p.GEOM_BOX, halfExtents=[BOUND + 1, BOUND + 1, 0.05], rgbaColor=[0.10, 0.10, 0.10, 1])
@@ -40,12 +47,12 @@ def _make_world():
     agent_v = p.createVisualShape(p.GEOM_SPHERE, radius=AGENT_R, rgbaColor=[1, 1, 1, 1])
     agent = p.createMultiBody(0, -1, agent_v, [0, 0, AGENT_R])
     obst = []
-    for _ in range(N_OBST):
-        vis = p.createVisualShape(p.GEOM_BOX, halfExtents=[BOX_HALF, BOX_HALF, BOX_HALF], rgbaColor=[0.55, 0.55, 0.55, 1])
-        obst.append(p.createMultiBody(0, -1, vis, [10, 10, BOX_HALF]))
-    view = p.computeViewMatrix([0, 0, CAM_H], [0, 0, 0], [0, 1, 0])
-    proj = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 12.0)
-    return p, agent, obst, view, proj
+    for _ in range(s["n_obst"]):
+        vis = p.createVisualShape(p.GEOM_BOX, halfExtents=[BOX_HALF, BOX_HALF, s["box_h"]], rgbaColor=[0.55, 0.55, 0.55, 1])
+        obst.append(p.createMultiBody(0, -1, vis, [10, 10, s["box_h"]]))
+    view = p.computeViewMatrix(s["eye"], s["target"], s["up"])
+    proj = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 14.0)
+    return p, agent, obst, view, proj, s["box_h"]
 
 
 def _render(p, size, view, proj):
@@ -55,9 +62,9 @@ def _render(p, size, view, proj):
     return (rgba[:, :, :3].mean(2) / 255.0).astype(np.float32)
 
 
-def collect(n_episodes=300, steps=20, size=48, seed=0):
+def collect(n_episodes=300, steps=20, size=48, seed=0, scene="easy"):
     rng = np.random.default_rng(seed)
-    P, agent, obst, view, proj = _make_world()
+    P, agent, obst, view, proj, box_h = _make_world(scene)
     frames = np.zeros((n_episodes, steps + 1, size, size), np.float32)
     actions = rng.integers(0, len(ACTIONS), (n_episodes, steps)).astype(np.int64)
     hazards = np.zeros((n_episodes, steps + 1), np.int8)
@@ -74,7 +81,7 @@ def collect(n_episodes=300, steps=20, size=48, seed=0):
         ob = []
         for o in obst:
             xy = place_clear(ob, 1.0); ob.append(xy)
-            P.resetBasePositionAndOrientation(o, [float(xy[0]), float(xy[1]), BOX_HALF], [0, 0, 0, 1])
+            P.resetBasePositionAndOrientation(o, [float(xy[0]), float(xy[1]), box_h], [0, 0, 0, 1])
         ob = np.array(ob, np.float32)
         pos = place_clear(list(ob), 1.1)
         vel = np.zeros(2, np.float32)
@@ -100,11 +107,13 @@ def collect(n_episodes=300, steps=20, size=48, seed=0):
 
 
 def _selftest():
+    import sys
     import time
     from pathlib import Path
+    scene = sys.argv[1] if len(sys.argv) > 1 else "easy"
     t0 = time.time()
-    f, a, h = collect(n_episodes=8, steps=16, size=48, seed=1)
-    print(f"frames {f.shape} actions {a.shape} hazards {h.shape} ({round(time.time()-t0,1)}s)")
+    f, a, h = collect(n_episodes=8, steps=16, size=48, seed=1, scene=scene)
+    print(f"scene={scene} frames {f.shape} actions {a.shape} hazards {h.shape} ({round(time.time()-t0,1)}s)")
     print(f"frame range [{f.min():.3f},{f.max():.3f}] mean {f.mean():.4f}")
     print(f"hazard rate {h.mean():.3f}  episodes with any hazard {int(h.any(1).sum())}/{len(h)}")
     print(f"mean |frame_t+1 - frame_t| = {np.abs(np.diff(f,axis=1)).mean():.4f}  (motion visible if >> 0.001)")

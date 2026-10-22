@@ -1,0 +1,24 @@
+{
+ "schema_version": "vision-world-model-protocol-v2-amendment1",
+ "amends": "docs/research/vision_world_model_protocol_v2.json",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "status": "registered; single final open pending (hard scene)",
+ "motivation": "The v2 final passed on top-down scenes with no occlusion. The sharper test of the regime claim is OCCLUSION: an oblique camera where tall obstacles hide the low agent behind them, so a single frame can lose the agent entirely and only a temporal world model can infer its position (and the imminent hazard) through the occlusion. A linear pixel probe, which maps the current pixels to a caution score, should degrade badly when the hazard-relevant object is occluded; the neural world model with a 2-frame stack should hold up.",
+ "amendment": {
+  "adds_scene": {
+   "name": "hard",
+   "definition": "scripts/vision_wm_pybullet_data.py SCENES['hard']: oblique camera (eye [0,-3.4,3.4], up +z), 4 obstacles, box half-height 0.70 (tall enough to occlude the agent radius 0.22 behind them). Same kinematics, action set, hazard definition and frame stack K=2 as v2.",
+   "sealed_final_seed": 778,
+   "outputs": "docs/research/vision_world_model_result_v3_hard.json; ledger target/vision-wm/final_access.jsonl (seed 778 opened once).",
+   "run": "python scripts/vision_wm_final_v2.py --hard"
+  }
+ },
+ "unchanged": "All of v2 is unchanged: per-head checkpoint selection, caution calibration to FPR 0.10 (+0.05 arm), baselines (persistence/ridge frame; base-rate/linear-probe caution), gates G1 (CNN caution beats linear probe at matched FPR + AUC-PR, bootstrap CI>0) and G2 (budget holds), single-open discipline, advisory-only authority boundary.",
+ "hypothesis": "Under occlusion the CNN's caution advantage over the linear pixel probe WIDENS versus the easy scene (where it was AUC-PR 0.817 vs 0.366). A failure (CNN no better, or budget broken) would be reported, not hidden.",
+ "limitations_registered_in_advance": [
+  "Still rendered simulation with numpy kinematics; sim-to-real gap unaddressed.",
+  "One hard-scene family; not a cross-environment claim.",
+  "Heavier occlusion than the frame rate + 2-frame memory can resolve would cap both models' recall; reported as-is."
+ ]
+}

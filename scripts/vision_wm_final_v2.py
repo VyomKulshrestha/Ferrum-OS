@@ -149,27 +149,31 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--hard", action="store_true", help="oblique camera + tall occluding obstacles (increment 3)")
     a = ap.parse_args()
-    nt, nc, nf, fseed, epochs = 600, 200, 300, FINAL_SEED, 60
+    scene = "hard" if a.hard else "easy"
+    nt, nc, nf, fseed, epochs = 600, 200, 300, (778 if a.hard else FINAL_SEED), 60
+    if a.hard:
+        OUT = ROOT / "docs/research/vision_world_model_result_v3_hard.json"
     if a.smoke:
         import tempfile
-        nt, nc, nf, fseed, epochs = 24, 10, 12, 999999, 3
+        nt, nc, nf, fseed, epochs = 24, 10, 12, 999998 if a.hard else 999999, 3
         tmp = Path(tempfile.mkdtemp(prefix="vwm_smoke_"))
         LEDGER = tmp / "ledger.jsonl"; OUT = tmp / "result.json"
-        print("SMOKE: tiny config, throwaway seed/ledger/out ->", tmp)
+        print(f"SMOKE scene={scene}: tiny config, throwaway seed/ledger/out ->", tmp)
     if a.dry_run:
         p = json.loads(PROTOCOL.read_text(encoding="utf-8"))
         print(f"=== {p['study_id']} ({p['status']}) === branch: {p['branch']}")
         print("primary:", p["gates"]["primary_success"])
-        print(f"sealed final seed {FINAL_SEED}: " + ("ALREADY opened -> would REFUSE" if ledger_has(FINAL_SEED) else "not yet opened -> eligible"))
-        print("run: python scripts/vision_wm_final_v2.py")
+        print(f"scene={scene} sealed final seed {fseed}: " + ("ALREADY opened -> would REFUSE" if ledger_has(fseed) else "not yet opened -> eligible"))
+        print(f"run: python scripts/vision_wm_final_v2.py{' --hard' if a.hard else ''}")
         return
     if ledger_has(fseed):
         raise SystemExit(f"REFUSE: sealed final seed {fseed} already in {LEDGER}; the final runs once.")
 
     t0 = time.time()
-    ftr, atr, htr = D.collect(nt, STEPS, SIZE, seed=TRAIN_SEED)
-    fca, aca, hca = D.collect(nc, STEPS, SIZE, seed=CALIB_SEED)
+    ftr, atr, htr = D.collect(nt, STEPS, SIZE, seed=TRAIN_SEED, scene=scene)
+    fca, aca, hca = D.collect(nc, STEPS, SIZE, seed=CALIB_SEED, scene=scene)
     tr = TR.build(ftr, atr, htr, H, K)
     ca = TR.build(fca, aca, hca, H, K)
     cur_tr, act_tr, nxt_tr, y_tr = tr
@@ -189,8 +193,8 @@ def main():
            for m, sc in (("cnn", cnn_ca), ("probe", probe_ca))}
 
     # SINGLE FINAL OPEN
-    record_final(fseed, "vision-world-model-v2 registered final")
-    ffi, afi, hfi = D.collect(nf, STEPS, SIZE, seed=fseed)
+    record_final(fseed, f"vision-world-model-v2 registered final (scene={scene})")
+    ffi, afi, hfi = D.collect(nf, STEPS, SIZE, seed=fseed, scene=scene)
     cur_fi, act_fi, nxt_fi, y_fi = TR.build(ffi, afi, hfi, H, K)
     frame_fi_bestf, _ = scores(best_f, cur_fi, act_fi)
     _, cnn_fi = scores(best_c, cur_fi, act_fi)
@@ -228,7 +232,7 @@ def main():
 
     doc = {"schema_version": "vision-world-model-result-v2", "protocol": PROTOCOL.name,
            "status": "registered final, opened once; branch work (not main); advisory only",
-           "final_seed": fseed, "trainable_parameters": params, "device": dev,
+           "scene": scene, "final_seed": fseed, "trainable_parameters": params, "device": dev,
            "thresholds": thr, "results": res, "gates": gates}
     OUT.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")
     print("wrote", OUT, flush=True)
