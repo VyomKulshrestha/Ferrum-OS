@@ -1,0 +1,26 @@
+{
+ "schema_version": "hai-forecast-jepa-vs-ridge-exploratory",
+ "status": "EXPLORATORY-forecasting-only-normal-data",
+ "release": "hai-23.05",
+ "n_signals": 86,
+ "jepa_epochs_max": 40,
+ "disclaimer": "Forecasting-only (single-step signal MAE) on NORMAL data; no attack/test/sealed data. Not a detection claim and not a registered result.",
+ "verdict": "ridge wins (neural does not beat it)",
+ "results": {
+  "ridge": {
+   "held_out_mae": 0.014597322791814804
+  },
+  "temporal_jepa_l64_h128_seed42": {
+   "held_out_mae": 0.019010374322533607,
+   "pct_vs_ridge": -30.231923988098323,
+   "signal_win_fraction_vs_ridge": 0.06976744186046512,
+   "seconds": 29
+  },
+  "temporal_jepa_l96_h192_seed91": {
+   "held_out_mae": 0.017431659623980522,
+   "pct_vs_ridge": -19.416826445428907,
+   "signal_win_fraction_vs_ridge": 0.06976744186046512,
+   "seconds": 22
+  }
+ }
+}
