@@ -1,0 +1,384 @@
+{
+ "schema_version": "threshold-transfer-tt1b-attacks-dev-v1",
+ "status": "development evidence on normal data of spent HAI releases; not a result",
+ "releases": {
+  "hai-21.03": {
+   "release": "hai-21.03",
+   "thresholds": {
+    "tau0": 15.727994607082183,
+    "tau_half": 18.407790310125794,
+    "p": 0.0004232184132565029,
+    "m0": 4.222059913476309,
+    "spread": 10.719182812174449,
+    "eta": 0.10719182812174449
+   },
+   "stream_days": 2.666678240740741,
+   "E4": {
+    "placements_used": 10,
+    "campaign_hours": 24.0,
+    "pulses": 12,
+    "pulse_s": 120,
+    "median_pulse_over_terminal": 2.0,
+    "rules": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 1.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.5,
+      "terminal_control": 0.5,
+      "median_inflation": 1.1703838137022835,
+      "campaign_pulses_alarmed": 1.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 2.064458936056076,
+      "campaign_pulses_alarmed": 0.975
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 2.0526810897859873,
+      "campaign_pulses_alarmed": 0.875
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.6167603177132035,
+      "campaign_pulses_alarmed": 1.0
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 1.0
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9063388828388557,
+      "campaign_pulses_alarmed": 1.0
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9020990842079091,
+      "campaign_pulses_alarmed": 1.0
+     }
+    }
+   },
+   "E6": {
+    "placements_used": 10,
+    "campaign_hours": 24.0,
+    "pulses": 24,
+    "pulse_s": 300,
+    "median_pulse_over_terminal": 0.76171875,
+    "rules": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.4,
+      "terminal_control": 0.4,
+      "median_inflation": 1.1703838137022835,
+      "campaign_pulses_alarmed": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.950086135942388,
+      "campaign_pulses_alarmed": 0.7083333333333333
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.9,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9548097107498823,
+      "campaign_pulses_alarmed": 0.475
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9668115827442718,
+      "campaign_pulses_alarmed": 0.16249999999999998
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9548097107498823,
+      "campaign_pulses_alarmed": 0.475
+     },
+     "spot": {
+      "terminal_after_campaign": 0.9,
+      "terminal_control": 1.0,
+      "median_inflation": 0.978879791373805,
+      "campaign_pulses_alarmed": 0.17083333333333334
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.9,
+      "terminal_control": 0.9,
+      "median_inflation": 0.9961955394169323,
+      "campaign_pulses_alarmed": 0.09583333333333334
+     }
+    }
+   }
+  },
+  "hai-22.04": {
+   "release": "hai-22.04",
+   "thresholds": {
+    "tau0": 16.597016603253422,
+    "tau_half": 19.447656947126188,
+    "p": 0.0010157339175463054,
+    "m0": 5.226932764053345,
+    "spread": 11.40256137549106,
+    "eta": 0.1140256137549106
+   },
+   "stream_days": 2.9062615740740743,
+   "E4": {
+    "placements_used": 10,
+    "campaign_hours": 24.0,
+    "pulses": 12,
+    "pulse_s": 120,
+    "median_pulse_over_terminal": 2.0,
+    "rules": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.9
+     },
+     "margin": {
+      "terminal_after_campaign": 0.4,
+      "terminal_control": 0.4,
+      "median_inflation": 1.1717561904055678,
+      "campaign_pulses_alarmed": 0.9
+     },
+     "daily": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.4,
+      "median_inflation": 2.252743525843467,
+      "campaign_pulses_alarmed": 0.5333333333333333
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.1,
+      "terminal_control": 1.0,
+      "median_inflation": 1.867512706998673,
+      "campaign_pulses_alarmed": 0.7833333333333334
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.1,
+      "terminal_control": 1.0,
+      "median_inflation": 1.661790996163055,
+      "campaign_pulses_alarmed": 0.9
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.9
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.8142953599711312,
+      "campaign_pulses_alarmed": 0.9
+     },
+     "dspot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.7303130241141148,
+      "campaign_pulses_alarmed": 0.9
+     }
+    }
+   },
+   "E6": {
+    "placements_used": 10,
+    "campaign_hours": 24.0,
+    "pulses": 24,
+    "pulse_s": 300,
+    "median_pulse_over_terminal": 0.4765625,
+    "rules": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.0
+     },
+     "margin": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.0,
+      "median_inflation": 1.1717561904055678,
+      "campaign_pulses_alarmed": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.5,
+      "terminal_control": 0.5,
+      "median_inflation": 1.0552790823641245,
+      "campaign_pulses_alarmed": 0.0
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.7,
+      "terminal_control": 0.8,
+      "median_inflation": 0.9558414526709125,
+      "campaign_pulses_alarmed": 0.1875
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.9,
+      "terminal_control": 0.9,
+      "median_inflation": 1.0034867635365572,
+      "campaign_pulses_alarmed": 0.016666666666666666
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9558414526709125,
+      "campaign_pulses_alarmed": 0.1875
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.8215729974383446,
+      "campaign_pulses_alarmed": 0.7708333333333333
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 1.0,
+      "median_inflation": 0.8261918524846419,
+      "campaign_pulses_alarmed": 0.7166666666666667
+     }
+    }
+   }
+  },
+  "hai-23.05": {
+   "release": "hai-23.05",
+   "thresholds": {
+    "tau0": 7.832979018918628,
+    "tau_half": 9.169778142858487,
+    "p": 0.0017293316969764587,
+    "m0": 4.542234845956166,
+    "spread": 5.347196495759436,
+    "eta": 0.053471964957594355
+   },
+   "stream_days": 2.2916666666666665,
+   "E4": {
+    "placements_used": 10,
+    "campaign_hours": 20.833333333333332,
+    "pulses": 10,
+    "pulse_s": 120,
+    "median_pulse_over_terminal": 2.0,
+    "rules": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.95
+     },
+     "margin": {
+      "terminal_after_campaign": 0.4,
+      "terminal_control": 0.4,
+      "median_inflation": 1.1706629266733832,
+      "campaign_pulses_alarmed": 0.89
+     },
+     "daily": {
+      "terminal_after_campaign": 0.4,
+      "terminal_control": 0.7,
+      "median_inflation": 1.3782850823093076,
+      "campaign_pulses_alarmed": 0.95
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.0,
+      "terminal_control": 0.3,
+      "median_inflation": 2.0076818496152677,
+      "campaign_pulses_alarmed": 0.76
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.2,
+      "terminal_control": 0.5,
+      "median_inflation": 1.519288842441619,
+      "campaign_pulses_alarmed": 0.9
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.9800000000000001
+     },
+     "spot": {
+      "terminal_after_campaign": 0.9,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9934624299244551,
+      "campaign_pulses_alarmed": 0.99
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.5,
+      "terminal_control": 0.5,
+      "median_inflation": 1.0843396902477371,
+      "campaign_pulses_alarmed": 0.95
+     }
+    }
+   },
+   "E6": {
+    "placements_used": 10,
+    "campaign_hours": 20.833333333333332,
+    "pulses": 21,
+    "pulse_s": 300,
+    "median_pulse_over_terminal": 0.3359375,
+    "rules": {
+     "frozen": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.014285714285714285
+     },
+     "margin": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.1706629266733832,
+      "campaign_pulses_alarmed": 0.0
+     },
+     "daily": {
+      "terminal_after_campaign": 0.8,
+      "terminal_control": 0.8,
+      "median_inflation": 0.9909544281269632,
+      "campaign_pulses_alarmed": 0.03809523809523809
+     },
+     "tracker": {
+      "terminal_after_campaign": 0.3,
+      "terminal_control": 0.3,
+      "median_inflation": 1.3045740119293154,
+      "campaign_pulses_alarmed": 0.047619047619047616
+     },
+     "tracker_slow": {
+      "terminal_after_campaign": 0.4,
+      "terminal_control": 0.4,
+      "median_inflation": 1.0797726844915307,
+      "campaign_pulses_alarmed": 0.019047619047619046
+     },
+     "one_sided:none": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 1.0,
+      "campaign_pulses_alarmed": 0.052380952380952375
+     },
+     "spot": {
+      "terminal_after_campaign": 1.0,
+      "terminal_control": 1.0,
+      "median_inflation": 0.9790687456371476,
+      "campaign_pulses_alarmed": 0.07142857142857142
+     },
+     "dspot": {
+      "terminal_after_campaign": 0.5,
+      "terminal_control": 0.5,
+      "median_inflation": 1.0537436546457084,
+      "campaign_pulses_alarmed": 0.03333333333333333
+     }
+    }
+   }
+  }
+ }
+}
