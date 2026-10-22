@@ -233,6 +233,12 @@ def run(dataset_id, npz, budget, steps_per_day, window):
     train, attack = load_npz(Path(npz))
     # Single final open: record the attack-data access before any label is touched.
     D._record_final_access(dataset_id, "real-telemetry-detection-v2 final evaluation")
+    evaluate_arrays(dataset_id, train, attack, budget, steps_per_day, window)
+
+
+def evaluate_arrays(dataset_id, train, attack, budget, steps_per_day, window, shared_final=None):
+    """The registered evaluation on in-memory arrays. The caller must already have recorded the
+    single final access (run() above, or the tt1 shared final harness under amendment 2)."""
     xs = C.Scaler().fit(np.concatenate([x for x, _ in train]))
     has_u = all(u is not None for _, u in train) and all(u is not None for _, u, _ in attack)
     us = C.Scaler().fit(np.concatenate([u for _, u in train])) if has_u else None
@@ -246,7 +252,7 @@ def run(dataset_id, npz, budget, steps_per_day, window):
         "baseline_rt1": C.Forecaster(dev.HORIZONS, dev.HISTORY, use_actions=has_u, gbr=BASELINE_GBR),
     }
     out = {"dataset_id": dataset_id, "budget_per_day": budget, "steps_per_day": steps_per_day,
-           "window": window, "use_actions": has_u,
+           "window": window, "use_actions": has_u, "shared_final": shared_final,
            "commit": {"wm_v2": _git_commit(ROOT / "scripts/real_telemetry_wm_v2.py"),
                       "harness": _git_commit(ROOT / "scripts/real_telemetry_detection_v2.py")},
            "arms": {}}
@@ -309,6 +315,7 @@ def run(dataset_id, npz, budget, steps_per_day, window):
     res.write_text(json.dumps({"schema_version": "real-telemetry-detection-result-v2",
                                "protocol": PROTOCOL.name, **out}, indent=1) + "\n", encoding="utf-8")
     print("wrote", res)
+    return out
 
 
 def dry_run(dataset_id):

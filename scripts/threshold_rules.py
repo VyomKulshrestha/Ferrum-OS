@@ -19,6 +19,12 @@ Rules
                                     alarm episode holds more than half of the exceedances
                   permit="oracle"   rises like "spread" but only if the trailing day held no
                                     labelled event (simulated operator; upper bound)
+                  permit="shift"    location-shift test on the body of the score distribution:
+                                    at each review the ceiling is set to tau0 + max(0, median of
+                                    the trailing window - calibration median). Lowering is a
+                                    tightening and needs no permit. Short supra-threshold events
+                                    cannot move a median unless they fill half the window.
+                A digit suffix (e.g. "spread6", "shift6") reviews every that many hours instead of daily.
 """
 from __future__ import annotations
 
@@ -54,7 +60,8 @@ def daily_path(scores: np.ndarray, tau0: float, p: float, steps_per_day: int) ->
 
 
 def one_sided_path(scores: np.ndarray, tau0: float, p: float, eta: float, steps_per_day: int, gap: int,
-                   permit: str = "none", labels: np.ndarray | None = None, review_every: int | None = None):
+                   permit: str = "none", labels: np.ndarray | None = None, review_every: int | None = None,
+                   ref_median: float | None = None):
     """Tighten-only threshold. Returns (tau, permits) where permits lists (step, old, new)."""
     review = review_every or steps_per_day
     q = tracker_path(scores, tau0, p, eta)
@@ -66,6 +73,14 @@ def one_sided_path(scores: np.ndarray, tau0: float, p: float, eta: float, steps_
         if permit == "none" or start >= len(scores):
             continue
         window = scores[start - review:start]
+        if permit == "shift":
+            finite = window[np.isfinite(window)]
+            if len(finite):
+                new = tau0 + max(0.0, float(np.median(finite)) - ref_median)
+                if new > cur:
+                    permits.append((int(start), float(cur), new))
+                cur = new
+            continue
         exceed = window > cur
         rate = exceed.mean()
         if rate <= 2 * p or not exceed.any():
@@ -86,8 +101,8 @@ def one_sided_path(scores: np.ndarray, tau0: float, p: float, eta: float, steps_
 
 
 def apply_rule(rule: str, scores: np.ndarray, tau0: float, tau_half: float, p: float, eta: float,
-               steps_per_day: int, gap: int, labels: np.ndarray | None = None):
-    """Return (tau path, metadata) for a named rule."""
+               steps_per_day: int, gap: int, labels: np.ndarray | None = None, ref_median: float | None = None):
+    """Return (tau path, metadata) for a named rule. ref_median (calibration median) is needed by "shift"."""
     if rule == "frozen":
         return np.full(len(scores), tau0), {}
     if rule == "margin":
@@ -96,6 +111,8 @@ def apply_rule(rule: str, scores: np.ndarray, tau0: float, tau_half: float, p: f
         return daily_path(scores, tau0, p, steps_per_day), {}
     if rule == "tracker":
         return tracker_path(scores, tau0, p, eta), {}
+    if rule == "tracker_slow":                         # one tenth of the step: the best budget in development
+        return tracker_path(scores, tau0, p, eta / 10), {}
     if rule.startswith("one_sided"):
         permit = rule.split(":", 1)[1] if ":" in rule else "none"
         review = None
@@ -104,9 +121,10 @@ def apply_rule(rule: str, scores: np.ndarray, tau0: float, tau_half: float, p: f
             permit = permit.rstrip("0123456789")
             review = steps_per_day * hours // 24
         tau, permits = one_sided_path(scores, tau0, p, eta, steps_per_day, gap, permit=permit, labels=labels,
-                                      review_every=review)
+                                      review_every=review, ref_median=ref_median)
         return tau, {"permits": len(permits), "permit_log": permits[:50]}
     raise ValueError(rule)
 
 
-RULES = ["frozen", "margin", "daily", "tracker", "one_sided:none", "one_sided:spread", "one_sided:spread6", "one_sided:oracle"]
+RULES = ["frozen", "margin", "daily", "tracker", "tracker_slow", "one_sided:none", "one_sided:spread",
+         "one_sided:spread6", "one_sided:shift", "one_sided:shift6", "one_sided:oracle"]
