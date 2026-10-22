@@ -1,0 +1,72 @@
+{
+ "schema_version": "vision-caution-integration-protocol-v2",
+ "study_id": "vision-caution-runtime-proxy-v1",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "supersedes_for_default": "docs/research/vision_caution_integration_protocol_v1.json (the V1 artifact stays loadable by path; its scope is unchanged)",
+ "status": "host-side advisory, OFF by default; default artifact = vision-caution-v2 (runtime action interface); qualified for logging on the runtime-scene PROXY only; NOT qualified for real cameras or live use",
+ "component": {
+  "package": "tools/vision_caution/ (vision_caution.py, dinov2_small.py, test_vision_caution.py, README.md)",
+  "interface_v2": "VisionCaution(...).assess(frames=(prev, cur) 64x64 grey float in [0,1], proposed_action=(kind, features), frame_ids=(prev_id, cur_id)) -> VisionCautionAdvisory; kind = one of move, inspect, diagnose, approve, repair, verify, stop (name or index 0..6); features = 3 finite values in [-1, 1]",
+  "action_mapping": "identity: one-hot over the 7 PhysicalActionKind values + the 3 raw features, the runtime model's own encoding (train_physical_world_model.make_input without the state); nothing is projected or discarded",
+  "statuses": ["caution_raised", "no_caution_raised", "no_confident_caution"],
+  "no_all_clear": "There is no 'safe' status. 'no_caution_raised' only means the score is below the calibrated threshold.",
+  "enable": "environment FERRUM_VISION_CAUTION=advisory or VisionCaution(enabled=True); default is disabled",
+  "output": "a JSON record (schema ferrum_vision_caution_advisory_v1) to logs/telemetry only"
+ },
+ "authority_boundary": {
+  "authority": "advisory diagnostic only; no permit, block, approval, adapter or actuation authority",
+  "enforced_by": [
+   "the artifact metadata authority string (load_artifact rejects any other value) and VisionCautionAdvisory, which refuses a different authority value",
+   "no consumer in the guest: nothing under userland/ references the package, its artifacts or its env var (checked by scripts/verify_vision_caution_advisory.py)",
+   "the score is never constructed as a PhysicalPrediction and the package has no route to ferrum_routed_command_v1, BridgeCommand, execute_tool, neural_intent_commit or physical_maintenance_demo (checked by the tests and the verifier); accepting the runtime action TYPE as input gives it no route back into the runtime",
+   "fail-safe: every doubt (disabled, missing/altered/non-finite artifact, encoder digest mismatch, invalid/obscured/stale/out-of-order frames, an action outside the runtime's InvalidAction rule, timeout, non-finite output, internal error) yields no_confident_caution with a logged reason"
+  ],
+  "deterministic_gate": "unchanged; remains the sole permit authority"
+ },
+ "advisory_artifacts": {
+  "vision_caution_head": {
+   "path": "docs/research/artifacts/vision-caution-v2/selected_caution_head.npz",
+   "sha256": "77e3ea1ed04421818e1efd6aa4b216b92b75b224c1f13e18e307345fc040042f",
+   "schema": "FERRUM_VISION_CAUTION_V2",
+   "evaluated_by": "docs/research/vision_caution_runtime_proxy_result_v1.json (sealed seed 790, opened once, CPU only; persisted before the open)",
+   "registered_by": "docs/research/vision_caution_runtime_proxy_protocol_v1.json (committed 3bdfc02 before any training or open)",
+   "encoder": "facebook/dinov2-small model.safetensors, sha256 recorded in the artifact metadata and re-checked at load"
+  },
+  "previous_head_v1": {
+   "path": "docs/research/artifacts/vision-caution-v1/selected_caution_head.npz",
+   "sha256": "800797e0701b70c5c471242a3310cb0c46f62335e9db49797945763e3a2f8a2a",
+   "scope": "unchanged, see integration protocol v1; on the runtime-scene proxy it transfers poorly (zero-shot AUC-PR 0.451, recall 0.152 at its own threshold)"
+  }
+ },
+ "protected_deployed_artifacts": {
+  "appliance/world-model/model_encoder.bin": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+  "appliance/world-model/model_learned.bin": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+  "appliance/world-model/manifest.json": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+  "userland/heliox-daemon/physical_world_model.bin": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "docs/research/artifacts/physical-jepa-v5/selected_candidate.bin": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+  "docs/research/artifacts/physical-hai-v1/selected_temporal_model.npz": "dc3ec230f9223fe35d7f78389a18d1e9171308a67f95b50ee033154d0d9a0f36",
+  "docs/research/artifacts/vision-caution-v1/selected_caution_head.npz": "800797e0701b70c5c471242a3310cb0c46f62335e9db49797945763e3a2f8a2a"
+ },
+ "qualification": {
+  "qualified_for": "advisory logging on the runtime-scene proxy: the registered PyBullet integration world (pybullet-direct-box-robot-obstacle-v1) filmed by a fixed overhead 64x64 grey camera, driven through the unmodified PyBulletBackend by runtime PhysicalAction sequences; camera-visible hazards only (obstacle proximity, geofence exit, contact)",
+  "not_qualified_for": ["live use", "any permit or block decision", "real cameras or real robots", "hazards a camera cannot see (humans, battery, link, e-stop, approval)", "other camera placements, resolutions or scenes"],
+  "evidence": {
+   "sealed_proxy": "vision_caution_runtime_proxy_result_v1.json, seed 790, 4400 decisions in 400 episodes, prevalence 0.255: AUC-PR 0.685 (ROC 0.861), recall 0.464 at realized benign FPR 0.057 (fpr_0.05 threshold, 0.10 budget); beats the pixel probe (AUC-PR 0.323, recall +0.364, episode-cluster CI95 [0.319, 0.407]) and the action-only control (0.295, +0.401, CI95 [0.358, 0.443]); primary PASS",
+   "action_mapping": "registered secondary S1 PASS: the identity runtime-action head beats the lossy 5-impulse projection head, recall +0.034 (CI95 [0.013, 0.054]), AUC-PR 0.685 vs 0.679; the projection loses little ranking but costs recall at the frozen threshold",
+   "limits_seen": "the true-geometry state reference reaches AUC-PR 0.858 (recall 0.647 at FPR 0.045), so the camera is a weaker, redundant view of what the runtime's state estimate already supports; recall is 0.55 when the proposed action is a Move but 0.20-0.29 for non-motion kinds, whose positives come from later, unseen actions or from already being outside the fence",
+   "real_footage_other_domain": "vision_world_model_ccd_result_v1.json (dashcam crash anticipation) tests the approach on real video in another domain; it does not qualify this head"
+  }
+ },
+ "promotion_conditions": [
+  "OPEN: a sealed, single-open evaluation on real footage of a real deployment camera and scene, with independent labels (labels must not come from the frames the advisory sees), passing pre-registered gates including a held false-alarm budget calibrated on real benign footage with the half-budget margin. FerrumOS has no real robot or camera yet; the runtime-scene proxy does not satisfy this condition.",
+  "MET on the proxy: an explicit mapping from the runtime action space to the head's action input, re-evaluated under that mapping (identity mapping, S1 above).",
+  "OPEN: a written authority-boundary review before any consumer inside userland/ is added; a vision score must never be passed as a PhysicalPrediction.",
+  "Until all are met the component stays off by default and advisory-only."
+ ],
+ "verification": {
+  "tests": "python -m unittest discover -s tools/vision_caution -p \"test_*.py\"",
+  "verifier_static": "python scripts/verify_vision_caution_advisory.py",
+  "verifier_replay": "python scripts/verify_vision_caution_advisory.py --replay (re-renders selection seeds 1 and 201 and re-derives both 5% thresholds)"
+ }
+}

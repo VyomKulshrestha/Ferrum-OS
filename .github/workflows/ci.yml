@@ -48,7 +48,7 @@ jobs:
           python -m unittest discover -s tools/neurod -p "test_*.py"
           python -m unittest discover -s tools/vision_caution -p "test_*.py"
           python scripts/verify_vision_caution_advisory.py
-          python -m py_compile tools/vision_caution/vision_caution.py tools/vision_caution/dinov2_small.py scripts/verify_vision_caution_advisory.py
+          python -m py_compile tools/vision_caution/vision_caution.py tools/vision_caution/dinov2_small.py scripts/verify_vision_caution_advisory.py scripts/vision_runtime_domain_render.py scripts/vision_runtime_proxy_final.py
           python -m unittest tools.physical_sim_bridge.test_bridge
           python scripts/verify_physical_incident_sources.py
           python scripts/verify_physical_incident_dataset.py

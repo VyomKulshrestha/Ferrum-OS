@@ -2,8 +2,13 @@
 """Host-side, advisory-only vision caution for FerrumOS (vision world model, increment 4).
 
 Turns the last two camera frames and a proposed action into an advisory caution record
-for logs and telemetry: P(hazard within the next 3 steps) from the frozen
-FERRUM_VISION_CAUTION_V1 head over the official DINOv2-small encoder.
+for logs and telemetry: P(hazard within the next 3 steps) from a frozen caution head over
+the official DINOv2-small encoder. Two artifact schemas are accepted:
+  FERRUM_VISION_CAUTION_V1  48x48 frames, the five-impulse sim action space (an int 0..4)
+  FERRUM_VISION_CAUTION_V2  64x64 frames, the runtime PhysicalAction space: a
+                            (kind, features) pair, kind one of the 7 runtime kinds (index or
+                            name), features 3 finite values in [-1, 1]; encoded as the
+                            runtime model's own one-hot(7) + features (identity mapping)
 
 Authority boundary (identical to physical_hai_v1): advisory diagnostic only; no permit,
 block, approval, adapter or actuation authority. The record is never a runtime or bridge
@@ -13,8 +18,8 @@ unknown action, a timeout or a non-finite output) yields "no_confident_caution" 
 reason in `degradation`.
 
 Off by default: inference runs only when FERRUM_VISION_CAUTION=advisory (or enabled=True).
-Qualified only for the rendered pybullet hard scene (clean look, sim action space); not
-qualified for live use. See docs/research/vision_caution_integration_protocol_v1.json.
+Neither artifact is qualified for live use or real cameras. Scope per artifact:
+docs/research/vision_caution_integration_protocol_v1.json (V1) and _v2.json (V2).
 
 Numpy-only for loading and validation; torch is imported on first inference.
 """
@@ -35,15 +40,27 @@ from typing import Callable
 import numpy as np
 
 SCHEMA = "FERRUM_VISION_CAUTION_V1"
+SCHEMA_V2 = "FERRUM_VISION_CAUTION_V2"
 RECORD_SCHEMA = "ferrum_vision_caution_advisory_v1"
 AUTHORITY = "advisory diagnostic only; no permit, block, approval, adapter or actuation authority"
 STATUSES = ("caution_raised", "no_caution_raised", "no_confident_caution")
 ENABLE_ENV = "FERRUM_VISION_CAUTION"
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_ARTIFACT = ROOT / "docs/research/artifacts/vision-caution-v1/selected_caution_head.npz"
+DEFAULT_ARTIFACT = ROOT / "docs/research/artifacts/vision-caution-v2/selected_caution_head.npz"   # runtime actions
+V1_ARTIFACT = ROOT / "docs/research/artifacts/vision-caution-v1/selected_caution_head.npz"
 FRAME_SIZE, N_ACTIONS, OBSCURED_STD = 48, 5, 1e-3
-HEAD_SHAPES = {"red.weight": (64, 768, 1, 1), "red.bias": (64,), "act.weight": (32, 5), "act.bias": (32,),
-               "mlp.0.weight": (128, 1056), "mlp.0.bias": (128,), "mlp.2.weight": (1, 128), "mlp.2.bias": (1,)}
+RUNTIME_ACTION_NAMES = ("move", "inspect", "diagnose", "approve", "repair", "verify", "stop")
+RUNTIME_FEATURES = 3
+V2_POOLS, V2_FRAME_SIZE = (4, 8), 64
+
+
+def head_shapes(pool: int, n_action_inputs: int) -> dict:
+    return {"red.weight": (64, 768, 1, 1), "red.bias": (64,), "act.weight": (32, n_action_inputs), "act.bias": (32,),
+            "mlp.0.weight": (128, 64 * pool * pool + 32), "mlp.0.bias": (128,), "mlp.2.weight": (1, 128),
+            "mlp.2.bias": (1,)}
+
+
+HEAD_SHAPES = head_shapes(4, N_ACTIONS)   # V1
 IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
 
@@ -92,11 +109,21 @@ def load_artifact(path=DEFAULT_ARTIFACT, expected_sha256: str | None = None) -> 
             weights = {k[len("head."):]: np.array(z[k], np.float32) for k in z.files if k.startswith("head.")}
     except Exception as exc:  # malformed archive
         raise VisionCautionError("artifact_unreadable") from exc
-    if meta.get("schema") != SCHEMA:
+    if meta.get("schema") not in (SCHEMA, SCHEMA_V2):
         raise VisionCautionError("artifact_schema")
     if meta.get("authority") != AUTHORITY:
         raise VisionCautionError("artifact_authority_boundary")
-    if {k: v.shape for k, v in weights.items()} != HEAD_SHAPES:
+    if meta["schema"] == SCHEMA:
+        interface, pool, frame_size, shapes = "sim5", 4, FRAME_SIZE, HEAD_SHAPES
+    else:
+        space = meta.get("action_space", {})
+        pool, frame_size = meta.get("pool"), meta.get("frame_size")
+        if (pool not in V2_POOLS or frame_size != V2_FRAME_SIZE
+                or tuple(space.get("names", ())) != RUNTIME_ACTION_NAMES
+                or space.get("feature_size") != RUNTIME_FEATURES):
+            raise VisionCautionError("artifact_interface")
+        interface, shapes = "runtime", head_shapes(pool, len(RUNTIME_ACTION_NAMES) + RUNTIME_FEATURES)
+    if {k: v.shape for k, v in weights.items()} != shapes:
         raise VisionCautionError("artifact_shapes")
     if not all(np.isfinite(v).all() for v in weights.values()):
         raise VisionCautionError("artifact_nonfinite")
@@ -109,10 +136,41 @@ def load_artifact(path=DEFAULT_ARTIFACT, expected_sha256: str | None = None) -> 
         raise VisionCautionError("artifact_metadata") from exc
     if not all(math.isfinite(v) for v in (*thresholds.values(), *platt)) or platt[0] <= 0:
         raise VisionCautionError("artifact_calibration")
-    if meta.get("frame_stack") != 2 or len(meta.get("action_space", {}).get("actions", [])) != N_ACTIONS:
+    if meta.get("frame_stack") != 2 or (interface == "sim5"
+                                         and len(meta.get("action_space", {}).get("actions", [])) != N_ACTIONS):
         raise VisionCautionError("artifact_interface")
     return {"meta": meta, "weights": weights, "sha256": sha, "thresholds": thresholds,
-            "platt": platt, "encoder_sha256": encoder_sha, "horizon_steps": horizon}
+            "platt": platt, "encoder_sha256": encoder_sha, "horizon_steps": horizon,
+            "interface": interface, "pool": pool, "frame_size": frame_size}
+
+
+def encode_action(interface: str, action) -> np.ndarray:
+    """Validate a proposed action for the artifact's interface and return the head's input
+    vector. sim5: an int 0..4 -> one-hot(5). runtime: (kind, features) -> one-hot(7) + the
+    3 features, mirroring the runtime's InvalidAction rule (finite, within [-1, 1])."""
+    if interface == "sim5":
+        if not isinstance(action, (int, np.integer)) or isinstance(action, bool) or not 0 <= int(action) < N_ACTIONS:
+            raise VisionCautionError("action_out_of_space")
+        vec = np.zeros(N_ACTIONS, np.float32)
+        vec[int(action)] = 1.0
+        return vec
+    if not (isinstance(action, (tuple, list)) and len(action) == 2):
+        raise VisionCautionError("action_out_of_space")
+    kind, features = action
+    if isinstance(kind, str) and kind in RUNTIME_ACTION_NAMES:
+        kind = RUNTIME_ACTION_NAMES.index(kind)
+    if not isinstance(kind, (int, np.integer)) or isinstance(kind, bool) or not 0 <= int(kind) < len(RUNTIME_ACTION_NAMES):
+        raise VisionCautionError("action_out_of_space")
+    try:
+        feats = np.asarray(features, np.float64)
+    except (TypeError, ValueError) as exc:
+        raise VisionCautionError("action_out_of_space") from exc
+    if feats.shape != (RUNTIME_FEATURES,) or not np.isfinite(feats).all() or np.abs(feats).max() > 1.0:
+        raise VisionCautionError("action_out_of_space")
+    vec = np.zeros(len(RUNTIME_ACTION_NAMES) + RUNTIME_FEATURES, np.float32)
+    vec[int(kind)] = 1.0
+    vec[len(RUNTIME_ACTION_NAMES):] = feats
+    return vec
 
 
 class VisionCaution:
@@ -134,11 +192,12 @@ class VisionCaution:
             self._art, self._failure = None, str(exc)
 
     # -- public ---------------------------------------------------------------------------
-    def assess(self, frames, proposed_action: int, frame_ids: tuple[int, int]) -> VisionCautionAdvisory:
+    def assess(self, frames, proposed_action, frame_ids: tuple[int, int]) -> VisionCautionAdvisory:
+        """proposed_action: an int 0..4 for a V1 artifact; (kind, features) for a V2 artifact."""
         start = time.perf_counter()
         try:
-            ids = self._check_inputs(frames, proposed_action, frame_ids)
-            logit = self._infer(frames, int(proposed_action))
+            ids, action_vec = self._check_inputs(frames, proposed_action, frame_ids)
+            logit = self._infer(frames, action_vec)
             latency = (time.perf_counter() - start) * 1000.0
             if latency > self.timeout_s * 1000.0:
                 raise VisionCautionError("timeout")
@@ -171,7 +230,7 @@ class VisionCaution:
             self.log(record.to_json())
         return record
 
-    def _check_inputs(self, frames, action, frame_ids) -> tuple[int, int]:
+    def _check_inputs(self, frames, action, frame_ids) -> tuple[tuple[int, int], np.ndarray]:
         if not self.enabled:
             raise VisionCautionError("disabled_by_default")
         if self._failure:
@@ -186,17 +245,16 @@ class VisionCaution:
             raise VisionCautionError("frames_stale")
         if not (isinstance(frames, (tuple, list)) and len(frames) == 2):
             raise VisionCautionError("frame_count")
+        size = self._art["frame_size"]
         for f in frames:
             f = np.asarray(f)
-            if f.shape != (FRAME_SIZE, FRAME_SIZE) or not np.issubdtype(f.dtype, np.floating):
+            if f.shape != (size, size) or not np.issubdtype(f.dtype, np.floating):
                 raise VisionCautionError("frame_shape_or_dtype")
             if not np.isfinite(f).all() or f.min() < 0.0 or f.max() > 1.0:
                 raise VisionCautionError("frame_values")
             if float(f.std()) < OBSCURED_STD:
                 raise VisionCautionError("frame_obscured")
-        if not isinstance(action, (int, np.integer)) or not 0 <= int(action) < N_ACTIONS:
-            raise VisionCautionError("action_out_of_space")
-        return prev_id, cur_id
+        return (prev_id, cur_id), encode_action(self._art["interface"], action)
 
     def _load_models(self):
         import torch
@@ -214,12 +272,14 @@ class VisionCaution:
             raise VisionCautionError("encoder_digest_mismatch")
         enc = DinoV2Small()
         enc.load_state_dict(load_file(wpath), strict=True)
-        head = nn.ModuleDict({"red": nn.Conv2d(768, 64, 1), "act": nn.Linear(N_ACTIONS, 32),
-                              "mlp": nn.Sequential(nn.Linear(1056, 128), nn.GELU(), nn.Linear(128, 1))})
+        shapes = {k: v.shape for k, v in self._art["weights"].items()}
+        head = nn.ModuleDict({"red": nn.Conv2d(768, 64, 1), "act": nn.Linear(shapes["act.weight"][1], 32),
+                              "mlp": nn.Sequential(nn.Linear(shapes["mlp.0.weight"][1], 128), nn.GELU(),
+                                                   nn.Linear(128, 1))})
         head.load_state_dict({k: torch.from_numpy(v) for k, v in self._art["weights"].items()}, strict=True)
         self._encoder, self._head = enc.eval().to(self.device), head.eval().to(self.device)
 
-    def _infer(self, frames, action: int) -> float:
+    def _infer(self, frames, action_vec: np.ndarray) -> float:
         import torch
         import torch.nn.functional as F
 
@@ -230,12 +290,12 @@ class VisionCaution:
         with torch.no_grad():
             x = torch.from_numpy(np.stack([np.asarray(f, np.float32) for f in frames])[:, None]).to(self.device)
             x = F.interpolate(x.repeat(1, 3, 1, 1), size=(224, 224), mode="bilinear", align_corners=False)
-            feats = F.adaptive_avg_pool2d(self._encoder((x - mean) / std), 4).half().float()   # as evaluated
+            pool = self._art["pool"]
+            feats = F.adaptive_avg_pool2d(self._encoder((x - mean) / std), pool).half().float()   # as evaluated
             stacked = torch.cat([feats[0:1], feats[1:2]], 1)
-            onehot = torch.zeros(1, N_ACTIONS, device=self.device)
-            onehot[0, action] = 1.0
+            act = torch.from_numpy(action_vec[None]).to(self.device)
             z = F.gelu(self._head["red"](stacked)).flatten(1)
-            return float(self._head["mlp"](torch.cat([z, F.gelu(self._head["act"](onehot))], 1))[0, 0])
+            return float(self._head["mlp"](torch.cat([z, F.gelu(self._head["act"](act))], 1))[0, 0])
 
 
 def main() -> None:
@@ -248,7 +308,8 @@ def main() -> None:
     except VisionCautionError as exc:
         raise SystemExit(f"artifact rejected: {exc}")
     print(json.dumps({"schema": art["meta"]["schema"], "sha256": art["sha256"], "authority": art["meta"]["authority"],
-                      "thresholds_logit": art["thresholds"], "qualified_for": art["meta"].get("qualified_for")}, indent=1))
+                      "interface": art["interface"], "thresholds_logit": art["thresholds"],
+                      "qualified_for": art["meta"].get("qualified_for") or art["meta"].get("qualification")}, indent=1))
 
 
 if __name__ == "__main__":

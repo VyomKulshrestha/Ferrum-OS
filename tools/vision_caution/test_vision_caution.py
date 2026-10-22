@@ -15,11 +15,14 @@ import numpy as np
 from vision_caution import (
     AUTHORITY,
     HEAD_SHAPES,
+    RUNTIME_ACTION_NAMES,
     SCHEMA,
+    SCHEMA_V2,
     STATUSES,
     VisionCaution,
     VisionCautionAdvisory,
     VisionCautionError,
+    head_shapes,
     load_artifact,
 )
 
@@ -50,9 +53,24 @@ def make_artifact(directory, seed=0, **meta_overrides):
     return path
 
 
-def frames(seed=1):
+def make_artifact_v2(directory, seed=0, pool=8, **meta_overrides):
     rng = np.random.default_rng(seed)
-    base = np.full((48, 48), 0.1, np.float32)
+    weights = {f"head.{k}": rng.normal(0, 0.05, shape).astype(np.float32) for k, shape in head_shapes(pool, 10).items()}
+    enc = encoder_path()
+    meta = {"schema": SCHEMA_V2, "authority": AUTHORITY,
+            "encoder": {"weights_sha256": hashlib.sha256(Path(enc).read_bytes()).hexdigest() if enc else "0" * 64},
+            "thresholds_logit": {"fpr_0.05": 0.5, "fpr_0.10": 0.2}, "platt": {"coef": 1.0, "intercept": 0.0},
+            "frame_stack": 2, "horizon_steps": 3, "pool": pool, "frame_size": 64,
+            "action_space": {"names": list(RUNTIME_ACTION_NAMES), "feature_size": 3}}
+    meta.update(meta_overrides)
+    path = Path(directory) / f"art_v2_{seed}.npz"
+    np.savez_compressed(path, metadata=json.dumps(meta), **weights)
+    return path
+
+
+def frames(seed=1, size=48):
+    rng = np.random.default_rng(seed)
+    base = np.full((size, size), 0.1, np.float32)
     a, b = base.copy(), base.copy()
     a[10:16, 10:16] = 1.0
     b[11:17, 12:18] = 1.0
@@ -144,6 +162,44 @@ class StructureTests(unittest.TestCase):
                 self.assertNotIn(token, code, f"{name} mentions {token}")
 
 
+class RuntimeActionInterfaceTests(unittest.TestCase):
+    """V2 artifacts take the runtime PhysicalAction (kind, features) with the identity encoding."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.art = make_artifact_v2(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_v2_artifact_declares_runtime_interface(self):
+        art = load_artifact(self.art)
+        self.assertEqual((art["interface"], art["pool"], art["frame_size"]), ("runtime", 8, 64))
+        bad = make_artifact_v2(self.tmp.name, 2, action_space={"names": ["stay", "-x", "+x", "-y", "+y"], "feature_size": 3})
+        with self.assertRaises(VisionCautionError) as ctx:
+            load_artifact(bad)
+        self.assertEqual(str(ctx.exception), "artifact_interface")
+
+    def test_identity_encoding_matches_runtime_model_input(self):
+        from vision_caution import encode_action
+        vec = encode_action("runtime", ("move", (0.5, -0.25, 0.8)))
+        want = np.zeros(10, np.float32); want[0] = 1; want[7:] = (0.5, -0.25, 0.8)
+        np.testing.assert_array_equal(vec, want)
+        np.testing.assert_array_equal(encode_action("runtime", (6, (0, 0, 0)))[:7], np.eye(7)[6])
+
+    def test_invalid_runtime_actions_abstain(self):
+        vc = VisionCaution(self.art, enabled=True)
+        f = frames(size=64)
+        for i, bad in enumerate((2, ("fly", (0, 0, 0)), (7, (0, 0, 0)), ("move", (1.5, 0, 0.5)),
+                                 ("move", (np.nan, 0, 0.5)), ("move", (0, 0)), (True, (0, 0, 0)))):
+            rec = vc.assess(f, bad, (2 * i + 1, 2 * i + 2))
+            self.assertEqual((rec.status, rec.degradation), ("no_confident_caution", "action_out_of_space"), bad)
+
+    def test_v2_rejects_v1_frame_size(self):
+        rec = VisionCaution(self.art, enabled=True).assess(frames(size=48), ("stop", (0, 0, 0)), (1, 2))
+        self.assertEqual(rec.degradation, "frame_shape_or_dtype")
+
+
 @unittest.skipUnless(HAS_TORCH and encoder_path(), "torch and the cached DINOv2 weights are required")
 class InferenceTests(unittest.TestCase):
     def test_encoder_matches_research_implementation(self):
@@ -185,6 +241,27 @@ class InferenceTests(unittest.TestCase):
             self.assertAlmostEqual(rec.caution_logit, ref, places=3)
             stale = vc.assess((f0, f1), 3, (99, 101))
             self.assertEqual((stale.status, stale.degradation), ("no_confident_caution", "frames_stale"))
+
+    def test_v2_live_assess_matches_research_pipeline(self):
+        import torch
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import vision_runtime_proxy_final as RP
+        import vision_wm_pretrained_encoders as PE
+
+        with tempfile.TemporaryDirectory() as tmp:
+            art = make_artifact_v2(tmp, 9, pool=8)
+            vc = VisionCaution(art, enabled=True)
+            f0, f1 = frames(size=64)
+            action = ("move", (0.6, -0.3, 0.9))
+            rec = vc.assess((f0, f1), action, (5, 6))
+            self.assertIn(rec.status, ("caution_raised", "no_caution_raised"))
+            feats = RP.extract(PE.load_dino(True).cpu(), np.stack([f0, f1])[None], pools=(8,))
+            head = RP.make_head(8, 10)
+            head.load_state_dict({k: torch.from_numpy(v) for k, v in load_artifact(art)["weights"].items()})
+            idx = {"e": np.array([0]), "t": np.array([1])}
+            from vision_caution import encode_action
+            ref = float(RP.score_head(head.eval(), feats[8], idx, encode_action("runtime", action)[None])[0])
+            self.assertAlmostEqual(rec.caution_logit, ref, places=3)
 
     def test_encoder_digest_mismatch_abstains(self):
         with tempfile.TemporaryDirectory() as tmp:

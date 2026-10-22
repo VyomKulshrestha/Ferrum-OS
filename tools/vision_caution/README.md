@@ -1,9 +1,9 @@
 # vision_caution — advisory vision caution (host side)
 
-Increment 4 of the vision world model. Given the last two camera frames and a proposed
-action, it reports the probability that a hazard (contact or out-of-bounds) occurs within
-the next 3 steps. The model is the sealed-evaluated `FERRUM_VISION_CAUTION_V1` head over
-the official DINOv2-small encoder.
+Given the last two camera frames and a proposed action, it reports the probability that a
+camera-visible hazard (obstacle proximity, geofence exit or contact) occurs within the
+next 3 steps. The model is a sealed-evaluated caution head over the official DINOv2-small
+encoder.
 
 **Authority:** advisory diagnostic only; no permit, block, approval, adapter or actuation
 authority. That is the same boundary as `physical_hai_v1`. The record goes to logs and
@@ -14,11 +14,21 @@ deterministic authority gate remains the only decision-maker.
 **Off by default.** Inference runs only with `FERRUM_VISION_CAUTION=advisory`, or with
 `VisionCaution(enabled=True)`.
 
-**Not qualified for live use.** It is validated only on rendered pybullet scenes (hard
-scene, clean look, the five-action sim action space). Real-footage evidence is in
-`docs/research/vision_world_model_ccd_result_v1.json`, a different domain that does not
-qualify this head. Promotion conditions are in
-`docs/research/vision_caution_integration_protocol_v1.json`.
+## Artifacts
+
+| artifact | frames | proposed action | evaluated on | scope |
+|---|---|---|---|---|
+| `vision-caution-v2` (default) | 64x64 grey | runtime `PhysicalAction`: `(kind, features)` | runtime-scene proxy, sealed seed 790: AUC-PR 0.685, recall 0.464 at FPR 0.057 | `docs/research/vision_caution_integration_protocol_v2.json` |
+| `vision-caution-v1` | 48x48 grey | sim impulse, int 0..4 | rendered hard scene, sealed seed 781 | `docs/research/vision_caution_integration_protocol_v1.json` |
+
+The v2 action input is the runtime model's own encoding (one-hot over the 7 kinds plus the
+3 features), so no mapping is needed. A projection onto v1's five impulses cost recall on
+the sealed test (registered secondary S1).
+
+**Not qualified for live use or real cameras.** The runtime-scene proxy is the runtime's
+own PyBullet world filmed from a fixed overhead camera: simulation, not real footage.
+FerrumOS has no real robot or camera yet. Real-footage evidence in another domain is in
+`docs/research/vision_world_model_ccd_result_v1.json`; it does not qualify either head.
 
 ## Statuses
 
@@ -30,24 +40,28 @@ qualify this head. Promotion conditions are in
 
 There is no "safe" status. Every failure abstains and never raises: disabled,
 missing/altered/non-finite artifact, encoder digest mismatch, invalid, obscured, stale or
-out-of-order frames, an unknown action, a timeout, or a non-finite output.
+out-of-order frames, an action outside the artifact's action space (for v2, the runtime's
+own `InvalidAction` rule: finite features within [-1, 1]), a timeout, or a non-finite output.
 
 ## Use
 
 ```python
 from vision_caution import VisionCaution
-vc = VisionCaution(enabled=True, log=print)           # log receives one JSON line per call
-rec = vc.assess((frame_prev, frame_cur), proposed_action=2, frame_ids=(41, 42))
+vc = VisionCaution(enabled=True, log=print)           # v2; log receives one JSON line per call
+rec = vc.assess((frame_prev, frame_cur), proposed_action=("move", (0.5, -0.2, 0.8)), frame_ids=(41, 42))
 rec.status, rec.caution_probability, rec.degradation
+
+from vision_caution import V1_ARTIFACT                # the older sim-action head, by path
+VisionCaution(V1_ARTIFACT, enabled=True).assess((f48_prev, f48_cur), proposed_action=2, frame_ids=(1, 2))
 ```
 
-Frames are 48x48 float greyscale in [0, 1]. The DINOv2 weights must already be in the
-Hugging Face cache; the advisory never downloads at runtime.
+The DINOv2 weights must already be in the Hugging Face cache; the advisory never downloads
+at runtime.
 
 ## Verify
 
 ```
 python -m unittest discover -s tools/vision_caution -p "test_*.py"
-python scripts/verify_vision_caution_advisory.py            # static, numpy only
-python scripts/verify_vision_caution_advisory.py --replay   # re-derives the 5% threshold (slow)
+python scripts/verify_vision_caution_advisory.py            # static, numpy only, both artifacts
+python scripts/verify_vision_caution_advisory.py --replay   # re-derives both 5% thresholds (slow)
 ```

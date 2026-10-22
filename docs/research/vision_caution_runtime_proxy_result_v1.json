@@ -1,0 +1,221 @@
+{
+ "schema_version": "vision-caution-runtime-proxy-result-v1",
+ "protocol": "vision_caution_runtime_proxy_protocol_v1.json",
+ "status": "registered final, opened once; runtime-scene PROXY (simulation, not real footage); branch work (not main); advisory only",
+ "final_seed": 790,
+ "episodes": 400,
+ "decisions": 4400,
+ "prevalence": 0.255,
+ "compute": "CPU only",
+ "selected_pool": 4,
+ "selection_auc_pr": {
+  "dinov2_runtime_pool4": 0.6917416692288557,
+  "dinov2_runtime_pool8": 0.672754835387823,
+  "dinov2_lossy5": 0.6852797941489941
+ },
+ "selected_artifact": "docs/research/artifacts/vision-caution-v2/selected_caution_head.npz",
+ "selected_artifact_sha256": "77e3ea1ed04421818e1efd6aa4b216b92b75b224c1f13e18e307345fc040042f",
+ "dinov2_weights_sha256": "ae1e99fcefd534ed978cdeb8326f08030c96e28b7a81ffcbc98a857c84d14be1",
+ "bridge_py_sha256_unmodified": "afa5dfc5ffd9981b1b53cc2449ff9a3c9376c3a3bd8869f1bf131fffa3a73b59",
+ "code_sha256": {
+  "scripts/vision_runtime_domain_render.py": "e1641311334ab3322eb539506ea61cf913dc7e6aa9e4d4a3e6df912b2e22ba9d",
+  "scripts/vision_runtime_proxy_final.py": "06b6b7897e5d4f9b74a7b50d784202f2b2a9bf7f595dc19613d6adc01435d11e",
+  "scripts/vision_wm_pretrained_encoders.py": "d36b31f1046611b9833f89e3979711286e65270c48177dd9a28ecb1560320a0b"
+ },
+ "thresholds": {
+  "dinov2_runtime": {
+   "p05": 1.488970398902893,
+   "p10": 1.1717957258224487
+  },
+  "dinov2_lossy5": {
+   "p05": 1.7036161422729492,
+   "p10": 1.2361905574798584
+  },
+  "pixel_probe_runtime": {
+   "p05": 0.8084520101547241,
+   "p10": 0.7254074811935425
+  },
+  "action_only": {
+   "p05": 0.5752921104431152,
+   "p10": 0.5686516761779785
+  },
+  "v1_zero_shot": {
+   "p05": 1.37928307056427,
+   "p10": null,
+   "note": "v1's own registered fpr_0.05 threshold"
+  },
+  "state_reference": {
+   "p05": 0.5150850557345683,
+   "p10": 0.38315346961770763
+  }
+ },
+ "results": {
+  "dinov2_runtime": {
+   "auc_pr": 0.6848143979971623,
+   "auc_roc": 0.8606356153865394,
+   "prevalence": 0.255,
+   "p05": {
+    "recall": 0.464349376114082,
+    "realized_fpr": 0.05704697986577181
+   },
+   "p10": {
+    "recall": 0.5846702317290553,
+    "realized_fpr": 0.09579011592434411
+   }
+  },
+  "dinov2_lossy5": {
+   "auc_pr": 0.6791886609903667,
+   "auc_roc": 0.862052042515381,
+   "prevalence": 0.255,
+   "p05": {
+    "recall": 0.4304812834224599,
+    "realized_fpr": 0.04942037827943868
+   },
+   "p10": {
+    "recall": 0.5918003565062389,
+    "realized_fpr": 0.09640024405125076
+   }
+  },
+  "pixel_probe_runtime": {
+   "auc_pr": 0.32287035367394556,
+   "auc_roc": 0.5615670667845596,
+   "prevalence": 0.255,
+   "p05": {
+    "recall": 0.10071301247771836,
+    "realized_fpr": 0.04972544234289201
+   },
+   "p10": {
+    "recall": 0.15597147950089127,
+    "realized_fpr": 0.10829774252593044
+   }
+  },
+  "action_only": {
+   "auc_pr": 0.2949744820235043,
+   "auc_roc": 0.570847594126674,
+   "prevalence": 0.255,
+   "p05": {
+    "recall": 0.06327985739750445,
+    "realized_fpr": 0.047895057962172055
+   },
+   "p10": {
+    "recall": 0.1265597147950089,
+    "realized_fpr": 0.1076876143990238
+   }
+  },
+  "v1_zero_shot": {
+   "auc_pr": 0.45136586902715636,
+   "auc_roc": 0.6776905725960027,
+   "prevalence": 0.255,
+   "p05": {
+    "recall": 0.15240641711229946,
+    "realized_fpr": 0.032031726662599146
+   }
+  },
+  "state_reference": {
+   "auc_pr": 0.8584010748945661,
+   "auc_roc": 0.9246399319614695,
+   "prevalence": 0.255,
+   "p05": {
+    "recall": 0.6470588235294118,
+    "realized_fpr": 0.044539353264185476
+   },
+   "p10": {
+    "recall": 0.731729055258467,
+    "realized_fpr": 0.08694325808419769
+   }
+  }
+ },
+ "bootstrap": {
+  "dinov2_runtime_minus_pixel_probe_runtime": {
+   "recall_difference": 0.36363636363636365,
+   "ci95": [
+    0.3185098703060881,
+    0.4074410596278799
+   ],
+   "episodes": 400,
+   "positives": 1122
+  },
+  "dinov2_runtime_minus_action_only": {
+   "recall_difference": 0.40106951871657753,
+   "ci95": [
+    0.35782159580772227,
+    0.44318203194472944
+   ],
+   "episodes": 400,
+   "positives": 1122
+  },
+  "dinov2_runtime_minus_dinov2_lossy5": {
+   "recall_difference": 0.0338680926916221,
+   "ci95": [
+    0.013123298083522127,
+    0.05402936112100701
+   ],
+   "episodes": 400,
+   "positives": 1122
+  }
+ },
+ "gates": {
+  "G1_capability": true,
+  "G2_budget": true,
+  "primary_success": true,
+  "S1_identity_mapping_beats_lossy5": true
+ },
+ "dinov2_runtime_recall_by_hazard_type": {
+  "proximity": {
+   "positives": 833,
+   "recall": 0.48619447779111646
+  },
+  "geofence": {
+   "positives": 332,
+   "recall": 0.463855421686747
+  },
+  "contact": {
+   "positives": 254,
+   "recall": 0.4645669291338583
+  }
+ },
+ "dinov2_runtime_by_action_kind": {
+  "move": {
+   "decisions": 2652,
+   "positives": 800,
+   "recall": 0.55125,
+   "benign_alarm_rate": 0.07667386609071274
+  },
+  "inspect": {
+   "decisions": 266,
+   "positives": 45,
+   "recall": 0.2,
+   "benign_alarm_rate": 0.02262443438914027
+  },
+  "diagnose": {
+   "decisions": 266,
+   "positives": 54,
+   "recall": 0.2777777777777778,
+   "benign_alarm_rate": 0.03773584905660377
+  },
+  "approve": {
+   "decisions": 222,
+   "positives": 47,
+   "recall": 0.23404255319148937,
+   "benign_alarm_rate": 0.05142857142857143
+  },
+  "repair": {
+   "decisions": 246,
+   "positives": 39,
+   "recall": 0.20512820512820512,
+   "benign_alarm_rate": 0.00966183574879227
+  },
+  "verify": {
+   "decisions": 265,
+   "positives": 38,
+   "recall": 0.2894736842105263,
+   "benign_alarm_rate": 0.030837004405286344
+  },
+  "stop": {
+   "decisions": 483,
+   "positives": 99,
+   "recall": 0.26262626262626265,
+   "benign_alarm_rate": 0.036458333333333336
+  }
+ }
+}
