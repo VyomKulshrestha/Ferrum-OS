@@ -1,0 +1,10 @@
+{
+ "schema_version": "threshold-transfer-tt1-posthoc",
+ "status": "post-hoc, after the registered finals",
+ "hygrid-ics": {
+  "development_rows": 173427,
+  "development_attack_fraction": 0.0014703592866162707,
+  "development_attack_runs": 251,
+  "final_attack_fraction": 0.8258367577582926
+ }
+}

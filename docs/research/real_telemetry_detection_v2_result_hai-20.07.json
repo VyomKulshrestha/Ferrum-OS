@@ -1,0 +1,87 @@
+{
+ "schema_version": "real-telemetry-detection-result-v2",
+ "protocol": "real_telemetry_detection_protocol_v2.json",
+ "dataset_id": "hai-20.07",
+ "budget_per_day": 2.0,
+ "steps_per_day": 86400,
+ "window": 60,
+ "use_actions": true,
+ "shared_final": "tt1 shared final harness (detection-v2 amendment 2)",
+ "commit": {
+  "wm_v2": "13082c5",
+  "harness": "1557e22"
+ },
+ "arms": {
+  "candidate_v2": {
+   "primary": {
+    "recall": 0.9473684210526315,
+    "detected": 36,
+    "events": 38,
+    "median_delay": 25.5,
+    "fa_episodes_per_day": 1.5777075762832569
+   },
+   "safety_margin": {
+    "recall": 0.9210526315789473,
+    "detected": 35,
+    "fa_episodes_per_day": 1.5777075762832569
+   },
+   "fa_holdout_steps": 54763,
+   "seconds": 2522.7
+  },
+  "baseline_rt1": {
+   "primary": {
+    "recall": 0.9210526315789473,
+    "detected": 35,
+    "events": 38,
+    "median_delay": 25.0,
+    "fa_episodes_per_day": 1.5777075762832569
+   },
+   "safety_margin": {
+    "recall": 0.9210526315789473,
+    "detected": 35,
+    "fa_episodes_per_day": 1.5777075762832569
+   },
+   "fa_holdout_steps": 54763,
+   "seconds": 376.7
+  }
+ },
+ "gates": {
+  "G1_budget_holds": true,
+  "G1_within_rt2_slack(4/day)": true,
+  "G2_noninferior_and_better": true,
+  "paired_bootstrap_candidate_vs_baseline": {
+   "recall_difference": 0.02631578947368418,
+   "recall_difference_interval": [
+    0.0,
+    0.07894736842105265
+   ],
+   "miss_reduction": 0.3333333333333328,
+   "miss_reduction_interval": [
+    0.0,
+    1.0
+   ]
+  },
+  "primary_success": true
+ },
+ "secondary_ensemble": {
+  "detector": "union(baseline_rt1 D1 OR disagreement |R_v2 - R_base| MAD), each at budget",
+  "recall": 0.9210526315789473,
+  "detected": 35,
+  "events": 38,
+  "fa_episodes_per_day": 3.1554151525665137,
+  "median_delay": 23.0,
+  "paired_bootstrap_vs_baseline": {
+   "recall_difference": 0.0,
+   "recall_difference_interval": [
+    0.0,
+    0.0
+   ],
+   "miss_reduction": 0.0,
+   "miss_reduction_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "improves": false
+ }
+}

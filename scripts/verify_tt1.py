@@ -38,8 +38,12 @@ def main():
     add("protocol is committed", registered is not None, str(registered))
     rows = [json.loads(line) for line in D.FINAL_LEDGER.read_text(encoding="utf-8").splitlines() if line.strip()]
     for ds in F.DATASETS:
-        mine = [r for r in rows if r["dataset"] == ds]
-        add(f"{ds}: exactly one final access", len(mine) == 1, f"{len(mine)} ledger rows")
+        mine = [r for r in rows if r["dataset"] == ds and r["reason"].startswith("tt1 shared final")]
+        add(f"{ds}: exactly one final access", len(mine) == 1, f"{len(mine)} shared-final ledger rows")
+        others = [r for r in rows if r["dataset"] == ds and not r["reason"].startswith("tt1 shared final")]
+        add(f"{ds}: any other access is post-hoc and after the final",
+            all(r["reason"].startswith("post-hoc") and mine and r["at"] > mine[0]["at"] for r in others),
+            "; ".join(r["reason"] for r in others))
         if mine:
             add(f"{ds}: access is the tt1 shared final", mine[0]["reason"].startswith("tt1 shared final"), mine[0]["reason"])
             at = datetime.datetime.fromisoformat(mine[0]["at"])
