@@ -20,7 +20,7 @@
   {
    "check": "hai-20.07: any other access is post-hoc and after the final",
    "pass": true,
-   "detail": ""
+   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
   },
   {
    "check": "hai-20.07: access is the tt1 shared final",
@@ -70,7 +70,7 @@
   {
    "check": "hygrid-ics: any other access is post-hoc and after the final",
    "pass": true,
-   "detail": "post-hoc analysis after the registered tt1 final: attack contamination of the development portion"
+   "detail": "post-hoc analysis after the registered tt1 final: attack contamination of the development portion; post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
   },
   {
    "check": "hygrid-ics: access is the tt1 shared final",
@@ -115,7 +115,7 @@
   {
    "check": "voraus-ad: any other access is post-hoc and after the final",
    "pass": true,
-   "detail": ""
+   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
   },
   {
    "check": "voraus-ad: access is the tt1 shared final",

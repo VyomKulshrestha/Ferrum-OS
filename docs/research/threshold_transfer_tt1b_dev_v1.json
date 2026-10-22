@@ -164,6 +164,29 @@
         ]
        }
       },
+      "spot_mle": {
+       "recall": 1.0,
+       "events": 50,
+       "fa_per_day": 0.6594446621109353,
+       "recall_close": 1.0,
+       "n_close": 44,
+       "recall_isolated": 1.0,
+       "n_isolated": 6,
+       "median_delay_s": 14.0,
+       "median_onset_inflation": 1.0429480756597287,
+       "vs_frozen": {
+        "recall_difference": 0.0,
+        "recall_difference_interval": [
+         0.0,
+         0.0
+        ],
+        "miss_reduction": 0.0,
+        "miss_reduction_interval": [
+         0.0,
+         0.0
+        ]
+       }
+      },
       "dspot": {
        "recall": 1.0,
        "events": 50,
@@ -336,6 +359,29 @@
        "n_isolated": 6,
        "median_delay_s": 36.5,
        "median_onset_inflation": 0.9924266820526244,
+       "vs_frozen": {
+        "recall_difference": 0.0,
+        "recall_difference_interval": [
+         0.0,
+         0.0
+        ],
+        "miss_reduction": 0.0,
+        "miss_reduction_interval": [
+         0.0,
+         0.0
+        ]
+       }
+      },
+      "spot_mle": {
+       "recall": 0.72,
+       "events": 50,
+       "fa_per_day": 1.3188893242218707,
+       "recall_close": 0.6818181818181818,
+       "n_close": 44,
+       "recall_isolated": 1.0,
+       "n_isolated": 6,
+       "median_delay_s": 37.0,
+       "median_onset_inflation": 0.9964702368652658,
        "vs_frozen": {
         "recall_difference": 0.0,
         "recall_difference_interval": [
@@ -538,6 +584,29 @@
         ]
        }
       },
+      "spot_mle": {
+       "recall": 0.7931034482758621,
+       "events": 58,
+       "fa_per_day": 2.2269954463441874,
+       "recall_close": 0.7777777777777778,
+       "n_close": 54,
+       "recall_isolated": 1.0,
+       "n_isolated": 4,
+       "median_delay_s": 32.0,
+       "median_onset_inflation": 0.9031772477390312,
+       "vs_frozen": {
+        "recall_difference": 0.034482758620689724,
+        "recall_difference_interval": [
+         0.0,
+         0.0862068965517242
+        ],
+        "miss_reduction": 0.14285714285714313,
+        "miss_reduction_interval": [
+         0.0,
+         0.36363636363636365
+        ]
+       }
+      },
       "dspot": {
        "recall": 0.7931034482758621,
        "events": 58,
@@ -710,6 +779,29 @@
        "n_isolated": 4,
        "median_delay_s": 43.5,
        "median_onset_inflation": 0.9423457600983882,
+       "vs_frozen": {
+        "recall_difference": 0.0,
+        "recall_difference_interval": [
+         0.0,
+         0.0
+        ],
+        "miss_reduction": 0.0,
+        "miss_reduction_interval": [
+         0.0,
+         0.0
+        ]
+       }
+      },
+      "spot_mle": {
+       "recall": 0.3793103448275862,
+       "events": 58,
+       "fa_per_day": 1.4846636308961252,
+       "recall_close": 0.37037037037037035,
+       "n_close": 54,
+       "recall_isolated": 0.5,
+       "n_isolated": 4,
+       "median_delay_s": 46.5,
+       "median_onset_inflation": 1.0254943727502264,
        "vs_frozen": {
         "recall_difference": 0.0,
         "recall_difference_interval": [
@@ -912,6 +1004,29 @@
         ]
        }
       },
+      "spot_mle": {
+       "recall": 0.5961538461538461,
+       "events": 52,
+       "fa_per_day": 1.2658598763442435,
+       "recall_close": 0.5918367346938775,
+       "n_close": 49,
+       "recall_isolated": 0.6666666666666666,
+       "n_isolated": 3,
+       "median_delay_s": 39.0,
+       "median_onset_inflation": 1.0719215676863592,
+       "vs_frozen": {
+        "recall_difference": 0.0,
+        "recall_difference_interval": [
+         0.0,
+         0.0
+        ],
+        "miss_reduction": 0.0,
+        "miss_reduction_interval": [
+         0.0,
+         0.0
+        ]
+       }
+      },
       "dspot": {
        "recall": 0.5961538461538461,
        "events": 52,
@@ -1093,6 +1208,29 @@
         "miss_reduction": 0.0,
         "miss_reduction_interval": [
          0.0,
+         0.0
+        ]
+       }
+      },
+      "spot_mle": {
+       "recall": 0.28846153846153844,
+       "events": 52,
+       "fa_per_day": 0.9493949072581827,
+       "recall_close": 0.2653061224489796,
+       "n_close": 49,
+       "recall_isolated": 0.6666666666666666,
+       "n_isolated": 3,
+       "median_delay_s": 74.0,
+       "median_onset_inflation": 1.2143282222372633,
+       "vs_frozen": {
+        "recall_difference": -0.03846153846153849,
+        "recall_difference_interval": [
+         -0.09615384615384615,
+         0.0
+        ],
+        "miss_reduction": -0.05714285714285716,
+        "miss_reduction_interval": [
+         -0.16129032258064524,
          0.0
         ]
        }

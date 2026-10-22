@@ -96,14 +96,51 @@ def dspot_path(scores, calib, q, depth, level=SPOT_LEVEL):
     return tau
 
 
+def _mle(peaks):
+    """Maximum-likelihood GPD (scipy, location 0); method of moments below 10 peaks."""
+    if len(peaks) < 10:
+        return _gpd(float(np.sum(peaks)), float(np.sum(np.square(peaks))), len(peaks))
+    from scipy.stats import genpareto
+    gamma, _, sigma = genpareto.fit(np.asarray(peaks), floc=0)
+    return float(gamma), float(sigma)
+
+
+def spot_mle_path(scores, calib, q, refit=2048, level=SPOT_LEVEL):
+    """SPOT as Siffer et al. specify it (maximum-likelihood tail), refit every `refit` new peaks; between
+    refits z_q is recomputed from the last fit with the current counts."""
+    calib = calib[np.isfinite(calib)]
+    t = float(np.quantile(calib, level))
+    peaks = list(calib[calib > t] - t)
+    k = len(calib)
+    gamma, sigma = _mle(peaks)
+    fitted = len(peaks)
+    z = _zq(t, gamma, sigma, q, k, len(peaks))
+    tau = np.empty(len(scores))
+    for i, x in enumerate(scores):
+        tau[i] = z
+        if not np.isfinite(x) or x > z:
+            continue
+        k += 1
+        if x > t:
+            peaks.append(x - t)
+            if len(peaks) - fitted >= refit:
+                gamma, sigma = _mle(peaks)
+                fitted = len(peaks)
+            z = _zq(t, gamma, sigma, q, k, len(peaks))
+    return tau
+
+
 def apply_rule(rule, scores, cfg, calib, steps_per_day, gap, depth, labels=None):
-    """tt1 rules plus "spot" and "dspot"; cfg carries tau0, tau_half, p, eta, m0 as in tt1_final."""
+    """tt1 rules plus "spot", "spot_mle" and "dspot"; cfg carries tau0, tau_half, p, eta, m0 as in tt1_final.
+    For sample sequences (steps_per_day = review window) spot_mle refits every 16 peaks instead of 2048."""
     if rule == "spot":
         return spot_path(scores, calib, cfg["p"]), {}
+    if rule == "spot_mle":
+        return spot_mle_path(scores, calib, cfg["p"], refit=2048 if steps_per_day > 1000 else 16), {}
     if rule == "dspot":
         return dspot_path(scores, calib, cfg["p"], depth), {}
     return T.apply_rule(rule, scores, cfg["tau0"], cfg["tau_half"], cfg["p"], cfg["eta"], steps_per_day, gap,
                         labels=labels, ref_median=cfg["m0"])
 
 
-RULES = ["frozen", "margin", "daily", "tracker", "tracker_slow", "one_sided:none", "spot", "dspot"]
+RULES = ["frozen", "margin", "daily", "tracker", "tracker_slow", "one_sided:none", "spot", "spot_mle", "dspot"]

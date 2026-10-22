@@ -84,3 +84,53 @@ final rows are. `docs/research/threshold_transfer_tt1_posthoc.json`.
 - HAI 20.07 shares a testbed with the development releases. HyGrid-ICS is one simulated day; voraus-AD
   anomalies are not attacks.
 - No claim of runtime authority, deployment safety or incident prevention follows.
+
+## Extensions after registration (tt1b, exploratory)
+
+None of this is registered. Development used the spent HAI 21.03/22.04/23.05 (attack data reused,
+ledgered as exploratory); the post-hoc runs reopened the three tt1 datasets after their finals (ledgered
+as post-hoc). Evidence: `threshold_transfer_tt1b_dev_v1.json`, `_tt1b_attacks_dev_v1.json`,
+`_tt1b_frog_dev_v1.json`, `_tt1b_posthoc_v1.json`.
+
+**Each adaptive threshold has a learning region, and an attacker can feed it.**
+
+| Rule family | Learns from | Real attacks (natural) | Supra-threshold pulses | Closed-loop frog (stays just below tau_t) |
+|---|---|---|---|---|
+| frozen, static margin | nothing | not affected | not affected | not affected |
+| tracker, slow tracker, daily | exceedances | loses recall everywhere | blinded (1-4/30) | not affected (it tightens) |
+| SPOT, DSPOT (Siffer et al. 2017) | sub-alarm tail values | largely immune | resists (29/30, 23/30) | blinded |
+| tighten-only, no permit | exceedances, downward only | not affected | not affected | not affected |
+
+- **Literature thresholds and real attacks.** SPOT and DSPOT never learn from alarm values. With D1 on the
+  spent HAI releases they matched frozen recall (method-of-moments SPOT 1.00/0.79/0.58, maximum-likelihood
+  SPOT 1.00/0.79/0.60, frozen 1.00/0.76/0.60). Post-hoc on HAI 20.07: SPOT 0.947, DSPOT 0.947,
+  maximum-likelihood SPOT 0.921 [-0.08, 0.00], frozen 0.947, tracker 0.526. Exceptions: on HyGrid-ICS
+  method-of-moments SPOT lost 9 points [-0.15, -0.03] and DSPOT on D0 lost 4 [-0.09, -0.01]. On voraus-AD,
+  190 calibration samples leave about 4 tail points; SPOT ran at 32% false positives against a 5% target
+  and is not usable there.
+- **The loss does not depend on the score.** With D0 (top-3 standardised first differences, no model) the
+  tracker lost recall on every spent release ([-0.38, -0.14], [-0.21, -0.05], [-0.19, -0.02]) and on HAI 20.07
+  ([-0.32, -0.08]) and HyGrid-ICS ([-0.12, -0.02]).
+- **Mechanism.** The tracker's misses concentrate on attacks that start within 6 h of the previous one: D1
+  recall on close versus isolated attacks 0.75/1.00, 0.41/1.00, 0.20/0.67 on the spent releases and
+  0.48/0.71 on HAI 20.07 (31 close, 7 isolated).
+- **Closed-loop frog boiling** (score-level, white-box: the attacker sees tau_t and holds the score at
+  0.97 tau_t, so the campaign raises no alarm the clean stream would not; normal HAI data, 30 placements).
+  The terminal bump at 1.05 tau0 was caught by frozen, tracker and tighten-only as often as in the control.
+  Method-of-moments SPOT and DSPOT caught it 0/30 after campaigns of 24 h, 6 h and 1 h; their thresholds
+  ran away (1.1-4.7x after 1 h, beyond 10^5 after 24 h). Maximum-likelihood SPOT caught 8/30 after 24 h and
+  13/30 after 1 h. An open-loop attacker holding a fixed level did not move the moments variants (and
+  raised alarms through the whole campaign) but still blinded maximum-likelihood SPOT on two releases.
+  On light-tailed synthetic scores SPOT did not run away, so the effect depends on the heavy tail of real
+  residual scores.
+- **Open-loop sub-alarm pulses** (E6, 24 x 300 s a day, invisible to the frozen threshold) did not poison
+  SPOT (29/30); its threshold fell.
+
+**Design rule these results support:** a threshold may tighten itself but must not loosen itself. Every
+automatic loosening path tried here (exceedance tracking, daily recalibration, tail refitting, moving-mean
+drift tracking, the spread and shift permits) could be moved by real attacks or by an attacker; only the
+operator-gated (oracle) permit and no loosening at all held. What this costs is false alarms under
+benign upward drift (development HAI 23.05: tighten-only 5.98x budget against frozen 4.05x).
+
+**Still needed for a confirmatory claim:** a registered replication of the SPOT/DSPOT and frog results on
+never-opened attack data (SWaT/WADI on request from iTrust, or the public BATADAL release).
