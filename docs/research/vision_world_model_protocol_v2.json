@@ -1,0 +1,42 @@
+{
+ "schema_version": "vision-world-model-protocol-v2",
+ "study_id": "vision-world-model-v2",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "status": "registered; single final open pending",
+ "inherits": "docs/research/vision_world_model_design_v1.md and increment-1 result vision_world_model_result_v1.json (exploratory: CNN caution AUC-PR 0.826 vs linear probe 0.436 on held-out scenes).",
+ "motivation": "Increment 1 showed, exploratorily, that a GPU vision world model's caution head beats a linear pixel probe at anticipating hazards from rendered scenes, but (a) it was selected and evaluated on the same held-out split (mild optimism), (b) the caution head was never calibrated to a false-alarm budget, and (c) the joint model traded away frame fidelity (selected on caution AP). This protocol fixes all three: per-head checkpoint selection, budget-calibrated caution, and a SEALED final scene set opened exactly once.",
+ "frozen_before_final": {
+  "model": "VWM: K=2 frame stack + action -> CNN encoder (3 conv s2) + action FiLM-concat + decoder delta head (next frame) + caution head (P(hazard within H)). Change-weighted frame MSE + pos-weighted BCE caution. Seed 0.",
+  "per_head_selection": "Track two checkpoints on the calibration split: best caution (max AUC-PR) and best frame (min dynamic-region MAE). The caution head is read from the best-caution checkpoint; frame prediction from the best-frame checkpoint. This decouples the increment-1 tradeoff without a second model.",
+  "baselines": "frame: persistence, ridge-on-pixels. caution: base rate, linear logistic pixel probe on [K-frame pixels, action]. All on identical data.",
+  "caution_label": "y = 1 if any hazard in steps t+1..t+H (H=3).",
+  "calibration": "On the calibration split's BENIGN steps (y=0), set the caution threshold to the smallest value with false-caution rate <= TARGET_FPR (0.10). Primary arm TARGET_FPR=0.10; conservative arm TARGET_FPR/2=0.05 (the cycle-2b half-budget safety margin). Thresholds set per detector (CNN, linear probe) independently."
+ },
+ "data": {
+  "renderer": "pybullet DIRECT TinyRenderer, scripts/vision_wm_pybullet_data.py; numpy kinematics; geometry hazard labels; advisory only.",
+  "splits_by_seed": {"train": "seed 0", "calibration": "seed 1", "sealed_final": "seed 777 (RESERVED, opened once)"},
+  "sizes": {"train_episodes": 600, "calibration_episodes": 200, "final_episodes": 300, "steps": 20, "size": 48, "frame_stack": 2},
+  "final_access_rule": "The sealed-final seed (777) is read only through scripts/vision_wm_final_v2.py, which appends to target/vision-wm/final_access.jsonl and REFUSES if that seed already appears. The final evaluation runs once."
+ },
+ "endpoints": {
+  "primary": "caution recall (TPR on hazard steps) at the matched calibrated false-alarm rate (TARGET_FPR=0.10) on the sealed final, CNN vs linear probe.",
+  "secondary": ["caution AUC-PR and AUC-ROC (threshold-free)", "conservative-arm (FPR 0.05) recall and realized FPR", "frame dynamic-region MAE (best-frame checkpoint) vs ridge/persistence", "realized FPR on the final benign steps"]
+ },
+ "gates": {
+  "G1_caution_beats_linear": "On the sealed final, CNN recall-at-matched-FPR(0.10) > linear-probe recall, AND CNN AUC-PR > linear-probe AUC-PR, with the 95% bootstrap CI (per-step, 10,000 resamples) lower bound on (recall_cnn - recall_probe) > 0.",
+  "G2_budget_holds": "CNN realized false-caution rate on final benign steps <= 1.25 * TARGET_FPR (calibration transfer slack).",
+  "primary_success": "G1 and G2 both hold.",
+  "reporting": "Both detectors, both arms, frame metrics, and any failure are reported. Advisory diagnostic only; no actuation/permit/block authority; rendered simulation, not a real-hardware or field claim."
+ },
+ "limitations_registered_in_advance": [
+  "Rendered simulation with numpy kinematics; sim-to-real gap is unaddressed (future increment).",
+  "Single environment family (one obstacle layout distribution); not a cross-environment claim.",
+  "The caution head sees K=2 frames; very fast dynamics faster than the frame rate remain ambiguous.",
+  "A linear pixel probe may already catch slow/easy hazards; the CNN must beat it on the sealed final to pass, else it is a reported negative."
+ ],
+ "reproduce": {
+  "dry_run": "python scripts/vision_wm_final_v2.py --dry-run",
+  "run": "python scripts/vision_wm_final_v2.py"
+ }
+}

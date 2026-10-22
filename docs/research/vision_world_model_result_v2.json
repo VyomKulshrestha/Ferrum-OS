@@ -1,0 +1,82 @@
+{
+ "schema_version": "vision-world-model-result-v2",
+ "protocol": "vision_world_model_protocol_v2.json",
+ "status": "registered final, opened once; branch work (not main); advisory only",
+ "final_seed": 777,
+ "trainable_parameters": 5908674,
+ "device": "cuda",
+ "thresholds": {
+  "cnn": {
+   "p10": -0.4295273423194885,
+   "p05": 2.8042759895324707
+  },
+  "probe": {
+   "p10": 0.8830317258834839,
+   "p05": 0.9378793835639954
+  }
+ },
+ "results": {
+  "caution": {
+   "cnn": {
+    "p10": {
+     "target_fpr": 0.1,
+     "recall": 0.7144719687092569,
+     "realized_fpr": 0.09841574651944311
+    },
+    "p05": {
+     "target_fpr": 0.05,
+     "recall": 0.6127770534550195,
+     "realized_fpr": 0.05112818050888142
+    },
+    "auc_pr": 0.8168921668116034,
+    "auc_roc": 0.9000510746647755,
+    "prevalence": 0.2691228070175439
+   },
+   "probe": {
+    "p10": {
+     "target_fpr": 0.1,
+     "recall": 0.1727509778357236,
+     "realized_fpr": 0.08977436389822371
+    },
+    "p05": {
+     "target_fpr": 0.05,
+     "recall": 0.10039113428943937,
+     "realized_fpr": 0.0542486797887662
+    },
+    "auc_pr": 0.36557029183426937,
+    "auc_roc": 0.6363199076650178,
+    "prevalence": 0.2691228070175439
+   },
+   "base_rate": {
+    "auc_pr": 0.2691228070175439,
+    "prevalence": 0.2691228070175439
+   }
+  },
+  "frame": {
+   "persistence": {
+    "overall_mae": 0.002010226482525468,
+    "dynamic_region_mae": 0.4617322087287903
+   },
+   "ridge": {
+    "overall_mae": 0.014661365188658237,
+    "dynamic_region_mae": 0.3525336980819702
+   },
+   "cnn_best_frame": {
+    "overall_mae": 0.018086489289999008,
+    "dynamic_region_mae": 0.28545376658439636
+   }
+  }
+ },
+ "gates": {
+  "G1_caution_beats_linear": true,
+  "G2_budget_holds": true,
+  "recall_diff_bootstrap": {
+   "recall_difference": 0.5417209908735333,
+   "ci95": [
+    0.5149934810951761,
+    0.5684485006518905
+   ]
+  },
+  "primary_success": true
+ }
+}
