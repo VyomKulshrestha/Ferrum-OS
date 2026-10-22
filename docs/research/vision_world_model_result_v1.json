@@ -1,0 +1,51 @@
+{
+ "schema_version": "vision-world-model-result-v1",
+ "status": "EXPLORATORY increment-1, branch work (not on main); advisory only",
+ "env": {
+  "size": 48,
+  "frame_stack": 2,
+  "train_ep": 600,
+  "val_ep": 150,
+  "steps": 20,
+  "caution_horizon": 3,
+  "renderer": "pybullet DIRECT TinyRenderer"
+ },
+ "results": {
+  "frame": {
+   "persistence": {
+    "overall_mae": 0.001946873962879181,
+    "dynamic_region_mae": 0.45188531279563904
+   },
+   "ridge": {
+    "overall_mae": 0.014591075479984283,
+    "dynamic_region_mae": 0.3486686646938324
+   },
+   "cnn_gpu": {
+    "overall_mae": 0.03455803543329239,
+    "dynamic_region_mae": 0.43768295645713806
+   }
+  },
+  "caution": {
+   "base_rate": {
+    "auc_pr": 0.2905263157894737,
+    "auc_roc": 0.5,
+    "prevalence": 0.2905263157894737
+   },
+   "linear_probe": {
+    "auc_pr": 0.43592183041107163,
+    "auc_roc": 0.6432031470252345,
+    "prevalence": 0.2905263157894737
+   },
+   "cnn_gpu": {
+    "auc_pr": 0.8258181122672718,
+    "auc_roc": 0.904652685197131,
+    "prevalence": 0.2905263157894737,
+    "trainable_parameters": 5908674,
+    "device": "cuda"
+   }
+  }
+ },
+ "verdict": "Vision CNN caution beats the linear pixel probe: AUC-PR 0.826 vs 0.436 (base 0.291)",
+ "note": "Rendered pybullet scenes, numpy kinematics, advisory caution only, not a real-hardware claim. K-frame stack makes velocity observable. Caution = P(hazard within H); neural vs linear pixel probe is the key test.",
+ "honest_tradeoff": "CAUTION (deployable signal): the vision CNN strongly beats the linear pixel probe -- AUC-PR 0.826 vs 0.436, AUC-ROC 0.905 vs 0.643 (base rate 0.291). FRAME prediction: the CNN (dyn MAE 0.438) is WORSE than ridge (0.349) here, because this joint model was selected on caution AP and traded frame fidelity for it. A frame-DEDICATED change-weighted CNN wins frame prediction decisively (pixel_world_model_gpu_v1.json: 0.236 vs ridge 0.581), so the capability exists; increment 2 should decouple the heads or select per-head. Net increment-1 finding: in the raw-pixel regime a GPU neural world model delivers a much stronger advisory caution signal than any linear pixel model -- the deployable-relevant win."
+}
