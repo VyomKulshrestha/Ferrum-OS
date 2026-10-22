@@ -147,11 +147,14 @@ def rehearsal_events(deploy_raw, inj, xs, us, seed=SEED):
     return out
 
 
+MARGIN_C = 0.25      # static margin tau0 + 0.25 x spread (docs/research/threshold_transfer_margin_dev_v1.json)
+
+
 def thresholds(pooled, tau0, eta_mult, spread_q):
     p = float(max((pooled > tau0).mean(), 1.0 / len(pooled)))
     m0 = float(np.median(pooled))
     spread = float(np.quantile(pooled, spread_q) - m0)
-    return {"tau0": float(tau0), "tau_half": float(max(tau0, np.quantile(pooled, 1 - p / 2))), "p": p,
+    return {"tau0": float(tau0), "tau_half": float(tau0 + MARGIN_C * spread), "p": p,
             "m0": m0, "spread": spread, "eta": eta_mult * spread}
 
 
@@ -254,7 +257,7 @@ def run_stream(dataset, final):
 
 
 ADAPTIVE = ("daily", "tracker", "tracker_slow")
-G1_MIN_PLACEMENTS, G1_FROZEN_MIN, G1_GAP, G3_TOLERANCE = 6, 0.8, 0.5, -0.10
+G1_MIN_PLACEMENTS, G1_FROZEN_MIN, G1_GAP, G3_BAND = 6, 0.8, 0.5, 4.0
 
 
 def primary_gates(out):
@@ -264,14 +267,15 @@ def primary_gates(out):
     term = {r: m["terminal_detected_after_campaign"] for r, m in e4.get("rules", {}).items()}
     g1 = used >= G1_MIN_PLACEMENTS and term["frozen"] >= G1_FROZEN_MIN and \
         all(term[r] <= term["frozen"] - G1_GAP for r in ADAPTIVE)
-    margin = out["real_events"]["rules"]["margin"]
-    g2 = margin["fa_per_day"] <= BUDGET
-    boot = out["real_events"]["paired"].get("margin_vs_frozen")
-    g3 = boot is not None and boot["recall_difference_interval"][0] >= G3_TOLERANCE
+    boot = out["real_events"]["paired"].get("tracker_vs_frozen")
+    g2 = boot is not None and boot["recall_difference_interval"][1] < 0
+    frozen = out["real_events"]["rules"]["frozen"]
+    g3 = frozen["fa_per_day"] <= G3_BAND
     return {"G1_pulses_blind_adaptive_rules": bool(g1), "G1_inconclusive": bool(used < G1_MIN_PLACEMENTS),
             "G1_terminal_detected_after_campaign": {r: term.get(r) for r in ("frozen",) + ADAPTIVE},
-            "G2_margin_holds_budget": bool(g2), "G2_margin_fa_per_day": margin["fa_per_day"],
-            "G3_margin_recall_cost_bounded": bool(g3), "G3_margin_vs_frozen": boot,
+            "G2_real_attacks_poison_tracker": bool(g2), "G2_tracker_vs_frozen": boot,
+            "G3_frozen_threshold_travels": bool(g3), "G3_frozen_fa_per_day": frozen["fa_per_day"],
+            "G3_frozen_within_budget_2_per_day": bool(frozen["fa_per_day"] <= BUDGET),
             "primary_success": bool(g1 and g2 and g3)}
 
 

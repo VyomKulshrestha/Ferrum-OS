@@ -1,0 +1,22 @@
+{
+ "schema_version": "real-telemetry-detection-protocol-v2-amendment2",
+ "amends": "docs/research/real_telemetry_detection_protocol_v2.json (with amendment 1)",
+ "registered_at": "2026-10-22",
+ "status": "registered-before-final-access",
+ "motivation": "Fresh, never-opened ICS recordings now exist in the repository: HAI 20.07 (same testbed as the opened HAI releases) and HyGrid-ICS (a different, simulated testbed), fetched for threshold-transfer study tt1 (docs/research/threshold_transfer_tt1_protocol.json). The ledger allows one final open per dataset id, and tt1 needs the same test files. Opening them twice is not allowed, and opening them once for only one study would spend the data for the other. This amendment runs the detection-v2 evaluation inside the tt1 shared final harness, on the same in-memory arrays, after the single ledgered access.",
+ "amendment": {
+  "shared_final": "scripts/tt1_final.py final <dataset> records one access (reason 'tt1 shared final: threshold-transfer-tt1 + real-telemetry-detection-v2 (amendment 2)') through the ledgered tt1_data loader, runs tt1, then calls real_telemetry_detection_v2.evaluate_arrays(dataset_id, train, attack, budget=2.0, steps_per_day=86400, window) on the same arrays. evaluate_arrays is the body of the original run() moved into a function, with no change to any computation; run() still refuses opened ids and records its own access for a future .npz input.",
+  "input_contract": "train = the dataset's normal development segments from scripts/tt1_data.py (HAI 20.07: train1 + train2 with the two labelled train2 attack runs cut out with a 600 s margin; HyGrid-ICS: the label-blind first 40% averaged to 1 Hz); attack = the labelled final test streams. Columns constant in the development data are dropped from both (the in-memory equivalent of the .npz contract, same column order).",
+  "datasets": {
+   "hai-20.07": "PRIMARY test of this protocol: the same-testbed fresh release that the parent protocol names as the cleaner test.",
+   "hygrid-ics": "EXPLORATORY: cross-testbed (the parent protocol's limitation), with only 9.6 h of label-blind normal training data whose attack contamination is unknown until the final. Its gates are reported, not counted as a confirmation.",
+   "voraus-ad": "EXCLUDED: robot anomalies rather than ICS attacks, episodic samples without a per-day false-alarm budget."
+  },
+  "smoothing_window": "The parent protocol says to inherit the rt1/rt2 selected D1 window when present, else 10. rt1 (HAI) and rt2 (HAI 21.03, 23.05) all selected 60 (docs/research/real_telemetry_selection_v1.json, real_telemetry_selection_rt2.json), so hai-20.07 uses window 60. No selection exists for the HyGrid-ICS testbed, so it uses the registered default 10. The harness passes the window explicitly; its DEFAULT_WINDOW constant is unchanged."
+ },
+ "unchanged": "Candidate (WorldModelV2), baseline (rt1/rt2 history 3), the D1 detector, residual scale, calibration arms, the split CUTS, gates G1/G2, the amendment-1 ensemble secondary arm, the retain-failures rule and the single-open ledger rule.",
+ "limitations_registered_in_advance": [
+  "The two studies share one access; a crash after the access is recorded spends the dataset for both. The harness was rehearsed end to end on development data and on synthetic data before registration to reduce that risk.",
+  "HAI 20.07 is an older release of the same testbed; WorldModelV2 was selected on HAI 22.04 normal data, so a pass is a same-testbed transfer result."
+ ]
+}

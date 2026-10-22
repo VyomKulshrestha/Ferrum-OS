@@ -8,7 +8,7 @@ explicitly named oracle-operator permit, which is an upper-bound arm and is repo
 
 Rules
   frozen        tau_t = tau0
-  margin        tau_t = tau_half (calibrated to half the false-alarm budget)
+  margin        tau_t = tau_half, a static threshold above tau0 supplied by the caller (tt1: tau0 + 0.25 x spread)
   daily         tau re-set once per day to the trailing-day (1 - p) quantile of scores
   tracker       symmetric online quantile tracking (ACI-style): tau moves up and down
   one_sided     tighten-only: tau_t = min(tau0_t, q_t) where q_t is the same tracker;

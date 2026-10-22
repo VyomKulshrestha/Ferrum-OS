@@ -34,7 +34,7 @@ import tt1_final as F
 ROOT = Path(__file__).resolve().parents[1]
 PART = ROOT / "target/real-telemetry/tt1-margin-dev"
 OUT = ROOT / "docs/research/threshold_transfer_margin_dev_v1.json"
-REASON = "EXPLORATORY tt1 development: static-margin selection on already-opened attack data (not a registered final)"
+REASON = "EXPLORATORY tt1 development: static-margin and online-rule selection on already-opened attack data (not a registered final)"
 QUANTILE_K = (1, 2, 4, 8, 16)
 SPREAD_C = (0.1, 0.25, 0.5, 0.75, 1.0)
 
@@ -96,9 +96,12 @@ def run(release):
     thr = candidates(pooled, tau0, p)
     packed = pack([(x, u) for x, u, _ in streams])
     scores = [np.where(np.isfinite(s), s, -np.inf) for s in (X.d1(scorer, z, v) for z, v in packed)]
+    cfg = F.thresholds(pooled, tau0, F.ETA_MULT, 0.999)
     out = {"release": release, "data": data, "tau0": tau0, "p": p, "calibration_seconds": int(len(pooled)),
            "deployment_days": sum(len(s) for s in scores) / X.STEPS_PER_DAY,
-           "candidates": evaluate(scores, [y for _, _, y in streams], thr), "seconds": round(time.time() - t0)}
+           "candidates": evaluate(scores, [y for _, _, y in streams], thr),
+           "rules_on_streams": F.stream_rules(scorer, cfg, [(z, v, y) for (z, v), (_, _, y) in zip(packed, streams)]),
+           "seconds": round(time.time() - t0)}
     PART.mkdir(parents=True, exist_ok=True)
     (PART / f"{release}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(release, "done", out["seconds"], "s", flush=True)
@@ -117,6 +120,15 @@ def merge():
             m = v["candidates"][n]
             rec = f"rec {m['recall']:.2f} d{m['vs_frozen']['recall_difference_interval'][0]:+.2f}" if m.get("recall") is not None else ""
             row += f"{'fa ' + format(m['fa_per_day'], '.2f') + ' x' + format(m['tau'] / v['tau0'], '.2f') + ' ' + rec:>34s}"
+        print(row)
+    print("\nrules on the streams (recall [1st/2nd half], fa/day, onset inflation, CI low vs frozen)")
+    for r in next(iter(rel.values()))["rules_on_streams"]["rules"]:
+        row = f"{r:18s}"
+        for v in rel.values():
+            m = v["rules_on_streams"]["rules"][r]
+            ci = v["rules_on_streams"]["paired"].get(f"{r}_vs_frozen", {}).get("recall_difference_interval", [None])[0]
+            rec = f"{m['recall']:.2f}[{m['recall_first_half']:.2f}/{m['recall_second_half']:.2f}]" if m["recall"] is not None else "-"
+            row += f"{rec + ' ' + format(m['fa_per_day'], '.2f') + ' x' + format(m['median_onset_inflation'] or 1, '.2f') + (' ' + format(ci, '+.2f') if ci is not None else ''):>40s}"
         print(row)
 
 

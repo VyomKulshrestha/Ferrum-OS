@@ -1,0 +1,108 @@
+{
+ "schema_version": "threshold-transfer-tt1-protocol",
+ "study_id": "threshold-transfer-tt1",
+ "title": "Thresholds that travel: frozen versus adaptive alarm thresholds for world-model monitors under deployment drift, real attacks and nuisance-alarm poisoning",
+ "registered_at": "2026-10-22",
+ "status": "registered-before-final-access",
+ "status_note": "Registered before any test file, label column or attack schedule of the three fresh datasets was read. Each dataset is opened once, by scripts/tt1_final.py final <dataset>, which refuses to run if the dataset id is already in target/real-telemetry/final_access.jsonl or if any frozen file differs from the sha256 recorded below.",
+ "inherits": "The D1 monitor of rt1/rt2 (docs/research/real_telemetry_protocol_v1.json, real_telemetry_protocol_rt2.json), unchanged. The pre-registered detection-v2 test (docs/research/real_telemetry_detection_protocol_v2.json, amendment 1) shares the single final access through its amendment 2 (docs/research/real_telemetry_detection_protocol_v2_amendment2.json).",
+ "motivation": "A world-model residual monitor raises an alarm when its score crosses a threshold calibrated once on clean data. The usual engineering response to deployment drift is to adapt that threshold online: daily recalibration, or online quantile tracking in the style of adaptive conformal inference. A threshold that learns from exceedances can also learn from attacks. Development evidence (all on data already spent by earlier studies or on the fresh datasets' normal training data): (1) On the recorded attacks of HAI 21.03, 22.04 and 23.05 (docs/research/threshold_transfer_margin_dev_v1.json; exploratory, ledgered), the symmetric tracker lost 22, 31 and 37 points of event recall against the frozen threshold (95% paired intervals [-0.34,-0.12], [-0.43,-0.19], [-0.50,-0.23]); its threshold stood 2.8-4.5x above tau0 at attack onsets because earlier attacks had raised it. Daily recalibration and a ten-times-slower tracker also lost recall on all three releases (intervals entirely below zero). (2) In the same runs the frozen threshold, calibrated on the most recent 20% of normal data, held the 2-per-day false-alarm budget on all three real test periods (0.66, 1.48, 1.27 episodes/day), so adaptation bought nothing there. On pseudo-deployment splits of normal training data the frozen threshold did overshoot (HAI 23.05 4.05x, docs/research/threshold_transfer_dev_v2.json; HAI 20.07 development data 4.42 episodes/day), and the adaptive rules recovered little of it (tracker 3.47x, slow tracker 2.31x, daily 3.08x on 23.05). (3) Twelve 2-minute supra-threshold pulses a day, nuisance alarms an operator learns to dismiss, blinded every exceedance-learning rule to a subsequent just-detectable setpoint step (docs/research/threshold_transfer_dev_v3.json, 30 placements on normal HAI data: frozen 30/30, daily 4/30, tracker 1/30, slow tracker 3/30). (4) A tighten-only rule (automatic tightening, loosening only through a permit) matched the frozen threshold's recall on real attacks but raised false alarms under drift; none of the automatic permits tried fixed both. (5) A static margin tau0 + 0.25 x (q0.999 - median) cost little real-attack recall on the spent releases (point -0.00/-0.05/-0.02) and brought HAI 20.07 development data from 4.42 to 1.26 false-alarm episodes/day.",
+ "primary_hypothesis": "On the fresh HAI 20.07 release: (G1) a nuisance-pulse campaign injected into the fresh test stream blinds the exceedance-learning rules to a just-detectable setpoint step that the frozen threshold still detects; (G2) the release's own real attacks poison the symmetric tracker, which detects fewer of them than the frozen threshold; (G3) the frozen threshold, calibrated once on the most recent normal training data, travels to the fresh test period within the rt2 false-alarm pass band.",
+ "frozen_components": {
+  "monitor": {
+   "name": "D1 (rt1/rt2)",
+   "definition": "real_telemetry_detect.Scorer with world model make_world_model('ridge_gbr_actions', use_actions=True): action-conditioned ridge + per-horizon LightGBM residuals (60 trees, 31 leaves, learning rate 0.1), history 3, horizons 1 and 5; score = mean(top-3 |residual|/sigma) at H1 + at H5, first 10 steps zeroed; residual scales from the residual-scale split.",
+   "smoothing_window": "60 steps for the 1 Hz streams (the rt1/rt2 selection for HAI); 10 steps (1 s) for voraus-AD at 10 Hz",
+   "budget": "2 false-alarm episodes per day, episodes merged across gaps of 60 s (stream datasets); per-sample false-alarm target 0.05 (voraus-AD)"
+  },
+  "normal_data_split": "Chronological: world-model fit 60%, residual scale 20%, threshold calibration 20% (the most recent normal data). Columns constant in development data are dropped from development and final arrays alike.",
+  "threshold_rules": {
+   "library": "scripts/threshold_rules.py, RULES (all rules are run and reported)",
+   "frozen": "tau0 = smallest threshold whose calibration false-alarm episode rate is at most the budget (real_telemetry_detect.calibrate); p = per-step exceedance rate of tau0 on calibration data (floor 1/n).",
+   "margin": "static tau0 + 0.25 x spread, spread = calibration q0.999 - median (q0.99 - median for voraus-AD).",
+   "daily": "re-set once per day (stream) or per 50 samples (voraus) to the trailing-window (1 - p) quantile.",
+   "tracker": "symmetric online quantile tracker q_{t+1} = q_t + eta (1[s_t > q_t] - p), q_0 = tau0, eta = 0.01 x spread (stream) or 0.05 x spread (voraus).",
+   "tracker_slow": "the same tracker with eta / 10, the best false-alarm adherence among trackers in development.",
+   "one_sided": "tighten-only: tau_t = min(ceiling_t, q_t); the ceiling starts at tau0 and rises only through a permit: none; spread (trailing-window exceedance rate > 2p and no single episode holds more than half the exceedances; daily, or every 6 h for spread6); shift (ceiling = tau0 + max(0, trailing median - calibration median); daily, or every 6 h for shift6); oracle (spread, blocked when the window holds a labelled event: a simulated operator, upper bound)."
+  },
+  "event_scoring": "An event (contiguous labelled run) is detected if any alarm falls inside it (tolerance 0); false-alarm episodes are alarm episodes that touch no labelled step, per day of unlabelled time; threshold inflation is tau at the event onset over tau0.",
+  "E4_pulse_campaign": {
+   "code": "threshold_transfer_dev.pulse_campaign as called by tt1_final.run_stream",
+   "design": "Injected into the longest final test stream of each stream dataset. Per placement: one setpoint channel and its 3 most coupled sensors (Injector._action_and_sensors); terminal magnitude = smallest setpoint step (lagged response, 600 s) that the frozen tau0 detects on the clean stream (bisection); campaign = 12 pulses per day of 120 s at twice that magnitude, lasting min(1 day, half the room after a 12 h warm-up), ending 1 h before the terminal step. Up to 10 placements, seed 7; a placement is skipped if the terminal window (+-300 s) touches a labelled event. Control = the same stream with the terminal step only.",
+   "endpoint": "per rule: fraction of placements whose terminal step raises an alarm, after the campaign and in the control; threshold inflation at the terminal onset; fraction of pulses alarmed."
+  },
+  "E5_noise_campaign": "Reported, not gated: the largest sensor noise that adds no tau0 alarm episode and no exceedance second over the campaign, kept on through the terminal step (adaptive attack on the shift permit). In development no such noise level existed on two of three releases.",
+  "seeds": "injection seed 7 (+202 for E4, +303 for E5); bootstrap seed 0, 10,000 resamples"
+ },
+ "data": {
+  "access_log": "docs/research/threshold_transfer_tt1_data_access.json (what was seen before registration, with disclosures)",
+  "hai-20.07": {
+   "role": "primary",
+   "development": "train1 + train2 normal data (two labelled attack runs in train2 cut out with a 600 s margin): 547,624 s in four segments; 31 sensors and 20 actions after dropping 8 tags constant in training.",
+   "final": "test1 and test2 with the attack label, read through tt1_data.hai2007_test (ledgered).",
+   "lineage": "never used by any earlier FerrumOS study; same testbed as the development releases, so it is the clean transfer test."
+  },
+  "hygrid-ics": {
+   "role": "secondary (cross-testbed, extreme drift)",
+   "development": "first 40% of rows in time order, label-blind, averaged to 1 Hz: 34,743 s (9.6 h of a 24 h simulated day). alarm, HR2 and HR3 are constant there and dropped.",
+   "final": "last 60% (about 14.5 h) with Is_Attack, read through tt1_data.hygrid_test (ledgered).",
+   "known_limits": "Calibration rests on about 2 h of data; the final spans the rest of the simulated day (different irradiance regime). E4/E5 cannot be placed (stream too short) and are reported as skipped. Attack contamination of the label-blind development portion is unknown before the final and is measured and reported after it."
+  },
+  "voraus-ad": {
+   "role": "secondary (robot, episodic; anomalies are not attacks)",
+   "development": "the official training set: setting PRE_A = 72, 948 normal samples of 103-116 steps at 10 Hz (frequency divider 10); 106 sensors, 24 target_* actions (computed_inertia_6 is constant there and dropped).",
+   "final": "all other settings with the per-sample anomaly flag, in sample-id order, read through tt1_data.voraus_test (ledgered).",
+   "scoring": "one score per sample = max of the smoothed D1 score; rules run over the sample sequence with review windows of 50 samples and episodes of consecutive alarmed samples."
+  }
+ },
+ "gates": {
+  "G1_pulses_blind_adaptive_rules": "HAI 20.07 E4 with at least 6 usable placements. PASS if the frozen threshold detects the terminal step after the campaign in at least 0.8 of placements AND each exceedance-learning rule (daily, tracker, tracker_slow) detects it in at most (frozen fraction - 0.5). Fewer than 6 usable placements makes G1 inconclusive, which counts as not passed.",
+  "G2_real_attacks_poison_tracker": "HAI 20.07 real attacks: paired event bootstrap (10,000 resamples, 95%) of recall(tracker) - recall(frozen); PASS if the interval's upper bound is below 0.",
+  "G3_frozen_threshold_travels": "HAI 20.07: the frozen threshold's false-alarm episodes per day on the unlabelled time of the test streams is at most 4.0 (the rt2 registered pass band); whether it is also within the 2.0 budget is reported.",
+  "primary_success_rule": "G1 and G2 and G3 all pass on HAI 20.07 (intersection of three tests on one dataset; no multiplicity correction).",
+  "secondary": [
+   "S1 natural poisoning beyond the tracker: recall(daily) - recall(frozen) and recall(tracker_slow) - recall(frozen) on HAI 20.07 real attacks (paired bootstrap); recall in the first versus second half of the attack sequence; threshold inflation at attack onsets.",
+   "S2 static margin: false-alarm rate and recall(margin) - recall(frozen) (paired bootstrap) on every dataset; called a sound default where it holds the budget with an interval lower bound of at least -0.10.",
+   "S3 adaptive budget benefit: false-alarm ratio to budget of every rule on each dataset's fresh normal operation, against frozen.",
+   "S4 tighten-only and permits: every one_sided rule's recall, false-alarm rate, permits per week and E4 terminal detection.",
+   "S5 replication on hygrid-ics (G2/G3 analogues on its real attacks; E4 skipped) and voraus-ad (FPR against the 0.05 target and TPR differences against frozen, paired bootstrap over anomalous samples).",
+   "S6 detection-v2 on hai-20.07 (its primary) and hygrid-ics (exploratory), under its own protocol and amendment 2."
+  ],
+  "reporting": "Every rule, dataset, gate and failure is reported, including a failed primary. No claim of runtime authority, deployment safety or real-incident prevention follows. The E4 attacker is synthetic (injected into real fresh telemetry) and assumes write access to one control loop."
+ },
+ "analysis_discipline": [
+  "Single final open per dataset, enforced by the final-access ledger; the harness records the access before reading any test array.",
+  "The harness refuses to run if any file in frozen_file_sha256 changed (sha256 of the file with LF line endings), and computes the gates itself (tt1_final.primary_gates).",
+  "Nothing is tuned on final data. Development evidence (threshold_transfer_dev_v1/v2/v3.json, threshold_transfer_margin_dev_v1.json) and the rehearsal on each fresh dataset's development data (target/real-telemetry/tt1-rehearsal/) fixed every setting above.",
+  "Negative and null results are retained and published.",
+  "After the finals: scripts/verify_tt1.py, result files docs/research/threshold_transfer_tt1_result_<dataset>.json, work.md, memory, graphify update."
+ ],
+ "limitations_registered_in_advance": [
+  "The rules, G1's design and the expectations for G2 come from HAI 21.03/22.04/23.05, the same testbed as the primary dataset; the spent releases' attacks were reused for development (exploratory, ledgered). G1 and G2 are replication tests on fresh telemetry, not discoveries.",
+  "G3 is the uncertain gate: on HAI 20.07's own development data the frozen threshold ran at 4.42 episodes/day on a pseudo-deployment split, above the 4.0 band.",
+  "The E4 terminal step is sized to be just detectable by the frozen threshold in the control, so less sensitive rules (including the static margin) detect it less often by construction.",
+  "One primary dataset with a few dozen attacks gives wide recall intervals.",
+  "HyGrid-ICS is a single simulated day and voraus-AD anomalies are not attacks; both are secondary. On HyGrid-ICS the short calibration leaves tau0 above every calibration score.",
+  "E4 could not be rehearsed on HAI 20.07 development data (the longest pseudo-deployment segment is 0.97 days); its code path was exercised on the spent releases (rounds r3, r4) and on synthetic data. The final test1 stream (about 3.3 days, estimated from file size) has room for full-day campaigns.",
+  "Operators in the E4 threat model dismiss nuisance pulses; an operator who investigates every pulse would defeat the campaign and also exceed the alarm budget."
+ ],
+ "reproduce": {
+  "dry_run": "python scripts/tt1_final.py dry-run <dataset>",
+  "rehearse": "python scripts/tt1_final.py rehearse <dataset> [--with-detection-v2]   (development data only)",
+  "final": "python scripts/tt1_final.py final <dataset>   (once per dataset)",
+  "verify": "python scripts/verify_tt1.py"
+ },
+ "frozen_file_sha256": {
+  "scripts/tt1_final.py": "d3d63bf41bd359600914b79e60a065a8aea1f234d4e1e3b197ad60f56e8b82fe",
+  "scripts/tt1_data.py": "a0fe58879c23612dec6c1248530c3f47f247918daf1eee19b95437ce4a6c7f1d",
+  "scripts/threshold_rules.py": "4686cc99f1de20838da8314accfd854160bb2825ebc51ece57c89c2284af9826",
+  "scripts/threshold_transfer_dev.py": "3e61423612a8985d63dfcf2b0754d5367fd53e8a1e6b12c422c23a930c896113",
+  "scripts/real_telemetry_core.py": "9f4b8f489da8055a075a8a7f9af0a047d80a34e9dc0527387e3a27e87f42bee0",
+  "scripts/real_telemetry_data.py": "926309d12ec0077887f5b717de42d465ca8cd8ec4f3c0668ccddd7d4451dfbaf",
+  "scripts/real_telemetry_detect.py": "cbb298f6877e8990cea1d7560dc87a1c256d8699eeda07437db2f30843fd3377",
+  "scripts/real_telemetry_dev.py": "7f2637355e36c639e9beadd28da77dcee936b381c873cca3f6aeee1cc1e3fd89",
+  "scripts/real_telemetry_injections.py": "779464dbfabf18d13ce4e46c33aea7835ad57891303f1f007529ecc320333b5c",
+  "scripts/real_telemetry_detection_v2.py": "27c29673a66240e19344167e95b4ac478aebd8c712d8fd4b548d3a9bbdddb67d",
+  "scripts/real_telemetry_wm_v2.py": "4d854b08bb10844f78932bf02de8d070b64a25014b58383a8996ca9b88469397"
+ }
+}
