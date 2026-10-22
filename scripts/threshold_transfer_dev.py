@@ -165,8 +165,82 @@ def run_release(release, seed=7):
                       "median_threshold_inflation": float(np.median(v["inflation"])),
                       "control_terminal_detected": float(np.mean(ctrl[r]))} for r, v in e2.items()}
     print(release, "E2 done", round(time.time() - t0), "s", flush=True)
+    e3 = stealthy_poisoning(scorer, z, v, s_base, inj, tau0, tau_half, p, spread, seed)
+    print(release, "E3 done", round(time.time() - t0), "s", flush=True)
     return {"release": release, "deploy_days": n_dep / STEPS_PER_DAY, "tau0": tau0, "tau_half": tau_half, "p": p,
-            "E1_budget_adherence": e1, "E2_poisoning": e2_summary, "placements": PLACEMENTS}
+            "E1_budget_adherence": e1, "E2_poisoning": e2_summary, "E3_stealthy_poisoning": e3, "placements": PLACEMENTS}
+
+
+STEALTHY_PLACEMENTS = 12
+
+
+def stealthy_poisoning(scorer, z, v, s_base, inj, tau0, tau_half, p, spread, seed):
+    """E3: boiling-frog drift kept below the registered threshold, then a just-detectable attack.
+
+    Per placement, the drift magnitude is the largest (bisection) for which the frozen threshold
+    never fires during the 12 h drift, and the terminal setpoint-step magnitude is the smallest
+    (bisection) that the frozen threshold detects WITHOUT the drift. Each rule is then asked to
+    detect the terminal attack after the drift (poisoned) and without it (control).
+    """
+    rng = np.random.default_rng(seed + 101)
+    margin = 300
+    rules = [r for r in T.RULES]
+    out = {r: {"poisoned": [], "control": [], "inflation": []} for r in rules}
+    used = 0
+    for _ in range(STEALTHY_PLACEMENTS * 3):
+        if used == STEALTHY_PLACEMENTS:
+            break
+        end = int(rng.integers(RAMP + 2 * margin + STEPS_PER_DAY // 2, len(z) - ATTACK - margin))
+        start, lo, hi = end - RAMP, end - RAMP - margin, end + ATTACK + margin
+        a_idx, sensors = inj._action_and_sensors(3)
+        signs = rng.choice([-1, 1], len(sensors))
+        ramp = (np.arange(RAMP) / RAMP) ** 2.0
+        resp = I._lag_response(ATTACK, 60.0)
+
+        def scores(m_ramp, m_att):
+            Zp, Vp = z[lo:hi].copy(), v[lo:hi].copy()
+            Zp[start - lo:end - lo, sensors] += np.outer(ramp, signs * m_ramp)
+            Zp[end - lo:end - lo + ATTACK, sensors] += np.outer(ramp[-1] * np.ones(ATTACK), signs * m_ramp)
+            Vp[end - lo:end - lo + ATTACK, a_idx] += m_att
+            Zp[end - lo:end - lo + ATTACK, sensors] += np.outer(resp, signs * m_att)
+            seg = d1(scorer, Zp, Vp)
+            s = s_base.copy()
+            s[lo + R.WARMUP:hi] = seg[R.WARMUP:]
+            return np.where(np.isfinite(s), s, -np.inf)
+
+        # largest sub-threshold drift (frozen tau0 never fires during the drift, no terminal attack)
+        a, b = 0.0, 4.0
+        for _ in range(7):
+            mid = (a + b) / 2
+            a, b = (mid, b) if not (scores(mid, 0.0)[start:end] > tau0).any() else (a, mid)
+        m_ramp = a
+        # smallest terminal attack the frozen threshold detects without the drift
+        a, b = 0.0, 6.0
+        if not (scores(0.0, b)[end:end + ATTACK] > tau0).any():
+            continue
+        for _ in range(7):
+            mid = (a + b) / 2
+            a, b = (a, mid) if (scores(0.0, mid)[end:end + ATTACK] > tau0).any() else (mid, b)
+        m_att = b
+        if m_ramp < 0.05:
+            continue
+        used += 1
+        sp, sc = scores(m_ramp, m_att), scores(0.0, m_att)
+        lab_p = np.zeros(len(z), np.int8)
+        lab_p[start:end + ATTACK] = 1
+        lab_c = np.zeros(len(z), np.int8)
+        lab_c[end:end + ATTACK] = 1
+        for rule in rules:
+            tau_p, _ = T.apply_rule(rule, sp, tau0, tau_half, p, ETA_MULTS[1] * spread, STEPS_PER_DAY, GAP, labels=lab_p)
+            tau_c, _ = T.apply_rule(rule, sc, tau0, tau_half, p, ETA_MULTS[1] * spread, STEPS_PER_DAY, GAP, labels=lab_c)
+            out[rule]["poisoned"].append(bool((sp > tau_p)[end:end + ATTACK].any()))
+            out[rule]["control"].append(bool((sc > tau_c)[end:end + ATTACK].any()))
+            out[rule]["inflation"].append(float(tau_p[end] / tau0))
+    return {"placements_used": used,
+            "rules": {r: {"terminal_detected_after_drift": float(np.mean(v["poisoned"])) if v["poisoned"] else None,
+                          "terminal_detected_control": float(np.mean(v["control"])) if v["control"] else None,
+                          "median_threshold_inflation": float(np.median(v["inflation"])) if v["inflation"] else None}
+                      for r, v in out.items()}}
 
 
 PART = ROOT / "target/real-telemetry/tt1-dev"

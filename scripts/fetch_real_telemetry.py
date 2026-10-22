@@ -50,17 +50,25 @@ def get(url: str) -> bytes:
 
 
 def download(url: str, destination: Path) -> tuple[int, str]:
+    """Download with resume: an existing .part file is continued with an HTTP Range request."""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    digest, size = hashlib.sha256(), 0
-    request = urllib.request.Request(url, headers={"User-Agent": "ferrumos-real-telemetry-fetch"})
     partial = destination.with_suffix(destination.suffix + ".part")
-    with urllib.request.urlopen(request, timeout=600) as response, partial.open("wb") as handle:
-        for block in iter(lambda: response.read(1 << 20), b""):
-            handle.write(block)
-            digest.update(block)
-            size += len(block)
+    for attempt in range(8):
+        have = partial.stat().st_size if partial.exists() else 0
+        headers = {"User-Agent": "ferrumos-real-telemetry-fetch"}
+        if have:
+            headers["Range"] = f"bytes={have}-"
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=120) as response:
+                mode = "ab" if have and response.status == 206 else "wb"
+                with partial.open(mode) as handle:
+                    for block in iter(lambda: response.read(1 << 20), b""):
+                        handle.write(block)
+            break
+        except (TimeoutError, OSError) as error:
+            print(f"download interrupted at {partial.stat().st_size if partial.exists() else 0} bytes ({error}); resuming", flush=True)
     partial.replace(destination)
-    return size, digest.hexdigest()
+    return destination.stat().st_size, sha256(destination)
 
 
 def sha256(path: Path) -> str:

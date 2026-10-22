@@ -98,9 +98,15 @@ def apply_rule(rule: str, scores: np.ndarray, tau0: float, tau_half: float, p: f
         return tracker_path(scores, tau0, p, eta), {}
     if rule.startswith("one_sided"):
         permit = rule.split(":", 1)[1] if ":" in rule else "none"
-        tau, permits = one_sided_path(scores, tau0, p, eta, steps_per_day, gap, permit=permit, labels=labels)
+        review = None
+        if permit[-1].isdigit():                      # e.g. "spread6": review every 6 hours
+            hours = int("".join(ch for ch in permit if ch.isdigit()))
+            permit = permit.rstrip("0123456789")
+            review = steps_per_day * hours // 24
+        tau, permits = one_sided_path(scores, tau0, p, eta, steps_per_day, gap, permit=permit, labels=labels,
+                                      review_every=review)
         return tau, {"permits": len(permits), "permit_log": permits[:50]}
     raise ValueError(rule)
 
 
-RULES = ["frozen", "margin", "daily", "tracker", "one_sided:none", "one_sided:spread", "one_sided:oracle"]
+RULES = ["frozen", "margin", "daily", "tracker", "one_sided:none", "one_sided:spread", "one_sided:spread6", "one_sided:oracle"]

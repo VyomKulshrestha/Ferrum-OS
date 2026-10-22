@@ -1049,6 +1049,19 @@
      "upstream_check": "md5 965eafa032e5e2e12e76fa5cc11569e6 and size"
     }
    ]
+  },
+  "voraus-ad": {
+   "record": "https://github.com/vorausrobotik/voraus-ad-dataset (100 Hz release)",
+   "license": "CC BY-NC-SA 4.0 (data), MIT (code)",
+   "citation": "J. Brockmann, M. Rudolph, B. Rosenhahn, B. Wandt. The voraus-AD Dataset for Anomaly Detection in Robot Applications. IEEE Transactions on Robotics, 2024. arXiv:2311.04765",
+   "files": [
+    {
+     "file": "voraus-ad-dataset-100hz.parquet",
+     "bytes": 1115942833,
+     "sha256": "c90ab1c78af52651b954d41787f7e89d750f0a128b57600b0e5ceec22621f704",
+     "upstream_check": "etag 69d8ea42-4283efb1 and size"
+    }
+   ]
   }
  }
 }
