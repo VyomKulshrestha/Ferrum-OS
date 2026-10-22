@@ -236,9 +236,10 @@ def run(dataset_id, npz, budget, steps_per_day, window):
     evaluate_arrays(dataset_id, train, attack, budget, steps_per_day, window)
 
 
-def evaluate_arrays(dataset_id, train, attack, budget, steps_per_day, window, shared_final=None):
+def evaluate_arrays(dataset_id, train, attack, budget, steps_per_day, window, shared_final=None, result_dir=None):
     """The registered evaluation on in-memory arrays. The caller must already have recorded the
-    single final access (run() above, or the tt1 shared final harness under amendment 2)."""
+    single final access (run() above, or the tt1 shared final harness under amendment 2).
+    result_dir redirects the result file (used only by rehearsals on development data)."""
     xs = C.Scaler().fit(np.concatenate([x for x, _ in train]))
     has_u = all(u is not None for _, u in train) and all(u is not None for _, u, _ in attack)
     us = C.Scaler().fit(np.concatenate([u for _, u in train])) if has_u else None
@@ -311,7 +312,7 @@ def evaluate_arrays(dataset_id, train, attack, budget, steps_per_day, window, sh
     print(f"recall diff (v2 - baseline) {boot['recall_difference']:+.3f} "
           f"CI95 [{boot['recall_difference_interval'][0]:+.3f}, {boot['recall_difference_interval'][1]:+.3f}]")
 
-    res = ROOT / "docs/research" / f"real_telemetry_detection_v2_result_{dataset_id}.json"
+    res = Path(result_dir or ROOT / "docs/research") / f"real_telemetry_detection_v2_result_{dataset_id}.json"
     res.write_text(json.dumps({"schema_version": "real-telemetry-detection-result-v2",
                                "protocol": PROTOCOL.name, **out}, indent=1) + "\n", encoding="utf-8")
     print("wrote", res)

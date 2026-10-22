@@ -120,7 +120,31 @@ def fit_monitor(fit_raw, scale_raw):
     wm = R.make_world_model("ridge_gbr_actions", True).fit(fit)
     scorer = R.Scorer(wm, fit)
     scorer.residual_scales(pack(scale_raw))
-    return scorer, pack, fit
+    return scorer, pack, fit, xs, us
+
+
+REHEARSAL_EVENTS = 12
+
+
+def rehearsal_events(deploy_raw, inj, xs, us, seed=SEED):
+    """Labelled stand-in attacks for rehearsals: setpoint steps (600 s, lagged sensor response,
+    magnitude 1-3 robust scale units) spread over the longest pseudo-deployment segment, injected in
+    raw units so the detection-v2 harness (which rescales) sees the same events as tt1."""
+    rng = np.random.default_rng(seed + 404)
+    out = [(x.copy(), u.copy(), np.zeros(len(x), np.int8)) for x, u in deploy_raw]
+    k = max(range(len(out)), key=lambda i: len(out[i][0]))
+    x, u, y = out[k]
+    n_events = max(1, min(REHEARSAL_EVENTS, (len(x) - 4000) // 1800))
+    slot = (len(x) - 4000) // n_events
+    for j in range(n_events):
+        t = 2000 + j * slot + int(rng.integers(0, max(1, slot - X.ATTACK - 600)))
+        a_idx, sensors = inj._action_and_sensors(3)
+        m = float(rng.uniform(1.0, 3.0))
+        u[t:t + X.ATTACK, a_idx] += m * us.scale[a_idx]
+        x[t:t + X.ATTACK, sensors] += np.outer(I._lag_response(X.ATTACK, 60.0),
+                                               rng.choice([-1, 1], len(sensors)) * m * xs.scale[sensors])
+        y[t:t + X.ATTACK] = 1
+    return out
 
 
 def thresholds(pooled, tau0, eta_mult, spread_q):
@@ -192,21 +216,23 @@ def run_stream(dataset, final):
                                                [c for i, c in enumerate(cols["actions"]) if i not in set(ku)]}
     names = ("fit", "scale", "calib") + (() if final else ("deploy",))
     parts = split(segs, FINAL_CUTS if final else REHEARSAL_CUTS, names, min_len=1000)
-    scorer, pack, fit = fit_monitor(parts["fit"], parts["scale"])
+    scorer, pack, fit, xs, us = fit_monitor(parts["fit"], parts["scale"])
     cal = [s[np.isfinite(s)] for s in (X.d1(scorer, z, v) for z, v in pack(parts["calib"]))]
     tau0 = R.calibrate(cal, GAP, BUDGET, SPD)
     cfg = thresholds(np.concatenate(cal), tau0, ETA_MULT, 0.999)
     print(dataset, "monitor fitted", round(time.time() - t0), "s", {k: round(v, 4) for k, v in cfg.items()}, flush=True)
+    fz, fv = np.concatenate([q for q, _ in fit]), np.concatenate([q for _, q in fit])
+    inj = I.Injector("hai", fz, fv, seed=SEED + zlib.crc32(dataset.encode()) % 1000)
 
     if final:
         reason = "tt1 shared final: threshold-transfer-tt1 + real-telemetry-detection-v2 (amendment 2)"
         raw = final_data(dataset, reason)                      # records the single final access
         raw = [(x[:, kx], u[:, ku], y) for x, u, y in raw]
-        packed = pack([(x, u) for x, u, _ in raw])
-        streams = [(z, v, y) for (z, v), (_, _, y) in zip(packed, raw)]
     else:
-        raw = None
-        streams = [(z, v, np.zeros(len(z), np.int8)) for z, v in pack(parts["deploy"])]
+        raw = rehearsal_events(parts["deploy"], inj, xs, us)
+        segs = parts["fit"] + parts["scale"] + parts["calib"]  # detection-v2 rehearsal trains on these only
+    packed = pack([(x, u) for x, u, _ in raw])
+    streams = [(z, v, y) for (z, v), (_, _, y) in zip(packed, raw)]
     out = {"dataset": dataset, "mode": "final" if final else "rehearsal", "columns": info, "thresholds": cfg,
            "normal_training_seconds": {k: int(sum(len(x) for x, _ in g)) for k, g in parts.items()},
            "real_events": stream_rules(scorer, cfg, streams)}
@@ -214,16 +240,39 @@ def run_stream(dataset, final):
 
     z, v, y = max(streams, key=lambda item: len(item[0]))
     s_base = X.d1(scorer, z, v)
-    fz, fv = np.concatenate([q for q, _ in fit]), np.concatenate([q for _, q in fit])
-    inj = I.Injector("hai", fz, fv, seed=SEED + zlib.crc32(dataset.encode()) % 1000)
-    avoid = y.astype(bool) if final else None
+    avoid = y.astype(bool)
     out["injection_stream_days"] = len(z) / SPD
     out["E4_pulse_campaign"] = X.pulse_campaign(scorer, z, v, s_base, inj, cfg, SEED, avoid=avoid)
     print(dataset, "E4 done", round(time.time() - t0), "s", flush=True)
     out["E5_noise_campaign"] = X.noise_campaign(scorer, z, v, s_base, inj, cfg, SEED, avoid=avoid)
     print(dataset, "E5 done", round(time.time() - t0), "s", flush=True)
+    if dataset == "hai-20.07":                            # the primary dataset (rehearsal values are informational)
+        out["gates"] = primary_gates(out)
+        print(dataset, "gates", {k: v for k, v in out["gates"].items() if not isinstance(v, dict)}, flush=True)
     out["seconds"] = round(time.time() - t0)
     return out, segs, raw
+
+
+ADAPTIVE = ("daily", "tracker", "tracker_slow")
+G1_MIN_PLACEMENTS, G1_FROZEN_MIN, G1_GAP, G3_TOLERANCE = 6, 0.8, 0.5, -0.10
+
+
+def primary_gates(out):
+    """G1-G3 of docs/research/threshold_transfer_tt1_protocol.json, computed from the result itself."""
+    e4 = out["E4_pulse_campaign"]
+    used = e4.get("placements_used", 0)
+    term = {r: m["terminal_detected_after_campaign"] for r, m in e4.get("rules", {}).items()}
+    g1 = used >= G1_MIN_PLACEMENTS and term["frozen"] >= G1_FROZEN_MIN and \
+        all(term[r] <= term["frozen"] - G1_GAP for r in ADAPTIVE)
+    margin = out["real_events"]["rules"]["margin"]
+    g2 = margin["fa_per_day"] <= BUDGET
+    boot = out["real_events"]["paired"].get("margin_vs_frozen")
+    g3 = boot is not None and boot["recall_difference_interval"][0] >= G3_TOLERANCE
+    return {"G1_pulses_blind_adaptive_rules": bool(g1), "G1_inconclusive": bool(used < G1_MIN_PLACEMENTS),
+            "G1_terminal_detected_after_campaign": {r: term.get(r) for r in ("frozen",) + ADAPTIVE},
+            "G2_margin_holds_budget": bool(g2), "G2_margin_fa_per_day": margin["fa_per_day"],
+            "G3_margin_recall_cost_bounded": bool(g3), "G3_margin_vs_frozen": boot,
+            "primary_success": bool(g1 and g2 and g3)}
 
 
 # ---------------------------------------------------------------- episodic dataset
@@ -237,7 +286,7 @@ def run_episodic(dataset, final):
     cuts = [int(n * c) for c in (FINAL_CUTS if final else REHEARSAL_CUTS)]
     fit_raw, scale_raw = samples[:cuts[0]], samples[cuts[0]:cuts[1]]
     calib_raw = samples[cuts[1]:] if final else samples[cuts[1]:cuts[2]]
-    scorer, pack, fit = fit_monitor(fit_raw, scale_raw)
+    scorer, pack, fit, _, _ = fit_monitor(fit_raw, scale_raw)
 
     def smax(z, v):
         s = R.smooth(R.scores_for(scorer, {}, z, v)["D1"], spec["window"])
@@ -331,8 +380,17 @@ def final(dataset):
 
 
 def rehearse(dataset):
-    out = run_episodic(dataset, final=False) if dataset in EPISODIC else run_stream(dataset, final=False)[0]
     REHEARSAL.mkdir(parents=True, exist_ok=True)
+    if dataset in EPISODIC:
+        out = run_episodic(dataset, final=False)
+    else:
+        out, segs, raw = run_stream(dataset, final=False)
+        if "--with-detection-v2" in sys.argv:              # the shared-final code path, on development data
+            import real_telemetry_detection_v2 as DV2
+            t0 = time.time()
+            DV2.evaluate_arrays(f"rehearsal-{dataset}", segs, raw, BUDGET, SPD, STREAMS[dataset]["detection_v2_window"],
+                                shared_final="rehearsal on development data", result_dir=REHEARSAL)
+            out["detection_v2_rehearsal_seconds"] = round(time.time() - t0)
     (REHEARSAL / f"{dataset}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     print("wrote", REHEARSAL / f"{dataset}.json")
 

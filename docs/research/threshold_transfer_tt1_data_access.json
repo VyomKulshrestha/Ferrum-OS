@@ -13,7 +13,7 @@
     "test2.csv.gz": "427841d8240d5fa557fb28ed58da21bb93d0a3c2b30e43b82ab2d816330185e2"
    },
    "lineage_status": "Never downloaded or used by any earlier FerrumOS study (repository search and all access ledgers, 2026-10-22).",
-   "seen_so_far": "Header lines of train1/train2; the train-file attack column was read to build normal training data: train1 has no labelled attack, train2 has two labelled attack runs (776 s), cut out with a 600 s margin. Test files unopened.",
+   "seen_so_far": "Header lines of train1/train2; the train-file attack column was read to build normal training data: train1 has no labelled attack, train2 has two labelled attack runs (776 s), cut out with a 600 s margin. Test files unopened. Before registration the compressed sizes of the test files (metadata, not content) were used to estimate stream lengths for the E4 feasibility check: test1 about 288k s, test2 about 148k s (train2's estimate was within 3% of its true length).",
    "prior_knowledge_disclosure": "The author has read summaries of the HAI 1.0 (CSET 2020) paper, which describes this release's attack primitives (setpoint, process-variable and control-output manipulation with replay concealment), and the HAI technical manual. Injection and threshold settings must not use HAI attack targets.",
    "development_data": "547,624 normal seconds in four segments; 31 sensors and 20 actions after dropping 8 tags constant in training."
   },
@@ -29,15 +29,16 @@
     "Attack_Type",
     "Is_Attack"
    ],
-   "seen_so_far": "Header line and the first data row of scada_cps_dataset.csv (that row's label fields read Normal/0); the file listing of the code archive, which shows attack script names (e.g. fdi_voltage, coil_manipulation, ramp_attack). No attack script, README attack schedule or attack_labels.csv content has been read.",
+   "seen_so_far": "Header line and the first data row of scada_cps_dataset.csv (that row's label fields read Normal/0); the file listing of the code archive, which shows attack script names (e.g. fdi_voltage, coil_manipulation, ramp_attack). No attack script, README attack schedule or attack_labels.csv content has been read. Development rehearsal: alarm, HR2 and HR3 are constant in the development 40% and are dropped; the pseudo-deployment part of development data (2.4 h) raised 3 false-alarm episodes at the frozen threshold.",
    "note": "Labels are inline; development loaders must exclude the label columns; the train/final split is label-blind and chronological.",
    "development_data": "First 40% of rows in time order (173,427 of 433,568), averaged to 1 Hz: 34,743 s; label columns never loaded."
   },
   "voraus-ad": {
    "source": "media.vorausrobotik.com 100 Hz parquet, 1,115,942,833 bytes (size verified; ETag 69d8ea42-4283efb1)",
-   "seen_so_far": "Parquet schema (137 columns; labels anomaly and category) and the number of samples per setting value. The official split (voraus_ad.py) trains on setting PRE_A = 72 (948 samples) and tests on all other settings; setting is the experiment variant, so the split itself reveals which test samples come from which variant group but not their labels. No anomaly or category value has been read.",
+   "seen_so_far": "Parquet schema (137 columns; labels anomaly and category) and the number of samples per setting value. The official split (voraus_ad.py) trains on setting PRE_A = 72 (948 samples) and tests on all other settings; setting is the experiment variant, so the split itself reveals which test samples come from which variant group but not their labels. No anomaly or category value has been read. Training samples (setting 72) are 103-116 steps long at 10 Hz.",
    "sha256": "c90ab1c78af52651b954d41787f7e89d750f0a128b57600b0e5ceec22621f704",
    "development_data": "948 PRE_A samples at 10 Hz (frequency divider 10); 106 sensors, 24 target_* actions."
   }
- }
+ },
+ "rehearsal": "Before registration the full final pipeline (scripts/tt1_final.py rehearse) ran on each dataset's development data only, with injected stand-in events; outputs in target/real-telemetry/tt1-rehearsal/. No test file, label column or attack schedule was read."
 }
