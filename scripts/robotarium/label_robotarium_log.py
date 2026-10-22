@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Label a Robotarium FerrumOS run (ferrum_steps.npy + ferrum_meta.txt) with the runtime's rules.
 
-Poses are converted to runtime metres (divide by the run's scale) and each step gets the
-camera-visible terms of train_physical_world_model.is_dangerous, as in the runtime-scene
-proxy (scripts/vision_runtime_domain_render.py):
+Robot positions are body centres: the logged pose plus BODY_OFFSET along the heading
+(the testbed's own collision check uses this 0.025 m offset; the overhead video confirms
+the visible body sits ahead of the pose point). They are converted to runtime metres
+(divide by the run's scale) and each step gets the camera-visible terms of
+train_physical_world_model.is_dangerous, as in the runtime-scene proxy
+(scripts/vision_runtime_domain_render.py):
   moving and clearance_next < 0.16   clearance = centre distance - 0.16 (runtime metres)
   or geofence margin_next < 0        margin = 1 - max(|x|, |y|)
 Contact cannot occur on the Robotarium (the testbed rejects close approaches and the
@@ -22,12 +25,14 @@ from pathlib import Path
 import numpy as np
 
 H = 3
+BODY_OFFSET = 0.025      # m, rps COLLISION_OFFSET
 
 
 def label(run_dir):
     run_dir = Path(run_dir)
     meta = json.loads((run_dir / "ferrum_meta.txt").read_text(encoding="utf-8"))
     rows = np.load(run_dir / "ferrum_steps.npy")
+    traj = np.load(run_dir / "ferrum_traj.npy")
     col = {c: i for i, c in enumerate(meta["step_columns"])}
     n_ep, steps, scale = meta["episodes"], meta["steps"], meta["scale"]
     if len(rows) != n_ep * steps:
@@ -35,8 +40,14 @@ def label(run_dir):
     rows = rows.reshape(n_ep, steps, -1)
     kind = rows[:, :, col["kind"]].astype(int)
     feats = rows[:, :, [col["f0"], col["f1"], col["f2"]]]
-    end = rows[:, :, [col["r0x_end"], col["r0y_end"]]] / scale
-    obs = rows[:, :, [col["obs_x"], col["obs_y"]]] / scale
+    body = lambda x, y, th: np.stack([x + BODY_OFFSET * np.cos(th), y + BODY_OFFSET * np.sin(th)], -1)
+    start = body(rows[:, 0, col["r0x_start"]], rows[:, 0, col["r0y_start"]], rows[:, 0, col["r0th_start"]])
+    end = body(rows[:, :, col["r0x_end"]], rows[:, :, col["r0y_end"]], rows[:, :, col["r0th_end"]])
+    o_pose = traj[rows[:, 0, col["it_end"]].astype(int) - 1][:, 4:7]           # the obstacle is parked
+    obstacle = body(o_pose[:, 0], o_pose[:, 1], o_pose[:, 2]) / scale
+    robot_xy = np.concatenate([start[:, None], end], 1) / scale
+    end = robot_xy[:, 1:]
+    obs = obstacle[:, None]
     clearance = np.clip(np.hypot(*(end - obs).transpose(2, 0, 1)) - 0.16, 0, 1)
     margin = 1.0 - np.abs(end).max(2)
     moving = (kind == 0) & (feats[:, :, 2] > 0.1)
@@ -51,6 +62,7 @@ def label(run_dir):
     return {"e": e, "t": t, "y": window(hazards), "kind": kind[e, t], "features": feats[e, t],
             "hazards": hazards, "proximity": window(pad(prox)), "geofence": window(pad(geo)),
             "clearance": clearance, "margin": margin, "min_centre_dist_m": rows[:, :, col["min_centre_dist"]],
+            "robot_xy": robot_xy.astype(np.float32), "obstacle_xy": obstacle.astype(np.float32),
             "it_end": rows[:, :, col["it_end"]].astype(int), "meta": meta}
 
 

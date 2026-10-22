@@ -10,7 +10,8 @@ the 16 cm runtime robot becomes 11.2 cm, about a GRITSbot).
 |---|---|
 | `ferrum_experiment.py` | the file to upload; numpy + `rps` only; edit `SEED` per submission |
 | `check_in_simulator.py` | runs the upload file in the official simulator and reports the testbed's own checks |
-| `label_robotarium_log.py` | labels a returned run with the runtime's hazard rules |
+| `label_robotarium_log.py` | labels a returned run with the runtime's hazard rules (body centres) |
+| `video_frames.py` | syncs the returned video to the log, fits the camera, writes rectified per-step frames |
 
 Testbed limits respected: 600 s per experiment (8 episodes take about 450 s), no robot
 pair within 0.135 m (a local safety layer keeps robot 0 at least 0.20 m from the
@@ -25,6 +26,19 @@ files, a log and a 1920x1080, 25 fps overhead video (wide-angle lens, strong bar
 distortion). The white projected fence was invisible on the bright floor; the projector
 darkens by withholding light, so the fence is now black and 10 px wide, and a dark disc is
 projected under the parked obstacle so the two identical GRITSbots differ visually.
+
+What the pilot taught the tooling:
+- Real execution matches the simulator: Move end-to-target error median 1.7 cm (sim 2.1),
+  79% within 3 cm (sim 71%), drift while holding at most 3 mm.
+- The testbed loop runs about 1% slow with +-0.2 s jitter, so the video is synced per
+  30 s window, and the camera is fitted only on hold frames (robots still).
+- The logged pose is behind the visible body centre along the heading (fitted 3.1 cm;
+  the testbed's collision check uses 0.025 m). Labels use body centres with 0.025 m.
+- OpenCV's full camera model diverges from a single plane; a homography plus one radial
+  term fits all 555 hold frames at 1.0 px median (0.2 cm).
+- Exploratory only: the sim-trained v2 head, unchanged, scored AUC-PR 0.717 against a
+  0.455 base rate on the pilot's 88 decisions (recall 0.275 at its frozen threshold,
+  FPR 0.021). One run; not evidence.
 
 ## Check before uploading
 
@@ -41,11 +55,15 @@ Seeds 101-103 pass with zero too-close, out-of-bounds and actuator-limit counts.
 
 ## After a run
 
-Download the run's files into a folder and label them:
+Put the run's data files, log and video (`experiment_video.mp4`) in one folder, then:
 
 ```bash
 python scripts/robotarium/label_robotarium_log.py path/to/run --out path/to/run/labels.npz
+python scripts/robotarium/video_frames.py path/to/run
 ```
+
+`frames.npz` has the keys of the proxy dataset, so `vision_runtime_proxy_final.decisions`
+reads it unchanged.
 
 Pilot runs (seeds 101-110) are exploratory: they show what the testbed returns (data, and
 whether a video comes back). Any evaluation on Robotarium footage needs its own protocol
