@@ -988,6 +988,67 @@
      "upstream_check": "git-lfs oid sha256 and size"
     }
    ]
+  },
+  "hai-20.07": {
+   "repository": "icsdataset/hai",
+   "commit": "2a814cebc9a66b06c9e5cd545e2d72e65d383737",
+   "license": "CC BY-SA 4.0 (README licence section and technical manual v4.0; repository has no LICENSE file)",
+   "citation": "H.-K. Shin, W. Lee, S. Choi, J.-H. Yun, B.-G. Min. HAI security datasets, https://github.com/icsdataset/hai, 2023; H.-K. Shin, W. Lee, J.-H. Yun, B.-G. Min. Two ICS Security Datasets and Anomaly Detection Contest on the HIL-based Augmented ICS Testbed. CSET '21, pp. 36-40. https://doi.org/10.1145/3474718.3474719",
+   "files": [
+    {
+     "file": "train1.csv.gz",
+     "bytes": 35252451,
+     "sha256": "376e8288a5e3cf69bc5c506f75d6fb9cebb30ff43326c60ed675ccea37700844",
+     "git_blob_sha1": "61fbd997924062bddd9266ebf307703db9dfe9c5",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "train2.csv.gz",
+     "bytes": 26725939,
+     "sha256": "30caafaeba9736238fe746a780c0baf3aa71ee7bcf494fb3daf721128ad7fdde",
+     "git_blob_sha1": "c99757afe4057eb3147c6818a899f3998d51670a",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test1.csv.gz",
+     "bytes": 32813703,
+     "sha256": "68cc18af44efcd756e9eaaa81790855836e8aee3f2ce9c4d9dd95a0ada36c2e4",
+     "git_blob_sha1": "a260da5b4a3482f3bd1806fd8065595d2b648907",
+     "upstream_check": "git blob sha1 at pinned commit"
+    },
+    {
+     "file": "test2.csv.gz",
+     "bytes": 16907509,
+     "sha256": "427841d8240d5fa557fb28ed58da21bb93d0a3c2b30e43b82ab2d816330185e2",
+     "git_blob_sha1": "a27cee8bea0bd48792c3426af44d664117722246",
+     "upstream_check": "git blob sha1 at pinned commit"
+    }
+   ]
+  },
+  "hygrid-ics": {
+   "record": "https://doi.org/10.5281/zenodo.23250890 (HyGrid-ICS v1.1.1)",
+   "license": "CC BY 4.0",
+   "citation": "HyGrid-ICS: A Hybrid Cyber-Physical Security Dataset for SCADA-Based Industrial Control Systems, v1.1.1, Zenodo, 2026. https://doi.org/10.5281/zenodo.23250890",
+   "files": [
+    {
+     "file": "scada_cps_dataset.csv",
+     "bytes": 96522760,
+     "sha256": "8e2afcb6a3339ee2c17c791004ff3ab48a9fe1c989b62963f8643afae51bb8db",
+     "upstream_check": "md5 385153824abe5253646ff79402007416 and size"
+    },
+    {
+     "file": "attack_labels.csv",
+     "bytes": 6783,
+     "sha256": "dd5ab68babb2a67ae2eeb7e2ba8abc7c06ddaaa259cf5d9b5fdedb605e379fae",
+     "upstream_check": "md5 5fd0a810a5b49122b6b6b24c43b7d926 and size"
+    },
+    {
+     "file": "HyGrid-ICS-v1.0.0.zip",
+     "bytes": 97015,
+     "sha256": "6c7d21d5144a08be370206fd013bf800c55b0da9700ecdedfc7c1083b1b0426b",
+     "upstream_check": "md5 965eafa032e5e2e12e76fa5cc11569e6 and size"
+    }
+   ]
   }
  }
 }

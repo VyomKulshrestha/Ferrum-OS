@@ -77,6 +77,8 @@ def git_blob_sha1(path: Path) -> str:
 
 
 HAI_REPLICATION = {
+    "hai-20.07": {"folder": "hai-20.07", "lfs": False,
+                  "files": ["train1.csv.gz", "train2.csv.gz", "test1.csv.gz", "test2.csv.gz"]},
     "hai-21.03": {"folder": "hai-21.03", "lfs": False,
                   "files": [f"train{i}.csv.gz" for i in range(1, 4)] + [f"test{i}.csv.gz" for i in range(1, 6)]},
     "hai-23.05": {"folder": "hai-23.05", "lfs": True,
@@ -116,6 +118,46 @@ def fetch_hai_release(release: str) -> dict:
     return {key: HAI[key] for key in ("repository", "commit", "license", "citation")} | {"files": records}
 
 
+# Threshold-transfer study (tt1) fresh sources: published files verified by publisher checksum or size.
+EXTERNAL = {
+    "hygrid-ics": {
+        "record": "https://doi.org/10.5281/zenodo.23250890 (HyGrid-ICS v1.1.1)",
+        "license": "CC BY 4.0",
+        "citation": "HyGrid-ICS: A Hybrid Cyber-Physical Security Dataset for SCADA-Based Industrial Control Systems, v1.1.1, Zenodo, 2026. https://doi.org/10.5281/zenodo.23250890",
+        "files": {
+            "scada_cps_dataset.csv": ("https://zenodo.org/api/records/23250890/files/scada_cps_dataset.csv/content", 96522760, "md5", "385153824abe5253646ff79402007416"),
+            "attack_labels.csv": ("https://zenodo.org/api/records/23250890/files/attack_labels.csv/content", 6783, "md5", "5fd0a810a5b49122b6b6b24c43b7d926"),
+            "HyGrid-ICS-v1.0.0.zip": ("https://zenodo.org/api/records/23250890/files/HyGrid-ICS-v1.0.0.zip/content", 97015, "md5", "965eafa032e5e2e12e76fa5cc11569e6"),
+        },
+    },
+    "voraus-ad": {
+        "record": "https://github.com/vorausrobotik/voraus-ad-dataset (100 Hz release)",
+        "license": "CC BY-NC-SA 4.0 (data), MIT (code)",
+        "citation": "J. Brockmann, M. Rudolph, B. Rosenhahn, B. Wandt. The voraus-AD Dataset for Anomaly Detection in Robot Applications. IEEE Transactions on Robotics, 2024. arXiv:2311.04765",
+        "files": {
+            "voraus-ad-dataset-100hz.parquet": ("https://media.vorausrobotik.com/voraus-ad-dataset-100hz.parquet", 1115942833, "etag", "69d8ea42-4283efb1"),
+        },
+    },
+}
+
+
+def fetch_external(name: str) -> dict:
+    spec = EXTERNAL[name]
+    out, records = RAW / name, []
+    for fname, (url, size, kind, expected) in spec["files"].items():
+        path = out / fname
+        if not (path.exists() and path.stat().st_size == size):
+            got, digest = download(url, path)
+            assert got == size, f"{fname}: size {got} != {size}"
+        sha = sha256(path)
+        if kind == "md5":
+            md5 = hashlib.md5(path.read_bytes()).hexdigest()
+            assert md5 == expected, f"{fname}: md5 mismatch"
+        records.append({"file": fname, "bytes": size, "sha256": sha, "upstream_check": f"{kind} {expected} and size"})
+        print(f"{name} {fname} {size} ok", flush=True)
+    return {key: spec[key] for key in ("record", "license", "citation")} | {"files": records}
+
+
 def fetch_hai() -> dict:
     out, records = RAW / HAI["name"], []
     for name in HAI["files"]:
@@ -150,7 +192,7 @@ def fetch_smd() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--only", choices=["hai", "smd", "hai-21.03", "hai-23.05"])
+    parser.add_argument("--only", choices=["hai", "smd", "hai-20.07", "hai-21.03", "hai-23.05", "hygrid-ics", "voraus-ad"])
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {
         "schema_version": "real-telemetry-data-manifest-v1",
@@ -160,9 +202,12 @@ def main() -> None:
         manifest["datasets"]["hai-22.04"] = fetch_hai()
     if args.only in (None, "smd"):
         manifest["datasets"]["smd"] = fetch_smd()
-    for release in ("hai-21.03", "hai-23.05"):
+    for release in ("hai-20.07", "hai-21.03", "hai-23.05"):
         if args.only == release:
             manifest["datasets"][release] = fetch_hai_release(release)
+    for name in ("hygrid-ics", "voraus-ad"):
+        if args.only == name:
+            manifest["datasets"][name] = fetch_external(name)
     MANIFEST.write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     print("manifest", MANIFEST)
 

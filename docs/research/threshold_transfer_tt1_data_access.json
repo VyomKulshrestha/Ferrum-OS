@@ -1,0 +1,40 @@
+{
+ "schema_version": "threshold-transfer-tt1-data-access",
+ "study_id": "threshold-transfer-tt1",
+ "recorded_at": "2026-10-22",
+ "purpose": "Records, before any registration or final evaluation, which fresh datasets were downloaded for tt1, what has been seen of them, and which files hold labels. Final-evaluation files are read only through ledgered loaders after the tt1 selection freeze.",
+ "datasets": {
+  "hai-20.07": {
+   "source": "github.com/icsdataset/hai at pinned commit 2a814cebc9a66b06c9e5cd545e2d72e65d383737 (git blob hashes verified)",
+   "files": {
+    "train1.csv.gz": "376e8288a5e3cf69bc5c506f75d6fb9cebb30ff43326c60ed675ccea37700844",
+    "train2.csv.gz": "30caafaeba9736238fe746a780c0baf3aa71ee7bcf494fb3daf721128ad7fdde",
+    "test1.csv.gz": "68cc18af44efcd756e9eaaa81790855836e8aee3f2ce9c4d9dd95a0ada36c2e4",
+    "test2.csv.gz": "427841d8240d5fa557fb28ed58da21bb93d0a3c2b30e43b82ab2d816330185e2"
+   },
+   "lineage_status": "Never downloaded or used by any earlier FerrumOS study (repository search and all access ledgers, 2026-10-22).",
+   "seen_so_far": "Header lines of train1/train2 only (64 columns, ';'-separated, 59 tags; labels attack, attack_P1-P3) and their row counts (309,600 and 241,200). Test files unopened.",
+   "prior_knowledge_disclosure": "The author has read summaries of the HAI 1.0 (CSET 2020) paper, which describes this release's attack primitives (setpoint, process-variable and control-output manipulation with replay concealment), and the HAI technical manual. Injection and threshold settings must not use HAI attack targets."
+  },
+  "hygrid-ics": {
+   "source": "Zenodo 10.5281/zenodo.23250890 (v1.1.1), md5 verified",
+   "files": {
+    "scada_cps_dataset.csv": "8e2afcb6a3339ee2c17c791004ff3ab48a9fe1c989b62963f8643afae51bb8db",
+    "attack_labels.csv": "dd5ab68babb2a67ae2eeb7e2ba8abc7c06ddaaa259cf5d9b5fdedb605e379fae",
+    "HyGrid-ICS-v1.0.0.zip": "6c7d21d5144a08be370206fd013bf800c55b0da9700ecdedfc7c1083b1b0426b"
+   },
+   "label_columns": [
+    "attack_id",
+    "Attack_Type",
+    "Is_Attack"
+   ],
+   "seen_so_far": "Header line and the first data row of scada_cps_dataset.csv (that row's label fields read Normal/0); the file listing of the code archive, which shows attack script names (e.g. fdi_voltage, coil_manipulation, ramp_attack). No attack script, README attack schedule or attack_labels.csv content has been read.",
+   "note": "Labels are inline; development loaders must exclude the label columns; the train/final split is label-blind and chronological."
+  },
+  "voraus-ad": {
+   "source": "media.vorausrobotik.com 100 Hz parquet (size and ETag verified)",
+   "seen_so_far": "Not opened yet.",
+   "status": "download in progress at time of recording"
+  }
+ }
+}
