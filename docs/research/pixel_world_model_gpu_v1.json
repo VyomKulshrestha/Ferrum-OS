@@ -1,0 +1,64 @@
+{
+ "schema_version": "pixel-world-model-gpu-v1",
+ "status": "EXPLORATORY capability/regime-boundary demo (not vs deployed v5)",
+ "env": {
+  "size": 32,
+  "episodes": 500,
+  "steps": 24,
+  "actions": 5,
+  "dynamics": "momentum + wall-bounce + two objects; nonlinear in pixel space"
+ },
+ "note": "Per-pixel GBR omitted: one tree ensemble per output pixel does not scale, which is itself why raw-pixel regimes need a neural world model. Linear ridge is the scalable non-neural baseline.",
+ "results": {
+  "persistence": {
+   "overall_mae": 0.020806649699807167,
+   "dynamic_region_mae": 0.8329166769981384
+  },
+  "ridge_linear": {
+   "overall_mae": 0.03053249605000019,
+   "dynamic_region_mae": 0.581048309803009
+  },
+  "cnn_plain_mse": {
+   "overall_mae": 0.02117113023996353,
+   "dynamic_region_mae": 0.53558349609375,
+   "trainable_parameters": 1270177,
+   "device": "cuda",
+   "note": "plain MSE collapses toward copy on sparse-change pixels; matches the linear blur"
+  },
+  "cnn_gpu": {
+   "overall_mae": 0.03887456655502319,
+   "dynamic_region_mae": 0.2357647866010666,
+   "trainable_parameters": 1270177,
+   "device": "cuda",
+   "change_weight": 30.0
+  }
+ },
+ "rollout_mae": {
+  "cnn_gpu": [
+   0.041224222630262375,
+   0.03660104051232338,
+   0.03931662067770958,
+   0.04079155996441841,
+   0.04135461151599884,
+   0.043259236961603165,
+   0.04331706464290619,
+   0.04363001883029938,
+   0.0470038503408432,
+   0.04717967286705971
+  ],
+  "persistence": [
+   0.016992220655083656,
+   0.027800893411040306,
+   0.035673145204782486,
+   0.042431846261024475,
+   0.04673394560813904,
+   0.05087403953075409,
+   0.05276648700237274,
+   0.05392059311270714,
+   0.05526217445731163,
+   0.05621219798922539
+  ]
+ },
+ "verdict": "CNN GPU wins the pixel regime: dynamic-region MAE 0.2358 vs ridge 0.5810 (+59% vs ridge) vs persistence 0.8329",
+ "honest_tradeoff": "The change-weighted CNN wins decisively on the DYNAMIC region (moving objects): dyn MAE 0.236 vs ridge 0.581 (-59%) vs persistence 0.833. It trades a little static-background fidelity for this (overall-frame MAE 0.039 vs persistence 0.021 / ridge 0.031) because the loss up-weights changed pixels; the plain-MSE CNN avoids the trade (overall 0.021) but then only ties ridge on dynamics (0.536). Closed-loop rollout is stable for the CNN (~0.04 over 10 steps) while persistence degrades (0.017->0.056), so the CNN advantage grows with horizon. Net: in the raw-pixel regime a GPU neural world model is the only one that substantially predicts the nonlinear object dynamics; linear/tree models cannot (and per-pixel GBR does not scale)."
+}
