@@ -1,0 +1,30 @@
+{
+ "schema_version": "vision-world-model-protocol-v2-amendment3",
+ "amends": "docs/research/vision_world_model_protocol_v2.json (with amendment1 hard scene and amendment2 margin-primary)",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "status": "registered; single final open pending (seed 780)",
+ "motivation": "Option (b) found, on a single exploratory dev seed (2), that a FROZEN pretrained DINOv2-small encoder with a small caution head beats the from-scratch CNN on the hard/occluded scene (AUC-PR 0.730 vs 0.601; recall at a 5% budget 0.372 vs 0.217), with random-init controls showing the gain comes from pretraining. A single dev seed is not a claim. This amendment freezes that comparison and tests it once on a never-opened sealed seed.",
+ "frozen_before_final": {
+  "candidate": "dinov2_frozen: official facebook/dinov2-small weights (huggingface_hub, sha recorded at run time) run through scripts/vision_wm_pretrained_encoders.py DinoV2Small with load_state_dict(strict=True); per-frame 224 px input, patch-token map average-pooled to 4x4; 2-frame stack -> 1x1 conv(64) -> MLP with the action -> caution logit; trained with pos-weighted BCE, early-stopped on selection AUC-PR (train_head, seed 0).",
+  "comparator": "scratch_cnn: the registered VWM (scripts/vision_wm_final_v2.train_vwm), best-caution checkpoint by selection AUC-PR.",
+  "reference": "pixel linear probe (logistic regression on 2-frame pixels + action), reported only.",
+  "scene": "hard (amendment1), clean look, size 48, steps 20, K=2, H=3.",
+  "splits": {"train": "seed 0, 600 episodes", "selection_and_calibration": "seed 1, 200 episodes", "sealed_final": "seed 780, 300 episodes, opened once"},
+  "calibration": "PRIMARY = half budget: each model's threshold set on seed-1 benign steps to false-caution rate <= 0.05 (amendment2). The 0.10-calibrated arm is reported for reference."
+ },
+ "gates": {
+  "G1_pretrained_beats_scratch": "On the sealed final, at the margin-calibrated thresholds: DINOv2 recall > scratch-CNN recall, DINOv2 AUC-PR > scratch-CNN AUC-PR, and the 95% bootstrap CI (10,000 resamples over hazard steps) lower bound on recall_dinov2 - recall_cnn > 0.",
+  "G2_budget_holds": "DINOv2 realized false-caution rate on the sealed final's benign steps <= 0.10.",
+  "primary_success": "G1 and G2 both hold.",
+  "reporting": "All three models and both calibration arms are reported. A failure is retained. Advisory-only, rendered simulation."
+ },
+ "final_access_rule": "Seed 780 is read only by scripts/vision_wm_final_dinov2.py, which appends to target/vision-wm/final_access.jsonl and refuses if 780 already appears.",
+ "infrastructure_crash_rule": "All training, selection and calibration finish before the open. If the run then crashes for an infrastructure reason (e.g. the documented RTX 4060 CUDA 'illegal instruction' fault) before any final metric is computed or printed, seed 780 is retired as 'opened, no result observed', the crash is logged in target/vision-wm/infrastructure_failures.jsonl, and the identical protocol is rerun once on sealed seed 781. No result from a crashed attempt is used.",
+ "limitations_registered_in_advance": [
+  "Rendered simulation, one scene family, clean look; (c) showed that appearance shift takes every model near chance, so this is an in-distribution claim only.",
+  "Single training seed per model.",
+  "The DINOv2 forward pass is a reimplementation (transformers segfaults on import here); its correctness evidence is the strict weight load plus natural-photo retrieval matching the official torchvision MobileNetV2 (0.88 vs 0.53 random)."
+ ],
+ "run": "python scripts/vision_wm_final_dinov2.py"
+}

@@ -1,0 +1,81 @@
+{
+ "schema_version": "vision-world-model-result-v4-dinov2",
+ "protocol": "vision_world_model_protocol_v2_amendment3.json",
+ "status": "registered final, opened once; branch work (not main); advisory only",
+ "scene": "hard",
+ "final_seed": 781,
+ "dinov2_weights_sha256": "ae1e99fcefd534ed978cdeb8326f08030c96e28b7a81ffcbc98a857c84d14be1",
+ "cnn_params": 5908674,
+ "selected_artifact": "docs/research/artifacts/vision-caution-v1/selected_caution_head.npz",
+ "selected_artifact_sha256": "800797e0701b70c5c471242a3310cb0c46f62335e9db49797945763e3a2f8a2a",
+ "thresholds": {
+  "dinov2": {
+   "p05": 1.37928307056427,
+   "p10": 0.7914686799049377
+  },
+  "cnn": {
+   "p05": 8.971519470214844,
+   "p10": 5.416694164276123
+  },
+  "probe": {
+   "p05": 0.939808189868927,
+   "p10": 0.8694382905960083
+  }
+ },
+ "prevalence": 0.3668421052631579,
+ "results": {
+  "dinov2": {
+   "auc_pr": 0.6337105704554685,
+   "auc_roc": 0.7525128143560541,
+   "prevalence": 0.3668421052631579,
+   "p05": {
+    "recall": 0.31898613103778095,
+    "realized_fpr": 0.08728179551122195
+   },
+   "p10": {
+    "recall": 0.44045911047345765,
+    "realized_fpr": 0.16819063452479913
+   }
+  },
+  "cnn": {
+   "auc_pr": 0.6158796423518424,
+   "auc_roc": 0.6867034549764597,
+   "prevalence": 0.3668421052631579,
+   "p05": {
+    "recall": 0.2812051649928264,
+    "realized_fpr": 0.06456082017179274
+   },
+   "p10": {
+    "recall": 0.37733142037302725,
+    "realized_fpr": 0.13272374619008034
+   }
+  },
+  "probe": {
+   "auc_pr": 0.49591540248182453,
+   "auc_roc": 0.6192001795818652,
+   "prevalence": 0.3668421052631579,
+   "p05": {
+    "recall": 0.14538498326159732,
+    "realized_fpr": 0.05791077860903297
+   },
+   "p10": {
+    "recall": 0.22907699665231945,
+    "realized_fpr": 0.11886949293433084
+   }
+  }
+ },
+ "gates": {
+  "G1_pretrained_beats_scratch": true,
+  "G2_budget_holds": true,
+  "recall_diff_dinov2_minus_cnn": {
+   "recall_difference": 0.03778096604495457,
+   "ci95": [
+    0.015303682448589151,
+    0.06025824964131993
+   ]
+  },
+  "primary_success": true
+ },
+ "interpretation": "Registered amendment-3 confirmation PASSES on sealed seed 781: frozen pretrained DINOv2 beats the from-scratch CNN at the margin-calibrated threshold (recall 0.319 vs 0.281, diff +0.038 CI95 [0.015,0.060]; AUC-PR 0.634 vs 0.616) and holds the budget (realized FPR 0.087 <= 0.10). The confirmed advantage is much SMALLER than the exploratory dev seed suggested (option b: AUC-PR 0.730 vs 0.601): real but modest. The 0.10-calibrated arm overshot again (0.168), so the half-budget margin is needed on a third hard seed. Run on CPU (no TF32).",
+ "history": "Seed 780 was opened once and retired under the registered crash rule: the GPU faulted (CUDA illegal instruction) after the open and before any metric was computed or printed (a CPU run was intended, but CUDA_VISIBLE_DEVICES=\"\" is dropped on Windows). No result from 780 exists or was used. Two earlier attempts crashed before the open (no seed consumed). All logged in target/vision-wm/infrastructure_failures.jsonl; the ledger records 780 RETIRED and 781 opened once."
+}

@@ -140,10 +140,10 @@ def load_mobilenet(pretrained):
 def extract(enc, frames, res=224, bs=128):
     """frames (n_ep, T, s, s) in [0,1] -> per-frame 4x4-pooled maps (n_ep, T, C, 4, 4) fp16 on GPU."""
     n, T = frames.shape[:2]
-    flat = torch.from_numpy(frames.reshape(n * T, 1, SIZE, SIZE))
+    flat = torch.from_numpy(frames.reshape(n * T, 1, *frames.shape[2:]))   # any render size
     out = []
     for i in range(0, len(flat), bs):
-        x = flat[i:i + bs].to(DEV).repeat(1, 3, 1, 1)
+        x = flat[i:i + bs].to(DEV).float().repeat(1, 3, 1, 1)
         x = F.interpolate(x, size=(res, res), mode="bilinear", align_corners=False)
         x = (x - MEAN.to(DEV)) / STD.to(DEV)
         out.append(F.adaptive_avg_pool2d(enc(x), 4).half())
@@ -244,6 +244,7 @@ def train_head(Ftr, Fse, idx_tr, idx_se, epochs, seed=0):
         e, t, a, _ = tens(idx)
         with torch.no_grad():
             return fwd(Fx, e, t, a).cpu().numpy()
+    score.head = head          # exposed so a registered harness can persist the frozen head
     return score, best_ap
 
 

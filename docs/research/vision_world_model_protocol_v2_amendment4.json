@@ -1,0 +1,15 @@
+{
+ "schema_version": "vision-world-model-protocol-v2-amendment4",
+ "amends": "docs/research/vision_world_model_protocol_v2_amendment3.json",
+ "registered_at": "2026-10-22",
+ "branch": "vision-world-model (NOT main)",
+ "status": "registered before seed 780 is opened; persistence only, NO gate or model change",
+ "motivation": "Increment 4 (a bounded advisory runtime integration) needs the exact model that the sealed seed-780 confirmation evaluates. Amendment 3's harness kept the trained head only in memory. The first seed-780 attempt crashed BEFORE the open (ledger unchanged), so the harness can still be extended without touching anything the final will evaluate.",
+ "amendment": {
+  "persist_before_open": "After training, selection and calibration on seeds 0/1 and BEFORE the sealed open, the harness writes docs/research/artifacts/vision-caution-v1/selected_caution_head.npz: the DINOv2 caution head state dict (float32 arrays), plus a metadata JSON with schema FERRUM_VISION_CAUTION_V1, authority 'advisory diagnostic only; no permit, block, approval, adapter or actuation authority', the DINOv2 weights sha256 (facebook/dinov2-small model.safetensors), the encoder source sha256 (scripts/vision_wm_pretrained_encoders.py), K=2, H=3, render size 48, scene hard/clean, the 5-action sim action space, the FPR 0.05 and 0.10 thresholds on raw logits, Platt calibration parameters, and the selection AUC-PR.",
+  "platt_calibration": "A 1-D logistic regression mapping the head's selection-split (seed 1) logits to P(hazard within 3 steps). Fitted only on seed 1, before the open. It is monotone, so it changes no ranking metric and no threshold decision; it only gives the advisory a probability scale.",
+  "result_links_artifact": "The result JSON records selected_artifact_sha256 so a verifier can bind the artifact to the sealed evaluation."
+ },
+ "unchanged": "Candidate, comparator, splits, calibration rule, gates G1/G2, the crash rule, the single-open discipline and the advisory-only boundary of amendment 3.",
+ "authority_boundary": "The artifact carries no permit, block, approval, adapter or actuation authority. Its integration (increment 4) is host-side, log/telemetry only, off by default, sim-domain only, and not qualified for live use until a sealed evaluation on real footage of the same deployment domain passes."
+}
