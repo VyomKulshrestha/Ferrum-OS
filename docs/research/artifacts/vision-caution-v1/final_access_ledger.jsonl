@@ -1,0 +1,6 @@
+{"final_seed": 777, "reason": "vision-world-model-v2 registered final", "at": "2026-10-22T06:31:45.503281+00:00"}
+{"final_seed": 778, "reason": "vision-world-model-v2 registered final (scene=hard)", "at": "2026-10-22T06:38:44.344112+00:00"}
+{"final_seed": 779, "reason": "vision-world-model-v2 registered final (scene=hard)", "at": "2026-10-22T06:47:56.971144+00:00"}
+{"final_seed": 780, "reason": "vision-world-model amendment3: frozen DINOv2 vs scratch CNN (hard, margin-primary)", "at": "2026-10-22T07:50:55.428291+00:00"}
+{"final_seed": 780, "reason": "RETIRED under amendment3 crash rule: infrastructure crash after open, before any metric; no result observed; rerun on 781", "at": "2026-10-22T07:52:36.896816+00:00"}
+{"final_seed": 781, "reason": "vision-world-model amendment3: frozen DINOv2 vs scratch CNN (hard, margin-primary)", "at": "2026-10-22T08:22:01.165903+00:00"}

@@ -34,3 +34,11 @@ If and only if a real evaluation later holds up, a vision caution signal could e
 ## Status / next
 - Implemented + validated in sim: increments 1–2 (and 3 hard scenes).
 - Not implemented: domain randomization, real-data evaluation, pretrained encoder, runtime daemon. Those are the ordered next steps, each gated on the previous. The runtime daemon is the LAST step and only after a real registered evaluation.
+
+## Update 2026-10-22: what increment 4 actually is
+Since this note: domain randomization and a shift ablation (options c and follow-up), a pretrained DINOv2 encoder (option b, then a sealed confirmation under amendment 3), and a first real-footage evaluation on CCD dashcam video (a different domain) have been done. Increment 4 was built in the bounded form this note allows *without* the real same-domain evaluation:
+
+- **Host-side only.** `tools/vision_caution/` (modelled on `tools/neurod/`) scores the sealed-evaluated `FERRUM_VISION_CAUTION_V1` head (`docs/research/artifacts/vision-caution-v1/selected_caution_head.npz`). Nothing in `userland/` (the `no_std` guest, the physical runtime, the authority gate) is changed or reads it. In particular the score is never passed as a `PhysicalPrediction`, which still carries fail-closed block influence.
+- **Off by default** (`FERRUM_VISION_CAUTION=advisory` to enable), log/telemetry output only, statuses `caution_raised` / `no_caution_raised` / `no_confident_caution` with no "safe" status, and every doubt abstains.
+- **Verified** by `tools/vision_caution/test_vision_caution.py` (fail-safe paths, no route to authority, encoder equivalence with the research implementation, end-to-end agreement with the evaluated pipeline) and `scripts/verify_vision_caution_advisory.py` (artifact bound to the sealed result, protected deployed artifacts unchanged, no wiring in guest/gate code).
+- **Still not qualified for live use.** Promotion beyond advisory logging requires a sealed, single-open evaluation on real footage of the deployment domain itself; see `docs/research/vision_caution_integration_protocol_v1.json`.
