@@ -1,0 +1,67 @@
+{
+ "schema_version": "vision-wm-highres-noise-v1",
+ "status": "EXPLORATORY (dev seeds 0/1/3/4, nothing sealed); branch work, not main; advisory only",
+ "scene": "hard",
+ "sizes": [
+  48,
+  112
+ ],
+ "test_prevalence": 0.37842105263157894,
+ "sensor_model": {
+  "noise": 0.06,
+  "gamma": 1.5,
+  "blur": true
+ },
+ "results": {
+  "48": {
+   "selection_auc_pr": 0.7014543781707259,
+   "clean": {
+    "auc_pr": 0.6420537514686735,
+    "auc_roc": 0.7536506096175067,
+    "prevalence": 0.37842105263157894,
+    "target_cal_recall": 0.13282336578581364,
+    "target_cal_fpr": 0.013124470787468248
+   },
+   "sensor": {
+    "auc_pr": 0.5163384619168081,
+    "auc_roc": 0.6333288778397883,
+    "prevalence": 0.37842105263157894,
+    "target_cal_recall": 0.0034770514603616135,
+    "target_cal_fpr": 0.0021168501270110076
+   },
+   "full": {
+    "auc_pr": 0.45155758887118996,
+    "auc_roc": 0.5610839332547439,
+    "prevalence": 0.37842105263157894,
+    "target_cal_recall": 0.08344923504867872,
+    "target_cal_fpr": 0.03979678238780694
+   }
+  },
+  "112": {
+   "selection_auc_pr": 0.7064644524510536,
+   "clean": {
+    "auc_pr": 0.7369100210192354,
+    "auc_roc": 0.809463173873771,
+    "prevalence": 0.37842105263157894,
+    "target_cal_recall": 0.4297635605006954,
+    "target_cal_fpr": 0.07366638441998306
+   },
+   "sensor": {
+    "auc_pr": 0.6156326793594393,
+    "auc_roc": 0.7142841160281179,
+    "prevalence": 0.37842105263157894,
+    "target_cal_recall": 0.26564673157162727,
+    "target_cal_fpr": 0.07027942421676546
+   },
+   "full": {
+    "auc_pr": 0.4970988196981568,
+    "auc_roc": 0.6231364947317223,
+    "prevalence": 0.37842105263157894,
+    "target_cal_recall": 0.10778859527121001,
+    "target_cal_fpr": 0.04487722269263336
+   }
+  }
+ },
+ "interpretation": "Chance AUC-PR = 0.378. Hypothesis (sensor penalty shrinks at higher native resolution) NOT supported: noise+gamma+blur costs ~0.12 AUC-PR at both 48 px (0.642->0.516) and 112 px (0.737->0.616). Higher resolution is nonetheless a strong overall lever (+0.10 clean, +0.10 sensor), so a noisy 112 px camera matches a clean 48 px one. Full shift improves only modestly (0.452->0.497). Single dev seed; exploratory.",
+ "infrastructure": "GPU-computed features (cached per split) were checked for finiteness: one frame (episode 191, t 6, 112 px sensor split) was silently NaN with a finite input and no exception -- silent GPU corruption. It was recomputed on CPU and patched. GPU vs CPU features on four checked episodes agree within fp16 storage precision (max |diff| <= 0.016). Heads trained on CPU. Earlier GPU attempts crashed (illegal memory access); see target/vision-wm/infrastructure_failures.jsonl."
+}
