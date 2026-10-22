@@ -1,0 +1,30 @@
+{
+ "schema_version": "physical-jepa-gpu-devtrial-v1",
+ "date": "2026-10-22",
+ "status": "development-only; NOT promoted; no frozen/registered model changed",
+ "objective": "Use the local GPU (RTX 4060, torch 2.6.0+cu124) to test whether a neural action-conditioned JEPA can match or beat the existing non-neural world model on the incident-dynamics PHYSICAL domain. Development trial on a fresh run-id; the registered v2/v3/v4 finals and the deployed Physical JEPA v5 artifact were not touched.",
+ "run": {
+  "script": "scripts/train_incident_dynamics.py",
+  "command": "train --domain physical --method action_conditioned_jepa --run-id dev_gpu01 --seed 17 --updates 6000 --batch-size 256 --hidden 192 --lr 0.001 --device cuda",
+  "trainable_parameters": 25616,
+  "device": "cuda (RTX 4060 Laptop, 8 GB)",
+  "elapsed_seconds": 139,
+  "trace_local": "target/incident-dynamics-v1/physical/dev_gpu01-action_conditioned_jepa-17.{pt,json} (gitignored)",
+  "guard": {"final_access_attempted": false,
+            "protected_digests_unchanged": {"ferrumos_encoder": true, "ferrumos_manifest": true,
+                                            "ferrumos_transition": true, "physical_transition": true}}
+ },
+ "result": {
+  "gpu_jepa_validation_mae": {"H1": 0.00457, "H3": 0.01156, "H5": 0.01776},
+  "existing_v4_selected_nonneural_mae": {"H1": 0.00032, "H3": 0.00080, "H5": 0.00116,
+    "source": "docs/research/incident_dynamics_result_v4.json domains.physical.historical_guards[*].selected"},
+  "gpu_jepa_vs_selected_H5_ratio": 15.3,
+  "verdict": "The GPU neural JEPA is about 15x WORSE than the existing non-neural selected model on the physical domain (H5 0.0178 vs 0.00116). It does not improve the world model here."
+ },
+ "interpretation": "Confirms, now on-device, the repository's prior finding that gradient-boosted/ridge models dominate neural families on the low-dimensional (16-d) abstract simulators (work.md; incident_dynamics_result_v3/v4). The GPU and training pipeline work correctly; the neural approach simply has no structural advantage at this input dimensionality. The plausible GPU win is high-dimensional real telemetry (86-channel HAI), tested separately and forecasting-only in docs/research/real_telemetry_hai_forecast_jepa_vs_ridge.json.",
+ "caveats": [
+  "Single method (action_conditioned_jepa), single seed; a wider sweep would likely still lose given the documented margin.",
+  "Validation MAE from the trainer; the v4 'selected' numbers are from the v4 harness, so the comparison is indicative of magnitude, not a like-for-like re-evaluation. The ~15x gap is far larger than any metric-convention difference.",
+  "Development only: nothing is promoted, and the deployed Physical JEPA v5 digest is verified unchanged before and after the run."
+ ]
+}
