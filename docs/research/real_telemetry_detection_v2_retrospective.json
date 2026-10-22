@@ -1,0 +1,185 @@
+{
+ "schema_version": "real-telemetry-detection-v2-retrospective",
+ "status": "EXPLORATORY-retrospective-on-already-opened-data",
+ "disclaimer": "NOT the registered final. HAI attacks were opened in rt1/rt2; these numbers are indicative and optimistic. The clean prospective claim awaits a never-opened dataset (docs/research/real_telemetry_detection_protocol_v2.json).",
+ "max_fit_rows": 15000,
+ "releases": {
+  "hai-22.04": {
+   "window": 60,
+   "budget_per_day": 2.0,
+   "arms": {
+    "candidate_v2": {
+     "events": 58,
+     "detected": 31,
+     "recall": 0.5344827586206896,
+     "false_episodes": 5,
+     "false_episodes_per_day": 1.2372196924134375,
+     "median_delay_steps": 42.0,
+     "normal_period_forecast_mae": {
+      "H1": {
+       "model_mae": 2.204438999150314,
+       "persistence_mae": 2.8640727622544238,
+       "reduction_vs_persistence": 0.23031320006859257
+      },
+      "H5": {
+       "model_mae": 2.9557083701984395,
+       "persistence_mae": 4.821488742258327,
+       "reduction_vs_persistence": 0.3869718404000626
+      }
+     }
+    },
+    "baseline_rt1": {
+     "events": 58,
+     "detected": 35,
+     "recall": 0.603448275862069,
+     "false_episodes": 5,
+     "false_episodes_per_day": 1.2372196924134375,
+     "median_delay_steps": 43.0,
+     "normal_period_forecast_mae": {
+      "H1": {
+       "model_mae": 2.230134998832117,
+       "persistence_mae": 2.8639238766113917,
+       "reduction_vs_persistence": 0.22130088126824676
+      },
+      "H5": {
+       "model_mae": 3.010436638163442,
+       "persistence_mae": 4.8213411739906045,
+       "reduction_vs_persistence": 0.37560182332591163
+      }
+     }
+    }
+   },
+   "paired_bootstrap_candidate_vs_baseline": {
+    "recall_difference": -0.06896551724137934,
+    "recall_difference_interval": [
+     -0.15517241379310343,
+     0.0
+    ],
+    "miss_reduction": -0.17391304347826098,
+    "miss_reduction_interval": [
+     -0.4705882352941173,
+     0.0
+    ]
+   },
+   "normal_H5_mae_pct_improvement": 1.8179511659939884
+  },
+  "hai-21.03": {
+   "window": 60,
+   "budget_per_day": 2.0,
+   "arms": {
+    "candidate_v2": {
+     "events": 50,
+     "detected": 45,
+     "recall": 0.9,
+     "false_episodes": 5,
+     "false_episodes_per_day": 1.0990744368515588,
+     "median_delay_steps": 19.0,
+     "normal_period_forecast_mae": {
+      "H1": {
+       "model_mae": 3.4020217561546913,
+       "persistence_mae": 4.86162832967582,
+       "reduction_vs_persistence": 0.30022997945185514
+      },
+      "H5": {
+       "model_mae": 5.225230747112513,
+       "persistence_mae": 7.978724708191052,
+       "reduction_vs_persistence": 0.3451045200559144
+      }
+     }
+    },
+    "baseline_rt1": {
+     "events": 50,
+     "detected": 45,
+     "recall": 0.9,
+     "false_episodes": 6,
+     "false_episodes_per_day": 1.3188893242218707,
+     "median_delay_steps": 19.0,
+     "normal_period_forecast_mae": {
+      "H1": {
+       "model_mae": 3.4023879197659084,
+       "persistence_mae": 4.8627539771483415,
+       "reduction_vs_persistence": 0.3003166650513611
+      },
+      "H5": {
+       "model_mae": 5.3246104515075725,
+       "persistence_mae": 7.981875035021319,
+       "reduction_vs_persistence": 0.33291232597036635
+      }
+     }
+    }
+   },
+   "paired_bootstrap_candidate_vs_baseline": {
+    "recall_difference": 0.0,
+    "recall_difference_interval": [
+     0.0,
+     0.0
+    ],
+    "miss_reduction": 0.0,
+    "miss_reduction_interval": [
+     0.0,
+     0.0
+    ]
+   },
+   "normal_H5_mae_pct_improvement": 1.866422065992111
+  },
+  "hai-23.05": {
+   "window": 60,
+   "budget_per_day": 2.0,
+   "arms": {
+    "candidate_v2": {
+     "events": 52,
+     "detected": 28,
+     "recall": 0.5384615384615384,
+     "false_episodes": 9,
+     "false_episodes_per_day": 2.848184721774548,
+     "median_delay_steps": 36.5,
+     "normal_period_forecast_mae": {
+      "H1": {
+       "model_mae": 3.020551183560155,
+       "persistence_mae": 4.467076896982895,
+       "reduction_vs_persistence": 0.32381929990946356
+      },
+      "H5": {
+       "model_mae": 4.390671054179009,
+       "persistence_mae": 6.572423929062323,
+       "reduction_vs_persistence": 0.33195559179253686
+      }
+     }
+    },
+    "baseline_rt1": {
+     "events": 52,
+     "detected": 27,
+     "recall": 0.5192307692307693,
+     "false_episodes": 5,
+     "false_episodes_per_day": 1.5823248454303045,
+     "median_delay_steps": 35.0,
+     "normal_period_forecast_mae": {
+      "H1": {
+       "model_mae": 3.2534849821297653,
+       "persistence_mae": 4.467983699138563,
+       "reduction_vs_persistence": 0.27182254878032697
+      },
+      "H5": {
+       "model_mae": 4.5536578288711,
+       "persistence_mae": 6.575540819527192,
+       "reduction_vs_persistence": 0.3074854291302952
+      }
+     }
+    }
+   },
+   "paired_bootstrap_candidate_vs_baseline": {
+    "recall_difference": 0.019230769230769162,
+    "recall_difference_interval": [
+     0.0,
+     0.05769230769230771
+    ],
+    "miss_reduction": 0.039999999999999813,
+    "miss_reduction_interval": [
+     0.0,
+     0.1333333333333333
+    ]
+   },
+   "normal_H5_mae_pct_improvement": 3.5792494916662885
+  }
+ }
+}
