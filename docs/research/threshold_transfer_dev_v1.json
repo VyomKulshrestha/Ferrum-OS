@@ -1,0 +1,547 @@
+{
+ "schema_version": "threshold-transfer-dev-v1",
+ "status": "development evidence on normal data of spent HAI releases; not a result",
+ "monitor": "rt1/rt2 D1 (ridge_gbr_actions, history 3, window 60, 2 false-alarm episodes per day)",
+ "releases": {
+  "hai-21.03": {
+   "release": "hai-21.03",
+   "deploy_days": 2.666678240740741,
+   "tau0": 15.727994607082183,
+   "tau_half": 16.039885053075523,
+   "p": 0.0004232184132565029,
+   "E1_budget_adherence": {
+    "tracker@eta0.001": {
+     "fa_per_day": 0.3749983724028976,
+     "ratio_to_budget": 0.1874991862014488,
+     "permits": 0
+    },
+    "one_sided:none@eta0.001": {
+     "fa_per_day": 0.3749983724028976,
+     "ratio_to_budget": 0.1874991862014488,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.001": {
+     "fa_per_day": 0.3749983724028976,
+     "ratio_to_budget": 0.1874991862014488,
+     "permits": 0
+    },
+    "one_sided:spread6@eta0.001": {
+     "fa_per_day": 0.3749983724028976,
+     "ratio_to_budget": 0.1874991862014488,
+     "permits": 0
+    },
+    "frozen": {
+     "fa_per_day": 0.3749983724028976,
+     "ratio_to_budget": 0.1874991862014488,
+     "permits": 0
+    },
+    "margin": {
+     "fa_per_day": 0.3749983724028976,
+     "ratio_to_budget": 0.1874991862014488,
+     "permits": 0
+    },
+    "daily": {
+     "fa_per_day": 1.4999934896115903,
+     "ratio_to_budget": 0.7499967448057951,
+     "permits": 0
+    },
+    "tracker@eta0.01": {
+     "fa_per_day": 1.4999934896115903,
+     "ratio_to_budget": 0.7499967448057951,
+     "permits": 0
+    },
+    "one_sided:none@eta0.01": {
+     "fa_per_day": 1.4999934896115903,
+     "ratio_to_budget": 0.7499967448057951,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.01": {
+     "fa_per_day": 1.4999934896115903,
+     "ratio_to_budget": 0.7499967448057951,
+     "permits": 0
+    },
+    "one_sided:spread6@eta0.01": {
+     "fa_per_day": 1.4999934896115903,
+     "ratio_to_budget": 0.7499967448057951,
+     "permits": 0
+    },
+    "tracker@eta0.05": {
+     "fa_per_day": 8.999960937669542,
+     "ratio_to_budget": 4.499980468834771,
+     "permits": 0
+    },
+    "one_sided:none@eta0.05": {
+     "fa_per_day": 8.999960937669542,
+     "ratio_to_budget": 4.499980468834771,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.05": {
+     "fa_per_day": 8.999960937669542,
+     "ratio_to_budget": 4.499980468834771,
+     "permits": 0
+    },
+    "one_sided:spread6@eta0.05": {
+     "fa_per_day": 8.999960937669542,
+     "ratio_to_budget": 4.499980468834771,
+     "permits": 0
+    }
+   },
+   "E2_poisoning": {
+    "frozen": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "margin": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0198302742202683,
+     "control_terminal_detected": 1.0
+    },
+    "daily": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 0.7140135908305129,
+     "control_terminal_detected": 1.0
+    },
+    "tracker": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 8.726709092283011,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:none": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:spread": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:spread6": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:oracle": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    }
+   },
+   "E3_stealthy_poisoning": {
+    "placements_used": 12,
+    "rules": {
+     "frozen": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 1.0
+     },
+     "margin": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 0.75,
+      "median_threshold_inflation": 1.0198302742202683
+     },
+     "daily": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.7140135908305129
+     },
+     "tracker": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9685545708381733
+     },
+     "one_sided:none": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9685545708381733
+     },
+     "one_sided:spread": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9685545708381733
+     },
+     "one_sided:spread6": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9685545708381733
+     },
+     "one_sided:oracle": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9685545708381733
+     }
+    }
+   },
+   "placements": 20
+  },
+  "hai-22.04": {
+   "release": "hai-22.04",
+   "deploy_days": 2.9062615740740743,
+   "tau0": 16.597016603253422,
+   "tau_half": 17.928774057464782,
+   "p": 0.0010157339175463054,
+   "E1_budget_adherence": {
+    "tracker@eta0.001": {
+     "fa_per_day": 1.3763386047845287,
+     "ratio_to_budget": 0.6881693023922644,
+     "permits": 0
+    },
+    "one_sided:none@eta0.001": {
+     "fa_per_day": 1.3763386047845287,
+     "ratio_to_budget": 0.6881693023922644,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.001": {
+     "fa_per_day": 1.3763386047845287,
+     "ratio_to_budget": 0.6881693023922644,
+     "permits": 0
+    },
+    "one_sided:spread6@eta0.001": {
+     "fa_per_day": 1.3763386047845287,
+     "ratio_to_budget": 0.6881693023922644,
+     "permits": 0
+    },
+    "frozen": {
+     "fa_per_day": 1.3763386047845287,
+     "ratio_to_budget": 0.6881693023922644,
+     "permits": 0
+    },
+    "margin": {
+     "fa_per_day": 1.3763386047845287,
+     "ratio_to_budget": 0.6881693023922644,
+     "permits": 0
+    },
+    "daily": {
+     "fa_per_day": 0.6881693023922644,
+     "ratio_to_budget": 0.3440846511961322,
+     "permits": 0
+    },
+    "tracker@eta0.01": {
+     "fa_per_day": 1.7204232559806611,
+     "ratio_to_budget": 0.8602116279903306,
+     "permits": 0
+    },
+    "one_sided:none@eta0.01": {
+     "fa_per_day": 1.7204232559806611,
+     "ratio_to_budget": 0.8602116279903306,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.01": {
+     "fa_per_day": 1.7204232559806611,
+     "ratio_to_budget": 0.8602116279903306,
+     "permits": 0
+    },
+    "one_sided:spread6@eta0.01": {
+     "fa_per_day": 1.7204232559806611,
+     "ratio_to_budget": 0.8602116279903306,
+     "permits": 0
+    },
+    "tracker@eta0.05": {
+     "fa_per_day": 16.86014790861048,
+     "ratio_to_budget": 8.43007395430524,
+     "permits": 0
+    },
+    "one_sided:none@eta0.05": {
+     "fa_per_day": 17.20423255980661,
+     "ratio_to_budget": 8.602116279903305,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.05": {
+     "fa_per_day": 17.20423255980661,
+     "ratio_to_budget": 8.602116279903305,
+     "permits": 0
+    },
+    "one_sided:spread6@eta0.05": {
+     "fa_per_day": 17.20423255980661,
+     "ratio_to_budget": 8.602116279903305,
+     "permits": 0
+    }
+   },
+   "E2_poisoning": {
+    "frozen": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "margin": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0802407737514887,
+     "control_terminal_detected": 1.0
+    },
+    "daily": {
+     "event_detected": 0.9,
+     "terminal_detected": 0.9,
+     "median_threshold_inflation": 1.7381612380505143,
+     "control_terminal_detected": 0.85
+    },
+    "tracker": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 4.6596039152241175,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:none": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:spread": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:spread6": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:oracle": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    }
+   },
+   "E3_stealthy_poisoning": {
+    "placements_used": 12,
+    "rules": {
+     "frozen": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 1.0
+     },
+     "margin": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 0.5,
+      "median_threshold_inflation": 1.0802407737514887
+     },
+     "daily": {
+      "terminal_detected_after_drift": 0.8333333333333334,
+      "terminal_detected_control": 0.6666666666666666,
+      "median_threshold_inflation": 1.0552790823641245
+     },
+     "tracker": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9287357876215704
+     },
+     "one_sided:none": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9287357876215704
+     },
+     "one_sided:spread": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9287357876215704
+     },
+     "one_sided:spread6": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9287357876215704
+     },
+     "one_sided:oracle": {
+      "terminal_detected_after_drift": 1.0,
+      "terminal_detected_control": 1.0,
+      "median_threshold_inflation": 0.9287357876215704
+     }
+    }
+   },
+   "placements": 20
+  },
+  "hai-23.05": {
+   "release": "hai-23.05",
+   "deploy_days": 2.59375,
+   "tau0": 7.832979018918628,
+   "tau_half": 7.832979018918628,
+   "p": 0.0017293316969764587,
+   "E1_budget_adherence": {
+    "tracker@eta0.001": {
+     "fa_per_day": 4.626506024096385,
+     "ratio_to_budget": 2.3132530120481927,
+     "permits": 0
+    },
+    "one_sided:none@eta0.001": {
+     "fa_per_day": 8.096385542168674,
+     "ratio_to_budget": 4.048192771084337,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.001": {
+     "fa_per_day": 6.168674698795181,
+     "ratio_to_budget": 3.0843373493975905,
+     "permits": 1
+    },
+    "one_sided:spread6@eta0.001": {
+     "fa_per_day": 6.168674698795181,
+     "ratio_to_budget": 3.0843373493975905,
+     "permits": 1
+    },
+    "frozen": {
+     "fa_per_day": 8.096385542168674,
+     "ratio_to_budget": 4.048192771084337,
+     "permits": 0
+    },
+    "margin": {
+     "fa_per_day": 8.096385542168674,
+     "ratio_to_budget": 4.048192771084337,
+     "permits": 0
+    },
+    "daily": {
+     "fa_per_day": 6.168674698795181,
+     "ratio_to_budget": 3.0843373493975905,
+     "permits": 0
+    },
+    "tracker@eta0.01": {
+     "fa_per_day": 6.9397590361445785,
+     "ratio_to_budget": 3.4698795180722892,
+     "permits": 0
+    },
+    "one_sided:none@eta0.01": {
+     "fa_per_day": 11.951807228915662,
+     "ratio_to_budget": 5.975903614457831,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.01": {
+     "fa_per_day": 10.024096385542169,
+     "ratio_to_budget": 5.0120481927710845,
+     "permits": 1
+    },
+    "one_sided:spread6@eta0.01": {
+     "fa_per_day": 10.024096385542169,
+     "ratio_to_budget": 5.0120481927710845,
+     "permits": 1
+    },
+    "tracker@eta0.05": {
+     "fa_per_day": 47.42168674698795,
+     "ratio_to_budget": 23.710843373493976,
+     "permits": 0
+    },
+    "one_sided:none@eta0.05": {
+     "fa_per_day": 52.433734939759034,
+     "ratio_to_budget": 26.216867469879517,
+     "permits": 0
+    },
+    "one_sided:spread@eta0.05": {
+     "fa_per_day": 50.506024096385545,
+     "ratio_to_budget": 25.253012048192772,
+     "permits": 1
+    },
+    "one_sided:spread6@eta0.05": {
+     "fa_per_day": 50.506024096385545,
+     "ratio_to_budget": 25.253012048192772,
+     "permits": 1
+    }
+   },
+   "E2_poisoning": {
+    "frozen": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "margin": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "daily": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 0.990227657273335,
+     "control_terminal_detected": 1.0
+    },
+    "tracker": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 7.005401613386708,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:none": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:spread": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:spread6": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    },
+    "one_sided:oracle": {
+     "event_detected": 1.0,
+     "terminal_detected": 1.0,
+     "median_threshold_inflation": 1.0,
+     "control_terminal_detected": 1.0
+    }
+   },
+   "E3_stealthy_poisoning": {
+    "placements_used": 0,
+    "rules": {
+     "frozen": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "margin": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "daily": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "tracker": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "one_sided:none": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "one_sided:spread": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "one_sided:spread6": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     },
+     "one_sided:oracle": {
+      "terminal_detected_after_drift": null,
+      "terminal_detected_control": null,
+      "median_threshold_inflation": null
+     }
+    }
+   },
+   "placements": 20
+  }
+ }
+}
