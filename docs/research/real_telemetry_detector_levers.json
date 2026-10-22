@@ -1,0 +1,156 @@
+{
+ "schema_version": "real-telemetry-detector-levers",
+ "status": "EXPLORATORY-retrospective-on-already-opened-data",
+ "disclaimer": "NOT a registered final; indicative only. Detector-side levers probed because a better normal forecaster did not improve detection (see real_telemetry_detection_v2_retrospective.json).",
+ "max_fit_rows": 15000,
+ "releases": {
+  "hai-23.05": {
+   "window": 60,
+   "budget_per_day": 2.0,
+   "detectors": {
+    "base_short_std": {
+     "events": 52,
+     "detected": 27,
+     "recall": 0.5192307692307693,
+     "false_episodes_per_day": 1.5823248454303045,
+     "median_delay": 35.0
+    },
+    "v2_std": {
+     "events": 52,
+     "detected": 28,
+     "recall": 0.5384615384615384,
+     "false_episodes_per_day": 2.848184721774548,
+     "median_delay": 36.5,
+     "recall_diff_vs_base": 0.019230769230769162,
+     "recall_diff_ci95": [
+      0.0,
+      0.05769230769230771
+     ]
+    },
+    "v2_mad": {
+     "events": 52,
+     "detected": 27,
+     "recall": 0.5192307692307693,
+     "false_episodes_per_day": 3.164649690860609,
+     "median_delay": 42.0,
+     "recall_diff_vs_base": 0.0,
+     "recall_diff_ci95": [
+      0.0,
+      0.0
+     ]
+    },
+    "short_mad": {
+     "events": 52,
+     "detected": 27,
+     "recall": 0.5192307692307693,
+     "false_episodes_per_day": 1.2658598763442435,
+     "median_delay": 41.0,
+     "recall_diff_vs_base": 0.0,
+     "recall_diff_ci95": [
+      0.0,
+      0.0
+     ]
+    },
+    "disagree_mad": {
+     "events": 52,
+     "detected": 21,
+     "recall": 0.40384615384615385,
+     "false_episodes_per_day": 1.5823248454303045,
+     "median_delay": 72.0,
+     "recall_diff_vs_base": -0.11538461538461542,
+     "recall_diff_ci95": [
+      -0.21153846153846156,
+      -0.038461538461538436
+     ]
+    },
+    "union": {
+     "events": 52,
+     "detected": 27,
+     "recall": 0.5192307692307693,
+     "false_episodes_per_day": 1.8987898145163653,
+     "median_delay": 35.0,
+     "recall_diff_vs_base": 0.0,
+     "recall_diff_ci95": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "seconds": 856
+  },
+  "hai-22.04": {
+   "window": 60,
+   "budget_per_day": 2.0,
+   "detectors": {
+    "base_short_std": {
+     "events": 58,
+     "detected": 35,
+     "recall": 0.603448275862069,
+     "false_episodes_per_day": 1.2372196924134375,
+     "median_delay": 43.0
+    },
+    "v2_std": {
+     "events": 58,
+     "detected": 31,
+     "recall": 0.5344827586206896,
+     "false_episodes_per_day": 1.2372196924134375,
+     "median_delay": 42.0,
+     "recall_diff_vs_base": -0.06896551724137934,
+     "recall_diff_ci95": [
+      -0.15517241379310343,
+      0.0
+     ]
+    },
+    "v2_mad": {
+     "events": 58,
+     "detected": 28,
+     "recall": 0.4827586206896552,
+     "false_episodes_per_day": 0.98977575393075,
+     "median_delay": 39.0,
+     "recall_diff_vs_base": -0.12068965517241376,
+     "recall_diff_ci95": [
+      -0.22413793103448282,
+      -0.017241379310344862
+     ]
+    },
+    "short_mad": {
+     "events": 58,
+     "detected": 33,
+     "recall": 0.5689655172413793,
+     "false_episodes_per_day": 1.4846636308961252,
+     "median_delay": 43.0,
+     "recall_diff_vs_base": -0.03448275862068961,
+     "recall_diff_ci95": [
+      -0.103448275862069,
+      0.03448275862068961
+     ]
+    },
+    "disagree_mad": {
+     "events": 58,
+     "detected": 27,
+     "recall": 0.46551724137931033,
+     "false_episodes_per_day": 0.98977575393075,
+     "median_delay": 37.0,
+     "recall_diff_vs_base": -0.13793103448275862,
+     "recall_diff_ci95": [
+      -0.25862068965517243,
+      -0.017241379310344862
+     ]
+    },
+    "union": {
+     "events": 58,
+     "detected": 38,
+     "recall": 0.6551724137931034,
+     "false_episodes_per_day": 1.4846636308961252,
+     "median_delay": 38.0,
+     "recall_diff_vs_base": 0.051724137931034475,
+     "recall_diff_ci95": [
+      0.0,
+      0.12068965517241381
+     ]
+    }
+   },
+   "seconds": 919
+  }
+ }
+}
