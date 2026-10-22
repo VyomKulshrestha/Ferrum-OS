@@ -1,0 +1,58 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v1",
+ "study_id": "vision-caution-robotarium-v1",
+ "registered_at": "2026-10-22",
+ "registered_before": "submitting any of the calibration or sealed runs below; only the exploratory pilot (seed 101) exists",
+ "branch": "vision-world-model (NOT main)",
+ "question": "Does the frozen vision-caution-v2 head, trained only on the simulated runtime-scene proxy, anticipate camera-visible hazards on real robots filmed by a real camera, better than the same pipeline without the camera, while holding the false-alarm budget?",
+ "honest_scope": {
+  "what_is_real": "real GRITSbot robots on the Georgia Tech Robotarium executing FerrumOS runtime PhysicalAction sequences, filmed by the testbed's real overhead 1080p camera (wide-angle lens, projector light, robot LEDs and shadows); poses from the testbed's tracking system",
+  "what_is_not": "not FerrumOS's own deployment camera or robot (none exists); the scene is the runtime world scaled 0.7, with a projected geofence and obstacle marker; contact never occurs (the testbed forbids it), so the hazards are obstacle proximity and geofence exit only",
+  "authority": "advisory diagnostic only; no permit, block, approval, adapter or actuation authority"
+ },
+ "pilot_disclosure": "Seed 101 (2026-10-22) was run before this protocol with an earlier script (white fence, no obstacle marker) and inspected: real execution fidelity, video sync and camera fitting were developed on it, and the v2 head was scored on it exploratorily (AUC-PR 0.717 vs base rate 0.455, 88 decisions). It is excluded from every set below.",
+ "runs": {
+  "script": "scripts/robotarium/ferrum_experiment.py at the commit that registers this protocol (black projected fence, dark disc under the parked obstacle), SEED set per run, 8 episodes x 12 steps, scale 0.7",
+  "calibration_seeds": [201, 202, 203, 204],
+  "sealed_seeds": [301, 302, 303, 304, 305, 306],
+  "simulator_check": "all ten seeds pass the official simulator's testbed checks before submission (target/robotarium/check_seeds_study.log: zero too-close, out-of-bounds and actuator counts, 409-434 s); that check also prints each seed's SIMULATED hazard prevalence (0.000-0.341). No real data and no model score existed when this protocol was registered",
+  "submission": "uploaded through the Robotarium web interface with the account owner's approval; files and video downloaded into target/robotarium/runs/seed<N>/ (gitignored, never redistributed)",
+  "failure_rule": "a run the testbed rejects or that returns no data is resubmitted once with the same seed (no outcome was observed); a run that fails the quality gate is excluded and reported, never replaced by a new seed after the open"
+ },
+ "processing": {
+  "frames": "scripts/robotarium/video_frames.py: video synced to the log per window of 900 iterations, camera = plane homography + one radial term + pose-to-body offset fitted on hold frames, frame at the middle of each step's hold rectified to runtime |x|,|y| <= 1.5, grey 64x64",
+  "labels": "scripts/robotarium/label_robotarium_log.py: body centres (pose + 0.025 m along the heading, the testbed's collision offset), runtime units (divide by 0.7); per-step hazard = moving and clearance_next < 0.16, or margin_next < 0; caution target = any hazard in the next 3 steps; decisions t = 1..11 per episode (vision_runtime_proxy_final.decisions)",
+  "quality_gate": {"window_corr_median_min": 0.30, "hold_pairing_min": 0.80, "median_err_px_max": 5.0, "applies_to": "every calibration and sealed run, from camera.json, before any score"},
+  "sealed_preprocessing": "video_frames.py runs on the sealed runs before the open (it writes labels into frames.npz but prints no label statistic); nothing about sealed labels or scores is inspected before the ledger entry"
+ },
+ "models": {
+  "vision": "frozen docs/research/artifacts/vision-caution-v2/selected_caution_head.npz (sha256 77e3ea1ed04421818e1efd6aa4b216b92b75b224c1f13e18e307345fc040042f) over frozen facebook/dinov2-small; no training on real data",
+  "action_only": "logistic regression (C=1.0, balanced) on the 10-dim runtime action, refitted deterministically on the proxy training split (seed 200, 800 episodes) exactly as in the proxy study",
+  "state_reference": "HistGradientBoostingClassifier(random_state=0) on true decision-time geometry + action, refitted on the same proxy split; descriptive only"
+ },
+ "arms": {
+  "vision_real_cal (PRIMARY)": "vision logits, threshold = 0.95 quantile of the calibration runs' hazard-free decisions (half of the 0.10 budget)",
+  "vision_sim_thr": "vision logits, the artifact's frozen simulation threshold fpr_0.05 (pure sim-to-real transfer of the threshold)",
+  "action_only": "same calibration procedure as the primary arm",
+  "state_reference": "same calibration procedure; descriptive"
+ },
+ "order": [
+  "quality gate on calibration runs; thresholds computed from them only",
+  "thresholds written to docs/research/artifacts/vision-caution-v2/robotarium_thresholds_v1.json and hashed",
+  "ledger entry robotarium-sealed-v1 in target/vision-wm/final_access.jsonl; the harness refuses if it exists",
+  "quality gate on sealed runs, then every arm scored once"
+ ],
+ "gates": {
+  "G1_camera_beats_action_only": "on the sealed decisions, vision_real_cal has higher AUC-PR and higher recall than action_only, and the episode-cluster bootstrap CI95 lower bound of the recall difference is > 0",
+  "G2_budget_holds": "vision_real_cal realized false-alarm rate on sealed hazard-free decisions <= 0.10",
+  "primary_success": "G1 and G2",
+  "S1_sim_threshold_budget_holds (secondary)": "vision_sim_thr realized false-alarm rate <= 0.10",
+  "descriptive": ["AUC-PR and ROC of every arm", "recall by hazard type and by action kind", "per-run quality numbers"]
+ },
+ "statistics": "episode-cluster bootstrap (episodes are clusters across all sealed runs), 10000 replicates, seed 0",
+ "harness": "scripts/robotarium/evaluate_real.py (--dry-run, --smoke on the pilot with a temp ledger, then the single final); CPU only",
+ "consequences": {
+  "if_primary_passes": "first sealed real-camera evidence for the advisory; the integration protocol may add 'advisory logging on the Robotarium overhead camera' to its scope. Still not FerrumOS's own camera, still off by default, still no authority.",
+  "if_primary_fails": "reported as is and retained; the advisory's scope is unchanged"
+ }
+}
