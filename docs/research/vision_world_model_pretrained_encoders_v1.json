@@ -1,0 +1,138 @@
+{
+ "schema_version": "vision-wm-pretrained-encoders-v1",
+ "status": "EXPLORATORY dev comparison (seed 2 dev split, not sealed); branch work, not main; advisory only",
+ "scene": "hard",
+ "splits": {
+  "train": [
+   0,
+   600
+  ],
+  "selection": [
+   1,
+   200
+  ],
+  "dev_eval": [
+   2,
+   200
+  ]
+ },
+ "dev_prevalence": 0.3742105263157895,
+ "results": {
+  "pixel_linear_probe": {
+   "auc_pr": 0.45726897100008246,
+   "auc_roc": 0.5731166139684094,
+   "prevalence": 0.3742105263157895,
+   "p05": {
+    "target_fpr": 0.05,
+    "recall": 0.12939521800281295,
+    "realized_fpr": 0.04751892346509672
+   },
+   "p10": {
+    "target_fpr": 0.1,
+    "recall": 0.19760900140646975,
+    "realized_fpr": 0.0992430613961312
+   }
+  },
+  "scratch_cnn": {
+   "auc_pr": 0.6014962696322854,
+   "auc_roc": 0.6978896447628816,
+   "prevalence": 0.3742105263157895,
+   "p05": {
+    "target_fpr": 0.05,
+    "recall": 0.21659634317862167,
+    "realized_fpr": 0.059293523969722456
+   },
+   "p10": {
+    "target_fpr": 0.1,
+    "recall": 0.3136427566807314,
+    "realized_fpr": 0.11606391925988226
+   },
+   "params": 5908674,
+   "seconds": 58
+  },
+  "mobilenet_v2_pretrained": {
+   "auc_pr": 0.677680258825934,
+   "auc_roc": 0.7888266682754126,
+   "prevalence": 0.3742105263157895,
+   "p05": {
+    "target_fpr": 0.05,
+    "recall": 0.2714486638537271,
+    "realized_fpr": 0.05214465937762826
+   },
+   "p10": {
+    "target_fpr": 0.1,
+    "recall": 0.43670886075949367,
+    "realized_fpr": 0.12026913372582002
+   },
+   "feature_channels": 320,
+   "seconds": 32
+  },
+  "mobilenet_v2_random": {
+   "auc_pr": 0.3836599342870978,
+   "auc_roc": 0.5192762654383418,
+   "prevalence": 0.3742105263157895,
+   "p05": {
+    "target_fpr": 0.05,
+    "recall": 0.0,
+    "realized_fpr": 0.0
+   },
+   "p10": {
+    "target_fpr": 0.1,
+    "recall": 0.0,
+    "realized_fpr": 0.0
+   },
+   "feature_channels": 320,
+   "seconds": 28
+  },
+  "dinov2_small_pretrained": {
+   "auc_pr": 0.729613767113942,
+   "auc_roc": 0.796051830007606,
+   "prevalence": 0.3742105263157895,
+   "p05": {
+    "target_fpr": 0.05,
+    "recall": 0.3720112517580872,
+    "realized_fpr": 0.052565180824222034
+   },
+   "p10": {
+    "target_fpr": 0.1,
+    "recall": 0.5175808720112518,
+    "realized_fpr": 0.10344827586206896
+   },
+   "feature_channels": 384,
+   "seconds": 134
+  },
+  "dinov2_small_random": {
+   "auc_pr": 0.5078357907548915,
+   "auc_roc": 0.645731382019189,
+   "prevalence": 0.3742105263157895,
+   "p05": {
+    "target_fpr": 0.05,
+    "recall": 0.18635724331926865,
+    "realized_fpr": 0.07947855340622371
+   },
+   "p10": {
+    "target_fpr": 0.1,
+    "recall": 0.26230661040787623,
+    "realized_fpr": 0.13414634146341464
+   },
+   "feature_channels": 384,
+   "seconds": 125
+  }
+ },
+ "sanity": {
+  "mobilenet_v2_pretrained": {
+   "natural_image_aug_retrieval_top1": 0.875
+  },
+  "mobilenet_v2_random": {
+   "natural_image_aug_retrieval_top1": 0.53125
+  },
+  "dinov2_small_pretrained": {
+   "natural_image_aug_retrieval_top1": 0.875
+  },
+  "dinov2_small_random": {
+   "natural_image_aug_retrieval_top1": 0.53125
+  }
+ },
+ "best_by_dev_auc_pr": "dinov2_small_pretrained",
+ "note": "DINOv2 weights: official facebook/dinov2-small (HF), run through a strict-loaded pure-torch ViT (transformers segfaults on import here). MobileNetV2: torchvision IMAGENET1K_V1, locally cached. Random-init controls isolate pretraining from architecture."
+}
