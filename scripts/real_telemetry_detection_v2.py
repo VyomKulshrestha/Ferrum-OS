@@ -152,6 +152,80 @@ def build_scorer(wm, parts):
     return sc
 
 
+# --- secondary ensemble arm (registered in amendment 1) -----------------------
+# Lead from the exploratory retrospective (docs/research/real_telemetry_detector_levers.json):
+# the model-disagreement detector |R_cand - R_base| is weak alone but flags
+# DIFFERENT attacks, so the union (baseline D1 OR disagreement) caught +3 on the
+# already-opened HAI 22.04 within budget. Registered as SECONDARY, not primary.
+
+def _topk3(A):
+    return -np.sort(-A, 1)[:, :3].mean(1)
+
+
+def _mad(stack):
+    med = np.median(stack, 0)
+    return 1.4826 * np.median(np.abs(stack - med), 0) + 1e-3
+
+
+def _resid_diff(cand_wm, base_wm, Z, V, h):
+    return C.residuals(cand_wm, Z, V, h) - C.residuals(base_wm, Z, V, h)
+
+
+def _disagree_score(cand_wm, base_wm, Z, V, s1, s5, window):
+    R1, R5 = _resid_diff(cand_wm, base_wm, Z, V, 1), _resid_diff(cand_wm, base_wm, Z, V, 5)
+    S1, S5 = np.abs(R1) / s1, np.abs(R5) / s5
+    S1[:DET.WARMUP] = 0.0
+    S5[:DET.WARMUP] = 0.0
+    return DET.smooth(_topk3(S1) + _topk3(S5), window)
+
+
+def _eval_alarms(alarm_list, y_list, steps_per_day):
+    found, delays, false_eps, normal_steps = [], [], 0, 0
+    for alarm, y in zip(alarm_list, y_list):
+        labelled = np.zeros(len(y), bool)
+        for a, b in C.events(y):
+            labelled[a:b] = True
+            hit = np.flatnonzero(alarm[a:b])
+            found.append(bool(len(hit)))
+            if len(hit):
+                delays.append(int(hit[0]))
+        false_eps += sum(1 for e in DET.episodes(alarm, GAP) if not labelled[e[0]:e[1]].any())
+        normal_steps += int((~labelled).sum())
+    days = max(normal_steps / steps_per_day, 1e-9)
+    return {"events": len(found), "detected": int(sum(found)),
+            "recall": float(np.mean(found)) if found else float("nan"),
+            "fa_episodes_per_day": false_eps / days,
+            "median_delay": float(np.median(delays)) if delays else None, "found": found}
+
+
+def ensemble_arm(scorers, thresholds, parts, pack_at, window, budget, steps_per_day):
+    """base_short D1 OR model-disagreement, each calibrated to the budget. Secondary."""
+    cand_wm, base_wm = scorers["candidate_v2"].wm, scorers["baseline_rt1"].wm
+    dcal1 = np.concatenate([_resid_diff(cand_wm, base_wm, Z, V, 1)[DET.WARMUP:] for Z, V in parts["cal"]])
+    dcal5 = np.concatenate([_resid_diff(cand_wm, base_wm, Z, V, 5)[DET.WARMUP:] for Z, V in parts["cal"]])
+    s1, s5 = _mad(dcal1), _mad(dcal5)
+    dis_cal = [_disagree_score(cand_wm, base_wm, Z, V, s1, s5, window)[DET.WARMUP:] for Z, V in parts["cal"]]
+    dis_thr = DET.calibrate(dis_cal, GAP, budget, steps_per_day)
+    base_sc, base_thr = scorers["baseline_rt1"], thresholds["baseline_rt1"]
+
+    def union_alarms(segs):
+        out = []
+        for seg in segs:
+            Z, V = seg[0], seg[1]
+            b = DET.smooth(base_sc.raw(Z, V)[0]["D1"], window)
+            b[:DET.WARMUP] = -np.inf
+            d = _disagree_score(cand_wm, base_wm, Z, V, s1, s5, window)
+            d[:DET.WARMUP] = -np.inf
+            out.append((b > base_thr) | (d > dis_thr))
+        return out
+
+    attack_y = [y for _, _, y in pack_at]
+    ev = _eval_alarms(union_alarms(pack_at), attack_y, steps_per_day)
+    fa = _eval_alarms(union_alarms([(Z, V, np.zeros(len(Z), np.int8)) for Z, V in parts["fa"]]),
+                      [np.zeros(len(Z), np.int8) for Z, V in parts["fa"]], steps_per_day)["fa_episodes_per_day"]
+    return ev, fa
+
+
 def run(dataset_id, npz, budget, steps_per_day, window):
     if dataset_id in ledger_datasets():
         raise SystemExit(f"REFUSE: dataset id '{dataset_id}' already appears in {D.FINAL_LEDGER}. "
@@ -176,7 +250,7 @@ def run(dataset_id, npz, budget, steps_per_day, window):
            "commit": {"wm_v2": _git_commit(ROOT / "scripts/real_telemetry_wm_v2.py"),
                       "harness": _git_commit(ROOT / "scripts/real_telemetry_detection_v2.py")},
            "arms": {}}
-    found = {}
+    found, scorers, thresholds = {}, {}, {}
     for name, wm in models.items():
         t0 = time.time()
         sc = build_scorer(wm, parts)
@@ -188,6 +262,7 @@ def run(dataset_id, npz, budget, steps_per_day, window):
         fa, fa_steps = fa_per_day(sc, parts["fa"], window, thr, steps_per_day)
         fa_m, _ = fa_per_day(sc, parts["fa"], window, thr_margin, steps_per_day)
         found[name] = ev["found"]
+        scorers[name], thresholds[name] = sc, thr
         out["arms"][name] = {
             "primary": {"recall": ev["recall"], "detected": ev["detected"], "events": ev["events"],
                         "median_delay": ev["median_delay"], "fa_episodes_per_day": fa},
@@ -210,6 +285,20 @@ def run(dataset_id, npz, budget, steps_per_day, window):
         "paired_bootstrap_candidate_vs_baseline": boot,
         "primary_success": bool((g1 or g1_slack) and g2),
     }
+
+    # Secondary (amendment 1): baseline D1 OR model-disagreement ensemble.
+    ens, ens_fa = ensemble_arm(scorers, thresholds, parts, pack_at, window, budget, steps_per_day)
+    ens_boot = C.paired_event_bootstrap(found["baseline_rt1"], ens["found"], reps=10_000, level=0.95)
+    out["secondary_ensemble"] = {
+        "detector": "union(baseline_rt1 D1 OR disagreement |R_v2 - R_base| MAD), each at budget",
+        "recall": ens["recall"], "detected": ens["detected"], "events": ens["events"],
+        "fa_episodes_per_day": ens_fa, "median_delay": ens["median_delay"],
+        "paired_bootstrap_vs_baseline": ens_boot,
+        "improves": bool(ens_boot["recall_difference_interval"][0] > 0 and ens_fa <= budget),
+    }
+    print(f"ensemble(base OR disagree): recall {ens['recall']:.3f} ({ens['detected']}/{ens['events']}) "
+          f"FA/day {ens_fa:.2f}  diff vs base {ens_boot['recall_difference']:+.3f}"
+          f"{ens_boot['recall_difference_interval']}", flush=True)
     print(f"\nG1 budget {'PASS' if g1 else ('SLACK-PASS' if g1_slack else 'FAIL')}  "
           f"G2 {'PASS' if g2 else 'FAIL'}  "
           f"=> primary {'PASS' if out['gates']['primary_success'] else 'FAIL'}")

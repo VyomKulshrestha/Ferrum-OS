@@ -1,0 +1,22 @@
+{
+ "schema_version": "real-telemetry-detection-protocol-v2-amendment1",
+ "amends": "docs/research/real_telemetry_detection_protocol_v2.json",
+ "registered_at": "2026-10-22",
+ "status": "registered-awaiting-fresh-attack-data",
+ "motivation": "An exploratory retrospective on the already-opened HAI releases (docs/research/real_telemetry_detector_levers.json) probed detector-side levers after the better-forecasting WorldModelV2 was found NOT to improve residual detection. No single lever beat the rt1/rt2 history-3 D1 on recall. One lead emerged: the model-disagreement detector |R_candidate - R_baseline| is weak alone (significantly worse: 23.05 -0.115, 22.04 -0.138) but flags DIFFERENT attacks, so the UNION of the baseline D1 with the disagreement detector caught 3 more attacks on HAI 22.04 (38/58 vs 35/58, +0.052, paired-bootstrap CI95 [0.0, 0.121]) within the false-alarm budget (1.48/day). The lead was NULL on 23.05 (identical to baseline) and its CI lower bound touches 0, so it is borderline and release-dependent.",
+ "amendment": {
+  "adds_secondary_arm": {
+   "name": "ensemble_union",
+   "definition": "Per step, alarm if the baseline (rt1/rt2 history-3) D1 fires OR the model-disagreement detector fires. The disagreement detector is the registered D1 shape -- mean(top-3 standardised |.|) at H1 + at H5, smoothed with the frozen window -- computed on the per-variable residual DIFFERENCE |R_candidate - R_baseline| (candidate = WorldModelV2), standardised by a robust MAD scale from the normal calibration split. Both the baseline D1 and the disagreement detector are independently calibrated to the SAME false-alarm episode budget on held-out normal data before the union.",
+   "implementation": "scripts/real_telemetry_detection_v2.py, ensemble_arm(); reported in the result as secondary_ensemble.",
+   "endpoint": "event recall and false-alarm episodes/day of the union, with a paired event bootstrap vs the baseline D1 (10,000 resamples, 95%).",
+   "called_an_improvement_only_if": "the paired-bootstrap CI95 lower bound on recall(union) - recall(baseline) is strictly > 0 AND the union's false-alarm rate is at most the budget."
+  }
+ },
+ "why_secondary_not_primary": "The ensemble was chosen AFTER seeing the already-opened HAI attacks, so promoting it to the primary success rule would overfit the registration to opened data. The primary gate in the parent protocol (WorldModelV2 vs baseline D1, G1+G2) is unchanged. The ensemble is reported as a secondary, pre-specified arm whose single clean test is the same never-opened dataset the parent protocol awaits.",
+ "unchanged": "All frozen components, data eligibility, the single-final-open ledger rule, the primary gate and the retain-failures discipline of the parent protocol are unchanged.",
+ "limitations_registered_in_advance": [
+  "The ensemble lead is release-dependent (helped 22.04, null on 23.05) and borderline (CI floor at 0) on opened data; the fresh-data test may not reproduce it.",
+  "The union raises the combined false-alarm rate over either detector alone; the budget check is part of the improvement criterion."
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "schema_version": "real-telemetry-forecaster-selection-v2",
+ "selected_at": "2026-10-22",
+ "role": "forecasting and control (world-model prediction / rollout), NOT anomaly detection",
+ "selected_forecaster": {
+  "name": "WorldModelV2 / feat_h12_w24",
+  "module": "scripts/real_telemetry_wm_v2.py",
+  "build": "real_telemetry_wm_v2.build()",
+  "spec": "action-conditioned ridge + per-horizon LightGBM residuals (200 trees, 63 leaves, lr 0.05, subsample 0.8, colsample 0.8, min_child_samples 100); history 12; engineered per-sensor rolling mean/std/rate over a 24-step window (offsets clamped at the segment start). Horizons 1 and 5; seed 0.",
+  "supersedes_for_forecasting": "the rt1/rt2 selected forecaster (ridge + 60-tree GBR, history 3), which remains the SELECTED DETECTOR world model and is NOT replaced for detection"
+ },
+ "why": "On held-out NORMAL HAI validation the v2 forecaster reduces multi-step forecast error over the rt1/rt2 baseline: exploration measured H5 MAE -12% and H1 -4.5% (docs/research/real_telemetry_world_model_exploration_v1.json); an independent retrospective on all three real HAI releases confirmed a consistent normal-period forecast-MAE gain (H5 +1.8% / +1.9% / +3.6%) on the recorded data (docs/research/real_telemetry_detection_v2_retrospective.json). Two independent levers compound: history length (plateau ~12) and rolling summary features over a window longer than the history (plateau ~24).",
+ "scope_and_caveats": [
+  "This selection is for FORECASTING / CONTROL use only. The same retrospective showed the v2 forecaster does NOT improve residual-based attack DETECTION (it predicts through anomalies, shrinking the residual spike), so the detector keeps the rt1/rt2 history-3 world model. Detection improvement is a separate, open question pursued under docs/research/real_telemetry_detection_protocol_v2.json (awaiting fresh attack data).",
+  "The registered rt1/rt2 frozen bundles and the incident-dynamics models are NOT retrained or altered by this selection.",
+  "Absolute forecast-MAE numbers carry mild selection optimism (model chosen on the same validation family); the relative ranking is robust across fit sizes and all three releases."
+ ],
+ "code_pins": {
+  "scripts/real_telemetry_wm_v2.py": "4d854b08bb10844f78932bf02de8d070b64a25014b58383a8996ca9b88469397",
+  "scripts/real_telemetry_core.py": "6dbe22854de1d5321478296434214196de1cb978a3ce1b6f7eaa8162ad31488e",
+  "scripts/real_telemetry_wm_v2_retrospective.py": "3d3780ae144c6f02bdd03c4ef955459d3854da5c9ba3b17b6ab2bc62fece3cd4"
+ },
+ "evidence": {
+  "exploration": "docs/research/real_telemetry_world_model_exploration_v1.json (sha256 50a83bb68c6cd55c296021583c79fbb2af34f0e519bbe7de0073ae7f4e0a1e26)",
+  "retrospective": "docs/research/real_telemetry_detection_v2_retrospective.json (sha256 2145ff6839a64259ca013914b4bfdd27f6f1bf2e37c95753e4f60b9e8d2dffb0)"
+ },
+ "production_artifact": {
+  "path": "target/real-telemetry/wm_v2_hai-22.04.pkl",
+  "retention": "local pickle; regenerable from the pinned code",
+  "regenerate": "python scripts/real_telemetry_wm_v2.py fit hai-22.04 --save target/real-telemetry/wm_v2_hai-22.04.pkl --max-rows 60000",
+  "load": "real_telemetry_wm_v2.load('target/real-telemetry/wm_v2_hai-22.04.pkl'); rescale inputs with the same robust Scaler fit on the release's normal train data"
+ }
+}
