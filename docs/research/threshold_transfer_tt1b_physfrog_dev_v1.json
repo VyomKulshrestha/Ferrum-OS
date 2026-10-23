@@ -1,0 +1,135 @@
+{
+ "schema_version": "threshold-transfer-tt1b-physfrog-dev-v1",
+ "status": "development evidence on normal data of spent HAI releases; sensor-noise spoofing attacker",
+ "releases": {
+  "hai-21.03": {
+   "release": "hai-21.03",
+   "placements_used": 4,
+   "campaign_hours": 6.0,
+   "thresholds": {
+    "tau0": 15.727994607082183,
+    "tau_half": 18.407790310125794,
+    "p": 0.0004232184132565029,
+    "m0": 4.222059913476309,
+    "spread": 10.719182812174449,
+    "eta": 0.10719182812174449
+   },
+   "rules": {
+    "frozen": {
+     "terminal_after_campaign": 1.0,
+     "terminal_control": 1.0,
+     "median_inflation": 1.0,
+     "median_campaign_alarm_steps": 0.0,
+     "median_noise_sigma": 0.042132025542554394
+    },
+    "spot": {
+     "terminal_after_campaign": 1.0,
+     "terminal_control": 1.0,
+     "median_inflation": 0.7751757364491022,
+     "median_campaign_alarm_steps": 0.0,
+     "median_noise_sigma": 0.03582545257518856
+    },
+    "spot_mle": {
+     "terminal_after_campaign": 0.5,
+     "terminal_control": 1.0,
+     "median_inflation": 1.0408430348112203,
+     "median_campaign_alarm_steps": 3.0,
+     "median_noise_sigma": 0.042132025542554394
+    },
+    "dspot": {
+     "terminal_after_campaign": 1.0,
+     "terminal_control": 0.75,
+     "median_inflation": 0.8748890080421532,
+     "median_campaign_alarm_steps": 0.0,
+     "median_noise_sigma": 0.11642732973610581
+    }
+   }
+  },
+  "hai-22.04": {
+   "release": "hai-22.04",
+   "placements_used": 4,
+   "campaign_hours": 6.0,
+   "thresholds": {
+    "tau0": 16.597016603253422,
+    "tau_half": 19.447656947126188,
+    "p": 0.0010157339175463054,
+    "m0": 5.226932764053345,
+    "spread": 11.40256137549106,
+    "eta": 0.1140256137549106
+   },
+   "rules": {
+    "frozen": {
+     "terminal_after_campaign": 1.0,
+     "terminal_control": 1.0,
+     "median_inflation": 1.0,
+     "median_campaign_alarm_steps": 8.5,
+     "median_noise_sigma": 0.02266377957828605
+    },
+    "spot": {
+     "terminal_after_campaign": 0.0,
+     "terminal_control": 1.0,
+     "median_inflation": 1.416125899498776,
+     "median_campaign_alarm_steps": 0.0,
+     "median_noise_sigma": 0.02313257396385602
+    },
+    "spot_mle": {
+     "terminal_after_campaign": 0.0,
+     "terminal_control": 1.0,
+     "median_inflation": 1.594598533707511,
+     "median_campaign_alarm_steps": 0.0,
+     "median_noise_sigma": 0.025726298873845165
+    },
+    "dspot": {
+     "terminal_after_campaign": 0.75,
+     "terminal_control": 1.0,
+     "median_inflation": 0.9433518040630839,
+     "median_campaign_alarm_steps": 0.0,
+     "median_noise_sigma": 0.0532074912120596
+    }
+   }
+  },
+  "hai-23.05": {
+   "release": "hai-23.05",
+   "placements_used": 4,
+   "campaign_hours": 6.0,
+   "thresholds": {
+    "tau0": 7.832979018918628,
+    "tau_half": 9.169778142858487,
+    "p": 0.0017293316969764587,
+    "m0": 4.542234845956166,
+    "spread": 5.347196495759436,
+    "eta": 0.053471964957594355
+   },
+   "rules": {
+    "frozen": {
+     "terminal_after_campaign": 1.0,
+     "terminal_control": 1.0,
+     "median_inflation": 1.0,
+     "median_campaign_alarm_steps": 189.5,
+     "median_noise_sigma": 0.024461983475229744
+    },
+    "spot": {
+     "terminal_after_campaign": 0.5,
+     "terminal_control": 1.0,
+     "median_inflation": 1.0335815110398725,
+     "median_campaign_alarm_steps": 171.0,
+     "median_noise_sigma": 0.026002739801330027
+    },
+    "spot_mle": {
+     "terminal_after_campaign": 0.5,
+     "terminal_control": 1.0,
+     "median_inflation": 1.1230426088786243,
+     "median_campaign_alarm_steps": 153.5,
+     "median_noise_sigma": 0.027676478097738634
+    },
+    "dspot": {
+     "terminal_after_campaign": 0.5,
+     "terminal_control": 0.5,
+     "median_inflation": 1.115829755647927,
+     "median_campaign_alarm_steps": 61.0,
+     "median_noise_sigma": 0.06541583664979096
+    }
+   }
+  }
+ }
+}
