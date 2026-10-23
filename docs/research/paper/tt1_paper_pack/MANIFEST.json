@@ -91,6 +91,62 @@
    "sha256": "a22aca1f68a64a94f02520d9e6b0c1c170335583dc6af2d1e9bc8162236b75e8",
    "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
   },
+  "latex/figures/fig1_learning_regions.pdf": {
+   "sha256": "108be8e32a00e7ea1f6ea54e646fb057da7fc24c6e126560fdd6d70d8b57f312",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex/figures/fig2_trajectories_hai2007.pdf": {
+   "sha256": "09c08a5b651a3a9284035b77f46ecfed6a3a470546b5cc10536900c488105894",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex/figures/fig3_trajectories_batadal.pdf": {
+   "sha256": "c88e96675189d536c5d80aae82d731a060a0c9c239101838b8e6f1f26c5b1ce6",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex/figures/fig4_recall_forest.pdf": {
+   "sha256": "12ee3da3b6734ec853714279a75db193f26460f784e72e838376fd098753391c",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex/figures/fig5_attack_campaigns.pdf": {
+   "sha256": "34cf41acc48eb410aa14aa7d3e5c351c55f98e9d4d60bb11ae47b3d26358d9f6",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex/main.tex": {
+   "sha256": "74c81e004238ba58d55b46af625f6c8131a5a72ff2e83aa4748c4fdcc28302ed",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex/refs.bib": {
+   "sha256": "259ef25f1ea248a51f26a8627b0cfb9e1b1c573284587e65db071288b35aee56",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/figures/fig1_learning_regions.pdf": {
+   "sha256": "108be8e32a00e7ea1f6ea54e646fb057da7fc24c6e126560fdd6d70d8b57f312",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/figures/fig2_trajectories_hai2007.pdf": {
+   "sha256": "09c08a5b651a3a9284035b77f46ecfed6a3a470546b5cc10536900c488105894",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/figures/fig3_trajectories_batadal.pdf": {
+   "sha256": "c88e96675189d536c5d80aae82d731a060a0c9c239101838b8e6f1f26c5b1ce6",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/figures/fig4_recall_forest.pdf": {
+   "sha256": "12ee3da3b6734ec853714279a75db193f26460f784e72e838376fd098753391c",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/figures/fig5_attack_campaigns.pdf": {
+   "sha256": "34cf41acc48eb410aa14aa7d3e5c351c55f98e9d4d60bb11ae47b3d26358d9f6",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/main.tex": {
+   "sha256": "18e0598607b17b263aaee1f1a3223e6f4cc4facd01bd9228577753d162e5f083",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
+  "latex_usenix/refs.bib": {
+   "sha256": "259ef25f1ea248a51f26a8627b0cfb9e1b1c573284587e65db071288b35aee56",
+   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+  },
   "manuscript/threshold_transfer_tt1_findings.md": {
    "sha256": "7fd975aa6fe385daff2ea625b1cab42ffbbd88cde005838e339e34e04c5dde80",
    "copied_from": "docs/research/threshold_transfer_tt1_findings.md",
