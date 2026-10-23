@@ -1,0 +1,249 @@
+campaign,dataset,status,rule,placements,terminal_after,terminal_control,median_inflation,source
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),margin,10,0.8,0.8,1.035791,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),daily,10,0.0,1.0,2.064459,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),tracker,10,0.0,1.0,2.052681,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),tracker_slow,10,0.0,1.0,1.61676,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),one_sided:spread,10,0.0,1.0,2.052681,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),one_sided:spread6,10,0.0,1.0,2.052681,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),one_sided:shift,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),one_sided:shift6,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),one_sided:oracle,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),margin,10,0.1,0.1,1.356888,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),daily,10,0.0,0.4,2.252744,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),tracker,10,0.1,1.0,1.867513,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),tracker_slow,10,0.1,1.0,1.661791,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),one_sided:spread,10,0.1,1.0,1.867513,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),one_sided:spread6,10,0.1,1.0,1.867513,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),one_sided:shift,10,0.7,1.0,1.034469,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),one_sided:shift6,10,0.8,1.0,1.027833,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),one_sided:oracle,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),margin,10,0.2,0.2,1.302979,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),daily,10,0.4,0.7,1.378285,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),tracker,10,0.0,0.3,2.007682,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),tracker_slow,10,0.2,0.5,1.519289,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),one_sided:spread,10,0.4,0.7,1.20842,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),one_sided:spread6,10,0.0,0.7,1.807841,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),one_sided:shift,10,0.7,0.7,1.011643,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),one_sided:shift6,10,0.6,0.7,1.017059,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),one_sided:oracle,10,1.0,0.7,1.0,threshold_transfer_dev_v3.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),spot,10,1.0,1.0,0.906339,threshold_transfer_tt1b_attacks_dev_v1.json
+E4 supra-threshold pulses,hai-21.03,exploratory (normal data),dspot,10,0.8,1.0,0.902099,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),margin,10,0.4,0.4,1.170384,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),daily,10,1.0,1.0,0.950086,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),tracker,10,0.9,1.0,0.95481,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),tracker_slow,10,1.0,1.0,0.966812,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),one_sided:none,10,1.0,1.0,0.95481,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),spot,10,0.9,1.0,0.97888,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-21.03,exploratory (normal data),dspot,10,0.9,0.9,0.996196,threshold_transfer_tt1b_attacks_dev_v1.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),spot,10,1.0,1.0,0.814295,threshold_transfer_tt1b_attacks_dev_v1.json
+E4 supra-threshold pulses,hai-22.04,exploratory (normal data),dspot,10,1.0,1.0,0.730313,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),margin,10,0.0,0.0,1.171756,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),daily,10,0.5,0.5,1.055279,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),tracker,10,0.7,0.8,0.955841,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),tracker_slow,10,0.9,0.9,1.003487,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),one_sided:none,10,1.0,1.0,0.955841,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),spot,10,1.0,1.0,0.821573,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-22.04,exploratory (normal data),dspot,10,0.8,1.0,0.826192,threshold_transfer_tt1b_attacks_dev_v1.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),spot,10,0.9,1.0,0.993462,threshold_transfer_tt1b_attacks_dev_v1.json
+E4 supra-threshold pulses,hai-23.05,exploratory (normal data),dspot,10,0.5,0.5,1.08434,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),margin,10,0.3,0.3,1.170663,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),daily,10,0.8,0.8,0.990954,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),tracker,10,0.3,0.3,1.304574,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),tracker_slow,10,0.4,0.4,1.079773,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),spot,10,1.0,1.0,0.979069,threshold_transfer_tt1b_attacks_dev_v1.json
+E6 sub-alarm pulses,hai-23.05,exploratory (normal data),dspot,10,0.5,0.5,1.053744,threshold_transfer_tt1b_attacks_dev_v1.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),margin,10,0.1,0.1,1.177728,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),daily,10,0.0,0.0,25.564345,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),tracker,10,0.0,0.0,18.325993,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),tracker_slow,10,0.0,0.0,7.225263,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),one_sided:spread,10,0.1,0.1,18.325993,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),one_sided:spread6,10,0.0,0.0,18.325993,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),one_sided:shift,10,0.1,0.1,1.144539,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),one_sided:shift6,10,0.2,0.2,1.141762,threshold_transfer_tt1_result_hai-20.07.json
+E4 supra-threshold pulses,hai-20.07,registered tt1 (G1),one_sided:oracle,10,0.7,0.1,1.0,threshold_transfer_tt1_result_hai-20.07.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),margin,10,0.0,0.0,1.170384,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),daily,10,1.0,1.0,0.841702,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),tracker,10,1.0,1.0,0.683193,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),tracker_slow,10,1.0,1.0,0.952393,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),one_sided:none,10,1.0,1.0,0.683193,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),spot,10,0.0,1.0,8248180542317714.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),dspot,10,0.0,1.0,2053773812104514.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-21.03,exploratory (normal data),spot_mle,10,0.8,1.0,1.043561,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),margin,10,0.0,0.0,1.170384,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),daily,10,1.0,1.0,0.713709,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),tracker,10,1.0,1.0,0.683193,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),tracker_slow,10,1.0,1.0,0.952393,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),one_sided:none,10,1.0,1.0,0.683193,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),spot,10,0.0,1.0,71893.379539,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),dspot,10,0.0,1.0,46937.611181,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-21.03,exploratory (normal data),spot_mle,10,0.8,1.0,1.04356,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),margin,10,0.0,0.0,1.170384,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),daily,10,1.0,1.0,0.713709,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),tracker,10,1.0,1.0,0.683193,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),tracker_slow,10,1.0,1.0,0.952393,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),one_sided:none,10,1.0,1.0,0.683193,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),spot,10,0.0,1.0,4.541843,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),dspot,10,0.0,1.0,4.692819,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-21.03,exploratory (normal data),spot_mle,10,0.8,1.0,1.040025,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),margin,10,0.0,0.0,1.170384,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),daily,10,1.0,1.0,0.97,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),tracker,10,0.9,1.0,0.963358,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),tracker_slow,10,1.0,1.0,0.969356,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),one_sided:none,10,1.0,1.0,0.963358,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),spot,10,1.0,1.0,0.930366,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),dspot,10,1.0,1.0,0.912203,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-21.03,exploratory (normal data),spot_mle,10,1.0,1.0,0.989738,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),margin,10,0.0,0.0,1.171756,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),daily,10,0.0,0.0,2.185161,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),tracker,10,0.7,0.7,0.967766,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),tracker_slow,10,1.0,1.0,1.014639,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),one_sided:none,10,1.0,1.0,0.966989,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),spot,10,0.0,1.0,8247949.756579,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),dspot,10,0.0,1.0,23079563.75491,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-22.04,exploratory (normal data),spot_mle,10,0.0,1.0,inf,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),margin,10,0.0,0.0,1.171756,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),daily,10,0.0,0.0,2.185161,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),tracker,10,0.7,0.7,0.967766,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),tracker_slow,10,1.0,1.0,1.014639,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),one_sided:none,10,1.0,1.0,0.966989,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),spot,10,0.0,1.0,38.739891,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),dspot,10,0.0,1.0,56.307639,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-22.04,exploratory (normal data),spot_mle,10,0.0,1.0,39206.643306,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),margin,10,0.0,0.0,1.171756,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),daily,10,0.0,0.0,1.62022,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),tracker,10,0.7,0.7,0.967766,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),tracker_slow,10,1.0,1.0,1.014639,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),one_sided:none,10,1.0,1.0,0.966989,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),spot,10,0.0,1.0,1.209808,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),dspot,10,0.0,1.0,1.331419,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-22.04,exploratory (normal data),spot_mle,10,0.5,1.0,1.061243,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),margin,10,0.0,0.0,1.171756,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),daily,10,0.0,0.0,1.055279,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),tracker,10,0.4,0.7,1.132652,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),tracker_slow,10,1.0,1.0,1.014639,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),spot,10,1.0,1.0,0.826433,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),dspot,10,1.0,1.0,0.773715,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-22.04,exploratory (normal data),spot_mle,10,0.0,1.0,1.644081,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),margin,10,0.0,0.0,1.170663,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),daily,10,0.8,0.8,0.990228,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),tracker,10,0.3,0.3,1.304106,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),tracker_slow,10,0.3,0.3,1.1027,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),spot,10,0.0,1.0,415663.986637,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),dspot,10,0.0,0.4,1.605786,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h,hai-23.05,exploratory (normal data),spot_mle,10,0.0,1.0,1.512377,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),margin,10,0.0,0.0,1.170663,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),daily,10,0.8,0.8,0.990228,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),tracker,10,0.3,0.3,1.304106,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),tracker_slow,10,0.3,0.3,1.1027,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),spot,10,0.0,1.0,5.390114,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),dspot,10,0.0,0.4,1.271124,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_6h,hai-23.05,exploratory (normal data),spot_mle,10,0.0,1.0,1.507104,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),margin,10,0.0,0.0,1.170663,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),daily,10,0.8,0.8,0.990228,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),tracker,10,0.3,0.3,1.304106,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),tracker_slow,10,0.3,0.3,1.1027,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),spot,10,0.0,1.0,1.14434,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),dspot,10,0.0,0.4,1.246623,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_1h,hai-23.05,exploratory (normal data),spot_mle,10,0.0,1.0,1.08831,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),margin,10,0.0,0.0,1.170663,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),daily,10,0.8,0.8,0.990228,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),tracker,10,0.3,0.3,1.444049,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),tracker_slow,10,0.3,0.3,1.103383,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),spot,10,1.0,1.0,0.982287,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),dspot,10,0.3,0.4,1.095142,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog fixed_24h,hai-23.05,exploratory (normal data),spot_mle,10,0.1,1.0,1.366588,threshold_transfer_tt1b_frog_dev_v1.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",margin,10,0.0,0.0,172.982273,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",daily,10,0.9,0.9,0.798574,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",tracker,10,0.0,0.0,739.718292,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",tracker_slow,10,0.1,0.1,170.150008,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",spot,10,0.0,0.0,32.089671,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",spot_mle,10,0.7,0.9,0.954481,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D1),batadal,"registered tt1b (H3 is 24h, D1)",dspot,10,0.0,0.0,62.473172,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",margin,10,0.0,0.0,172.982273,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",daily,10,0.9,0.9,0.680749,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",tracker,10,0.0,0.0,739.718292,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",tracker_slow,10,0.1,0.1,170.150008,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",spot,10,0.0,0.0,28.686376,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",spot_mle,10,0.9,0.9,0.881571,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D1),batadal,"registered tt1b (H3 is 24h, D1)",dspot,10,0.0,0.0,26.637594,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",margin,10,0.0,0.0,172.982273,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",daily,10,0.9,0.9,0.680749,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",tracker,10,0.0,0.0,739.718292,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",tracker_slow,10,0.1,0.1,170.150008,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",spot,10,0.0,0.0,28.057298,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",spot_mle,10,0.9,0.9,0.864951,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D1),batadal,"registered tt1b (H3 is 24h, D1)",dspot,10,0.0,0.0,21.109511,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",margin,10,0.0,0.0,64.945138,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",daily,10,0.9,0.9,0.872911,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",tracker,10,0.1,0.1,581.301175,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",tracker_slow,10,0.1,0.1,69.005559,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",spot,10,0.0,0.0,16.947708,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",spot_mle,10,0.0,0.4,1.278235,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_24h (D0),batadal,"registered tt1b (H3 is 24h, D1)",dspot,10,0.0,0.0,37.979932,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",margin,10,0.0,0.0,64.945138,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",daily,10,0.9,0.9,0.823348,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",tracker,10,0.1,0.1,581.301175,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",tracker_slow,10,0.1,0.1,69.005559,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",spot,10,0.0,0.0,13.892926,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",spot_mle,10,0.2,0.4,1.114006,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_6h (D0),batadal,"registered tt1b (H3 is 24h, D1)",dspot,10,0.0,0.0,16.767758,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",frozen,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",margin,10,0.0,0.0,64.945138,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",daily,10,0.9,0.9,0.823348,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",tracker,10,0.1,0.1,581.301175,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",tracker_slow,10,0.1,0.1,69.005559,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",one_sided:none,10,1.0,1.0,1.0,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",spot,10,0.0,0.0,13.142285,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",spot_mle,10,0.4,0.4,1.082591,threshold_transfer_tt1b_result_batadal.json
+score-level frog closed_1h (D0),batadal,"registered tt1b (H3 is 24h, D1)",dspot,10,0.0,0.0,13.11057,threshold_transfer_tt1b_result_batadal.json
+"physical frog (sensor-noise spoofing, 6h)",hai-21.03,exploratory (normal data),frozen,4,1.0,1.0,1.0,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-21.03,exploratory (normal data),spot,4,1.0,1.0,0.775176,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-21.03,exploratory (normal data),spot_mle,4,0.5,1.0,1.040843,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-21.03,exploratory (normal data),dspot,4,1.0,0.75,0.874889,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-22.04,exploratory (normal data),frozen,4,1.0,1.0,1.0,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-22.04,exploratory (normal data),spot,4,0.0,1.0,1.416126,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-22.04,exploratory (normal data),spot_mle,4,0.0,1.0,1.594599,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-22.04,exploratory (normal data),dspot,4,0.75,1.0,0.943352,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-23.05,exploratory (normal data),frozen,4,1.0,1.0,1.0,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-23.05,exploratory (normal data),spot,4,0.5,1.0,1.033582,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-23.05,exploratory (normal data),spot_mle,4,0.5,1.0,1.123043,threshold_transfer_tt1b_physfrog_dev_v1.json
+"physical frog (sensor-noise spoofing, 6h)",hai-23.05,exploratory (normal data),dspot,4,0.5,0.5,1.11583,threshold_transfer_tt1b_physfrog_dev_v1.json

@@ -1,0 +1,141 @@
+{
+ "schema_version": "threshold-transfer-tt1-verification",
+ "passed": true,
+ "checks": [
+  {
+   "check": "protocol lists a digest for every frozen file",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "protocol is committed",
+   "pass": true,
+   "detail": "2026-10-22 14:53:42+05:30"
+  },
+  {
+   "check": "hai-20.07: exactly one final access",
+   "pass": true,
+   "detail": "1 shared-final ledger rows"
+  },
+  {
+   "check": "hai-20.07: any other access is post-hoc and after the final",
+   "pass": true,
+   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
+  },
+  {
+   "check": "hai-20.07: access is the tt1 shared final",
+   "pass": true,
+   "detail": "tt1 shared final: threshold-transfer-tt1 + real-telemetry-detection-v2 (amendment 2)"
+  },
+  {
+   "check": "hai-20.07: access after registration commit",
+   "pass": true,
+   "detail": "access 2026-10-22T09:29:58.621178+00:00 vs registration 2026-10-22 14:53:42+05:30"
+  },
+  {
+   "check": "hai-20.07: result file exists",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hai-20.07: result ran with the registered frozen files",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hai-20.07: stored gates equal gates recomputed from the result",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hai-20.07: detection-v2 result exists",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hai-20.07: detection-v2 ran inside the shared final",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hai-20.07: detection-v2 window per amendment 2",
+   "pass": true,
+   "detail": "window 60"
+  },
+  {
+   "check": "hygrid-ics: exactly one final access",
+   "pass": true,
+   "detail": "1 shared-final ledger rows"
+  },
+  {
+   "check": "hygrid-ics: any other access is post-hoc and after the final",
+   "pass": true,
+   "detail": "post-hoc analysis after the registered tt1 final: attack contamination of the development portion; post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
+  },
+  {
+   "check": "hygrid-ics: access is the tt1 shared final",
+   "pass": true,
+   "detail": "tt1 shared final: threshold-transfer-tt1 + real-telemetry-detection-v2 (amendment 2)"
+  },
+  {
+   "check": "hygrid-ics: access after registration commit",
+   "pass": true,
+   "detail": "access 2026-10-22T09:24:25.052138+00:00 vs registration 2026-10-22 14:53:42+05:30"
+  },
+  {
+   "check": "hygrid-ics: result file exists",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hygrid-ics: result ran with the registered frozen files",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hygrid-ics: detection-v2 result exists",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hygrid-ics: detection-v2 ran inside the shared final",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hygrid-ics: detection-v2 window per amendment 2",
+   "pass": true,
+   "detail": "window 10"
+  },
+  {
+   "check": "voraus-ad: exactly one final access",
+   "pass": true,
+   "detail": "1 shared-final ledger rows"
+  },
+  {
+   "check": "voraus-ad: any other access is post-hoc and after the final",
+   "pass": true,
+   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
+  },
+  {
+   "check": "voraus-ad: access is the tt1 shared final",
+   "pass": true,
+   "detail": "tt1 shared final: threshold-transfer-tt1 (voraus-ad is not part of detection-v2)"
+  },
+  {
+   "check": "voraus-ad: access after registration commit",
+   "pass": true,
+   "detail": "access 2026-10-22T09:49:56.327019+00:00 vs registration 2026-10-22 14:53:42+05:30"
+  },
+  {
+   "check": "voraus-ad: result file exists",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "voraus-ad: result ran with the registered frozen files",
+   "pass": true,
+   "detail": ""
+  }
+ ]
+}

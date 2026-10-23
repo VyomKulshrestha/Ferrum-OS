@@ -1,0 +1,65 @@
+{
+ "schema_version": "threshold-transfer-tt1b-protocol",
+ "study_id": "threshold-transfer-tt1b",
+ "title": "Learning regions of adaptive alarm thresholds: a registered replication on never-opened ICS attack data",
+ "registered_at": "2026-10-23",
+ "status": "registered-before-final-access",
+ "status_note": "Registered before any test row of BATADAL was read, and before SWaT or WADI were received. Each dataset is opened once by scripts/tt1b_final.py final <dataset>, which refuses if the dataset id is already in target/real-telemetry/final_access.jsonl, if a frozen file differs from the sha256 below, or if no loader is registered.",
+ "inherits": "threshold-transfer-tt1 (docs/research/threshold_transfer_tt1_protocol.json, result 0971009) and its exploratory extensions (docs/research/threshold_transfer_tt1_findings.md, section 'Extensions after registration').",
+ "motivation": "tt1 found, on three never-opened datasets, that thresholds which learn from exceedances (daily recalibration, quantile trackers) lose real-attack recall because earlier attacks raise them. Exploratory work after tt1 found that SPOT and DSPOT (Siffer et al. 2017), which refuse to learn from alarm values, largely escape that loss (HAI 20.07 post-hoc: SPOT 0.947, maximum-likelihood SPOT 0.921, frozen 0.947, tracker 0.526), but that a closed-loop attacker who holds the score at 0.97 of the current threshold drives SPOT and DSPOT upward without alarms (spent HAI normal data: DSPOT 0/30 terminal bumps caught after 24 h, frozen 30/30). tt1b tests those exploratory findings once on data no study here has opened.",
+ "hypotheses": {
+  "H1_real_attacks_poison_tracker": "Real attacks poison the symmetric tracker: recall(tracker) - recall(frozen) on the dataset's labelled attacks, D1 score, paired event bootstrap (10,000 resamples, 95%); PASS if the interval's upper bound is below 0.",
+  "H2_spot_mle_noninferior_to_frozen": "SPOT with maximum-likelihood tail fits escapes natural poisoning: recall(spot_mle) - recall(frozen), D1, paired event bootstrap; PASS if the interval's lower bound is at least -max(0.10, 2/N), N the number of labelled events (two events' worth of recall on small sets).",
+  "H3_frog_blinds_dspot_not_frozen_or_tighten_only": "Score-level closed-loop frog, 24 h campaign, D1, in attack-free stretches of the longest test stream (at least 6 placements of up to 10): PASS if DSPOT detects the terminal bump in at most (its control fraction - 0.5) of placements AND frozen and tighten-only (one_sided:none) each detect it in at least (their control fraction - 0.1).",
+  "primary_success_rule": "H1 and H2 and H3 on the dataset (three tests on one dataset; no multiplicity correction). Each dataset (BATADAL now; SWaT and WADI when received) is reported separately; the paper's replication claim is the set of per-dataset outcomes."
+ },
+ "frozen_components": {
+  "monitor": "D1 (rt1/rt2 world-model residual: ridge + 60-tree LightGBM, history 3, horizons 1 and 5, top-3 standardised residuals) and D0 (top-3 standardised first differences), each smoothed and calibrated once on the most recent 20% of normal training data (fit 60 / residual scale 20 / calibration 20 %). Columns constant in development data are dropped.",
+  "rules": "threshold_rules_ext.RULES: frozen, margin (tau0 + 0.25 spread), daily, tracker (eta 0.01 spread), tracker_slow (eta / 10), one_sided:none (tighten-only), spot (method-of-moments GPD), spot_mle (maximum-likelihood GPD, refit every 2048 peaks at 1 Hz, 16 at 15 min), dspot (moments GPD on the residual from a moving mean of non-alarm values). SPOT base level: calibration 98th percentile; risk q = p, the calibration exceedance rate of tau0. Online versions: threshold_online.py (identical to the batch rules without an attacker).",
+  "settings_by_dataset": {
+   "batadal": "15-minute grid (last row per bin; label = max ATT_FLAG in the bin); 96 steps per day; smoothing 4 steps (1 h); episodes merged across 4 steps; budget 1 false-alarm episode per week (1/7 per day); DSPOT depth 96 (1 day); frog campaigns 96, 24 and 4 steps (24 h, 6 h, 1 h), lead 4 steps, terminal bump 4 steps at 1.05 tau0; close events: within 24 steps (6 h) of the previous event.",
+   "swat_and_wadi": "1 Hz; 86,400 steps per day; smoothing 60 s; gap 60 s; budget 2 per day; DSPOT depth 3600; frog campaigns 24 h, 6 h, 1 h, lead 1 h, terminal 600 s; close events within 6 h. Loaders (column roles: actuator and setpoint tags as actions, all other process tags as sensors; normal-period files as development data; attack-period files with their labels as final data) are added by an amendment written from documentation and the normal-period files only, before the first access."
+  },
+  "event_scoring": "An event is a contiguous labelled run; detected if any alarm falls inside it (tolerance 0). False-alarm episodes touch no labelled step, per day of unlabelled time. Onset inflation is tau at the event start over tau0.",
+  "frog": "Per placement, the rule runs online from the start of the stream (real events included). During the campaign the attacker sets s_t = max(clean s_t, 0.97 tau_t); after the lead, the terminal bump sets s_t = max(clean s_t, 1.05 tau0). The control is the same bump without a campaign. Placements are drawn with seed 7 + 909 and skipped if the campaign, lead or terminal window (with a one-hour margin) touches a labelled step.",
+  "seeds": "frog placements 7 + 909; rehearsal stand-in events 7 + 404; bootstrap seed 0, 10,000 resamples"
+ },
+ "data": {
+  "access_log": "docs/research/threshold_transfer_tt1b_data_access.json",
+  "batadal": "Training: train_dataset.csv (384 days, normal; development data). Final: test_dataset_1.csv and test_dataset_2.csv with ATT_FLAG, through tt1b_data.batadal_test (ledgered).",
+  "swat": "Secure Water Treatment testbed (iTrust), requested 2026-10-23.",
+  "wadi": "Water Distribution testbed (iTrust), requested 2026-10-23."
+ },
+ "secondary": [
+  "Every rule's recall, false-alarm rate, onset inflation, delay, and recall on close versus isolated events, for D1 and D0.",
+  "H1 and H2 analogues with D0, and for daily, tracker_slow, spot and dspot.",
+  "Frog variants: 6 h and 1 h campaigns; every rule.",
+  "Rehearsal outcomes on development data (target/real-telemetry/tt1b-rehearsal/) for comparison."
+ ],
+ "reporting": "Every rule, score, dataset and gate is reported, including failures. The frog attacker acts on the score and reads the threshold: an upper bound on a physical attacker. No claim of deployment safety, runtime authority or incident prevention follows.",
+ "limitations_registered_in_advance": [
+  "BATADAL has 14 labelled attacks in two test files; recall intervals are wide and H2's tolerance is two events.",
+  "BATADAL is a simulated water network sampled every 15 minutes. A 24 h frog campaign is 96 samples, which in the rehearsal moved SPOT little (8/10 still caught); H3 is therefore stated for DSPOT.",
+  "The rehearsal's stand-in events were large score bumps that every rule detected, so H1 could not be rehearsed; real BATADAL attacks are subtler.",
+  "The rules and the frog design were developed on HAI; BATADAL is a different system and time scale."
+ ],
+ "reproduce": {
+  "dry_run": "python scripts/tt1b_final.py dry-run <dataset>",
+  "rehearse": "python scripts/tt1b_final.py rehearse <dataset>",
+  "final": "python scripts/tt1b_final.py final <dataset>"
+ },
+ "frozen_file_sha256": {
+  "scripts/tt1b_final.py": "f3758419078da90af9d6e172719536721948ad13c81aa35b16217bc7648f6cf2",
+  "scripts/tt1b_data.py": "10a818ad40d0148a070e040be0351c0e11ea85de5c871f391c72ebffb1986d0e",
+  "scripts/threshold_online.py": "4818b97ba07c08ffa8d344e5fa065eccc1288d8e78449454a0671f5f937d18fe",
+  "scripts/threshold_rules_ext.py": "f8933491f4e2693949fbc0bdd5f669e003d886825aef4e34a83d2bd5653cf3dc",
+  "scripts/threshold_rules.py": "4686cc99f1de20838da8314accfd854160bb2825ebc51ece57c89c2284af9826",
+  "scripts/tt1_final.py": "d3d63bf41bd359600914b79e60a065a8aea1f234d4e1e3b197ad60f56e8b82fe",
+  "scripts/threshold_transfer_dev.py": "3e61423612a8985d63dfcf2b0754d5367fd53e8a1e6b12c422c23a930c896113",
+  "scripts/real_telemetry_core.py": "9f4b8f489da8055a075a8a7f9af0a047d80a34e9dc0527387e3a27e87f42bee0",
+  "scripts/real_telemetry_data.py": "926309d12ec0077887f5b717de42d465ca8cd8ec4f3c0668ccddd7d4451dfbaf",
+  "scripts/real_telemetry_detect.py": "cbb298f6877e8990cea1d7560dc87a1c256d8699eeda07437db2f30843fd3377",
+  "scripts/real_telemetry_dev.py": "7f2637355e36c639e9beadd28da77dcee936b381c873cca3f6aeee1cc1e3fd89",
+  "scripts/real_telemetry_injections.py": "779464dbfabf18d13ce4e46c33aea7835ad57891303f1f007529ecc320333b5c"
+ }
+}

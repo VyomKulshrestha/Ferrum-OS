@@ -1,0 +1,12 @@
+{
+ "hai-20.07": {
+  "tau0_recomputed": 17.25877276390233,
+  "tau0_registered": 17.25877276390233,
+  "relative_difference": 0.0
+ },
+ "batadal": {
+  "tau0_recomputed": 9.393276064082084,
+  "tau0_registered": 9.393276064082084,
+  "relative_difference": 0.0
+ }
+}

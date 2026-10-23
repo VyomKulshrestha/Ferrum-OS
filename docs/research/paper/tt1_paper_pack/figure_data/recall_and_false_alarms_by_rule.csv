@@ -1,0 +1,160 @@
+dataset,status,score,rule,events,detected,recall,diff_vs_frozen,ci_low,ci_high,fa_per_day,fa_ratio_to_budget,fpr,median_onset_inflation,recall_close,n_close,recall_isolated,n_isolated,source
+hai-20.07,registered tt1,D1,frozen,38,36,0.947368,,,,2.225381,1.11269,,1.0,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,margin,38,36,0.947368,0.0,0.0,0.0,2.225381,1.11269,,1.177728,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,daily,38,18,0.473684,-0.473684,-0.631579,-0.315789,0.202307,0.101154,,25.564345,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,tracker,38,20,0.526316,-0.421053,-0.578947,-0.263158,1.011537,0.505768,,12.92841,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,tracker_slow,38,27,0.710526,-0.236842,-0.368421,-0.105263,2.225381,1.11269,,6.438118,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,one_sided:none,38,36,0.947368,0.0,0.0,0.0,2.225381,1.11269,,1.0,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,one_sided:spread,38,26,0.684211,-0.263158,-0.394737,-0.131579,1.618459,0.809229,,1.0,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,one_sided:spread6,38,28,0.736842,-0.210526,-0.342105,-0.078947,2.629995,1.314998,,1.838097,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,one_sided:shift,38,32,0.842105,-0.105263,-0.210526,-0.026316,1.011537,0.505768,,1.143845,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,one_sided:shift6,38,31,0.815789,-0.131579,-0.236842,-0.026316,2.023073,1.011537,,1.134378,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hai-20.07,registered tt1,D1,one_sided:oracle,38,36,0.947368,0.0,0.0,0.0,2.225381,1.11269,,1.0,,,,,threshold_transfer_tt1_result_hai-20.07.json
+hygrid-ics,registered tt1,D1,frozen,91,27,0.296703,,,,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,margin,91,27,0.296703,0.0,0.0,0.0,0.0,0.0,,1.114903,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,daily,91,27,0.296703,0.0,0.0,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,tracker,91,14,0.153846,-0.142857,-0.21978,-0.076923,19.202134,9.601067,,1.021793,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,tracker_slow,91,15,0.164835,-0.131868,-0.208791,-0.065934,19.202134,9.601067,,1.010487,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,one_sided:none,91,27,0.296703,0.0,0.0,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,one_sided:spread,91,27,0.296703,0.0,0.0,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,one_sided:spread6,91,27,0.296703,0.0,0.0,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,one_sided:shift,91,27,0.296703,0.0,0.0,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,one_sided:shift6,91,24,0.263736,-0.032967,-0.076923,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+hygrid-ics,registered tt1,D1,one_sided:oracle,91,27,0.296703,0.0,0.0,0.0,19.202134,9.601067,,1.0,,,,,threshold_transfer_tt1_result_hygrid-ics.json
+voraus-ad,registered tt1,D1,frozen,755,252,0.333775,,,,,,0.081146,1.0,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,margin,755,160,0.211921,-0.121854,-0.145695,-0.098013,,,0.033413,1.079525,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,daily,755,112,0.148344,-0.18543,-0.213245,-0.156291,,,0.085919,1.173032,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,tracker,755,62,0.082119,-0.251656,-0.283444,-0.221192,,,0.011933,1.256992,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,tracker_slow,755,161,0.213245,-0.12053,-0.144371,-0.098013,,,0.01432,1.086892,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,one_sided:none,755,252,0.333775,0.0,0.0,0.0,,,0.081146,1.0,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,one_sided:spread,755,114,0.150993,-0.182781,-0.210596,-0.154967,,,0.011933,1.1727,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,one_sided:spread6,755,67,0.088742,-0.245033,-0.276821,-0.21457,,,0.011933,1.207408,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,one_sided:shift,755,134,0.177483,-0.156291,-0.182781,-0.129801,,,0.040573,1.082594,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,one_sided:shift6,755,115,0.152318,-0.181457,-0.209272,-0.153642,,,0.050119,1.079733,,,,,threshold_transfer_tt1_result_voraus-ad.json
+voraus-ad,registered tt1,D1,one_sided:oracle,755,252,0.333775,0.0,0.0,0.0,,,0.064439,1.0,,,,,threshold_transfer_tt1_result_voraus-ad.json
+batadal,registered tt1b,D1,frozen,14,14,1.0,,,,0.100169,0.70118,,1.0,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,margin,14,3,0.214286,-0.785714,-1.0,-0.571429,0.007705,0.053937,,172.982273,,0,0.214286,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,daily,14,14,1.0,0.0,0.0,0.0,0.90537,6.337587,,0.686957,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,tracker,14,6,0.428571,-0.571429,-0.785714,-0.285714,0.261979,1.833855,,409.269376,,0,0.428571,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,tracker_slow,14,5,0.357143,-0.642857,-0.857143,-0.357143,0.100169,0.70118,,74.252487,,0,0.357143,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,one_sided:none,14,14,1.0,0.0,0.0,0.0,0.346737,2.427161,,1.0,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,spot,14,6,0.428571,-0.571429,-0.857143,-0.285714,0.019263,0.134842,,25.644398,,0,0.428571,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,spot_mle,14,14,1.0,0.0,0.0,0.0,0.115579,0.809054,,1.010562,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D1,dspot,14,6,0.428571,-0.571429,-0.857143,-0.285714,0.019263,0.134842,,24.063129,,0,0.428571,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,frozen,14,14,1.0,,,,0.134842,0.943896,,1.0,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,margin,14,3,0.214286,-0.785714,-1.0,-0.571429,0.007705,0.053937,,64.945138,,0,0.214286,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,daily,14,14,1.0,0.0,0.0,0.0,1.017096,7.119673,,0.774486,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,tracker,14,5,0.357143,-0.642857,-0.857143,-0.357143,0.165663,1.159644,,260.756583,,0,0.357143,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,tracker_slow,14,4,0.285714,-0.714286,-0.928571,-0.5,0.088611,0.620275,,27.359329,,0,0.285714,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,one_sided:none,14,14,1.0,0.0,0.0,0.0,0.269685,1.887792,,1.0,,0,1.0,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,spot,14,3,0.214286,-0.785714,-1.0,-0.571429,0.007705,0.053937,,16.002784,,0,0.214286,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,spot_mle,14,9,0.642857,-0.357143,-0.642857,-0.142857,0.100169,0.70118,,1.142935,,0,0.642857,14,threshold_transfer_tt1b_result_batadal.json
+batadal,registered tt1b,D0,dspot,14,3,0.214286,-0.785714,-1.0,-0.571429,0.007705,0.053937,,15.435592,,0,0.214286,14,threshold_transfer_tt1b_result_batadal.json
+hai-21.03,exploratory (spent data),D1,frozen,50,,1.0,,,,0.659445,,,1.0,1.0,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,margin,50,,1.0,0.0,0.0,0.0,0.219815,,,1.147631,1.0,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,daily,50,,0.84,-0.16,-0.26,-0.06,0.659445,,,1.0,0.818182,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,tracker,50,,0.78,-0.22,-0.34,-0.12,0.659445,,,4.480526,0.75,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,tracker_slow,50,,0.9,-0.1,-0.18,-0.02,0.219815,,,1.594458,0.886364,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,one_sided:none,50,,1.0,0.0,0.0,0.0,0.659445,,,1.0,1.0,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,spot,50,,1.0,0.0,0.0,0.0,0.659445,,,1.056172,1.0,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,spot_mle,50,,1.0,0.0,0.0,0.0,0.659445,,,1.042948,1.0,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D1,dspot,50,,1.0,0.0,0.0,0.0,0.659445,,,1.024651,1.0,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,frozen,50,,0.72,,,,1.318889,,,1.0,0.681818,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,margin,50,,0.68,-0.04,-0.1,0.0,1.538704,,,1.144029,0.636364,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,daily,50,,0.62,-0.1,-0.2,-0.02,1.099074,,,1.0,0.568182,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,tracker,50,,0.46,-0.26,-0.38,-0.14,1.099074,,,2.502335,0.409091,44,0.833333,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,tracker_slow,50,,0.64,-0.08,-0.16,-0.02,1.099074,,,1.36538,0.590909,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,one_sided:none,50,,0.72,0.0,0.0,0.0,1.318889,,,1.0,0.681818,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,spot,50,,0.72,0.0,0.0,0.0,1.758519,,,0.992427,0.681818,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,spot_mle,50,,0.72,0.0,0.0,0.0,1.318889,,,0.99647,0.681818,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-21.03,exploratory (spent data),D0,dspot,50,,0.72,0.0,0.0,0.0,1.318889,,,0.916844,0.681818,44,1.0,6,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,frozen,58,,0.758621,,,,1.484664,,,1.0,0.740741,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,margin,58,,0.706897,-0.051724,-0.12069,0.0,0.494888,,,1.1674,0.703704,54,0.75,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,daily,58,,0.655172,-0.103448,-0.189655,-0.034483,1.484664,,,1.0,0.62963,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,tracker,58,,0.448276,-0.310345,-0.431034,-0.189655,0.742332,,,2.813366,0.407407,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,tracker_slow,58,,0.62069,-0.137931,-0.224138,-0.051724,0.989776,,,1.354553,0.592593,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,one_sided:none,58,,0.758621,0.0,0.0,0.0,1.484664,,,1.0,0.740741,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,spot,58,,0.793103,0.034483,0.0,0.086207,2.474439,,,0.859802,0.777778,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,spot_mle,58,,0.793103,0.034483,0.0,0.086207,2.226995,,,0.903177,0.777778,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D1,dspot,58,,0.793103,0.034483,0.0,0.086207,2.474439,,,0.85011,0.777778,54,1.0,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,frozen,58,,0.37931,,,,1.732108,,,1.0,0.37037,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,margin,58,,0.37931,0.0,0.0,0.0,1.23722,,,1.143351,0.37037,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,daily,58,,0.344828,-0.034483,-0.086207,0.0,1.732108,,,1.0,0.333333,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,tracker,58,,0.258621,-0.12069,-0.206897,-0.051293,1.23722,,,1.672029,0.240741,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,tracker_slow,58,,0.362069,-0.017241,-0.051724,0.0,1.484664,,,1.096342,0.351852,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,one_sided:none,58,,0.37931,0.0,0.0,0.0,1.979552,,,1.0,0.37037,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,spot,58,,0.37931,0.0,0.0,0.0,2.226995,,,0.942346,0.37037,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,spot_mle,58,,0.37931,0.0,0.0,0.0,1.484664,,,1.025494,0.37037,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-22.04,exploratory (spent data),D0,dspot,58,,0.37931,0.0,0.0,0.0,1.484664,,,0.955363,0.37037,54,0.5,4,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,frozen,52,,0.596154,,,,1.26586,,,1.0,0.591837,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,margin,52,,0.576923,-0.019231,-0.057692,0.0,1.26586,,,1.146737,0.571429,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,daily,52,,0.461538,-0.134615,-0.230769,-0.057692,1.26586,,,1.0,0.44898,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,tracker,52,,0.230769,-0.365385,-0.5,-0.230769,0.63293,,,3.561152,0.204082,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,tracker_slow,52,,0.519231,-0.076923,-0.153846,-0.019231,1.26586,,,1.589015,0.510204,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,one_sided:none,52,,0.596154,0.0,0.0,0.0,1.26586,,,1.0,0.591837,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,spot,52,,0.576923,-0.019231,-0.057692,0.0,1.26586,,,1.104968,0.571429,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,spot_mle,52,,0.596154,0.0,0.0,0.0,1.26586,,,1.071922,0.591837,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D1,dspot,52,,0.596154,0.0,0.0,0.0,1.26586,,,1.010672,0.591837,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,frozen,52,,0.326923,,,,2.215255,,,1.0,0.306122,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,margin,52,,0.307692,-0.019231,-0.057692,0.0,1.26586,,,1.134634,0.285714,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,daily,52,,0.25,-0.076923,-0.153846,-0.019231,1.89879,,,1.0,0.22449,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,tracker,52,,0.230769,-0.096154,-0.192308,-0.019231,1.26586,,,2.066847,0.204082,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,tracker_slow,52,,0.288462,-0.038462,-0.096154,0.0,1.582325,,,1.23995,0.265306,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,one_sided:none,52,,0.326923,0.0,0.0,0.0,2.215255,,,1.0,0.306122,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,spot,52,,0.326923,0.0,0.0,0.0,2.215255,,,0.982477,0.306122,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,spot_mle,52,,0.288462,-0.038462,-0.096154,0.0,0.949395,,,1.214328,0.265306,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-23.05,exploratory (spent data),D0,dspot,52,,0.326923,0.0,0.0,0.0,1.89879,,,0.987142,0.306122,49,0.666667,3,threshold_transfer_tt1b_dev_v1.json
+hai-20.07,post-hoc (after finals),D1,frozen,38,,0.947368,,,,2.225381,,,1.0,0.935484,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,margin,38,,0.947368,0.0,0.0,0.0,2.225381,,,1.177728,0.935484,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,daily,38,,0.473684,-0.473684,-0.631579,-0.315789,0.202307,,,25.564345,0.451613,31,0.571429,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,tracker,38,,0.526316,-0.421053,-0.578947,-0.263158,1.011537,,,12.92841,0.483871,31,0.714286,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,tracker_slow,38,,0.710526,-0.236842,-0.368421,-0.105263,2.225381,,,6.438118,0.645161,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,one_sided:none,38,,0.947368,0.0,0.0,0.0,2.225381,,,1.0,0.935484,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,spot,38,,0.947368,0.0,0.0,0.0,2.427688,,,1.064801,0.935484,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,spot_mle,38,,0.921053,-0.026316,-0.078947,0.0,1.011537,,,1.299476,0.903226,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D1,dspot,38,,0.947368,0.0,0.0,0.0,2.225381,,,1.045437,0.935484,31,1.0,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,frozen,38,,0.710526,,,,10.317674,,,1.0,0.677419,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,margin,38,,0.684211,-0.026316,-0.078947,0.0,4.450761,,,1.158326,0.645161,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,daily,38,,0.605263,-0.105263,-0.210526,-0.026316,8.092293,,,2.045198,0.548387,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,tracker,38,,0.526316,-0.184211,-0.315789,-0.078947,0.606922,,,4.253278,0.451613,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,tracker_slow,38,,0.605263,-0.105263,-0.210526,-0.026316,3.03461,,,1.8276,0.548387,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,one_sided:none,38,,0.710526,0.0,0.0,0.0,10.317674,,,1.0,0.677419,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,spot,38,,0.657895,-0.052632,-0.131579,0.0,3.439225,,,1.309294,0.612903,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,spot_mle,38,,0.657895,-0.052632,-0.131579,0.0,3.641532,,,1.313339,0.612903,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hai-20.07,post-hoc (after finals),D0,dspot,38,,0.657895,-0.052632,-0.131579,0.0,4.248454,,,1.145266,0.612903,31,0.857143,7,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,frozen,91,,0.296703,,,,19.202134,,,1.0,0.3,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,margin,91,,0.296703,0.0,0.0,0.0,0.0,,,1.114903,0.3,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,daily,91,,0.296703,0.0,0.0,0.0,19.202134,,,1.0,0.3,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,tracker,91,,0.153846,-0.142857,-0.21978,-0.076923,19.202134,,,1.021793,0.155556,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,tracker_slow,91,,0.164835,-0.131868,-0.208791,-0.065934,19.202134,,,1.010487,0.166667,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,one_sided:none,91,,0.296703,0.0,0.0,0.0,19.202134,,,1.0,0.3,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,spot,91,,0.208791,-0.087912,-0.153846,-0.032967,9.601067,,,1.043278,0.211111,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,spot_mle,91,,0.296703,0.0,0.0,0.0,19.202134,,,0.997943,0.3,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D1,dspot,91,,0.296703,0.0,0.0,0.0,0.0,,,1.069367,0.3,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,frozen,91,,0.186813,,,,0.0,,,1.0,0.188889,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,margin,91,,0.186813,0.0,0.0,0.0,0.0,,,1.128352,0.188889,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,daily,91,,0.186813,0.0,0.0,0.0,0.0,,,1.0,0.188889,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,tracker,91,,0.120879,-0.065934,-0.120879,-0.021978,0.0,,,0.997752,0.122222,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,tracker_slow,91,,0.142857,-0.043956,-0.087912,-0.010989,0.0,,,0.999775,0.144444,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,one_sided:none,91,,0.186813,0.0,0.0,0.0,0.0,,,0.997752,0.188889,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,spot,91,,0.186813,0.0,0.0,0.0,9.601067,,,0.986743,0.188889,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,spot_mle,91,,0.186813,0.0,0.0,0.0,0.0,,,0.991665,0.188889,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+hygrid-ics,post-hoc (after finals),D0,dspot,91,,0.142857,-0.043956,-0.087912,-0.010989,19.202134,,,0.940393,0.144444,90,0.0,1,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,frozen,,,0.333775,,,,,,0.081146,1.0,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,margin,,,0.211921,-0.121854,-0.145695,-0.098013,,,0.033413,1.079525,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,daily,,,0.148344,-0.18543,-0.213245,-0.156291,,,0.085919,1.173032,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,tracker,,,0.082119,-0.251656,-0.283444,-0.221192,,,0.011933,1.256992,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,tracker_slow,,,0.213245,-0.12053,-0.144371,-0.098013,,,0.01432,1.086892,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,one_sided:none,,,0.333775,0.0,0.0,0.0,,,0.081146,1.0,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,spot,,,0.597351,0.263576,0.231788,0.295364,,,0.322196,0.910929,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,spot_mle,,,0.597351,0.263576,0.231788,0.295364,,,0.322196,0.910929,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D1,dspot,,,0.301987,-0.031788,-0.047682,-0.015894,,,0.093079,1.015264,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,frozen,,,0.083444,,,,,,0.052506,1.0,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,margin,,,0.035762,-0.047682,-0.063576,-0.033113,,,0.023866,1.02671,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,daily,,,0.082119,-0.001325,-0.018543,0.015894,,,0.112172,1.004505,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,tracker,,,0.056954,-0.02649,-0.039735,-0.01457,,,0.052506,1.010403,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,tracker_slow,,,0.071523,-0.011921,-0.019868,-0.005298,,,0.042959,1.004527,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,one_sided:none,,,0.086093,0.002649,0.0,0.006623,,,0.057279,1.0,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,spot,,,0.084768,0.001325,0.0,0.003974,,,0.059666,0.996542,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,spot_mle,,,0.084768,0.001325,0.0,0.003974,,,0.059666,0.996542,,,,,threshold_transfer_tt1b_posthoc_v1.json
+voraus-ad,post-hoc (after finals),D0,dspot,,,0.050331,-0.033113,-0.046358,-0.021192,,,0.047733,1.010682,,,,,threshold_transfer_tt1b_posthoc_v1.json

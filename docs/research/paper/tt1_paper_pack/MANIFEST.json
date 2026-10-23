@@ -1,0 +1,154 @@
+{
+ "schema_version": "tt1-paper-pack-manifest",
+ "built": "2026-10-23",
+ "sha256_note": "sha256 of the file with LF line endings",
+ "files": {
+  "figure_data/attack_campaigns.csv": {
+   "sha256": "81c8691f40c2ed5311fbccd331e77f3c11603296967636fff81d584d216893ef",
+   "built_by": "scripts/tt1_paper_pack.py"
+  },
+  "figure_data/recall_and_false_alarms_by_rule.csv": {
+   "sha256": "a5d9424dd8f4738a127f1e8283478dd8bb300057557ba3d6649d46c66667eac5",
+   "built_by": "scripts/tt1_paper_pack.py"
+  },
+  "figure_data/threshold_trajectories.csv": {
+   "sha256": "bfe447093a64fb539b43311a0a90a6d4bd608bdffd0d984e142a6481a5af2690",
+   "built_by": "scripts/tt1_paper_pack.py"
+  },
+  "figure_data/trajectory_consistency.json": {
+   "sha256": "0c650e491c976346d1eed28aa5e2e358f67ae54fd2494bcd37f98d47d69ab4ea",
+   "built_by": "scripts/tt1_paper_pack.py"
+  },
+  "manuscript/threshold_transfer_tt1_findings.md": {
+   "sha256": "7fd975aa6fe385daff2ea625b1cab42ffbbd88cde005838e339e34e04c5dde80",
+   "copied_from": "docs/research/threshold_transfer_tt1_findings.md",
+   "identical_to_source": true
+  },
+  "manuscript/thresholds_that_travel_draft_v0_1.md": {
+   "sha256": "0dd4e8b0b347e8c214bb07b473846af713cd15a17a8de51ac2bc00a4c173ccac",
+   "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
+   "identical_to_source": true
+  },
+  "prompts/1_review_numbers_and_citations.md": {
+   "sha256": "c900b81d14edbff27579a8718f023595940016277991b85c812ee8c1ffce91f4",
+   "built_by": "written for the pack"
+  },
+  "prompts/2_figures.md": {
+   "sha256": "fd5751406110c9e2999fa63ab490de3600ed9485de8340656696bb520c43b990",
+   "built_by": "written for the pack"
+  },
+  "prompts/3_latex_submission.md": {
+   "sha256": "1c1f9cfeffe1d8210a21d4bde6a7b56cc5f9c64c0004193217296334de502499",
+   "built_by": "written for the pack"
+  },
+  "protocols/real_telemetry_detection_protocol_v2_amendment2.json": {
+   "sha256": "cdd48dc4fed3221c2a109b484e63bc41a37a17f20e4ca7ed94c5c68975592351",
+   "copied_from": "docs/research/real_telemetry_detection_protocol_v2_amendment2.json",
+   "identical_to_source": true
+  },
+  "protocols/threshold_transfer_tt1_data_access.json": {
+   "sha256": "634e04585fb0c593abec1ee5d2a73c222c6680f50a136a2a3aebe24faf9e577d",
+   "copied_from": "docs/research/threshold_transfer_tt1_data_access.json",
+   "identical_to_source": true
+  },
+  "protocols/threshold_transfer_tt1_protocol.json": {
+   "sha256": "9541836faa91f5a02b42e1aebbcc4fb69673e2c635891bb58150830fd461745c",
+   "copied_from": "docs/research/threshold_transfer_tt1_protocol.json",
+   "identical_to_source": true
+  },
+  "protocols/threshold_transfer_tt1b_data_access.json": {
+   "sha256": "3e1e7346288b25284d09024cabf692d4fcc2e48dc5e244020967020646769cdd",
+   "copied_from": "docs/research/threshold_transfer_tt1b_data_access.json",
+   "identical_to_source": true
+  },
+  "protocols/threshold_transfer_tt1b_protocol.json": {
+   "sha256": "5c1439f42996c8491cebc739ec903e27f0cd7cb65e3154cad01d25d36375b189",
+   "copied_from": "docs/research/threshold_transfer_tt1b_protocol.json",
+   "identical_to_source": true
+  },
+  "README.md": {
+   "sha256": "049ccf497bf531fdcc9b6ea6174309bac1e8d7b0601f222d61defe943a206c35",
+   "built_by": "written for the pack"
+  },
+  "results/threshold_transfer_dev_v1.json": {
+   "sha256": "61c42e01c8822e72d7eb3c639817ba93ab51c496e64ebef4b2e708be39c1d02c",
+   "copied_from": "docs/research/threshold_transfer_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_dev_v2.json": {
+   "sha256": "b7a27949483252aae124537105752560de109ac278fff3112620259072a87c8b",
+   "copied_from": "docs/research/threshold_transfer_dev_v2.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_dev_v3.json": {
+   "sha256": "b258992f07451566d01da3114a49c11b9e7a0d5eb3e56a2caa459c392bf321b7",
+   "copied_from": "docs/research/threshold_transfer_dev_v3.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_margin_dev_v1.json": {
+   "sha256": "1e622821810ab6986059388d5d6810ad8a612d96ae21ec806709fadc71d393b5",
+   "copied_from": "docs/research/threshold_transfer_margin_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1_posthoc.json": {
+   "sha256": "01bde89ffb44ad30d5c3e05acf7cf6c7539b50c2058ea0e749366db10df89585",
+   "copied_from": "docs/research/threshold_transfer_tt1_posthoc.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1_result_hai-20.07.json": {
+   "sha256": "c44fbcf410addd97693fdb1df38959c58eee93e52d576c564ee59b42e8f8570c",
+   "copied_from": "docs/research/threshold_transfer_tt1_result_hai-20.07.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1_result_hygrid-ics.json": {
+   "sha256": "afa3ff327d591e67d3863c6a7f8ea5467d8a1267ae340ec83e4c206820c22018",
+   "copied_from": "docs/research/threshold_transfer_tt1_result_hygrid-ics.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1_result_voraus-ad.json": {
+   "sha256": "a7a93ec01dbee063734f931ef4d0e8a436b00d4ab7842ca622f34ea029dd4785",
+   "copied_from": "docs/research/threshold_transfer_tt1_result_voraus-ad.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1_verification.json": {
+   "sha256": "e978759ca8a7102ec24442b1a683134783a38896a70f7fcd99c792acf67a5098",
+   "copied_from": "docs/research/threshold_transfer_tt1_verification.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_attacks_dev_v1.json": {
+   "sha256": "48ed1eb4dbefec8fd6ab83d29b2105eab060907ce218bfb128384a58bb877f15",
+   "copied_from": "docs/research/threshold_transfer_tt1b_attacks_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_dev_v1.json": {
+   "sha256": "bc4e25df5b44c14b42d341a47aaf5872551e1d8dcf41279cb18a318887d1ddba",
+   "copied_from": "docs/research/threshold_transfer_tt1b_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_frog_dev_v1.json": {
+   "sha256": "025205aa0c79afdd10af6e58ca702b648fb8b37f94501d068c86ba432c41b5cc",
+   "copied_from": "docs/research/threshold_transfer_tt1b_frog_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_physfrog_dev_v1.json": {
+   "sha256": "2a3e25b0738ef66d0f23d3630b29756591de01da97a48ed57382630b3bb3fafd",
+   "copied_from": "docs/research/threshold_transfer_tt1b_physfrog_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_posthoc_v1.json": {
+   "sha256": "e634f95d0576cf5036d2ddcb9a4b6b27c66acb6c31d03e913c5cb1c125515bd1",
+   "copied_from": "docs/research/threshold_transfer_tt1b_posthoc_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_result_batadal.json": {
+   "sha256": "8876bb23e78b3af1f2967bd468f825a6005a020001b83cde98ed214a2adf7c40",
+   "copied_from": "docs/research/threshold_transfer_tt1b_result_batadal.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_verification.json": {
+   "sha256": "e2f7009cef6713adcca46bb350fd76f0e513e72b49a2fb1f31cb0cc073f15615",
+   "copied_from": "docs/research/threshold_transfer_tt1b_verification.json",
+   "identical_to_source": true
+  }
+ }
+}

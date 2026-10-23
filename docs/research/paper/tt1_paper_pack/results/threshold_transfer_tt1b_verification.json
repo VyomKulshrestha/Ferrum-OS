@@ -1,0 +1,50 @@
+{
+ "schema_version": "threshold-transfer-tt1b-verification",
+ "passed": true,
+ "pending_datasets": [
+  "swat",
+  "wadi"
+ ],
+ "checks": [
+  {
+   "check": "protocol lists a digest for every frozen file",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "protocol is committed",
+   "pass": true,
+   "detail": "2026-10-23 17:27:42+05:30"
+  },
+  {
+   "check": "batadal: exactly one tt1b access",
+   "pass": true,
+   "detail": "1 ledger rows"
+  },
+  {
+   "check": "batadal: no other access, or post-hoc after the final",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "batadal: access after registration commit",
+   "pass": true,
+   "detail": "access 2026-10-23T11:59:08.228160+00:00 vs registration 2026-10-23 17:27:42+05:30"
+  },
+  {
+   "check": "batadal: result file exists",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "batadal: result ran with the registered frozen files",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "batadal: stored gates equal gates recomputed from the result",
+   "pass": true,
+   "detail": ""
+  }
+ ]
+}
