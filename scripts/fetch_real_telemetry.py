@@ -146,6 +146,19 @@ EXTERNAL = {
             "voraus-ad-dataset-100hz.parquet": ("https://media.vorausrobotik.com/voraus-ad-dataset-100hz.parquet", 1115942833, "etag", "69d8ea42-4283efb1"),
         },
     },
+    # tt1b replication source: the BATADAL C-Town water network as re-simulated without concealment by Erba et
+    # al. (ACSAC 2020), pinned at scy-phy/ICS-Evasion-Attacks 56ce090 and checked by git blob sha1.
+    "batadal": {
+        "record": "https://github.com/scy-phy/ICS-Evasion-Attacks/tree/56ce09031ed8d480fc2a34313009ba534e7c12ec/Data/BATADAL",
+        "license": "no license file in the repository; BATADAL data released by its organisers for research use; stored locally only, never redistributed",
+        "citation": "R. Taormina et al. The Battle of the Attack Detection Algorithms. J. Water Resour. Plann. Manage. 144(8), 2018; A. Erba et al. Constrained Concealment Attacks against Reconstruction-based Anomaly Detectors in Industrial Control Systems. ACSAC 2020",
+        "files": {
+            name: (f"https://raw.githubusercontent.com/scy-phy/ICS-Evasion-Attacks/56ce09031ed8d480fc2a34313009ba534e7c12ec/Data/BATADAL/{name}", size, "gitblob", blob)
+            for name, size, blob in (("train_dataset.csv", 13050001, "47881ad774a2eef7b89d8b6a73e65af8dcb37c84"),
+                                     ("test_dataset_1.csv", 5031006, "6f533accf5611d51ec3c50683ab3d4b5564d24e5"),
+                                     ("test_dataset_2.csv", 2746001, "f8791243f05d36efa1c44df1c7c20fbb5835f7c4"))
+        },
+    },
 }
 
 
@@ -161,6 +174,8 @@ def fetch_external(name: str) -> dict:
         if kind == "md5":
             md5 = hashlib.md5(path.read_bytes()).hexdigest()
             assert md5 == expected, f"{fname}: md5 mismatch"
+        if kind == "gitblob":
+            assert git_blob_sha1(path) == expected, f"{fname}: git blob sha1 mismatch"
         records.append({"file": fname, "bytes": size, "sha256": sha, "upstream_check": f"{kind} {expected} and size"})
         print(f"{name} {fname} {size} ok", flush=True)
     return {key: spec[key] for key in ("record", "license", "citation")} | {"files": records}
@@ -200,7 +215,7 @@ def fetch_smd() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--only", choices=["hai", "smd", "hai-20.07", "hai-21.03", "hai-23.05", "hygrid-ics", "voraus-ad"])
+    parser.add_argument("--only", choices=["hai", "smd", "hai-20.07", "hai-21.03", "hai-23.05", "hygrid-ics", "voraus-ad", "batadal"])
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {
         "schema_version": "real-telemetry-data-manifest-v1",
@@ -213,7 +228,7 @@ def main() -> None:
     for release in ("hai-20.07", "hai-21.03", "hai-23.05"):
         if args.only == release:
             manifest["datasets"][release] = fetch_hai_release(release)
-    for name in ("hygrid-ics", "voraus-ad"):
+    for name in ("hygrid-ics", "voraus-ad", "batadal"):
         if args.only == name:
             manifest["datasets"][name] = fetch_external(name)
     MANIFEST.write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")

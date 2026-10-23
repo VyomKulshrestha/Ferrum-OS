@@ -1062,6 +1062,31 @@
      "upstream_check": "etag 69d8ea42-4283efb1 and size"
     }
    ]
+  },
+  "batadal": {
+   "record": "https://github.com/scy-phy/ICS-Evasion-Attacks/tree/56ce09031ed8d480fc2a34313009ba534e7c12ec/Data/BATADAL",
+   "license": "no license file in the repository; BATADAL data released by its organisers for research use; stored locally only, never redistributed",
+   "citation": "R. Taormina et al. The Battle of the Attack Detection Algorithms. J. Water Resour. Plann. Manage. 144(8), 2018; A. Erba et al. Constrained Concealment Attacks against Reconstruction-based Anomaly Detectors in Industrial Control Systems. ACSAC 2020",
+   "files": [
+    {
+     "file": "train_dataset.csv",
+     "bytes": 13050001,
+     "sha256": "60d54d45194838ac0376569696c210694911632d625ad41ebe7ff307a67bf2de",
+     "upstream_check": "gitblob 47881ad774a2eef7b89d8b6a73e65af8dcb37c84 and size"
+    },
+    {
+     "file": "test_dataset_1.csv",
+     "bytes": 5031006,
+     "sha256": "42fb4d0602ba2389d32129936770bcca597cadd6c8be4170bf7d74247c715431",
+     "upstream_check": "gitblob 6f533accf5611d51ec3c50683ab3d4b5564d24e5 and size"
+    },
+    {
+     "file": "test_dataset_2.csv",
+     "bytes": 2746001,
+     "sha256": "31e81d4c2174f9081ca4129daba218d9556c19675ac0a48b2e7ddae075534faa",
+     "upstream_check": "gitblob f8791243f05d36efa1c44df1c7c20fbb5835f7c4 and size"
+    }
+   ]
   }
  }
 }
