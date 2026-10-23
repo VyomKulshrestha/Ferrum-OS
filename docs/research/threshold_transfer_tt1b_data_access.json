@@ -1,0 +1,28 @@
+{
+ "schema_version": "threshold-transfer-tt1b-data-access",
+ "study_id": "threshold-transfer-tt1b",
+ "recorded_at": "2026-10-23",
+ "purpose": "Records, before registration, which tt1b datasets were downloaded, what was seen of them, and which files hold labels. Test files are read only through ledgered loaders after the tt1b registration.",
+ "datasets": {
+  "batadal": {
+   "source": "github.com/scy-phy/ICS-Evasion-Attacks at commit 56ce09031ed8d480fc2a34313009ba534e7c12ec, Data/BATADAL (the C-Town network re-simulated without concealment by Erba et al., ACSAC 2020); git blob sha1 verified",
+   "files": {
+    "train_dataset.csv": "git blob 47881ad774a2eef7b89d8b6a73e65af8dcb37c84, 13,050,001 bytes",
+    "test_dataset_1.csv": "git blob 6f533accf5611d51ec3c50683ab3d4b5564d24e5, 5,031,006 bytes",
+    "test_dataset_2.csv": "git blob f8791243f05d36efa1c44df1c7c20fbb5835f7c4, 2,746,001 bytes"
+   },
+   "lineage_status": "Never downloaded or used by any earlier FerrumOS study. The repository's real_telemetry_sources_v1.json cites the BATADAL paper only as a source of attack-family descriptions for synthetic injection design.",
+   "seen_so_far": [
+    "The header line of all three CSV files (columns: DATETIME as elapsed hours, 19 PRESSURE, 12 FLOW and 12 STATUS columns, ATT_FLAG).",
+    "The whole training file, as development data: 48,106 rows over 384 days, regular 15-minute reports plus extra rows at control events, ATT_FLAG 0 on every row, FLOW_PU5, FLOW_PU9, STATUS_PU5 and STATUS_PU9 constant.",
+    "The repository file listing, which also holds 14 per-attack extracts (attack_1..14_from_test_dataset.csv) with their byte sizes (23 KB to 121 KB); the sizes indicate attack durations roughly. These extracts were not downloaded or read.",
+    "The README of the repository (no data description)."
+   ],
+   "prior_knowledge_disclosure": "The author knows the BATADAL competition design from Taormina et al. (2018): seven attacks in each of the two attack datasets, staged on tank levels, pump and valve controls, originally with concealment. The scy-phy version removes the concealment.",
+   "label_columns": ["ATT_FLAG"],
+   "development_data": "train_dataset.csv on a 15-minute grid: 36,856 steps (384 days), 31 sensors and 12 actions before dropping 4 constant columns."
+  },
+  "swat": {"status": "requested from iTrust by the author on 2026-10-23; not received; nothing seen."},
+  "wadi": {"status": "requested from iTrust by the author on 2026-10-23; not received; nothing seen."}
+ }
+}
