@@ -19,6 +19,78 @@
    "sha256": "0c650e491c976346d1eed28aa5e2e358f67ae54fd2494bcd37f98d47d69ab4ea",
    "built_by": "scripts/tt1_paper_pack.py"
   },
+  "figures/captions.md": {
+   "sha256": "d76139381f2ecc024b768471f93a3674f642cf6e644743018d5efe434fac6433",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig1_learning_regions.pdf": {
+   "sha256": "108be8e32a00e7ea1f6ea54e646fb057da7fc24c6e126560fdd6d70d8b57f312",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig1_learning_regions.py": {
+   "sha256": "08cf4f22e897ca97ce8790d818e5ee939ce1cc3e60dfdad851f410cd6646f346",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig1_learning_regions.svg": {
+   "sha256": "5710dea1c880c754ad085d20e1e101567e0a78e7989019e7d947d77c21c05c3f",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig2_trajectories_hai2007.pdf": {
+   "sha256": "09c08a5b651a3a9284035b77f46ecfed6a3a470546b5cc10536900c488105894",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig2_trajectories_hai2007.py": {
+   "sha256": "39538606f7d6e34850fa4de1720536452cfefc226f8e7c0cfa55318eb1255e8b",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig2_trajectories_hai2007.svg": {
+   "sha256": "69d85e7dc4c9b7960217749c356ada84bac8fa92a7b303f5defd8be20b5a8e15",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig3_trajectories_batadal.pdf": {
+   "sha256": "c88e96675189d536c5d80aae82d731a060a0c9c239101838b8e6f1f26c5b1ce6",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig3_trajectories_batadal.py": {
+   "sha256": "fa9018a65664156725410752f67a46f233227d4e3b51332449ddcadd85a7cd67",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig3_trajectories_batadal.svg": {
+   "sha256": "9b5d9a2b964b3b3f575e9c3f71be26a7943724fbc0697c7e895f2b818fde7170",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig4_recall_forest.pdf": {
+   "sha256": "12ee3da3b6734ec853714279a75db193f26460f784e72e838376fd098753391c",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig4_recall_forest.py": {
+   "sha256": "20ef52ec57f664d1515642d5d2bfcd18a1600b876d90c20cc6e08ccd0d2e6a95",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig4_recall_forest.svg": {
+   "sha256": "ba9b6e78c95573866fa11e7757a9fe76dbbae222c4d72d643dbdf7b0e8fd8f17",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig5_attack_campaigns.pdf": {
+   "sha256": "34cf41acc48eb410aa14aa7d3e5c351c55f98e9d4d60bb11ae47b3d26358d9f6",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig5_attack_campaigns.py": {
+   "sha256": "97e837dcfe4b51fbfd53ea3e470c599ac6bd9e489c40e0e2751998c51d52ee71",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/fig5_attack_campaigns.svg": {
+   "sha256": "d13d0dfb9cfcbcc8c7fb659e6af8e1c65635a9e730f82c42db735068f439017e",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/trajectories.py": {
+   "sha256": "369a81e957f75d9461a15567cb79904aa761f9e51b1e320a654d4a8b8a309068",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
+  "figures/tt1_style.py": {
+   "sha256": "a22aca1f68a64a94f02520d9e6b0c1c170335583dc6af2d1e9bc8162236b75e8",
+   "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
+  },
   "manuscript/threshold_transfer_tt1_findings.md": {
    "sha256": "7fd975aa6fe385daff2ea625b1cab42ffbbd88cde005838e339e34e04c5dde80",
    "copied_from": "docs/research/threshold_transfer_tt1_findings.md",
@@ -67,7 +139,7 @@
    "identical_to_source": true
   },
   "README.md": {
-   "sha256": "049ccf497bf531fdcc9b6ea6174309bac1e8d7b0601f222d61defe943a206c35",
+   "sha256": "c1d30f4a7940c3fce3862700512012ac68ac591095712b4004b35cbb4cb546ef",
    "built_by": "written for the pack"
   },
   "results/threshold_transfer_dev_v1.json": {

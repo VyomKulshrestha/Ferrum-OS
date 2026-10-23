@@ -26,8 +26,9 @@ its SHA-256 and the canonical file it was copied from.
   row per minute) and the BATADAL test streams (one row per 15-minute step), with the score and the
   attack label. Computed after the registered finals and ledgered as post-hoc. The recomputed calibration
   thresholds equal the registered ones exactly (`trajectory_consistency.json`), and the traces reproduce
-  the registered event counts: HAI 20.07 frozen 36/38, tracker 20/38, MLE SPOT 35/38, DSPOT 36/38;
-  BATADAL frozen 14/14, tracker 6/14, MLE SPOT 14/14, DSPOT 6/14.
+  the event counts of the result files: HAI 20.07 frozen 36/38 and tracker 20/38 (registered tt1), MLE
+  SPOT 35/38 and DSPOT 36/38 (post-hoc: SPOT and DSPOT were not part of the tt1 registration); BATADAL
+  frozen 14/14, tracker 6/14, MLE SPOT 14/14, DSPOT 6/14 (all registered tt1b).
 
 ## Where the numbers come from
 
