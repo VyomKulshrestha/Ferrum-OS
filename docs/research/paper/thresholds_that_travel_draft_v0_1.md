@@ -6,8 +6,7 @@ author block, the repository link and the Zenodo DOIs, and point to an anonymize
 
 Vyom Kulshrestha, Independent Researcher, India (ORCID 0009-0009-1434-7148)
 
-Status markers: [PENDING-PHYS] marks the physically realizable closed-loop attack, still in development.
-[VERIFY] marks a citation detail to check before submission.
+Status marker: [VERIFY] marks a citation detail to check before submission.
 
 ---
 
@@ -160,8 +159,8 @@ upward. That gives three attacker classes, from weakest to strongest:
   in the band.
 - **A2, closed-loop.** The attacker can read tau_t (white-box, or by probing) and shape the score. Holding
   s_t at 0.97 tau_t places every sample at the top of the band with no alarm. We evaluate A2 at the score
-  level, an upper bound on what a physical attacker can do, and [PENDING-PHYS] through sensor spoofing
-  of one loop scored by the real monitor.
+  level, an upper bound on what a physical attacker can do, and through noise spoofed onto three sensor
+  readings of one loop, scored by the real monitor.
 
 The attacker's goal is a terminal attack that the frozen threshold would detect but the adapted
 threshold does not.
@@ -324,8 +323,22 @@ stood at 1.1 to 4.5 tau_0; after 24 h it had grown by more than five orders of m
 left the floating-point range on one release. On light-tailed synthetic scores SPOT did not run away
 (0.94 to 0.97 tau_0 after 24 h), so the effect depends on the heavy tail of real residual scores.
 
-[PENDING-PHYS: physically realizable closed-loop attack, sensor-noise spoofing of one loop scored by the
-real monitor.]
+**A physically realizable version.** The score-level attacker sets the score directly. We also gave the
+attacker only the readings of three sensors coupled to one setpoint channel. Every 5 minutes it reads the
+rule's threshold and spoofs the largest zero-mean noise whose D1 score, computed by the real world model
+on the spoofed history, stays at 0.97 of that threshold; after 6 h it stops, and 1 h later the
+just-detectable setpoint step follows. This attacker is white-box: it can run the monitor.
+
+| Rule | Terminal caught (attack / control), 12 placements | Threshold at the terminal step |
+|---|---|---|
+| frozen | 12 / 12 | 1.0 tau_0 |
+| SPOT (MLE) | 4 / 12 | 1.04 to 1.59 tau_0 (median per release) |
+| SPOT (moments) | 6 / 12 | up to 7.6 tau_0 |
+| DSPOT | 9 / 9 | 0.88 to 1.12 tau_0 |
+
+On HAI 22.04 both SPOT variants missed the terminal step on all four placements, and the campaign raised
+no alarm. The spoofed noise had a scale of 0.02 to 0.04 robust units. DSPOT was not moved: its moving
+mean follows the noise-driven rise, so the attacker's cap rises with it rather than with the tail.
 
 ### 7.6 Registered replication on BATADAL
 

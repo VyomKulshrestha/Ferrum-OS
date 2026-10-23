@@ -125,6 +125,11 @@ as post-hoc). Evidence: `threshold_transfer_tt1b_dev_v1.json`, `_tt1b_attacks_de
   residual scores.
 - **Open-loop sub-alarm pulses** (E6, 24 x 300 s a day, invisible to the frozen threshold) did not poison
   SPOT (29/30); its threshold fell.
+- **Physically realizable closed-loop frog** (`threshold_transfer_tt1b_physfrog_dev_v1.json`): noise
+  spoofed on 3 sensors of one loop, its scale re-chosen every 5 minutes so the real monitor's score stays
+  at 0.97 tau_t; 6 h campaign, then the just-detectable setpoint step. Terminal caught (attack / control,
+  12 placements): frozen 12/12; MLE SPOT 4/12 / 12/12; moments SPOT 6/12 / 12/12; DSPOT 9/12 / 9/12. On HAI
+  22.04 both SPOT variants missed every terminal step without a campaign alarm.
 
 **Design rule these results support:** a threshold may tighten itself but must not loosen itself. Every
 automatic loosening path tried here (exceedance tracking, daily recalibration, tail refitting, moving-mean
