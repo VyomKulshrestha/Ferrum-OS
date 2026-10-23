@@ -111,9 +111,9 @@
    "identical_to_source": true
   },
   "results/threshold_transfer_tt1_verification.json": {
-   "sha256": "e978759ca8a7102ec24442b1a683134783a38896a70f7fcd99c792acf67a5098",
+   "sha256": "927bbd4df5eb4a7b14305cd666cec3150815ae3e04b16b85127ce561024e5969",
    "copied_from": "docs/research/threshold_transfer_tt1_verification.json",
-   "identical_to_source": false
+   "identical_to_source": true
   },
   "results/threshold_transfer_tt1b_attacks_dev_v1.json": {
    "sha256": "48ed1eb4dbefec8fd6ab83d29b2105eab060907ce218bfb128384a58bb877f15",
@@ -151,9 +151,9 @@
    "identical_to_source": true
   },
   "results/threshold_transfer_tt1b_verification.json": {
-   "sha256": "e2f7009cef6713adcca46bb350fd76f0e513e72b49a2fb1f31cb0cc073f15615",
+   "sha256": "7782db6bf26b2368dd6d5485f9a916ec98c782fecd8b4ad935fc6cf16cf65ed7",
    "copied_from": "docs/research/threshold_transfer_tt1b_verification.json",
-   "identical_to_source": false
+   "identical_to_source": true
   },
   "review/review_report.md": {
    "sha256": "e01ebf448f4d9b2d1e18e4f2777e85063ddead436b2691751111f7e1c01dd1d2",

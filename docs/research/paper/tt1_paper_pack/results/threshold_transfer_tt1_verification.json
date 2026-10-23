@@ -20,7 +20,7 @@
   {
    "check": "hai-20.07: any other access is post-hoc and after the final",
    "pass": true,
-   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
+   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: threshold trajectories for paper figures"
   },
   {
    "check": "hai-20.07: access is the tt1 shared final",

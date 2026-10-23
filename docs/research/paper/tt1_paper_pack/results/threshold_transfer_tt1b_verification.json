@@ -24,7 +24,7 @@
   {
    "check": "batadal: no other access, or post-hoc after the final",
    "pass": true,
-   "detail": ""
+   "detail": "post-hoc analysis after the registered tt1b final: threshold trajectories for paper figures"
   },
   {
    "check": "batadal: access after registration commit",
