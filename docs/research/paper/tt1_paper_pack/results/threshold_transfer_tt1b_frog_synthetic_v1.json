@@ -1,0 +1,118 @@
+{
+ "schema_version": "threshold-transfer-tt1b-frog-synthetic-v1",
+ "status": "development control on synthetic light-tailed scores (no recorded data)",
+ "score": "60-step moving average of |N(0,1)|; calibration 60,000 steps, stream 250,000 steps; tau0 = calibration 99.95th percentile; p = 5e-4",
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "variants": {
+  "closed_24h": {
+   "frozen": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0,
+    "max_inflation": 1.0
+   },
+   "spot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.9465471561499111,
+    "max_inflation": 0.9517161895589146
+   },
+   "spot_mle": {
+    "terminal_after_campaign": 0.8,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0358789641096486,
+    "max_inflation": 1.0593334462959494
+   },
+   "dspot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 1.00696527751413,
+    "max_inflation": 1.035322764046065
+   }
+  },
+  "closed_6h": {
+   "frozen": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0,
+    "max_inflation": 1.0
+   },
+   "spot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.9524225163343273,
+    "max_inflation": 0.9566064399286001
+   },
+   "spot_mle": {
+    "terminal_after_campaign": 0.8,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0355093987058015,
+    "max_inflation": 1.0590206165250684
+   },
+   "dspot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.9993826101387459,
+    "max_inflation": 1.0202392955481465
+   }
+  },
+  "closed_1h": {
+   "frozen": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0,
+    "max_inflation": 1.0
+   },
+   "spot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.9690243930517457,
+    "max_inflation": 0.9723793974444824
+   },
+   "spot_mle": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0180454949345097,
+    "max_inflation": 1.0325683035420938
+   },
+   "dspot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.975875359152727,
+    "max_inflation": 0.9918380650433072
+   }
+  },
+  "fixed_24h": {
+   "frozen": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0,
+    "max_inflation": 1.0
+   },
+   "spot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.9715782855205694,
+    "max_inflation": 0.9725237018009787
+   },
+   "spot_mle": {
+    "terminal_after_campaign": 0.8,
+    "terminal_control": 1.0,
+    "median_inflation": 1.0340091393881297,
+    "max_inflation": 1.055332636182265
+   },
+   "dspot": {
+    "terminal_after_campaign": 1.0,
+    "terminal_control": 1.0,
+    "median_inflation": 0.9965284571012918,
+    "max_inflation": 1.014946736063559
+   }
+  }
+ }
+}

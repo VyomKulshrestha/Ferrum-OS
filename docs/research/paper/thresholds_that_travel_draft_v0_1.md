@@ -6,7 +6,9 @@ author block, the repository link and the Zenodo DOIs, and point to an anonymize
 
 Vyom Kulshrestha, Independent Researcher, India (ORCID 0009-0009-1434-7148)
 
-Status marker: [VERIFY] marks a citation detail to check before submission.
+Status: every number and citation was checked against the pack in a Claude Science review on
+2026-10-23 (126 of 138 numbers matched; the 9 mismatches and 3 untraceable numbers are fixed in this
+revision).
 
 ---
 
@@ -24,14 +26,18 @@ On HAI 20.07's 38 attacks the frozen threshold detected 36 at 2.23 false-alarm e
 symmetric quantile tracker detected 20 (difference -0.42, 95% interval [-0.58, -0.26]) because earlier
 attacks had raised its threshold a median 12.9 times above calibration. Daily recalibration and a ten
 times slower tracker also lost recall, and the same loss appeared on HyGrid-ICS and voraus-AD, on three
-earlier HAI releases, and with a second, model-free score. Twelve two-minute nuisance alarms a day
-blinded every rule that learns from exceedances to a later, just-detectable setpoint attack.
+earlier HAI releases, and with a second, model-free score. On attack-free development data, twelve
+two-minute nuisance alarms a day blinded every rule that learns from exceedances to a later,
+just-detectable setpoint attack; on the registered HAI 20.07 stream the real attacks had already done the
+same before any pulse arrived.
 
 Streaming extreme-value thresholds (SPOT and DSPOT) refuse to learn from alarms and escaped this natural
 poisoning on the HAI data, but a closed-loop attacker who holds the score just under the current
 threshold drove their thresholds upward without raising one alarm and blinded them within an hour. A
 second registered study on the BATADAL water network replicated the tracker's loss (6 of 14 attacks
-against 14 for the frozen threshold) and found that slow, days-long attacks also inflated SPOT and DSPOT.
+against 14 for the frozen threshold) and showed that slow, days-long attacks also inflate SPOT and DSPOT.
+Its registered primary rule nevertheless failed: the third hypothesis, that a closed-loop attacker
+blinds DSPOT, could not be tested because real attacks had already blinded DSPOT in all ten controls.
 Across seven datasets, a threshold that only tightens itself matched the frozen threshold's recall every
 time, while every rule that can raise its own threshold lost recall on at least one. We argue that an
 alarm threshold may tighten itself but should loosen only with operator approval, and we release the
@@ -62,11 +68,12 @@ The answer depends on the region, and none of the adaptive rules we tested is sa
 
 - **Rules that learn from exceedances are poisoned by real attacks.** An attack is a long exceedance, so
   a tracker raises its threshold during the attack and stays high afterwards. The next attack then
-  arrives under an inflated threshold. On fresh HAI 20.07 data this cost the tracker 16 of 38 attacks.
+  arrives under an inflated threshold. On fresh HAI 20.07 data the tracker missed 18 of 38 attacks, 16
+  of them attacks the frozen threshold caught.
   No adversarial planning is needed; the attacks in the recording did it.
 - **The same rules can be poisoned on purpose and loudly.** Twelve two-minute pulses a day, the kind of
   nuisance alarm operators learn to acknowledge, raised these thresholds enough to hide a later attack
-  that a frozen threshold caught every time.
+  that a frozen threshold caught every time (attack-free development data).
 - **Rules that refuse to learn from alarms can be poisoned silently.** An attacker who reads the current
   SPOT or DSPOT threshold and holds the score just under it feeds every sample into the fitted tail. The
   tail extends, the threshold rises, the attacker follows it up, and no alarm is ever raised.
@@ -103,16 +110,18 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
 **ICS anomaly detection.** Process-level detectors learn normal behaviour from sensor and actuator
 traces and flag deviations: residuals of a predictive model, reconstruction errors of an autoencoder, or
 statistical bounds. Public testbed recordings with labelled attacks (SWaT [Goh et al. 2016], WADI
-[Ahmed et al. 2017], BATADAL [Taormina et al. 2018], and the HAI releases [Shin et al. 2020]) are the
-usual benchmarks. Evaluations typically fix one threshold per detector, chosen on clean data or, less
-defensibly, on the test labels. Wu and Keogh [2021] list further benchmark pitfalls. [VERIFY]
+[Ahmed et al. 2017], BATADAL [Taormina et al. 2018], and the HAI releases [Shin et al. 2020 for HAI 1.0
+(20.07); later releases are documented in the dataset repository]) are the usual benchmarks. Evaluations
+typically fix one threshold per detector, chosen on clean data or, less defensibly, on the test labels.
+Wu and Keogh [2023] list further benchmark pitfalls.
 
 **Threshold rules.** Static thresholds come from a quantile or a false-alarm budget on clean data.
 Adaptive variants recalibrate on a trailing window, track a target exceedance rate online
 [Gibbs and Candes 2021], fit an extreme-value tail and update it per observation (SPOT, and DSPOT for
 drifting streams [Siffer et al. 2017]), or recompute a level on a trailing window of smoothed errors
-[Hundman et al. 2018]. Alarm-management practice in process plants [ISA-18.2] treats nuisance alarms as
-an operational hazard because operators learn to ignore them.
+[Hundman et al. 2018]. Alarm-management practice in process plants treats nuisance and chattering alarms
+as a condition to eliminate, with explicit alarm-rate targets [ANSI/ISA-18.2-2016]; operators who
+acknowledge such alarms without investigating them are the failure mode our pulse campaigns exploit.
 
 **Poisoning of anomaly detectors.** Rubinstein et al. [2009] showed that slowly shifted traffic ("boiling
 frog" poisoning) can stop a PCA-based network anomaly detector from flagging a later attack. Kloft and
@@ -174,14 +183,20 @@ action-conditioned ridge regression with LightGBM residual corrections (60 trees
 each sensor one and five steps ahead; the score is the mean of the three largest standardised absolute
 residuals at each horizon, summed and smoothed over 60 s. D0 is a model-free control: the mean of the
 three largest standardised first differences. Both are calibrated on the most recent 20% of normal
-training data to 2 false-alarm episodes per day (episodes merged across 60 s gaps).
+training data: to 2 false-alarm episodes per day on the 1 Hz stream datasets (episodes merged across 60 s
+gaps), to a per-sample false-alarm target of 0.05 on voraus-AD, and to one false-alarm episode per week on
+BATADAL (episodes merged across 1 h).
 
 **Rules.** frozen (tau_0 at the budget); margin (tau_0 + 0.25 x the spread between the calibration 99.9th
 percentile and median); daily (trailing-day quantile at the calibration exceedance rate p); tracker
-(eta = 0.01 x spread) and tracker_slow (eta / 10, the best false-alarm adherence among trackers in
-development); tighten-only with four automatic permits and an oracle permit that simulates an operator
-who refuses to loosen while an event is under way; SPOT and DSPOT with method-of-moments and
-maximum-likelihood tail fits [Hosking and Wallis 1987; Siffer et al. 2017].
+(eta = 0.01 x spread on the stream datasets, 0.05 x spread on voraus-AD) and tracker_slow (eta / 10, the
+best false-alarm adherence among trackers in development); tighten-only with four automatic permits and an
+oracle permit that simulates an operator who refuses to loosen while an event is under way: eleven rules
+in all. On voraus-AD the spread is the calibration 99th percentile minus the median and daily
+recalibration happens every 50 samples. The streaming extreme-value rules (SPOT and DSPOT, with
+method-of-moments and maximum-likelihood tail fits [Hosking and Wallis 1987; Siffer et al. 2017]) were not
+part of the tt1 registration: they enter in Section 7 as exploratory and post-hoc analyses and are
+registered only in the BATADAL replication (tt1b).
 
 **Data.**
 
@@ -189,7 +204,7 @@ maximum-likelihood tail fits [Hosking and Wallis 1987; Siffer et al. 2017].
 |---|---|---|---|---|
 | HAI 20.07 (primary) | HIL testbed (boiler, turbine, water treatment) | 547,624 s normal, 31 sensors, 20 actions | test1 + test2, 5.15 days | 38 attacks |
 | HyGrid-ICS | simulated hybrid grid SCADA, 5 Hz to 1 Hz | 9.6 h (label-blind first 40%) | 14.5 h | 91 attacks |
-| voraus-AD | industrial robot, 100 Hz to 10 Hz | 948 normal runs | 1174 runs | anomalous runs |
+| voraus-AD | industrial robot, 100 Hz to 10 Hz | 948 normal samples | 1174 samples | 755 anomalous samples |
 | HAI 21.03, 22.04, 23.05 (development) | HIL testbed | normal training data | spent test files | 50, 58, 52 attacks |
 | BATADAL (registered replication) | water distribution network, 15 min | 384 days normal | two test files, 260 days | 14 attacks |
 
@@ -210,10 +225,12 @@ All development used normal training data and the already-opened attack files of
    loosen only through a statistical permit. A slow sub-threshold drift ("boiling frog" in the style of
    Rubinstein et al.) did not poison any rule: the world model absorbed the drift. Supra-threshold
    pulses did inflate the trackers, but every automatic permit we tried either opened under the pulses
-   (spread permit: 3 of 30 terminal attacks caught) or failed to follow benign drift (shift permit).
-2. *Static safety margin.* A margin at half the calibration exceedance rate held the budget on
-   pseudo-deployment splits but cost 4 to 10 points of recall on the spent attacks (interval lower bounds
-   down to -0.17), so we registered a smaller margin and made it secondary.
+   (spread permit: 3 of 30 terminal attacks caught in development round r3, 5 of 30 in round r4) or
+   failed to follow benign drift (shift permit).
+2. *Static safety margin.* A margin at half the calibration exceedance rate cut the false-alarm rate on
+   pseudo-deployment splits without always reaching the budget (HAI 20.07 development: 3.79 episodes per
+   day against 4.42 for frozen, budget 2), and cost 4 to 10 points of recall on the spent attacks
+   (interval lower bounds down to -0.17), so we registered a smaller margin and made it secondary.
 3. *Frozen versus adaptive.* On the spent attacks the frozen threshold held the budget on all three real
    test periods (0.66, 1.48 and 1.27 episodes per day), while the tracker lost 22, 31 and 37 points of
    recall with intervals entirely below zero. This became the registered primary.
@@ -230,10 +247,12 @@ All development used normal training data and the already-opened attack files of
 | G2 | recall(tracker) - recall(frozen) on the real attacks, 95% paired event bootstrap upper bound below 0 | 0.526 vs 0.947, -0.42 [-0.58, -0.26]: pass |
 | G3 | frozen false-alarm episodes per day on unlabelled test time at most 4 | 2.23: pass (above the 2.0 budget) |
 
-G1 passes as registered, but on this stream the pulses were not needed: the adaptive rules also missed
-the terminal step in the control runs, because the test stream's real attacks had already raised their
-thresholds 7 to 26 times above tau_0. The pulse effect in isolation comes from development on attack-free
-normal data (frozen 30/30; daily 4/30, tracker 1/30, tracker_slow 3/30).
+False-alarm episodes per day are counted over the 4.94 days of unlabelled time inside the 5.15-day test
+streams. G1 passes as registered, but on this stream the pulses were not needed: the adaptive rules also
+missed the terminal step in the control runs, because the test stream's real attacks had already raised
+their thresholds 7 to 26 times above tau_0. The pulse effect in isolation comes from development on
+attack-free normal data (frozen 30/30; daily 4/30, control 21/30; tracker 1/30, control 23/30;
+tracker_slow 3/30, control 25/30).
 
 ### 6.2 Real attacks inflate adaptive thresholds
 
@@ -243,7 +262,7 @@ Recall against the frozen threshold (paired event bootstrap, 95%):
 |---|---|---|---|---|---|
 | HAI 20.07 (38 attacks) | 0.947 | 0.474 [-0.63, -0.32] | 0.526 [-0.58, -0.26] | 0.711 [-0.37, -0.11] | 0.947 |
 | HyGrid-ICS (91 attacks) | 0.297 | 0.297 | 0.154 [-0.22, -0.08] | 0.165 [-0.21, -0.07] | 0.297 |
-| voraus-AD (anomalous runs) | 0.334 | 0.148 [-0.21, -0.16] | 0.082 [-0.28, -0.22] | 0.213 [-0.14, -0.10] | 0.334 |
+| voraus-AD (755 anomalous samples) | 0.334 | 0.148 [-0.21, -0.16] | 0.082 [-0.28, -0.22] | 0.213 [-0.14, -0.10] | 0.334 |
 
 At HAI 20.07 attack onsets the median threshold stood at 25.6 tau_0 for daily recalibration, 12.9 for the
 tracker and 6.4 for the slow tracker. HyGrid's daily rule equals frozen because its 14.5 h final never
@@ -255,11 +274,12 @@ completes a day.
 |---|---|---|---|---|---|
 | HAI 20.07 (episodes/day) | 2.23 | 2.23 | 0.20 | 1.01 | 2.23 |
 | HyGrid-ICS (episodes/day, 2.5 h unlabelled) | 19.2 | 0.0 | 19.2 | 19.2 | 19.2 |
-| voraus-AD (FPR per run, target 0.05) | 0.081 | 0.033 | 0.086 | 0.012 | 0.014 |
+| voraus-AD (per-sample FPR, target 0.05) | 0.081 | 0.033 | 0.086 | 0.012 | 0.014 |
 
 Where an adaptive rule raised fewer false alarms than frozen, it bought them with the recall losses of
-Section 6.2. The static margin matched frozen recall on HAI 20.07 and HyGrid-ICS and held voraus-AD's
-target at a cost of 12 points of recall there.
+Section 6.2. The one rule that cut false alarms at no recall cost here, the static margin on HyGrid-ICS
+(0.0 against 19.2 per day at identical recall), does not adapt. The margin matched frozen recall on HAI
+20.07 and held voraus-AD's target at a cost of 12 points of recall there.
 
 ---
 
@@ -276,7 +296,8 @@ reopen the three tt1 datasets after their finals; every access is in the ledger.
 | HAI 20.07 (post-hoc) | 0.947 | 0.526 | 0.947 | 0.921 [-0.08, 0.00] | 0.947 |
 
 The exceptions: on HyGrid-ICS the moments SPOT lost 9 points ([-0.15, -0.03]); on voraus-AD, 190
-calibration runs leave about four tail points and SPOT ran at 32% false positives against a 5% target.
+calibration samples leave about four tail points above SPOT's base level (the calibration 98th
+percentile), and SPOT ran at 32% false positives against a 5% target.
 
 ### 7.2 The effect does not depend on the score
 
@@ -298,7 +319,7 @@ frozen threshold detects on the clean stream.
 
 | Campaign | frozen | daily | tracker | tracker_slow | SPOT | DSPOT |
 |---|---|---|---|---|---|---|
-| 12 x 120 s supra-threshold pulses per day | 30/30 | 4/30 | 1/30 | 3/30 | 29/30 | 23/30 (control 25/30) |
+| 12 x 120 s supra-threshold pulses per day | 30/30 (control 30/30) | 4/30 (control 21/30) | 1/30 (control 23/30) | 3/30 (control 25/30) | 29/30 (control 30/30) | 23/30 (control 25/30) |
 | 24 x 300 s sub-alarm pulses per day, open loop | 30/30 | 23/30 (control 23/30) | 19/30 (control 21/30) | 23/30 | 29/30 | 22/30 (control 24/30) |
 
 Open-loop sub-alarm pulses did not poison SPOT: its threshold fell (0.82 to 0.98 tau_0), and many pulses
@@ -307,11 +328,13 @@ crossed SPOT's own alarm level and were refused.
 ### 7.5 Silent poisoning: the closed-loop frog
 
 Score-level attacker A2, normal data of the spent releases, 10 placements each: the attacker holds the
-score at 0.97 tau_t, then 1 h later a 600 s bump at 1.05 tau_0 follows.
+score at 0.97 tau_t, then, after a one-hour lead, a 600 s bump at 1.05 tau_0 follows (600 s is the
+terminal length of every development campaign).
 
 | Rule | 24 h campaign | 6 h | 1 h | open loop, fixed level, 24 h |
 |---|---|---|---|---|
-| frozen, tracker, tracker_slow, tighten-only | as control | as control | as control | as control |
+| frozen, tracker_slow, tighten-only | as control | as control | as control | as control |
+| tracker | as control | as control | as control | 16/30 (control 20/30) |
 | SPOT (moments) | 0/30 | 0/30 | 0/30 | not moved; alarms throughout |
 | DSPOT | 0/30 | 0/30 | 0/30 | not moved; alarms throughout |
 | SPOT (MLE, refit every 2048 peaks) | 8/30 | 8/30 | 13/30 | 11/30 |
@@ -320,8 +343,10 @@ Each rule is compared with its own control (the same bump without a campaign). T
 controls caught 30/30 and DSPOT's 24/30; the tracker and daily controls already missed some bumps on the
 drifting releases, and the campaign did not lower them further. After 1 h the moments SPOT threshold
 stood at 1.1 to 4.5 tau_0; after 24 h it had grown by more than five orders of magnitude, and the MLE fit
-left the floating-point range on one release. On light-tailed synthetic scores SPOT did not run away
-(0.94 to 0.97 tau_0 after 24 h), so the effect depends on the heavy tail of real residual scores.
+left the floating-point range on one release. A synthetic control with a light tail (the 60-step moving
+average of |N(0, 1)|, five seeds) did not run away: the moments SPOT threshold stayed at 0.95 to 0.97 tau_0
+and caught every terminal bump, and maximum-likelihood SPOT rose only to 1.02 to 1.04 tau_0. The runaway
+therefore depends on the heavy tail of real residual scores.
 
 **A physically realizable version.** The score-level attacker sets the score directly. We also gave the
 attacker only the readings of three sensors coupled to one setpoint channel. Every 5 minutes it reads the
@@ -329,22 +354,25 @@ rule's threshold and spoofs the largest zero-mean noise whose D1 score, computed
 on the spoofed history, stays at 0.97 of that threshold; after 6 h it stops, and 1 h later the
 just-detectable setpoint step follows. This attacker is white-box: it can run the monitor.
 
-| Rule | Terminal caught (attack / control), 12 placements | Threshold at the terminal step |
+| Rule | Terminal caught after campaign / in control (12 placements) | Threshold at the terminal step (median per release) |
 |---|---|---|
 | frozen | 12 / 12 | 1.0 tau_0 |
-| SPOT (MLE) | 4 / 12 | 1.04 to 1.59 tau_0 (median per release) |
-| SPOT (moments) | 6 / 12 | up to 7.6 tau_0 |
+| SPOT (MLE) | 4 / 12 | 1.04 to 1.59 tau_0 |
+| SPOT (moments) | 6 / 12 | 0.78 to 1.42 tau_0 |
 | DSPOT | 9 / 9 | 0.88 to 1.12 tau_0 |
 
-On HAI 22.04 both SPOT variants missed the terminal step on all four placements, and the campaign raised
-no alarm. The spoofed noise had a scale of 0.02 to 0.04 robust units. DSPOT was not moved: its moving
-mean follows the noise-driven rise, so the attacker's cap rises with it rather than with the tail.
+Controls caught 12 of 12 for frozen and both SPOT variants and 9 of 12 for DSPOT. On HAI 22.04 both SPOT
+variants missed the terminal step on all four placements, and the campaign raised no alarm. The spoofed
+noise had a scale of 0.02 to 0.04 robust units against frozen and the SPOT variants, and 0.05 to 0.12
+against DSPOT, whose moving mean follows the noise-driven rise, so the attacker's cap rises with the mean
+rather than with the tail.
 
 ### 7.6 Registered replication on BATADAL
 
 We registered a second study (tt1b) to test the exploratory findings of Sections 7.1 and 7.5 on data no
-analysis here had opened: the C-Town network of BATADAL [Taormina et al. 2018], re-simulated without the
-original concealment [Erba et al. 2020], put on a 15-minute grid. All time-scale settings were fixed in
+analysis here had opened: the C-Town network of BATADAL [Taormina et al. 2018], whose original attacks
+conceal themselves in the SCADA readings, in the re-simulation without that concealment published with
+the artifact of Erba et al. [2020], put on a 15-minute grid. All time-scale settings were fixed in
 physical time before access: 1 h smoothing, episodes merged across 1 h, one false-alarm episode per week,
 a one-day DSPOT mean. The test files hold 14 attacks in 260 days.
 
@@ -353,6 +381,11 @@ a one-day DSPOT mean. The test files hold 14 attacks in 260 days.
 | H1 | recall(tracker) - recall(frozen), interval upper bound below 0 | 6/14 vs 14/14, -0.57 [-0.79, -0.29]: pass |
 | H2 | recall(MLE SPOT) - recall(frozen), lower bound at least -max(0.10, 2/N) | 14/14, difference 0: pass |
 | H3 | 24 h closed-loop frog: DSPOT at least 0.5 below its control; frozen and tighten-only within 0.1 | DSPOT already 0/10 in the control: fail |
+| Primary rule | H1 and H2 and H3 | fail |
+
+We retain the primary rule as registered and report H3 as uninformative rather than refuted. SWaT and WADI
+are registered under the same protocol and were requested on 2026-10-23; they run once their loaders are
+added by amendment, and the replication claim is the set of per-dataset outcomes.
 
 H3 failed because real attacks had already blinded DSPOT: its threshold stood 24 times above tau_0 at
 attack onsets, and it detected 6 of 14 attacks. BATADAL attacks last days, and the smoothed score spends
@@ -382,8 +415,10 @@ fragile when the tail is heavy.
 A threshold rule's learning region is its attack surface. Every automatic loosening path we tested could
 be pushed upward: exceedance tracking and daily recalibration by real attacks and by loud pulses; tail
 refitting and moving-mean drift tracking by a closed-loop attacker; the spread and shift permits by
-pulses and by benign drift. The rules that held were the ones that never loosen themselves: frozen,
-static margin, and tighten-only without a permit or with an operator-gated one.
+pulses and by benign drift. The rules that held were the ones that never loosen themselves: frozen, and
+tighten-only without a permit or with an operator-gated one. A static margin never loosens either, but it
+is not safe by construction: on BATADAL its spread-scaled offset sat 173 times above tau_0 and it caught
+3 of 14 attacks, the largest recall loss we measured.
 
 We therefore recommend:
 
@@ -398,9 +433,10 @@ We therefore recommend:
    without alarms, is itself an indicator.
 
 The cost is false alarms under benign upward drift: on a development split of HAI 23.05 the tighten-only
-rule ran at 5.98 times the budget against 4.05 for the frozen threshold. A static margin halves that cost
-on some plants (HAI 23.05 development: 0.58 times the budget) and costs recall on others (voraus-AD: 12
-points).
+rule ran at 5.98 times the budget against 4.05 for the frozen threshold. A static margin can cut that cost
+on some plants (HAI 23.05 development: 0.58 times the budget) but costs recall on others (voraus-AD: 12
+points; BATADAL: 11 of 14 attacks), and should not be used where the calibration spread is set by a heavy
+tail.
 
 ---
 
@@ -409,13 +445,18 @@ points).
 - Two registered studies with one primary dataset each; HAI 20.07 shares a testbed with the
   development releases, and BATADAL has 14 attacks.
 - HyGrid-ICS is a single simulated day with 2.5 h of unlabelled final time; voraus-AD anomalies are not
-  attacks.
-- The pulse campaigns and the score-level frog are synthetic; the frog assumes the attacker can read the
-  threshold.
+  attacks. Post-hoc, 0.15% of HyGrid-ICS's label-blind development rows (251 short runs) carry an attack
+  label, against 83% of its final rows, so its calibration is very slightly contaminated.
+- The pulse campaigns and both frogs are synthetic. The score-level frog sets the score directly and reads
+  tau_t; the physically realizable version also runs the monitor itself on the spoofed history to choose
+  each noise scale. Both are white-box upper bounds.
 - SPOT's behaviour depends on the tail estimator and on the score's tail shape; we report both.
+- Parameters scaled by a calibration spread (the static margin and the tracker step) are fragile on
+  heavy-tailed scores: on BATADAL the margin sat 173 times above tau_0 and missed 11 of 14 attacks.
 - Event recall counts any alarm inside a labelled interval; we do not model operator response time.
 - Our monitor is one world-model residual and one model-free score; reconstruction-based detectors were
   not tested.
+- No claim of runtime authority, deployment safety or incident prevention follows from these results.
 
 ---
 
@@ -429,7 +470,10 @@ recall on all seven datasets we examined.
 
 ---
 
-## References (to complete and check)
+## References
+
+Identifiers were confirmed in the Claude Science review of 2026-10-23 (`review/review_report.md`); entries
+without one had no DOI confirmed there.
 
 - Ahmed, C. M., Palleti, V. R., Mathur, A. P. WADI: a water distribution testbed for research in the
   design of secure cyber physical systems. CySWATER 2017.
@@ -437,8 +481,9 @@ recall on all seven datasets we examined.
   for secure network coordinate systems. SecureComm 2009.
 - Erba, A., Taormina, R., Galelli, S., Pogliani, M., Carminati, M., Zanero, S., Tippenhauer, N. O.
   Constrained concealment attacks against reconstruction-based anomaly detectors in industrial control
-  systems. ACSAC 2020.
+  systems. ACSAC 2020, pp. 480-495. doi:10.1145/3427228.3427660.
 - Gibbs, I., Candes, E. Adaptive conformal inference under distribution shift. NeurIPS 2021.
+  arXiv:2106.00170.
 - Goh, J., Adepu, S., Junejo, K. N., Mathur, A. A dataset to support research in the design of secure
   water treatment systems. CRITIS 2016.
 - Hong, Z. The boiling frog threshold: criticality and blindness in world model-based anomaly detection
@@ -446,21 +491,23 @@ recall on all seven datasets we examined.
 - Hosking, J. R. M., Wallis, J. R. Parameter and quantile estimation for the generalized Pareto
   distribution. Technometrics 29(3), 1987.
 - Hundman, K., Constantinou, V., Laporte, C., Colwell, I., Soderstrom, T. Detecting spacecraft anomalies
-  using LSTMs and nonparametric dynamic thresholding. KDD 2018.
-- ISA. ANSI/ISA-18.2-2016, Management of alarm systems for the process industries. [VERIFY]
-- Kloft, M., Laskov, P. Online anomaly detection under adversarial impact. AISTATS 2010.
+  using LSTMs and nonparametric dynamic thresholding. KDD 2018, pp. 387-395. doi:10.1145/3219819.3219845.
+- ISA. ANSI/ISA-18.2-2016, Management of alarm systems for the process industries. 2016.
+- Kloft, M., Laskov, P. Online anomaly detection under adversarial impact. AISTATS 2010, PMLR 9:405-412.
 - Kravchik, M., Shabtai, A. Can't boil this frog: robustness of online-trained autoencoder-based anomaly
   detectors to adversarial poisoning attacks. arXiv:2002.02741, 2020.
 - Rubinstein, B. I. P., Nelson, B., Huang, L., Joseph, A. D., Lau, S., Rao, S., Taft, N., Tygar, J. D.
   ANTIDOTE: understanding and defending against poisoning of anomaly detectors. IMC 2009.
 - Shin, H.-K., Lee, W., Yun, J.-H., Kim, H. HAI 1.0: HIL-based augmented ICS security dataset. CSET 2020.
+  arXiv:2005.02315.
 - Siffer, A., Fouque, P.-A., Termier, A., Largouet, C. Anomaly detection in streams with extreme value
-  theory. KDD 2017.
+  theory. KDD 2017, pp. 1067-1075. doi:10.1145/3097983.3098144.
 - Taormina, R., et al. The battle of the attack detection algorithms: disclosing cyber attacks on water
-  distribution networks. J. Water Resour. Plann. Manage. 144(8), 2018.
+  distribution networks. J. Water Resour. Plann. Manage. 144(8):04018048, 2018.
+  doi:10.1061/(ASCE)WR.1943-5452.0000969.
 - Brockmann, J. T., Rudolph, M., Rosenhahn, B., Wandt, B. The voraus-AD dataset for anomaly detection in
-  robot applications. IEEE Transactions on Robotics, 2024.
-- HyGrid-ICS: a hybrid cyber-physical security dataset for SCADA-based industrial control systems,
-  v1.1.1. Zenodo, 2026. doi:10.5281/zenodo.23250890.
+  robot applications. IEEE Transactions on Robotics 40:438-451, 2024. doi:10.1109/TRO.2023.3332224.
+- Yolcu, F. HyGrid-ICS: a hybrid cyber-physical security dataset for SCADA-based industrial control
+  systems, v1.1.1. Zenodo, 2026. doi:10.5281/zenodo.23250890 (version); concept doi:10.5281/zenodo.23250468.
 - Wu, R., Keogh, E. Current time series anomaly detection benchmarks are flawed and are creating the
-  illusion of progress. IEEE TKDE, 2021. [VERIFY]
+  illusion of progress. IEEE TKDE 35(3):2421-2429, 2023. doi:10.1109/TKDE.2021.3112126.

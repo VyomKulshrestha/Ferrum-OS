@@ -25,7 +25,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "0dd4e8b0b347e8c214bb07b473846af713cd15a17a8de51ac2bc00a4c173ccac",
+   "sha256": "f04afb12a271a0c17f352249cc83c53e37afc1a220d28fa5932e4b5e85b633b5",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true
   },
@@ -113,7 +113,7 @@
   "results/threshold_transfer_tt1_verification.json": {
    "sha256": "e978759ca8a7102ec24442b1a683134783a38896a70f7fcd99c792acf67a5098",
    "copied_from": "docs/research/threshold_transfer_tt1_verification.json",
-   "identical_to_source": true
+   "identical_to_source": false
   },
   "results/threshold_transfer_tt1b_attacks_dev_v1.json": {
    "sha256": "48ed1eb4dbefec8fd6ab83d29b2105eab060907ce218bfb128384a58bb877f15",
@@ -128,6 +128,11 @@
   "results/threshold_transfer_tt1b_frog_dev_v1.json": {
    "sha256": "025205aa0c79afdd10af6e58ca702b648fb8b37f94501d068c86ba432c41b5cc",
    "copied_from": "docs/research/threshold_transfer_tt1b_frog_dev_v1.json",
+   "identical_to_source": true
+  },
+  "results/threshold_transfer_tt1b_frog_synthetic_v1.json": {
+   "sha256": "bb8a5c5815a8a6ce701f73a9f8fae6d97537f00a4e37493766ea210efa1c53ea",
+   "copied_from": "docs/research/threshold_transfer_tt1b_frog_synthetic_v1.json",
    "identical_to_source": true
   },
   "results/threshold_transfer_tt1b_physfrog_dev_v1.json": {
@@ -148,7 +153,15 @@
   "results/threshold_transfer_tt1b_verification.json": {
    "sha256": "e2f7009cef6713adcca46bb350fd76f0e513e72b49a2fb1f31cb0cc073f15615",
    "copied_from": "docs/research/threshold_transfer_tt1b_verification.json",
-   "identical_to_source": true
+   "identical_to_source": false
+  },
+  "review/review_report.md": {
+   "sha256": "e01ebf448f4d9b2d1e18e4f2777e85063ddead436b2691751111f7e1c01dd1d2",
+   "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
+  },
+  "review/review_response.md": {
+   "sha256": "12a7913a1bc62ef86b433307bea3d2328a7817bd71b8238e9719c03b01ee98b1",
+   "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   }
  }
 }
