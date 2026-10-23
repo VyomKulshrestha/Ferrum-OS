@@ -1,0 +1,110 @@
+{
+ "schema_version": "vision-caution-robotarium-devcv-v1",
+ "status": "EXPLORATORY design check on spent runs (201-204, 301-306); informs the v2 protocol; not evidence",
+ "folds": [
+  {
+   "test": [
+    "seed201",
+    "seed301"
+   ],
+   "selection": "seed202"
+  },
+  {
+   "test": [
+    "seed202",
+    "seed302"
+   ],
+   "selection": "seed203"
+  },
+  {
+   "test": [
+    "seed203",
+    "seed303"
+   ],
+   "selection": "seed204"
+  },
+  {
+   "test": [
+    "seed204",
+    "seed304"
+   ],
+   "selection": "seed305"
+  },
+  {
+   "test": [
+    "seed305",
+    "seed306"
+   ],
+   "selection": "seed201"
+  }
+ ],
+ "mean_base_rate": 0.20795454545454545,
+ "results": {
+  "vision_real_64px_pool4": {
+   "auc_pr_mean_over_folds": 0.2941090047053496,
+   "auc_pr_per_fold": [
+    0.17135919394200383,
+    0.24039247656206872,
+    0.2418874897439354,
+    0.26364713380296007,
+    0.55325872947578
+   ],
+   "prevalence": 0.20795454545454545
+  },
+  "vision_real_64px_pool8": {
+   "auc_pr_mean_over_folds": 0.26922545871364195,
+   "auc_pr_per_fold": [
+    0.14961380797197574,
+    0.2889916483676497,
+    0.2484695982153812,
+    0.1313472628001326,
+    0.5277049762130707
+   ],
+   "prevalence": 0.20795454545454545
+  },
+  "vision_real_256px_pool4": {
+   "auc_pr_mean_over_folds": 0.32109997516150185,
+   "auc_pr_per_fold": [
+    0.170740908385056,
+    0.3487100662560489,
+    0.3243357680635883,
+    0.2535420720013877,
+    0.5081710611014282
+   ],
+   "prevalence": 0.20795454545454545
+  },
+  "vision_real_256px_pool8": {
+   "auc_pr_mean_over_folds": 0.2805269544029886,
+   "auc_pr_per_fold": [
+    0.14423623574349306,
+    0.30322444950966027,
+    0.28103044007979955,
+    0.1653497945971707,
+    0.5087938520848192
+   ],
+   "prevalence": 0.20795454545454545
+  },
+  "action_only": {
+   "auc_pr_mean_over_folds": 0.19192064025194971,
+   "auc_pr_per_fold": [
+    0.12936808943789632,
+    0.1921771549881206,
+    0.2161237965942447,
+    0.11822649558935414,
+    0.3037076646501328
+   ],
+   "prevalence": 0.20795454545454545
+  },
+  "state_reference": {
+   "auc_pr_mean_over_folds": 0.706942385928738,
+   "auc_pr_per_fold": [
+    0.5671117906669594,
+    0.7638558498893094,
+    0.7995971964843639,
+    0.6427492950761807,
+    0.7613977975268772
+   ],
+   "prevalence": 0.20795454545454545
+  }
+ }
+}

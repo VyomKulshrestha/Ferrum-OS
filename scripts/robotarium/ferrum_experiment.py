@@ -41,6 +41,7 @@ D_MIN = 0.20                           # robot 0 centre never closer than this t
 OBS_MARK_R = 0.09                      # projected dark disc under the parked obstacle (visual identity)
 DRIVE_S, HOLD_S = 3.0, 0.7             # per step: drive (at most), then hold still
 RESET_TIMEOUT_S = 25.0
+RESET_HOLD_S = 1.0                     # still, after the obstacle disc moves, before frame 0
 KIND_NAMES = ("move", "inspect", "diagnose", "approve", "repair", "verify", "stop")
 MOVE, STOP = 0, 6
 KIND_P = np.array([0.60, 0.06, 0.06, 0.06, 0.06, 0.06, 0.10])
@@ -155,6 +156,8 @@ def main():
         obs = x[:2, 1].copy()
         if obs_marker is not None:
             obs_marker.center = (float(obs[0]), float(obs[1]))
+        for _ in range(int(RESET_HOLD_S / dt)):       # let the projector redraw the disc before step 0
+            x = tick(np.zeros((2, 2)), e, -1)
         for s in range(STEPS):
             pos = x[:2, 0].copy()
             kind, f = draw_action(rng, pos / SCALE, goal_rt)
@@ -180,6 +183,7 @@ def main():
     np.save("ferrum_traj.npy", np.asarray(traj, np.float64))
     with open("ferrum_meta.txt", "w") as fh:
         json.dump({"seed": SEED, "episodes": N_EPISODES, "steps": STEPS, "scale": SCALE, "fence_half_width_m": FENCE,
+                   "reset_hold_s": RESET_HOLD_S,
                    "d_min_m": D_MIN, "drive_s": DRIVE_S, "hold_s": HOLD_S, "time_step_s": dt,
                    "kind_names": KIND_NAMES, "step_columns": STEP_COLUMNS, "traj_columns": TRAJ_COLUMNS}, fh)
     print(f"ferrum: {len(steps)} steps in {N_EPISODES} episodes, {it} iterations (~{it * dt:.0f} s)")

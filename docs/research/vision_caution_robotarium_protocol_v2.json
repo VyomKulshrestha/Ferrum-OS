@@ -1,0 +1,105 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v2",
+ "study_id": "vision-caution-robotarium-v2-real-trained",
+ "registered_at": "2026-10-23",
+ "registered_before": "submitting any of the new train, selection or sealed runs below (seeds 401-408, 501-504, 601-608)",
+ "branch": "vision-world-model (NOT main)",
+ "question": "Does a caution head trained on REAL Robotarium footage (frozen DINOv2) anticipate camera-visible hazards on fresh sealed real runs better than the same pipeline without the camera, within the false-alarm budget?",
+ "motivation": "vision_caution_robotarium_result_v1.json: the sim-trained v2 head failed on real footage (AUC-PR 0.279 vs base 0.220, no better than action-only); the exploratory diagnosis attributes it to scene conventions (the projected black fence and disc read as 'outside the fence' to the proxy-trained head). This study removes the sim-to-real step by training on real frames.",
+ "honest_scope": {
+  "what_is_real": "real GRITSbots on the Georgia Tech Robotarium executing FerrumOS runtime PhysicalAction sequences, filmed by the testbed's overhead camera, labelled from the testbed's tracking (body centres)",
+  "what_is_not": "not FerrumOS's own robot or camera; scene scaled 0.7 with a projected black geofence and obstacle disc; contact never occurs, so hazards are proximity and geofence exit",
+  "authority": "advisory diagnostic only; no permit, block, approval, adapter or actuation authority"
+ },
+ "runs": {
+  "train_seeds": [
+   201,
+   202,
+   203,
+   204,
+   301,
+   302,
+   303,
+   304,
+   305,
+   306,
+   401,
+   402,
+   403,
+   404,
+   405,
+   406,
+   407,
+   408
+  ],
+  "selection_seeds": [
+   501,
+   502,
+   503,
+   504
+  ],
+  "sealed_seeds": [
+   601,
+   602,
+   603,
+   604,
+   605,
+   606,
+   607,
+   608
+  ],
+  "reuse_disclosure": "201-204 and 301-306 were the calibration and sealed runs of protocol v1 (already opened and scored with the sim-trained head). They are used here ONLY as training data, never for selection, calibration or the sealed test. They were recorded with the previous script, whose first frame of an episode can show the obstacle disc at the previous position (projector redraw lag).",
+  "script": "scripts/robotarium/ferrum_experiment.py at the commit registering this protocol: same scene as v1 (black fence, obstacle disc, scale 0.7, 8 episodes x 12 steps) plus a 1.0 s still hold after the disc moves, before frame 0 (timing only; no appearance change). New runs 401-408, 501-504, 601-608 use it.",
+  "simulator_check": "all twenty new seeds pass the official simulator's testbed checks (target/robotarium/check_seeds_study2.log: zero too-close, out-of-bounds and actuator counts, 405-461 s); that check prints SIMULATED prevalence only. Estimated duration on the form: 500 s (limit 600)",
+  "failure_rule": "a run the testbed rejects or that returns no data is resubmitted once with the same seed; a run failing the quality gate is excluded and reported, never replaced after the open",
+  "script_sha256": "d303a9605aa78960c856c28398a4b1b7c0b7b1ebe2374d6e3500b8f4575af614"
+ },
+ "processing": {
+  "frames_and_labels": "unchanged from protocol v1: scripts/robotarium/video_frames.py and label_robotarium_log.py (body centres, runtime units, H = 3, decisions t = 1..11)",
+  "quality_gate": {
+   "window_corr_median_min": 0.3,
+   "hold_pairing_min": 0.8,
+   "median_err_px_max": 5.0,
+   "applies_to": "every run, before any training or score"
+  },
+  "sealed_preprocessing": "video_frames.py runs on sealed runs before the open; it prints quality numbers only, and no sealed label statistic or score is inspected before the ledger entry"
+ },
+ "models": {
+  "vision_real (PRIMARY)": "frozen facebook/dinov2-small features of the 256x256 rectified frames (the 'inspect' frames written by video_frames.py; grey->RGB, bilinear 224, ImageNet norm, adaptive-avg-pool P x P, fp16); head = 2-frame stack -> Conv1x1(64)+GELU, concat GELU(Linear(10->32)(runtime action)) -> Linear(->128)+GELU -> Linear(128->1); AdamW lr 1e-3, wd 1e-4, batch 256, pos_weight neg/pos, <= 60 epochs, early stop (patience 8) on selection AUC-PR, seed 0; P in {4, 8} chosen by selection AUC-PR",
+  "vision_sim_finetune (secondary)": "the frozen sim-trained v2 head (sha256 77e3ea1e...) as initial weights, fine-tuned on the same real train decisions with lr 1e-4, same early stopping, P = 4; on the 64x64 frames the sim head was trained on",
+  "pixel_probe (secondary)": "logistic regression (C=0.5, balanced) on the raw 2x64x64 frame stack + the 10-dim action, trained on real train decisions (64x64 frames)",
+  "action_only (control)": "logistic regression (C=1.0, balanced) on the 10-dim runtime action, trained on real train decisions",
+  "state_reference (descriptive)": "HistGradientBoostingClassifier(random_state=0) on true decision-time geometry + action, trained on real train decisions"
+ },
+ "calibration": "every arm's threshold = 0.95 quantile of its scores on the selection runs' hazard-free decisions (half of the 0.10 budget)",
+ "order": [
+  "quality gate on train and selection runs",
+  "train, select pooling, calibrate on train/selection runs only",
+  "write the selected vision_real head (FERRUM_VISION_CAUTION_V2 schema) to docs/research/artifacts/vision-caution-robotarium-v1/selected_caution_head.npz and all thresholds to thresholds.json, hash both",
+  "ledger entry robotarium-sealed-v2 (the harness refuses if it exists)",
+  "quality gate on sealed runs, then every arm scored once"
+ ],
+ "gates": {
+  "G1_camera_beats_action_only": "on sealed decisions, vision_real has higher AUC-PR and higher recall than action_only, and the episode-cluster bootstrap CI95 lower bound of the recall difference is > 0",
+  "G2_budget_holds": "vision_real realized false-alarm rate on sealed hazard-free decisions <= 0.10",
+  "primary_success": "G1 and G2",
+  "S1_beats_pixel_probe (secondary)": "same criteria as G1 against pixel_probe",
+  "S2_real_from_scratch_beats_sim_finetune (secondary)": "same criteria as G1 against vision_sim_finetune",
+  "descriptive": [
+   "AUC-PR and ROC of every arm",
+   "recall by hazard type",
+   "state_reference as an upper reference"
+  ]
+ },
+ "statistics": "episode-cluster bootstrap over sealed episodes, 10000 replicates, seed 0",
+ "harness": "scripts/robotarium/train_eval_real.py (--dry-run, --smoke on existing runs with a temp ledger, then the single final); CPU only",
+ "consequences": {
+  "if_primary_passes": "first sealed evidence that a real-trained head anticipates hazards from a real camera here; the integration protocol may add this artifact for advisory logging on the Robotarium camera only. Still not FerrumOS's camera, off by default, no authority.",
+  "if_primary_fails": "reported as is and retained; the user's instruction is then to run study B (a PyBullet proxy re-rendered with the Robotarium's look, retrained in simulation, tested on fresh real sealed runs) under its own registered protocol"
+ },
+ "design_choices_before_registration": {
+  "encoder_input_resolution": "256 px rectified frames, chosen by EXPLORATORY leave-runs-out cross-validation on the spent runs 201-204/301-306 only (docs/research/vision_caution_robotarium_devcv_v1.json, scripts/robotarium/dev_cv_real.py): mean fold AUC-PR 256px/pool4 0.321, 64px/pool4 0.294, 256px/pool8 0.281, 64px/pool8 0.269, action_only 0.192, state_reference 0.707, base rate 0.208. Pooling stays a registered selection-run choice.",
+  "smoke": "train_eval_real.py --smoke (3 epochs, spent runs only, temp ledger) exercised the full order; its numbers are not evidence",
+  "advisory_package": "the persisted head declares frame_size 256; tools/vision_caution accepts only 64 px V2 artifacts today, and is extended only if the primary passes"
+ }
+}
