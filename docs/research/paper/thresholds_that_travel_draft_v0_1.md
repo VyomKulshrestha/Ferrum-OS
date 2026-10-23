@@ -6,8 +6,7 @@ author block, the repository link and the Zenodo DOIs, and point to an anonymize
 
 Vyom Kulshrestha, Independent Researcher, India (ORCID 0009-0009-1434-7148)
 
-Status markers: [PENDING-BATADAL] marks numbers from the registered BATADAL replication, which has not
-run yet. [PENDING-PHYS] marks the physically realizable closed-loop attack, still in development.
+Status markers: [PENDING-PHYS] marks the physically realizable closed-loop attack, still in development.
 [VERIFY] marks a citation detail to check before submission.
 
 ---
@@ -29,12 +28,15 @@ times slower tracker also lost recall, and the same loss appeared on HyGrid-ICS 
 earlier HAI releases, and with a second, model-free score. Twelve two-minute nuisance alarms a day
 blinded every rule that learns from exceedances to a later, just-detectable setpoint attack.
 
-Streaming extreme-value thresholds (SPOT and DSPOT) refuse to learn from alarms and largely escaped this
-natural poisoning, but a closed-loop attacker who holds the score just under the current threshold drove
-their thresholds upward without raising one alarm and blinded them within an hour. Rules that never
-loosen themselves resisted every attack we tried. We argue that an alarm threshold may tighten itself
-but should loosen only with operator approval, and we release the registration, ledger and code.
-[PENDING-BATADAL: one sentence on the registered replication.]
+Streaming extreme-value thresholds (SPOT and DSPOT) refuse to learn from alarms and escaped this natural
+poisoning on the HAI data, but a closed-loop attacker who holds the score just under the current
+threshold drove their thresholds upward without raising one alarm and blinded them within an hour. A
+second registered study on the BATADAL water network replicated the tracker's loss (6 of 14 attacks
+against 14 for the frozen threshold) and found that slow, days-long attacks also inflated SPOT and DSPOT.
+Across seven datasets, a threshold that only tightens itself matched the frozen threshold's recall every
+time, while every rule that can raise its own threshold lost recall on at least one. We argue that an
+alarm threshold may tighten itself but should loosen only with operator approval, and we release the
+registrations, ledger and code.
 
 ---
 
@@ -86,8 +88,8 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
    (a hardware-in-the-loop ICS testbed, a simulated hybrid power grid, and an industrial robot), with
    real-event recall, false-alarm rates and threshold trajectories (Section 6).
 2. Evidence that exceedance-learning thresholds lose recall on real attacks because earlier attacks
-   inflate them, on six datasets and two score families, with the mechanism visible in which attacks are
-   missed (Sections 6 and 7).
+   inflate them, on seven datasets and two score families, with the mechanism visible in which attacks
+   are missed, and a registered replication on the BATADAL water network (Sections 6 and 7).
 3. A learning-region analysis of adaptive thresholds with a matching attack for each class: supra-
    threshold pulse campaigns for exceedance learners and a closed-loop frog-boiling attack for
    extreme-value learners, including how the latter depends on the tail estimator (Section 7).
@@ -190,7 +192,7 @@ maximum-likelihood tail fits [Hosking and Wallis 1987; Siffer et al. 2017].
 | HyGrid-ICS | simulated hybrid grid SCADA, 5 Hz to 1 Hz | 9.6 h (label-blind first 40%) | 14.5 h | 91 attacks |
 | voraus-AD | industrial robot, 100 Hz to 10 Hz | 948 normal runs | 1174 runs | anomalous runs |
 | HAI 21.03, 22.04, 23.05 (development) | HIL testbed | normal training data | spent test files | 50, 58, 52 attacks |
-| BATADAL (replication) | water distribution network, 15 min | 384 days normal | two test files | 14 attacks [PENDING-BATADAL] |
+| BATADAL (registered replication) | water distribution network, 15 min | 384 days normal | two test files, 260 days | 14 attacks |
 
 **Registration.** The protocol fixed the monitor, splits, rules, injection designs, gates and seeds; the
 harness recorded one ledger entry per dataset before reading a test array, refused to run if a frozen
@@ -267,7 +269,7 @@ target at a cost of 12 points of recall there.
 The analyses in this section were not registered. They use the spent HAI releases for development and
 reopen the three tt1 datasets after their finals; every access is in the ledger.
 
-### 7.1 Extreme-value thresholds escape natural poisoning
+### 7.1 Extreme-value thresholds escape natural poisoning on the HAI data
 
 | Data | frozen | tracker | SPOT (moments) | SPOT (MLE) | DSPOT |
 |---|---|---|---|---|---|
@@ -327,7 +329,38 @@ real monitor.]
 
 ### 7.6 Registered replication on BATADAL
 
-[PENDING-BATADAL]
+We registered a second study (tt1b) to test the exploratory findings of Sections 7.1 and 7.5 on data no
+analysis here had opened: the C-Town network of BATADAL [Taormina et al. 2018], re-simulated without the
+original concealment [Erba et al. 2020], put on a 15-minute grid. All time-scale settings were fixed in
+physical time before access: 1 h smoothing, episodes merged across 1 h, one false-alarm episode per week,
+a one-day DSPOT mean. The test files hold 14 attacks in 260 days.
+
+| Hypothesis | Registered test | Result |
+|---|---|---|
+| H1 | recall(tracker) - recall(frozen), interval upper bound below 0 | 6/14 vs 14/14, -0.57 [-0.79, -0.29]: pass |
+| H2 | recall(MLE SPOT) - recall(frozen), lower bound at least -max(0.10, 2/N) | 14/14, difference 0: pass |
+| H3 | 24 h closed-loop frog: DSPOT at least 0.5 below its control; frozen and tighten-only within 0.1 | DSPOT already 0/10 in the control: fail |
+
+H3 failed because real attacks had already blinded DSPOT: its threshold stood 24 times above tau_0 at
+attack onsets, and it detected 6 of 14 attacks. BATADAL attacks last days, and the smoothed score spends
+long stretches in the band below the alarm level, which is exactly where moments SPOT and DSPOT learn.
+
+| Rule (D1) | Recall | False alarms (x budget) | Onset inflation |
+|---|---|---|---|
+| frozen | 14/14 | 0.70 | 1.0 |
+| tighten-only | 14/14 | 2.43 | 1.0 |
+| SPOT (MLE) | 14/14 | 0.81 | 1.0 |
+| daily | 14/14 | 6.34 | 0.69 |
+| tracker | 6/14 | 1.83 | 409 |
+| tracker_slow | 5/14 | 0.70 | 74 |
+| SPOT (moments) | 6/14 | 0.13 | 26 |
+| DSPOT | 6/14 | 0.13 | 24 |
+| margin | 3/14 | 0.05 | 173 |
+
+With the model-free D0 score, MLE SPOT also lost recall (9/14, [-0.64, -0.14]). The margin and the
+tracker step are scaled by the calibration spread (99.9th percentile minus median); BATADAL's residual
+scores are heavy-tailed, so the margin sat 173 times above tau_0. Parameters scaled by a tail spread are
+fragile when the tail is heavy.
 
 ---
 
@@ -360,7 +393,8 @@ points).
 
 ## 9. Limitations
 
-- One registered primary dataset; HAI 20.07 shares a testbed with the development releases.
+- Two registered studies with one primary dataset each; HAI 20.07 shares a testbed with the
+  development releases, and BATADAL has 14 attacks.
 - HyGrid-ICS is a single simulated day with 2.5 h of unlabelled final time; voraus-AD anomalies are not
   attacks.
 - The pulse campaigns and the score-level frog are synthetic; the frog assumes the attacker can read the
@@ -374,10 +408,11 @@ points).
 
 ## 10. Conclusion
 
-On three never-opened datasets, adaptive thresholds that learn from exceedances missed attacks that a
-frozen threshold caught, because earlier attacks had raised them; extreme-value thresholds avoided that
-failure but could be driven upward without an alarm by an attacker who stayed under them. Thresholds that
-never loosened themselves resisted both. [PENDING-BATADAL]
+On four never-opened datasets, adaptive thresholds that learn from exceedances missed attacks that a
+frozen threshold caught, because earlier attacks had raised them. Extreme-value thresholds avoided that
+failure on the HAI data but not on days-long BATADAL attacks, and an attacker who stayed under them could
+drive them upward without an alarm. A threshold that only tightened itself matched the frozen threshold's
+recall on all seven datasets we examined.
 
 ---
 

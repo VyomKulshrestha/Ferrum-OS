@@ -132,5 +132,46 @@ drift tracking, the spread and shift permits) could be moved by real attacks or 
 operator-gated (oracle) permit and no loosening at all held. What this costs is false alarms under
 benign upward drift (development HAI 23.05: tighten-only 5.98x budget against frozen 4.05x).
 
-**Still needed for a confirmatory claim:** a registered replication of the SPOT/DSPOT and frog results on
-never-opened attack data (SWaT/WADI on request from iTrust, or the public BATADAL release).
+## tt1b: registered replication on BATADAL (2026-10-23)
+
+Protocol `docs/research/threshold_transfer_tt1b_protocol.json`, registered in 3d4467d before any BATADAL
+test row was read; result `threshold_transfer_tt1b_result_batadal.json` (41912ca); `verify_tt1b.py` 8/8.
+BATADAL is the C-Town water network re-simulated without concealment (Erba et al. 2020), on a
+15-minute grid: 384 days of normal training data, 14 attacks in 260 days of test operation. Settings in
+physical time: 1 h smoothing, 1 false-alarm episode per week.
+
+| Gate | Result |
+|---|---|
+| H1 real attacks poison the tracker (D1) | tracker 6/14 vs frozen 14/14, -0.57 [-0.79, -0.29]: pass |
+| H2 maximum-likelihood SPOT non-inferior to frozen (tolerance two events, -0.14) | 14/14, difference 0: pass |
+| H3 24 h closed-loop frog blinds DSPOT, not frozen or tighten-only | DSPOT already missed the bump in all 10 controls, so the campaign could not lower it: fail |
+
+The primary rule fails on H3 and is retained. DSPOT's controls were blind because real attacks had raised
+it 24 times above tau0 at attack onsets.
+
+| Rule (D1) | Recall | False alarms (x budget) | Onset inflation |
+|---|---|---|---|
+| frozen | 14/14 | 0.70 | 1.0 |
+| tighten-only | 14/14 | 2.43 | 1.0 |
+| SPOT (MLE) | 14/14 | 0.81 | 1.0 |
+| daily | 14/14 | 6.34 | 0.69 |
+| tracker | 6/14 | 1.83 | 409 |
+| tracker_slow | 5/14 | 0.70 | 74 |
+| SPOT (moments) | 6/14 | 0.13 | 26 |
+| DSPOT | 6/14 | 0.13 | 24 |
+| margin | 3/14 | 0.05 | 173 |
+
+- Natural poisoning reached the alarm-excluding rules here: BATADAL attacks last days, and the smoothed
+  score spends long stretches in the band below the alarm, which moments SPOT and DSPOT learn from. With
+  the D0 score even MLE SPOT lost (9/14, [-0.64, -0.14]).
+- The margin and the tracker step are both scaled by the calibration spread (99.9th percentile minus
+  median). BATADAL's residual scores are heavy-tailed, the spread was large, and the margin sat 173 times
+  above tau0. A spread-scaled parameter is fragile on heavy tails.
+- Across seven datasets (HAI 21.03, 22.04, 23.05, 20.07, HyGrid-ICS, voraus-AD, BATADAL), tighten-only
+  matched the frozen threshold's recall every time. Every rule that can raise its own threshold lost
+  recall against frozen, with the interval below zero, on at least one dataset: daily, tracker and
+  tracker_slow on most; moments SPOT on HyGrid-ICS and BATADAL; DSPOT on BATADAL; MLE SPOT on BATADAL
+  with the D0 score.
+
+SWaT and WADI (requested from iTrust on 2026-10-23) will run under the same registration once their
+loaders are added by amendment.
