@@ -1,0 +1,11 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v2-amendment1",
+ "amends": "vision_caution_robotarium_protocol_v2.json",
+ "registered_at": "2026-10-24",
+ "registered_before": "any training, selection, calibration or sealed score of study v2; no sealed label statistic has been inspected",
+ "kind": "procedural (quality gate implementation); no model, threshold, gate or split changes",
+ "trigger": "Two runs returned complete pose logs (96 steps each) but videos truncated by the testbed: seed 407 (train) 162 s and seed 603 (sealed) 63.5 s, against about 440-490 s for complete runs (the testbed's own stored copy is that short, confirmed by its content-length and the page's video duration). video_frames.py cannot extract the later steps' frames for such runs and writes no output.",
+ "rule": "A run for which video_frames.py produces no camera.json/frames.npz counts as failing the registered quality gate: it is excluded from its split and reported, exactly as the protocol's failure rule says for a run failing the gate. It is not replaced by a new seed, and not resubmitted, so no choice of which runs to keep depends on anything the testbed returned beyond video completeness.",
+ "implementation": "scripts/robotarium/train_eval_real.py load_split: a run without camera.json and frames.npz is recorded with passes=false and reason 'no processed frames (video_frames.py failed)'",
+ "expected_effect": "train split loses seed 407 if its processing fails (17 runs remain); the sealed split loses seed 603 if its processing fails (7 runs remain, about 616 decisions)"
+}

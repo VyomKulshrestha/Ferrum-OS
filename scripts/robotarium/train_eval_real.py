@@ -64,6 +64,10 @@ def load_split(names, gate):
     import evaluate_real as ER
     parts, qual, run_of_ep = [], {}, []
     for name in names:
+        if not ((RUNS / name / "camera.json").exists() and (RUNS / name / "frames.npz").exists()):
+            # amendment 1: no processed frames (e.g. the testbed's video was truncated) fails the gate
+            qual[name] = {"passes": False, "reason": "no processed frames (video_frames.py failed)"}
+            continue
         ok, q = ER.quality(RUNS / name)
         qual[name] = {**q, "passes": ok}
         if gate and not ok:
