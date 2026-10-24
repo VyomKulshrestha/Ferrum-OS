@@ -1,6 +1,6 @@
 {
  "schema_version": "tt1-paper-pack-manifest",
- "built": "2026-10-23",
+ "built": "2026-10-24",
  "sha256_note": "sha256 of the file with LF line endings",
  "files": {
   "figure_data/attack_campaigns.csv": {
@@ -112,12 +112,12 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "74c81e004238ba58d55b46af625f6c8131a5a72ff2e83aa4748c4fdcc28302ed",
-   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+   "sha256": "183214e4ea6f0c940f3ebb547cac19ce667a5da66b046f949371d77da57c3b0a",
+   "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "latex/refs.bib": {
-   "sha256": "259ef25f1ea248a51f26a8627b0cfb9e1b1c573284587e65db071288b35aee56",
-   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+   "sha256": "c7b7d58c554b1d275d92938d921dfa1b4863aebfe7e083e343b437819777f4ff",
+   "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "latex_usenix/figures/fig1_learning_regions.pdf": {
    "sha256": "108be8e32a00e7ea1f6ea54e646fb057da7fc24c6e126560fdd6d70d8b57f312",
@@ -140,12 +140,12 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "18e0598607b17b263aaee1f1a3223e6f4cc4facd01bd9228577753d162e5f083",
-   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+   "sha256": "23c72267062557b5fd0cb25e4de41b2d9afca50f58ffe9d506b6e798d5c8f1c1",
+   "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx, amsmath, Times via TeX Gyre Termes under XeTeX, float limits"
   },
   "latex_usenix/refs.bib": {
-   "sha256": "259ef25f1ea248a51f26a8627b0cfb9e1b1c573284587e65db071288b35aee56",
-   "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
+   "sha256": "c7b7d58c554b1d275d92938d921dfa1b4863aebfe7e083e343b437819777f4ff",
+   "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "manuscript/threshold_transfer_tt1_findings.md": {
    "sha256": "7fd975aa6fe385daff2ea625b1cab42ffbbd88cde005838e339e34e04c5dde80",
@@ -195,7 +195,7 @@
    "identical_to_source": true
   },
   "README.md": {
-   "sha256": "c1d30f4a7940c3fce3862700512012ac68ac591095712b4004b35cbb4cb546ef",
+   "sha256": "7ce94575df13ddb973ce3758f18f5e367f15d24930b2cc63e2ee82e6d80a7648",
    "built_by": "written for the pack"
   },
   "results/threshold_transfer_dev_v1.json": {
@@ -290,6 +290,14 @@
   "review/review_response.md": {
    "sha256": "12a7913a1bc62ef86b433307bea3d2328a7817bd71b8238e9719c03b01ee98b1",
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
+  },
+  "latex/main.pdf": {
+   "sha256": "1d6d2ef7e39131f8527ef5224f6b4215b8c6e0cc33614fe6559e044b20f9a367",
+   "built_by": "tectonic 0.17.0 (XeTeX) from latex/main.tex; 10 pages, references from page 9"
+  },
+  "latex_usenix/main.pdf": {
+   "sha256": "df22ce01749a37d357185e4c7851302021ed05b487d2ac57495d9dc3cb261b38",
+   "built_by": "tectonic 0.17.0 (XeTeX) from latex_usenix/main.tex, fallback geometry (no usenix-2020-09.sty); 11 pages, references from page 10"
   }
  }
 }

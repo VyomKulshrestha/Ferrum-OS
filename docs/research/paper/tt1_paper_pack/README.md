@@ -64,5 +64,20 @@ Claude Science is installed on this machine and runs a local daemon (check with
 5. Copy `review/`, `figures/` and `latex/` back into the repository and commit them, so the paper and its
    provenance live with the code.
 
+## Compiling the LaTeX versions
+
+`latex/main.pdf` (ACM sigconf, anonymous review mode, 10 pages with references from page 9) and
+`latex_usenix/main.pdf` (11 pages, references from page 10) were built with tectonic 0.17.0, which
+fetches the TeX packages it needs on first use:
+
+```
+cd latex && tectonic main.tex
+cd latex_usenix && tectonic main.tex
+```
+
+Both compile with no overfull lines and no undefined references. The USENIX copy uses fallback page
+metrics; with the official `usenix-2020-09.sty` next to `main.tex`, compile it with pdflatex instead.
+Before submission, replace the anonymous.4open.science placeholder with the real anonymized link.
+
 What the pack sends to Anthropic: whatever Claude Science reads from these files goes to the Claude API
 as context, as in any Claude session. The files hold results and text, no raw telemetry.

@@ -8,16 +8,51 @@
 %% To use the official template, drop usenix-2020-09.sty (from the USENIX Security author
 %% resources) next to this file; it is picked up automatically below. Without it, the fallback
 %% geometry reproduces the same page metrics (letter, two columns, 10pt).
+%% Engines: pdflatex with the official .sty; XeLaTeX or tectonic with the fallback, which then
+%% sets Times through the TeX Gyre Termes OpenType clones (times.sty has no XeTeX font shapes).
 \documentclass[letterpaper,twocolumn,10pt]{article}
 
-\IfFileExists{usenix-2020-09.sty}{\usepackage{usenix-2020-09}}{%
+\usepackage{iftex}
+\newif\ifofficialsty
+\IfFileExists{usenix-2020-09.sty}{\officialstytrue\usepackage{usenix-2020-09}}{%
   \usepackage[letterpaper,top=1in,bottom=1in,left=0.75in,right=0.75in,columnsep=0.33in]{geometry}
-  \usepackage{times}
   \setlength{\parindent}{9pt}
 }
 
+\usepackage{amsmath}   % \text in tables; acmart loads this, the article class does not
+\ifofficialsty\else
+  \ifTUTeX
+    \usepackage{unicode-math}   % after amsmath
+    % by file name, so tectonic finds them in its bundle without system fonts
+    \setmainfont{texgyretermes}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+      ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+    \setmonofont{texgyrecursor}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+      ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+    \setmathfont{texgyretermes-math.otf}
+  \else
+    \usepackage{times}
+  \fi
+\fi
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{tabularx}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\setlength{\emergencystretch}{2em}  % lets lines with unbreakable names (tracker\_slow) stretch
+\usepackage{etoolbox}
+\AtBeginEnvironment{table}{\small}  % 10pt body; tables set at 9pt as in most USENIX papers
+\AtBeginEnvironment{table*}{\small}
+\setlength{\tabcolsep}{4pt}
+% ten full-width floats in eight pages: with LaTeX's defaults the queue jams and the last figures
+% land after the references
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{dbltopnumber}{3}
+\setcounter{totalnumber}{5}
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
@@ -192,7 +227,7 @@ future thresholds. Table~\ref{tab:regions} gives the rules we study.
 \begin{table*}[t]
 \caption{Update and learning region of each threshold rule.}
 \label{tab:regions}
-\begin{tabular}{@{}lll@{}}
+\begin{tabularx}{\textwidth}{@{}>{\hsize=1.2\hsize}L>{\hsize=0.9\hsize}L>{\hsize=0.9\hsize}L@{}}
 \toprule
 Rule & Update & Learning region \\
 \midrule
@@ -203,7 +238,7 @@ SPOT & adds $s_t - t$ to the tail fit when $t < s_t \le z_q$ & the band $(t, \ta
 DSPOT & as SPOT on $s_t$ minus a moving mean of non-alarm values & the band, plus every non-alarm value through the mean \\
 tighten-only & $\min(\text{ceiling}, \text{tracker})$; the ceiling rises only through a permit & downward only, unless a permit fires \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table*}
 
 \begin{figure*}[t]
@@ -267,7 +302,7 @@ BATADAL replication (tt1b).
 \begin{table*}[t]
 \caption{Datasets. Event counts are the labelled events of each final split.}
 \label{tab:data}
-\begin{tabular}{@{}lllll@{}}
+\begin{tabularx}{\textwidth}{@{}LLLLL@{}}
 \toprule
 Dataset & System & Training data & Final data & Events \\
 \midrule
@@ -277,7 +312,7 @@ voraus-AD & industrial robot, 100\,Hz to 10\,Hz & 948 normal samples & 1174 samp
 HAI 21.03, 22.04, 23.05 (development) & HIL testbed & normal training data & spent test files & 50, 58, 52 attacks \\
 BATADAL (registered replication) & water distribution network, 15\,min & 384 days normal & two test files, 260 days & 14 attacks \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table*}
 
 \paragraph{Registration}
@@ -318,7 +353,7 @@ and 23.05. We report it because the registered claim differs from the one we set
 \begin{table*}[t]
 \caption{Registered gates of tt1 on HAI 20.07. Data status: \textbf{registered}.}
 \label{tab:gates}
-\begin{tabular}{@{}p{0.04\textwidth}p{0.55\textwidth}p{0.33\textwidth}@{}}
+\begin{tabular}{@{}p{0.05\textwidth}p{0.54\textwidth}p{0.33\textwidth}@{}}
 \toprule
 Gate & Registered test & Result \\
 \midrule
@@ -343,7 +378,7 @@ control 23/30; tracker\_slow 3/30, control 25/30).
 \caption{Event recall and the paired difference against the frozen threshold (95\% paired event
 bootstrap) on the D1 score. Data status: \textbf{registered} (tt1).}
 \label{tab:recall}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
 \toprule
 Dataset (events) & frozen & daily & tracker & tracker\_slow & tighten-only \\
 \midrule
@@ -351,7 +386,7 @@ HAI 20.07 (38 attacks) & 0.947 & 0.474 $[-0.63, -0.32]$ & 0.526 $[-0.58, -0.26]$
 HyGrid-ICS (91 attacks) & 0.297 & 0.297 & 0.154 $[-0.22, -0.08]$ & 0.165 $[-0.21, -0.07]$ & 0.297 \\
 voraus-AD (755 anomalous samples) & 0.334 & 0.148 $[-0.21, -0.16]$ & 0.082 $[-0.28, -0.22]$ & 0.213 $[-0.14, -0.10]$ & 0.334 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table*}
 
 At HAI 20.07 attack onsets the median threshold stood at 25.6 $\tau_0$ for daily recalibration, 12.9
@@ -396,7 +431,7 @@ false-positive rate of 0.32 against the 0.05 target (Section~\ref{sec:evt}).}
 \caption{False alarms. Data status: \textbf{registered} (tt1).}
 \label{tab:falsealarms}
 \small
-\begin{tabular}{@{}p{0.30\columnwidth}ccccc@{}}
+\begin{tabularx}{\columnwidth}{@{}Lccccc@{}}
 \toprule
 Dataset & frozen & margin & daily & tracker & tracker\_slow \\
 \midrule
@@ -404,7 +439,7 @@ HAI 20.07 (episodes/day) & 2.23 & 2.23 & 0.20 & 1.01 & 2.23 \\
 HyGrid-ICS (episodes/day, 2.5\,h unlabelled) & 19.2 & 0.0 & 19.2 & 19.2 & 19.2 \\
 voraus-AD (per-sample FPR, target 0.05) & 0.081 & 0.033 & 0.086 & 0.012 & 0.014 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 Where an adaptive rule raised fewer false alarms than frozen, it bought them with the recall losses
@@ -426,14 +461,14 @@ and reopen the three tt1 datasets after their finals; every access is in the led
 \caption{Event recall of the extreme-value rules. Data status: \textbf{exploratory} on the spent
 releases, \textbf{post-hoc} on HAI 20.07.}
 \label{tab:evt}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
 \toprule
 Data & frozen & tracker & SPOT (moments) & SPOT (MLE) & DSPOT \\
 \midrule
 HAI 21.03 / 22.04 / 23.05 & 1.00 / 0.76 / 0.60 & 0.78 / 0.45 / 0.23 & 1.00 / 0.79 / 0.58 & 1.00 / 0.79 / 0.60 & 1.00 / 0.79 / 0.60 \\
 HAI 20.07 (post-hoc) & 0.947 & 0.526 & 0.947 & 0.921 $[-0.08, 0.00]$ & 0.947 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table*}
 
 The exceptions: on HyGrid-ICS the moments SPOT lost 9 points ($[-0.15, -0.03]$); on voraus-AD, 190
@@ -464,14 +499,14 @@ the frozen threshold detects on the clean stream.
 \caption{Terminal attacks caught after a pulse campaign (control in parentheses). Data status:
 \textbf{exploratory} (normal data of the spent releases).}
 \label{tab:pulses}
-\begin{tabular}{@{}lcccccc@{}}
+\begin{tabularx}{\textwidth}{@{}Lcccccc@{}}
 \toprule
 Campaign & frozen & daily & tracker & tracker\_slow & SPOT & DSPOT \\
 \midrule
 $12 \times 120$\,s supra-threshold pulses per day & 30/30 (30/30) & 4/30 (21/30) & 1/30 (23/30) & 3/30 (25/30) & 29/30 (30/30) & 23/30 (25/30) \\
 $24 \times 300$\,s sub-alarm pulses per day, open loop & 30/30 & 23/30 (23/30) & 19/30 (21/30) & 23/30 & 29/30 & 22/30 (24/30) \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table*}
 
 Open-loop sub-alarm pulses did not poison SPOT: its threshold fell (0.82 to 0.98 $\tau_0$), and many
@@ -570,7 +605,7 @@ week, a one-day DSPOT mean. The test files hold 14 attacks in 260 days.
 \begin{table*}[t]
 \caption{Registered hypotheses of tt1b on BATADAL. Data status: \textbf{registered}.}
 \label{tab:tt1b}
-\begin{tabular}{@{}p{0.07\textwidth}p{0.48\textwidth}p{0.37\textwidth}@{}}
+\begin{tabular}{@{}p{0.10\textwidth}p{0.46\textwidth}p{0.36\textwidth}@{}}
 \toprule
 Hypothesis & Registered test & Result \\
 \midrule
@@ -594,7 +629,7 @@ DSPOT learn.
 \begin{table}[t]
 \caption{BATADAL, D1 score. Data status: \textbf{registered} (tt1b).}
 \label{tab:batadal}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabularx}{\columnwidth}{@{}lCCC@{}}
 \toprule
 Rule (D1) & Recall & False alarms ($\times$ budget) & Onset inflation \\
 \midrule
@@ -608,7 +643,7 @@ SPOT (moments) & 6/14 & 0.13 & 26 \\
 DSPOT & 6/14 & 0.13 & 24 \\
 margin & 3/14 & 0.05 & 173 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 \begin{figure}[t]
