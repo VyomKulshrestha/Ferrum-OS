@@ -1,0 +1,65 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v3",
+ "study_id": "vision-caution-robotarium-v3-study-b-arena-sim",
+ "registered_at": "2026-10-26",
+ "registered_before": "submitting any of the sealed runs below (seeds 701-712)",
+ "branch": "vision-world-model (NOT main)",
+ "question": "Does a caution head trained ONLY in simulation, with the runtime-scene proxy rendered in the Robotarium's look, anticipate camera-visible hazards on fresh real Robotarium runs better than the same pipeline without the camera, within the false-alarm budget? (Study B, run because study v2's primary failed, as the user instructed.)",
+ "history": {
+  "v1": "sim-trained head with the proxy look: primary FAIL on real frames (AUC-PR 0.279 vs base 0.220); the proxy's colours are near-inverted from the arena",
+  "v2": "head trained on real frames: primary FAIL, underpowered (AUC-PR 0.412 vs action-only 0.236, recall-difference CI95 [-0.054, 0.440] over 32 sealed episodes after the testbed truncated five videos)"
+ },
+ "design_choices_before_registration": {
+  "arena_look": "scripts/vision_runtime_domain_render.py look='arena': measured medians on spent rectified real frames (floor 0.65 inside and outside the fence, fence line 0.47, obstacle disc 0.53, robots ~0.03), flat lit; the existing 'proxy' look verified byte-identical",
+  "compositing": "EXPLORATORY dev check on the 24 spent real runs (docs/research/vision_caution_arena_sim_devcheck_v1.json, scripts/robotarium/dev_arena_sim.py), sim-only heads scored zero-shot: flat 0.201 (chance), flat+randomization 0.375, real-background composite + randomization 0.471 (ROC 0.784); action-only 0.243; base rate 0.201. The composite recipe is chosen.",
+  "power": "the testbed truncated or broke 6 of 20 v2 videos, so 12 sealed runs are submitted to expect about 8 usable"
+ },
+ "honest_scope": {
+  "what_is_real": "the sealed test: real GRITSbots on the Georgia Tech Robotarium executing FerrumOS runtime PhysicalAction sequences, the testbed's overhead camera, tracking-based labels",
+  "what_is_simulated": "all training frames of the primary arm (PyBullet runtime proxy, arena look, pasted onto the real empty-arena background estimated from SPENT runs)",
+  "what_is_not": "not FerrumOS's own robot or camera; contact never occurs, so hazards are proximity and geofence exit",
+  "authority": "advisory diagnostic only; no permit, block, approval, adapter or actuation authority"
+ },
+ "runs": {
+  "spent_real_seeds": [201, 202, 203, 204, 301, 302, 303, 304, 305, 306, 401, 402, 403, 404, 405, 406, 408, 501, 502, 504, 601, 602, 605, 608],
+  "spent_use": "all were opened by protocols v1/v2 and are never test data here. They provide the empty-arena background (median of their rectified frames), the calibration runs and the real training runs of the secondary/control arms.",
+  "calibration_seeds": [204, 306, 408, 504],
+  "real_training": "spent_real_seeds minus calibration_seeds (20 runs)",
+  "sealed_seeds": [701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712],
+  "script": "scripts/robotarium/ferrum_experiment.py unchanged since protocol v2 (sha256 d303a9605aa78960c856c28398a4b1b7c0b7b1ebe2374d6e3500b8f4575af614): black projected fence, obstacle disc, 1 s hold, 8 episodes x 12 steps",
+  "simulator_check": "all twelve sealed seeds pass the official simulator's testbed checks before submission (target/robotarium/check_seeds_studyB.log; simulated prevalence only)",
+  "failure_rule": "as protocol v2 + amendment 1: a run with no processed frames or failing the quality gate is excluded and reported, never replaced or resubmitted"
+ },
+ "simulation": {"look": "arena", "size": 256, "train_seed": 960, "train_episodes": 600, "selection_seed": 961, "selection_episodes": 300,
+                "composite": "dev_arena_sim.composite (pixels not flat floor/fence are pasted onto the real background) then dev_arena_sim.randomize (per-episode gain/bias/gamma, linear lighting gradient, Gaussian noise, 50% blur), rng seeds 0 (train) and 1 (selection)"},
+ "processing": "unchanged from protocol v2: video_frames.py (256 px 'inspect' frames as encoder input), label_robotarium_log.py (body centres, H = 3), quality gate 0.30 / 0.80 / 5 px + amendment 1",
+ "models": {
+  "vision_sim_arena (PRIMARY)": "frozen facebook/dinov2-small, adaptive-avg-pool P x P (P in {4, 8} by SIM selection AUC-PR), head as protocol v2, trained only on the composite sim frames (AdamW 1e-3, <= 60 epochs, early stop on sim selection AUC-PR)",
+  "vision_sim_finetune (secondary)": "the primary head fine-tuned on the 20 real training runs (lr 1e-4, early stop on the calibration runs' AUC-PR)",
+  "action_only (control)": "logistic regression (C=1.0, balanced) on the 10-dim runtime action, trained on the 20 real training runs",
+  "state_reference (descriptive)": "HistGradientBoostingClassifier(random_state=0) on true geometry + action, 20 real training runs"
+ },
+ "calibration": "every arm's threshold = 0.95 quantile of its scores on the calibration runs' hazard-free decisions (half of the 0.10 budget)",
+ "order": [
+  "quality gate on spent runs; background, calibration and real-training splits",
+  "render + composite + encode the simulation; train and select the primary head on simulation only; fine-tune the secondary; fit the controls",
+  "calibrate all thresholds on the calibration runs",
+  "write both heads and thresholds to docs/research/artifacts/vision-caution-arena-v1/ and hash them (background hash recorded)",
+  "ledger entry robotarium-sealed-v3 (the harness refuses if it exists)",
+  "quality gate on sealed runs, then every arm scored once"
+ ],
+ "gates": {
+  "G1_sim_arena_beats_action_only": "on sealed decisions, vision_sim_arena has higher AUC-PR and higher recall than action_only, and the episode-cluster bootstrap CI95 lower bound of the recall difference is > 0",
+  "G2_budget_holds": "vision_sim_arena realized false-alarm rate on sealed hazard-free decisions <= 0.10",
+  "primary_success": "G1 and G2",
+  "S1_finetune_beats_action_only (secondary)": "same criteria as G1 for vision_sim_finetune, with its own budget <= 0.10",
+  "S2_finetune_beats_sim_arena (secondary)": "same criteria as G1, vision_sim_finetune against vision_sim_arena",
+  "descriptive": ["AUC-PR and ROC of every arm", "recall by hazard type", "state_reference as an upper reference"]
+ },
+ "statistics": "episode-cluster bootstrap over sealed episodes, 10000 replicates, seed 0",
+ "harness": "scripts/robotarium/study_b.py (--dry-run, --smoke on spent runs with a temp ledger, then the single final); CPU only",
+ "consequences": {
+  "if_primary_passes": "first sealed evidence that a simulation-trained caution head transfers to a real camera on real robots when the simulation matches the scene; the integration protocol may add it for advisory logging on the Robotarium camera only. Still not FerrumOS's camera, off by default, no authority.",
+  "if_primary_fails": "reported as is and retained"
+ }
+}

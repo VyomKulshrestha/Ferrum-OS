@@ -64,6 +64,11 @@ KIND_P = np.array([0.60, 0.06, 0.06, 0.06, 0.06, 0.06, 0.10])
 P_GOAL = 0.5
 EYE, FOV = [0.0, 0.0, 2.6], 60.0
 GREY = {"outside": 0.14, "inside": 0.34, "obstacle": 0.60, "robot": 0.95}
+# "arena" look: the Georgia Tech Robotarium as it appears in rectified real frames (medians
+# measured on spent runs 201/202/401/402/501): one bright floor inside and outside the fence,
+# a darker projected fence line, a darker projected disc under the parked obstacle, and two
+# identical near-black robots. Rendered flat (ambient light only) so pixels equal these values.
+ARENA = {"floor": 0.65, "fence": 0.47, "disc": 0.53, "robot": 0.03, "fence_w": 0.03, "disc_r": 0.129}
 TOPOLOGY = "pybullet-direct-box-robot-obstacle-v1"
 
 
@@ -98,17 +103,32 @@ def lossy_sim_action(kind, features):
 class _Mirror:
     """Render-only DIRECT client that copies poses from the physics backend."""
 
-    def __init__(self, size):
+    def __init__(self, size, look="proxy"):
         import pybullet as p
-        self.p, self.size = p, size
+        self.p, self.size, self.look = p, size, look
         self.cid = p.connect(p.DIRECT)
+        self.disc = None
         box = lambda half, g: p.createVisualShape(p.GEOM_BOX, halfExtents=half, rgbaColor=[g, g, g, 1],
                                                  physicsClientId=self.cid)
-        p.createMultiBody(0, -1, box([3.0, 3.0, 0.01], GREY["outside"]), [0, 0, -0.012], physicsClientId=self.cid)
-        p.createMultiBody(0, -1, box([FENCE, FENCE, 0.01], GREY["inside"]), [0, 0, -0.01], physicsClientId=self.cid)
-        self.robot = p.createMultiBody(0, -1, box([HALF] * 3, GREY["robot"]), [0, 0, HALF], physicsClientId=self.cid)
-        self.obstacle = p.createMultiBody(0, -1, box([HALF] * 3, GREY["obstacle"]), [0, 0, HALF],
-                                          physicsClientId=self.cid)
+        body = lambda shape, xyz: p.createMultiBody(0, -1, shape, xyz, physicsClientId=self.cid)
+        if look == "arena":
+            a, w = ARENA, ARENA["fence_w"] / 2
+            body(box([3.0, 3.0, 0.01], a["floor"]), [0, 0, -0.012])
+            for xy, half in (([0, FENCE], [FENCE + w, w, 0.002]), ([0, -FENCE], [FENCE + w, w, 0.002]),
+                             ([FENCE, 0], [w, FENCE + w, 0.002]), ([-FENCE, 0], [w, FENCE + w, 0.002])):
+                body(box(half, a["fence"]), [xy[0], xy[1], 0.0])
+            disc = p.createVisualShape(p.GEOM_CYLINDER, radius=a["disc_r"], length=0.002,
+                                       rgbaColor=[a["disc"]] * 3 + [1], physicsClientId=self.cid)
+            self.disc = body(disc, [10, 10, 0.003])
+            robot_g = obstacle_g = a["robot"]
+        elif look == "proxy":
+            body(box([3.0, 3.0, 0.01], GREY["outside"]), [0, 0, -0.012])
+            body(box([FENCE, FENCE, 0.01], GREY["inside"]), [0, 0, -0.01])
+            robot_g, obstacle_g = GREY["robot"], GREY["obstacle"]
+        else:
+            raise ValueError(f"unknown look {look!r}")
+        self.robot = body(box([HALF] * 3, robot_g), [0, 0, HALF])
+        self.obstacle = body(box([HALF] * 3, obstacle_g), [0, 0, HALF])
         self.view = p.computeViewMatrix(EYE, [0, 0, 0], [0, 1, 0], physicsClientId=self.cid)
         self.proj = p.computeProjectionMatrixFOV(FOV, 1.0, 0.1, 6.0, physicsClientId=self.cid)
 
@@ -117,8 +137,13 @@ class _Mirror:
         for src, dst in ((b._robot, self.robot), (b._obstacle, self.obstacle)):
             pos, orn = b._p.getBasePositionAndOrientation(src, physicsClientId=b._client)
             p.resetBasePositionAndOrientation(dst, pos, orn, physicsClientId=self.cid)
+            if dst == self.obstacle and self.disc is not None:
+                p.resetBasePositionAndOrientation(self.disc, [pos[0], pos[1], 0.003], [0, 0, 0, 1],
+                                                  physicsClientId=self.cid)
+        light = ({"lightAmbientCoeff": 1.0, "lightDiffuseCoeff": 0.0, "lightSpecularCoeff": 0.0}
+                 if self.look == "arena" else {})
         img = p.getCameraImage(self.size, self.size, self.view, self.proj, lightDirection=[0.3, 0.2, 1.0],
-                               renderer=p.ER_TINY_RENDERER, physicsClientId=self.cid)[2]
+                               renderer=p.ER_TINY_RENDERER, physicsClientId=self.cid, **light)[2]
         rgba = np.asarray(img, np.uint8).reshape(self.size, self.size, 4)
         return (rgba[:, :, :3].mean(2) / 255.0).astype(np.float32)
 
@@ -151,10 +176,10 @@ def _draw_action(rng, pos, goal):
     return kind, simulator.action_features(rng, kind)
 
 
-def collect(n_episodes, seed, steps=STEPS, size=SIZE):
+def collect(n_episodes, seed, steps=STEPS, size=SIZE, look="proxy"):
     rng = np.random.default_rng(seed)
     backend = PyBulletBackend(run_id=7000 + int(seed) % 1000, source_clock_id=71)
-    mirror = _Mirror(size)
+    mirror = _Mirror(size, look)
     frames = np.zeros((n_episodes, steps + 1, size, size), np.float32)
     kinds = np.zeros((n_episodes, steps), np.int64)
     feats = np.zeros((n_episodes, steps, 3), np.float32)

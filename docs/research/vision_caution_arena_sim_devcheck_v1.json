@@ -1,0 +1,72 @@
+{
+ "schema_version": "vision-caution-arena-sim-devcheck-v1",
+ "status": "EXPLORATORY design check on spent real runs; informs the study-B protocol; not evidence",
+ "real_dev_runs": [
+  "seed201",
+  "seed202",
+  "seed203",
+  "seed204",
+  "seed301",
+  "seed302",
+  "seed303",
+  "seed304",
+  "seed305",
+  "seed306",
+  "seed401",
+  "seed402",
+  "seed403",
+  "seed404",
+  "seed405",
+  "seed406",
+  "seed408",
+  "seed501",
+  "seed502",
+  "seed504",
+  "seed601",
+  "seed602",
+  "seed605",
+  "seed608"
+ ],
+ "real_decisions": 2112,
+ "real_prevalence": 0.20075757575757575,
+ "sim": {
+  "look": "arena",
+  "size": 256,
+  "train": [
+   950,
+   400
+  ],
+  "selection": [
+   951,
+   150
+  ]
+ },
+ "results": {
+  "action_only_sim_trained": {
+   "auc_pr": 0.24299978115458265,
+   "auc_roc": 0.5646656755790038,
+   "prevalence": 0.20075757575757575
+  },
+  "flat": {
+   "auc_pr": 0.20147329916425455,
+   "auc_roc": 0.4954674505946526,
+   "prevalence": 0.20075757575757575,
+   "pool": 4,
+   "sim_selection_auc_pr": 0.7109368492497068
+  },
+  "randomized": {
+   "auc_pr": 0.3748975572803954,
+   "auc_roc": 0.7109395958150765,
+   "prevalence": 0.20075757575757575,
+   "pool": 4,
+   "sim_selection_auc_pr": 0.672021533096187
+  },
+  "composite": {
+   "auc_pr": 0.4707010230834345,
+   "auc_roc": 0.7838963158365375,
+   "prevalence": 0.20075757575757575,
+   "pool": 4,
+   "sim_selection_auc_pr": 0.6929972772763883
+  }
+ }
+}
