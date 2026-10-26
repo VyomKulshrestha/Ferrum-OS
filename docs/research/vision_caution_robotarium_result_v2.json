@@ -1,0 +1,203 @@
+{
+ "schema_version": "vision-caution-robotarium-result-v2",
+ "protocol": "vision_caution_robotarium_protocol_v2.json",
+ "status": "registered final on real Robotarium robots and camera, opened once; head trained on real footage; branch work (not main); advisory only",
+ "splits": {
+  "train_seeds": [
+   "seed201",
+   "seed202",
+   "seed203",
+   "seed204",
+   "seed301",
+   "seed302",
+   "seed303",
+   "seed304",
+   "seed305",
+   "seed306",
+   "seed401",
+   "seed402",
+   "seed403",
+   "seed404",
+   "seed405",
+   "seed406",
+   "seed407",
+   "seed408"
+  ],
+  "selection_seeds": [
+   "seed501",
+   "seed502",
+   "seed503",
+   "seed504"
+  ],
+  "sealed_seeds": [
+   "seed601",
+   "seed602",
+   "seed603",
+   "seed604",
+   "seed605",
+   "seed606",
+   "seed607",
+   "seed608"
+  ]
+ },
+ "sealed_quality": {
+  "seed601": {
+   "window_corr_median": 0.5317490445727665,
+   "hold_pairing": 1.0,
+   "median_err_px": 0.9300652702693961,
+   "passes": true
+  },
+  "seed602": {
+   "window_corr_median": 0.618484530629251,
+   "hold_pairing": 0.9668508287292817,
+   "median_err_px": 1.5147516657703395,
+   "passes": true
+  },
+  "seed603": {
+   "passes": false,
+   "reason": "no processed frames (video_frames.py failed)"
+  },
+  "seed604": {
+   "window_corr_median": 0.21984073263725612,
+   "hold_pairing": 0.42363636363636364,
+   "median_err_px": 1.3057029674859155,
+   "passes": false
+  },
+  "seed605": {
+   "window_corr_median": 0.6904566158583818,
+   "hold_pairing": 0.989010989010989,
+   "median_err_px": 2.4468392001860932,
+   "passes": true
+  },
+  "seed606": {
+   "passes": false,
+   "reason": "no processed frames (video_frames.py failed)"
+  },
+  "seed607": {
+   "passes": false,
+   "reason": "no processed frames (video_frames.py failed)"
+  },
+  "seed608": {
+   "window_corr_median": 0.6696314543005373,
+   "hold_pairing": 0.9694793536804309,
+   "median_err_px": 1.1807630169983305,
+   "passes": true
+  }
+ },
+ "decisions": 352,
+ "episodes": 32,
+ "prevalence": 0.17329545454545456,
+ "selected_pool": 8,
+ "selection_auc_pr": {
+  "vision_real": 0.40288092763425365,
+  "vision_sim_finetune": 0.29745400328682936,
+  "pixel_probe": 0.5143910779923467,
+  "action_only": 0.2641652169292368,
+  "state_reference": 0.6899350501488388
+ },
+ "selected_artifact": "docs/research/artifacts/vision-caution-robotarium-v1/selected_caution_head.npz",
+ "selected_artifact_sha256": "b4d2c3ae3bc1941c4c851cf374b1445e199089fbe7e7a7a885912f64ba204b3d",
+ "thresholds_file": "docs/research/artifacts/vision-caution-robotarium-v1/thresholds.json",
+ "thresholds_sha256": "b3c6b3255962df9a79e8877981bfa7294cf124555f6933b8f2b0d2fad0d137d4",
+ "thresholds": {
+  "vision_real": 1.6081420183181763,
+  "vision_sim_finetune": 1.4663289785385132,
+  "pixel_probe": 0.7213675379753113,
+  "action_only": 0.5733196139335632,
+  "state_reference": 0.44779504382347635
+ },
+ "dinov2_weights_sha256": "ae1e99fcefd534ed978cdeb8326f08030c96e28b7a81ffcbc98a857c84d14be1",
+ "results": {
+  "vision_real": {
+   "auc_pr": 0.4115671492352472,
+   "auc_roc": 0.7534223424032449,
+   "prevalence": 0.17329545454545456,
+   "recall": 0.22950819672131148,
+   "realized_fpr": 0.041237113402061855
+  },
+  "vision_sim_finetune": {
+   "auc_pr": 0.6338459317878241,
+   "auc_roc": 0.870204495521379,
+   "prevalence": 0.17329545454545456,
+   "recall": 0.26229508196721313,
+   "realized_fpr": 0.024054982817869417
+  },
+  "pixel_probe": {
+   "auc_pr": 0.3651624431243625,
+   "auc_roc": 0.6270632640414624,
+   "prevalence": 0.17329545454545456,
+   "recall": 0.39344262295081966,
+   "realized_fpr": 0.09965635738831616
+  },
+  "action_only": {
+   "auc_pr": 0.23555525843641123,
+   "auc_roc": 0.6170919948171935,
+   "prevalence": 0.17329545454545456,
+   "recall": 0.04918032786885246,
+   "realized_fpr": 0.037800687285223365
+  },
+  "state_reference": {
+   "auc_pr": 0.7735234720486388,
+   "auc_roc": 0.8936961297955044,
+   "prevalence": 0.17329545454545456,
+   "recall": 0.5081967213114754,
+   "realized_fpr": 0.013745704467353952
+  }
+ },
+ "bootstrap": {
+  "vision_real_minus_action_only": {
+   "recall_difference": 0.18032786885245902,
+   "ci95": [
+    -0.05405405405405406,
+    0.4400119047619046
+   ],
+   "episodes": 32,
+   "positives": 61
+  },
+  "vision_real_minus_pixel_probe": {
+   "recall_difference": -0.16393442622950818,
+   "ci95": [
+    -0.4130622188905547,
+    0.04878048780487805
+   ],
+   "episodes": 32,
+   "positives": 61
+  },
+  "vision_real_minus_vision_sim_finetune": {
+   "recall_difference": -0.03278688524590164,
+   "ci95": [
+    -0.2857142857142857,
+    0.2028985507246377
+   ],
+   "episodes": 32,
+   "positives": 61
+  }
+ },
+ "gates": {
+  "G1_camera_beats_action_only": false,
+  "G2_budget_holds": true,
+  "primary_success": false,
+  "S1_beats_pixel_probe": false,
+  "S2_real_from_scratch_beats_sim_finetune": false
+ },
+ "vision_real_recall_by_hazard_type": {
+  "proximity": {
+   "positives": 46,
+   "recall": 0.30434782608695654
+  },
+  "geofence": {
+   "positives": 19,
+   "recall": 0.0
+  },
+  "contact": {
+   "positives": 0,
+   "recall": null
+  }
+ },
+ "code_sha256": {
+  "scripts/robotarium/train_eval_real.py": "3d5768c09844ed5133fe763b866ad5a27f3310a9542f7e4a72ec1798fe7ed765",
+  "scripts/robotarium/video_frames.py": "e0dff47ad4bd5062c39b56d2c86c254c5743aafa248d55f0601d02d3bdacafa6",
+  "scripts/robotarium/label_robotarium_log.py": "2b1660267105e29b4b7e29ec3f910d0320a6fd722fcffc76784e96c948e2ce92",
+  "scripts/robotarium/ferrum_experiment.py": "d303a9605aa78960c856c28398a4b1b7c0b7b1ebe2374d6e3500b8f4575af614"
+ }
+}

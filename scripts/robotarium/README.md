@@ -58,6 +58,26 @@ projected fence and obstacle disc, added after the pilot, read as "outside the f
 proxy-trained head (dark floor = outside in the proxy), lifting every logit by about 3.3 and
 erasing the ranking. All ten runs passed the quality gate.
 
+## Registered study v2 (head trained on real footage): primary FAIL, underpowered
+
+`docs/research/vision_caution_robotarium_protocol_v2.json` (committed 0bdd002 before its runs;
+amendment 1, 7a3aa23: runs whose testbed video is truncated fail the quality gate), scored once
+by `train_eval_real.py` on 2026-10-26. The testbed truncated 5 of 20 videos (407, 503, 603, 606,
+607) and one failed sync (604), leaving train 17 runs, selection 3, sealed 4 (601, 602, 605, 608).
+
+| arm (352 sealed decisions, 32 episodes, prevalence 0.173) | AUC-PR | ROC | recall | false alarms |
+|---|---|---|---|---|
+| vision head trained on real frames, 256 px (primary) | 0.412 | 0.753 | 0.230 | 0.041 |
+| sim v2 head fine-tuned on real frames (secondary) | 0.634 | 0.870 | 0.262 | 0.024 |
+| pixel probe | 0.365 | 0.627 | 0.393 | 0.100 |
+| action-only control | 0.236 | 0.617 | 0.049 | 0.038 |
+| true-position reference | 0.774 | 0.894 | 0.508 | 0.014 |
+
+G1 FAIL: recall difference vs action-only +0.180, CI95 [-0.054, 0.440] (32 episodes, 61
+positives); G2 (budget) PASS. The primary head caught 30% of proximity hazards and 0 of 19
+geofence exits. Unlike v1 (AUC-PR 0.279 vs base 0.220), real-footage training gives a clear
+signal; the strongest camera arm was the sim-pretrained head fine-tuned on real frames.
+
 ## Check before uploading
 
 The simulator and `cvxopt` live in a separate venv so the main environment is untouched:
