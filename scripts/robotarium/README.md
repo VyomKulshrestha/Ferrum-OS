@@ -78,10 +78,28 @@ positives); G2 (budget) PASS. The primary head caught 30% of proximity hazards a
 geofence exits. Unlike v1 (AUC-PR 0.279 vs base 0.220), real-footage training gives a clear
 signal; the strongest camera arm was the sim-pretrained head fine-tuned on real frames.
 
-## Study B (sim head in the arena's look, seeds 701-712 sealed): pending
+## Study B (sim head in the arena's look, seeds 701-712 sealed): primary PASS on the amended gate
 
 `docs/research/vision_caution_robotarium_protocol_v3.json` (c24ac0b, before its runs), harness
-`study_b.py`. All 12 sealed runs were submitted on 2026-10-26.
+`study_b.py`. All 12 sealed runs were submitted on 2026-10-26 and scored once on 2026-10-28
+(`docs/research/vision_caution_robotarium_result_v3.json`, ledger `robotarium-sealed-v3`). Seed 702's
+stored video is 389 s against a 409 s run and fails the gate; seeds 701 and 706 first crashed on host
+memory and passed on their one retry (amendment 2, 81a46af), so 11 runs count.
+
+| arm (968 sealed decisions, 88 episodes, prevalence 0.191) | AUC-PR | ROC | recall | false alarms |
+|---|---|---|---|---|
+| vision head trained in simulation only, arena look (primary) | 0.328 | 0.630 | 0.130 | 0.042 |
+| same head fine-tuned on spent real runs (secondary) | 0.525 | 0.829 | 0.108 | 0.011 |
+| action-only control | 0.215 | 0.526 | 0.103 | 0.066 |
+| true-position reference | 0.810 | 0.922 | 0.422 | 0.005 |
+
+G1 (amended) PASS: AUC-PR difference vs action-only +0.113, CI95 [0.015, 0.219]; G2 PASS. S1 PASS
+(fine-tuned vs action-only +0.310, CI95 [0.207, 0.414]); S2 PASS (fine-tuned vs sim-only +0.197, CI95
+[0.087, 0.310]). The registered recall gates all fail: recall difference vs action-only +0.027, CI95
+[-0.054, 0.117]. The simulation-only head catches 22% of proximity hazards and 3% of geofence exits at
+its frozen threshold. Against v1 (sim head in the proxy look, AUC-PR 0.279 vs base 0.220, no
+separation) the arena look gives a sim-only head that ranks real hazards above action-only, with a
+lower bound close to zero; its alarms are not yet useful.
 
 Amendment 1 (`..._protocol_v3_amendment1.json`, before any sealed run was downloaded) changes the
 decision rule only. An exploratory power check on the spent runs (`power_study_b.py`) showed the

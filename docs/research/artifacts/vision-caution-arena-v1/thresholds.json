@@ -1,0 +1,50 @@
+{
+ "thresholds": {
+  "vision_sim_arena": 2.0694997310638428,
+  "vision_sim_finetune": 1.7044620513916016,
+  "action_only": 0.588972806930542,
+  "state_reference": 0.8467469332349987
+ },
+ "calibration_auc_pr": {
+  "vision_sim_arena": 0.4121040635997266,
+  "vision_sim_finetune": 0.5923717224787904,
+  "action_only": 0.28601206736751095,
+  "state_reference": 0.7178228664319832
+ },
+ "pool": 4,
+ "sim_selection_auc_pr": 0.583650472784057,
+ "finetune_selection_auc_pr": 0.5923717224787904,
+ "calibration_runs": [
+  "seed204",
+  "seed306",
+  "seed408",
+  "seed504"
+ ],
+ "calibration_quality": {
+  "seed204": {
+   "window_corr_median": 0.5789652839497876,
+   "hold_pairing": 0.9369369369369369,
+   "median_err_px": 1.1399289489514368,
+   "passes": true
+  },
+  "seed306": {
+   "window_corr_median": 0.553214361205991,
+   "hold_pairing": 0.9541984732824428,
+   "median_err_px": 1.8398416280920287,
+   "passes": true
+  },
+  "seed408": {
+   "window_corr_median": 0.6092133291148044,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.318535513950055,
+   "passes": true
+  },
+  "seed504": {
+   "window_corr_median": 0.5630969457227022,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.2607453099132633,
+   "passes": true
+  }
+ },
+ "background_sha256": "880a2237b98388f68eb426db0989af4e4d3e521a63daef289dca65fece66675b"
+}

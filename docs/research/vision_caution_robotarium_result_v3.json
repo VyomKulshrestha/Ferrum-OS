@@ -1,0 +1,252 @@
+{
+ "schema_version": "vision-caution-robotarium-result-v3",
+ "protocol": "vision_caution_robotarium_protocol_v3.json",
+ "amendments": [
+  "vision_caution_robotarium_protocol_v3_amendment1.json"
+ ],
+ "status": "registered final (study B) on real Robotarium robots and camera, opened once; head trained in simulation only; branch work (not main); advisory only",
+ "sealed_runs": [
+  "seed701",
+  "seed702",
+  "seed703",
+  "seed704",
+  "seed705",
+  "seed706",
+  "seed707",
+  "seed708",
+  "seed709",
+  "seed710",
+  "seed711",
+  "seed712"
+ ],
+ "sealed_quality": {
+  "seed701": {
+   "window_corr_median": 0.6052894288615793,
+   "hold_pairing": 0.9410714285714286,
+   "median_err_px": 1.2961135896854743,
+   "passes": true
+  },
+  "seed702": {
+   "passes": false,
+   "reason": "no processed frames (video_frames.py failed)"
+  },
+  "seed703": {
+   "window_corr_median": 0.49709012974414557,
+   "hold_pairing": 0.9964349376114082,
+   "median_err_px": 1.286427283609818,
+   "passes": true
+  },
+  "seed704": {
+   "window_corr_median": 0.6299170331879044,
+   "hold_pairing": 0.9891696750902527,
+   "median_err_px": 1.508925507357906,
+   "passes": true
+  },
+  "seed705": {
+   "window_corr_median": 0.6021821448268947,
+   "hold_pairing": 0.9888059701492538,
+   "median_err_px": 1.4321768023491463,
+   "passes": true
+  },
+  "seed706": {
+   "window_corr_median": 0.6347300053406026,
+   "hold_pairing": 0.9675675675675676,
+   "median_err_px": 1.4624775131047567,
+   "passes": true
+  },
+  "seed707": {
+   "window_corr_median": 0.5831653534687735,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.5500899200916212,
+   "passes": true
+  },
+  "seed708": {
+   "window_corr_median": 0.4901355822303779,
+   "hold_pairing": 0.9796672828096118,
+   "median_err_px": 1.388171317248326,
+   "passes": true
+  },
+  "seed709": {
+   "window_corr_median": 0.6521361481706403,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.5054911939461237,
+   "passes": true
+  },
+  "seed710": {
+   "window_corr_median": 0.6062062880569703,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.1683418003486419,
+   "passes": true
+  },
+  "seed711": {
+   "window_corr_median": 0.6256668166056609,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.4954548140394408,
+   "passes": true
+  },
+  "seed712": {
+   "window_corr_median": 0.5786053075080401,
+   "hold_pairing": 0.9857397504456328,
+   "median_err_px": 1.4191881132798483,
+   "passes": true
+  }
+ },
+ "decisions": 968,
+ "episodes": 88,
+ "prevalence": 0.19111570247933884,
+ "pool": 4,
+ "artifacts": {
+  "docs/research/artifacts/vision-caution-arena-v1/sim_arena_head.npz": "9a9566ae7463f25010b69ef1d63955f30986cd22baef49e5023b00c2cdb17580",
+  "docs/research/artifacts/vision-caution-arena-v1/sim_finetune_head.npz": "d32cf20957f29e2fae477c7fa5860ee046b0206dc812e4fb1d9ae4f54785e86a",
+  "docs/research/artifacts/vision-caution-arena-v1/thresholds.json": "7d8c1bce222d1e2ae34e7c2b8087c2570220fe0364f8e6fec28fe34d238c45b1"
+ },
+ "background_sha256": "880a2237b98388f68eb426db0989af4e4d3e521a63daef289dca65fece66675b",
+ "thresholds": {
+  "vision_sim_arena": 2.0694997310638428,
+  "vision_sim_finetune": 1.7044620513916016,
+  "action_only": 0.588972806930542,
+  "state_reference": 0.8467469332349987
+ },
+ "calibration_auc_pr": {
+  "vision_sim_arena": 0.4121040635997266,
+  "vision_sim_finetune": 0.5923717224787904,
+  "action_only": 0.28601206736751095,
+  "state_reference": 0.7178228664319832
+ },
+ "results": {
+  "vision_sim_arena": {
+   "auc_pr": 0.3281522418032171,
+   "auc_roc": 0.6301750025887956,
+   "prevalence": 0.19111570247933884,
+   "recall": 0.12972972972972974,
+   "realized_fpr": 0.0421455938697318
+  },
+  "vision_sim_finetune": {
+   "auc_pr": 0.5250079388071368,
+   "auc_roc": 0.8285803044423735,
+   "prevalence": 0.19111570247933884,
+   "recall": 0.10810810810810811,
+   "realized_fpr": 0.011494252873563218
+  },
+  "action_only": {
+   "auc_pr": 0.2149755354069613,
+   "auc_roc": 0.5258534396465431,
+   "prevalence": 0.19111570247933884,
+   "recall": 0.10270270270270271,
+   "realized_fpr": 0.06641123882503193
+  },
+  "state_reference": {
+   "auc_pr": 0.8095979050685042,
+   "auc_roc": 0.9215698457077768,
+   "prevalence": 0.19111570247933884,
+   "recall": 0.42162162162162165,
+   "realized_fpr": 0.005108556832694764
+  }
+ },
+ "bootstrap_auc_pr": {
+  "sim_arena_minus_action_only": {
+   "auc_pr_difference": 0.11317670639625582,
+   "ci95": [
+    0.015143978357127753,
+    0.21870704232983595
+   ],
+   "replicates_used": 10000,
+   "episodes": 88
+  },
+  "finetune_minus_action_only": {
+   "auc_pr_difference": 0.3100324034001755,
+   "ci95": [
+    0.20740772349132472,
+    0.4144949581280785
+   ],
+   "replicates_used": 10000,
+   "episodes": 88
+  },
+  "finetune_minus_sim_arena": {
+   "auc_pr_difference": 0.1968556970039197,
+   "ci95": [
+    0.08714556009168381,
+    0.3104330353422155
+   ],
+   "replicates_used": 10000,
+   "episodes": 88
+  }
+ },
+ "bootstrap": {
+  "sim_arena_minus_action_only": {
+   "recall_difference": 0.02702702702702703,
+   "ci95": [
+    -0.05405405405405406,
+    0.11734693877551021
+   ],
+   "episodes": 88,
+   "positives": 185
+  },
+  "finetune_minus_action_only": {
+   "recall_difference": 0.005405405405405406,
+   "ci95": [
+    -0.053475935828877004,
+    0.06289308176100629
+   ],
+   "episodes": 88,
+   "positives": 185
+  },
+  "finetune_minus_sim_arena": {
+   "recall_difference": -0.021621621621621623,
+   "ci95": [
+    -0.12206964006259781,
+    0.07080074222095341
+   ],
+   "episodes": 88,
+   "positives": 185
+  }
+ },
+ "gates": {
+  "G1_sim_arena_beats_action_only": true,
+  "G2_budget_holds": true,
+  "primary_success": true,
+  "S1_finetune_beats_action_only": true,
+  "S2_finetune_beats_sim_arena": true,
+  "G1_recall_registered_v3": false,
+  "S1_recall_registered_v3": false,
+  "S2_recall_registered_v3": false
+ },
+ "recall_by_hazard_type": {
+  "vision_sim_arena": {
+   "proximity": {
+    "positives": 95,
+    "recall": 0.22105263157894736
+   },
+   "geofence": {
+    "positives": 98,
+    "recall": 0.030612244897959183
+   },
+   "contact": {
+    "positives": 0,
+    "recall": null
+   }
+  },
+  "vision_sim_finetune": {
+   "proximity": {
+    "positives": 95,
+    "recall": 0.14736842105263157
+   },
+   "geofence": {
+    "positives": 98,
+    "recall": 0.09183673469387756
+   },
+   "contact": {
+    "positives": 0,
+    "recall": null
+   }
+  }
+ },
+ "code_sha256": {
+  "scripts/robotarium/study_b.py": "b594eae45116929b8144acdcfc13d041da2d0c6aeb18f110c54db2d5fa6b9584",
+  "scripts/robotarium/dev_arena_sim.py": "0ea64cfe541f8128b7dda7005fdcb25c080d8984e81903dd3ab9616e5fc9ba62",
+  "scripts/vision_runtime_domain_render.py": "c1c97530f5e288c6400712849b9d6daf14ab67ad8bd33f2cad6030172b0fac5c",
+  "scripts/robotarium/video_frames.py": "e0dff47ad4bd5062c39b56d2c86c254c5743aafa248d55f0601d02d3bdacafa6",
+  "scripts/robotarium/label_robotarium_log.py": "2b1660267105e29b4b7e29ec3f910d0320a6fd722fcffc76784e96c948e2ce92",
+  "scripts/robotarium/ferrum_experiment.py": "d303a9605aa78960c856c28398a4b1b7c0b7b1ebe2374d6e3500b8f4575af614"
+ }
+}
