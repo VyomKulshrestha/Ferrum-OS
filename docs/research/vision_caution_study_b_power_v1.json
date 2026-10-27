@@ -1,0 +1,52 @@
+{
+ "schema_version": "vision-caution-study-b-power-v1",
+ "status": "EXPLORATORY power check on spent runs, before any study-B sealed run returned; optimistic (the same runs chose the recipe); not evidence",
+ "thresholds": {
+  "sim_arena": 1.9249427318572998,
+  "action_only": 0.593835175037384
+ },
+ "pooled_on_spent": {
+  "sim_arena": {
+   "auc_pr": 0.4307445530881591,
+   "auc_roc": 0.7731870984274993,
+   "prevalence": 0.19375
+  },
+  "action_only": {
+   "auc_pr": 0.22628732640746885,
+   "auc_roc": 0.571839240801936,
+   "prevalence": 0.19375
+  },
+  "recall_sim_arena": 0.09090909090909091,
+  "recall_action_only": 0.07331378299120235,
+  "fpr_sim_arena": 0.023960535588442564
+ },
+ "sim_selection_auc_pr": 0.5920742153839338,
+ "draws": 400,
+ "inner_bootstrap": 1000,
+ "power_by_usable_sealed_runs": {
+  "4": {
+   "p_primary_pass": 0.015,
+   "p_G2": 0.995
+  },
+  "6": {
+   "p_primary_pass": 0.015,
+   "p_G2": 0.9975
+  },
+  "8": {
+   "p_primary_pass": 0.03,
+   "p_G2": 1.0
+  },
+  "10": {
+   "p_primary_pass": 0.0125,
+   "p_G2": 1.0
+  },
+  "12": {
+   "p_primary_pass": 0.0325,
+   "p_G2": 1.0
+  },
+  "16": {
+   "p_primary_pass": 0.035,
+   "p_G2": 1.0
+  }
+ }
+}
