@@ -1,0 +1,11 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v3-amendment2",
+ "amends": "vision_caution_robotarium_protocol_v3.json",
+ "registered_at": "2026-10-28",
+ "registered_before": "the robotarium-sealed-v3 ledger entry; no sealed label, score or frame has been inspected",
+ "kind": "procedural (quality gate implementation); no model, threshold, gate, split or code change",
+ "trigger": "video_frames.py was run once on all twelve sealed runs (target/robotarium/video_frames_studyB.log) while the host's commit charge was near its limit (1.8 GB physical free, other sessions' processes resident). Seed 701 stopped with numpy ArrayMemoryError ('Unable to allocate 2.68 GiB'), seed 706 with 'cv2.error: Unknown C++ exception from OpenCV code' before any sync line. Both returned complete videos (page duration 444.3 s and 450.9 s; downloaded byte counts equal the server's content-length) and complete pose logs (96 steps). Seed 702 stopped with 'no video frame at 391.16 s' after its sync step: its stored video (389.3 s) is shorter than its run.",
+ "rule": "A video_frames.py failure raised by the host (memory allocation, or an OpenCV exception before the sync step) is not a property of the run: the run is processed once more with unchanged code after memory is freed, and if that also fails it fails the quality gate as amendment 1 of protocol v2 says. A failure caused by the returned data (truncated video, no frame for a step, failed sync) is never retried. Seed 702 is therefore excluded; seeds 701 and 706 get one retry. The decision uses only the exception type and the video length, never labels, scores or frames.",
+ "implementation": "rerun: python scripts/robotarium/video_frames.py target/robotarium/runs/seed701 (and seed706), log target/robotarium/video_frames_studyB_retry.log; study_b.py and train_eval_real.py unchanged (study_b.py sha256 b594eae45116929b8144acdcfc13d041da2d0c6aeb18f110c54db2d5fa6b9584, as recorded by amendment 1)",
+ "expected_effect": "11 usable sealed runs if both retries succeed (9 if neither does), against the 8 assumed by the amendment 1 power estimate"
+}
