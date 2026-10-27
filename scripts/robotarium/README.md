@@ -78,6 +78,20 @@ positives); G2 (budget) PASS. The primary head caught 30% of proximity hazards a
 geofence exits. Unlike v1 (AUC-PR 0.279 vs base 0.220), real-footage training gives a clear
 signal; the strongest camera arm was the sim-pretrained head fine-tuned on real frames.
 
+## Study B (sim head in the arena's look, seeds 701-712 sealed): pending
+
+`docs/research/vision_caution_robotarium_protocol_v3.json` (c24ac0b, before its runs), harness
+`study_b.py`. All 12 sealed runs were submitted on 2026-10-26.
+
+Amendment 1 (`..._protocol_v3_amendment1.json`, before any sealed run was downloaded) changes the
+decision rule only. An exploratory power check on the spent runs (`power_study_b.py`) showed the
+registered recall gate passing in 1-4% of resampled sealed sets at any size from 4 to 16 runs:
+the head ranks hazards far better than action-only (AUC-PR 0.431 vs 0.226) but catches 9.1% vs
+7.3% at the half-budget threshold. G1/S1/S2 are now decided by the episode-cluster CI95 of the
+AUC-PR difference (estimated power 0.95 at 8 usable runs, optimistic); the registered recall
+criteria are still reported. The amended gate is threshold-free: a pass means the camera head
+ranks real hazards better, not that its alarms catch many of them.
+
 ## Check before uploading
 
 The simulator and `cvxopt` live in a separate venv so the main environment is untouched:

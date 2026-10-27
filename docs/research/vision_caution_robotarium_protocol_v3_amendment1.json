@@ -1,0 +1,22 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v3-amendment1",
+ "amends": "vision_caution_robotarium_protocol_v3.json",
+ "registered_at": "2026-10-27",
+ "registered_before": "downloading, processing or scoring any study-B sealed run (seeds 701-712); none is on disk, the ledger has no robotarium-sealed-v3 entry, and no sealed label statistic exists",
+ "kind": "decision rule only: G1, S1 and S2 criteria. No model, training, selection, threshold, calibration, split, run, quality gate or data change.",
+ "decided_by": "the user, 2026-10-27 ('yes, amend with the AUC-PR gate'), after the exploratory power check below",
+ "trigger": "EXPLORATORY power check on the 20 spent non-calibration runs (scripts/robotarium/power_study_b.py, docs/research/vision_caution_study_b_power_v1.json and _v2.json): the registered G1 passes in 1-4% of resampled sealed sets at every size from 4 to 16 usable runs. The composite sim head ranks hazards well (pooled AUC-PR 0.431 vs action-only 0.226) but at the half-budget threshold catches 9.1% of hazards vs 7.3%, so the recall-difference CI almost never clears zero. More sealed seeds do not fix this.",
+ "G1_amended": "on sealed decisions, the episode-cluster bootstrap (10000 replicates, seed 0; replicates without both classes skipped and counted) CI95 lower bound of AUC-PR(vision_sim_arena) - AUC-PR(action_only) is > 0",
+ "G2": "unchanged: vision_sim_arena realized false-alarm rate on sealed hazard-free decisions <= 0.10 at its registered threshold",
+ "primary_success": "unchanged: G1 (amended) and G2",
+ "S1_amended": "AUC-PR-difference CI95 lower bound > 0 for vision_sim_finetune vs action_only, and vision_sim_finetune's realized false-alarm rate <= 0.10",
+ "S2_amended": "AUC-PR-difference CI95 lower bound > 0 for vision_sim_finetune vs vision_sim_arena",
+ "registered_v3_criteria": "still computed and reported unchanged as G1_recall_registered_v3, S1_recall_registered_v3, S2_recall_registered_v3 (higher AUC-PR, higher recall, recall-difference CI95 lower bound > 0); they no longer decide success",
+ "what_the_amended_gate_claims": "the camera head ranks real hazards above benign decisions better than the action-only control (threshold-free). It does not claim that alarms at the registered threshold catch many hazards; recall at the threshold, the realized false-alarm rate and recall by hazard type stay reported.",
+ "power_estimate": "exploratory, optimistic (the same spent runs chose the composite recipe): amended gate 0.80 / 0.95 / 0.99 at 4 / 8 / 12 usable sealed runs; registered gate 0.01 / 0.04 / 0.03",
+ "implementation": "scripts/robotarium/study_b.py auc_pr_boot + gates; sha256 b594eae45116929b8144acdcfc13d041da2d0c6aeb18f110c54db2d5fa6b9584 (LF line endings); the result file lists this amendment under 'amendments'",
+ "evidence_sha256": {
+  "scripts/robotarium/power_study_b.py": "f226089f21920357c480b990127092f43511fb023cc5d99632d20da481fad779",
+  "docs/research/vision_caution_study_b_power_v2.json": "10c298ca4e27f407f9f1f9a1b985358872d97a7c0fb493ad9a953921dbea0b9c"
+ }
+}

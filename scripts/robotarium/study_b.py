@@ -17,6 +17,11 @@ Every arm's threshold: 0.95 quantile of its scores on the calibration runs' haza
 decisions. Head, thresholds and background are written and hashed before the sealed runs
 are ledgered and scored once. CPU only.
 
+Amendment 1 (vision_caution_robotarium_protocol_v3_amendment1.json, before any sealed run was
+downloaded): G1, S1 and S2 are decided by the episode-cluster bootstrap CI95 of the AUC-PR
+difference (lower bound > 0). The registered recall criteria are still computed and reported
+as *_recall_registered_v3, but no longer decide.
+
 Usage:
   CUDA_VISIBLE_DEVICES=-1 python scripts/robotarium/study_b.py --dry-run
   CUDA_VISIBLE_DEVICES=-1 python scripts/robotarium/study_b.py --smoke    # tiny sim, spent runs as 'sealed', temp ledger
@@ -42,6 +47,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(HERE))
 
 PROTOCOL = ROOT / "docs/research/vision_caution_robotarium_protocol_v3.json"
+AMENDMENT = ROOT / "docs/research/vision_caution_robotarium_protocol_v3_amendment1.json"
 OUT = ROOT / "docs/research/vision_caution_robotarium_result_v3.json"
 ART_DIR = ROOT / "docs/research/artifacts/vision-caution-arena-v1"
 BG_PATH = ROOT / "target/robotarium/arena_background_v1.npy"
@@ -75,6 +81,23 @@ def sim_features(enc, n, seed, bg, rng_seed, pools=(4, 8)):
     return {p: torch.cat(v) for p, v in feats.items()}, {k: np.concatenate(v) for k, v in meta.items()}
 
 
+def auc_pr_boot(s_a, s_b, y, ep, n_ep, reps=10000, seed=0):
+    """Amendment 1: episode-cluster bootstrap of AUC-PR(a) - AUC-PR(b) on the same decisions."""
+    from sklearn.metrics import average_precision_score as ap
+    rows = [np.flatnonzero(ep == k) for k in range(n_ep)]
+    rng = np.random.default_rng(seed)
+    diffs = []
+    for _ in range(reps):
+        idx = np.concatenate([rows[k] for k in rng.integers(0, n_ep, n_ep)])
+        if y[idx].min() != y[idx].max():          # a replicate without both classes has no AUC-PR
+            diffs.append(ap(y[idx], s_a[idx]) - ap(y[idx], s_b[idx]))
+    if y.min() == y.max() or not diffs:
+        return {"auc_pr_difference": None, "ci95": [None, None], "replicates_used": len(diffs), "episodes": int(n_ep)}
+    return {"auc_pr_difference": float(ap(y, s_a) - ap(y, s_b)),
+            "ci95": [float(np.quantile(diffs, 0.025)), float(np.quantile(diffs, 0.975))],
+            "replicates_used": len(diffs), "episodes": int(n_ep)}
+
+
 def main():
     global OUT, ART_DIR, BG_PATH
     import torch
@@ -93,6 +116,7 @@ def main():
     ap.add_argument("--smoke", action="store_true")
     a = ap.parse_args()
     proto = json.loads(PROTOCOL.read_text(encoding="utf-8"))
+    json.loads(AMENDMENT.read_text(encoding="utf-8"))          # the amended gates must be registered
     runs = proto["runs"]
     spent = [f"seed{s}" for s in runs["spent_real_seeds"]]
     cal = [f"seed{s}" for s in runs["calibration_seeds"]]
@@ -101,6 +125,7 @@ def main():
     n_tr, n_se, epochs = sim["train_episodes"], sim["selection_episodes"], EPOCHS
     if a.dry_run:
         print("primary:", proto["gates"]["primary_success"])
+        print("amendment:", json.loads(AMENDMENT.read_text(encoding="utf-8"))["G1_amended"])
         print("spent present:", sum((TE.RUNS / n / "frames.npz").exists() for n in spent), "of", len(spent))
         print("sealed present:", [n for n in sealed if (TE.RUNS / n / "frames.npz").exists()])
         print("ledger:", "ALREADY opened -> REFUSE" if FV.ledger_has(LEDGER_KEY) else "not yet opened -> eligible")
@@ -200,31 +225,42 @@ def main():
     boot = {"sim_arena_minus_action_only": RP.cluster_boot(hits["vision_sim_arena"], hits["action_only"], y, ep, n_ep),
             "finetune_minus_action_only": RP.cluster_boot(hits["vision_sim_finetune"], hits["action_only"], y, ep, n_ep),
             "finetune_minus_sim_arena": RP.cluster_boot(hits["vision_sim_finetune"], hits["vision_sim_arena"], y, ep, n_ep)}
-    beats = lambda a_, b_, key: (res[a_]["auc_pr"] > res[b_]["auc_pr"] and res[a_]["recall"] > res[b_]["recall"]
-                                 and (boot[key]["ci95"][0] or 0) > 0)
-    g1 = beats("vision_sim_arena", "action_only", "sim_arena_minus_action_only")
+    pairs = {"sim_arena_minus_action_only": ("vision_sim_arena", "action_only"),
+             "finetune_minus_action_only": ("vision_sim_finetune", "action_only"),
+             "finetune_minus_sim_arena": ("vision_sim_finetune", "vision_sim_arena")}
+    boot_ap = {k: auc_pr_boot(fin[a_], fin[b_], y, ep, n_ep) for k, (a_, b_) in pairs.items()}
+    beats = lambda key: (boot_ap[key]["ci95"][0] or 0) > 0                               # amendment 1
+    beats_v3 = lambda a_, b_, key: (res[a_]["auc_pr"] > res[b_]["auc_pr"] and res[a_]["recall"] > res[b_]["recall"]
+                                    and (boot[key]["ci95"][0] or 0) > 0)                 # registered v3, reported only
+    g1 = beats("sim_arena_minus_action_only")
     g2 = res["vision_sim_arena"]["realized_fpr"] <= BUDGET
+    ft_budget = res["vision_sim_finetune"]["realized_fpr"] <= BUDGET
     gates = {"G1_sim_arena_beats_action_only": bool(g1), "G2_budget_holds": bool(g2), "primary_success": bool(g1 and g2),
-             "S1_finetune_beats_action_only": bool(beats("vision_sim_finetune", "action_only", "finetune_minus_action_only")
-                                                  and res["vision_sim_finetune"]["realized_fpr"] <= BUDGET),
-             "S2_finetune_beats_sim_arena": bool(beats("vision_sim_finetune", "vision_sim_arena", "finetune_minus_sim_arena"))}
+             "S1_finetune_beats_action_only": bool(beats("finetune_minus_action_only") and ft_budget),
+             "S2_finetune_beats_sim_arena": bool(beats("finetune_minus_sim_arena")),
+             "G1_recall_registered_v3": bool(beats_v3("vision_sim_arena", "action_only", "sim_arena_minus_action_only")),
+             "S1_recall_registered_v3": bool(beats_v3("vision_sim_finetune", "action_only", "finetune_minus_action_only")
+                                             and ft_budget),
+             "S2_recall_registered_v3": bool(beats_v3("vision_sim_finetune", "vision_sim_arena", "finetune_minus_sim_arena"))}
     by_type = {arm: {k: {"positives": int(v.sum()), "recall": float(hits[arm][v == 1].mean()) if v.sum() else None}
                      for k, v in isd["types"].items()} for arm in ("vision_sim_arena", "vision_sim_finetune")}
     print(f"\nFINAL Robotarium v3 sealed: {len(y)} decisions, {n_ep} episodes, prevalence {y.mean():.3f}; "
           f"runs passing the gate: {[n for n in sealed if sd_qual[n]['passes']]}")
     for m, r in res.items():
         print(f"  {m:20s} AUC-PR {r['auc_pr']:.3f} ROC {r['auc_roc']:.3f} | recall {r['recall']:.3f} at realized FPR {r['realized_fpr']:.3f}")
+    for k, b in boot_ap.items():
+        print(f"  {k}: AUC-PR difference {b['auc_pr_difference']} CI95 {b['ci95']} (decides, amendment 1)")
     for k, b in boot.items():
-        print(f"  {k}: {b['recall_difference']} CI95 {b['ci95']}")
+        print(f"  {k}: recall difference {b['recall_difference']} CI95 {b['ci95']} (registered v3, reported)")
     print("  gates:", json.dumps(gates))
     rel = lambda p: str(p if a.smoke else Path(p).relative_to(ROOT)).replace("\\", "/")
-    doc = {"schema_version": "vision-caution-robotarium-result-v3", "protocol": PROTOCOL.name,
+    doc = {"schema_version": "vision-caution-robotarium-result-v3", "protocol": PROTOCOL.name, "amendments": [AMENDMENT.name],
            "status": "registered final (study B) on real Robotarium robots and camera, opened once; head trained in "
                      "simulation only; branch work (not main); advisory only",
            "sealed_runs": sealed, "sealed_quality": sd_qual, "decisions": int(len(y)), "episodes": int(n_ep),
            "prevalence": float(y.mean()), "pool": pool, "artifacts": {rel(ART_DIR / k): v for k, v in hashes.items()},
            "background_sha256": meta["background_sha256"], "thresholds": thr, "calibration_auc_pr": cal_ap,
-           "results": res, "bootstrap": boot, "gates": gates, "recall_by_hazard_type": by_type,
+           "results": res, "bootstrap_auc_pr": boot_ap, "bootstrap": boot, "gates": gates, "recall_by_hazard_type": by_type,
            "code_sha256": {q: sha256_file(ROOT / q) for q in ("scripts/robotarium/study_b.py", "scripts/robotarium/dev_arena_sim.py",
                                                               "scripts/vision_runtime_domain_render.py",
                                                               "scripts/robotarium/video_frames.py",
