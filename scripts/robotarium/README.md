@@ -142,14 +142,16 @@ reaches 17.2%. The tracked model at this rule catches 51% of proximity hazards a
 geofence exits, against 22% and 3% for study B's sim-only head. These numbers are optimistic: the
 same runs shaped the tracker and choose the model and rule.
 
-## Protocol v4 (draft, not registered)
+## Study C (protocol v4, registered 2026-10-28; sealed seeds 801-824)
 
-`docs/research/vision_caution_robotarium_protocol_v4.json` proposes the fresh test: the
-tracked-position model as primary, sealed seeds 801-816, thresholds by the cross-fitted rule,
-success = beats action-only on recall (CI), false alarms <= 0.10, and recall CI95 lower bound
->= 0.30; the frozen study-B fine-tuned head is the secondary comparison on AUC-PR. Estimated power
-(optimistic) 0.96 at 8 usable runs. It is registered only after review, with the harness
-(`study_c.py`) and the simulator check of the sealed seeds, before any submission.
+`docs/research/vision_caution_robotarium_protocol_v4.json`, harness `study_c.py`: the
+tracked-position model as primary, thresholds by the cross-fitted rule, success = beats
+action-only on recall (CI), false alarms <= 0.10, and recall CI95 lower bound >= 0.30; the frozen
+study-B fine-tuned head is the secondary comparison on AUC-PR. The simulator predicts each seed's
+hazard rate closely and seeds 801-816 simulate at 0.103 (about half the spent runs' rate), which
+would cut the recall gate's power to about 0.65-0.80, so 24 consecutive seeds are submitted
+(simulated rate 0.124, about 17 usable expected, power 0.94-1.00, optimistic;
+`power_v4_prevalence.py`). All 24 pass the simulator's testbed checks.
 
 ## Check before uploading
 
