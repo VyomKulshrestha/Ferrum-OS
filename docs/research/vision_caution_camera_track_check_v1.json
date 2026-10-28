@@ -1,0 +1,607 @@
+{
+ "schema_version": "vision-caution-camera-track-check-v1",
+ "status": "diagnostic, not evidence: tracked vs logged positions on every run with processed frames",
+ "tracker": "scripts/robotarium/camera_track.py",
+ "unit": "runtime units (1 rt = 0.7 m)",
+ "summary": {
+  "runs": 37,
+  "robot_err_median_of_run_medians_rt": 0.009700499475002289,
+  "robot_err_median_m": 0.006790349632501602,
+  "obstacle_wrong_frac_decision_steps_mean": 0.026105651105651106,
+  "worst_run_obstacle_wrong": "seed604"
+ },
+ "runs": {
+  "seed101": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.012096618302166462,
+    "p90": 0.3481498956680298,
+    "max": 1.5050469636917114
+   },
+   "obstacle_err_rt": {
+    "median": 0.008256048895418644,
+    "p90": 0.025929013267159462
+   },
+   "obstacle_wrong_frac": 0.09615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.045454545454545456,
+   "robot_seen_frac": 0.9615384615384616,
+   "identity_by_motion_frac": 0.8846153846153846
+  },
+  "seed201": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.00831560231745243,
+    "p90": 0.013928359374403954,
+    "max": 1.1004160642623901
+   },
+   "obstacle_err_rt": {
+    "median": 0.006975486408919096,
+    "p90": 0.02026713825762272
+   },
+   "obstacle_wrong_frac": 0.057692307692307696,
+   "obstacle_wrong_frac_decision_steps": 0.03409090909090909,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8557692307692307
+  },
+  "seed202": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.011594354175031185,
+    "p90": 0.018747597932815552,
+    "max": 1.3772052526474
+   },
+   "obstacle_err_rt": {
+    "median": 0.005649513099342585,
+    "p90": 0.008177435025572777
+   },
+   "obstacle_wrong_frac": 0.04807692307692308,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.9038461538461539
+  },
+  "seed203": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009109079837799072,
+    "p90": 0.01582995615899563,
+    "max": 0.20990924537181854
+   },
+   "obstacle_err_rt": {
+    "median": 0.009133754298090935,
+    "p90": 0.023110777139663696
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.8846153846153846
+  },
+  "seed204": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.011637669056653976,
+    "p90": 0.45049428939819336,
+    "max": 1.1503565311431885
+   },
+   "obstacle_err_rt": {
+    "median": 0.014582815580070019,
+    "p90": 0.3695259690284729
+   },
+   "obstacle_wrong_frac": 0.10576923076923077,
+   "obstacle_wrong_frac_decision_steps": 0.045454545454545456,
+   "robot_seen_frac": 0.9615384615384616,
+   "identity_by_motion_frac": 0.8846153846153846
+  },
+  "seed301": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.012830518186092377,
+    "p90": 0.023517563939094543,
+    "max": 1.1152920722961426
+   },
+   "obstacle_err_rt": {
+    "median": 0.009219969622790813,
+    "p90": 0.03437287360429764
+   },
+   "obstacle_wrong_frac": 0.028846153846153848,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9711538461538461,
+   "identity_by_motion_frac": 0.8269230769230769
+  },
+  "seed302": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.00960690900683403,
+    "p90": 0.02486058510839939,
+    "max": 1.4262698888778687
+   },
+   "obstacle_err_rt": {
+    "median": 0.008847415447235107,
+    "p90": 0.012719055637717247
+   },
+   "obstacle_wrong_frac": 0.057692307692307696,
+   "obstacle_wrong_frac_decision_steps": 0.03409090909090909,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.8557692307692307
+  },
+  "seed303": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.010187586769461632,
+    "p90": 0.0242336243391037,
+    "max": 1.4998754262924194
+   },
+   "obstacle_err_rt": {
+    "median": 0.01890622265636921,
+    "p90": 0.029452860355377197
+   },
+   "obstacle_wrong_frac": 0.057692307692307696,
+   "obstacle_wrong_frac_decision_steps": 0.03409090909090909,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8846153846153846
+  },
+  "seed304": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.010093359276652336,
+    "p90": 0.020785680040717125,
+    "max": 1.0616846084594727
+   },
+   "obstacle_err_rt": {
+    "median": 0.012682345695793629,
+    "p90": 0.016381727531552315
+   },
+   "obstacle_wrong_frac": 0.057692307692307696,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.9038461538461539
+  },
+  "seed305": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.0108785480260849,
+    "p90": 0.017699696123600006,
+    "max": 0.9524274468421936
+   },
+   "obstacle_err_rt": {
+    "median": 0.011831886135041714,
+    "p90": 0.0284454096108675
+   },
+   "obstacle_wrong_frac": 0.07692307692307693,
+   "obstacle_wrong_frac_decision_steps": 0.03409090909090909,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8653846153846154
+  },
+  "seed306": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.010803340002894402,
+    "p90": 0.018966734409332275,
+    "max": 1.3313591480255127
+   },
+   "obstacle_err_rt": {
+    "median": 0.008203385397791862,
+    "p90": 0.020235342904925346
+   },
+   "obstacle_wrong_frac": 0.038461538461538464,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.9038461538461539
+  },
+  "seed401": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.008651232346892357,
+    "p90": 0.019218789413571358,
+    "max": 1.878017783164978
+   },
+   "obstacle_err_rt": {
+    "median": 0.011185755953192711,
+    "p90": 0.014940633438527584
+   },
+   "obstacle_wrong_frac": 0.07692307692307693,
+   "obstacle_wrong_frac_decision_steps": 0.056818181818181816,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.8076923076923077
+  },
+  "seed402": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.008761391043663025,
+    "p90": 0.01497158594429493,
+    "max": 0.026438940316438675
+   },
+   "obstacle_err_rt": {
+    "median": 0.007865401916205883,
+    "p90": 0.011619670316576958
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8846153846153846
+  },
+  "seed403": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.012003512121737003,
+    "p90": 0.01767055317759514,
+    "max": 0.5096440315246582
+   },
+   "obstacle_err_rt": {
+    "median": 0.008236699737608433,
+    "p90": 0.011802258901298046
+   },
+   "obstacle_wrong_frac": 0.009615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed404": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.008755113929510117,
+    "p90": 0.013956044800579548,
+    "max": 0.5668230652809143
+   },
+   "obstacle_err_rt": {
+    "median": 0.004758394323289394,
+    "p90": 0.012154257856309414
+   },
+   "obstacle_wrong_frac": 0.019230769230769232,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.9134615384615384
+  },
+  "seed405": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009957768023014069,
+    "p90": 0.016758663579821587,
+    "max": 1.2389731407165527
+   },
+   "obstacle_err_rt": {
+    "median": 0.008221778087317944,
+    "p90": 0.012277050875127316
+   },
+   "obstacle_wrong_frac": 0.009615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9711538461538461,
+   "identity_by_motion_frac": 0.8653846153846154
+  },
+  "seed406": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.010046465322375298,
+    "p90": 0.0180073045194149,
+    "max": 1.6853574514389038
+   },
+   "obstacle_err_rt": {
+    "median": 0.008976743556559086,
+    "p90": 0.019461866468191147
+   },
+   "obstacle_wrong_frac": 0.028846153846153848,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed408": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009700499475002289,
+    "p90": 0.014767603948712349,
+    "max": 1.294392466545105
+   },
+   "obstacle_err_rt": {
+    "median": 0.005492265336215496,
+    "p90": 0.013797101564705372
+   },
+   "obstacle_wrong_frac": 0.019230769230769232,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed501": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009084498509764671,
+    "p90": 0.01808725669980049,
+    "max": 0.9932061433792114
+   },
+   "obstacle_err_rt": {
+    "median": 0.010198567062616348,
+    "p90": 0.0136551633477211
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9519230769230769,
+   "identity_by_motion_frac": 0.8365384615384616
+  },
+  "seed502": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.008543536998331547,
+    "p90": 0.01680922321975231,
+    "max": 1.0711666345596313
+   },
+   "obstacle_err_rt": {
+    "median": 0.008871443569660187,
+    "p90": 0.01399251725524664
+   },
+   "obstacle_wrong_frac": 0.009615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed504": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.0075400881469249725,
+    "p90": 0.013569197617471218,
+    "max": 0.3226214647293091
+   },
+   "obstacle_err_rt": {
+    "median": 0.007489627227187157,
+    "p90": 0.011352342553436756
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9711538461538461,
+   "identity_by_motion_frac": 0.9038461538461539
+  },
+  "seed601": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.007915191352367401,
+    "p90": 0.013507317751646042,
+    "max": 0.6426489353179932
+   },
+   "obstacle_err_rt": {
+    "median": 0.0064811138436198235,
+    "p90": 0.015093505382537842
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9711538461538461,
+   "identity_by_motion_frac": 0.8557692307692307
+  },
+  "seed602": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.01035222876816988,
+    "p90": 0.1876886785030365,
+    "max": 1.3709442615509033
+   },
+   "obstacle_err_rt": {
+    "median": 0.008796477690339088,
+    "p90": 0.012411116622388363
+   },
+   "obstacle_wrong_frac": 0.028846153846153848,
+   "obstacle_wrong_frac_decision_steps": 0.022727272727272728,
+   "robot_seen_frac": 0.9230769230769231,
+   "identity_by_motion_frac": 0.875
+  },
+  "seed604": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.2942489683628082,
+    "p90": 1.3218375444412231,
+    "max": 2.0293190479278564
+   },
+   "obstacle_err_rt": {
+    "median": 0.1684948205947876,
+    "p90": 1.185526967048645
+   },
+   "obstacle_wrong_frac": 0.5,
+   "obstacle_wrong_frac_decision_steps": 0.5,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.7788461538461539
+  },
+  "seed605": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.01175511721521616,
+    "p90": 0.020831501111388206,
+    "max": 0.9089902639389038
+   },
+   "obstacle_err_rt": {
+    "median": 0.009763818234205246,
+    "p90": 0.013728242367506027
+   },
+   "obstacle_wrong_frac": 0.028846153846153848,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed608": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009116104803979397,
+    "p90": 0.01659320294857025,
+    "max": 0.5200532078742981
+   },
+   "obstacle_err_rt": {
+    "median": 0.00820675864815712,
+    "p90": 0.014057530090212822
+   },
+   "obstacle_wrong_frac": 0.028846153846153848,
+   "obstacle_wrong_frac_decision_steps": 0.022727272727272728,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8365384615384616
+  },
+  "seed701": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009249014779925346,
+    "p90": 0.01541148778051138,
+    "max": 0.33357346057891846
+   },
+   "obstacle_err_rt": {
+    "median": 0.009015471674501896,
+    "p90": 0.013768058270215988
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.8365384615384616
+  },
+  "seed703": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.008597689680755138,
+    "p90": 0.014235499314963818,
+    "max": 0.023332804441452026
+   },
+   "obstacle_err_rt": {
+    "median": 0.013531606644392014,
+    "p90": 0.04348302260041237
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.9038461538461539
+  },
+  "seed704": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009680116549134254,
+    "p90": 0.016847018152475357,
+    "max": 0.9112763404846191
+   },
+   "obstacle_err_rt": {
+    "median": 0.010793663561344147,
+    "p90": 0.014391371048986912
+   },
+   "obstacle_wrong_frac": 0.04807692307692308,
+   "obstacle_wrong_frac_decision_steps": 0.03409090909090909,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.875
+  },
+  "seed705": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.00874775554984808,
+    "p90": 0.014572547748684883,
+    "max": 0.2117384523153305
+   },
+   "obstacle_err_rt": {
+    "median": 0.007714598439633846,
+    "p90": 0.01215148065239191
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9807692307692307,
+   "identity_by_motion_frac": 0.8461538461538461
+  },
+  "seed706": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009813756681978703,
+    "p90": 0.018355928361415863,
+    "max": 1.696173071861267
+   },
+   "obstacle_err_rt": {
+    "median": 0.011545814573764801,
+    "p90": 0.022761384025216103
+   },
+   "obstacle_wrong_frac": 0.019230769230769232,
+   "obstacle_wrong_frac_decision_steps": 0.011363636363636364,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.7980769230769231
+  },
+  "seed707": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.009827444329857826,
+    "p90": 0.01686267741024494,
+    "max": 1.464647650718689
+   },
+   "obstacle_err_rt": {
+    "median": 0.008351702243089676,
+    "p90": 0.010937764309346676
+   },
+   "obstacle_wrong_frac": 0.028846153846153848,
+   "obstacle_wrong_frac_decision_steps": 0.022727272727272728,
+   "robot_seen_frac": 1.0,
+   "identity_by_motion_frac": 0.8557692307692307
+  },
+  "seed708": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.007303693797439337,
+    "p90": 0.01465195044875145,
+    "max": 1.5955970287322998
+   },
+   "obstacle_err_rt": {
+    "median": 0.007290482521057129,
+    "p90": 0.0150834359228611
+   },
+   "obstacle_wrong_frac": 0.009615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.9134615384615384
+  },
+  "seed709": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.008909307420253754,
+    "p90": 0.013240998610854149,
+    "max": 1.4144608974456787
+   },
+   "obstacle_err_rt": {
+    "median": 0.0063506849110126495,
+    "p90": 0.01017666794359684
+   },
+   "obstacle_wrong_frac": 0.009615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9519230769230769,
+   "identity_by_motion_frac": 0.875
+  },
+  "seed710": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.012329824268817902,
+    "p90": 0.02252034842967987,
+    "max": 1.410523533821106
+   },
+   "obstacle_err_rt": {
+    "median": 0.01067156158387661,
+    "p90": 0.013112991116940975
+   },
+   "obstacle_wrong_frac": 0.019230769230769232,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed711": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.00833093747496605,
+    "p90": 0.016169045120477676,
+    "max": 0.24729053676128387
+   },
+   "obstacle_err_rt": {
+    "median": 0.005899168085306883,
+    "p90": 0.0076942746527493
+   },
+   "obstacle_wrong_frac": 0.0,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9903846153846154,
+   "identity_by_motion_frac": 0.8942307692307693
+  },
+  "seed712": {
+   "steps": 104,
+   "robot_err_rt": {
+    "median": 0.01291237585246563,
+    "p90": 0.020016131922602654,
+    "max": 1.524049997329712
+   },
+   "obstacle_err_rt": {
+    "median": 0.008330274373292923,
+    "p90": 0.01575564593076706
+   },
+   "obstacle_wrong_frac": 0.009615384615384616,
+   "obstacle_wrong_frac_decision_steps": 0.0,
+   "robot_seen_frac": 0.9615384615384616,
+   "identity_by_motion_frac": 0.8942307692307693
+  }
+ }
+}

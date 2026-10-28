@@ -12,6 +12,8 @@ the 16 cm runtime robot becomes 11.2 cm, about a GRITSbot).
 | `check_in_simulator.py` | runs the upload file in the official simulator and reports the testbed's own checks |
 | `label_robotarium_log.py` | labels a returned run with the runtime's hazard rules (body centres) |
 | `video_frames.py` | syncs the returned video to the log, fits the camera, writes rectified per-step frames |
+| `camera_track.py` | measures robot and obstacle positions from the rectified frames for a state model |
+| `dev_tracking_v4.py` | exploratory check on spent runs: tracked-position model, a threshold rule that travels, v4 power |
 
 Testbed limits respected: 600 s per experiment (8 episodes take about 450 s), no robot
 pair within 0.135 m (a local safety layer keeps robot 0 at least 0.20 m from the
@@ -109,6 +111,45 @@ the head ranks hazards far better than action-only (AUC-PR 0.431 vs 0.226) but c
 AUC-PR difference (estimated power 0.95 at 8 usable runs, optimistic); the registered recall
 criteria are still reported. The amended gate is threshold-free: a pass means the camera head
 ranks real hazards better, not that its alarms catch many of them.
+
+## After study B: positions from the camera (exploratory, spent runs only)
+
+The camera heads above have to infer geometry from pixels. `camera_track.py` measures it instead:
+both GRITSbots are dark blobs on the light floor, so a threshold on the rectified frames (minus
+pixels that are dark in the run's median frame, which removes the projected fence line) finds
+them, and the parked obstacle is the blob that stays put while the other one moves (frames 0..t
+only). Over 37 runs the robot position error has a median of 7 mm; the obstacle is misidentified
+on 1.2% of decision steps (`docs/research/vision_caution_camera_track_check_v1.json`). The faint
+projected disc is not a usable identity cue in the rectified frames.
+
+`dev_tracking_v4.py` holds out each Robotarium batch (2xx..7xx) in turn over the 35 spent runs
+(3080 decisions, `docs/research/vision_caution_tracking_devcheck_v1.json`):
+
+| out of fold, 35 spent runs | AUC-PR | ROC | recall at q = 0.05 | false alarms (worst held-out batch) |
+|---|---|---|---|---|
+| state model on camera-tracked positions | 0.736 | 0.896 | 0.558 | 0.051 (0.083) |
+| state model on true positions | 0.754 | 0.900 | 0.571 | 0.051 (0.098) |
+| action-only | 0.213 | 0.546 | 0.021 | 0.018 (0.032) |
+
+On runs 701-712, the frozen study-B fine-tuned head scores AUC-PR 0.525 (reproducing the study-B
+result) against 0.764 for the tracked-position model, difference CI95 [0.126, 0.337].
+
+Study B's threshold rule (0.95 quantile on four calibration runs) gives false-alarm rates of 0.4%
+to 13.8% on held-out batches, which is why its arms used so little of the 10% budget. A
+cross-fitted rule (the 0.95 quantile of out-of-fold hazard-free scores, leave-one-batch-out over
+all spent runs) keeps every held-out batch at or below 8.3%; at the nominal 10% quantile one batch
+reaches 17.2%. The tracked model at this rule catches 51% of proximity hazards and 67% of
+geofence exits, against 22% and 3% for study B's sim-only head. These numbers are optimistic: the
+same runs shaped the tracker and choose the model and rule.
+
+## Protocol v4 (draft, not registered)
+
+`docs/research/vision_caution_robotarium_protocol_v4.json` proposes the fresh test: the
+tracked-position model as primary, sealed seeds 801-816, thresholds by the cross-fitted rule,
+success = beats action-only on recall (CI), false alarms <= 0.10, and recall CI95 lower bound
+>= 0.30; the frozen study-B fine-tuned head is the secondary comparison on AUC-PR. Estimated power
+(optimistic) 0.96 at 8 usable runs. It is registered only after review, with the harness
+(`study_c.py`) and the simulator check of the sealed seeds, before any submission.
 
 ## Check before uploading
 

@@ -1,0 +1,70 @@
+{
+ "schema_version": "vision-caution-robotarium-protocol-v4",
+ "study_id": "vision-caution-robotarium-v4-camera-tracking",
+ "status": "DRAFT for the user's review, NOT registered. Registration is a later commit that sets registered_at, records the harness sha256 and the simulator check of the sealed seeds, and lands before any sealed seed is submitted. Until then every field may change.",
+ "registered_at": null,
+ "registered_before": "submitting any of the sealed runs below (seeds 801-816)",
+ "branch": "vision-world-model (NOT main)",
+ "question": "Do robot and obstacle positions measured from the overhead camera, fed to a state model, give useful caution alarms on fresh real Robotarium runs: more hazards caught than the action-only control, false alarms within the 0.10 budget, and at least 30% of hazards caught?",
+ "history": {
+  "v1": "sim-trained head, proxy look: primary FAIL on real frames (AUC-PR 0.279 vs base 0.220)",
+  "v2": "head trained on real frames: primary FAIL, underpowered (AUC-PR 0.412 vs action-only 0.236; recall-difference CI95 [-0.054, 0.440])",
+  "v3": "study B, sim-only head in the arena look: primary PASS on the amended AUC-PR gate (0.328 vs action-only 0.215, CI95 [0.015, 0.219]); registered recall gates FAIL (recall 0.130 at FPR 0.042). Fine-tuned head 0.525. True-position reference 0.810. Alarms not useful.",
+  "after_v3": "exploratory on spent runs: the camera head has to infer geometry from pixels; measuring positions from the camera instead and scoring them with the state model nearly closes the gap to the true-position reference"
+ },
+ "design_choices_before_registration": {
+  "tracker": "scripts/robotarium/camera_track.py, developed on spent runs only (docs/research/vision_caution_camera_track_check_v1.json): dark blobs on the 256 px rectified frames that are also >= 60 grey darker than the run's median frame (rejects pieces of the projected fence line), fragments within 12 px merged; obstacle identity from motion using frames 0..t only (the frame-0 blob that stays put while the other moves; one dropped frame does not decide), the faint projected disc only before the robot's first move. Robot position error median 7 mm over 37 runs; obstacle misidentified on 1.2% of decision steps (runs that pass the quality gate).",
+  "model_and_rule": "EXPLORATORY dev check docs/research/vision_caution_tracking_devcheck_v1.json (scripts/robotarium/dev_tracking_v4.py), every Robotarium batch 2xx..7xx held out in turn over the 35 spent runs (3080 decisions). Out-of-fold AUC-PR: trees trained on tracked positions 0.736, trees trained on true positions fed tracked ones 0.728, true positions 0.754, action-only 0.213. Variant chosen by the script's stated rule (highest pooled AUC-PR among tracked variants): trained and scored on tracked positions, tracked reading only.",
+  "threshold_rule": "study B's rule (0.95 quantile on four held-out calibration runs) realized false-alarm rates of 0.4% to 13.8% across held-out batches for the same model, so its thresholds do not travel; that is why study B's arms used 0.5-4% of a 10% budget. The cross-fitted rule below at q = 0.05 kept every held-out batch at or below 8.3% (pooled 5.1%) with pooled recall 0.558 (proximity 0.506, geofence 0.667); at q = 0.10 a held-out batch reached 17.2%. q = 0.05 is the largest tested q whose worst held-out batch stays within 0.10 for both the primary and action-only.",
+  "power": "EXPLORATORY, optimistic (the same runs shaped the tracker and chose model, rule and gates): G1 and G2 1.00 at 6 or more usable runs; G1, G2 and G3 (floor 0.30) 0.90 / 0.96 / 0.99 at 6 / 8 / 10 usable runs; floor 0.35 would give 0.74 / 0.90 / 0.92. S1 0.85 / 0.96 / 0.96 at 6 / 8 / 10 (from runs 701-712, the frozen head's only out-of-sample runs). The testbed truncated or broke 6 of 20 v2 videos and 1 of 12 v3 videos, so 16 sealed runs are submitted to expect about 11 usable."
+ },
+ "honest_scope": {
+  "what_is_real": "the sealed test: real GRITSbots on the Georgia Tech Robotarium executing FerrumOS runtime PhysicalAction sequences, the testbed's overhead camera, tracking-based labels from the testbed's logged poses",
+  "what_is_measured_from_the_camera": "robot and obstacle positions at decision time (camera_track.py). The per-step identity rule uses frames 0..t only; the background used to reject the fence line is the median over the run's frames (static scenery, no label information).",
+  "what_is_not": "not FerrumOS's own robot or camera; the method needs an overhead, calibrated camera with robots that contrast with the floor (the car kit's overhead setup is of this kind, an onboard camera is not); contact never occurs, so hazards are proximity and geofence exit; the label covers the next 3 steps but the model sees only the current action, so even true positions miss many hazards",
+  "authority": "advisory diagnostic only; no permit, block, approval, adapter or actuation authority; off by default"
+ },
+ "runs": {
+  "spent_real_seeds": [201, 202, 203, 204, 301, 302, 303, 304, 305, 306, 401, 402, 403, 404, 405, 406, 408, 501, 502, 504, 601, 602, 605, 608, 701, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712],
+  "spent_use": "opened by protocols v1-v3, never test data here. All 35 train every arm except the frozen head, and their cross-fitted out-of-fold scores set the thresholds. Excluded: pilot 101 (older experiment script), 604 (failed sync), 702 (no processed frames), and the truncated v2 runs.",
+  "batches": "a batch is the hundreds digit of the seed (2xx..7xx); the cross-fitting holds out one batch at a time",
+  "sealed_seeds": [801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816],
+  "script": "scripts/robotarium/ferrum_experiment.py unchanged since protocol v2 (sha256 d303a9605aa78960c856c28398a4b1b7c0b7b1ebe2374d6e3500b8f4575af614)",
+  "simulator_check": "to do before registration: all sixteen sealed seeds pass the official simulator's testbed checks (target/robotarium/check_seeds_v4.log)",
+  "failure_rule": "as protocol v2 amendment 1 and v3 amendment 2: a run with no processed frames or failing the quality gate is excluded and reported, never replaced or resubmitted; a video_frames.py failure raised by the host (memory allocation, or an OpenCV exception before the sync step) gets one retry with unchanged code, a failure caused by the returned data never does"
+ },
+ "processing": "unchanged: video_frames.py (256 px 'inspect' frames), label_robotarium_log.py (body centres, H = 3), quality gate 0.30 / 0.80 / 5 px; then camera_track.track on each run's frames (frozen by sha256 at registration)",
+ "models": {
+  "track_state (PRIMARY)": "HistGradientBoostingClassifier(random_state=0) on camera_track.state_features (the 22 columns of vision_runtime_proxy_final.state_features) built from camera-tracked positions, trained on all 35 spent runs; scored on the sealed runs' tracked positions",
+  "action_only (control)": "LogisticRegression(C=1.0, class_weight='balanced', max_iter=1000) on the 10-dim runtime action, all 35 spent runs",
+  "finetune_head_v3 (secondary comparison)": "the frozen study-B fine-tuned DINOv2 head, docs/research/artifacts/vision-caution-arena-v1/sim_finetune_head.npz (sha256 d32cf20957f29e2fae477c7fa5860ee046b0206dc812e4fb1d9ae4f54785e86a), not retrained; its v3 threshold (logit 1.7045) reported descriptively",
+  "state_true (descriptive reference)": "HistGradientBoostingClassifier(random_state=0) on true positions, all 35 spent runs"
+ },
+ "calibration": "for track_state and action_only: threshold = 0.95 quantile (q = 0.05) of the hazard-free decisions' out-of-fold scores, cross-fitted leave-one-batch-out over the 35 spent runs (6 batches: each batch scored by a model fitted on the other five); the deployed model is then refit on all 35 runs and keeps that threshold",
+ "order": [
+  "quality gate and tracking on spent runs; cross-fitted out-of-fold scores; thresholds",
+  "fit track_state, action_only and state_true on all 35 spent runs; load the frozen head and check its sha256",
+  "write models and thresholds to docs/research/artifacts/vision-caution-tracking-v1/ and hash them; record the camera_track.py sha256",
+  "ledger entry robotarium-sealed-v4 (the harness refuses if it exists)",
+  "quality gate, tracking and labels on sealed runs, then every arm scored once"
+ ],
+ "gates": {
+  "G1_track_beats_action_only": "on sealed decisions, the episode-cluster bootstrap CI95 lower bound of recall(track_state) - recall(action_only), each at its registered threshold, is > 0. A low bar: action-only caught 2% at this rule on spent runs.",
+  "G2_budget_holds": "track_state realized false-alarm rate on sealed hazard-free decisions <= 0.10 at its registered threshold",
+  "G3_useful_recall": "the episode-cluster bootstrap CI95 lower bound of track_state's recall at its registered threshold is >= 0.30",
+  "primary_success": "G1 and G2 and G3",
+  "S1_track_beats_finetune_head (secondary)": "episode-cluster bootstrap CI95 lower bound of AUC-PR(track_state) - AUC-PR(finetune_head_v3) > 0 (threshold-free, as v3 amendment 1)",
+  "descriptive": ["AUC-PR and ROC of every arm", "recall and false-alarm rate of every arm at its threshold", "recall by hazard type (proximity, geofence)", "recall at the threshold that would give exactly 0.10 false alarms on the sealed runs (hindsight, never decides)", "tracking error against the logged positions on sealed runs, computed after scoring", "state_true as an upper reference"]
+ },
+ "statistics": "episode-cluster bootstrap over sealed episodes, 10000 replicates, seed 0 (replicates without both classes skipped and counted for AUC-PR)",
+ "harness": "scripts/robotarium/study_c.py, to be written before registration: --dry-run, --smoke on spent runs with a temp ledger, then the single final; CPU only",
+ "decisions_for_the_user_before_registration": {
+  "G3_floor": "0.30 recommended (estimated power 0.96 at 8 usable runs); 0.35 is stricter (0.90)",
+  "sealed_runs": "16 recommended; Robotarium submissions need the user's OK",
+  "horizon": "kept at H = 3 and the current action only, for comparability with v1-v3; a model that sees the planned action sequence would be a separate study"
+ },
+ "consequences": {
+  "if_primary_passes": "first sealed evidence that a camera-fed caution advisory catches a useful share of real hazards (at least 30%, CI lower bound) within the false-alarm budget on real robots; the tracker + state model becomes the advisory's camera path for overhead setups (Robotarium, car kit). Still not FerrumOS's own camera, off by default, no authority.",
+  "if_primary_fails": "reported as is and retained"
+ }
+}
