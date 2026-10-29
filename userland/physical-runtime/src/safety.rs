@@ -44,6 +44,11 @@ pub struct SafetyPolicy {
     pub geofence: Geofence,
     pub proximity_sensor_id: Option<u64>,
     pub minimum_clearance_mm: i64,
+    /// Longest move a single permit may cover, measured from the controlled actor's last
+    /// tracked position. With it, a clearance reading taken before the move bounds the
+    /// clearance during the move (it can shrink by at most this much), and a target inside a
+    /// convex geofence keeps the straight path inside. `None` keeps the target-only checks.
+    pub maximum_step_mm: Option<i64>,
     pub maximum_sensor_age_ticks: u64,
     pub permit_ttl_ticks: u64,
     pub allow_motion_with_humans: bool,
@@ -125,6 +130,8 @@ pub enum SafetyReason {
     PredictiveWarning,
     PredictiveBlock,
     PredictiveShadowOnly,
+    MoveStepTooLong,
+    StaleActorPosition,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -316,6 +323,39 @@ impl SafetySupervisor {
                 );
             }
 
+            if let Some(maximum_step_mm) = policy.maximum_step_mm {
+                // The step is measured from a fresh tracked position or not at all: a
+                // registered-but-never-observed or stale position fails closed.
+                match endpoint
+                    .controlled_actor_id
+                    .and_then(|actor_id| domain.actor(actor_id))
+                {
+                    Some(actor)
+                        if current_tick >= actor.last_seen_tick
+                            && current_tick - actor.last_seen_tick
+                                <= policy.maximum_sensor_age_ticks =>
+                    {
+                        let dx = i128::from(command.argument0) - i128::from(actor.position.x_mm);
+                        let dy = i128::from(command.argument1) - i128::from(actor.position.y_mm);
+                        let dz = i128::from(command.argument2) - i128::from(actor.position.z_mm);
+                        if dx * dx + dy * dy + dz * dz
+                            > i128::from(maximum_step_mm) * i128::from(maximum_step_mm)
+                        {
+                            add_reason(
+                                &mut decision,
+                                SafetyVerdict::Block,
+                                SafetyReason::MoveStepTooLong,
+                            );
+                        }
+                    }
+                    _ => add_reason(
+                        &mut decision,
+                        SafetyVerdict::Block,
+                        SafetyReason::StaleActorPosition,
+                    ),
+                }
+            }
+
             match policy.proximity_sensor_id {
                 Some(sensor_id) => {
                     if !twin.sensor_is_fresh(
@@ -488,6 +528,7 @@ fn validate_policy(policy: SafetyPolicy) -> Result<(), SafetyError> {
     if policy.revision == 0
         || policy.permit_ttl_ticks == 0
         || policy.minimum_clearance_mm < 0
+        || policy.maximum_step_mm.is_some_and(|step| step <= 0)
         || policy.learned_warning_threshold_permille > policy.learned_block_threshold_permille
         || policy.learned_block_threshold_permille > 1_000
         || !valid_bounds
@@ -525,7 +566,9 @@ mod tests {
     use crate::domain::{
         Actor, ActorKind, CapabilitySet, DomainRegistry, Position, QualificationSet, Site,
     };
-    use crate::twin::{EventEnvelope, EventPayload, SensorKind, SensorReading, ZoneOccupancy};
+    use crate::twin::{
+        ActorTelemetry, EventEnvelope, EventPayload, SensorKind, SensorReading, ZoneOccupancy,
+    };
     use alloc::string::ToString;
 
     fn setup() -> (DomainRegistry, AdapterRegistry, OperationalTwin) {
@@ -598,6 +641,7 @@ mod tests {
             },
             proximity_sensor_id: Some(9),
             minimum_clearance_mm: 500,
+            maximum_step_mm: None,
             maximum_sensor_age_ticks: 10,
             permit_ttl_ticks: 5,
             allow_motion_with_humans: true,
@@ -1056,6 +1100,127 @@ mod tests {
         assert_eq!(
             decision.reasons,
             alloc::vec![SafetyReason::InvalidPrediction]
+        );
+    }
+
+    fn track_actor(domain: &mut DomainRegistry, twin: &mut OperationalTwin, x_mm: i32, y_mm: i32) {
+        let event_id = twin.snapshot().latest_event_id + 1;
+        twin.apply(
+            domain,
+            EventEnvelope {
+                event_id,
+                source_id: 10,
+                source_sequence: event_id,
+                observed_at_tick: 100,
+                received_at_tick: 100,
+                metadata: ObservationMetadata::simulated(event_id, 110),
+                payload: EventPayload::ActorTelemetry(ActorTelemetry {
+                    actor_id: ActorId(8),
+                    position: Position {
+                        x_mm,
+                        y_mm,
+                        z_mm: 0,
+                        zone_id: 7,
+                        observed_at_tick: 100,
+                    },
+                    battery_permille: 1_000,
+                    load_permille: 0,
+                    status: ActorStatus::Available,
+                }),
+            },
+            0,
+        )
+        .unwrap();
+    }
+
+    fn stepped_policy(maximum_step_mm: i64) -> SafetyPolicy {
+        SafetyPolicy {
+            maximum_step_mm: Some(maximum_step_mm),
+            ..policy()
+        }
+    }
+
+    #[test]
+    fn step_bound_blocks_a_long_move_and_allows_a_short_one() {
+        let (mut domain, adapters, mut twin) = setup();
+        prime_twin(&mut domain, &mut twin);
+        track_actor(&mut domain, &mut twin, 0, 0);
+        let mut supervisor = SafetySupervisor::new();
+        supervisor.install_policy(stepped_policy(150)).unwrap();
+        let mut long = motion(1, &twin);
+        long.argument0 = 100;
+        long.argument1 = 200; // 224 mm from the tracked position
+        let decision = supervisor
+            .evaluate(&adapters, &domain, &twin, &long, context(&twin), &[], 100)
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Block);
+        assert_eq!(decision.reasons, alloc::vec![SafetyReason::MoveStepTooLong]);
+
+        let mut short = motion(2, &twin);
+        short.argument0 = 100;
+        short.argument1 = 100; // 141 mm
+        let decision = supervisor
+            .evaluate(&adapters, &domain, &twin, &short, context(&twin), &[], 100)
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Allow);
+    }
+
+    #[test]
+    fn step_bound_without_a_fresh_actor_position_fails_closed() {
+        let (mut domain, adapters, mut twin) = setup();
+        prime_twin(&mut domain, &mut twin); // proximity fresh, actor never tracked
+        let mut supervisor = SafetySupervisor::new();
+        supervisor.install_policy(stepped_policy(150)).unwrap();
+        let mut command = motion(1, &twin);
+        command.argument0 = 10;
+        command.argument1 = 10;
+        let decision = supervisor
+            .evaluate(
+                &adapters,
+                &domain,
+                &twin,
+                &command,
+                context(&twin),
+                &[],
+                100,
+            )
+            .unwrap();
+        assert_eq!(decision.verdict, SafetyVerdict::Block);
+        assert!(decision.reasons.contains(&SafetyReason::StaleActorPosition));
+
+        // a tracked position that has aged past the sensor age limit is not used either
+        track_actor(&mut domain, &mut twin, 0, 0);
+        let command = AdapterCommand {
+            metadata: CommandMetadata::kernel(
+                100,
+                1,
+                twin.snapshot().latest_event_id,
+                EndpointCapability::Move,
+                ConfirmationProvenance::LocalHuman { confirmation_id: 2 },
+            ),
+            idempotency_key: 2,
+            ..command
+        };
+        let decision = supervisor
+            .evaluate(
+                &adapters,
+                &domain,
+                &twin,
+                &command,
+                context(&twin),
+                &[],
+                111,
+            )
+            .unwrap();
+        assert!(decision.reasons.contains(&SafetyReason::StaleActorPosition));
+    }
+
+    #[test]
+    fn step_bound_must_be_positive() {
+        let mut supervisor = SafetySupervisor::new();
+        assert_eq!(
+            supervisor.install_policy(stepped_policy(0)),
+            Err(SafetyError::InvalidPolicy)
         );
     }
 }

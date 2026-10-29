@@ -1096,6 +1096,8 @@ fn safety_reason_code(reason: SafetyReason) -> u32 {
         SafetyReason::PredictiveWarning => 14,
         SafetyReason::PredictiveBlock => 15,
         SafetyReason::PredictiveShadowOnly => 16,
+        SafetyReason::MoveStepTooLong => 17,
+        SafetyReason::StaleActorPosition => 18,
     }
 }
 
@@ -1234,6 +1236,7 @@ mod tests {
                 },
                 proximity_sensor_id: Some(9),
                 minimum_clearance_mm: 500,
+                maximum_step_mm: None,
                 maximum_sensor_age_ticks: 20,
                 permit_ttl_ticks: 5,
                 allow_motion_with_humans: false,

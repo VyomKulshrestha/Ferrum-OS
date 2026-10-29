@@ -3,6 +3,7 @@
 extern crate alloc;
 
 pub mod adapter;
+pub mod car_arena;
 pub mod contract;
 pub mod domain;
 pub mod experience;

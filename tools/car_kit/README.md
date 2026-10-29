@@ -17,6 +17,7 @@ and firmware only make sure an issued command cannot run away.
 | `mock_car.py` | firmware twin (same semantics) + tilted pinhole phone camera, for tests |
 | `firmware/ferrum_car/ferrum_car.ino` | ESP32-CAM sketch: TTL dead-man, bump latch, token |
 | `__main__.py` | bring-up commands: `selftest`, `calibrate`, `track`, `ping`, `wheels`, `goto` |
+| `shadow_gate.py` | FerrumOS judging each proposed move from the tracked scene, actuator disabled (roadmap M1) |
 
 ## Shopping list (October 2026 prices)
 
@@ -87,6 +88,34 @@ The serial monitor (115200 baud) prints the car's IP.
 | car leaves the arena rectangle | backend stop | one control period |
 | target outside the arena (minus 5 cm) | backend, nothing is sent | before motion |
 | move takes over 8 s | backend stop | - |
+
+## Shadow gate (roadmap M1)
+
+In M1 FerrumOS judges the car's moves but does not issue them. `ShadowGate` runs
+`tools/car_gate`, a host program around `userland/physical-runtime/src/car_arena.rs`: one
+hardware-in-loop runtime session with the actuator disabled, its policy built from measured
+numbers (`ArenaMeasurements`). Each tracked `Scene` becomes the car's position and its
+edge-to-edge clearance to the obstacle; each proposed move comes back as `allow`, `block` or
+`require_approval` with the gate's reasons. The operator still drives with `goto`.
+
+The policy's margin is `tracker p99 error + top speed x (camera-to-verdict latency + stopping
+time)`. The geofence is the marked rectangle inset by the car's radius and the margin; the
+clearance floor is the required clearance plus the margin plus the step bound, because a permit
+covers at most `max_step` from the last tracked position (`MoveStepTooLong` otherwise). A scene
+without the car or the obstacle sends nothing, so the readings age out and motion blocks
+(`StaleProximitySensor`, `StaleActorPosition`). Measure the five numbers on the real car first;
+the draft protocol `docs/research/car_m1_protocol_v1_draft.json` says how.
+
+```bash
+cargo build --release --manifest-path tools/car_gate/Cargo.toml --target x86_64-pc-windows-gnu
+python -m unittest tools.car_kit.test_shadow_gate
+```
+
+On this host the MSVC linker is not installed; run cargo from PowerShell with the GNU toolchain's
+own binaries (`rustup which --toolchain stable-x86_64-pc-windows-gnu cargo`, and `RUSTC` set to
+its `rustc`), because a standalone MSVC Rust install comes first on PATH and Git Bash's `link`
+shadows `link.exe`. One gate process is one session (8,192 evidence records, about 1,600
+proposals): send the latest scene just before each proposal, and start a new gate per run.
 
 ## Tests
 

@@ -1,6 +1,7 @@
 /target/
 /target*/
 /userland/**/target/
+/tools/**/target/
 *.bin
 !appliance/packages/notes/bin
 !appliance/world-model/*.bin

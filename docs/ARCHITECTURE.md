@@ -837,6 +837,15 @@ work order -> typed actor dispatch -> canonical adapter command
   grant lets a matching physical-JEPA forecast raise `Allow` to approval/block;
   it cannot reduce severity, grant a permit, cross into actuator-disabled HIL
   or live mode, or disable deterministic enforcement.
+- **Step bound (branch `vision-world-model`)**: a `SafetyPolicy` may set
+  `maximum_step_mm`. A `MoveTo` is then blocked when its target is farther
+  than that from the controlled actor's last tracked position
+  (`MoveStepTooLong`), or when that position is missing or older than the
+  sensor age limit (`StaleActorPosition`). Geofence and proximity check only
+  the target and the current clearance; the bound makes them hold for the
+  whole straight move. `None` keeps the previous behaviour. `car_arena.rs`
+  builds the car kit's policy and its hardware-in-loop, actuator-disabled
+  session from tracker measurements (roadmap M1).
 - **Deterministic supervisor**: `AuthoritySeverity` is a monotonic
   `Allow < RequireApproval < Block < EmergencyStop` lattice. A bounded priority
   queue prevents ordinary goals from starving stop/health traffic; command-rate,

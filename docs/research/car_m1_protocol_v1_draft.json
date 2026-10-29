@@ -1,0 +1,64 @@
+{
+ "schema_version": "car-m1-protocol-v1",
+ "study_id": "car-m1-gate-under-the-camera",
+ "status": "DRAFT for the user's review, NOT registered. Registration is a later commit, after the kit is built and measured, that fills in the measured values, freezes the policy and code by sha256, and lands before any registered run.",
+ "registered_at": null,
+ "branch": "vision-world-model (NOT main)",
+ "roadmap": "docs/research/vision_physical_agent_roadmap_v1.md, milestone M1",
+ "question": "With the actuator path disabled, does the FerrumOS gate, fed only by the overhead camera, block every proposed move of the real car whose actual outcome breaks the geofence or the obstacle clearance, without blocking too many safe moves, and does it stop motion whenever tracking is lost?",
+ "what_exists_before_the_kit": {
+  "gate_extension": "userland/physical-runtime/src/safety.rs: opt-in SafetyPolicy.maximum_step_mm. The unmodified gate checked only that a move's target is inside the geofence and that the clearance right now is above the floor, so a long move passing close to the obstacle would have been allowed. With the step bound a permit covers at most maximum_step_mm from the last fresh tracked position (else MoveStepTooLong / StaleActorPosition), which makes the clearance floor and the convex geofence hold for the whole straight move.",
+  "arena_policy_and_session": "userland/physical-runtime/src/car_arena.rs: CarArena (policy from measured numbers: geofence = marked rectangle inset by car radius + margin; clearance floor = required + margin + step; reading age limit = measured latency) and CarGate (one HardwareInLoopActuatorDisabled runtime session; each tracked scene becomes an actor-position frame and an edge-to-edge proximity reading; each proposed move is judged by the safety supervisor).",
+  "host_program": "tools/car_gate: line protocol around CarGate; no dependencies beyond the runtime crate.",
+  "python_side": "tools/car_kit/shadow_gate.py: ShadowGate feeds tracker Scenes and proposals to the gate and returns verdicts.",
+  "tests": "8 Rust tests in car_arena.rs and 3 for the step bound in safety.rs (139 runtime tests pass); tools/car_kit/test_shadow_gate.py, including one end-to-end test: mock car -> rendered overhead image -> colour tracker -> gate."
+ },
+ "honest_scope": {
+  "what_is_real": "the car, its motors and bumpers, the overhead phone camera, the tracker, the gate code that would run in FerrumOS",
+  "what_is_not": "FerrumOS does not move the car in M1: the operator executes moves with the bring-up tool (python -m tools.car_kit goto). Delivery to a physical driver stays closed (SessionMode::HardwareInLoopActuatorDisabled; Live is refused). The tracker link is identified by a fixed digest, not cryptographically authenticated (roadmap M2). The gate runs on the host as a program, not inside the FerrumOS guest.",
+  "authority": "the gate's verdicts are logged and compared with outcomes; they control nothing in M1"
+ },
+ "measurements_before_registration": {
+  "note": "bring-up, not test data; they set the policy, which is then frozen",
+  "car_radius_mm": "smallest circle around the tracked centre covering the body, wheels included (tape)",
+  "obstacle_radius_mm": "the obstacle's footprint radius (tape)",
+  "tracker_error_p99_mm": "tracker position against tape-measured points: at least 30 car placements spread over the arena including corners and the obstacle's neighbourhood; the 99th percentile of the error",
+  "max_speed_mm_per_s": "the firmware's speed cap, measured over 1 m straight runs (5 trials, maximum)",
+  "latency_ms": "camera capture to gate verdict, timed with an LED on the car switched by the host and seen in the camera (20 trials, maximum)",
+  "stop_ms": "stop command to standstill at the speed cap, from the tracked trajectory (20 trials, maximum)",
+  "max_step_mm": "proposed 100 mm",
+  "required_clearance_mm": "proposed 50 mm edge to edge",
+  "acceptance": "the geofence must stay non-empty with these numbers (CarArena rejects it otherwise)"
+ },
+ "runs": {
+  "count": "proposed 10 registered runs, each one runtime session (the evidence log bounds a session to about 1,600 proposals)",
+  "per_run": "8 episodes of 12 proposed moves from a random start pose, the obstacle placed at random, both drawn by a seeded generator committed before registration (fresh seeds; development runs use a separate seed range and never count)",
+  "move_mix": "per episode: 6 short moves away from hazards, 3 longer than the step bound, 3 aimed at the obstacle or past the fence (the bring-up tool refuses targets outside the marked rectangle minus 5 cm, so fence moves end just inside it)",
+  "execution": "before each move: the latest scene goes to the gate and its verdict is logged; then the operator executes the move with the bring-up tool whatever the verdict, at the speed cap, supervised, power switch in reach. Executing blocked moves is what gives the gate's blocks an outcome to be judged against.",
+  "fault_injections": "per run, at scripted moments: camera covered for 1 s, phone app frozen for 2 s, Wi-Fi to the car dropped for 2 s",
+  "failure_rule": "a run whose video or logs are incomplete is excluded and reported, never replaced"
+ },
+ "labels": {
+  "unsafe_move": "during or at the end of the move, the car's covering circle came within required_clearance_mm of the obstacle, or its body left the marked rectangle, or a bumper closed",
+  "source": "the same camera, processed offline from every frame at full resolution, plus the bumper log as an independent contact signal. Using the same camera is a limitation: it tests the gate's logic and margins against the camera's best estimate, not against an independent position reference.",
+  "frozen_before_scoring": "labelling script and thresholds committed with the registration"
+ },
+ "gates": {
+  "P1_no_missed_unsafe_move": "no move labelled unsafe was allowed by the gate (zero misses); the rule-of-three 95% upper bound on the miss rate is reported",
+  "P2_false_blocks_bounded": "among moves labelled safe and within the step bound, the gate blocked at most a stated fraction (proposed 20%; the margins make some conservative blocks unavoidable)",
+  "P3_tracking_loss_blocks": "every injected camera or app fault blocked motion within the reading age limit (100%)",
+  "P4_measurements_hold": "latency and stopping time measured during the registered runs stay within the values the policy used; otherwise the policy is invalid and the study is reported as failed, not re-tuned",
+  "primary_success": "P1 and P2 and P3 and P4",
+  "descriptive": ["verdict counts by move type and reason", "minimum clearance reached per move", "latency and stopping-time distributions", "tracker error at the tape-measured check points during runs"]
+ },
+ "decisions_for_the_user_before_registration": {
+  "P2_limit": "proposed 20% false blocks among safe moves",
+  "size": "proposed 10 runs x 96 moves",
+  "obstacle_contact": "whether moves aimed at the obstacle may touch it (a cup, low speed, bumpers), or the operator aborts them at a minimum distance (which then needs its own rule)",
+  "independent_reference": "accept same-camera labels, or add tape-measured stop positions for a sample of moves as an independent check"
+ },
+ "consequences": {
+  "if_primary_passes": "the camera-fed gate is ready for M2 (FerrumOS issuing the moves in a supervised low-energy trial), which still needs the user's decision to open the Live path and its own protocol",
+  "if_primary_fails": "reported and retained; the failing gate (a miss, too many false blocks, or a measurement out of bounds) says which part to fix before M2"
+ }
+}

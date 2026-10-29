@@ -417,6 +417,7 @@ fn build_runtime_with_session(
             },
             proximity_sensor_id: Some(9),
             minimum_clearance_mm: 500,
+            maximum_step_mm: None,
             maximum_sensor_age_ticks: 20,
             permit_ttl_ticks: 5,
             allow_motion_with_humans: false,

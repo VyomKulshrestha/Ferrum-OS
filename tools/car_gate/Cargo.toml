@@ -1,0 +1,13 @@
+[package]
+name = "ferrum-car-gate"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Host-side shadow gate for the car kit (roadmap M1): the FerrumOS physical runtime judging tracked moves, actuator disabled"
+publish = false
+
+# Its own workspace: not part of the bare-metal kernel package at the repository root.
+[workspace]
+
+[dependencies]
+ferrum-physical-runtime = { path = "../../userland/physical-runtime" }

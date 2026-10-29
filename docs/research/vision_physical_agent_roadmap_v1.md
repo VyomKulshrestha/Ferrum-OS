@@ -62,6 +62,18 @@ enough on real robots to be the car's position source in M1.
 
 ### M1. The car under the gate, actuator disabled (allowed today)
 
+**Built before the kit (2026-10-29), tested on the mock car:**
+- The gate only checked a move's target against the geofence and the clearance right now, so a
+  long move passing close to the obstacle would have been allowed. `SafetyPolicy.maximum_step_mm`
+  (opt-in, `safety.rs`) limits a permit to that distance from the last fresh tracked position,
+  which makes both checks hold for the whole straight move; a missing or stale position blocks.
+- `userland/physical-runtime/src/car_arena.rs`: the arena policy from the measured numbers, and
+  the hardware-in-loop, actuator-disabled session that turns each tracked scene into the car's
+  position and the obstacle clearance and judges proposed moves.
+- `tools/car_gate` (host program) and `tools/car_kit/shadow_gate.py`; an end-to-end test runs
+  mock car -> rendered overhead image -> colour tracker -> gate.
+- Draft protocol: `docs/research/car_m1_protocol_v1_draft.json`.
+
 The runtime's qualification ladder (`qualification.rs`) has four stages: software simulation, then
 hardware-in-loop with the actuator disabled, then a supervised low-energy trial, then bounded live
 operation. `deliver_next` refuses `SessionMode::Live` outright ("no authenticated real-device
