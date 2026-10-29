@@ -1,0 +1,381 @@
+{
+ "schema_version": "vision-caution-robotarium-result-v4",
+ "protocol": "vision_caution_robotarium_protocol_v4.json",
+ "status": "registered final (study C) on real Robotarium robots and camera, opened once; camera-tracked positions fed to a state model; branch work (not main); advisory only",
+ "sealed_runs": [
+  "seed801",
+  "seed802",
+  "seed803",
+  "seed804",
+  "seed805",
+  "seed806",
+  "seed807",
+  "seed808",
+  "seed809",
+  "seed810",
+  "seed811",
+  "seed812",
+  "seed813",
+  "seed814",
+  "seed815",
+  "seed816",
+  "seed817",
+  "seed818",
+  "seed819",
+  "seed820",
+  "seed821",
+  "seed822",
+  "seed823",
+  "seed824"
+ ],
+ "sealed_quality": {
+  "seed801": {
+   "window_corr_median": 0.5507091733580463,
+   "hold_pairing": 0.9889908256880734,
+   "median_err_px": 1.0846756394151855,
+   "passes": true
+  },
+  "seed802": {
+   "window_corr_median": 0.6103409196552688,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.5715964477565,
+   "passes": true
+  },
+  "seed803": {
+   "window_corr_median": 0.616663928978068,
+   "hold_pairing": 0.9963898916967509,
+   "median_err_px": 1.693027159527563,
+   "passes": true
+  },
+  "seed804": {
+   "window_corr_median": 0.668423577247049,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.3996529698974145,
+   "passes": true
+  },
+  "seed805": {
+   "window_corr_median": 0.6489249006494966,
+   "hold_pairing": 0.9676840215439856,
+   "median_err_px": 1.9518332950045028,
+   "passes": true
+  },
+  "seed806": {
+   "window_corr_median": 0.6257776957076431,
+   "hold_pairing": 1.0,
+   "median_err_px": 2.5192884561630837,
+   "passes": true
+  },
+  "seed807": {
+   "window_corr_median": 0.6495231719132736,
+   "hold_pairing": 0.9785714285714285,
+   "median_err_px": 2.617838796691566,
+   "passes": true
+  },
+  "seed808": {
+   "window_corr_median": 0.6614821372139528,
+   "hold_pairing": 1.0,
+   "median_err_px": 2.2313880528316683,
+   "passes": true
+  },
+  "seed809": {
+   "window_corr_median": 0.6691255478872826,
+   "hold_pairing": 0.9688073394495413,
+   "median_err_px": 2.916334075685933,
+   "passes": true
+  },
+  "seed810": {
+   "window_corr_median": 0.682151431641002,
+   "hold_pairing": 0.9787610619469026,
+   "median_err_px": 2.2644351972876895,
+   "passes": true
+  },
+  "seed811": {
+   "window_corr_median": 0.6139204548474446,
+   "hold_pairing": 0.9784172661870504,
+   "median_err_px": 2.432162077292247,
+   "passes": true
+  },
+  "seed812": {
+   "window_corr_median": 0.661844217803365,
+   "hold_pairing": 1.0,
+   "median_err_px": 2.0793571645470132,
+   "passes": true
+  },
+  "seed813": {
+   "window_corr_median": 0.6150231438190054,
+   "hold_pairing": 0.9889908256880734,
+   "median_err_px": 1.6655973152030474,
+   "passes": true
+  },
+  "seed814": {
+   "window_corr_median": 0.6681209261880223,
+   "hold_pairing": 0.9892086330935251,
+   "median_err_px": 1.1939401088476957,
+   "passes": true
+  },
+  "seed815": {
+   "window_corr_median": 0.677462410949135,
+   "hold_pairing": 0.8710865561694291,
+   "median_err_px": 1.978995582542072,
+   "passes": true
+  },
+  "seed816": {
+   "window_corr_median": 0.5900177254195045,
+   "hold_pairing": 0.9413854351687388,
+   "median_err_px": 1.9138700698125366,
+   "passes": true
+  },
+  "seed817": {
+   "window_corr_median": 0.6511361150718313,
+   "hold_pairing": 0.9892086330935251,
+   "median_err_px": 1.5458888890321447,
+   "passes": true
+  },
+  "seed818": {
+   "window_corr_median": 0.6687416685371478,
+   "hold_pairing": 0.9792452830188679,
+   "median_err_px": 2.0397589995662844,
+   "passes": true
+  },
+  "seed819": {
+   "window_corr_median": 0.5274044891507503,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.7507984039311248,
+   "passes": true
+  },
+  "seed820": {
+   "window_corr_median": 0.48130608465329017,
+   "hold_pairing": 0.9713774597495528,
+   "median_err_px": 0.8803497816992463,
+   "passes": true
+  },
+  "seed821": {
+   "window_corr_median": 0.35937087815276286,
+   "hold_pairing": 0.990990990990991,
+   "median_err_px": 1.1985944772603156,
+   "passes": true
+  },
+  "seed822": {
+   "window_corr_median": 0.429123241741037,
+   "hold_pairing": 1.0,
+   "median_err_px": 1.3629872130515026,
+   "passes": true
+  },
+  "seed823": {
+   "window_corr_median": 0.4519419776580005,
+   "hold_pairing": 0.9616087751371115,
+   "median_err_px": 1.2197402416936027,
+   "passes": true
+  },
+  "seed824": {
+   "passes": false,
+   "reason": "no processed frames (video_frames.py failed)"
+  }
+ },
+ "decisions": 2024,
+ "episodes": 184,
+ "prevalence": 0.15958498023715414,
+ "artifacts": {
+  "docs/research/artifacts/vision-caution-tracking-v1/track_state.pkl": "84211a0bfe621547f0d99fcb77b1a27010bfff56624590a6b192909850730c8e",
+  "docs/research/artifacts/vision-caution-tracking-v1/action_only.pkl": "feeda22bd7cd63da6984921df77051e3108e7318840157c846e32fdce5c3607a",
+  "docs/research/artifacts/vision-caution-tracking-v1/state_true.pkl": "5e83ab725fe67cc363d41820c3f402cf9c02d2f49fdf30912286cf704d19ecb1",
+  "docs/research/artifacts/vision-caution-tracking-v1/thresholds.json": "d3eaf5ee01a64a8a636994b52690d1e3411984d82900842ed8f2d7a29b3e49a0"
+ },
+ "thresholds": {
+  "track_state": 0.47065856671256096,
+  "action_only": 0.5843097567558289,
+  "state_true": 0.4297322128525191,
+  "finetune_head_v3": 1.7044620513916016
+ },
+ "out_of_fold_auc": {
+  "track_state": {
+   "auc_pr": 0.735556592687352,
+   "auc_roc": 0.8957602773452842,
+   "prevalence": 0.19772727272727272
+  },
+  "action_only": {
+   "auc_pr": 0.21282918070554793,
+   "auc_roc": 0.5461820168137589,
+   "prevalence": 0.19772727272727272
+  },
+  "state_true": {
+   "auc_pr": 0.7538785384306821,
+   "auc_roc": 0.9002624200994258,
+   "prevalence": 0.19772727272727272
+  }
+ },
+ "out_of_fold_fpr_by_batch": {
+  "track_state": {
+   "2": 0.0456140350877193,
+   "3": 0.07524271844660194,
+   "4": 0.059670781893004114,
+   "5": 0.07009345794392523,
+   "6": 0.024054982817869417,
+   "7": 0.037037037037037035
+  },
+  "action_only": {
+   "2": 0.03508771929824561,
+   "3": 0.07281553398058252,
+   "4": 0.0,
+   "5": 0.009345794392523364,
+   "6": 0.027491408934707903,
+   "7": 0.09450830140485313
+  },
+  "state_true": {
+   "2": 0.07368421052631578,
+   "3": 0.08737864077669903,
+   "4": 0.06172839506172839,
+   "5": 0.04205607476635514,
+   "6": 0.027491408934707903,
+   "7": 0.02554278416347382
+  }
+ },
+ "results": {
+  "track_state": {
+   "auc_pr": 0.6194050077042841,
+   "auc_roc": 0.8549177955782704,
+   "prevalence": 0.15958498023715414,
+   "threshold": 0.47065856671256096,
+   "recall": 0.44891640866873067,
+   "realized_fpr": 0.0582010582010582,
+   "hindsight_recall_at_fpr_0.10": 0.5603715170278638,
+   "hindsight_fpr": 0.09994121105232216
+  },
+  "action_only": {
+   "auc_pr": 0.18212058129279984,
+   "auc_roc": 0.5597772572316775,
+   "prevalence": 0.15958498023715414,
+   "threshold": 0.5843097567558289,
+   "recall": 0.021671826625386997,
+   "realized_fpr": 0.014697236919459141,
+   "hindsight_recall_at_fpr_0.10": 0.10526315789473684,
+   "hindsight_fpr": 0.09994121105232216
+  },
+  "state_true": {
+   "auc_pr": 0.6359055448776639,
+   "auc_roc": 0.8657837403967434,
+   "prevalence": 0.15958498023715414,
+   "threshold": 0.4297322128525191,
+   "recall": 0.44891640866873067,
+   "realized_fpr": 0.05408583186360964,
+   "hindsight_recall_at_fpr_0.10": 0.5634674922600619,
+   "hindsight_fpr": 0.09994121105232216
+  },
+  "finetune_head_v3": {
+   "auc_pr": 0.4035453239032467,
+   "auc_roc": 0.7529007704446301,
+   "prevalence": 0.15958498023715414,
+   "threshold": 1.7044620513916016,
+   "recall": 0.08978328173374613,
+   "realized_fpr": 0.009994121105232217,
+   "hindsight_recall_at_fpr_0.10": 0.4179566563467492,
+   "hindsight_fpr": 0.09994121105232216
+  }
+ },
+ "G1_bootstrap": {
+  "recall_difference": 0.42724458204334365,
+  "ci95": [
+   0.3448249089740844,
+   0.5054156529587192
+  ],
+  "episodes": 184,
+  "positives": 323
+ },
+ "G3_bootstrap": {
+  "recall": 0.44891640866873067,
+  "ci95": [
+   0.364980030979975,
+   0.5277777777777778
+  ],
+  "episodes": 184,
+  "positives": 323,
+  "replicates_without_positives": 0
+ },
+ "S1_bootstrap": {
+  "auc_pr_difference": 0.21585968380103737,
+  "ci95": [
+   0.10300479339406365,
+   0.3159570756557431
+  ],
+  "replicates_used": 10000,
+  "episodes": 184
+ },
+ "gates": {
+  "G1_track_beats_action_only": true,
+  "G2_budget_holds": true,
+  "G3_useful_recall": true,
+  "primary_success": true,
+  "S1_track_beats_finetune_head": true
+ },
+ "recall_by_hazard_type": {
+  "track_state": {
+   "proximity": {
+    "positives": 238,
+    "recall": 0.37815126050420167
+   },
+   "geofence": {
+    "positives": 93,
+    "recall": 0.6774193548387096
+   },
+   "contact": {
+    "positives": 0,
+    "recall": null
+   }
+  },
+  "action_only": {
+   "proximity": {
+    "positives": 238,
+    "recall": 0.02100840336134454
+   },
+   "geofence": {
+    "positives": 93,
+    "recall": 0.03225806451612903
+   },
+   "contact": {
+    "positives": 0,
+    "recall": null
+   }
+  },
+  "state_true": {
+   "proximity": {
+    "positives": 238,
+    "recall": 0.36134453781512604
+   },
+   "geofence": {
+    "positives": 93,
+    "recall": 0.7204301075268817
+   },
+   "contact": {
+    "positives": 0,
+    "recall": null
+   }
+  },
+  "finetune_head_v3": {
+   "proximity": {
+    "positives": 238,
+    "recall": 0.11764705882352941
+   },
+   "geofence": {
+    "positives": 93,
+    "recall": 0.07526881720430108
+   },
+   "contact": {
+    "positives": 0,
+    "recall": null
+   }
+  }
+ },
+ "tracking_on_sealed": {
+  "robot_err_rt_median": 0.00968078151345253,
+  "robot_err_rt_p90": 0.01719529554247856,
+  "obstacle_wrong_frac": 0.015468227424749164,
+  "robot_seen_frac": 0.9845317725752508
+ },
+ "code_sha256_lf": {
+  "scripts/robotarium/study_c.py": "c87ec4129068b358c09693a86f58c54badb0b586d696c79ff012e9c73e3ced55",
+  "scripts/robotarium/camera_track.py": "4b7d2abcf78233982c04cd756199f488ea7ac467fe26d6cecac8735202547ee3",
+  "scripts/robotarium/video_frames.py": "849c458f08302b1013998f12bb5178997047f2c67d0fe608ca4867169ea9f180",
+  "scripts/robotarium/label_robotarium_log.py": "44d72791343fd89f15b00670087c00150e5e9a8ac678e9127c34d4d9bb86dc5b",
+  "scripts/robotarium/ferrum_experiment.py": "d303a9605aa78960c856c28398a4b1b7c0b7b1ebe2374d6e3500b8f4575af614"
+ }
+}

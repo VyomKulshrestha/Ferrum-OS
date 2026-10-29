@@ -153,6 +153,42 @@ would cut the recall gate's power to about 0.65-0.80, so 24 consecutive seeds ar
 (simulated rate 0.124, about 17 usable expected, power 0.94-1.00, optimistic;
 `power_v4_prevalence.py`). All 24 pass the simulator's testbed checks.
 
+### Result (scored once on 2026-10-29): primary PASS
+
+`docs/research/vision_caution_robotarium_result_v4.json`, ledger `robotarium-sealed-v4`. 23 of 24 runs
+count: seed 824's stored video is 334 s against a 437 s run, its sync failed, and it is excluded;
+seeds 802 and 805 first hit an OpenCV exception while reading frames (host memory) and passed on
+the one retry the protocol's failure rule allows. All 23 pass the quality gate.
+
+| arm (2024 sealed decisions, 184 episodes, prevalence 0.160) | AUC-PR | ROC | recall | false alarms |
+|---|---|---|---|---|
+| state model on camera-tracked positions (primary) | 0.619 | 0.855 | 0.449 | 0.058 |
+| study-B fine-tuned DINOv2 head, frozen (secondary) | 0.404 | 0.753 | 0.090 | 0.010 |
+| action-only control | 0.182 | 0.560 | 0.022 | 0.015 |
+| true-position reference | 0.636 | 0.866 | 0.449 | 0.054 |
+
+- G1 PASS: recall difference vs action-only +0.427, CI95 [0.345, 0.505].
+- G2 PASS: false alarms 0.058 against the 0.10 budget.
+- G3 PASS: recall 0.449, CI95 [0.365, 0.528], above the 0.30 floor.
+- S1 PASS: AUC-PR difference vs the frozen head +0.216, CI95 [0.103, 0.316].
+
+The tracked model catches 38% of proximity hazards and 68% of geofence exits (study B's sim-only
+head: 22% and 3%). Positions measured from the camera do almost as well as the true positions
+(0.619 vs 0.636 AUC-PR, the same recall). On the sealed runs the tracker's robot error has a median
+of 6.8 mm, and the obstacle is misidentified on 1.5% of steps. The cross-fitted threshold rule
+transferred: false alarms 5.8% against its 5% target. Recall at a threshold chosen in hindsight
+for exactly 10% false alarms would have been 0.560 (descriptive, never decides).
+
+Scope: a calibrated overhead camera on a testbed, robots that contrast with the floor, hazards
+limited to proximity and geofence exit, advisory use only. It says nothing about a camera mounted
+on the robot.
+
+Artifacts (`docs/research/artifacts/vision-caution-tracking-v1/`): the result file records the
+sha256 of each file as written on Windows. The `.pkl` models are binary and commit unchanged;
+`thresholds.json` is stored with LF line endings (`.gitattributes`), so its committed copy hashes to
+`a9b0fcb12dae0a66f218d36c10457779b4f971e87b653c4e40042ea7eb00b21a` instead of the recorded `d3eaf5ee01a64a8a636994b52690d1e3411984d82900842ed8f2d7a29b3e49a0` (CRLF). The same applies to study B's
+`thresholds.json`.
+
 ## Check before uploading
 
 The simulator and `cvxopt` live in a separate venv so the main environment is untouched:

@@ -23,7 +23,7 @@ prediction is not permission.
 | Robotarium v2 | head trained on real frames | FAIL, underpowered (0.412 vs action-only 0.236) |
 | Robotarium study B | sim head in the arena's look | PASS on ranking (0.328 vs 0.215); alarms weak (13% recall) |
 | tracking dev check | positions measured from the camera, fed to the state model | 0.736 vs 0.754 with true positions; 56% recall at 5% false alarms (spent runs, exploratory) |
-| study C | the same, registered, fresh runs 801-824 | submitted 2026-10-28, pending |
+| study C | the same, registered, fresh runs 801-824 | PASS 2026-10-29: AUC-PR 0.619 (true positions 0.636), recall 0.449 CI95 [0.365, 0.528] at 5.8% false alarms; action-only 0.182 |
 
 What this says: on an overhead camera, measuring positions beats learning hazards from pixels, and
 the learned head is still useful as an early warning. What it does not say: anything about the
@@ -53,11 +53,12 @@ sensor, not a prediction.
 
 ## Milestones
 
-### M0. Study C final (pending)
+### M0. Study C final (done: PASS)
 
-Download runs 801-824, process, run `scripts/robotarium/study_c.py` once. If it passes, camera
-tracking is good enough on real robots to be the car's position source. If it fails, M1 still runs
-(the car uses its own colour tracker) but the margins in M1 get wider.
+Scored once on 2026-10-29 over 23 usable runs (`docs/research/vision_caution_robotarium_result_v4.json`):
+all gates pass. Positions measured from the overhead camera do almost as well as true positions,
+and the cross-fitted threshold held its false-alarm target on fresh runs. Camera tracking is good
+enough on real robots to be the car's position source in M1.
 
 ### M1. The car under the gate, actuator disabled (allowed today)
 
