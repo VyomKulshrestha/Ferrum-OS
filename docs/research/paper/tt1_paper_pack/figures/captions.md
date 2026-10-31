@@ -52,11 +52,12 @@ exactly (`trajectory_consistency.json`, relative difference 0). Over test1 and t
 36/38 and tracker 20/38, matching the registered tt1 result, and spot_mle 35/38 and dspot 36/38, matching the post-hoc
 file (SPOT and DSPOT were not part of the tt1 registration). test2 (10 attacks) is not drawn. The CSV also holds
 tau_tracker_slow, tau_spot and tau_one_sided:none, which are not drawn here. test1 has no missing values.
-[Corrected by the author on 2026-11-01: the score stays above tau_0 for the first 23.8 h of test1 with no
-attack label, and that stretch lifted the tracker to 5.25 tau_0 before the first attack; the LaTeX caption
-says so. Sources: the opening run of 85,689 s in `results/threshold_transfer_tt1_posthoc_transient.json`
-(`opening_run_seconds`, test1) and `tau_tracker` at the first attack onset (minute 160) in
-`figure_data/threshold_trajectories.csv`.]
+[Corrected by the author on 2026-11-01, after the mock PC review: the score stays above tau_0 for the first
+23.8 h of test1. Only the first 2.7 h of that run carry no attack label, and seven attacks begin inside it.
+The unlabelled opening lifted the tracker to 5.0 tau_0 before the first attack (5.25 tau_0 at its onset);
+the LaTeX caption says so. Sources: the opening run of 85,689 s in
+`results/threshold_transfer_tt1_posthoc_transient.json` (`opening_run_seconds`, test1), and the first attack
+at minute 160 with `tau_tracker` on the rows before and at it in `figure_data/threshold_trajectories.csv`.]
 
 **Checks (from the script, before saving).** 4,860 rows drawn, out of 4,860 in the CSV for test1. The time index is
 contiguous. There are 28 attack intervals, and the tracker caught 12 of them. Totals over both streams: frozen 36/38,
@@ -80,6 +81,9 @@ the registered final; `threshold_trajectories.csv` has no `status` column, so th
 recomputed tau_0 equals the registered value exactly (`trajectory_consistency.json`). Over both test files the traces
 give frozen 14/14, tracker 6/14, spot_mle 14/14 and dspot 6/14, the registered tt1b counts. test_dataset_2 (7 attacks)
 is not drawn.
+[Corrected by the author on 2026-11-01, after the mock PC review: DSPOT's threshold is not kept high by the attacks.
+Its method-of-moments fit starts at 45.8 tau_0 at t = 0, before any attack, and falls through the stream (`tau_dspot`
+in `figure_data/threshold_trajectories.csv`); the LaTeX caption says so.]
 
 **Checks.** 18,433 rows drawn, out of 18,433. The index is contiguous. There are 7 intervals, and the tracker caught 2.
 Totals over both files: 14/14, 6/14, 14/14 and 6/14, as recorded. Ten missing score values, at t = 0 to 9. No overlapping text.
