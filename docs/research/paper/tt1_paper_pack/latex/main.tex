@@ -164,40 +164,50 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
 
 \paragraph{ICS anomaly detection}
 Process-level detectors learn normal behaviour from sensor and actuator traces and flag deviations:
-residuals of a predictive model, reconstruction errors of an autoencoder, or statistical bounds.
-Public testbed recordings with labelled attacks (SWaT~\cite{goh2016swat}, WADI~\cite{ahmed2017wadi},
-BATADAL~\cite{taormina2018batadal}, and the HAI releases~\cite{shin2020hai} for HAI 1.0 (20.07);
-later releases are documented in the dataset repository) are the usual benchmarks. Evaluations
-typically fix one threshold per detector, chosen on clean data or, less defensibly, on the test
-labels. Wu and Keogh~\cite{wu2023benchmarks} list further benchmark pitfalls.
+model residuals, autoencoder reconstruction errors, or statistical bounds. Public testbed recordings
+with labelled attacks (SWaT~\cite{goh2016swat}, WADI~\cite{ahmed2017wadi},
+BATADAL~\cite{taormina2018batadal}, and the HAI releases: HAI 1.0 (20.07)~\cite{shin2020hai}, 21.03
+\cite{shin2021hai}, later releases in the dataset repository) are the usual benchmarks. Evaluations
+usually fix one threshold per detector, chosen on clean data, by an offline peaks-over-threshold
+fit~\cite{su2019omni}, or, less defensibly, on the test labels. Wu and Keogh~\cite{wu2023benchmarks}
+list further benchmark pitfalls.
 
 \paragraph{Threshold rules}
-Static thresholds come from a quantile or a false-alarm budget on clean data. Adaptive variants
-recalibrate on a trailing window, track a target exceedance rate online~\cite{gibbs2021aci}, fit an
-extreme-value tail and update it per observation (SPOT, and DSPOT for drifting
-streams~\cite{siffer2017spot}), or recompute a level on a trailing window of smoothed
-errors~\cite{hundman2018telemanom}. Alarm-management practice in process plants treats nuisance and
-chattering alarms as a condition to eliminate, with explicit alarm-rate
-targets~\cite{isa182}; operators who acknowledge such alarms without investigating them are the
-failure mode our pulse campaigns exploit.
+Static thresholds meet a quantile or false-alarm budget on clean data. Adaptive variants recalibrate on
+a trailing window, track a target exceedance rate online~\cite{gibbs2021aci}, fit an extreme-value tail
+and update it per observation (SPOT, and DSPOT for drifting streams~\cite{siffer2017spot}), or
+recompute a level on a trailing window of smoothed errors~\cite{hundman2018telemanom}. Game-theoretic
+time-varying thresholds~\cite{ghafouri2016thresholds} are precomputed, not learned from the stream.
+Alarm-management practice treats nuisance and chattering alarms as a condition to eliminate, with
+explicit alarm-rate targets, and routes changes to an alarm through authorised management of
+change~\cite{isa182, eemua191}; operators who acknowledge nuisance alarms without investigating them are
+the failure mode our pulse campaigns exploit.
 
-\paragraph{Poisoning of anomaly detectors}
-Rubinstein et al.~\cite{rubinstein2009antidote} showed that slowly shifted traffic (``boiling
-frog'' poisoning) can stop a PCA-based network anomaly detector from flagging a later attack. Kloft
-and Laskov~\cite{kloft2010online} analysed poisoning of online centroid detectors. Chan-Tin
-et al.~\cite{chantin2009frog} described the frog-boiling attack on outlier rejection in network
-coordinate systems, where every update stays within the rejection threshold while the system
-drifts. In ICS, Kravchik and Shabtai~\cite{kravchik2020frog} found that autoencoder detectors
-retrained online on SWaT resisted their poisoning attacks, and Erba et al.~\cite{erba2020concealment}
-concealed attacks from reconstruction-based detectors by manipulating sensor readings.
-Hong~\cite{hong2026boiling} studied gradual drift against world-model monitors in simulation,
-without attacks or adaptive thresholds. These works target the model or the score. We target the
-threshold rule and show that it can fail even when the model resists poisoning.
+\paragraph{Poisoning and stealthy attacks}
+Rubinstein et al.~\cite{rubinstein2009antidote} showed that slowly growing (``boiling frog'') poisoning
+of a weekly retrained PCA detector, whose threshold is re-estimated with it, can stop it flagging a
+later attack. Kloft and Laskov~\cite{kloft2010online, kloft2012security} showed that bounding the
+false-positive rate limits poisoning of online centroid detectors. Chan-Tin et
+al.~\cite{chantin2009frog, chantin2011frog} described frog-boiling against outlier rejection in network
+coordinate systems: every update stays within the rejection threshold while the system drifts. In ICS,
+Kravchik and Shabtai~\cite{kravchik2020frog} found an autoencoder on SWaT physical-state data resistant
+to poisoning, but later work poisoned online-retrained ICS detectors with sub-threshold samples and
+proposed lowering the threshold as mitigation~\cite{kravchik2021poisoning}. Erba
+et al.~\cite{erba2020concealment} concealed attacks from reconstruction-based detectors by manipulating
+sensor readings. Attackers who hold a detection statistic just under a fixed threshold are standard in
+control security~\cite{cardenas2011process, urbina2016stealthy}. Hong~\cite{hong2026boiling} studied
+gradual drift against world-model monitors in simulation, without attacks or adaptive thresholds. These
+works target the model or the score, or assume a fixed threshold. We target the adaptive threshold rule
+and show that it can fail even when the model is not poisoned.
 
 \paragraph{Distribution shift and calibration}
-Adaptive conformal inference keeps a long-run miscoverage rate under arbitrary shift, a guarantee
-about the rate of exceedances. That guarantee holds whether the exceedances come from benign drift
-or from attacks, which is the property we exploit in Section~\ref{sec:regions}.
+Adaptive conformal inference and its successors keep a long-run miscoverage rate under arbitrary, even
+adversarial, sequences~\cite{gibbs2021aci, bastani2022multivalid}, a guarantee about the rate of
+exceedances. Atarmla~\cite{atarmla2026price} proves that for the online quantile tracker this guarantee
+is an accounting identity and bounds the evidence a step or ramp produces before the tracker absorbs
+it. The guarantee holds whether the exceedances come from benign drift or from attacks, the property we
+exploit in Section~\ref{sec:regions}; we measure the absorption on recorded attacks and extend the
+question to extreme-value thresholds.
 
 \section{Threat model and learning regions}
 \label{sec:threat}
@@ -252,8 +262,10 @@ pushes upward. That gives three attacker classes, from weakest to strongest:
 \item \textbf{A1, open-loop injection.} The attacker can perturb one control loop (setpoints or
   sensor readings) without seeing the monitor. Supra-threshold pulses land in the exceedance
   region; sub-alarm pulses land in the band.
-\item \textbf{A2, closed-loop.} The attacker can read $\tau_t$ (white-box, or by probing) and shape
-  the score. Holding $s_t$ at $0.97\,\tau_t$ places every sample at the top of the band with no
+\item \textbf{A2, closed-loop.} The stealthy attacker of control
+  security~\cite{cardenas2011process, urbina2016stealthy}, turned against an adaptive threshold: it can
+  read $\tau_t$ (white-box, or by probing) and shape the score. Holding $s_t$ at $0.97\,\tau_t$ places
+  every sample at the top of the band with no
   alarm. We evaluate A2 at the score level, an upper bound on what a physical attacker can do, and
   through noise spoofed onto three sensor readings of one loop, scored by the real monitor.
 \end{itemize}
@@ -275,7 +287,9 @@ HAI 20.07 (registered E4).
 \label{sec:memory}
 
 Three facts follow from the update rules alone. They predict most of what
-Sections~\ref{sec:registered} and~\ref{sec:regions} measure.
+Sections~\ref{sec:registered} and~\ref{sec:regions} measure. Proposition~1 is elementary; Atarmla's
+analysis of the same tracker~\cite{atarmla2026price} gives the matching result on the way up, the
+excess alarms a persistent step produces before the tracker absorbs it.
 
 \paragraph{Proposition 1 (tracker memory)} \emph{Under $q_{t+1} = q_t + \eta(\mathbf{1}[s_t > q_t]
 - p)$, each step with $s_t > q_t$ raises the threshold by $\eta(1-p)$ and each other step lowers it
@@ -834,6 +848,13 @@ event was in its review window, caught 1 of 10 terminal steps in the G1 controls
 never loosens either, but it is not safe by construction: on BATADAL its spread-scaled offset sat 173
 times above $\tau_0$ and it caught 3 of 14 attacks, the largest recall loss we measured.
 
+Parts of this advice are established. Process-alarm standards already route alarm changes through
+authorised management of change~\cite{isa182, eemua191}, lowering the threshold has been proposed
+against poisoning of retrained ICS detectors~\cite{kravchik2021poisoning}, and a bounded false-positive
+rate limits what a poisoner can gain~\cite{kloft2012security}. What we add is the asymmetry for adaptive
+thresholds, automatic tightening with gated loosening, and its evaluation against natural, loud and
+silent poisoning.
+
 We therefore recommend:
 
 \begin{enumerate}
@@ -842,8 +863,9 @@ We therefore recommend:
   sensitivity in quiet periods.
 \item \textbf{Route loosening through an operator} who confirms the plant is in normal operation, and
   treat a request to loosen during or soon after an alarm as suspect.
-\item \textbf{Recalibrate offline on verified clean data}, as a change-controlled event, when drift
-  raises false alarms. Our frozen thresholds held 0.66 to 1.48 episodes per day on the three
+\item \textbf{Recalibrate offline on verified clean data}~\cite{cretu2008sanitizing}, as a
+  change-controlled event, when drift raises false alarms. Our frozen thresholds held 0.66 to 1.48
+  episodes per day on the three
   development test periods and 2.23 on HAI 20.07 against a budget of 2, but on HAI 20.07 the
   threshold was in alarm for 39\% of the unlabelled time, the kind of drift an offline recalibration
   should catch.
@@ -890,6 +912,9 @@ calibration spread is set by a heavy tail.
   detections (Section~\ref{sec:inflate}). We do not model operator response time.
 \item Our monitor is one world-model residual and one model-free score; reconstruction-based
   detectors were not tested.
+\item We did not test the operator. Human-approved suppression of detection rules has been observed to
+  accumulate and persist~\cite{dhananjeyan2026ratchet}, so routing loosening through people does not by
+  itself stop a threshold from ratcheting upward.
 \item No claim of runtime authority, deployment safety or incident prevention follows from these
   results.
 \end{itemize}

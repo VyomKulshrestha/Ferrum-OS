@@ -112,11 +112,11 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "4293b943cfe5b4923a4c295457033ad28d0b95c1986244945445ca08f07872b5",
+   "sha256": "3594779925efb8c01c95e25a8d1e10ed4a16530f27ddcaaaa71672255047c2b8",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex/refs.bib": {
-   "sha256": "c7b7d58c554b1d275d92938d921dfa1b4863aebfe7e083e343b437819777f4ff",
+   "sha256": "9aaa67846d26e7c62bcf1b3796b76c783d53f6035cb8a0639ca194fc4656c627",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "latex_usenix/figures/fig1_learning_regions.pdf": {
@@ -140,11 +140,11 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "325071bea4d3d8ba4460259c4f110f9389368e5423b2566f45e08e4c6765fad5",
+   "sha256": "19336d39b98352a38430d7093c8a8e04d9a6c873511e8e18d457ba22215c5b7f",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex_usenix/refs.bib": {
-   "sha256": "c7b7d58c554b1d275d92938d921dfa1b4863aebfe7e083e343b437819777f4ff",
+   "sha256": "9aaa67846d26e7c62bcf1b3796b76c783d53f6035cb8a0639ca194fc4656c627",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "manuscript/threshold_transfer_tt1_findings.md": {
@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "7e093f979aeb5865e22bde5007910e3aee8ccc97590cab8849d78a19c6ed1622",
+   "sha256": "6e6dbecd43b3a5a70f56d00e539b4bf180cb204f99fc12250b7a5a43c9fb2a70",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true
   },
@@ -292,11 +292,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "7410e5580e74fbacc0d7f1379c106617adbc1ebbbfc0d117806a6231f26da332",
+   "sha256": "b6b88271d02125d4ef87287115d9362f65ebe7ced5e6badddd95b0e62808be7a",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "cb5c29b1cd589891b74bf2103f0827ad3f5efb9cc203445d33b139b68ffa211c",
+   "sha256": "ea1ed1c5ebc93589be17c42e5c91076c52bb731bde5ade9d6f09703b67766c75",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "results/threshold_transfer_tt1_memory_check.json": {

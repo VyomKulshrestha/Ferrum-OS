@@ -1,8 +1,10 @@
 %% References for "Thresholds That Travel".
 %% Authors, titles, venues, years and identifiers are taken from the reference list of
 %% manuscript/thresholds_that_travel_draft_v0_1.md, as corrected by review/review_report.md
-%% (Section 3, findings C1-C5). Entries whose DOI the review could not confirm carry no
-%% doi field and say so in a comment, rather than an invented identifier.
+%% (Section 3, findings C1-C5) and review/literature_report.md (Section 4). Entries added on
+%% 2026-11-01 come from review/literature_report.md (Section 6); their metadata was fetched from
+%% Crossref (DOI records) or the arXiv API, not typed from memory. Entries whose DOI could not be
+%% confirmed carry no doi field and say so in a comment, rather than an invented identifier.
 %% All entries are third-party work; none of the authors' own artifacts is cited here.
 
 % DOI not confirmed in review/review_report.md; cited only as the WADI dataset.
@@ -15,13 +17,82 @@
   year      = {2017}
 }
 
-% DOI not confirmed in review/review_report.md.
+@misc{atarmla2026price,
+  author = {Atarmla, Abdou-Raouf},
+  title  = {The Price of Self-Calibration: Exact Evidence Budgets and Manufactured Blind Sets in
+            Adaptive Monitoring},
+  year   = {2026},
+  note   = {arXiv preprint arXiv:2609.23254}
+}
+
+@inproceedings{bastani2022multivalid,
+  author    = {Bastani, Osbert and Gupta, Varun and Jung, Christopher and Noarov, Georgy and
+               Ramalingam, Ramya and Roth, Aaron},
+  title     = {Practical Adversarial Multivalid Conformal Prediction},
+  booktitle = {Advances in Neural Information Processing Systems 35 (NeurIPS)},
+  pages     = {29362--29373},
+  year      = {2022},
+  doi       = {10.52202/068431-2129}
+}
+
+@inproceedings{cardenas2011process,
+  author    = {C{\'a}rdenas, Alvaro A. and Amin, Saurabh and Lin, Zong-Syun and Huang, Yu-Lun and
+               Huang, Chi-Yen and Sastry, Shankar},
+  title     = {Attacks Against Process Control Systems: Risk Assessment, Detection, and Response},
+  booktitle = {Proceedings of the 6th ACM Symposium on Information, Computer and Communications
+               Security (ASIA CCS)},
+  pages     = {355--366},
+  year      = {2011},
+  doi       = {10.1145/1966913.1966959}
+}
+
 @inproceedings{chantin2009frog,
   author    = {Chan-Tin, Eric and Feldman, Daniel and Hopper, Nicholas and Kim, Yongdae},
   title     = {The Frog-Boiling Attack: Limitations of Anomaly Detection for Secure Network
                Coordinate Systems},
   booktitle = {Security and Privacy in Communication Networks (SecureComm)},
-  year      = {2009}
+  pages     = {448--458},
+  year      = {2009},
+  doi       = {10.1007/978-3-642-05284-2_26}
+}
+
+@article{chantin2011frog,
+  author  = {Chan-Tin, Eric and Heorhiadi, Victor and Hopper, Nicholas and Kim, Yongdae},
+  title   = {The Frog-Boiling Attack: Limitations of Secure Network Coordinate Systems},
+  journal = {ACM Transactions on Information and System Security},
+  volume  = {14},
+  number  = {3},
+  pages   = {1--23},
+  year    = {2011},
+  doi     = {10.1145/2043621.2043627}
+}
+
+@inproceedings{cretu2008sanitizing,
+  author    = {Cretu, Gabriela F. and Stavrou, Angelos and Locasto, Michael E. and Stolfo, Salvatore
+               J. and Keromytis, Angelos D.},
+  title     = {Casting out Demons: Sanitizing Training Data for Anomaly Sensors},
+  booktitle = {IEEE Symposium on Security and Privacy (S\&P)},
+  pages     = {81--95},
+  year      = {2008},
+  doi       = {10.1109/sp.2008.11}
+}
+
+@misc{dhananjeyan2026ratchet,
+  author = {Dhananjeyan, Sudaroli and U, Kumaran},
+  title  = {The Exclusion Ratchet: False-Positive Suppression Accumulates and Persists in Detection
+            Rule Repositories},
+  year   = {2026},
+  note   = {arXiv preprint arXiv:2608.31062}
+}
+
+% No DOI; EEMUA guide (4th edition, 2024).
+@book{eemua191,
+  author    = {{Engineering Equipment and Materials Users Association}},
+  title     = {{EEMUA} Publication 191: Alarm Systems, a Guide to Design, Management and
+               Procurement},
+  edition   = {4th},
+  publisher = {EEMUA},
+  year      = {2024}
 }
 
 @inproceedings{erba2020concealment,
@@ -35,6 +106,17 @@
   doi       = {10.1145/3427228.3427660}
 }
 
+@inproceedings{ghafouri2016thresholds,
+  author    = {Ghafouri, Amin and Abbas, Waseem and Laszka, Aron and Vorobeychik, Yevgeniy and
+               Koutsoukos, Xenofon},
+  title     = {Optimal Thresholds for Anomaly-Based Intrusion Detection in Dynamical Environments},
+  booktitle = {Decision and Game Theory for Security (GameSec)},
+  series    = {LNCS},
+  pages     = {415--434},
+  year      = {2016},
+  doi       = {10.1007/978-3-319-47413-7_24}
+}
+
 @inproceedings{gibbs2021aci,
   author    = {Gibbs, Isaac and Cand{\`e}s, Emmanuel},
   title     = {Adaptive Conformal Inference Under Distribution Shift},
@@ -43,12 +125,14 @@
   note      = {arXiv:2106.00170}
 }
 
-% DOI not confirmed in review/review_report.md; cited only as the SWaT dataset.
 @inproceedings{goh2016swat,
   author    = {Goh, Jonathan and Adepu, Sridhar and Junejo, Khurum Nazir and Mathur, Aditya},
   title     = {A Dataset to Support Research in the Design of Secure Water Treatment Systems},
-  booktitle = {Critical Information Infrastructures Security (CRITIS)},
-  year      = {2016}
+  booktitle = {Critical Information Infrastructures Security (CRITIS 2016)},
+  series    = {LNCS},
+  pages     = {88--99},
+  year      = {2017},
+  doi       = {10.1007/978-3-319-71368-7_8}
 }
 
 @article{hong2026boiling,
@@ -101,6 +185,17 @@
   year      = {2010}
 }
 
+% No DOI (JMLR); arXiv:1003.0078.
+@article{kloft2012security,
+  author  = {Kloft, Marius and Laskov, Pavel},
+  title   = {Security Analysis of Online Centroid Anomaly Detection},
+  journal = {Journal of Machine Learning Research},
+  volume  = {13},
+  number  = {118},
+  pages   = {3681--3724},
+  year    = {2012}
+}
+
 @article{kravchik2020frog,
   author  = {Kravchik, Moshe and Shabtai, Asaf},
   title   = {Can't Boil This Frog: Robustness of Online-Trained Autoencoder-Based Anomaly Detectors
@@ -110,21 +205,42 @@
   note    = {arXiv:2002.02741}
 }
 
-% DOI not confirmed in review/review_report.md.
+@inproceedings{kravchik2021poisoning,
+  author    = {Kravchik, Moshe and Biggio, Battista and Shabtai, Asaf},
+  title     = {Poisoning Attacks on Cyber Attack Detectors for Industrial Control Systems},
+  booktitle = {Proceedings of the 36th Annual ACM Symposium on Applied Computing (SAC)},
+  pages     = {116--125},
+  year      = {2021},
+  doi       = {10.1145/3412841.3441892}
+}
+
 @inproceedings{rubinstein2009antidote,
   author    = {Rubinstein, Benjamin I. P. and Nelson, Blaine and Huang, Ling and Joseph, Anthony D.
                and Lau, Shing-hon and Rao, Satish and Taft, Nina and Tygar, J. D.},
   title     = {{ANTIDOTE}: Understanding and Defending Against Poisoning of Anomaly Detectors},
   booktitle = {Proceedings of the 9th ACM SIGCOMM Internet Measurement Conference (IMC)},
-  year      = {2009}
+  pages     = {1--14},
+  year      = {2009},
+  doi       = {10.1145/1644893.1644895}
 }
 
+% No arXiv or DOI record exists; the arXiv ID in earlier drafts (2005.02315) belonged to an unrelated paper.
 @inproceedings{shin2020hai,
   author    = {Shin, Hyeok-Ki and Lee, Woomyo and Yun, Jeong-Han and Kim, HyoungChun},
   title     = {{HAI} 1.0: {HIL}-Based Augmented {ICS} Security Dataset},
   booktitle = {13th USENIX Workshop on Cyber Security Experimentation and Test (CSET)},
   year      = {2020},
-  note      = {arXiv:2005.02315}
+  url       = {https://www.usenix.org/conference/cset20/presentation/shin}
+}
+
+@inproceedings{shin2021hai,
+  author    = {Shin, Hyeok-Ki and Lee, Woomyo and Yun, Jeong-Han and Min, Byung-Gil},
+  title     = {Two {ICS} Security Datasets and Anomaly Detection Contest on the {HIL}-based Augmented
+               {ICS} Testbed},
+  booktitle = {Cyber Security Experimentation and Test Workshop (CSET)},
+  pages     = {36--40},
+  year      = {2021},
+  doi       = {10.1145/3474718.3474719}
 }
 
 @inproceedings{siffer2017spot,
@@ -136,6 +252,17 @@
   pages     = {1067--1075},
   year      = {2017},
   doi       = {10.1145/3097983.3098144}
+}
+
+@inproceedings{su2019omni,
+  author    = {Su, Ya and Zhao, Youjian and Niu, Chenhao and Liu, Rong and Sun, Wei and Pei, Dan},
+  title     = {Robust Anomaly Detection for Multivariate Time Series through Stochastic Recurrent
+               Neural Network},
+  booktitle = {Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery
+               and Data Mining (KDD)},
+  pages     = {2828--2837},
+  year      = {2019},
+  doi       = {10.1145/3292500.3330672}
 }
 
 @article{taormina2018batadal,
@@ -167,6 +294,18 @@
   pages   = {438--451},
   year    = {2024},
   doi     = {10.1109/TRO.2023.3332224}
+}
+
+@inproceedings{urbina2016stealthy,
+  author    = {Urbina, David I. and Giraldo, Jairo A. and C{\'a}rdenas, Alvaro A. and Tippenhauer,
+               Nils Ole and Valente, Junia and Faisal, Mustafa and Ruths, Justin and Candell, Richard
+               and Sandberg, Henrik},
+  title     = {Limiting the Impact of Stealthy Attacks on Industrial Control Systems},
+  booktitle = {Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security
+               (CCS)},
+  pages     = {1092--1105},
+  year      = {2016},
+  doi       = {10.1145/2976749.2978388}
 }
 
 % Third-party dataset DOIs, retained in the anonymous submission.

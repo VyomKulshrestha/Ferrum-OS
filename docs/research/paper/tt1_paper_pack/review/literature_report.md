@@ -1,10 +1,10 @@
 # Literature and novelty check: *Thresholds That Travel* (draft v0.1)
 
-Scope: `manuscript/thresholds_that_travel_draft_v0_1.md` (abstract, Sections 1-3 and 8 read in full; compiled copy `latex/main.pdf` not re-read). Report written 31 October 2026 against prompt `prompts/4_literature_and_novelty.md`. No manuscript, result, protocol or figure-data file was changed. This report contains no result numbers from the pack; the paper's design facts (for example "eleven rules") are quoted only as the draft states them.
+Scope: `manuscript/thresholds_that_travel_draft_v0_1.md`, abstract, Sections 1-3, 8 and the reference list. The manuscript was revised in another session at 03:41 local time while this check was running. This report was then re-checked against the revised file: the abstract, Section 1, Section 3 (new Section 3.1 with Propositions 1-3) and Section 8 changed; Section 2 and the reference list did not. The compiled `latex/main.pdf` was not re-read. Report written 31 October 2026 against prompt `prompts/4_literature_and_novelty.md`. No manuscript, result, protocol or figure-data file was changed. This report contains no result numbers from the pack; the paper's design facts (for example "eleven rules") are quoted only as the draft states them.
 
 ## Bottom line
 
-**One preprint already demonstrates, in theory, part of the paper's central claim.** [Atarmla 2026, arXiv:2609.23254](https://arxiv.org/abs/2609.23254) (posted 19 September 2026, single author, not peer reviewed) proves that the online quantile tracker's false-alarm guarantee is "an accounting identity, insensitive to what the monitor is meant to detect". It also derives the exact excess-alarm budget a persistent step or a ramp produces before the tracker absorbs it, and shows that a monitor required to tolerate a drift class is blind to faults inside it. That is the mechanism behind contribution 2 for the symmetric tracker, and the same argument the draft makes in its "Distribution shift and calibration" paragraph. The preprint is theory and simulation only. It has no attacks, no recorded data, no ICS, no SPOT/DSPOT and no tighten-only rule. The draft must cite it and present its own tracker result as an empirical confirmation on recorded attacks, not as a new mechanism.
+**One preprint already demonstrates, in theory, part of the paper's central claim.** [Atarmla 2026, arXiv:2609.23254](https://arxiv.org/abs/2609.23254) (posted 19 September 2026, single author, not peer reviewed) proves that the online quantile tracker's false-alarm guarantee is "an accounting identity, insensitive to what the monitor is meant to detect". It also derives the exact excess-alarm budget a persistent step or a ramp produces before the tracker absorbs it, and shows that a monitor required to tolerate a drift class is blind to faults inside it. That is the mechanism behind contribution 2 for the symmetric tracker, and the same argument the draft makes in its "Distribution shift and calibration" paragraph. The preprint is theory and simulation only. It has no attacks, no recorded data, no ICS, no SPOT/DSPOT and no tighten-only rule. The draft must cite it and present its own tracker result as an empirical confirmation on recorded attacks, not as a new mechanism. The revised draft's Proposition 1 (Section 3.1) is the same accounting identity stated as a memory: each exceedance raises the tracker by η(1 − p) and each quiet step lowers it by ηp. Atarmla proves that identity exactly (their Proposition 1) and attributes its basic form to Gibbs and Candes 2021, Prop. 4.1 (that attribution was not checked here). Proposition 1 should cite both. Its application to the calibrated false-alarm rates of the paper's datasets is new; the identity is not.
 
 **Three further findings narrow the draft's wording without removing a contribution.**
 1. [Rubinstein et al. 2009 (ANTIDOTE)](https://doi.org/10.1145/1644893.1644895) poisoned a PCA detector that is retrained weekly, threshold included, with a slowly growing "Boiling Frog" schedule. Its defence pairs robust PCA with a robust Laplace threshold. Section 2's sentence "These works target the model or the score" is therefore too strong.
@@ -48,23 +48,23 @@ Candidates came from the topic sweep, from one step backward through the referen
 |---|---|---|---|
 | 1 | Registered comparison of eleven threshold rules on three never-opened datasets | None found that is registered or that compares adaptive threshold rules under recorded attacks | New |
 | 2 | Exceedance-learning thresholds lose recall because earlier attacks inflate them | Atarmla 2026 (theory, tracker); Rubinstein et al. 2009; Cretu et al. 2008 | Partly new |
-| 3 | Learning-region analysis with a matching attack per class (pulses; closed-loop frog on SPOT/DSPOT) | Chan-Tin et al. 2009/2011; Kravchik et al. 2021; Urbina et al. 2016 | Partly new |
+| 3 | Learning-region analysis: tracker and daily memory (Section 3.1) and a matching attack per class (pulses; closed-loop frog on SPOT/DSPOT) | Atarmla 2026 (Proposition 1 identity); Chan-Tin et al. 2009/2011; Kravchik et al. 2021; Urbina et al. 2016 | Partly new (Proposition 1 already known) |
 | 4 | Design rule: thresholds may tighten themselves; loosening needs a human | ANSI/ISA-18.2 management of change; Kravchik et al. 2021 (lower the threshold); Kloft and Laskov 2012 | Partly known |
 | 5 | Registration, access ledger, harness and verifier | Not assessed (pre-registration literature not searched) | Not assessed |
 
-### Contribution 1: registered comparison of threshold rules
+### Contribution 1: registered comparison
 
 No published comparison was found that pre-registers threshold rules, or that compares frozen, recalibrated, tracked and extreme-value thresholds under recorded attacks on ICS data. The surrounding evaluation literature shows that threshold choice is often uncontrolled. [Su et al. 2019 (OmniAnomaly)](https://doi.org/10.1145/3292500.3330672) sets its POT threshold offline, and its authors write: "we set the anomaly threshold thF offline". [Chahine and Noura 2026](https://doi.org/10.3390/fi18060308) is a recent HAI example where "the detection threshold is subsequently selected by maximizing PA-F1 on this same evaluation split". [Wu and Keogh 2023](https://doi.org/10.1109/TKDE.2021.3112126) is already cited.
 
 **Verdict: new** as a registered, multi-rule comparison. That threshold choice matters in evaluations is known.
 
-### Contribution 2: exceedance learners are poisoned by real attacks
+### Contribution 2: natural poisoning
 
 [Atarmla 2026](https://arxiv.org/abs/2609.23254) proves, for the online quantile tracker, that a persistent step of height δ produces an excess alarm mass within one alarm of δ/η before it is absorbed. It also proves that a ramp slower than η(1 − α) is absorbed indefinitely, and that adversarial exploitation is possible but not required. This is the draft's A0 mechanism stated as a theorem. [Rubinstein et al. 2009](https://doi.org/10.1145/1644893.1644895) showed that poisoning a self-retraining detector "throws off the balance between false positives and false negatives". [Cretu et al. 2008](https://doi.org/10.1109/sp.2008.11) addressed attacks hidden in the training data of self-updating anomaly sensors; a 2022 survey describes it as "an early research on preventing training data poisoning". In process monitoring the same effect is long known for self-calibrating schemes. The one SPC reference retrieved (Sullivan and Jones, Technometrics 2002) predates the search window and is not used.
 
-**Verdict: partly new.** The mechanism, adaptation absorbing persistent deviations whatever their source, is known in general and proved for the tracker. New: the empirical demonstration that recorded attacks inflate the thresholds of the very rules meant to detect them, measured on registered ICS data, with the mechanism traced in which attacks are missed. The draft's "seven datasets and two score families" mixes registered finals with exploratory development releases. The text should keep saying which is which.
+**Verdict: partly new.** The mechanism, adaptation absorbing persistent deviations whatever their source, is known in general and proved for the tracker. New: the empirical demonstration that recorded attacks inflate the thresholds of the very rules meant to detect them, measured on registered ICS data, with the mechanism traced in which attacks are missed. The revised contribution 2 now labels which parts are registered (HAI 20.07, BATADAL), post-hoc (the attack-only tracker rerun) and repeated on further data. That labelling should stay in any related-work text that summarises it.
 
-### Contribution 3: learning regions and matching attacks
+### Contribution 3: learning regions
 
 The closed-loop frog against SPOT/DSPOT is structurally the frog-boiling attack on an outlier-rejecting learner. [Chan-Tin et al. 2011](https://doi.org/10.1145/2043621.2043627) write: "We describe a new attack on network coordinate systems, Frog-Boiling, that defeats all of these defenses". SPOT discards values above its alarm level as network-coordinate systems discard outliers, and learns from the rest. Two other closely related lines exist:
 
@@ -73,30 +73,32 @@ The closed-loop frog against SPOT/DSPOT is structurally the frog-boiling attack 
 
 None of these targets an extreme-value tail refit, and none reports how the attack depends on the tail estimator. No prior taxonomy of threshold rules by the region of the score range they learn from was found. The sweep returned no paper attacking SPOT, DSPOT, POT or Telemanom thresholds (Appendix A, topic T1).
 
-**Verdict: partly new.** The attack template (feed a self-updating learner only values it accepts, so it drifts without alarming) is known from 2009 onward. New: the application to streaming extreme-value thresholds, the estimator dependence, the pulse campaign against exceedance learners as a separate attacker class, and the learning-region framing that predicts which attack fits which rule.
+The revised contribution 3 also claims the Section 3.1 analysis of how long the tracker and daily recalibration remember an exceedance. For the tracker this is the accounting identity proved in [Atarmla 2026](https://arxiv.org/abs/2609.23254). No prior statement of Proposition 2 (daily recalibration) or Proposition 3 (tighten-only alarms are a superset of frozen alarms) was found. Proposition 3 follows directly from monotonicity and needs no citation.
 
-### Contribution 4: tighten automatically, loosen only with a human
+**Verdict: partly new.** The attack template (feed a self-updating learner only values it accepts, so it drifts without alarming) is known from 2009 onward. New: the application to streaming extreme-value thresholds, the estimator dependence, the pulse campaign against exceedance learners as a separate attacker class, and the learning-region framing that predicts which attack fits which rule. Already known: the tracker-memory identity behind Proposition 1.
+
+### Contribution 4: tighten-only design rule
 
 ANSI/ISA-18.2-2016 already requires a management-of-change process "that ensures that changes are authorized" ([Emerson white paper on ISA-18.2 rationalisation](https://www.emerson.com/documents/automation/white-paper-alarm-rationalization-deltav-en-56654.pdf)). The standard itself is not freely available and was not read here. Operator approval of alarm-limit changes is therefore existing practice in process plants.
 
 In the security literature, [Kravchik et al. 2021 (arXiv:2012.15740)](https://arxiv.org/abs/2012.15740) found that "decreasing the detection threshold is an effective means of poisoning mitigation". [Kloft and Laskov 2012](https://jmlr.org/papers/v13/kloft12b.html) showed that a poisoning attack "can be made arbitrarily difficult (a strict upper bound on the attacker's gain) if external constraints are properly used", a bounded false-positive rate among them.
 
-One counterpoint bears directly on the rule. [Dhananjeyan and U 2026](https://arxiv.org/abs/2608.31062) measured human-approved loosening in the SigmaHQ detection-rule corpus and conclude: "Narrowing accumulates, is rarely revisited, and is not triaged by consequence." Routing loosening through people does not by itself stop a ratchet.
+One counterpoint bears directly on the rule. [Dhananjeyan and U 2026](https://arxiv.org/abs/2608.31062) measured human-approved loosening in the SigmaHQ detection-rule corpus and conclude: "Narrowing accumulates, is rarely revisited, and is not triaged by consequence." Routing loosening through people does not by itself stop a ratchet. The revised draft already concedes this point in Sections 1 and 8: loosening by an operator "carries no such guarantee", and the simulated-operator permit lost recall. The ratchet study is outside evidence for that concession and should be cited beside it.
 
-**Verdict: partly known.** Human authorisation of alarm changes is established practice, and lowering thresholds against poisoning has been proposed. Not found in prior work: the asymmetric rule (automatic tightening, gated loosening) stated as a defence for adaptive detector thresholds and evaluated against natural, loud and silent poisoning. Section 8 should cite ISA-18.2 management of change as the precedent and say that the paper adds the asymmetry and its evaluation. Section 9 should acknowledge the evidence that human-approved loosening also accumulates.
+**Verdict: partly known.** Human authorisation of alarm changes is established practice, and lowering thresholds against poisoning has been proposed. Not found in prior work: the asymmetric rule (automatic tightening, gated loosening) stated as a defence for adaptive detector thresholds and evaluated against natural, loud and silent poisoning. Section 8 should cite ISA-18.2 management of change as the precedent and say that the paper adds the asymmetry and its evaluation. Section 8's existing caveat about operator-gated permits should cite the evidence that human-approved loosening also accumulates.
 
-### Contribution 5: registration, ledger, harness, verifier
+### Contribution 5: artefacts
 
 This is an artefact contribution, not a research claim about attacks or thresholds. Whether pre-registered empirical studies have appeared in security venues was not searched, so no novelty verdict is given.
 
-## 3. Missing citations, ranked by how likely a reviewer is to name them
+## 3. Missing citations, ranked
 
 Content-level entries were checked against the paper's abstract or text in this session. Entries marked *title-level* were confirmed to exist (authors, venue, year, identifier) but their content was not read.
 
 1. **[Urbina et al. 2016, CCS](https://doi.org/10.1145/2976749.2978388).** Defines the stealthy ICS attacker who keeps the detection statistic below the threshold and compares stateless and stateful detectors under it. Belongs in Section 2 (poisoning and stealthy attacks) and in Section 3, where A2 should be introduced as this attacker turned against an adaptive threshold.
 2. **[Cardenas et al. 2011, ASIACCS](https://doi.org/10.1145/1966913.1966959).** Nonparametric CUSUM detection of false-data injection in process control, with a section on stealthy attacks and on choosing the threshold to resist them. The target venue's own precedent; Section 2 and Section 3.
 3. **[Kravchik, Biggio and Shabtai 2021, SAC](https://doi.org/10.1145/3412841.3441892) and [Kravchik et al. 2022, Computers & Security](https://doi.org/10.1016/j.cose.2022.102901).** Peer-reviewed successors of the cited 2020 preprint. They demonstrate poisoning of online-retrained ICS detectors with sub-alarm samples, and the SAC paper proposes lowering the threshold as mitigation. Section 2 (replacing the current characterisation) and Section 8.
-4. **[Atarmla 2026, arXiv:2609.23254](https://arxiv.org/abs/2609.23254), preprint.** Exact theory of evidence absorption and manufactured blind sets for the online quantile tracker. Section 2 (distribution shift) and the mechanism discussion in Sections 6.2 and 7.3.
+4. **[Atarmla 2026, arXiv:2609.23254](https://arxiv.org/abs/2609.23254), preprint.** Exact theory of evidence absorption and manufactured blind sets for the online quantile tracker. Section 2 (distribution shift), Section 3.1 beside Proposition 1, and the mechanism discussion in Sections 6.2 and 7.3.
 5. **ANSI/ISA-18.2-2016 management of change, with [EEMUA 191](https://www.eemua.org/products/publications/digital/eemua-publication-191) (4th ed., 2024) and IEC 62682.** EEMUA states that ISA-18.2 and IEC 62682:2023 are aligned with EEMUA 191. The draft cites ISA-18.2 only for nuisance alarms; reviewers from process control will expect the management-of-change clause beside the Section 8 recommendation.
 6. **[Kloft and Laskov 2012, JMLR 13(118):3681-3724](https://jmlr.org/papers/v13/kloft12b.html) ([arXiv:1003.0078](https://arxiv.org/abs/1003.0078)).** Journal version of the cited AISTATS paper. Bounds on poisoning of online centroid detectors under a bounded false-positive rate support the tighten-only argument; Sections 2 and 8.
 7. **[Chan-Tin, Heorhiadi, Hopper and Kim 2011, ACM TISSEC 14(3)](https://doi.org/10.1145/2043621.2043627).** Journal version of the cited SecureComm paper, extending frog-boiling to defeat outlier rejection, trusted nodes and reputation. Section 2.
@@ -138,7 +140,7 @@ Content-level entries were checked against the paper's abstract or text in this 
 
     Read them before citing them as threshold-evaluation evidence.
 
-## 4. Corrections to citations the draft already has
+## 4. Corrections to existing citations
 
 | Draft citation | Problem | Proposed fix |
 |---|---|---|
@@ -173,7 +175,7 @@ Length: 540 words against 390 in the current section (limit 390 + 150). Every ci
 
 References to add for this text (all verified, see Section 6): Shin et al. 2021; Su et al. 2019; Ghafouri et al. 2016; EEMUA 191 (4th ed., 2024); Kloft and Laskov 2012; Chan-Tin et al. 2011; Kravchik, Biggio and Shabtai 2021; Urbina et al. 2016; Bastani et al. 2022; Atarmla 2026. Cardenas et al. 2011 appears unmarked in the text but is also new and must be added to the reference list.
 
-## 6. Verified references (everything cited in this report)
+## 6. Verified references
 
 Found by: C = Crossref (title look-up or topic query, query in Appendix A); X = arXiv API or abstract page; W = web search (query in Appendix A); B = backward citation from Atarmla 2026; D = already in the draft. All DOIs resolve at doi.org.
 
@@ -245,7 +247,7 @@ Found by: C = Crossref (title look-up or topic query, query in Appendix A); X = 
 
 ## Appendix A. Search log
 
-### A.1 Programmatic topic sweep (Crossref, dblp, arXiv)
+### A.1 Programmatic topic sweep
 
 Topics: T1 threshold attacks; T2 frog-boiling; T3 adaptive conformal inference under adversarial shift; T4 ICS threshold practice; T5 alarm management. "request failed" means the request did not complete (proxy refusal or rate limit), not that there were zero matches.
 
@@ -311,7 +313,7 @@ Topics: T1 threshold attacks; T2 frog-boiling; T3 adaptive conformal inference u
 | T5 alarm management | crossref | `alarm deadband delay timer chattering alarms` | request failed |
 | T5 alarm management | arxiv | `abs:"alarm fatigue" AND abs:security` | request failed |
 
-### A.2 Web searches (server-side, used for content and identifier checks)
+### A.2 Web searches
 
 1. `poisoning attack SPOT DSPOT extreme value threshold anomaly detection` (no attack on SPOT found; surfaced Kravchik et al. 2021)
 2. `adversarial attack on dynamic threshold Telemanom nonparametric thresholding evasion` (no attack on Telemanom's threshold found)

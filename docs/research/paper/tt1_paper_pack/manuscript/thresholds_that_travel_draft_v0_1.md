@@ -120,35 +120,45 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
 ## 2. Background and related work
 
 **ICS anomaly detection.** Process-level detectors learn normal behaviour from sensor and actuator
-traces and flag deviations: residuals of a predictive model, reconstruction errors of an autoencoder, or
-statistical bounds. Public testbed recordings with labelled attacks (SWaT [Goh et al. 2016], WADI
-[Ahmed et al. 2017], BATADAL [Taormina et al. 2018], and the HAI releases [Shin et al. 2020 for HAI 1.0
-(20.07); later releases are documented in the dataset repository]) are the usual benchmarks. Evaluations
-typically fix one threshold per detector, chosen on clean data or, less defensibly, on the test labels.
+traces and flag deviations: model residuals, autoencoder reconstruction errors, or statistical bounds.
+Public testbed recordings with
+labelled attacks (SWaT [Goh et al. 2016], WADI [Ahmed et al. 2017], BATADAL [Taormina et al. 2018], and the
+HAI releases: HAI 1.0 (20.07) [Shin et al. 2020], 21.03 [Shin et al. 2021], later releases in the dataset
+repository) are the usual benchmarks. Evaluations usually fix one threshold per detector, chosen on clean
+data, by an offline peaks-over-threshold fit [Su et al. 2019], or, less defensibly, on the test labels.
 Wu and Keogh [2023] list further benchmark pitfalls.
 
-**Threshold rules.** Static thresholds come from a quantile or a false-alarm budget on clean data.
-Adaptive variants recalibrate on a trailing window, track a target exceedance rate online
-[Gibbs and Candes 2021], fit an extreme-value tail and update it per observation (SPOT, and DSPOT for
-drifting streams [Siffer et al. 2017]), or recompute a level on a trailing window of smoothed errors
-[Hundman et al. 2018]. Alarm-management practice in process plants treats nuisance and chattering alarms
-as a condition to eliminate, with explicit alarm-rate targets [ANSI/ISA-18.2-2016]; operators who
-acknowledge such alarms without investigating them are the failure mode our pulse campaigns exploit.
+**Threshold rules.** Static thresholds meet a quantile or false-alarm budget on clean data. Adaptive
+variants recalibrate on a trailing window, track a target exceedance rate online [Gibbs and Candes 2021],
+fit an extreme-value tail and update it per observation (SPOT, and DSPOT for drifting streams [Siffer et
+al. 2017]), or recompute a level on a trailing window of smoothed errors [Hundman et al. 2018].
+Game-theoretic time-varying thresholds [Ghafouri et al. 2016] are precomputed, not learned from the
+stream. Alarm-management practice treats nuisance and chattering alarms as a condition to eliminate, with
+explicit alarm-rate targets, and routes changes to an alarm through authorised management of change
+[ANSI/ISA-18.2-2016; EEMUA 191]; operators who acknowledge nuisance alarms without investigating them are
+the failure mode our pulse campaigns exploit.
 
-**Poisoning of anomaly detectors.** Rubinstein et al. [2009] showed that slowly shifted traffic ("boiling
-frog" poisoning) can stop a PCA-based network anomaly detector from flagging a later attack. Kloft and
-Laskov [2010] analysed poisoning of online centroid detectors. Chan-Tin et al. [2009] described the
-frog-boiling attack on outlier rejection in network coordinate systems, where every update stays within
-the rejection threshold while the system drifts. In ICS, Kravchik and Shabtai [2020] found that
-autoencoder detectors retrained online on SWaT resisted their poisoning attacks, and Erba et al. [2020]
-concealed attacks from reconstruction-based detectors by manipulating sensor readings. Hong [2026]
-studied gradual drift against world-model monitors in simulation, without attacks or adaptive
-thresholds. These works target the model or the score. We target the threshold rule and show that it can
-fail even when the model resists poisoning.
+**Poisoning and stealthy attacks.** Rubinstein et al. [2009] showed that slowly growing ("boiling frog")
+poisoning of a weekly retrained PCA detector, whose threshold is re-estimated with it, can stop it
+flagging a later attack. Kloft and Laskov [2010; 2012] showed that bounding the false-positive rate limits
+poisoning of online centroid detectors. Chan-Tin et al. [2009; 2011] described frog-boiling against outlier
+rejection in network coordinate systems: every update stays within the rejection threshold while the
+system drifts. In ICS, Kravchik and Shabtai [2020] found an autoencoder on SWaT physical-state data
+resistant to poisoning, but later work poisoned online-retrained ICS detectors with sub-threshold samples
+and proposed lowering the threshold as mitigation [Kravchik et al. 2021]. Erba et al. [2020] concealed
+attacks from reconstruction-based detectors by manipulating sensor readings. Attackers who hold a
+detection statistic just under a fixed threshold are standard in control security [Cardenas et al. 2011;
+Urbina et al. 2016]. Hong [2026] studied gradual drift against world-model monitors in simulation, without
+attacks or adaptive thresholds. These works target the model or the score, or assume a fixed threshold.
+We target the adaptive threshold rule and show that it can fail even when the model is not poisoned.
 
-**Distribution shift and calibration.** Adaptive conformal inference keeps a long-run miscoverage rate
-under arbitrary shift, a guarantee about the rate of exceedances. That guarantee holds whether the
-exceedances come from benign drift or from attacks, which is the property we exploit in Section 7.
+**Distribution shift and calibration.** Adaptive conformal inference and its successors keep a long-run
+miscoverage rate under arbitrary, even adversarial, sequences [Gibbs and Candes 2021; Bastani et al.
+2022], a guarantee about the rate of exceedances. Atarmla [2026] proves that for the online quantile
+tracker this guarantee is an accounting identity and bounds the evidence a step or ramp produces before
+the tracker absorbs it. The guarantee holds whether the exceedances come from benign drift or from
+attacks, the property we exploit in Section 7; we measure the absorption on recorded attacks and extend the
+question to extreme-value thresholds.
 
 ---
 
@@ -178,8 +188,9 @@ upward. That gives three attacker classes, from weakest to strongest:
 - **A1, open-loop injection.** The attacker can perturb one control loop (setpoints or sensor readings)
   without seeing the monitor. Supra-threshold pulses land in the exceedance region; sub-alarm pulses land
   in the band.
-- **A2, closed-loop.** The attacker can read tau_t (white-box, or by probing) and shape the score. Holding
-  s_t at 0.97 tau_t places every sample at the top of the band with no alarm. We evaluate A2 at the score
+- **A2, closed-loop.** The stealthy attacker of control security [Cardenas et al. 2011; Urbina et al.
+  2016], turned against an adaptive threshold: it can read tau_t (white-box, or by probing) and shape the
+  score. Holding s_t at 0.97 tau_t places every sample at the top of the band with no alarm. We evaluate A2 at the score
   level, an upper bound on what a physical attacker can do, and through noise spoofed onto three sensor
   readings of one loop, scored by the real monitor.
 
@@ -198,6 +209,8 @@ on HAI 20.07 (registered E4).
 ### 3.1 How long a threshold remembers
 
 Three facts follow from the update rules alone. They predict most of what Sections 6 and 7 measure.
+Proposition 1 is elementary; Atarmla's analysis of the same tracker [2026] gives the matching result on the
+way up, the excess alarms a persistent step produces before the tracker absorbs it.
 
 **Proposition 1 (tracker memory).** Under q_{t+1} = q_t + eta(1[s_t > q_t] - p), each step with
 s_t > q_t raises the threshold by eta(1 - p) and each other step lowers it by eta p. A rise built from E
@@ -575,6 +588,13 @@ window, caught 1 of 10 terminal steps in the G1 controls. A static margin never 
 not safe by construction: on BATADAL its spread-scaled offset sat 173 times above tau_0 and it caught 3 of
 14 attacks, the largest recall loss we measured.
 
+Parts of this advice are established. Process-alarm standards already route alarm changes through
+authorised management of change [ANSI/ISA-18.2-2016; EEMUA 191], lowering the threshold has been proposed
+against poisoning of retrained ICS detectors [Kravchik et al. 2021], and a bounded false-positive rate
+limits what a poisoner can gain [Kloft and Laskov 2012]. What we add is the asymmetry for adaptive
+thresholds, automatic tightening with gated loosening, and its evaluation against natural, loud and
+silent poisoning.
+
 We therefore recommend:
 
 1. **Let thresholds tighten automatically, never loosen.** A tracker capped at the calibrated threshold
@@ -582,8 +602,8 @@ We therefore recommend:
    quiet periods.
 2. **Route loosening through an operator** who confirms the plant is in normal operation, and treat a
    request to loosen during or soon after an alarm as suspect.
-3. **Recalibrate offline on verified clean data**, as a change-controlled event, when drift raises false
-   alarms. Our frozen thresholds held 0.66 to 1.48 episodes per day on the three development test periods
+3. **Recalibrate offline on verified clean data** [Cretu et al. 2008], as a change-controlled event, when
+   drift raises false alarms. Our frozen thresholds held 0.66 to 1.48 episodes per day on the three development test periods
    and 2.23 on HAI 20.07 against a budget of 2, but on HAI 20.07 the threshold was in alarm for 39% of the
    unlabelled time, the kind of drift an offline recalibration should catch.
 4. **Watch the threshold.** Log tau_t; a threshold that rises during an incident, or climbs steadily
@@ -627,6 +647,9 @@ tail.
   6.2). We do not model operator response time.
 - Our monitor is one world-model residual and one model-free score; reconstruction-based detectors were
   not tested.
+- We did not test the operator. Human-approved suppression of detection rules has been observed to
+  accumulate and persist [Dhananjeyan and U 2026], so routing loosening through people does not by itself
+  stop a threshold from ratcheting upward.
 - No claim of runtime authority, deployment safety or incident prevention follows from these results.
 
 ---
@@ -667,20 +690,40 @@ file; it contains no tooling for reaching a control network.
 
 ## References
 
-Identifiers were confirmed in the Claude Science review of 2026-10-23 (`review/review_report.md`); entries
-without one had no DOI confirmed there.
+Identifiers were confirmed in the Claude Science review of 2026-10-23 (`review/review_report.md`) and the
+literature check of 2026-11-01 (`review/literature_report.md`), whose new entries were fetched from
+Crossref or the arXiv API; entries without an identifier had none confirmed.
 
 - Ahmed, C. M., Palleti, V. R., Mathur, A. P. WADI: a water distribution testbed for research in the
   design of secure cyber physical systems. CySWATER 2017.
+- Atarmla, A.-R. The price of self-calibration: exact evidence budgets and manufactured blind sets in
+  adaptive monitoring. arXiv:2609.23254, 2026 (preprint).
+- Bastani, O., Gupta, V., Jung, C., Noarov, G., Ramalingam, R., Roth, A. Practical adversarial multivalid
+  conformal prediction. NeurIPS 2022, pp. 29362-29373. doi:10.52202/068431-2129.
+- Brockmann, J. T., Rudolph, M., Rosenhahn, B., Wandt, B. The voraus-AD dataset for anomaly detection in
+  robot applications. IEEE Transactions on Robotics 40:438-451, 2024. doi:10.1109/TRO.2023.3332224.
+- Cardenas, A. A., Amin, S., Lin, Z.-S., Huang, Y.-L., Huang, C.-Y., Sastry, S. Attacks against process
+  control systems: risk assessment, detection, and response. ASIACCS 2011, pp. 355-366.
+  doi:10.1145/1966913.1966959.
 - Chan-Tin, E., Feldman, D., Hopper, N., Kim, Y. The frog-boiling attack: limitations of anomaly detection
-  for secure network coordinate systems. SecureComm 2009.
+  for secure network coordinate systems. SecureComm 2009, pp. 448-458. doi:10.1007/978-3-642-05284-2_26.
+- Chan-Tin, E., Heorhiadi, V., Hopper, N., Kim, Y. The frog-boiling attack: limitations of secure network
+  coordinate systems. ACM TISSEC 14(3):1-23, 2011. doi:10.1145/2043621.2043627.
+- Cretu, G. F., Stavrou, A., Locasto, M. E., Stolfo, S. J., Keromytis, A. D. Casting out demons:
+  sanitizing training data for anomaly sensors. IEEE S&P 2008, pp. 81-95. doi:10.1109/sp.2008.11.
+- Dhananjeyan, S., U, K. The exclusion ratchet: false-positive suppression accumulates and persists in
+  detection rule repositories. arXiv:2608.31062, 2026 (preprint).
+- EEMUA. Publication 191, Alarm systems: a guide to design, management and procurement. 4th ed., 2024.
 - Erba, A., Taormina, R., Galelli, S., Pogliani, M., Carminati, M., Zanero, S., Tippenhauer, N. O.
   Constrained concealment attacks against reconstruction-based anomaly detectors in industrial control
   systems. ACSAC 2020, pp. 480-495. doi:10.1145/3427228.3427660.
+- Ghafouri, A., Abbas, W., Laszka, A., Vorobeychik, Y., Koutsoukos, X. Optimal thresholds for
+  anomaly-based intrusion detection in dynamical environments. GameSec 2016, LNCS, pp. 415-434.
+  doi:10.1007/978-3-319-47413-7_24.
 - Gibbs, I., Candes, E. Adaptive conformal inference under distribution shift. NeurIPS 2021.
   arXiv:2106.00170.
 - Goh, J., Adepu, S., Junejo, K. N., Mathur, A. A dataset to support research in the design of secure
-  water treatment systems. CRITIS 2016.
+  water treatment systems. CRITIS 2016, LNCS (2017), pp. 88-99. doi:10.1007/978-3-319-71368-7_8.
 - Hong, Z. The boiling frog threshold: criticality and blindness in world model-based anomaly detection
   under gradual drift. arXiv:2603.08455, 2026.
 - Hosking, J. R. M., Wallis, J. R. Parameter and quantile estimation for the generalized Pareto
@@ -689,20 +732,31 @@ without one had no DOI confirmed there.
   using LSTMs and nonparametric dynamic thresholding. KDD 2018, pp. 387-395. doi:10.1145/3219819.3219845.
 - ISA. ANSI/ISA-18.2-2016, Management of alarm systems for the process industries. 2016.
 - Kloft, M., Laskov, P. Online anomaly detection under adversarial impact. AISTATS 2010, PMLR 9:405-412.
+- Kloft, M., Laskov, P. Security analysis of online centroid anomaly detection. JMLR 13(118):3681-3724,
+  2012.
 - Kravchik, M., Shabtai, A. Can't boil this frog: robustness of online-trained autoencoder-based anomaly
   detectors to adversarial poisoning attacks. arXiv:2002.02741, 2020.
+- Kravchik, M., Biggio, B., Shabtai, A. Poisoning attacks on cyber attack detectors for industrial
+  control systems. ACM SAC 2021, pp. 116-125. doi:10.1145/3412841.3441892.
 - Rubinstein, B. I. P., Nelson, B., Huang, L., Joseph, A. D., Lau, S., Rao, S., Taft, N., Tygar, J. D.
-  ANTIDOTE: understanding and defending against poisoning of anomaly detectors. IMC 2009.
-- Shin, H.-K., Lee, W., Yun, J.-H., Kim, H. HAI 1.0: HIL-based augmented ICS security dataset. CSET 2020.
-  arXiv:2005.02315.
+  ANTIDOTE: understanding and defending against poisoning of anomaly detectors. IMC 2009, pp. 1-14.
+  doi:10.1145/1644893.1644895.
+- Shin, H.-K., Lee, W., Yun, J.-H., Kim, H. HAI 1.0: HIL-based augmented ICS security dataset. CSET 2020
+  (USENIX). https://www.usenix.org/conference/cset20/presentation/shin
+- Shin, H.-K., Lee, W., Yun, J.-H., Min, B.-G. Two ICS security datasets and anomaly detection contest on
+  the HIL-based augmented ICS testbed. CSET 2021, pp. 36-40. doi:10.1145/3474718.3474719.
 - Siffer, A., Fouque, P.-A., Termier, A., Largouet, C. Anomaly detection in streams with extreme value
   theory. KDD 2017, pp. 1067-1075. doi:10.1145/3097983.3098144.
+- Su, Y., Zhao, Y., Niu, C., Liu, R., Sun, W., Pei, D. Robust anomaly detection for multivariate time
+  series through stochastic recurrent neural network. KDD 2019, pp. 2828-2837.
+  doi:10.1145/3292500.3330672.
 - Taormina, R., et al. The battle of the attack detection algorithms: disclosing cyber attacks on water
   distribution networks. J. Water Resour. Plann. Manage. 144(8):04018048, 2018.
   doi:10.1061/(ASCE)WR.1943-5452.0000969.
-- Brockmann, J. T., Rudolph, M., Rosenhahn, B., Wandt, B. The voraus-AD dataset for anomaly detection in
-  robot applications. IEEE Transactions on Robotics 40:438-451, 2024. doi:10.1109/TRO.2023.3332224.
-- Yolcu, F. HyGrid-ICS: a hybrid cyber-physical security dataset for SCADA-based industrial control
-  systems, v1.1.1. Zenodo, 2026. doi:10.5281/zenodo.23250890 (version); concept doi:10.5281/zenodo.23250468.
+- Urbina, D. I., Giraldo, J. A., Cardenas, A. A., Tippenhauer, N. O., Valente, J., Faisal, M., Ruths, J.,
+  Candell, R., Sandberg, H. Limiting the impact of stealthy attacks on industrial control systems. CCS
+  2016, pp. 1092-1105. doi:10.1145/2976749.2978388.
 - Wu, R., Keogh, E. Current time series anomaly detection benchmarks are flawed and are creating the
   illusion of progress. IEEE TKDE 35(3):2421-2429, 2023. doi:10.1109/TKDE.2021.3112126.
+- Yolcu, F. HyGrid-ICS: a hybrid cyber-physical security dataset for SCADA-based industrial control
+  systems, v1.1.1. Zenodo, 2026. doi:10.5281/zenodo.23250890 (version); concept doi:10.5281/zenodo.23250468.
