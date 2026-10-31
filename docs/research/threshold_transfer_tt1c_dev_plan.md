@@ -66,3 +66,14 @@ the rules they extend.
   and resist the pulses, natural poisoning is a property of naive adaptive rules, and the paper says so.
 - If the canonical SPOT variants resist the frog, the silent-poisoning claim is restricted to the
   estimators that showed it.
+
+## Amendment 1 (2026-11-01, after the first natural run on HAI 21.03, before any other result)
+
+`spot_gr_declust` was mis-specified. Its tail probability counts clusters (Coles' return-level form), but
+its target probability was left at the per-sample calibration rate p, so it asked for far more clusters
+than calibration ever had: on HAI 21.03 its threshold started at 0.45 tau0 and raised 115 false-alarm
+episodes a day. The target is now the calibration rate of clusters above tau0 (runs declustering with the
+same run length), which starts the rule near tau0 as plain SPOT starts near tau0. Nothing else changed.
+The first run (all rules, HAI 21.03) reproduced the earlier development counts for every reference rule
+(frozen 50/50, tracker 39/50, daily 42/50, SPOT variants 50/50); all runs are restarted from the
+beginning with the corrected rule so that every release uses the same code.

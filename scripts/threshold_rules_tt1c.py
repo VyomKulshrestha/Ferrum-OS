@@ -224,11 +224,26 @@ class SpotGR:
         self.k = len(calib)
         if declust:
             self.peaks = self._cluster_maxima(calib)
+            # The tail probability counts clusters, so the target must be a cluster rate too: the calibration
+            # rate of clusters above tau0 (amendment 1 of the tt1c plan; the per-sample rate p put the first
+            # run's threshold at 0.45 tau0).
+            above = calib > cfg["tau0"]
+            n_c = len([1 for _ in self._runs(above)])
+            self.q = max(n_c, 1) / self.k
         else:
             self.peaks = list(calib[calib > self.t] - self.t)
         self.run_max, self.below = None, 0
         self.theta = None
         self._fit()
+
+    @staticmethod
+    def _runs(above):
+        """Clusters of True values separated by at least DECLUST False values (runs declustering)."""
+        idx = np.flatnonzero(above)
+        if not len(idx):
+            return []
+        breaks = np.flatnonzero(np.diff(idx) > DECLUST)
+        return list(zip(np.concatenate([[idx[0]], idx[breaks + 1]]), np.concatenate([idx[breaks], [idx[-1]]]) + 1))
 
     def _cluster_maxima(self, a):
         out, cur, below = [], None, 0
