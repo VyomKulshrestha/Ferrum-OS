@@ -11,7 +11,10 @@ Status: every number and citation was checked against the pack in a Claude Scien
 revision). Revised 2026-11-01: Section 3.1 (Propositions 1 to 3), the post-hoc time-in-alarm,
 onset-recall and attacks-only analyses (Sections 6.2, 6.3, 7.3), the tighten-only framing, the D0
 sentence and an ethics appendix. The new numbers come from `threshold_transfer_tt1_memory_check.json`
-and `threshold_transfer_tt1_posthoc_alarm_time.json` and have not yet had an independent review.
+and `threshold_transfer_tt1_posthoc_alarm_time.json`. Revised again the same day after a Claude Science
+mock PC review (`review/mock_pc_review.md`, major revision; response in `review/mock_pc_response.md`) and
+literature check (`review/literature_report.md`): BATADAL SPOT/DSPOT attribution corrected, headline
+re-weighted, every registered outcome reported (Section 6.4), Section 2 rewritten with verified citations.
 
 ---
 

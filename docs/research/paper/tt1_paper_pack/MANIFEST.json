@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "6e6dbecd43b3a5a70f56d00e539b4bf180cb204f99fc12250b7a5a43c9fb2a70",
+   "sha256": "d98205e5dd19f662a5859c9be2d050ed5934f2a5f4c1311e51254d09924069c8",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true
   },
@@ -322,6 +322,18 @@
   "latex/README.md": {
    "sha256": "02a70b89d34cf242bf51d14257361757b18e111da29f6b67462c63cdd29f4577",
    "built_by": "Claude Science LaTeX session (prompt 3); updated by the author 2026-11-01"
+  },
+  "review/literature_report.md": {
+   "sha256": "d532f167bc95dc146b0e01924ea5eeec286096b7e200213bb82a66a5931b920b",
+   "built_by": "Claude Science literature session (prompt 4; Opus 5.5, reviewer Sonnet 5.5)"
+  },
+  "review/mock_pc_review.md": {
+   "sha256": "86eedae245e11aaf5f50b389e7cfbe5d488216ff92ed41dca12ed45b66e0aa5e",
+   "built_by": "Claude Science mock PC review session (prompt 5; Opus 5.5, reviewer Sonnet 5.5)"
+  },
+  "review/mock_pc_response.md": {
+   "sha256": "8c80bb6351b8d2cb4a2852c07824b3002376d2ce7e84a44a58a3bd8db16aa3bc",
+   "built_by": "response by the author, 2026-11-01"
   }
  }
 }
