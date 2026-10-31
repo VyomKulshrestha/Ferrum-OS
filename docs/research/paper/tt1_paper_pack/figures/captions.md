@@ -52,6 +52,11 @@ exactly (`trajectory_consistency.json`, relative difference 0). Over test1 and t
 36/38 and tracker 20/38, matching the registered tt1 result, and spot_mle 35/38 and dspot 36/38, matching the post-hoc
 file (SPOT and DSPOT were not part of the tt1 registration). test2 (10 attacks) is not drawn. The CSV also holds
 tau_tracker_slow, tau_spot and tau_one_sided:none, which are not drawn here. test1 has no missing values.
+[Corrected by the author on 2026-11-01: the score stays above tau_0 for the first 23.8 h of test1 with no
+attack label, and that stretch lifted the tracker to 5.25 tau_0 before the first attack; the LaTeX caption
+says so. Sources: the opening run of 85,689 s in `results/threshold_transfer_tt1_posthoc_transient.json`
+(`opening_run_seconds`, test1) and `tau_tracker` at the first attack onset (minute 160) in
+`figure_data/threshold_trajectories.csv`.]
 
 **Checks (from the script, before saving).** 4,860 rows drawn, out of 4,860 in the CSV for test1. The time index is
 contiguous. There are 28 attack intervals, and the tracker caught 12 of them. Totals over both streams: frozen 36/38,

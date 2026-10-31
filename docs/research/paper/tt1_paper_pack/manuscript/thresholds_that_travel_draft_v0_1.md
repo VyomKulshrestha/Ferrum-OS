@@ -325,8 +325,10 @@ frozen threshold detects 26 of 38, the tracker 20 (-0.16, [-0.37, 0.05]), the sl
 [-0.18, 0.24]) and daily recalibration 11 (-0.40, [-0.55, -0.24]). On BATADAL the frozen threshold was in
 alarm for 1.4% of the unlabelled time and the stricter count changes nothing (tracker -0.57,
 [-0.79, -0.29]). On HyGrid-ICS (4.1% in alarm) the 91 attacks cover 83% of the final rows, about 100 s
-apart on average, so merged alarm episodes span several attacks and the stricter count is not
-informative. G2 stands as registered, but the tracker's HAI 20.07 gap depends on crediting the frozen
+apart on average, so one merged alarm episode spans several attacks and the stricter count credits few of
+them: frozen 3 of 91, tracker 8 (+0.05, [0.00, 0.11]), slow tracker 5. There the stricter count reverses
+the sign, but it measures how alarms merge across back-to-back attacks more than what the threshold
+detects. G2 stands as registered, but the tracker's HAI 20.07 gap depends on crediting the frozen
 threshold's long alarms; the BATADAL gap does not (`threshold_transfer_tt1_posthoc_alarm_time.json`).
 
 ### 6.3 False alarms

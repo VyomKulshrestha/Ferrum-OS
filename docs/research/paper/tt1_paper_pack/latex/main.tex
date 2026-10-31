@@ -435,7 +435,10 @@ the tracker 20 ($-0.16$, $[-0.37, 0.05]$), the slow tracker 27 ($+0.03$, $[-0.18
 recalibration 11 ($-0.40$, $[-0.55, -0.24]$). On BATADAL the frozen threshold was in alarm for 1.4\% of
 the unlabelled time and the stricter count changes nothing (tracker $-0.57$, $[-0.79, -0.29]$). On
 HyGrid-ICS (4.1\% in alarm) the 91 attacks cover 83\% of the final rows, about 100\,s apart on average,
-so merged alarm episodes span several attacks and the stricter count is not informative. G2 stands as
+so one merged alarm episode spans several attacks and the stricter count credits few of them: frozen 3
+of 91, tracker 8 ($+0.05$, $[0.00, 0.11]$), slow tracker 5. There the stricter count reverses the
+sign, but it measures how alarms merge across back-to-back attacks more than what the threshold
+detects. G2 stands as
 registered, but the tracker's HAI 20.07 gap depends on crediting the frozen threshold's long alarms;
 the BATADAL gap does not.
 
@@ -445,9 +448,11 @@ the BATADAL gap does not.
 \caption{Threshold trajectories on the HAI 20.07 test1 stream (4,860 minutes). Grey: the D1 score
 score\_max. Coloured: the frozen, tracker, daily, spot\_mle and dspot thresholds, log scale. Grey
 shading marks attack-labelled minutes; each marker above the panel is one attack interval, filled if
-the tracker caught it. test1 holds 28 of the 38 attacks; the tracker caught 12. Early attacks raise
-the tracker and daily thresholds far above frozen ($\tau_0 = 17.26$), and later attacks arrive under
-the inflated thresholds. Data status: \textbf{post-hoc analysis}; the trajectories were computed
+the tracker caught it. test1 holds 28 of the 38 attacks; the tracker caught 12. The score stays above
+$\tau_0 = 17.26$ for the first 23.8\,h of test1 with no attack label, so the frozen threshold is in alarm
+throughout that stretch; this unlabelled stretch lifted the tracker to $5.25\,\tau_0$ before the first
+attack, and the early attacks then raised the tracker and daily thresholds far above frozen. Later
+attacks arrive under the inflated thresholds. Data status: \textbf{post-hoc analysis}; the trajectories were computed
 after the registered finals. The recomputed calibration threshold equals the registered one exactly.
 Over test1 and test2 the traces give frozen 36/38 and tracker 20/38 (registered tt1) and spot\_mle
 35/38 and dspot 36/38 (post-hoc: SPOT and DSPOT were not in the tt1 registration). test2 is not

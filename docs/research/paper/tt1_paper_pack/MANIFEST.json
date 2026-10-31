@@ -20,7 +20,7 @@
    "built_by": "scripts/tt1_paper_pack.py"
   },
   "figures/captions.md": {
-   "sha256": "d76139381f2ecc024b768471f93a3674f642cf6e644743018d5efe434fac6433",
+   "sha256": "d87872672580701a8d0f7596e7b525baf467103729334b9db04149c297a85d0d",
    "built_by": "Claude Science figures session (prompt 2); captions.md edited by the author (Figure 4 note)"
   },
   "figures/fig1_learning_regions.pdf": {
@@ -112,7 +112,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "f2e5c55e037080b34821fa27d33ca1b383f18a348ee8492ef5db5cb1d68f0c41",
+   "sha256": "62d4fb1eee94e55748ae4ba7caabae87b9c6e2c07c25fff594eb4e9e2db73c97",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex/refs.bib": {
@@ -140,7 +140,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "ad3059ec7ddc0b51a2e31397d1287ffe0b7ea2c82d45a9fec53f73b92c4b85cd",
+   "sha256": "3d7d65fb7a80c814f94f05ac81b0df68dc815e2447122e60cfe0217a07dc6a98",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex_usenix/refs.bib": {
@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "bb001f0e1ee407f9e8fa6ddfd0020747b1e4e0ddc9692bdfe047a4b13f1dce91",
+   "sha256": "f96715af12174710bdf073c417d6ff005ff5c900f77a9baf47f88b486263e9bb",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true
   },
@@ -292,11 +292,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "5f123acf7d8aa00bd4fef271102e6866e319bd411efd1a6fa37949844596db4d",
+   "sha256": "4fab1f17ba156a172a6c7e13b9ac4ce94dcffcd394e2173e10b03cd94f2b33b0",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "775b30cb6ffa39eef091f344deaefb5e5f5bab78043eb3a3dc892f6e999cbdee",
+   "sha256": "5cccc3c8cc5da622099fef12e095b525ed940abdd8d51d76f03743242fc7379e",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
