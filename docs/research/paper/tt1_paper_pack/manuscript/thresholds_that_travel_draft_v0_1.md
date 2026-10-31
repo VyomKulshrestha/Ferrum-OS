@@ -110,7 +110,8 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
    on HyGrid-ICS, voraus-AD, three development releases and a second, model-free score (Sections 6 and
    7).
 3. A learning-region analysis of adaptive thresholds: how long the tracker and daily recalibration
-   remember an exceedance, as a function of the calibrated false-alarm rate alone (Section 3.1), and a
+   remember an exceedance, read from their update identities in terms of the calibrated false-alarm rate
+   and checked on recorded attacks (Section 3.1), and a
    matching attack for each class: supra-threshold pulse campaigns for exceedance learners and a
    closed-loop frog-boiling attack for extreme-value learners, including how the latter depends on the
    tail estimator (Section 7).
@@ -160,8 +161,8 @@ miscoverage rate under arbitrary, even adversarial, sequences [Gibbs and Candes 
 2022], a guarantee about the rate of exceedances. Atarmla [2026] proves that for the online quantile
 tracker this guarantee is an accounting identity and bounds the evidence a step or ramp produces before
 the tracker absorbs it. The guarantee holds whether the exceedances come from benign drift or from
-attacks, the property we exploit in Section 7; we measure the absorption on recorded attacks and extend the
-question to extreme-value thresholds.
+attacks, the property we exploit in Section 7; Proposition 1 (Section 3.1) follows from the same identity, which
+we test on recorded attacks, and we extend the question to extreme-value thresholds.
 
 ---
 
@@ -212,8 +213,10 @@ on HAI 20.07 (registered E4).
 ### 3.1 How long a threshold remembers
 
 Three facts follow from the update rules alone. They predict most of what Sections 6 and 7 measure.
-Proposition 1 is elementary; Atarmla's analysis of the same tracker [2026] gives the matching result on the
-way up, the excess alarms a persistent step produces before the tracker absorbs it.
+Proposition 1 restates, as a memory, the counting identity behind the long-run coverage guarantee of
+adaptive conformal inference [Gibbs and Candes 2021], from which Atarmla [2026] derives the excess alarms a
+persistent step produces before the tracker absorbs it. What we add is its reading in terms of the
+calibrated false-alarm rate and its check on recorded attacks.
 
 **Proposition 1 (tracker memory).** Under q_{t+1} = q_t + eta(1[s_t > q_t] - p), each step with
 s_t > q_t raises the threshold by eta(1 - p) and each other step lowers it by eta p. A rise built from E

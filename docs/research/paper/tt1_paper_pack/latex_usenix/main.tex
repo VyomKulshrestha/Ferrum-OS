@@ -169,8 +169,8 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
   and repeated on HyGrid-ICS, voraus-AD, three development releases and a second, model-free score
   (Sections~\ref{sec:registered} and~\ref{sec:regions}).
 \item A learning-region analysis of adaptive thresholds: how long the tracker and daily
-  recalibration remember an exceedance, as a function of the calibrated false-alarm rate alone
-  (Section~\ref{sec:memory}), and a matching attack for each class: supra-threshold pulse campaigns
+  recalibration remember an exceedance, read from their update identities in terms of the calibrated
+  false-alarm rate and checked on recorded attacks (Section~\ref{sec:memory}), and a matching attack for each class: supra-threshold pulse campaigns
   for exceedance learners and a closed-loop frog-boiling attack for extreme-value learners, including
   how the latter depends on the tail estimator (Section~\ref{sec:regions}).
 \item A design rule, supported by these results, for deployed detectors: thresholds may tighten
@@ -226,8 +226,8 @@ adversarial, sequences~\cite{gibbs2021aci, bastani2022multivalid}, a guarantee a
 exceedances. Atarmla~\cite{atarmla2026price} proves that for the online quantile tracker this guarantee
 is an accounting identity and bounds the evidence a step or ramp produces before the tracker absorbs
 it. The guarantee holds whether the exceedances come from benign drift or from attacks, the property we
-exploit in Section~\ref{sec:regions}; we measure the absorption on recorded attacks and extend the
-question to extreme-value thresholds.
+exploit in Section~\ref{sec:regions}; Proposition~1 (Section~\ref{sec:memory}) follows from the same
+identity, which we test on recorded attacks, and we extend the question to extreme-value thresholds.
 
 \section{Threat model and learning regions}
 \label{sec:threat}
@@ -307,9 +307,11 @@ HAI 20.07 (registered E4).
 \label{sec:memory}
 
 Three facts follow from the update rules alone. They predict most of what
-Sections~\ref{sec:registered} and~\ref{sec:regions} measure. Proposition~1 is elementary; Atarmla's
-analysis of the same tracker~\cite{atarmla2026price} gives the matching result on the way up, the
-excess alarms a persistent step produces before the tracker absorbs it.
+Sections~\ref{sec:registered} and~\ref{sec:regions} measure. Proposition~1 restates, as a
+memory, the counting identity behind the long-run coverage guarantee of adaptive conformal
+inference~\cite{gibbs2021aci}, from which Atarmla~\cite{atarmla2026price} derives the excess alarms a
+persistent step produces before the tracker absorbs it. What we add is its reading in terms of the
+calibrated false-alarm rate and its check on recorded attacks.
 
 \paragraph{Proposition 1 (tracker memory)} \emph{Under $q_{t+1} = q_t + \eta(\mathbf{1}[s_t > q_t]
 - p)$, each step with $s_t > q_t$ raises the threshold by $\eta(1-p)$ and each other step lowers it
