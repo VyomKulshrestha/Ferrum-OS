@@ -8,7 +8,10 @@ Vyom Kulshrestha, Independent Researcher, India (ORCID 0009-0009-1434-7148)
 
 Status: every number and citation was checked against the pack in a Claude Science review on
 2026-10-23 (126 of 138 numbers matched; the 9 mismatches and 3 untraceable numbers are fixed in this
-revision).
+revision). Revised 2026-11-01: Section 3.1 (Propositions 1 to 3), the post-hoc time-in-alarm,
+onset-recall and attacks-only analyses (Sections 6.2, 6.3, 7.3), the tighten-only framing, the D0
+sentence and an ethics appendix. The new numbers come from `threshold_transfer_tt1_memory_check.json`
+and `threshold_transfer_tt1_posthoc_alarm_time.json` and have not yet had an independent review.
 
 ---
 
@@ -24,7 +27,10 @@ We ran a pre-registered study on three datasets that no earlier analysis in our 
 (HAI 20.07, HyGrid-ICS and voraus-AD), with a world-model residual monitor and eleven threshold rules.
 On HAI 20.07's 38 attacks the frozen threshold detected 36 at 2.23 false-alarm episodes per day; a
 symmetric quantile tracker detected 20 (difference -0.42, 95% interval [-0.58, -0.26]) because earlier
-attacks had raised its threshold a median 12.9 times above calibration. Daily recalibration and a ten
+attacks had raised its threshold a median 12.9 times above calibration; fed only the attack samples,
+the tracker lost exactly as much. Post-hoc, the gap shrank to -0.16 ([-0.37, 0.05]) when an attack counted
+only if an alarm began inside it, because the frozen threshold was in alarm for 39% of HAI 20.07's
+unlabelled time. Daily recalibration and a ten
 times slower tracker also lost recall, and the same loss appeared on HyGrid-ICS and voraus-AD, on three
 earlier HAI releases, and with a second, model-free score. On attack-free development data, twelve
 two-minute nuisance alarms a day blinded every rule that learns from exceedances to a later,
@@ -35,13 +41,16 @@ Streaming extreme-value thresholds (SPOT and DSPOT) refuse to learn from alarms 
 poisoning on the HAI data, but a closed-loop attacker who holds the score just under the current
 threshold drove their thresholds upward without raising one alarm and blinded them within an hour. A
 second registered study on the BATADAL water network replicated the tracker's loss (6 of 14 attacks
-against 14 for the frozen threshold) and showed that slow, days-long attacks also inflate SPOT and DSPOT.
+against 14 for the frozen threshold, which was in alarm for 1.4% of the unlabelled time) and showed that slow, days-long attacks also inflate SPOT and DSPOT.
 Its registered primary rule nevertheless failed: the third hypothesis, that a closed-loop attacker
 blinds DSPOT, could not be tested because real attacks had already blinded DSPOT in all ten controls.
-Across seven datasets, a threshold that only tightens itself matched the frozen threshold's recall every
-time, while every rule that can raise its own threshold lost recall on at least one. We argue that an
-alarm threshold may tighten itself but should loosen only with operator approval, and we release the
-registrations, ledger and code.
+A threshold that only tightens itself cannot miss an event the frozen threshold catches, on any input;
+its cost is false alarms when the plant drifts upward (2.43 times the budget on BATADAL, against 0.70 for
+the frozen threshold), while every rule that can raise its own threshold lost recall on at least one of
+seven datasets. A short analysis of the update rules explains the losses: a tracker calibrated to HAI
+20.07's false-alarm rate needs 23 attack-free hours to forget one minute above its threshold. We argue
+that an alarm threshold may tighten itself but should loosen only with operator approval, and we release
+the registrations, ledger and code.
 
 ---
 
@@ -78,8 +87,9 @@ The answer depends on the region, and none of the adaptive rules we tested is sa
   SPOT or DSPOT threshold and holds the score just under it feeds every sample into the fitted tail. The
   tail extends, the threshold rises, the attacker follows it up, and no alarm is ever raised.
 
-A threshold that only tightens automatically, and loosens only when an operator approves, resisted all
-three. Its cost is extra false alarms when the plant drifts upward.
+A threshold that only tightens automatically, and loosens only when an operator approves, cannot be
+pushed above the frozen threshold by any of the three, so it keeps the frozen threshold's recall by
+construction (Section 3.1). Its cost is extra false alarms when the plant drifts upward.
 
 **Method.** The main study was registered before any test file, label or attack schedule of its three
 datasets was read. A ledger records every access to recorded attack data, the analysis harness refuses
@@ -96,9 +106,11 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
 2. Evidence that exceedance-learning thresholds lose recall on real attacks because earlier attacks
    inflate them, on seven datasets and two score families, with the mechanism visible in which attacks
    are missed, and a registered replication on the BATADAL water network (Sections 6 and 7).
-3. A learning-region analysis of adaptive thresholds with a matching attack for each class: supra-
-   threshold pulse campaigns for exceedance learners and a closed-loop frog-boiling attack for
-   extreme-value learners, including how the latter depends on the tail estimator (Section 7).
+3. A learning-region analysis of adaptive thresholds: how long the tracker and daily recalibration
+   remember an exceedance, as a function of the calibrated false-alarm rate alone (Section 3.1), and a
+   matching attack for each class: supra-threshold pulse campaigns for exceedance learners and a
+   closed-loop frog-boiling attack for extreme-value learners, including how the latter depends on the
+   tail estimator (Section 7).
 4. A design rule, supported by these results, for deployed detectors: thresholds may tighten
    themselves; loosening needs a human (Section 8).
 5. The registration, access ledger, harness and verifier. [Anonymized artifact link.]
@@ -173,6 +185,42 @@ upward. That gives three attacker classes, from weakest to strongest:
 
 The attacker's goal is a terminal attack that the frozen threshold would detect but the adapted
 threshold does not.
+
+### 3.1 How long a threshold remembers
+
+Three facts follow from the update rules alone. They predict most of what Sections 6 and 7 measure.
+
+**Proposition 1 (tracker memory).** Under q_{t+1} = q_t + eta(1[s_t > q_t] - p), each step with
+s_t > q_t raises the threshold by eta(1 - p) and each other step lowers it by eta p. A rise built from E
+exceedance steps therefore takes E(1 - p)/p quiet steps to undo, whatever the step size eta.
+
+The calibrated exceedance rate p sets the memory. On HAI 20.07 (p = 7.2 x 10^-4 per second) the ratio is
+1,385, so one minute above the threshold keeps it raised for 23 hours. On BATADAL (p = 0.0075 per
+15-minute step) it is 133, so one step above the threshold keeps it raised for 33 hours. A slower tracker
+(tracker_slow, eta/10) climbs less during a short attack but needs the same 1,385 quiet seconds per
+exceedance second to come back down, which is why it lost recall too (Section 6.2). Every recorded change
+of the tracker on the HAI 20.07 and BATADAL test streams is a whole number of these up and down steps
+(largest deviation 7 x 10^-6 of a step), and from the levels the tracker reached it would have needed 43
+to 209 days of attack-free data to return to tau_0.
+
+**Proposition 2 (daily memory).** Daily recalibration sets the next day's threshold to the (1 - p)
+quantile of the last day's N steps. An attack that holds the score above a level a for more than pN + 1
+steps of one day lifts the next day's threshold to at least a. That is 64 seconds on HAI 20.07 and two
+15-minute steps on BATADAL. The memory is one day, so daily recalibration is poisoned whenever attacks
+fall on consecutive days, as they do in the HAI test files, and it still catches an attack whose first
+day follows a quiet one: on BATADAL, whose attacks last one to five days and begin 1.7 to 24 days after
+the previous one ends, it caught 14 of 14 with its threshold at 0.69 tau_0 at the median onset.
+
+**Proposition 3 (tighten-only).** If tau_t <= tau_0 at every step, every sample that alarms under the
+frozen threshold also alarms under tau_t. The rule therefore detects every event the frozen threshold
+detects, on any input and against any attacker, adaptive ones included. What it can lose is false alarms.
+
+Proposition 3 means the tighten-only results below measure its cost, not its recall. On HAI 20.07,
+HyGrid-ICS and voraus-AD its recall and false alarms equalled the frozen threshold's: the inflated tracker
+under the cap kept it at tau_0 (on HAI 20.07 it sat below tau_0 in 0.4% of minutes). Its own behaviour
+shows on BATADAL, where the tracker sat below tau_0 for 3.2% of the test time and the rule ran at 2.43
+times the false-alarm budget against 0.70 for frozen, and on a development split of HAI 23.05 (5.98
+against 4.05).
 
 ---
 
@@ -268,6 +316,19 @@ At HAI 20.07 attack onsets the median threshold stood at 25.6 tau_0 for daily re
 tracker and 6.4 for the slow tracker. HyGrid's daily rule equals frozen because its 14.5 h final never
 completes a day.
 
+**Time in alarm and onset recall (post-hoc).** Episode counts hide how long an alarm lasts. On HAI 20.07
+the frozen threshold was in alarm for 39% of the unlabelled time: the D1 score sat above tau_0 for the
+first 23.8 h of test1 and for most of a 17-hour stretch of test2, and each such run counts as one
+false-alarm episode. Ten of the frozen threshold's 36 detections were attacks that began while one of
+these alarms was already running. Counting an attack only when an alarm episode starts inside it, the
+frozen threshold detects 26 of 38, the tracker 20 (-0.16, [-0.37, 0.05]), the slow tracker 27 (+0.03,
+[-0.18, 0.24]) and daily recalibration 11 (-0.40, [-0.55, -0.24]). On BATADAL the frozen threshold was in
+alarm for 1.4% of the unlabelled time and the stricter count changes nothing (tracker -0.57,
+[-0.79, -0.29]). On HyGrid-ICS (4.1% in alarm) the 91 attacks cover 83% of the final rows, about 100 s
+apart on average, so merged alarm episodes span several attacks and the stricter count is not
+informative. G2 stands as registered, but the tracker's HAI 20.07 gap depends on crediting the frozen
+threshold's long alarms; the BATADAL gap does not (`threshold_transfer_tt1_posthoc_alarm_time.json`).
+
 ### 6.3 False alarms
 
 | Dataset | frozen | margin | daily | tracker | tracker_slow |
@@ -279,7 +340,9 @@ completes a day.
 Where an adaptive rule raised fewer false alarms than frozen, it bought them with the recall losses of
 Section 6.2. The one rule that cut false alarms at no recall cost here, the static margin on HyGrid-ICS
 (0.0 against 19.2 per day at identical recall), does not adapt. The margin matched frozen recall on HAI
-20.07 and held voraus-AD's target at a cost of 12 points of recall there.
+20.07 and held voraus-AD's target at a cost of 12 points of recall there. Counted in time rather than
+episodes (post-hoc), the frozen threshold was in alarm for 39% of the unlabelled time on HAI 20.07, 4.1% on
+HyGrid-ICS and 1.4% on BATADAL; the tracker for 0.2%, 0.3% and 0.4%.
 
 ---
 
@@ -302,7 +365,8 @@ percentile), and SPOT ran at 32% false positives against a 5% target.
 ### 7.2 The effect does not depend on the score
 
 With D0 the tracker lost recall on every dataset where it was measured: [-0.38, -0.14], [-0.21, -0.05]
-and [-0.19, -0.02] on the spent releases, [-0.32, -0.08] on HAI 20.07 and [-0.12, -0.02] on HyGrid-ICS.
+and [-0.19, -0.02] on the spent releases, [-0.32, -0.08] on HAI 20.07, [-0.12, -0.02] on HyGrid-ICS,
+[-0.04, -0.01] on voraus-AD and [-0.86, -0.36] on BATADAL.
 
 ### 7.3 Mechanism: attacks that follow attacks
 
@@ -311,6 +375,12 @@ on close versus isolated attacks was 0.75 / 1.00, 0.41 / 1.00 and 0.20 / 0.67 on
 0.48 / 0.71 on HAI 20.07 (31 close, 7 isolated). The frozen threshold also detected close attacks less
 often on two releases, so part of the gap reflects harder attacks; the tracker's gap is larger on every
 release.
+
+Attacks are what raise the tracker. Rerun post-hoc with its update fed only the attack-labelled samples
+(the others replaced by the calibration median for the update, alarms still on the real score), the
+tracker detected 20 of 38 on HAI 20.07 and 14 of 91 on HyGrid-ICS, exactly its registered counts, and 7 of
+14 on BATADAL (6 registered). Fed only the unlabelled samples, it detected 28 of 38, 27 of 91 (equal to
+frozen) and 11 of 14: the unlabelled exceedances of HAI 20.07 and BATADAL add a smaller loss of their own.
 
 ### 7.4 Loud poisoning: pulse campaigns
 
@@ -423,14 +493,18 @@ is not safe by construction: on BATADAL its spread-scaled offset sat 173 times a
 We therefore recommend:
 
 1. **Let thresholds tighten automatically, never loosen.** A tracker capped at the calibrated threshold
-   keeps the frozen threshold's recall on every dataset here and can only add sensitivity in quiet
-   periods.
+   cannot lose an event the frozen threshold catches (Proposition 3) and can only add sensitivity in
+   quiet periods.
 2. **Route loosening through an operator** who confirms the plant is in normal operation, and treat a
    request to loosen during or soon after an alarm as suspect.
 3. **Recalibrate offline on verified clean data**, as a change-controlled event, when drift raises false
-   alarms; our frozen thresholds held 0.66 to 2.23 episodes per day on four HAI test periods.
+   alarms; our frozen thresholds held 0.66 to 2.23 episodes per day on four HAI test periods, but on HAI
+   20.07 the threshold was in alarm for 39% of the unlabelled time, the kind of drift an offline
+   recalibration should catch.
 4. **Watch the threshold.** Log tau_t; a threshold that rises during an incident, or climbs steadily
    without alarms, is itself an indicator.
+5. **Budget alarm time as well as episodes.** An episode budget let a 24-hour alarm on HAI 20.07 count
+   once, and an attack that begins inside a running alarm gives the operator nothing new to see.
 
 The cost is false alarms under benign upward drift: on a development split of HAI 23.05 the tighten-only
 rule ran at 5.98 times the budget against 4.05 for the frozen threshold. A static margin can cut that cost
@@ -453,7 +527,9 @@ tail.
 - SPOT's behaviour depends on the tail estimator and on the score's tail shape; we report both.
 - Parameters scaled by a calibration spread (the static margin and the tracker step) are fragile on
   heavy-tailed scores: on BATADAL the margin sat 173 times above tau_0 and missed 11 of 14 attacks.
-- Event recall counts any alarm inside a labelled interval; we do not model operator response time.
+- Event recall counts any alarm inside a labelled interval, so it credits an attack that falls inside an
+  alarm already running; on HAI 20.07 that gave the frozen threshold 10 of its 36 detections (Section
+  6.2). We do not model operator response time.
 - Our monitor is one world-model residual and one model-free score; reconstruction-based detectors were
   not tested.
 - No claim of runtime authority, deployment safety or incident prevention follows from these results.
@@ -463,10 +539,34 @@ tail.
 ## 10. Conclusion
 
 On four never-opened datasets, adaptive thresholds that learn from exceedances missed attacks that a
-frozen threshold caught, because earlier attacks had raised them. Extreme-value thresholds avoided that
+frozen threshold caught, because earlier attacks had raised them; fed only the attack samples, the
+tracker lost as much as with everything. On HAI 20.07 part of the gap came from long alarms of the frozen
+threshold that also covered later attacks; on BATADAL none of it did. Extreme-value thresholds avoided that
 failure on the HAI data but not on days-long BATADAL attacks, and an attacker who stayed under them could
-drive them upward without an alarm. A threshold that only tightened itself matched the frozen threshold's
-recall on all seven datasets we examined.
+drive them upward without an alarm. How long a tracker or a daily recalibration stays raised follows from
+its calibrated false-alarm rate alone, so making the tracker slower does not make it forget faster. A
+threshold that only tightens itself keeps the frozen threshold's recall by construction; on the seven
+datasets it caught the same events, and on BATADAL, the one registered dataset where its tightening
+changed the alarms, it ran at 2.43 times the false-alarm budget against 0.70 for the frozen threshold.
+
+---
+
+## Ethical considerations
+
+All experiments ran offline on public recordings: HAI 20.07 to 23.05, HyGrid-ICS, voraus-AD and the
+BATADAL re-simulation, each used under its publisher's terms. No live plant, testbed, vendor product or
+operator was involved, and no human subjects took part. The pulse campaigns and both frog attacks were
+injected into recorded normal data or into the score; the physically realizable frog changes recorded
+sensor values in software and is scored by our own monitor.
+
+The attacks are not new in kind. Boiling-frog poisoning of self-updating detectors has been public since
+2009 [Chan-Tin et al. 2009; Rubinstein et al. 2009], and the threshold rules we attack are textbook
+algorithms. What the paper adds for an attacker is the observation that an adaptive threshold widens the
+window for a later attack; what it adds for a defender is a rule that closes that window at a known
+false-alarm cost. We judged that publishing both helps defenders more than attackers, because the defence
+is a configuration change (cap the threshold at its calibrated value) that any operator of an adaptive
+threshold can apply today. The released code generates attacks only against recorded data and a score
+file; it contains no tooling for reaching a control network.
 
 ---
 

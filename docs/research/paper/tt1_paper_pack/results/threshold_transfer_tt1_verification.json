@@ -20,7 +20,7 @@
   {
    "check": "hai-20.07: any other access is post-hoc and after the final",
    "pass": true,
-   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: threshold trajectories for paper figures"
+   "detail": "post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: threshold trajectories for paper figures; post-hoc sensitivity analysis after the registered tt1 final: adaptive thresholds with the opening transient of each test stream hidden from the threshold update; post-hoc analysis after the registered tt1 final: time in alarm, onset recall, and adaptive thresholds updated on attack-labelled or unlabelled samples only"
   },
   {
    "check": "hai-20.07: access is the tt1 shared final",
@@ -70,7 +70,7 @@
   {
    "check": "hygrid-ics: any other access is post-hoc and after the final",
    "pass": true,
-   "detail": "post-hoc analysis after the registered tt1 final: attack contamination of the development portion; post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory)"
+   "detail": "post-hoc analysis after the registered tt1 final: attack contamination of the development portion; post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: SPOT/DSPOT and the D0 score (exploratory); post-hoc analysis after the registered tt1 final: time in alarm, onset recall, and adaptive thresholds updated on attack-labelled or unlabelled samples only"
   },
   {
    "check": "hygrid-ics: access is the tt1 shared final",

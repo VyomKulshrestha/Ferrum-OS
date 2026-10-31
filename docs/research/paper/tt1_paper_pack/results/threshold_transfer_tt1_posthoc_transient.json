@@ -1,0 +1,223 @@
+{
+ "status": "post-hoc analysis after the registered tt1 final (not registered)",
+ "reason": "post-hoc sensitivity analysis after the registered tt1 final: adaptive thresholds with the opening transient of each test stream hidden from the threshold update",
+ "dataset": "hai-20.07",
+ "tau0": 17.25877276390233,
+ "p": 0.0007214282452856034,
+ "eta": 0.1226944586970009,
+ "registered_pipeline_unchanged": true,
+ "baseline_reproduces_registered_counts": true,
+ "baseline": {
+  "per_stream": [
+   {
+    "stream": "test1",
+    "opening_run_seconds": 0,
+    "events": 28,
+    "frozen": 26,
+    "daily": 10,
+    "tracker": 12,
+    "tracker_slow": 17,
+    "one_sided:none": 26
+   },
+   {
+    "stream": "test2",
+    "opening_run_seconds": 0,
+    "events": 10,
+    "frozen": 10,
+    "daily": 8,
+    "tracker": 8,
+    "tracker_slow": 10,
+    "one_sided:none": 10
+   }
+  ],
+  "rules": {
+   "frozen": {
+    "detected": 36,
+    "events": 38,
+    "recall": 0.9473684210526315,
+    "median_onset_inflation": 1.0
+   },
+   "daily": {
+    "detected": 18,
+    "events": 38,
+    "recall": 0.47368421052631576,
+    "median_onset_inflation": 25.564345428287332
+   },
+   "tracker": {
+    "detected": 20,
+    "events": 38,
+    "recall": 0.5263157894736842,
+    "median_onset_inflation": 12.928409597459869
+   },
+   "tracker_slow": {
+    "detected": 27,
+    "events": 38,
+    "recall": 0.7105263157894737,
+    "median_onset_inflation": 6.438117658750423
+   },
+   "one_sided:none": {
+    "detected": 36,
+    "events": 38,
+    "recall": 0.9473684210526315,
+    "median_onset_inflation": 1.0
+   }
+  },
+  "paired": {
+   "daily_vs_frozen": {
+    "recall_difference": -0.47368421052631576,
+    "recall_difference_interval": [
+     -0.631578947368421,
+     -0.3157894736842105
+    ],
+    "miss_reduction": -8.999999999999991,
+    "miss_reduction_interval": [
+     -22.000000000000025,
+     0.0
+    ]
+   },
+   "tracker_vs_frozen": {
+    "recall_difference": -0.42105263157894735,
+    "recall_difference_interval": [
+     -0.5789473684210527,
+     -0.26315789473684204
+    ],
+    "miss_reduction": -7.999999999999991,
+    "miss_reduction_interval": [
+     -20.00000000000002,
+     0.0
+    ]
+   },
+   "tracker_slow_vs_frozen": {
+    "recall_difference": -0.23684210526315785,
+    "recall_difference_interval": [
+     -0.368421052631579,
+     -0.10526315789473684
+    ],
+    "miss_reduction": -4.499999999999995,
+    "miss_reduction_interval": [
+     -13.000000000000018,
+     0.0
+    ]
+   },
+   "one_sided:none_vs_frozen": {
+    "recall_difference": 0.0,
+    "recall_difference_interval": [
+     0.0,
+     0.0
+    ],
+    "miss_reduction": 0.0,
+    "miss_reduction_interval": [
+     0.0,
+     0.0
+    ]
+   }
+  }
+ },
+ "opening_transient_hidden": {
+  "per_stream": [
+   {
+    "stream": "test1",
+    "opening_run_seconds": 85689,
+    "events": 28,
+    "frozen": 26,
+    "daily": 16,
+    "tracker": 17,
+    "tracker_slow": 23,
+    "one_sided:none": 26
+   },
+   {
+    "stream": "test2",
+    "opening_run_seconds": 10,
+    "events": 10,
+    "frozen": 10,
+    "daily": 8,
+    "tracker": 8,
+    "tracker_slow": 10,
+    "one_sided:none": 10
+   }
+  ],
+  "rules": {
+   "frozen": {
+    "detected": 36,
+    "events": 38,
+    "recall": 0.9473684210526315,
+    "median_onset_inflation": 1.0
+   },
+   "daily": {
+    "detected": 24,
+    "events": 38,
+    "recall": 0.631578947368421,
+    "median_onset_inflation": 1.0
+   },
+   "tracker": {
+    "detected": 25,
+    "events": 38,
+    "recall": 0.6578947368421053,
+    "median_onset_inflation": 6.444986878286729
+   },
+   "tracker_slow": {
+    "detected": 33,
+    "events": 38,
+    "recall": 0.868421052631579,
+    "median_onset_inflation": 2.009471861004762
+   },
+   "one_sided:none": {
+    "detected": 36,
+    "events": 38,
+    "recall": 0.9473684210526315,
+    "median_onset_inflation": 1.0
+   }
+  },
+  "paired": {
+   "daily_vs_frozen": {
+    "recall_difference": -0.3157894736842105,
+    "recall_difference_interval": [
+     -0.47368421052631576,
+     -0.18421052631578938
+    ],
+    "miss_reduction": -5.999999999999994,
+    "miss_reduction_interval": [
+     -16.000000000000018,
+     0.0
+    ]
+   },
+   "tracker_vs_frozen": {
+    "recall_difference": -0.2894736842105262,
+    "recall_difference_interval": [
+     -0.4473684210526315,
+     -0.1578947368421052
+    ],
+    "miss_reduction": -5.499999999999993,
+    "miss_reduction_interval": [
+     -15.000000000000018,
+     0.0
+    ]
+   },
+   "tracker_slow_vs_frozen": {
+    "recall_difference": -0.07894736842105254,
+    "recall_difference_interval": [
+     -0.18421052631578938,
+     0.0
+    ],
+    "miss_reduction": -1.499999999999997,
+    "miss_reduction_interval": [
+     -5.000000000000009,
+     0.0
+    ]
+   },
+   "one_sided:none_vs_frozen": {
+    "recall_difference": 0.0,
+    "recall_difference_interval": [
+     0.0,
+     0.0
+    ],
+    "miss_reduction": 0.0,
+    "miss_reduction_interval": [
+     0.0,
+     0.0
+    ]
+   }
+  }
+ },
+ "seconds": 257
+}

@@ -1,0 +1,81 @@
+{
+ "hai-20.07": {
+  "p": 0.0007214282452856034,
+  "eta": 0.1226944586970009,
+  "tau0": 17.25877276390233,
+  "steps_between_rows": 60,
+  "recovery_steps_per_exceedance_step": 1385.1392405063289,
+  "recovery_hours_per_exceedance_minute": 23.085654008438812,
+  "recovery_hours_per_exceedance_step": 0.3847609001406469,
+  "decay_per_day_in_tau0": 0.4431205819570815,
+  "daily_steps_above_level_to_lift_next_day": 62.33140039267614,
+  "streams": {
+   "test1": {
+    "rows": 4860,
+    "max_integrality_error_tracker": 7.45659339982524e-06,
+    "max_integrality_error_tracker_slow": 7.404668201430042e-05,
+    "exceedance_steps_tracker": 2817,
+    "exceedance_steps_tracker_slow": 9758,
+    "steps": 291540,
+    "final_tracker_over_tau0": 19.87917325834383,
+    "max_tracker_over_tau0": 19.94441045773236,
+    "predicted_days_to_return_from_final": 42.60504708439017,
+    "share_of_rows_above_2tau0": 0.9995884773662551,
+    "longest_attack_free_stretch_above_2tau0_hours": 16.85
+   },
+   "test2": {
+    "rows": 2550,
+    "max_integrality_error_tracker": 7.45659339982524e-06,
+    "max_integrality_error_tracker_slow": 7.404668085606719e-05,
+    "exceedance_steps_tracker": 3802,
+    "exceedance_steps_tracker_slow": 5908,
+    "steps": 152940,
+    "final_tracker_over_tau0": 27.24413644192882,
+    "max_tracker_over_tau0": 27.559552148159437,
+    "predicted_days_to_return_from_final": 59.22572209582153,
+    "share_of_rows_above_2tau0": 0.9862745098039216,
+    "longest_attack_free_stretch_above_2tau0_hours": 16.033333333333335
+   }
+  }
+ },
+ "batadal": {
+  "p": 0.007470795979353437,
+  "eta": 64.61907863730913,
+  "tau0": 9.393276064082084,
+  "steps_between_rows": 1,
+  "recovery_steps_per_exceedance_step": 132.85454545454544,
+  "recovery_hours_per_exceedance_minute": null,
+  "recovery_hours_per_exceedance_step": 33.21363636363636,
+  "decay_per_day_in_tau0": 4.933802771221922,
+  "daily_steps_above_level_to_lift_next_day": 0.7171964140179299,
+  "streams": {
+   "test_dataset_1": {
+    "rows": 18433,
+    "max_integrality_error_tracker": 1.4746017194637584e-08,
+    "max_integrality_error_tracker_slow": 1.1321060822133688e-07,
+    "exceedance_steps_tracker": 233,
+    "exceedance_steps_tracker_slow": 374,
+    "steps": 18432,
+    "final_tracker_over_tau0": 656.5846497989294,
+    "max_tracker_over_tau0": 1131.7799391259432,
+    "predicted_days_to_return_from_final": 132.876136359331,
+    "share_of_rows_above_2tau0": 0.9188954592307275,
+    "longest_attack_free_stretch_above_2tau0_hours": 611.0
+   },
+   "test_dataset_2": {
+    "rows": 10081,
+    "max_integrality_error_tracker": 1.4746017194637584e-08,
+    "max_integrality_error_tracker_slow": 1.1321060822133688e-07,
+    "exceedance_steps_tracker": 225,
+    "exceedance_steps_tracker_slow": 376,
+    "steps": 10080,
+    "final_tracker_over_tau0": 1030.791163588162,
+    "max_tracker_over_tau0": 1195.0456809124935,
+    "predicted_days_to_return_from_final": 208.72159089835696,
+    "share_of_rows_above_2tau0": 0.925205832754687,
+    "longest_attack_free_stretch_above_2tau0_hours": 481.0
+   }
+  }
+ },
+ "note": "post-hoc analysis of the recorded trajectories (figure data); no raw data opened. An integrality error near 0 means every recorded change of the tracker is an exact multiple of the Proposition 1 steps."
+}
