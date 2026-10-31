@@ -112,7 +112,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "acede26a1dd6f5c3833bb27398958333be7fcb8843ceb22ca859ea5ef11d1e7d",
+   "sha256": "81e8919dcebad5a83e45485cbb0f5b808ffbdb39217da46b178d560c23779714",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex/refs.bib": {
@@ -140,7 +140,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "3c7c38dce341cb491aaf5db355c42f71822ecfaf9ad1aeae030a06b90d3e23c5",
+   "sha256": "a7460549358db3ea3852904c2772830b2e5581aed4c16a274a66bb37d3d5e952",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex_usenix/refs.bib": {
@@ -292,11 +292,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "51caeeca1031a6f76c3dd73e02e72bfc3124443db95b0eb030e022eefb815c11",
+   "sha256": "7025ab6bb71cb7ffb4d6053e4882c3d1ce371f316cb81983ef00592e5f4d4878",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "695d4aa2570f50426743eaf9f9f84b6ffaa12057c19a30e55477edc40f6eaf35",
+   "sha256": "5f9fba298003e894e06d51ea184126a557d337d977e278d86a67f1264d6adc8c",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
