@@ -212,7 +212,9 @@ al.~\cite{chantin2009frog, chantin2011frog} described frog-boiling against outli
 coordinate systems: every update stays within the rejection threshold while the system drifts. In ICS,
 Kravchik and Shabtai~\cite{kravchik2020frog} found an autoencoder on SWaT physical-state data resistant
 to poisoning, but later work poisoned online-retrained ICS detectors with sub-threshold samples and
-proposed lowering the threshold as mitigation~\cite{kravchik2021poisoning}. Erba
+proposed lowering the threshold as mitigation~\cite{kravchik2021poisoning}, and Seo
+et al.~\cite{seo2026retraining} poisoned a drift-adaptive SWaT detector through its retraining step,
+evading its drift detector until the retrained threshold cut precision from 0.91 to 0.24. Erba
 et al.~\cite{erba2020concealment} concealed attacks from reconstruction-based detectors by manipulating
 sensor readings. Attackers who hold a detection statistic just under a fixed threshold are standard in
 control security~\cite{cardenas2011process, urbina2016stealthy}. Hong~\cite{hong2026boiling} studied

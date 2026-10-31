@@ -149,7 +149,9 @@ poisoning of online centroid detectors. Chan-Tin et al. [2009; 2011] described f
 rejection in network coordinate systems: every update stays within the rejection threshold while the
 system drifts. In ICS, Kravchik and Shabtai [2020] found an autoencoder on SWaT physical-state data
 resistant to poisoning, but later work poisoned online-retrained ICS detectors with sub-threshold samples
-and proposed lowering the threshold as mitigation [Kravchik et al. 2021]. Erba et al. [2020] concealed
+and proposed lowering the threshold as mitigation [Kravchik et al. 2021], and Seo et al. [2026] poisoned a
+drift-adaptive SWaT detector through its retraining step, evading its drift detector until the retrained
+threshold cut precision from 0.91 to 0.24. Erba et al. [2020] concealed
 attacks from reconstruction-based detectors by manipulating sensor readings. Attackers who hold a
 detection statistic just under a fixed threshold are standard in control security [Cardenas et al. 2011;
 Urbina et al. 2016]. Hong [2026] studied gradual drift against world-model monitors in simulation, without
@@ -747,6 +749,8 @@ Crossref or the arXiv API; entries without an identifier had none confirmed.
 - Rubinstein, B. I. P., Nelson, B., Huang, L., Joseph, A. D., Lau, S., Rao, S., Taft, N., Tygar, J. D.
   ANTIDOTE: understanding and defending against poisoning of anomaly detectors. IMC 2009, pp. 1-14.
   doi:10.1145/1644893.1644895.
+- Seo, J. K., Lee, J., Seo, J. T. Retraining data poisoning attacks on drift adaptive anomaly detection for
+  industrial control systems. ICUFN 2026, pp. 522-526. doi:10.1109/icufn69619.2026.11628587.
 - Shin, H.-K., Lee, W., Yun, J.-H., Kim, H. HAI 1.0: HIL-based augmented ICS security dataset. CSET 2020
   (USENIX). https://www.usenix.org/conference/cset20/presentation/shin
 - Shin, H.-K., Lee, W., Yun, J.-H., Min, B.-G. Two ICS security datasets and anomaly detection contest on

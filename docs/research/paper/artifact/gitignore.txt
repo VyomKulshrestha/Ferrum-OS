@@ -1,0 +1,5 @@
+target/real-telemetry/raw/
+target/real-telemetry/*/
+!target/real-telemetry/final_access.jsonl
+__pycache__/
+*.pyc
