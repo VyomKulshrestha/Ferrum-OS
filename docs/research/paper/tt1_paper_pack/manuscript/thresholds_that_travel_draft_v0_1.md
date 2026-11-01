@@ -119,7 +119,7 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
    tail estimator (Section 7).
 4. A design rule, supported by these results, for deployed detectors: thresholds may tighten
    themselves; loosening needs a human (Section 8).
-5. The registration, access ledger, harness and verifier. [Anonymized artifact link.]
+5. The registration, access ledger, harness and verifier. Anonymized artifact: https://anonymous.4open.science/r/thresholds-that-travel-artifact-579B/
 
 ---
 

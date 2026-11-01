@@ -6,7 +6,7 @@ the paper 2/2/2 (weak reject) and recommended major revision. Every weakness bel
 
 | Rank | Change asked for | Done | Where |
 |---|---|---|---|
-| 0 | Working anonymized artifact link | No: still a placeholder; needs the anonymized repository uploaded first | contribution 5, Open science |
+| 0 | Working anonymized artifact link | Yes: https://anonymous.4open.science/r/thresholds-that-travel-artifact-579B/ (90 files built by `scripts/tt1_build_artifact.py`, project name and commit hashes replaced as listed in its ANONYMIZATION.md; available until 1 May 2027) | contribution 5, Open science |
 | 1 | BATADAL SPOT/DSPOT were blind from calibration, not poisoned by attacks | Yes. Moments SPOT 49.0 tau_0, DSPOT 45.8 tau_0 at t = 0 of both files; MLE SPOT 1.22. Abstract, 7.6, Figure 3 caption and conclusion rewritten | Abstract, 7.6, Fig. 3, 10 |
 | 2 | Re-weight the headline around registered, metric-robust evidence | Yes. Abstract leads with both registered tracker losses, says the HAI 20.07 gap is not robust to onset counting and the BATADAL gap is, marks the campaigns exploratory; "seven datasets" removed; G1 marked uninformative; G3 qualified with the 39% alarm share | Abstract, 1, 6.1, 10 |
 | 3 | Report every registered outcome | Yes. New 6.4: the four automatic permits (all lose recall on HAI 20.07), oracle permit, first/second half recall, E5; BATADAL frog variants for every rule and both scores in 7.6; superseded transient analysis in 6.2 | 6.2, 6.4, 7.6 |

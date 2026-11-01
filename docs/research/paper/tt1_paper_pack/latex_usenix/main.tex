@@ -2,7 +2,7 @@
 %% Body text, tables, figures and numbers are identical to latex/main.tex (the ACM sigconf
 %% version); only the class, front matter and bibliography style differ.
 %% Anonymization: no author block, no ORCID, no repository links, no DOIs of the authors' own
-%% artifacts; the artifact is an anonymous.4open.science placeholder (see the TODOs).
+%% artifacts; the artifact is cited by its anonymous.4open.science copy.
 %% Third-party dataset DOIs (HyGrid-ICS, BATADAL, voraus-AD) are retained deliberately.
 %%
 %% To use the official template, drop usenix-2020-09.sty (from the USENIX Security author
@@ -55,6 +55,7 @@
 \setcounter{totalnumber}{5}
 \usepackage{graphicx}
 \usepackage{url}
+\def\UrlBreaks{\do\/\do-}  % the artifact link needs a break at a hyphen in the 10 pt column
 \usepackage{placeins}  % \FloatBarrier before the conclusion keeps every float ahead of the references
 \usepackage[hidelinks]{hyperref}
 \usepackage{cite}
@@ -180,8 +181,7 @@ hypotheses we dropped. Extensions run after the registered finals are labelled e
 \item A design rule, supported by these results, for deployed detectors: thresholds may tighten
   themselves; loosening needs a human (Section~\ref{sec:design}).
 \item The registration, access ledger, harness and verifier, in the anonymized artifact at
-  \url{https://anonymous.4open.science/...}.
-  % TODO: replace with the anonymous.4open.science URL of the anonymized artifact before submission.
+  \url{https://anonymous.4open.science/r/thresholds-that-travel-artifact-579B/}.
 \end{enumerate}
 
 \section{Background and related work}
@@ -1046,10 +1046,9 @@ against recorded data and a score file; it contains no tooling for reaching a co
 
 The two pre-registrations, the data-access ledger, the attack and threshold harnesses, the
 registered-gate verifiers and the figure data and plotting code are available in the anonymized
-artifact at \url{https://anonymous.4open.science/...}, which also contains the result files behind
+artifact at \url{https://anonymous.4open.science/r/thresholds-that-travel-artifact-579B/}, which also contains the result files behind
 every number in this paper and the verifier reports (27 of 27 checks for tt1, 8 of 8 for tt1b).
-% TODO: replace with the anonymous.4open.science URL of the anonymized artifact before submission;
-% the de-anonymized repository and the artifact DOI are added in the camera-ready version.
+% The de-anonymized repository and the artifact DOI are added in the camera-ready version.
 The raw datasets are not redistributed here and are available from their publishers: HAI from its
 dataset repository, BATADAL from Taormina et al.~\cite{taormina2018batadal} and the no-concealment
 re-simulation from the artifact of Erba et al.~\cite{erba2020concealment}, voraus-AD from Brockmann

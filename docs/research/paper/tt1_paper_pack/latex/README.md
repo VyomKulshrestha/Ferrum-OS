@@ -47,8 +47,9 @@ further pages for them. The body ends on page 10.
 
 ## Still to do before submission
 
-1. Replace both `https://anonymous.4open.science/...` placeholders (contribution 5 and the Open
-   science appendix); each is marked with a `% TODO` comment.
+1. Done on 2026-11-01: both artifact links (contribution 5 and the Open science appendix) point to the
+   anonymized copy, https://anonymous.4open.science/r/thresholds-that-travel-artifact-579B/ (built by `scripts/tt1_build_artifact.py`; snapshot available until
+   1 May 2027, extendable from the anonymous.4open.science dashboard).
 2. Done on 2026-11-01: recompiled with the float settings (no float lands after the references) and
    added an `Ethical considerations` appendix before the Open science appendix.
 3. Done on 2026-11-01: Section 3.1 (how long a threshold remembers: Propositions 1 to 3) and the
@@ -66,7 +67,7 @@ date, the review-status note) and the reference-list preamble that pointed at
 
 Rewritten: "the world-model residual monitor of our earlier registered studies on HAI" became
 "... of earlier registered studies on HAI [anonymized]" (Section 4). The artifact pointer in
-contribution 5 and in the Open science appendix became an `anonymous.4open.science` placeholder.
+contribution 5 and in the Open science appendix became the anonymous.4open.science copy of the artifact.
 
 Checked absent from both `main.tex` files and both `refs.bib` files: author name, ORCID, any
 GitHub URL, any Zenodo DOI of the authors' own artifacts, and the "FerrumOS" project name - which

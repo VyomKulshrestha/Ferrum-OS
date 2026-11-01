@@ -112,7 +112,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "81e8919dcebad5a83e45485cbb0f5b808ffbdb39217da46b178d560c23779714",
+   "sha256": "c1431c3467ec9fac7e982a0b8f793c76f7fbb1b589d463648afe4ca4602931dc",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex/refs.bib": {
@@ -140,7 +140,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "a7460549358db3ea3852904c2772830b2e5581aed4c16a274a66bb37d3d5e952",
+   "sha256": "6dc2ed1b774afc8b301e4c22667768c754c329b71e52aa42163e428764e25749",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes and the 2026-11-01 analysis edits by the author"
   },
   "latex_usenix/refs.bib": {
@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "884c03b8995659c543dad7a6e04fb5751bf00c7c756ffadecd70a6106a2bb695",
+   "sha256": "70cabd8b32c943a6bf3f9d41c195356b1938f8e0cf59141aee49bd4d155f41f9",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true
   },
@@ -292,11 +292,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "7025ab6bb71cb7ffb4d6053e4882c3d1ce371f316cb81983ef00592e5f4d4878",
+   "sha256": "b34bd20766dbc73181d349b799f9fb1db9678ad0c96b4dae02569a555d73055f",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "5f9fba298003e894e06d51ea184126a557d337d977e278d86a67f1264d6adc8c",
+   "sha256": "eac96a8751110bd3804f6a269a0de70d8c38539c031523171694be686341fc7d",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-01"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
@@ -320,7 +320,7 @@
    "built_by": "written for the pack"
   },
   "latex/README.md": {
-   "sha256": "02a70b89d34cf242bf51d14257361757b18e111da29f6b67462c63cdd29f4577",
+   "sha256": "6fad5d55437352f18a8c77f6b4890e5ab315d6743d294576331e0d00c5482886",
    "built_by": "Claude Science LaTeX session (prompt 3); updated by the author 2026-11-01"
   },
   "review/literature_report.md": {
@@ -332,7 +332,7 @@
    "built_by": "Claude Science mock PC review session (prompt 5; Opus 5.5, reviewer Sonnet 5.5)"
   },
   "review/mock_pc_response.md": {
-   "sha256": "ac2b16ec63ccb399163c769d3b8b0d4214de0ea1972b2085cddec84f534ff6cd",
+   "sha256": "ea70146251cdd1ab891b94140bcbb0336db448ae55306519cea96d4059da1a16",
    "built_by": "response by the author, 2026-11-01"
   },
   "results/threshold_transfer_tt1c_dev_v1.json": {
