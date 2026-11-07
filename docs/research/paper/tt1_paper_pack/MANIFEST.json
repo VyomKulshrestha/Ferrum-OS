@@ -352,7 +352,7 @@
    "built_by": "CTAN acmart v2.21 release"
   },
   "latex_named/main.tex": {
-   "sha256": "1e5ad958a2900836d8a3fc8658859864e9a930d34c7ba7d3ddd5207806e49956",
+   "sha256": "d9e16f0ce76e46b817f84ac4258ab2df4e8a63808c1dcedf402f5605c1084189",
    "built_by": "scripts/tt1_named_version.py from latex/main.tex"
   },
   "latex_named/refs.bib": {
@@ -368,11 +368,11 @@
    "built_by": "copy of latex/ACM-Reference-Format.bst"
   },
   "latex_named/main.pdf": {
-   "sha256": "27a9f12a2d8f8a638a625dd7c66498ea029442edbac1eaec618a28fd2aebb557",
+   "sha256": "11eb9997f0a09985a8bbbbce0867f1aa11a64e57228066a8214809303f1906ad",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-07"
   },
   "publish/README.md": {
-   "sha256": "d5024467e2e2196f1cf5a9e0d3c80fec91f424b7ee5b9e82a6da585fe8f1aa61",
+   "sha256": "669faef3355aae200f8a55df9566b0c09209cdffadd9227965a5fc8fed28d5c2",
    "built_by": "written for the pack, 2026-11-07"
   },
   "publish/abstract.txt": {
@@ -380,7 +380,7 @@
    "built_by": "abstract of the Markdown draft, plain text"
   },
   "publish/zenodo_metadata.json": {
-   "sha256": "63e1b0f92713b5056d9c6e0c1481eb298f642e5cfaf09fefebb35160ad1657a5",
+   "sha256": "8139a50549f898a4cc2d5b619b92f7774304e0d0c44d580b9372ec8f6404bb7d",
    "built_by": "Zenodo deposit fields for the named preprint, 2026-11-07"
   },
   "latex_named/figures/fig1_learning_regions.pdf": {

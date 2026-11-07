@@ -5,7 +5,8 @@
 
 Reads docs/research/paper/tt1_paper_pack/latex/{main.tex,refs.bib} and writes latex_named/ beside it, with
 the author block, the public repository instead of the anonymous artifact copy, the citation of the
-author's earlier registered studies instead of "[anonymized]", no review line numbers and no venue header.
+author's earlier registered studies instead of "[anonymized]", no review line numbers, no venue header and
+no generative-AI section (the conference copies keep it).
 Every replacement must match exactly once, so a change to the anonymous source that breaks one stops the
 build instead of producing a half-named paper.
 """
@@ -29,7 +30,7 @@ REPLACE = [
      "%% Open science appendix).\n", ""),
     ("\\documentclass[sigconf,review,anonymous]{acmart}", "\\documentclass[sigconf]{acmart}"),
     ("\\acmConference[ASIA CCS '27]{ACM ASIA Conference on Computer and\n  Communications Security}{July 12--16, 2027}{Macau, China}",
-     "\\acmConference[Preprint]{Preprint}{November 2026}{}"),
+     "\\acmConference[Preprint]{Preprint}{November 2026}{Zenodo}"),
     ("\\end{document}", "\\special{pdf:docinfo<</Author (Vyom Kulshrestha)>>}  % acmart's own pdfauthor comes out empty\n"
                         "\\end{document}"),
     ("%% Author block removed for double-blind review.\n\\author{Anonymous Author(s)}",
@@ -47,10 +48,10 @@ REPLACE = [
      "commit hashes; its ANONYMIZATION.md lists each replacement.",
      " The repository's commit history shows that every registration was committed before\n"
      "the data access it governs."),
-    ("to the authors' specification", "to the author's specification"),
-    ("in the artifact that the authors ran", "in the repository that the author ran"),
-    ("and the authors take responsibility for the content", "and the author takes responsibility for the content"),
 ]
+# The conference copies keep the generative-AI section (ACM and USENIX policy); the author's Zenodo
+# preprints carry none, so the named version drops it.
+AI_SECTION = "\\section*{Use of generative AI}"
 
 BIB = """
 @techreport{kulshrestha2026pinp,
@@ -73,7 +74,13 @@ def main():
         if n != 1:
             raise SystemExit(f"expected one match, found {n}: {old[:80]!r}")
         tex = tex.replace(old, new)
-    for bad in ("anonymous.4open", "[anonymized]", "Anonymous Author", "anonymous]{acmart}"):
+    if tex.count(AI_SECTION) != 1:
+        raise SystemExit(f"expected one {AI_SECTION}")
+    start = tex.index(AI_SECTION)
+    end = tex.index("\\special{pdf:docinfo", start)
+    tex = tex[:start] + tex[end:]
+    for bad in ("anonymous.4open", "[anonymized]", "Anonymous Author", "anonymous]{acmart}", "generative AI",
+                "Claude"):
         if bad in tex:
             raise SystemExit(f"anonymous residue left: {bad}")
     if DST.exists():
