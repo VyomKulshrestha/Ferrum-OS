@@ -1,7 +1,12 @@
 # Publishing Thresholds That Travel
 
 Decided 2026-11-07: submit to ACM ASIA CCS 2027 (round 2, double-blind) and post a named preprint on
-Zenodo. The author does both uploads; nothing here has been submitted or published.
+Zenodo. The ASIA CCS submission is still to do.
+
+The preprint was published on 2026-11-07 at https://zenodo.org/records/24035418 (DOI 10.5281/zenodo.24035418,
+all versions 10.5281/zenodo.24035417) and added to ORCID 0009-0009-1434-7148 as a preprint. The record and
+file hashes are in `zenodo_metadata.json` under `published`. Any change to the preprint needs Zenodo's
+"New version" (v1.1); the published file cannot be replaced.
 
 | File | What it is |
 |---|---|

@@ -372,7 +372,7 @@
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-07"
   },
   "publish/README.md": {
-   "sha256": "669faef3355aae200f8a55df9566b0c09209cdffadd9227965a5fc8fed28d5c2",
+   "sha256": "fc602ce090497b0f12a05e4c7a756a5200bafc18a64c5938fecf46f9f82eff13",
    "built_by": "written for the pack, 2026-11-07"
   },
   "publish/abstract.txt": {
@@ -380,7 +380,7 @@
    "built_by": "abstract of the Markdown draft, plain text"
   },
   "publish/zenodo_metadata.json": {
-   "sha256": "8139a50549f898a4cc2d5b619b92f7774304e0d0c44d580b9372ec8f6404bb7d",
+   "sha256": "c2d705d8e20f6a76200fe1061b0946579af42f6111705a7b9f82c88148a5b077",
    "built_by": "Zenodo deposit fields for the named preprint, 2026-11-07"
   },
   "latex_named/figures/fig1_learning_regions.pdf": {

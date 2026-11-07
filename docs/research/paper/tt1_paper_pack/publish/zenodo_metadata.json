@@ -1,7 +1,7 @@
 {
  "schema_version": "tt1-zenodo-deposit-v1",
  "prepared": "2026-11-07",
- "publication_state": "prepared, not uploaded; the author creates and publishes the record",
+ "publication_state": "published_and_verified",
  "file": {
   "name": "Thresholds_That_Travel_preprint_v1.0.pdf",
   "source": "latex_named/main.pdf (scripts/tt1_named_version.py, tectonic)",
@@ -46,10 +46,28 @@
    },
    {
     "identifier": "10.5281/zenodo.23473173",
-    "relation": "references",
-    "scheme": "doi"
+    "relation": "cites",
+    "scheme": "doi",
+    "resource_type": "publication-report"
    }
   ],
   "notes": "Preprint."
+ },
+ "published": {
+  "date": "2026-11-07",
+  "record_url": "https://zenodo.org/records/24035418",
+  "doi": "10.5281/zenodo.24035418",
+  "concept_doi": "10.5281/zenodo.24035417",
+  "version": "1.0",
+  "uploaded_file_md5_match": true,
+  "datacite_state": "findable, creator ORCID 0009-0009-1434-7148",
+  "orcid": {
+   "orcid": "0009-0009-1434-7148",
+   "work_added": "10.5281/zenodo.24035418",
+   "work_type": "preprint",
+   "visibility": "everyone",
+   "added_via": "Add work with a DOI"
+  },
+  "note": "Published by Claude in the author's browser at the author's request; no generative-AI section in the preprint, at the author's request. The related DOI was entered with relation 'cites'."
  }
 }
