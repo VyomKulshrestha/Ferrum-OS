@@ -329,6 +329,12 @@ event counts, on any input and against any attacker, adaptive ones included. Wha
 alarms. Under the stricter onset count of Section~\ref{sec:inflate} the guarantee need not hold,
 because a lower threshold can start an alarm episode before an attack begins.}
 
+\paragraph{Proposition 4 (ceiling)} \emph{If $\tau_t \le \kappa\tau_0$ at every step, every sample above
+$\kappa\tau_0$ alarms, so under the any-alarm count the rule detects every event that the static
+threshold $\kappa\tau_0$ detects, on any input and against any attacker.} Proposition~3 is the case
+$\kappa = 1$. A ceiling bounds poisoning: whatever the stream held before, an attacker can hide only
+events whose score stays below $\kappa\tau_0$.
+
 Proposition~3 means the tighten-only results below measure its cost, not its recall. On HAI 20.07,
 HyGrid-ICS and voraus-AD its recall and false alarms equalled the frozen threshold's: the inflated
 tracker under the cap kept it at $\tau_0$ (post-hoc: on HAI 20.07 it sat below $\tau_0$ in 0.4\% of
@@ -550,40 +556,10 @@ and 0.4\%. Tighten-only equalled the frozen threshold on all three tt1 datasets 
 \subsection{Other registered outcomes}
 \label{sec:other}
 
-The protocol commits us to report every rule, gate and failure. Table~\ref{tab:permits} and the list
-below give the rest of the registered record.
-
-\begin{table}[t]
-\caption{Tighten-only with a loosening permit on HAI 20.07. Data status: \textbf{registered} (tt1).}
-\label{tab:permits}
-\begin{tabularx}{\columnwidth}{@{}Lcccc@{}}
-\toprule
-Permit & Recall & vs frozen (95\%) & FA/day & Permits/wk \\
-\midrule
-spread, daily review & 26/38 & $[-0.39, -0.13]$ & 1.62 & 2.7 \\
-spread, 6\,h review & 28/38 & $[-0.34, -0.08]$ & 2.63 & 4.1 \\
-shift, daily review & 32/38 & $[-0.21, -0.03]$ & 1.01 & 4.1 \\
-shift, 6\,h review & 31/38 & $[-0.24, -0.03]$ & 2.02 & 12.2 \\
-oracle & 36/38 & $[0, 0]$ & 2.23 & 0 \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{itemize}
-\item \textbf{Automatic permits.} Every automatic loosening permit lost recall on HAI 20.07. On
-  voraus-AD all four lost recall too (95\% intervals: spread $[-0.21, -0.15]$ with daily review and
-  $[-0.28, -0.21]$ with 6\,h review; shift $[-0.18, -0.13]$ and $[-0.21, -0.15]$); on HyGrid-ICS only
-  the 6\,h shift permit did (24 of 91, $[-0.08, 0.00]$).
-\item \textbf{Oracle permit.} On the real attacks it equalled frozen, but in the G1 campaign runs it
-  caught the terminal step in 7 of 10 placements after the pulses and 1 of 10 in the control.
-\item \textbf{First and second half of the HAI 20.07 events.} Recall was 0.947 / 0.947 for frozen,
-  0.474 / 0.579 for the tracker, 0.579 / 0.842 for the slow tracker and 0.474 / 0.474 for daily
-  recalibration.
-\item \textbf{E5, sub-threshold noise campaign.} Only 1 of 13 placements admitted a stealthy noise
-  level; 12 had none, so E5 gives no result.
-\item \textbf{BATADAL frog variants} are in Section~\ref{sec:batadal}. A separate registration that
-  shared the HAI 20.07 and HyGrid-ICS access (detection-v2) is reported on its own.
-\end{itemize}
+The protocol commits us to report every rule, gate and failure; Appendix~\ref{app:other} gives the rest
+of the registered record. Every automatic loosening permit lost recall on HAI 20.07, and the oracle
+permit, which equalled frozen on the real attacks, caught the terminal step in 1 of 10 control
+placements of the G1 campaign.
 
 \section{Learning regions under attack (exploratory)}
 \label{sec:regions}
@@ -620,7 +596,10 @@ Section~\ref{sec:batadal} shows what a heavier calibration tail does to that sta
 With D0 the tracker lost recall on every dataset where it was measured: $[-0.38, -0.14]$,
 $[-0.21, -0.05]$ and $[-0.19, -0.02]$ on the spent releases (exploratory), $[-0.32, -0.08]$ on HAI
 20.07, $[-0.12, -0.02]$ on HyGrid-ICS and $[-0.04, -0.01]$ on voraus-AD (post-hoc), and
-$[-0.86, -0.36]$ on BATADAL (registered tt1b).
+$[-0.86, -0.36]$ on BATADAL (registered tt1b). With a reconstruction score, the residual after
+projection on the principal components that explain 95\% of the variance (D2, exploratory), the frozen
+threshold caught 65 of the 160 events of the development releases and the tracker 53
+($[-0.14, -0.01]$).
 
 \subsection{Mechanism: attacks that follow attacks}
 
@@ -711,34 +690,11 @@ rose to a median of 1.02 to 1.04 $\tau_0$ (at most 1.06), though it missed the b
 scores.
 
 \paragraph{A physically realizable version}
-The score-level attacker sets the score directly. We also gave the attacker only the readings of
-three sensors coupled to one setpoint channel. Every 5 minutes it reads the rule's threshold and
-spoofs the largest zero-mean noise whose D1 score, computed by the real world model on the spoofed
-history, stays at 0.97 of that threshold; after 6\,h it stops, and 1\,h later the just-detectable
-setpoint step follows. This attacker is white-box: it can run the monitor.
-
-\begin{table}[t]
-\caption{The physically realizable frog. Data status: \textbf{exploratory} (normal data of the spent
-releases).}
-\label{tab:physfrog}
-\small
-\begin{tabular}{@{}p{0.20\columnwidth}p{0.30\columnwidth}p{0.33\columnwidth}@{}}
-\toprule
-Rule & Terminal steps caught, after campaign / in control (of 12 placements) & Threshold at the terminal step (median per release) \\
-\midrule
-frozen & 12 / 12 & 1.0 $\tau_0$ \\
-SPOT (MLE) & 4 / 12 & 1.04 to 1.59 $\tau_0$ \\
-SPOT (moments) & 6 / 12 & 0.78 to 1.42 $\tau_0$ \\
-DSPOT & 9 / 9 & 0.87 to 1.12 $\tau_0$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Controls caught 12 of 12 for frozen and both SPOT variants and 9 of 12 for DSPOT, so the campaign did not change DSPOT's total (per release, campaign against control: 4 against 3, 3 against 4 and 2 against 2). On HAI 22.04 both SPOT variants missed the terminal step on all four placements, and the median campaign raised no alarm. On HAI 23.05 it was not silent: the frozen threshold raised a median of
-190 alarm steps during the campaign, and the SPOT variants 154 to 171. The
-spoofed noise had a scale of 0.02 to 0.04 robust units against frozen and the SPOT variants, and 0.05
-to 0.12 against DSPOT, whose moving mean follows the noise-driven rise, so the attacker's cap rises
-with the mean rather than with the tail.
+We also gave the attacker only the readings of three sensors coupled to one setpoint channel, spoofed
+with zero-mean noise that keeps the D1 score at 0.97 of the rule's threshold for 6\,h
+(Appendix~\ref{app:physfrog}). The maximum-likelihood SPOT caught 4 of 12 terminal steps against 12 in
+its control and the moments version 6; DSPOT was unchanged (9 against 9). On HAI 22.04 the median
+campaign raised no alarm; on HAI 23.05 it was not silent.
 
 \subsection{Registered replication on BATADAL}
 \label{sec:batadal}
@@ -871,7 +827,7 @@ DSPOT, maximum-likelihood tail & 127, $[0.00, +0.03]$ & -- & 0 / 24 \\
 Leaving events out of the update, or capping the rise, removed natural poisoning on these releases: the excluding rule matched frozen recall and the capped tracker missed one more event. Stopping the tracker after a minute of alarm did not, because by
 Proposition~1 the first minute of each attack still keeps it raised for about a day. The excluding rule
 also resisted the pulse campaign, whose 120\,s pulses count as events. An attacker who knows the 60\,s
-event length can keep each exceedance shorter: by Proposition~2, twelve such exceedances a day would lift the next day's threshold, and because D1 smooths over 60\,s the injected pulse would have to be shorter still. We did not run that attack. The capped tracker lost a little to the pulses, and
+event length can keep each exceedance shorter; Section~\ref{sec:bounded} runs that attack. The capped tracker lost a little to the pulses, and
 its cap bounds how fast it rises, not how far. Telemanom's threshold caught more attacks at 16 to 19 times
 the false-alarm budget, so its recall is not comparable with the others.
 
@@ -880,6 +836,60 @@ a bounded shape, it missed the terminal step in all 30 placements of the 24\,h c
 same tail in all 30. Declustering resisted a continuous frog, which forms a single cluster, but an
 attacker who leaves the score clean for two minutes after each minute of pushing blinded it on HAI 22.04
 (10 of 30 pooled, against a control of 20).
+
+\subsection{Bounded loosening, sub-event pulses and an approval gate (exploratory)}
+\label{sec:bounded}
+
+A second written plan, committed before its runs, tested three things on the same releases. \emph{A
+ceiling}: the tracker, daily recalibration and the standard SPOT with the deployed threshold clipped at
+$\kappa\tau_0$ (Proposition~4). \emph{Sub-event pulses}: a score-level attacker who knows the 60\,s
+event length sets the score to twice the current threshold for 45\,s every 30 minutes for a day, so
+that no alarm episode counts as an event. \emph{An approval gate}: SPOT proposes its level, and a
+ceiling rises to it at each review if the review window held no alarm, a stand-in for an operator who
+signs a loosening when the alarm log is quiet. Campaigns end in terminal bumps of 1.05 to
+$10\,\tau_0$ (Table~\ref{tab:bounded}).
+
+\begin{table*}[t]
+\caption{Ceilings, sub-event pulses and an approval gate on the three spent HAI releases. Natural
+poisoning: events detected of 160. Campaigns: terminal bumps of 1.05 / 1.5 / 3\,$\tau_0$ caught after the
+campaign, of 30 placements; where a rule's control at $1.05\,\tau_0$ was below 30 it is given in
+parentheses. Data status: \textbf{exploratory}.}
+\label{tab:bounded}
+\begin{tabularx}{\textwidth}{@{}Lccc@{}}
+\toprule
+Rule & Natural poisoning & 24\,h frog & Sub-event pulses \\
+\midrule
+frozen & 125 & 30 / 30 / 30 & 30 / 30 / 30 \\
+tracker (as registered) & 77 & -- & 0 / 0 / 0 (20) \\
+tracker, ceiling 1.1 / 1.25 / 1.5\,$\tau_0$ & 125 / 118 / 108 & -- & 6 / 30 / 30, \ 0 / 30 / 30, \ 0 / 30 / 30 \\
+daily recalibration & 104 & -- & 0 / 5 / 24 (18) \\
+daily, ceiling 1.1 / 1.25 / 1.5\,$\tau_0$ & 125 / 121 / 119 & -- & 0 / 30 / 30, \ 0 / 30 / 30, \ 0 / 5 / 30 \\
+daily, alarm episodes left out & 125 & 30 / 30 / 30 & 0 / 11 / 30 \\
+tracker, rise stopped after 60\,s of alarm & 89 & as control & 0 / 0 / 0 (21) \\
+tracker, rise capped at $0.1\,\tau_0$ per day & 124 & 30 / 30 / 30 & 13 / 30 / 30 \\
+SPOT, maximum likelihood & 126 & 0 / 0 / 10 & 30 / 30 / 30 \\
+SPOT, ceiling 1.1 / 1.25 / 1.5\,$\tau_0$ & 126 / 126 / 126 & 0 / 30 / 30, \ 0 / 30 / 30, \ 0 / 7 / 30 & -- \\
+SPOT, approval every 6\,h / daily & 127 / 127 & 15 / 19 / 30, \ 25 / 30 / 30 & -- \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+With a ceiling at $1.1\,\tau_0$ the tracker and daily recalibration caught the 125 events the frozen
+threshold caught. Wider ceilings cost recall, as Proposition~4 allows: at 1.25 and $1.5\,\tau_0$ the
+tracker caught 118 and 108, against 116 and 107 for the static thresholds at those levels. The frog
+shows what a ceiling buys. Without one, the standard SPOT missed every terminal bump up to
+$1.5\,\tau_0$, and on two of the three releases every bump up to $10\,\tau_0$, because its threshold
+left the floating-point range. With a ceiling it missed only bumps at or below the ceiling and caught
+all 30 above it.
+
+The sub-event pulses defeated both rules that depend on recognising an event. The excluding
+recalibration caught none of 30 terminal bumps up to $1.25\,\tau_0$ (control 30) and the tracker with
+a hold-off none at any size up to $10\,\tau_0$, since neither saw an event to leave out. The capped
+tracker missed 17 of 30 at $1.05\,\tau_0$ and none from $1.25\,\tau_0$. SPOT, which does not learn
+from alarms, was unaffected. The quiet-log gate did not stop the frog: with a review every 6\,h it
+caught 15 of 30 bumps at $1.05\,\tau_0$ and 20 of 30 at $2\,\tau_0$; with a daily review, 25 of 30
+at $1.05\,\tau_0$ and all 30 above. A campaign that raises no alarm passes an approval that reads
+the alarm log.
 
 \section{Design guidance}
 \label{sec:design}
@@ -896,8 +906,8 @@ times above $\tau_0$ and it caught 3 of 14 attacks, as large a recall loss as an
 
 Two stronger rules that do loosen themselves, daily recalibration that leaves out alarm episodes and a
 tracker with a capped daily rise, came within one event of frozen recall on the development releases
-(Section~\ref{sec:stronger}). Each still loosens through what it does not exclude: the first by pulses
-shorter than its event length, the second by as much as its cap allows each day. Telemanom's threshold avoided the losses only at 16 to 19 times the false-alarm budget.
+(Section~\ref{sec:stronger}). Each still loosens through what it does not exclude: pulses shorter than its event length blinded
+the first, and the second rises by as much as its cap allows each day (Section~\ref{sec:bounded}). Telemanom's threshold avoided the losses only at 16 to 19 times the false-alarm budget.
 
 Parts of this advice are established. Process-alarm standards already route alarm changes through
 authorised management of change~\cite{isa182, eemua191}, lowering the threshold has been proposed
@@ -912,8 +922,13 @@ We therefore recommend:
 \item \textbf{Let thresholds tighten automatically, never loosen.} A tracker capped at the calibrated
   threshold cannot lose an event the frozen threshold catches (Proposition~3) and can only add
   sensitivity in quiet periods.
-\item \textbf{Route loosening through an operator} who confirms the plant is in normal operation, and
-  treat a request to loosen during or soon after an alarm as suspect.
+\item \textbf{If a threshold must loosen by itself, give it a ceiling.} Under a ceiling
+  $\kappa\tau_0$ no poisoning can hide an event above $\kappa\tau_0$ (Proposition~4). On the
+  development releases a ceiling of $1.1\,\tau_0$ cost no recall and bounded all three attacks.
+\item \textbf{Route loosening beyond the ceiling through an operator} who confirms from the process,
+  not from the alarm log, that the plant is in normal operation: a gate that approved whenever the log
+  was quiet let the silent campaign through. Treat a request to loosen during or soon after an alarm
+  as suspect.
 \item \textbf{Recalibrate offline on verified clean data}~\cite{cretu2008sanitizing}, as a
   change-controlled event, when drift raises false alarms. Our frozen thresholds held 0.66 to 1.48
   episodes per day on the three
@@ -938,9 +953,9 @@ the budget against 0.70 for the frozen threshold (registered); on a development 
 \item Two registered studies with one primary dataset each; HAI 20.07 shares a testbed with the
   development releases, and BATADAL has 14 attacks. Neither registered test of a deliberate campaign
   (G1, H3) could show an effect, so the campaign effects we report are exploratory, apart from the BATADAL frog variants, which were registered but outside the primary rule.
-\item The registered rules are the plain versions. The stronger baselines and the standard SPOT
-  (Section~\ref{sec:stronger}) ran on development data only, and the attack that fits the excluding
-  rule, pulses shorter than its event length, was derived from Proposition~2 but not run.
+\item The registered rules are the plain versions. The stronger baselines, the standard SPOT,
+  the ceilings and the sub-event pulses (Sections~\ref{sec:stronger} and~\ref{sec:bounded}) ran on
+  development data only.
 \item On HAI 20.07 the monitor itself drifted: the frozen threshold was in alarm for 39\% of the
   unlabelled time, which inflates its recall under the any-alarm count (Section~\ref{sec:inflate}).
 \item HyGrid-ICS is a single simulated day with 2.5\,h of unlabelled final time; voraus-AD anomalies
@@ -957,9 +972,10 @@ the budget against 0.70 for the frozen threshold (registered); on a development 
 \item Event recall counts any alarm inside a labelled interval, so it credits an attack that falls
   inside an alarm already running; on HAI 20.07 that gave the frozen threshold 10 of its 36
   detections (Section~\ref{sec:inflate}). We do not model operator response time.
-\item Our monitor is one world-model residual and one model-free score; reconstruction-based
-  detectors were not tested.
-\item We did not test the operator. Human-approved suppression of detection rules has been observed to
+\item Our monitor is one world-model residual, one model-free score and, on development data, a
+  linear reconstruction score; nonlinear autoencoder detectors were not tested.
+\item We did not test a human operator; the approval gate of Section~\ref{sec:bounded} is an
+  automated stand-in. Human-approved suppression of detection rules has been observed to
   accumulate and persist~\cite{dhananjeyan2026ratchet}, so routing loosening through people does not by
   itself stop a threshold from ratcheting upward.
 \item No claim of runtime authority, deployment safety or incident prevention follows from these
@@ -1020,6 +1036,75 @@ Reproducing the registered results requires one access to each raw dataset under
 recorded in the ledger. For review, the copy withholds the repository's commit history, which the
 verifiers use to check that every access followed its registration, and replaces the project name and
 commit hashes; its ANONYMIZATION.md lists each replacement.
+
+\section{Other registered outcomes of tt1}
+\label{app:other}
+
+Table~\ref{tab:permits} and the list below complete the registered record of tt1.
+
+\begin{table}[t]
+\caption{Tighten-only with a loosening permit on HAI 20.07. Data status: \textbf{registered} (tt1).}
+\label{tab:permits}
+\begin{tabularx}{\columnwidth}{@{}Lcccc@{}}
+\toprule
+Permit & Recall & vs frozen (95\%) & FA/day & Permits/wk \\
+\midrule
+spread, daily review & 26/38 & $[-0.39, -0.13]$ & 1.62 & 2.7 \\
+spread, 6\,h review & 28/38 & $[-0.34, -0.08]$ & 2.63 & 4.1 \\
+shift, daily review & 32/38 & $[-0.21, -0.03]$ & 1.01 & 4.1 \\
+shift, 6\,h review & 31/38 & $[-0.24, -0.03]$ & 2.02 & 12.2 \\
+oracle & 36/38 & $[0, 0]$ & 2.23 & 0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{itemize}
+\item \textbf{Automatic permits.} Every automatic loosening permit lost recall on HAI 20.07. On
+  voraus-AD all four lost recall too (95\% intervals: spread $[-0.21, -0.15]$ with daily review and
+  $[-0.28, -0.21]$ with 6\,h review; shift $[-0.18, -0.13]$ and $[-0.21, -0.15]$); on HyGrid-ICS only
+  the 6\,h shift permit did (24 of 91, $[-0.08, 0.00]$).
+\item \textbf{Oracle permit.} On the real attacks it equalled frozen, but in the G1 campaign runs it
+  caught the terminal step in 7 of 10 placements after the pulses and 1 of 10 in the control.
+\item \textbf{First and second half of the HAI 20.07 events.} Recall was 0.947 / 0.947 for frozen,
+  0.474 / 0.579 for the tracker, 0.579 / 0.842 for the slow tracker and 0.474 / 0.474 for daily
+  recalibration.
+\item \textbf{E5, sub-threshold noise campaign.} Only 1 of 13 placements admitted a stealthy noise
+  level; 12 had none, so E5 gives no result.
+\item \textbf{BATADAL frog variants} are in Section~\ref{sec:batadal}. A separate registration that
+  shared the HAI 20.07 and HyGrid-ICS access (detection-v2) is reported on its own.
+\end{itemize}
+
+\section{The physically realizable frog}
+\label{app:physfrog}
+
+The score-level attacker sets the score directly. We also gave the attacker only the readings of
+three sensors coupled to one setpoint channel. Every 5 minutes it reads the rule's threshold and
+spoofs the largest zero-mean noise whose D1 score, computed by the real world model on the spoofed
+history, stays at 0.97 of that threshold; after 6\,h it stops, and 1\,h later the just-detectable
+setpoint step follows. This attacker is white-box: it can run the monitor.
+
+\begin{table}[t]
+\caption{The physically realizable frog. Data status: \textbf{exploratory} (normal data of the spent
+releases).}
+\label{tab:physfrog}
+\small
+\begin{tabular}{@{}p{0.20\columnwidth}p{0.30\columnwidth}p{0.33\columnwidth}@{}}
+\toprule
+Rule & Terminal steps caught, after campaign / in control (of 12 placements) & Threshold at the terminal step (median per release) \\
+\midrule
+frozen & 12 / 12 & 1.0 $\tau_0$ \\
+SPOT (MLE) & 4 / 12 & 1.04 to 1.59 $\tau_0$ \\
+SPOT (moments) & 6 / 12 & 0.78 to 1.42 $\tau_0$ \\
+DSPOT & 9 / 9 & 0.87 to 1.12 $\tau_0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Controls caught 12 of 12 for frozen and both SPOT variants and 9 of 12 for DSPOT, so the campaign did not change DSPOT's total (per release, campaign against control: 4 against 3, 3 against 4 and 2 against 2). On HAI 22.04 both SPOT variants missed the terminal step on all four placements, and the median campaign raised no alarm. On HAI 23.05 it was not silent: the frozen threshold raised a median of
+190 alarm steps during the campaign, and the SPOT variants 154 to 171. The
+spoofed noise had a scale of 0.02 to 0.04 robust units against frozen and the SPOT variants, and 0.05
+to 0.12 against DSPOT, whose moving mean follows the noise-driven rise, so the attacker's cap rises
+with the mean rather than with the tail.
 
 \section*{Use of generative AI}
 
