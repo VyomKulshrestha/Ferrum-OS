@@ -37,7 +37,10 @@ def service_bound_digest(service: str) -> str | None:
 
 def service_binds_artifact(service: str, digest: str) -> bool:
     """The grant's digest constant and the reported model_sha256 both name the bytes that ship."""
-    return service_bound_digest(service) == digest and f'\\"model_sha256\\":\\"{digest}\\"' in service
+    return (
+        service_bound_digest(service) == digest
+        and f'\\"model_sha256\\":\\"{digest}\\"' in service
+    )
 
 
 def main() -> None:

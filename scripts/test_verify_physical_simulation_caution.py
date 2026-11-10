@@ -24,7 +24,9 @@ class ServiceDigestBindingTests(unittest.TestCase):
         other = hashlib.sha256(V.ARTIFACT.read_bytes() + b"\0").hexdigest()
         self.assertFalse(V.service_binds_artifact(self.service, other))
 
-    def test_stale_constant_is_caught_even_if_the_status_string_is_updated(self) -> None:
+    def test_stale_constant_is_caught_even_if_the_status_string_is_updated(
+        self,
+    ) -> None:
         stale = self.service.replace("0x23, 0xa0, 0x6f", "0x24, 0xa0, 0x6f", 1)
         self.assertNotEqual(stale, self.service)
         self.assertFalse(V.service_binds_artifact(stale, self.digest))
