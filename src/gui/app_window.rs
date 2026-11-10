@@ -119,6 +119,16 @@ pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64
     id
 }
 
+/// Number of live app windows owned by `pid`.
+pub fn window_count_for(pid: u64) -> usize {
+    compositor::COMPOSITOR
+        .lock()
+        .windows
+        .iter()
+        .filter(|w| matches!(w.win_type, WindowType::App(owner) if owner == pid))
+        .count()
+}
+
 /// The pid that owns `window_id`, if it exists and is an app window.
 pub fn owner_of(window_id: u64) -> Option<u64> {
     compositor::COMPOSITOR
