@@ -14,9 +14,34 @@
    "detail": ""
   },
   {
+   "check": "protocol is committed",
+   "pass": true,
+   "detail": "2026-11-10 16:24:27+05:30"
+  },
+  {
+   "check": "ledger: first access to provics-attack follows the registration commit",
+   "pass": true,
+   "detail": "access 2026-11-10T10:55:01.709806+00:00 vs registration 2026-11-10 16:24:27+05:30"
+  },
+  {
+   "check": "ledger: amended attempt on provics-attack follows the amendment commit",
+   "pass": true,
+   "detail": "amendment 2026-11-10 16:27:15+05:30 vs attempt 2026-11-10T10:57:31.909110+00:00"
+  },
+  {
    "check": "ledger: provics-attack has the failed attempt, the diagnostic read and the amended attempt",
    "pass": true,
    "detail": "3 entries"
+  },
+  {
+   "check": "ledger: first access to provics-sealed-normal follows the registration commit",
+   "pass": true,
+   "detail": "access 2026-11-10T10:55:01.710807+00:00 vs registration 2026-11-10 16:24:27+05:30"
+  },
+  {
+   "check": "ledger: amended attempt on provics-sealed-normal follows the amendment commit",
+   "pass": true,
+   "detail": "amendment 2026-11-10 16:27:15+05:30 vs attempt 2026-11-10T10:57:31.914122+00:00"
   },
   {
    "check": "ledger: provics-sealed-normal has the failed attempt, the diagnostic read and the amended attempt",

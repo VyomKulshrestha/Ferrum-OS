@@ -18,7 +18,7 @@ public and are not redistributed here.
 | `docs/research/threshold_transfer_tt1*_data_access.json` | How each dataset was fetched and hashed before registration |
 | `target/real-telemetry/final_access.jsonl` | The access ledger: one line per opening of recorded attack data, with its reason and time |
 | `docs/research/threshold_transfer_tt1_result_*.json`, `..._tt1b_result_batadal.json`, `..._tt1d_result_{tep59,provics}.json` | Registered results (the harness computes the gates itself). The tt1d files hold every per-run record |
-| `docs/research/threshold_transfer_tt1*_verification*.json` | Verifier reports: 27 of 27 checks (tt1), 8 of 8 (tt1b), 14 of 14 and 15 of 15 (tt1d) |
+| `docs/research/threshold_transfer_tt1*_verification*.json` | Verifier reports: 27 of 27 checks (tt1), 8 of 8 (tt1b), 17 of 17 and 20 of 20 (tt1d) |
 | `docs/research/threshold_transfer_*dev*.json`, `*posthoc*.json`, `*memory_check.json` | Exploratory analyses on the spent development releases and post-hoc analyses of the registered data, labelled as such in the paper |
 | `docs/research/threshold_transfer_tt1c_dev_plan.md`, `..._tt1c_dev_v1.json` | Stronger adaptive baselines and canonical SPOT (exploratory); the plan was fixed before the runs |
 | `docs/research/threshold_transfer_tt1e_dev_plan.md`, `..._tt1e_dev_v1.json` | Ceilings, sub-event pulses, an approval gate, the frog at several terminal sizes and a reconstruction score (exploratory); the plan was fixed before the runs |

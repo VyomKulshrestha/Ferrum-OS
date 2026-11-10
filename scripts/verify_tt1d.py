@@ -7,7 +7,9 @@ of a result file and checks the registration around it.
 
 Checks: (1) the protocol is registered and the frozen files still match it; (2) the result's own frozen
 digests equal the protocol's; (3) each ledger id of the dataset appears in the access ledger exactly once
-(twice only if the result says the run was resumed, and then the second entry must say so); (4) pooled
+(twice only if the result says the run was resumed, and then the second entry must say so; three times
+under an amendment: the failed attempt, a diagnostic read, the amended attempt), the first access follows
+the commit of the registration, and an amended attempt follows the commit of its amendment; (4) pooled
 real-event tables, campaign tables, gates and settings recomputed from the per-run records equal the
 stored ones; (5) no ceiling rule missed an event its static threshold caught; (6) event and placement
 counts match the per-run records; (7) dataset-specific coverage: every attack run of the Tennessee
@@ -16,7 +18,9 @@ either scored or counted as unobserved. Writes docs/research/threshold_transfer_
 """
 from __future__ import annotations
 
+import datetime
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,6 +30,13 @@ import tt1d_data as TD
 import tt1d_final as M
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def commit_time(path):
+    """Author time of the commit that added a file (None if it is not committed)."""
+    out = subprocess.run(["git", "log", "--diff-filter=A", "--format=%aI", "--", str(path)], cwd=ROOT,
+                         capture_output=True, text=True, timeout=30).stdout.split()
+    return datetime.datetime.fromisoformat(out[-1]) if out else None
 
 
 def same(a, b):
@@ -52,8 +63,19 @@ def main():
     add("result digests equal the registered digests", result["frozen_file_sha256"] == protocol["frozen_file_sha256"])
     rows = [json.loads(line) for line in D.FINAL_LEDGER.read_text(encoding="utf-8").splitlines() if line.strip()]
     amendment = result.get("amendment")
+    registered = commit_time(M.PROTOCOL.relative_to(ROOT))
+    add("protocol is committed", registered is not None, str(registered))
     for dataset in S.ledger_ids:
         mine = [r for r in rows if r["dataset"] == dataset]
+        if mine:
+            first = datetime.datetime.fromisoformat(mine[0]["at"])
+            add(f"ledger: first access to {dataset} follows the registration commit",
+                registered is not None and first > registered, f"access {first.isoformat()} vs registration {registered}")
+        if amendment and len(mine) == 3:
+            amended = commit_time(amendment["document"])
+            last = datetime.datetime.fromisoformat(mine[2]["at"])
+            add(f"ledger: amended attempt on {dataset} follows the amendment commit",
+                amended is not None and first < amended < last, f"amendment {amended} vs attempt {last.isoformat()}")
         if amendment:
             # a failed first attempt, a ledgered count of missing values, and the amended attempt
             ok = len(mine) == 3 and "diagnostic" in mine[1]["reason"] and f"amendment {amendment['id']}" in mine[2]["reason"]

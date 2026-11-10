@@ -112,7 +112,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "ff74050f3e07a5a134d4c6af28279ef71cc1521175760e7603f9290e3b38f43d",
+   "sha256": "21484506f48198b00f1a59130c0d5dde63aaa3e6099c1cfa09af4b68d9a60c10",
    "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d and tt1e results, appendices A to D)"
   },
   "latex/refs.bib": {
@@ -140,7 +140,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "4f84436b11a79c28b1ed1e677f76979fd62c22a7a5ae6b3911750326ef8a0c7a",
+   "sha256": "563838d5277475ad559e46cbbe8f9b98cda025e442ff5c4773b39200456a0134",
    "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d and tt1e results, appendices A to D)"
   },
   "latex_usenix/refs.bib": {
@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "d1f9b0f7f47a2f01fdc57920bec8ceceb6b36f67867bbfd6a09f484ebeef6d6e",
+   "sha256": "cdffa35afa8f5471287251ac1f9b306b0af74dfa02a7bac3a408a8c775d0fa75",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true,
    "built_by": "superseded by latex/main.tex from 2026-11-10; abstract kept current"
@@ -293,11 +293,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "039daf859276cc4e445a55c83315c934962aeaa395ce0c9fa0e3af898eebe240",
+   "sha256": "ce94758b00af3a0ea9e46e167e9dea760128a49f6d7b1a092423f3d9817f25c8",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "450d0bf4218a8c92d86d09c9c308791d64f4d483829180bde615b82ca4535012",
+   "sha256": "fca4742d67b3948110ee15b8d692e7a2ea51ef72438a104a1a0957bda51af6c5",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
@@ -353,7 +353,7 @@
    "built_by": "CTAN acmart v2.21 release"
   },
   "latex_named/main.tex": {
-   "sha256": "581676b8063e41f4575a63816d9008dbb17280808f48af9edb06771892640447",
+   "sha256": "6be23e3db311a3e8a81632359c67c1efe3e7b0cc85c68745b1c53fbcd06e9846",
    "built_by": "scripts/tt1_named_version.py from latex/main.tex"
   },
   "latex_named/refs.bib": {
@@ -369,7 +369,7 @@
    "built_by": "copy of latex/ACM-Reference-Format.bst"
   },
   "latex_named/main.pdf": {
-   "sha256": "03117b0e845c559fcdbd89df3d1f6b2fe01ecc5d1db5258ac16efddb37472252",
+   "sha256": "d15c21bd25570aa1c7dbe8d2008b4c893953bcecbd02859fc273a9282454e73a",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "publish/README.md": {
@@ -377,7 +377,7 @@
    "built_by": "written for the pack, 2026-11-07"
   },
   "publish/abstract.txt": {
-   "sha256": "3852e9dd6c1f448b671a035e67054233a6f17f6f0ca0a075bf9d0800324050d9",
+   "sha256": "dbf68de170cbd8182fa0a00af5b78ffece03c95eabfdb2c5bb008f38a6acfd7b",
    "built_by": "abstract of the Markdown draft, plain text"
   },
   "publish/zenodo_metadata.json": {
@@ -421,11 +421,11 @@
    "built_by": "scripts/tt1d_provics_amendment1.py (registered, amendment 1)"
   },
   "results/threshold_transfer_tt1d_verification_tep59.json": {
-   "sha256": "f701eceebd05ed0fd6a64e65f224a9d91f6b3926ae0d4f250ce1cd305a6dfdd6",
+   "sha256": "ef95e4ebb655f4d1459059fb15040beb1216b33962e4b4ee0aed0c647776f465",
    "built_by": "scripts/verify_tt1d.py tep59"
   },
   "results/threshold_transfer_tt1d_verification_provics.json": {
-   "sha256": "483b159164ba9a7a89548d902a1e90c314e7ac81060afb65ff3d47730d4c9a06",
+   "sha256": "62fd72cde0d413aa05eae73d68420df73e8df5150fba2b7287a5e8dfba11245b",
    "built_by": "scripts/verify_tt1d.py provics"
   },
   "protocols/threshold_transfer_tt1d_protocol.json": {
@@ -437,7 +437,7 @@
    "built_by": "amendment 1 of tt1d, committed before the second ProvICS attempt"
   },
   "publish/zenodo_metadata_v1_1.json": {
-   "sha256": "18f1eaa82c226225bfa3250cb4363d5d31b13f3ae66ca2f421d8b2e5d1828653",
+   "sha256": "ac616451a3f7149ef5f2783c01e64c439adaed418b1714eaceab18ab06bd387c",
    "built_by": "Zenodo deposit fields for preprint version 1.1 (prepared, not published)"
   }
  }
