@@ -211,16 +211,20 @@ class VisionCaution:
                 raise VisionCautionError("timeout")
             if not math.isfinite(logit):
                 raise VisionCautionError("nonfinite_output")
+            a, b = self._art["platt"]
+            z = a * logit + b                   # overflow-free logistic: exp() only of a non-positive value
+            probability = 1.0 / (1.0 + math.exp(-z)) if z >= 0 else math.exp(z) / (1.0 + math.exp(z))
+            if not math.isfinite(probability):
+                raise VisionCautionError("nonfinite_output")
         except VisionCautionError as exc:
             return self._emit(self._abstain(frame_ids, str(exc), start))
         except Exception as exc:  # never let an internal error look like an all-clear
             return self._emit(self._abstain(frame_ids, f"internal_error:{type(exc).__name__}", start))
         self._last_frame_id = ids[1]
-        a, b = self._art["platt"]
         thr = self._art["thresholds"][self.budget]
         return self._emit(VisionCautionAdvisory(
             status="caution_raised" if logit > thr else "no_caution_raised",
-            caution_probability=1.0 / (1.0 + math.exp(-(a * logit + b))), caution_logit=logit,
+            caution_probability=probability, caution_logit=logit,
             threshold_logit=thr, budget=self.budget, horizon_steps=self._art["horizon_steps"], frame_ids=ids,
             model_sha256=self._art["sha256"], degradation=None, latency_ms=round(latency, 3)))
 

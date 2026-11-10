@@ -130,6 +130,13 @@ class StructureTests(unittest.TestCase):
             VC.PINNED_SHA256 = saved
         self.assertEqual((rec.status, rec.degradation), ("no_confident_caution", "artifact_digest_mismatch"))
 
+    def test_steep_calibration_never_raises_from_assess(self):
+        vc = VisionCaution(make_artifact(self.tmp.name, 5, platt={"coef": 1.0e4, "intercept": 0.0}), enabled=True)
+        for i, (logit, status, prob) in enumerate([(-1.0, "no_caution_raised", 0.0), (1.0, "caution_raised", 1.0)]):
+            vc._infer = lambda frames, action_vec, v=logit: v      # a finite logit; no torch needed
+            rec = self.assess(vc, frame_ids=(20 + 2 * i, 21 + 2 * i))
+            self.assertEqual((rec.status, rec.caution_probability), (status, prob))
+
     def test_nonfinite_weights_rejected(self):
         bad = Path(self.tmp.name) / "nan.npz"
         with np.load(self.art) as z:
