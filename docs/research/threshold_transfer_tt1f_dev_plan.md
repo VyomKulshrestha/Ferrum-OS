@@ -124,3 +124,27 @@ was committed, asks for further analyses of the same data. Added, all explorator
 
 Not added: robust-statistic baselines, a recalibration rule and a threshold-watch detector (they need rule
 designs of their own and a separate plan).
+
+## Amendment 2 (2026-11-10)
+
+Written after the code audit (`docs/research/monitor_audit_2026-11-10.md`) and before any analysis of parts
+A, B, C, E, F, G, H, I and J. The audit found five defects in frozen analysis files and fixed them in `_v2`
+modules. Registered numbers stay as they are. Every analysis of this plan keeps the registered code, so
+that it can be compared with the registered outcomes. Two checks say whether a defect could have moved a
+registered number:
+
+- **K1. Calibration.** For each Tennessee Eastman mode, recompute the D1 threshold from the calibration
+  scores (the pooled calibration scores in the cache, split back into the four calibration runs) with the
+  registered `calibrate` and with `real_telemetry_detect_v2.calibrate`, which stops at the first budget
+  break. Reported: both thresholds per mode and the number of candidate thresholds above the registered one
+  that break the budget. The same for the three HAI development releases inside part E, where the
+  calibration scores are recomputed anyway.
+- **K2. ProvICS validity mask** (`scripts/tt1f_provics_mask.py`, a third, ledgered access to the ProvICS
+  attack recording and sealed rows). Refit the monitor with the registered code and amendment 1 of tt1d,
+  then score frozen and tracker twice: with the registered validity mask and with `provics_valid_v2`, which
+  also invalidates the 36 steps after every recording gap. Reported for both: events detected under both
+  counts, false-alarm episodes over the budget, share of unlabelled time in alarm, and the number of gaps.
+  The registered ProvICS outcome (no loss, 44 % of unlabelled time in alarm) is not replaced; the paper
+  reports how much of the alarm time the corrected mask removes.
+
+Part E keeps the registered calibration and smoothing, for comparison with the earlier development tables.
