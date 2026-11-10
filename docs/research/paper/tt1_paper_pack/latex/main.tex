@@ -570,19 +570,10 @@ and reopen the three tt1 datasets after their finals; every access is in the led
 \subsection{Extreme-value thresholds escape natural poisoning on the HAI data}
 \label{sec:evt}
 
-\begin{table*}[t]
-\caption{Event recall of the extreme-value rules. Data status: \textbf{exploratory} on the spent
-releases, \textbf{post-hoc} on HAI 20.07.}
-\label{tab:evt}
-\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
-\toprule
-Data & frozen & tracker & SPOT (moments) & SPOT (MLE) & DSPOT \\
-\midrule
-HAI 21.03 / 22.04 / 23.05 & 1.00 / 0.76 / 0.60 & 0.78 / 0.45 / 0.23 & 1.00 / 0.79 / 0.58 & 1.00 / 0.79 / 0.60 & 1.00 / 0.79 / 0.60 \\
-HAI 20.07 (post-hoc) & 0.947 & 0.526 & 0.947 & 0.921 $[-0.08, 0.00]$ & 0.947 \\
-\bottomrule
-\end{tabularx}
-\end{table*}
+On the three spent releases the moments SPOT, the maximum-likelihood SPOT and DSPOT matched the frozen
+threshold's recall (0.58 to 1.00 against 0.60 to 1.00), where the tracker lost 22 to 37 points; post-hoc
+on HAI 20.07 they caught 36, 35 and 36 of 38 attacks against 36 (Table~\ref{tab:evt} in
+Appendix~\ref{app:dev}).
 
 The exceptions: on HyGrid-ICS the moments SPOT lost 9 points ($[-0.15, -0.03]$); on voraus-AD, 190
 calibration samples leave about four tail points above SPOT's base level (the calibration 98th
@@ -620,63 +611,25 @@ their own, $-0.21$ $[-0.34, -0.08]$ on HAI 20.07 and $-0.21$ $[-0.43, 0.00]$ on 
 \label{sec:pulses}
 
 Normal data of the spent releases, 30 placements; the terminal step is the smallest setpoint step
-the frozen threshold detects on the clean stream.
+the frozen threshold detects on the clean stream. After a day of twelve 120\,s supra-threshold pulses,
+daily recalibration caught 4 of 30 terminal steps (control 21), the tracker 1 (23) and the slow tracker
+3 (25); the frozen threshold caught all 30 and SPOT 29 (Table~\ref{tab:pulses} and
+Figure~\ref{fig:campaigns} in Appendix~\ref{app:dev}).
 
-\begin{table*}[t]
-\caption{Terminal attacks caught after a pulse campaign (control in parentheses). Data status:
-\textbf{exploratory} (normal data of the spent releases).}
-\label{tab:pulses}
-\begin{tabularx}{\textwidth}{@{}Lcccccc@{}}
-\toprule
-Campaign & frozen & daily & tracker & tracker\_slow & SPOT & DSPOT \\
-\midrule
-$12 \times 120$\,s supra-threshold pulses per day & 30/30 (30/30) & 4/30 (21/30) & 1/30 (23/30) & 3/30 (25/30) & 29/30 (30/30) & 23/30 (25/30) \\
-$24 \times 300$\,s sub-alarm pulses per day, open loop & 30/30 & 23/30 (23/30) & 19/30 (21/30) & 23/30 & 29/30 & 22/30 (24/30) \\
-\bottomrule
-\end{tabularx}
-\end{table*}
 
 Open-loop sub-alarm pulses did not poison SPOT: its threshold fell (0.82 to 0.98 $\tau_0$), and many
 pulses crossed SPOT's own alarm level and were refused.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/fig5_attack_campaigns.pdf}
-\caption{Terminal attacks caught after each campaign (solid) and in the matching control (hatched),
-for frozen, tracker, spot\_mle and dspot. Each bar is the mean over the three spent HAI releases;
-dots are the per-release values, and every release had the same number of placements, so the mean
-equals the pooled fraction. Panels: the supra-threshold pulse campaign (E4, 10 placements per
-release); the score-level closed-loop frog at 1\,h and 24\,h (10 placements); and the physical frog,
-which spoofs noise on three sensors for 6\,h (4 placements). Data status: all four panels are
-\textbf{exploratory} results on the normal data of the spent releases. The source CSV has no
-spot\_mle row for E4 and no tracker row for the physical frog; both slots are left empty and
-labelled.}
-\label{fig:campaigns}
-\end{figure}
 
 \subsection{Silent poisoning: the closed-loop frog}
 \label{sec:frog}
 
 Score-level attacker A2, normal data of the spent releases, 10 placements each: the attacker holds
 the score at $0.97\,\tau_t$, then, after a one-hour lead, a 600\,s bump at $1.05\,\tau_0$ follows
-(600\,s is the terminal length of every development campaign).
+(600\,s is the terminal length of every development campaign). After 24\,h the moments SPOT and
+DSPOT caught none of 30 terminal bumps and the maximum-likelihood SPOT 8; the frozen threshold, the slow
+tracker and tighten-only were unaffected (Table~\ref{tab:frog}).
 
-\begin{table*}[t]
-\caption{Terminal attacks caught after a closed-loop frog campaign, 30 placements. Data status:
-\textbf{exploratory} (normal data of the spent releases).}
-\label{tab:frog}
-\begin{tabular}{@{}lllll@{}}
-\toprule
-Rule & 24\,h campaign & 6\,h & 1\,h & open loop, fixed level, 24\,h \\
-\midrule
-frozen, tracker\_slow, tighten-only & as control & as control & as control & as control \\
-tracker & as control & as control & as control & 16/30 (control 20/30) \\
-SPOT (moments) & 0/30 & 0/30 & 0/30 & not moved; alarms throughout \\
-DSPOT & 0/30 & 0/30 & 0/30 & not moved; alarms throughout \\
-SPOT (MLE, refit every 2048 peaks) & 8/30 & 8/30 & 13/30 & 11/30 \\
-\bottomrule
-\end{tabular}
-\end{table*}
 
 Each rule is compared with its own control (the same bump without a campaign). The frozen and both
 SPOT controls caught 30/30 and DSPOT's 24/30; the tracker and daily controls already missed some
@@ -799,30 +752,8 @@ the hour after them; the tracker with its upward steps stopped once an alarm has
 hour after; a tracker whose rise is capped at $0.1\,\tau_0$ per day; Telemanom's dynamic
 threshold~\cite{hundman2018telemanom}; SPOT with a maximum-likelihood tail refitted as the peaks grow by
 1\%, also with the shape bounded to $|\xi| \le 0.5$ and with runs declustering; and DSPOT on the
-maximum-likelihood tail (Table~\ref{tab:stronger}).
+maximum-likelihood tail (Table~\ref{tab:stronger} in Appendix~\ref{app:dev}).
 
-\begin{table*}[t]
-\caption{Stronger adaptive rules and a standard SPOT on the three spent HAI releases. Natural poisoning:
-events detected of 160 and the paired difference against frozen (125 of 160). Pulses and frog: terminal
-steps caught after the campaign / in the control, of 30 placements. Data status: \textbf{exploratory}.}
-\label{tab:stronger}
-\begin{tabularx}{\textwidth}{@{}Lccc@{}}
-\toprule
-Rule & Natural poisoning & Pulses & 24\,h frog \\
-\midrule
-tracker (as registered) & 77, $[-0.37, -0.23]$ & 1 / 23 & as control \\
-daily recalibration & 104, $[-0.19, -0.08]$ & 4 / 21 & as control \\
-daily, alarm episodes left out & 125, $[-0.02, 0.02]$ & 30 / 30 & 30 / 30 \\
-tracker, rise stopped after 60\,s of alarm & 89, $[-0.29, -0.16]$ & 2 / 24 & 21 / 21 \\
-tracker, rise capped at $0.1\,\tau_0$ per day & 124, $[-0.02, 0.00]$ & 25 / 30 & 30 / 30 \\
-Telemanom dynamic threshold (33 to 37 false alarms a day) & 140, $[+0.04, +0.15]$ & 27 / 26 & 28 / 28 \\
-SPOT, maximum likelihood & 126, $[-0.01, +0.03]$ & 30 / 30 & 0 / 30 \\
-SPOT, maximum likelihood, $|\xi| \le 0.5$ & 127, $[0.00, +0.03]$ & -- & 0 / 30 \\
-SPOT, maximum likelihood, declustered & 123, $[-0.04, +0.02]$ & 21 / 24 & 20 / 20 (bursts: 10 / 20) \\
-DSPOT, maximum-likelihood tail & 127, $[0.00, +0.03]$ & -- & 0 / 24 \\
-\bottomrule
-\end{tabularx}
-\end{table*}
 
 Leaving events out of the update, or capping the rise, removed natural poisoning on these releases: the excluding rule matched frozen recall and the capped tracker missed one more event. Stopping the tracker after a minute of alarm did not, because by
 Proposition~1 the first minute of each attack still keeps it raised for about a day. The excluding rule
@@ -1106,6 +1037,96 @@ spoofed noise had a scale of 0.02 to 0.04 robust units against frozen and the SP
 to 0.12 against DSPOT, whose moving mean follows the noise-driven rise, so the attacker's cap rises
 with the mean rather than with the tail.
 
+\section{Development experiments in detail}
+\label{app:dev}
+
+Tables~\ref{tab:evt} to~\ref{tab:stronger} and Figure~\ref{fig:campaigns} give the per-rule results of
+the exploratory experiments of Section~\ref{sec:regions}.
+
+\begin{table*}[t]
+\caption{Event recall of the extreme-value rules. Data status: \textbf{exploratory} on the spent
+releases, \textbf{post-hoc} on HAI 20.07.}
+\label{tab:evt}
+\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
+\toprule
+Data & frozen & tracker & SPOT (moments) & SPOT (MLE) & DSPOT \\
+\midrule
+HAI 21.03 / 22.04 / 23.05 & 1.00 / 0.76 / 0.60 & 0.78 / 0.45 / 0.23 & 1.00 / 0.79 / 0.58 & 1.00 / 0.79 / 0.60 & 1.00 / 0.79 / 0.60 \\
+HAI 20.07 (post-hoc) & 0.947 & 0.526 & 0.947 & 0.921 $[-0.08, 0.00]$ & 0.947 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Terminal attacks caught after a pulse campaign (control in parentheses). Data status:
+\textbf{exploratory} (normal data of the spent releases).}
+\label{tab:pulses}
+\begin{tabularx}{\textwidth}{@{}Lcccccc@{}}
+\toprule
+Campaign & frozen & daily & tracker & tracker\_slow & SPOT & DSPOT \\
+\midrule
+$12 \times 120$\,s supra-threshold pulses per day & 30/30 (30/30) & 4/30 (21/30) & 1/30 (23/30) & 3/30 (25/30) & 29/30 (30/30) & 23/30 (25/30) \\
+$24 \times 300$\,s sub-alarm pulses per day, open loop & 30/30 & 23/30 (23/30) & 19/30 (21/30) & 23/30 & 29/30 & 22/30 (24/30) \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Terminal attacks caught after a closed-loop frog campaign, 30 placements. Data status:
+\textbf{exploratory} (normal data of the spent releases).}
+\label{tab:frog}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Rule & 24\,h campaign & 6\,h & 1\,h & open loop, fixed level, 24\,h \\
+\midrule
+frozen, tracker\_slow, tighten-only & as control & as control & as control & as control \\
+tracker & as control & as control & as control & 16/30 (control 20/30) \\
+SPOT (moments) & 0/30 & 0/30 & 0/30 & not moved; alarms throughout \\
+DSPOT & 0/30 & 0/30 & 0/30 & not moved; alarms throughout \\
+SPOT (MLE, refit every 2048 peaks) & 8/30 & 8/30 & 13/30 & 11/30 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Stronger adaptive rules and a standard SPOT on the three spent HAI releases. Natural poisoning:
+events detected of 160 and the paired difference against frozen (125 of 160). Pulses and frog: terminal
+steps caught after the campaign / in the control, of 30 placements. Data status: \textbf{exploratory}.}
+\label{tab:stronger}
+\begin{tabularx}{\textwidth}{@{}Lccc@{}}
+\toprule
+Rule & Natural poisoning & Pulses & 24\,h frog \\
+\midrule
+tracker (as registered) & 77, $[-0.37, -0.23]$ & 1 / 23 & as control \\
+daily recalibration & 104, $[-0.19, -0.08]$ & 4 / 21 & as control \\
+daily, alarm episodes left out & 125, $[-0.02, 0.02]$ & 30 / 30 & 30 / 30 \\
+tracker, rise stopped after 60\,s of alarm & 89, $[-0.29, -0.16]$ & 2 / 24 & 21 / 21 \\
+tracker, rise capped at $0.1\,\tau_0$ per day & 124, $[-0.02, 0.00]$ & 25 / 30 & 30 / 30 \\
+Telemanom dynamic threshold (33 to 37 false alarms a day) & 140, $[+0.04, +0.15]$ & 27 / 26 & 28 / 28 \\
+SPOT, maximum likelihood & 126, $[-0.01, +0.03]$ & 30 / 30 & 0 / 30 \\
+SPOT, maximum likelihood, $|\xi| \le 0.5$ & 127, $[0.00, +0.03]$ & -- & 0 / 30 \\
+SPOT, maximum likelihood, declustered & 123, $[-0.04, +0.02]$ & 21 / 24 & 20 / 20 (bursts: 10 / 20) \\
+DSPOT, maximum-likelihood tail & 127, $[0.00, +0.03]$ & -- & 0 / 24 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig5_attack_campaigns.pdf}
+\caption{Terminal attacks caught after each campaign (solid) and in the matching control (hatched),
+for frozen, tracker, spot\_mle and dspot. Each bar is the mean over the three spent HAI releases;
+dots are the per-release values, and every release had the same number of placements, so the mean
+equals the pooled fraction. Panels: the supra-threshold pulse campaign (E4, 10 placements per
+release); the score-level closed-loop frog at 1\,h and 24\,h (10 placements); and the physical frog,
+which spoofs noise on three sensors for 6\,h (4 placements). Data status: all four panels are
+\textbf{exploratory} results on the normal data of the spent releases. The source CSV has no
+spot\_mle row for E4 and no tracker row for the physical frog; both slots are left empty and
+labelled.}
+\label{fig:campaigns}
+\end{figure}
+
+\FloatBarrier
 \section*{Use of generative AI}
 
 Claude (Anthropic) wrote most of the analysis and harness code to the authors' specification, drafted
