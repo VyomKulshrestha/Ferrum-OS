@@ -36,5 +36,42 @@ class CalibrateTests(unittest.TestCase):
         self.assertEqual(R.calibrate(segs, 60, 2.0, 8640), R2.calibrate(segs, 60, 2.0, 8640))
 
 
+class SmoothingTests(unittest.TestCase):
+    W = 60
+
+    def frozen_pipeline(self, raw):                  # threshold_transfer_dev.d1 / tt1d_final.fit_scores
+        s = R.smooth(raw, self.W)
+        s[:R.WARMUP] = np.nan
+        return s
+
+    def raw(self):
+        rng = np.random.default_rng(3)
+        a = 2.0 + rng.random(500)
+        a[:R.WARMUP] = 0.0                           # Scorer.raw writes zeros during the warm-up
+        return a
+
+    def test_frozen_score_at_first_scored_step_reads_future_samples(self):
+        a = self.raw()
+        b = a.copy()
+        b[self.W - 1] += 1000.0                      # a sample 49 steps after the first scored step
+        self.assertNotEqual(self.frozen_pipeline(a)[R.WARMUP], self.frozen_pipeline(b)[R.WARMUP])
+        # and the warm-up zeros pull the head down: mean of 60 values of which 10 are zeros
+        self.assertAlmostEqual(self.frozen_pipeline(a)[R.WARMUP], a[R.WARMUP:self.W].sum() / self.W)
+
+    def test_v2_is_causal_and_ignores_warmup_zeros(self):
+        a = self.raw()
+        for k in range(R.WARMUP, 200):
+            b = a.copy()
+            b[k + 1:] += 1000.0                      # change only the future of step k
+            self.assertEqual(R2.smooth_after_warmup(a, self.W)[k], R2.smooth_after_warmup(b, self.W)[k])
+        self.assertEqual(R2.smooth_after_warmup(a, self.W)[R.WARMUP], a[R.WARMUP])
+        self.assertTrue(np.isnan(R2.smooth_after_warmup(a, self.W)[:R.WARMUP]).all())
+
+    def test_v2_equals_frozen_after_head(self):
+        a = self.raw()
+        k = R.WARMUP + self.W - 1
+        np.testing.assert_allclose(R2.smooth_after_warmup(a, self.W)[k:], self.frozen_pipeline(a)[k:], rtol=1e-12)
+
+
 if __name__ == "__main__":
     unittest.main()
