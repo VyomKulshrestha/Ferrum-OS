@@ -148,11 +148,23 @@ false-alarm episodes on the 56 sealed runs as the rule (in-sample match, descrip
 
 ## 8. Process-level campaigns on HAI normal data (tt1f E)
 
-Runs in progress (10 placements per release). Merge with `python scripts/tt1f_process_dev.py merge`.
-One-placement rehearsal on HAI 22.04: sensor-level frog silent, hid the just-detectable step from standard
-SPOT and not 1.5 times it; the attacker that cannot read the threshold spent about 1,000 alarm steps and hid
-nothing; 20 s sensor pulses blinded the hold-off tracker at every multiple and not the excluding
-recalibration.
+`threshold_transfer_tt1f_process_v1.json`: 30 placements (10 per release). The attacker writes three sensor
+readings; the plant's response is not simulated. Terminal setpoint steps of 1 / 1.5 / 2 / 3 times the
+smallest step the frozen threshold detects (median 0.19 scaled units).
+
+| Campaign | Rule | caught after | control | silent to the rule | alarm episodes (median) | threshold over tau0 (median) |
+|---|---|---|---|---|---|---|
+| frog, reads tau_t, 6 h | frozen | 30 / 30 / 30 / 30 | 30 each | 15 of 30 | 0 | 1.00 |
+| frog, reads tau_t, 6 h | standard SPOT | 9 / 21 / 30 / 30 | 30 each | 12 of 30 | 1 | 1.11 |
+| frog, sees only alarms, 6 h | standard SPOT | 20 / 30 / 30 / 30 | 30 each | 0 | 13 | 1.03 |
+| 20 s pulses every 30 min, 24 h | daily, episodes left out | 21 / 30 / 30 / 30 | 30 each | 0 | 50 | 1.03 |
+| 20 s pulses every 30 min, 24 h | tracker, hold-off | 0 / 0 / 0 / 1 | 21 / 28 / 30 / 30 | 0 | 48 | 12.5 |
+
+- Replay (no campaign; the three sensors show clean values during the terminal step): the frozen threshold
+  detects 3 / 5 / 7 / 11 of 30, against 30 each without replay. Replay hides more than any campaign.
+- Pulses sized to keep the alarm shorter than an event peak at about 1.1 times the rule's threshold (the
+  score-level campaign wrote 2 times).
+- Calibration check (K1): `calibrate_v2` returns the registered tau0 on HAI 21.03, 22.04 and 23.05.
 
 ## 9. What this does to the paper's claims
 
