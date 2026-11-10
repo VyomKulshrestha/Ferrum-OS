@@ -154,11 +154,16 @@ class PhoneSource:
                 time.sleep(0.05)
 
     def read(self):
+        return self.read_stamped()[0]
+
+    def read_stamped(self):
+        """(frame, time.monotonic() when the reader received it): callers must date the frame
+        by this, not by when they process it."""
         with self._lock:
             frame, t = self._frame, self._t
         if frame is None or time.monotonic() - t > self.max_age_s:
             raise RuntimeError("no fresh frame from the phone")
-        return frame
+        return frame, t
 
     def close(self) -> None:
         self._run = False

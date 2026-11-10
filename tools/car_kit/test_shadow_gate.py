@@ -100,6 +100,34 @@ class EndToEndTests(unittest.TestCase):
         lost = gate.propose(3, (-0.02, 0.0))
         self.assertIn("StaleActorPosition", lost.reasons)
 
+    def test_a_delayed_frame_reaches_the_gate_with_its_arrival_time(self) -> None:
+        import time
+
+        from .backend import CarKitBackend
+        from .shadow_gate import GateError
+        from .wire import UdpLink
+        car = MockCarFirmware("t0ken", start=(-0.25, 0.0, 0.0), obstacle=(0.25, 0.0)).start()
+        cam = MockOverheadCamera(car)
+
+        class Delayed:                  # a phone frame that arrived 0.3 s ago: under the backend's
+            def read_stamped(self):     # 0.4 s stall limit, over the gate's 0.15 s reading age
+                return cam.read(), time.monotonic() - 0.3
+
+            def read(self):
+                return self.read_stamped()[0]
+
+        backend = CarKitBackend(1, UdpLink("127.0.0.1", "t0ken", port=car.port),
+                                ColourTracker(cam.operator_calibration()), Delayed())
+        self.addCleanup(car.close)
+        self.addCleanup(backend.close)
+        gate = ShadowGate(ARENA)
+        self.addCleanup(gate.close)
+        scene = backend.observe()
+        with self.assertRaisesRegex(GateError, "StaleObservation"):   # refused at ingest
+            gate.observe(scene)
+        verdict = gate.propose(1, (scene.robot[0] + 0.06, 0.0))
+        self.assertFalse(verdict.allowed, verdict)
+
 
 if __name__ == "__main__":
     unittest.main()

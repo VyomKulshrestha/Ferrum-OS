@@ -89,11 +89,21 @@ class CarKitBackend:
     def observe(self) -> Scene | None:
         """One fresh tracked frame (None if the camera has nothing)."""
         try:
-            frame = self.source.read()
+            read_stamped = getattr(self.source, "read_stamped", None)
+            if read_stamped is not None:
+                frame, received = read_stamped()
+                age = max(0.0, time.monotonic() - received)
+            else:
+                frame, age = self.source.read(), 0.0
         except Exception as error:   # camera dropped: treated as tracking lost by the caller
             self._record("camera_error", error=str(error)[:120])
             return None
-        scene = self.tracker.locate(frame, self.clock())
+        if age > self.stale_s:          # a stalled stream: no position rather than an old one
+            self._record("stale_frame", age_s=round(age, 3))
+            return None
+        # Date the scene by when the frame arrived, not by when it is processed: the gate
+        # judges reading age from this time.
+        scene = self.tracker.locate(frame, self.clock() - age)
         self.last_scene = scene
         self._record("scene", robot=scene.robot, obstacle=scene.obstacle, reason=scene.reason)
         return scene

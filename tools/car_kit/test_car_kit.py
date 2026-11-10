@@ -156,6 +156,28 @@ class BackendTests(unittest.TestCase):
         self.assertTrue(self.rig.wait_still(0.6))
         self.assertIsNone(self.rig.backend.poll_observation())     # no position the camera did not see
 
+    def test_scene_is_dated_by_frame_arrival_and_stalled_frames_are_refused(self) -> None:
+        cam = self.rig.cam
+
+        class Stamped:                  # PhoneSource surface: the frame plus when it arrived
+            age = 0.0
+
+            def read_stamped(self):
+                return cam.read(), time.monotonic() - self.age
+
+            def read(self):
+                return self.read_stamped()[0]
+
+        source = Stamped()
+        self.rig.backend.source = source
+        source.age = 0.1
+        scene = self.rig.backend.observe()
+        after = self.rig.backend.clock()
+        self.assertTrue(scene.ok)
+        self.assertLess(scene.t, after - 0.09)                       # not the processing time
+        source.age = 0.9                                             # stream stalled, still under max_age_s
+        self.assertIsNone(self.rig.backend.observe())
+
 
 class BumpTests(unittest.TestCase):
     def test_bump_latches_until_reset_scene_rearms(self) -> None:
