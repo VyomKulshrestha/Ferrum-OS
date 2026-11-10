@@ -1,0 +1,88 @@
+{
+ "schema_version": "threshold-transfer-tt1d-verification",
+ "dataset": "tep59",
+ "overall_pass": true,
+ "checks": [
+  {
+   "check": "frozen files match the registration",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "check": "result digests equal the registered digests",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "ledger: tep59-attacks opened once",
+   "pass": true,
+   "detail": "1 entries"
+  },
+  {
+   "check": "ledger: tep59-sealed-normal opened once",
+   "pass": true,
+   "detail": "1 entries"
+  },
+  {
+   "check": "recomputed real_events equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "recomputed campaigns equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "recomputed gates equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "recomputed settings equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "no ceiling rule missed an event its static threshold caught",
+   "pass": true,
+   "detail": "0 violations"
+  },
+  {
+   "check": "event count matches the per-run records",
+   "pass": true,
+   "detail": "245"
+  },
+  {
+   "check": "placement count matches the per-run records",
+   "pass": true,
+   "detail": "56"
+  },
+  {
+   "check": "every attack run of the archive was scored",
+   "pass": true,
+   "detail": "142"
+  },
+  {
+   "check": "sealed runs are the registered ones",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "one placement per sealed run",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "gates": {
+  "H1a_tracker_loses_followers_any_alarm": true,
+  "H1b_tracker_loses_followers_onset": false,
+  "H1c_tracker_holds_first_events": true,
+  "H2_stronger_rules_hold_followers": true,
+  "H3_ceiling_bounds_loss": true,
+  "H4_frog_blinds_spot": true,
+  "H5_loud_pulses_blind_tracker": true,
+  "H6_sub_event_pulses_blind_excluding_rules": true,
+  "primary_success": false
+ }
+}
