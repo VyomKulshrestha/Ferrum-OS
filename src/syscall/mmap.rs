@@ -30,7 +30,11 @@ pub fn sys_mmap(args: [u64; 6], held_capabilities: &[alloc::string::String]) -> 
     let len = args[2];
     let flags = args[3];
 
-    if len == 0 {
+    // `find_free_vaddr` places mappings in [0x80_4000_0000, 0x80_7000_0000);
+    // nothing longer can ever fit, and a length near u64::MAX makes its
+    // `align_up` panic (and `candidate + len` overflow), halting the kernel.
+    const MMAP_WINDOW_BYTES: u64 = 0x80_7000_0000 - 0x80_4000_0000;
+    if len == 0 || len > MMAP_WINDOW_BYTES {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
