@@ -113,6 +113,20 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     let mut session = ACTIVE_CAPTURE.lock();
 
+    // A capture is only ever completed by its owner retrying this syscall.
+    // If the owner was killed mid-capture, its session would otherwise hold
+    // the single input stream forever and deny every later recorder.
+    let stale_owner = session.as_ref().is_some_and(|s| {
+        s.pid != pid
+            && !crate::scheduler::list_tasks()
+                .iter()
+                .any(|t| t.id == s.pid && t.state != crate::scheduler::TaskState::Dead)
+    });
+    if stale_owner {
+        crate::devices::hda::finish_recording_nonblocking();
+        *session = None;
+    }
+
     match session.as_mut() {
         Some(s) if s.pid == pid => {
             // Retry: poll once, no spinning.
