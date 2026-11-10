@@ -73,10 +73,9 @@ def _read(archive, name):
         frame = pd.read_csv(f, header=None)
     if frame.shape[1] != 60:
         raise ValueError(f"{name}: {frame.shape[1]} columns")
-    values = frame.to_numpy()
     flags = np.stack([np.asarray(frame[c].astype(str).str.lower() == "true") for c in (54, 55, 56)], 1)
     key = flags[:, 0] * 1 + flags[:, 1] * 2 + flags[:, 2] * 4
-    return values[:, SENSORS].astype(np.float32), values[:, ACTIONS].astype(np.float32), key.astype(np.int8)
+    return frame.iloc[:, SENSORS].to_numpy(np.float32), frame.iloc[:, ACTIONS].to_numpy(np.float32), key.astype(np.int8)
 
 
 def dev_runs(mode, role):
