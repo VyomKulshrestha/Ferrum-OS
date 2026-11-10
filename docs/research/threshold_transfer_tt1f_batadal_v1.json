@@ -1,7 +1,7 @@
 {
  "schema_version": "threshold-transfer-tt1f-batadal-v1",
- "status": "exploratory, post-hoc: BATADAL from the stored trace of the registered tt1b final; no new access",
- "plan": "docs/research/threshold_transfer_tt1f_dev_plan.md",
+ "status": "exploratory, post-hoc: BATADAL and HAI 20.07 from the stored traces of the registered finals; no new access",
+ "plan": "docs/research/threshold_transfer_tt1f_dev_plan.md (parts D and J; trace-based parts of F and I)",
  "settings": {
   "steps_per_day": 96,
   "gap_steps": 4,
@@ -26,7 +26,21 @@
    "onset_detected": 14,
    "fa_ratio_to_budget": 0.7011798699735131,
    "unlabelled_alarm_share": 0.013684886427482142,
-   "median_onset_inflation": 1.0
+   "median_onset_inflation": 1.0,
+   "chance_reference": {
+    "detected": 14,
+    "onset_detected": 14,
+    "shifted_detected_mean_lo_hi": [
+     5.741,
+     2.0,
+     10.0
+    ],
+    "shifted_onset_mean_lo_hi": [
+     4.724,
+     1.0,
+     9.0
+    ]
+   }
   },
   "tracker": {
    "detected": 6,
@@ -41,7 +55,21 @@
    "vs_frozen_onset_interval": [
     -0.7857142857142857,
     -0.2857142857142857
-   ]
+   ],
+   "chance_reference": {
+    "detected": 6,
+    "onset_detected": 6,
+    "shifted_detected_mean_lo_hi": [
+     5.833,
+     2.0,
+     9.0
+    ],
+    "shifted_onset_mean_lo_hi": [
+     5.799,
+     2.0,
+     9.0
+    ]
+   }
   },
   "tracker_slow": {
    "detected": 5,
@@ -71,7 +99,21 @@
    "vs_frozen_onset_interval": [
     0.0,
     0.0
-   ]
+   ],
+   "chance_reference": {
+    "detected": 14,
+    "onset_detected": 14,
+    "shifted_detected_mean_lo_hi": [
+     4.341,
+     1.0,
+     8.024999999999977
+    ],
+    "shifted_onset_mean_lo_hi": [
+     3.74,
+     1.0,
+     8.0
+    ]
+   }
   },
   "daily": {
    "detected": 14,
@@ -86,7 +128,21 @@
    "vs_frozen_onset_interval": [
     0.0,
     0.0
-   ]
+   ],
+   "chance_reference": {
+    "detected": 14,
+    "onset_detected": 14,
+    "shifted_detected_mean_lo_hi": [
+     12.241,
+     10.0,
+     14.0
+    ],
+    "shifted_onset_mean_lo_hi": [
+     12.112,
+     10.0,
+     14.0
+    ]
+   }
   },
   "daily_excl": {
    "detected": 14,
@@ -222,6 +278,104 @@
     0.0,
     0.0
    ]
+  },
+  "tracker_tau_ceil_1.1": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.5933060438237419,
+   "unlabelled_alarm_share": 0.01328357010996067,
+   "median_onset_inflation": 1.0202118989405753,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "tracker_tau_ceil_1.25": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.43149530459908503,
+   "unlabelled_alarm_share": 0.01236054257966129,
+   "median_onset_inflation": 1.170099837000885,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  }
+ },
+ "peak_scores_over_tau0": {
+  "events": 14,
+  "quantiles_0_25_50_75_100": [
+   3.206872000194284,
+   6.263025498095901,
+   14.982280999717693,
+   34.22080971080369,
+   1582.5657836079647
+  ],
+  "events_with_peak_below": {
+   "1.0": 0,
+   "1.1": 0,
+   "1.25": 0,
+   "1.5": 0,
+   "2.0": 0
+  }
+ },
+ "hai_20_07_minute_trace": {
+  "note": "one row a minute (largest score of the minute); episode gap one minute; approximate",
+  "events": 38,
+  "peak_scores_over_tau0": {
+   "events": 38,
+   "quantiles_0_25_50_75_100": [
+    0.4471150990861285,
+    5.946312999771189,
+    10.072897679342557,
+    20.076615991183147,
+    110.74923460665482
+   ],
+   "events_with_peak_below": {
+    "1.0": 2,
+    "1.1": 2,
+    "1.25": 2,
+    "1.5": 3,
+    "2.0": 6
+   }
+  },
+  "chance_reference": {
+   "frozen": {
+    "detected": 36,
+    "onset_detected": 26,
+    "shifted_detected_mean_lo_hi": [
+     17.0,
+     11.0,
+     23.0
+    ],
+    "shifted_onset_mean_lo_hi": [
+     1.636,
+     0.0,
+     5.0
+    ]
+   },
+   "tracker": {
+    "detected": 20,
+    "onset_detected": 20,
+    "shifted_detected_mean_lo_hi": [
+     1.388,
+     0.0,
+     4.0
+    ],
+    "shifted_onset_mean_lo_hi": [
+     0.892,
+     0.0,
+     3.0
+    ]
+   }
   }
  }
 }

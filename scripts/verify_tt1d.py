@@ -9,7 +9,8 @@ Checks: (1) the protocol is registered and the frozen files still match it; (2) 
 digests equal the protocol's; (3) each ledger id of the dataset appears in the access ledger exactly once
 (twice only if the result says the run was resumed, and then the second entry must say so; three times
 under an amendment: the failed attempt, a diagnostic read, the amended attempt), the first access follows
-the commit of the registration, and an amended attempt follows the commit of its amendment; (4) pooled
+the commit of the registration, an amended attempt follows the commit of its amendment, and any further
+access is marked EXPLORATORY in the ledger and comes after the registered one; (4) pooled
 real-event tables, campaign tables, gates and settings recomputed from the per-run records equal the
 stored ones; (5) no ceiling rule missed an event its static threshold caught; (6) event and placement
 counts match the per-run records; (7) dataset-specific coverage: every attack run of the Tennessee
@@ -66,7 +67,16 @@ def main():
     registered = commit_time(M.PROTOCOL.relative_to(ROOT))
     add("protocol is committed", registered is not None, str(registered))
     for dataset in S.ledger_ids:
-        mine = [r for r in rows if r["dataset"] == dataset]
+        every = [r for r in rows if r["dataset"] == dataset]
+        # accesses after the registered final, for exploratory and post-hoc analyses, are allowed if the ledger
+        # names them as such and they follow the registered access
+        later = [r for r in every if r["reason"].startswith("EXPLORATORY")]
+        mine = [r for r in every if not r["reason"].startswith("EXPLORATORY")]
+        if later:
+            last = max(datetime.datetime.fromisoformat(r["at"]) for r in mine) if mine else None
+            add(f"ledger: every other access to {dataset} is exploratory and after the final",
+                last is not None and all(datetime.datetime.fromisoformat(r["at"]) > last for r in later),
+                f"{len(later)} exploratory entries")
         if mine:
             first = datetime.datetime.fromisoformat(mine[0]["at"])
             add(f"ledger: first access to {dataset} follows the registration commit",
