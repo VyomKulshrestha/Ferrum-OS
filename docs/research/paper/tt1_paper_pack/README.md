@@ -66,8 +66,8 @@ Claude Science is installed on this machine and runs a local daemon (check with
 
 ## Compiling the LaTeX versions
 
-`latex/main.pdf` (ACM sigconf, anonymous review mode, 10 pages with references from page 9) and
-`latex_usenix/main.pdf` (11 pages, references from page 10) were built with tectonic 0.17.0, which
+`latex/main.pdf` (ACM sigconf, anonymous review mode, 21 pages with references from page 12) and
+`latex_usenix/main.pdf` (23 pages, references from page 14) were built with tectonic 0.17.0, which
 fetches the TeX packages it needs on first use:
 
 ```

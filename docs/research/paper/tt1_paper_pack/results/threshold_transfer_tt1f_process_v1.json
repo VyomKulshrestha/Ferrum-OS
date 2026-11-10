@@ -1,0 +1,201 @@
+{
+ "schema_version": "threshold-transfer-tt1f-process-v1",
+ "status": "exploratory: normal data of the spent HAI releases; the attacker writes three sensor readings",
+ "plan": "docs/research/threshold_transfer_tt1f_dev_plan.md",
+ "placements": 30,
+ "placements_per_release": {
+  "hai-21.03": 10,
+  "hai-22.04": 10,
+  "hai-23.05": 10
+ },
+ "calibration_check": {
+  "hai-21.03": {
+   "tau0_registered_calibrate": 15.727994607082183,
+   "tau0_calibrate_v2": 15.727994607082183
+  },
+  "hai-22.04": {
+   "tau0_registered_calibrate": 16.597016603253422,
+   "tau0_calibrate_v2": 16.597016603253422
+  },
+  "hai-23.05": {
+   "tau0_registered_calibrate": 7.832979018918628,
+   "tau0_calibrate_v2": 7.832979018918628
+  }
+ },
+ "terminal_multiples_of_just_detectable": [
+  1.0,
+  1.5,
+  2.0,
+  3.0
+ ],
+ "median_just_detectable_setpoint_step_scaled_units": 0.1875,
+ "replay": {
+  "frozen_plain": [
+   30,
+   30,
+   30,
+   30
+  ],
+  "frozen_replayed": [
+   3,
+   5,
+   7,
+   11
+  ]
+ },
+ "campaigns": {
+  "frog": {
+   "frozen": {
+    "caught_after": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "caught_control": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "silent_placements": 15,
+    "median_alarm_steps": 25.0,
+    "median_alarm_episodes": 0.5,
+    "longest_episode": 126,
+    "median_tau_over_tau0": 1.0,
+    "median_noise_scale": 0.029053142802139366,
+    "median_pulse_peak_over_tau": null
+   },
+   "spot_gr": {
+    "caught_after": [
+     9,
+     21,
+     30,
+     30
+    ],
+    "caught_control": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "silent_placements": 12,
+    "median_alarm_steps": 33.5,
+    "median_alarm_episodes": 1.0,
+    "longest_episode": 126,
+    "median_tau_over_tau0": 1.1149840327272615,
+    "median_noise_scale": 0.03156070620332716,
+    "median_pulse_peak_over_tau": null
+   }
+  },
+  "probe": {
+   "frozen": {
+    "caught_after": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "caught_control": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "silent_placements": 0,
+    "median_alarm_steps": 1012.0,
+    "median_alarm_episodes": 13.5,
+    "longest_episode": 329,
+    "median_tau_over_tau0": 1.0,
+    "median_noise_scale": 0.014112730860237689,
+    "median_pulse_peak_over_tau": null
+   },
+   "spot_gr": {
+    "caught_after": [
+     20,
+     30,
+     30,
+     30
+    ],
+    "caught_control": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "silent_placements": 0,
+    "median_alarm_steps": 1091.0,
+    "median_alarm_episodes": 13.0,
+    "longest_episode": 324,
+    "median_tau_over_tau0": 1.026858527485108,
+    "median_noise_scale": 0.014768857527645186,
+    "median_pulse_peak_over_tau": null
+   }
+  },
+  "subl": {
+   "frozen": {
+    "caught_after": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "caught_control": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "silent_placements": 0,
+    "median_alarm_steps": 2137.0,
+    "median_alarm_episodes": 49.0,
+    "longest_episode": 216,
+    "median_tau_over_tau0": 1.0,
+    "median_noise_scale": 0.0964158147657635,
+    "median_pulse_peak_over_tau": 1.08981052975688
+   },
+   "daily_excl": {
+    "caught_after": [
+     21,
+     30,
+     30,
+     30
+    ],
+    "caught_control": [
+     30,
+     30,
+     30,
+     30
+    ],
+    "silent_placements": 0,
+    "median_alarm_steps": 2140.5,
+    "median_alarm_episodes": 50.0,
+    "longest_episode": 212,
+    "median_tau_over_tau0": 1.0335950334474213,
+    "median_noise_scale": 0.08522947958313076,
+    "median_pulse_peak_over_tau": 1.0754492431248517
+   },
+   "tracker_hold": {
+    "caught_after": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "caught_control": [
+     21,
+     28,
+     30,
+     30
+    ],
+    "silent_placements": 0,
+    "median_alarm_steps": 1779.0,
+    "median_alarm_episodes": 48.0,
+    "longest_episode": 102,
+    "median_tau_over_tau0": 12.453180042158923,
+    "median_noise_scale": 0.6472632213292258,
+    "median_pulse_peak_over_tau": 1.1173863597951916
+   }
+  }
+ }
+}

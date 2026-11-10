@@ -1,0 +1,160 @@
+{
+ "schema_version": "threshold-transfer-tt1f-provics-mask-v1",
+ "status": "exploratory, post-hoc: third, ledgered access to the ProvICS attack recording and sealed rows",
+ "plan": "docs/research/threshold_transfer_tt1f_dev_plan.md (amendment 2, K2)",
+ "lookback_steps": 36,
+ "events": 32,
+ "unobserved_events": 0,
+ "masks": {
+  "registered": {
+   "attack_recording": {
+    "invalid_steps": 577,
+    "gaps": 3,
+    "unlabelled_valid_steps": 33396,
+    "rules": {
+     "frozen": {
+      "detected": 25,
+      "onset_detected": 4,
+      "fa_ratio_to_budget": 32.985986345670135,
+      "unlabelled_alarm_share": 0.4411007306264223
+     },
+     "tracker": {
+      "detected": 25,
+      "onset_detected": 4,
+      "fa_ratio_to_budget": 6.467840459935321,
+      "unlabelled_alarm_share": 0.18708827404479578
+     },
+     "tighten_only": {
+      "detected": 25,
+      "onset_detected": 4,
+      "fa_ratio_to_budget": 32.985986345670135,
+      "unlabelled_alarm_share": 0.4411007306264223
+     },
+     "tracker_capped": {
+      "detected": 25,
+      "onset_detected": 4,
+      "fa_ratio_to_budget": 37.51347466762486,
+      "unlabelled_alarm_share": 0.3360582105641394
+     },
+     "tracker_ceil_1.25": {
+      "detected": 25,
+      "onset_detected": 4,
+      "fa_ratio_to_budget": 25.224577793747752,
+      "unlabelled_alarm_share": 0.22772188286022277
+     },
+     "daily": {
+      "detected": 25,
+      "onset_detected": 4,
+      "fa_ratio_to_budget": 32.985986345670135,
+      "unlabelled_alarm_share": 0.4411007306264223
+     }
+    }
+   },
+   "sealed_rows": {
+    "invalid_steps": 0,
+    "gaps": 0,
+    "rules": {
+     "frozen": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 3
+     },
+     "tracker": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 2
+     },
+     "tighten_only": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 3
+     },
+     "tracker_capped": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 2
+     },
+     "tracker_ceil_1.25": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 2
+     },
+     "daily": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 3
+     }
+    }
+   }
+  },
+  "extended": {
+   "attack_recording": {
+    "invalid_steps": 685,
+    "gaps": 3,
+    "unlabelled_valid_steps": 33324,
+    "rules": {
+     "frozen": {
+      "detected": 23,
+      "onset_detected": 3,
+      "fa_ratio_to_budget": 33.7054375225063,
+      "unlabelled_alarm_share": 0.4398931700876245
+     },
+     "tracker": {
+      "detected": 23,
+      "onset_detected": 3,
+      "fa_ratio_to_budget": 5.83363341735686,
+      "unlabelled_alarm_share": 0.18662225423118473
+     },
+     "tighten_only": {
+      "detected": 23,
+      "onset_detected": 3,
+      "fa_ratio_to_budget": 33.7054375225063,
+      "unlabelled_alarm_share": 0.4398931700876245
+     },
+     "tracker_capped": {
+      "detected": 23,
+      "onset_detected": 3,
+      "fa_ratio_to_budget": 38.2427079582283,
+      "unlabelled_alarm_share": 0.33462369463449765
+     },
+     "tracker_ceil_1.25": {
+      "detected": 23,
+      "onset_detected": 3,
+      "fa_ratio_to_budget": 25.927259632697155,
+      "unlabelled_alarm_share": 0.22644340415316289
+     },
+     "daily": {
+      "detected": 23,
+      "onset_detected": 3,
+      "fa_ratio_to_budget": 33.7054375225063,
+      "unlabelled_alarm_share": 0.4398931700876245
+     }
+    }
+   },
+   "sealed_rows": {
+    "invalid_steps": 0,
+    "gaps": 0,
+    "rules": {
+     "frozen": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 3
+     },
+     "tracker": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 2
+     },
+     "tighten_only": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 3
+     },
+     "tracker_capped": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 2
+     },
+     "tracker_ceil_1.25": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 2
+     },
+     "daily": {
+      "fa_ratio_to_budget": 0.9214230867673406,
+      "alarm_steps": 3
+     }
+    }
+   }
+  }
+ }
+}

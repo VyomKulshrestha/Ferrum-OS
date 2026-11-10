@@ -22,7 +22,7 @@ SCRIPTS = subprocess.run([sys.executable, "-B", str(SRC / "scripts/tt1_artifact_
                          capture_output=True, text=True, check=True).stdout.splitlines()[2:]
 SCRIPTS = [line.split()[0] for line in SCRIPTS if line.strip()]
 
-DOC_PATTERNS = [r"^threshold_transfer_.*\.(json|md)$", r"^real_telemetry_detection_protocol_v2.*\.json$",
+DOC_PATTERNS = [r"^threshold_transfer_.*\.(json|md)$", r"^monitor_audit_.*\.md$", r"^real_telemetry_detection_protocol_v2.*\.json$",
                 r"^real_telemetry_detection_v2_result_(hai-20\.07|hygrid-ics)\.json$",
                 r"^real_telemetry_protocol_(v1|rt2)(_amendment\d)?\.json$"]
 PACK = SRC / "docs/research/paper/tt1_paper_pack"

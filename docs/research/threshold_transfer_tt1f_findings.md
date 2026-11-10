@@ -90,8 +90,8 @@ Registered counts reproduce from the stored trace (frozen 14/14 at 0.70 times th
 ## 4. Peak scores (tt1f I)
 
 - Tennessee Eastman, 245 events: quartiles 0.86 / 1.11 / 17.4 / 166 / 827 tau0. Peak below tau0: 25 (the
-  frozen threshold's 25 missed first events); below 1.1 tau0: 61; below 1.25: 70; below 2: 71. All but one of
-  these are first events (70 of 141 first events peak below 1.25 tau0).
+  frozen threshold's 25 missed first events); below 1.1 tau0: 61; below 1.25: 70; below 2: 71. All 70
+  events below 1.25 tau0 are first events (of 141).
 - HAI 20.07, 38 events (minute trace): quartiles 0.45 / 5.9 / 10.1 / 20.1 / 111 tau0; 2 below tau0, 3 below
   1.5, 6 below 2.
 
@@ -121,7 +121,7 @@ false-alarm episodes on the 56 sealed runs as the rule (in-sample match, descrip
 | shape bounded to 0.5 | 0 / 0 / 0 / 21 | 44 / 56 / 56 / 56 | 1.62, 1.80, 2.26, 34.8, 85.0 | -0.5, -0.5, -0.5, 0.5, 0.5 |
 | runs declustering | 44 / 56 / 56 / 56 | 43 / 56 / 56 / 56 | 0.99, 0.99, 1.02, 1.05, 1.08 | -0.19, -0.11, 0.03, 0.20, 0.29 |
 
-- Control shapes: -0.16 to 0.35. Under the frog the fitted shape leaves that range in every placement of the
+- Control shapes: -0.16 to 0.35. Under the frog the fitted shape leaves that range in 55 of 56 placements of the
   first two rules; 23 of 56 standard-SPOT placements end above 10 tau0 (numerical runaway), 24 above 2 tau0.
   Bounding the shape removes the runaway and blinds the rule more evenly (35 of 56 above 2 tau0).
 - Peaks in the fit: about 34,700 after the campaign against 11,200 without (standard and bounded);
