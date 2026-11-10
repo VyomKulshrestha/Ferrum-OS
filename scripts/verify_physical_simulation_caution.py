@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +24,23 @@ def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
     print(f"PASS\t{message}")
+
+
+def service_bound_digest(service: str) -> str | None:
+    """Hex of PHYSICAL_MODEL_SHA256 in physical.rs: the digest the simulation-caution grant binds."""
+    match = re.search(r"PHYSICAL_MODEL_SHA256: \[u8; 32\] = \[(.*?)\];", service, re.S)
+    if match is None:
+        return None
+    values = re.findall(r"0x([0-9a-fA-F]{2})", match.group(1))
+    return "".join(values).lower() if len(values) == 32 else None
+
+
+def service_binds_artifact(service: str, digest: str) -> bool:
+    """The grant's digest constant and the reported model_sha256 both name the bytes that ship."""
+    return (
+        service_bound_digest(service) == digest
+        and f'\\"model_sha256\\":\\"{digest}\\"' in service
+    )
 
 
 def main() -> None:
@@ -107,6 +125,10 @@ def main() -> None:
         "learned decisions are monotonic and a caller-supplied promotion flag fails closed",
     )
     require(
+        service_binds_artifact(service, digest),
+        "boot service binds and reports the digest of the shipped model bytes",
+    )
+    require(
         "live_learned_gate" in service
         and "shadow_only" in service
         and "permit_authority" in service
@@ -119,7 +141,7 @@ def main() -> None:
         and "bounded_safe_command_delivered" in bridge,
         "QEMU verifier checks incremental blocking, no rejected permit, and a safe control",
     )
-    print("\nSimulator-only learned-caution contract verified: 14/14 checks passed.")
+    print("\nSimulator-only learned-caution contract verified: 15/15 checks passed.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,227 @@
+{
+ "schema_version": "threshold-transfer-tt1f-batadal-v1",
+ "status": "exploratory, post-hoc: BATADAL from the stored trace of the registered tt1b final; no new access",
+ "plan": "docs/research/threshold_transfer_tt1f_dev_plan.md",
+ "settings": {
+  "steps_per_day": 96,
+  "gap_steps": 4,
+  "event_steps": 4,
+  "hold_steps": 240,
+  "budget_per_day": 0.14285714285714285,
+  "thresholds": {
+   "tau0": 9.393276064082084,
+   "tau_half": 1624.8702419968104,
+   "p": 0.007470795979353437,
+   "m0": 3.1795905232429504,
+   "spread": 6461.907863730913,
+   "eta": 64.61907863730913
+  },
+  "eta_over_tau0": 6.879290909419656
+ },
+ "unlabelled_days": 259.5625,
+ "events": 14,
+ "rules": {
+  "frozen": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.7011798699735131,
+   "unlabelled_alarm_share": 0.013684886427482142,
+   "median_onset_inflation": 1.0
+  },
+  "tracker": {
+   "detected": 6,
+   "onset_detected": 6,
+   "fa_ratio_to_budget": 1.8338550445461115,
+   "unlabelled_alarm_share": 0.0040934264387189985,
+   "median_onset_inflation": 409.2693760216243,
+   "vs_frozen_interval": [
+    -0.7857142857142857,
+    -0.2857142857142857
+   ],
+   "vs_frozen_onset_interval": [
+    -0.7857142857142857,
+    -0.2857142857142857
+   ]
+  },
+  "tracker_slow": {
+   "detected": 5,
+   "onset_detected": 5,
+   "fa_ratio_to_budget": 0.7011798699735131,
+   "unlabelled_alarm_share": 0.005176980496026968,
+   "median_onset_inflation": 74.25248745132699,
+   "vs_frozen_interval": [
+    -0.8571428571428572,
+    -0.3571428571428571
+   ],
+   "vs_frozen_onset_interval": [
+    -0.8571428571428572,
+    -0.3571428571428571
+   ]
+  },
+  "tracker_tau": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.29665302191187093,
+   "unlabelled_alarm_share": 0.00854803756320732,
+   "median_onset_inflation": 3.1301548492262414,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "daily": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 6.337587286299061,
+   "unlabelled_alarm_share": 0.047034272413516334,
+   "median_onset_inflation": 0.6869571793577345,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "daily_excl": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.7011798699735131,
+   "unlabelled_alarm_share": 0.013684886427482142,
+   "median_onset_inflation": 1.0,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "tracker_hold": {
+   "detected": 14,
+   "onset_detected": 10,
+   "fa_ratio_to_budget": 3.047435588731038,
+   "unlabelled_alarm_share": 0.30528132273858255,
+   "median_onset_inflation": 1.2677148662787925,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    -0.5,
+    -0.0714285714285714
+   ]
+  },
+  "tracker_capped": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.35058993498675656,
+   "unlabelled_alarm_share": 0.01099606710008829,
+   "median_onset_inflation": 1.6075495789193015,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "static_1.1": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.5124006742114134,
+   "unlabelled_alarm_share": 0.012842122160687053,
+   "median_onset_inflation": 1.1,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "static_1.25": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 0.43149530459908503,
+   "unlabelled_alarm_share": 0.012240147684404849,
+   "median_onset_inflation": 1.25,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "tracker_ceil_1.1": {
+   "detected": 14,
+   "onset_detected": 13,
+   "fa_ratio_to_budget": 42.55622441608476,
+   "unlabelled_alarm_share": 0.07629023196083153,
+   "median_onset_inflation": 0.7916373267986301,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    -0.2142857142857143,
+    0.0
+   ]
+  },
+  "tracker_ceil_1.25": {
+   "detected": 14,
+   "onset_detected": 13,
+   "fa_ratio_to_budget": 35.86804719479894,
+   "unlabelled_alarm_share": 0.06545469138775183,
+   "median_onset_inflation": 0.9159404373651826,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    -0.2142857142857143,
+    0.0
+   ]
+  },
+  "daily_ceil_1.1": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 6.41849265591139,
+   "unlabelled_alarm_share": 0.05265270085881692,
+   "median_onset_inflation": 0.6869571793577345,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "daily_ceil_1.25": {
+   "detected": 14,
+   "onset_detected": 14,
+   "fa_ratio_to_budget": 6.391524199373947,
+   "unlabelled_alarm_share": 0.052411911068304035,
+   "median_onset_inflation": 0.6869571793577345,
+   "vs_frozen_interval": [
+    0.0,
+    0.0
+   ],
+   "vs_frozen_onset_interval": [
+    0.0,
+    0.0
+   ]
+  }
+ }
+}

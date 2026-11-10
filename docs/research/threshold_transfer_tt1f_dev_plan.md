@@ -91,3 +91,36 @@ is not silent is reported as such.
 - A published detector from the literature and a comparison of `spot_gr` with the reference SPOT code:
   both need code and models this repository does not hold.
 - The 53 unread attack-free Tennessee Eastman runs stay unread.
+
+## Amendment 1 (2026-11-10)
+
+Written after part D had run and before any analysis of parts A, B, C and E (only the score cache of part
+A was being built). Part D's result is in `threshold_transfer_tt1f_batadal_v1.json` and is not changed by
+this amendment: with a step of 0.01 tau0 the tracker detected 14 of 14 BATADAL attacks under both counts,
+so the registered loss there (6 of 14) belongs to the spread-scaled step of 6.9 tau0 per sample.
+
+The second mock review (Claude Science, `mock_pc_review_r2_claude_science.md`), finished after this plan
+was committed, asks for further analyses of the same data. Added, all exploratory and post-hoc:
+
+- **F. Chance reference for the any-alarm count.** On the Tennessee Eastman attack runs, for frozen,
+  tracker, daily, daily_excl, tracker_capped and tighten_only: shift the rule's alarm sequence circularly
+  within each run by a random offset (200 shifts per run, seed 7) and recount first events and followers
+  detected under both counts, by attack type. Reported: the mean and the central 95 % range of the shifted
+  counts beside the observed ones. The same for frozen and tracker on HAI 20.07 and BATADAL, from the stored
+  trajectories. No expectation is stated; if an observed count sits inside the shifted range, the paper
+  says that the count does not show detection.
+- **G. Time to clear.** For each Tennessee Eastman noise sequence and for frozen, tracker, tracker_slow,
+  tracker_tau and daily: hours from the start of the sequence to the first alarm, the share of the
+  sequence spent in alarm, and hours from the start to the last alarm step inside the sequence.
+- **H. A fixed tau0 monitor beside the attacked rule.** In part C's frog runs: the number of campaign
+  steps on which the attacker's score exceeds tau0 and the hours until the first one. It says whether the
+  frog is silent to anything but the rule it attacks.
+- **I. Peak score over tau0** of every recorded event: Tennessee Eastman from the cache, HAI 20.07 and
+  BATADAL from the stored trajectories. Reported as quantiles and as the share of events whose peak stays
+  below 1.1, 1.25, 1.5 and 2 tau0.
+- **J. BATADAL, the tau0-scaled tracker under ceilings** of 1.1 and 1.25 tau0. The ceilings of part D
+  used the registered step and ran at 36 to 43 times the budget.
+- A per-mode tabulation of the registered campaign outcomes (no run).
+
+Not added: robust-statistic baselines, a recalibration rule and a threshold-watch detector (they need rule
+designs of their own and a separate plan).
