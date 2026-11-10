@@ -129,3 +129,132 @@ def events(key):
     starts = np.concatenate([[0], edges])
     ends = np.concatenate([edges, [len(key)]])
     return [(int(a), int(b), int(key[a])) for a, b in zip(starts, ends) if key[a] != 0]
+
+
+# ---------------------------------------------------------------- ProvICS
+"""ProvICS (Shibbir and Tosh 2026, arXiv:2607.05989; Hugging Face trucyberlab/multimodal-ICS-provenance,
+revision 18b4b0e1): a chemical reactor twin controlled by a real PLC. benign48h/physical_state.csv and
+attack22h/physical_state.csv are historian exports with a `_time` column (UTC) and 22 process registers,
+one row every 1 to 2 s. attack22h/ground_truth/c<k>_ground_truth.csv list the attack phases of campaign k
+with columns start,end,campaign,phase,sub_phase,tactic,technique,target,description (header lines read
+to write this loader; no data row of a ground-truth file and no row of the attack recording was read).
+
+Every recording is put on a 2 s grid (last row of each bin; empty bins repeat the previous row). The
+first 75 % of the rows of the attack-free recording are development data; its last 25 % are sealed.
+Development data is cut into segments at gaps longer than 10 s. Deployment streams (the sealed part and
+the attack recording) stay continuous so that a threshold rule keeps its state, and grid steps inside a
+gap longer than 10 s are returned as invalid (they cannot alarm). Columns whose name ends in _sp, _set,
+setpoint or " SP" are actions; the other registers are sensors.
+
+An event is one ground-truth row. Its interval runs from its start to its end plus 60 s (the dataset's
+own rule credits a detection window that overlaps the event; our score is a 60 s mean), at least one step.
+"""
+P_RAW = D.RAW / "provics"
+P_STEP_SECONDS = 2.0
+P_DEV_FRACTION = 0.75
+P_BREAK_SECONDS = 10.0
+P_TOLERANCE_SECONDS = 60.0
+P_LEDGER_IDS = ("provics-attack", "provics-sealed-normal")
+P_META = ("Unnamed: 0", "result", "table", "_time")
+_P_OPENED = False
+
+
+def _p_is_action(name):
+    return name.lower().endswith(("_sp", "_set", "setpoint", " sp"))
+
+
+def _p_rows(path):
+    with open(path, "rb") as f:
+        return sum(1 for _ in f) - 1
+
+
+def _p_read(path, first=None, skip=0):
+    frame = pd.read_csv(path, skiprows=range(1, skip + 1), nrows=first, low_memory=False)
+    names = [c for c in frame.columns if c not in P_META]
+    time = pd.to_datetime(frame["_time"], utc=True)
+    if not time.is_monotonic_increasing:
+        raise ValueError(f"{path}: timestamps not increasing")
+    seconds = (time - pd.Timestamp("1970-01-01", tz="UTC")).dt.total_seconds().to_numpy()
+    return seconds, frame[names].to_numpy(np.float32), names
+
+
+def _p_grid(seconds, values):
+    """2 s grid from the first row: (grid start in epoch seconds, values per step, valid per step)."""
+    t0 = seconds[0]
+    bins = np.floor((seconds - t0) / P_STEP_SECONDS + 1e-9).astype(int)
+    last = np.flatnonzero(np.diff(np.concatenate([bins, [bins[-1] + 1]])) != 0)       # last row of each bin
+    n = int(bins[-1]) + 1
+    src = np.full(n, -1)
+    src[bins[last]] = last
+    filled = np.maximum.accumulate(src)                                                  # previous occupied bin
+    grid = values[filled]
+    gap = np.concatenate([[0.0], np.diff(seconds)])
+    valid = np.ones(n, bool)
+    for i in np.flatnonzero(gap > P_BREAK_SECONDS):
+        valid[bins[i - 1] + 1:bins[i]] = False
+    return t0, grid, valid
+
+
+def _p_split(names):
+    sensors = [i for i, c in enumerate(names) if not _p_is_action(c)]
+    actions = [i for i, c in enumerate(names) if _p_is_action(c)]
+    return sensors, actions
+
+
+def provics_dev():
+    """Development segments [(X, U)] from the first 75 % of the attack-free rows, and the column names."""
+    path = P_RAW / "benign48h" / "physical_state.csv"
+    seconds, values, names = _p_read(path, first=int(P_DEV_FRACTION * _p_rows(path)))
+    sensors, actions = _p_split(names)
+    cuts = np.concatenate([[0], np.flatnonzero(np.diff(seconds) > P_BREAK_SECONDS) + 1, [len(seconds)]])
+    segs = []
+    for a, b in zip(cuts[:-1], cuts[1:]):
+        if b - a < 100:
+            continue
+        _, grid, _ = _p_grid(seconds[a:b], values[a:b])
+        segs.append((grid[:, sensors], grid[:, actions]))
+    return segs, {"sensors": [names[i] for i in sensors], "actions": [names[i] for i in actions]}
+
+
+def provics_open_final(reason):
+    global _P_OPENED
+    for dataset in P_LEDGER_IDS:
+        D._record_final_access(dataset, reason)
+    _P_OPENED = True
+
+
+def provics_sealed():
+    """The sealed last 25 % of the attack-free recording as one continuous stream (X, U, valid)."""
+    if not _P_OPENED:
+        raise RuntimeError("sealed data requested before provics_open_final()")
+    path = P_RAW / "benign48h" / "physical_state.csv"
+    seconds, values, names = _p_read(path, skip=int(P_DEV_FRACTION * _p_rows(path)))
+    sensors, actions = _p_split(names)
+    _, grid, valid = _p_grid(seconds, values)
+    return grid[:, sensors], grid[:, actions], valid
+
+
+def provics_attack():
+    """The attack recording as one continuous stream and its events:
+    (X, U, valid, events, unobserved) with events = [(start step, end step, campaign, technique)]."""
+    if not _P_OPENED:
+        raise RuntimeError("attack data requested before provics_open_final()")
+    seconds, values, names = _p_read(P_RAW / "attack22h" / "physical_state.csv")
+    sensors, actions = _p_split(names)
+    t0, grid, valid = _p_grid(seconds, values)
+    events, unobserved = [], 0
+    for k in (1, 2, 3, 4):
+        truth = pd.read_csv(P_RAW / "attack22h" / "ground_truth" / f"c{k}_ground_truth.csv")
+        epoch = pd.Timestamp("1970-01-01", tz="UTC")
+        start = (pd.to_datetime(truth["start"], utc=True) - epoch).dt.total_seconds().to_numpy()
+        end = (pd.to_datetime(truth["end"], utc=True) - epoch).dt.total_seconds().to_numpy()
+        for s, e, tech in zip(start, end, truth["technique"].astype(str)):
+            a = int(np.floor((s - t0) / P_STEP_SECONDS))
+            b = int(np.ceil((max(e, s) + P_TOLERANCE_SECONDS - t0) / P_STEP_SECONDS))
+            a, b = max(a, 0), min(max(b, a + 1), len(grid))
+            if a >= len(grid) or b <= 0 or not valid[a:b].any():
+                unobserved += 1
+                continue
+            events.append((a, b, k, tech))
+    events.sort()
+    return grid[:, sensors], grid[:, actions], valid, events, unobserved
