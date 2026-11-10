@@ -1,0 +1,93 @@
+{
+ "schema_version": "threshold-transfer-tt1d-verification",
+ "dataset": "provics",
+ "overall_pass": true,
+ "checks": [
+  {
+   "check": "frozen files match the registration",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "check": "result digests equal the registered digests",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "ledger: provics-attack has the failed attempt, the diagnostic read and the amended attempt",
+   "pass": true,
+   "detail": "3 entries"
+  },
+  {
+   "check": "ledger: provics-sealed-normal has the failed attempt, the diagnostic read and the amended attempt",
+   "pass": true,
+   "detail": "3 entries"
+  },
+  {
+   "check": "amendment script matches the recorded sha256",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "amendment document exists",
+   "pass": true,
+   "detail": "{'benign48h/physical_state.csv (rows after 98205)': 9}"
+  },
+  {
+   "check": "recomputed real_events equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "recomputed campaigns equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "recomputed gates equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "recomputed settings equals stored",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "no ceiling rule missed an event its static threshold caught",
+   "pass": true,
+   "detail": "0 violations"
+  },
+  {
+   "check": "event count matches the per-run records",
+   "pass": true,
+   "detail": "32"
+  },
+  {
+   "check": "placement count matches the per-run records",
+   "pass": true,
+   "detail": "6"
+  },
+  {
+   "check": "32 ground-truth rows are scored or counted as unobserved",
+   "pass": true,
+   "detail": "32 scored, 0 unobserved"
+  },
+  {
+   "check": "six placements on the sealed stream",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "gates": {
+  "P1a_tracker_loses_any_alarm": false,
+  "P1b_tracker_loses_onset": false,
+  "P2_capped_tracker_holds": true,
+  "P2_tolerance": 0.1,
+  "P3_ceiling_bounds_loss": true,
+  "P4_frog_blinds_spot": false,
+  "P5_loud_pulses_blind_tracker": true,
+  "P6_sub_event_pulses_blind_tracker_hold": true,
+  "primary_success": false
+ }
+}

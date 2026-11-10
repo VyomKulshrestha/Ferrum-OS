@@ -1,5 +1,7 @@
 # Thresholds That Travel: Adaptive Alarm Thresholds Let Attacks Through in ICS Anomaly Detection
 
+**Superseded from the revision of 2026-11-10.** The LaTeX source `tt1_paper_pack/latex/main.tex` is the paper. This draft keeps the text as of 2026-11-07 for the record, except the abstract below, which is the current one; it does not contain the tt1d study (Tennessee Eastman, ProvICS), the tt1e experiments or the appendices.
+
 Draft v0.1, 23 October 2026. Not for circulation. Target: ASIACCS 2027 (round 2, 11 December 2026) or
 USENIX Security 2027 (cycle 2, 26 January 2027). Both are double-blind: the submission must drop the
 author block, the repository link and the Zenodo DOIs, and point to an anonymized artifact instead.
@@ -20,35 +22,11 @@ re-weighted, every registered outcome reported (Section 6.4), Section 2 rewritte
 
 ## Abstract
 
-Anomaly detectors for industrial control systems (ICS) raise an alarm when a score crosses a threshold.
-The threshold is calibrated on clean data and must then hold a false-alarm budget for months, so
-deployments often let it adapt: they recalibrate it daily, track a running quantile, or refit an
-extreme-value tail as data arrive. Each rule learns from part of its input, and we ask what happens
-when attacks land there.
+Anomaly detectors for industrial control systems (ICS) raise an alarm when a score crosses a threshold. The threshold is calibrated on clean data and must then hold a false-alarm budget for months, so deployments often let it adapt: they recalibrate it daily, track a running quantile, or refit an extreme-value tail as data arrive. Each rule learns from part of its input, and we ask what happens when attacks land there.
 
-In two pre-registered studies on data that no earlier analysis in our pipeline had opened, a symmetric
-quantile tracker lost recall against a frozen threshold. It detected 20 of HAI 20.07's 38 attacks against
-36 (difference -0.42, 95% interval [-0.58, -0.26]) and 6 of BATADAL's 14 against 14 (-0.57,
-[-0.79, -0.29]), and every attack it caught, the frozen threshold caught too. Rerun post-hoc with an
-update that saw only the attack samples, it lost as much on HAI 20.07 (20 of 38) and nearly as much on
-BATADAL (7 of 14). A short analysis explains why the loss lasts: a tracker calibrated to HAI 20.07's
-false-alarm rate needs 23 exceedance-free hours to undo one minute above its threshold, whatever its step
-size. The BATADAL loss survives a stricter count in which an attack is detected only if an alarm begins
-inside it; the HAI 20.07 loss does not (-0.16, [-0.37, 0.05]), because the frozen threshold there was in
-alarm for 39% of the unlabelled time and was credited with attacks that arrived inside alarms already
-running. Daily recalibration lost recall on HAI 20.07 under both counts.
+In three pre-registered studies on data that no earlier analysis of ours had opened, a symmetric quantile tracker lost attacks that a frozen threshold caught: 20 of HAI 20.07's 38 against 36 (difference -0.42, 95% interval [-0.58, -0.26]), 6 of BATADAL's 14 against 14 ([-0.79, -0.29]) and, on the Tennessee Eastman process, 66 of the 104 attacks that follow another attack in their run against 104 ([-0.47, -0.27]). On the first attack of a run the two were equal (116 of 141 each). A tracker calibrated to HAI 20.07's false-alarm rate needs 23 exceedance-free hours to undo one minute above its threshold, whatever its step size. Under a stricter count, in which an alarm must begin inside the attack, the loss holds on BATADAL but not on HAI 20.07 or Tennessee Eastman, where later attacks arrive inside alarms already running; that failed the third study's primary rule. On a fourth dataset, ProvICS, whose monitor was in alarm for 44% of the time, the tracker lost nothing.
 
-On three earlier HAI releases (exploratory) we add two attacks and stronger baselines. Twelve two-minute
-nuisance alarms a day left daily recalibration and both trackers catching 1 to 4 of 30 later, just-detectable setpoint steps that the frozen threshold caught every time,
-and a closed-loop attacker who held the score just under the current threshold drove streaming
-extreme-value thresholds (SPOT, DSPOT) upward without raising an alarm. The registered test of that
-attack on BATADAL could not be evaluated: fitted to a heavy-tailed calibration score, method-of-moments
-SPOT and DSPOT started 49 and 46 times above calibration before any attack, and DSPOT already missed the attack in every control, so that study's primary rule failed. Adaptive rules that leave alarm episodes out of their update or cap their
-daily rise came within one event of the frozen threshold's recall on those releases, and a standard maximum-likelihood SPOT
-was blinded by the closed-loop attacker in every placement of its 24-hour campaign. A threshold that only tightens itself cannot miss an event the frozen
-threshold catches; on BATADAL it cost 2.43 times the false-alarm budget, against 0.70 for the frozen
-threshold. We argue that an alarm threshold may tighten itself but should loosen only with operator
-approval, and we release the registrations, ledger and code.
+Deliberate poisoning is cheaper. On 56 sealed attack-free Tennessee Eastman runs (registered), a day of two-minute nuisance alarms left the tracker catching none of 56 later, just-detectable attacks; pulses shorter than what a rule counts as an event did the same to a recalibration that leaves alarm episodes out; and an attacker who held the score just under the current threshold left a standard SPOT threshold catching 16 of 56. The frozen threshold caught all 56 each time and ran at 0.98 times its false-alarm budget over 280 attack-free days. A threshold that only tightens itself cannot miss an event the frozen threshold catches, and a ceiling at a fixed multiple of the calibrated threshold confines every one of these attacks to events below the ceiling. We argue that an alarm threshold may tighten itself but should loosen only inside a fixed band or with operator approval, and we release the registrations, ledger and code.
 
 ---
 

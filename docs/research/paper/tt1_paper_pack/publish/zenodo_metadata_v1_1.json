@@ -1,0 +1,61 @@
+{
+ "schema_version": "tt1-zenodo-deposit-v1",
+ "prepared": "2026-11-10",
+ "publication_state": "prepared, not uploaded; to be published as a NEW VERSION of record 24035418 with the author's approval",
+ "new_version_of": {
+  "record_url": "https://zenodo.org/records/24035418",
+  "doi": "10.5281/zenodo.24035418",
+  "concept_doi": "10.5281/zenodo.24035417"
+ },
+ "file": {
+  "name": "Thresholds_That_Travel_preprint_v1.1.pdf",
+  "source": "latex_named/main.pdf (scripts/tt1_named_version.py, tectonic)",
+  "bytes": 448427,
+  "md5": "92dd39c4985ecc92b98529cc060b8f56",
+  "sha256": "1f02b3fc703b0a2d3dafee090eebfd34e224faad348d853e01bfea12788be7a4"
+ },
+ "metadata": {
+  "upload_type": "publication",
+  "publication_type": "preprint",
+  "title": "Thresholds That Travel: Adaptive Alarm Thresholds Let Attacks Through in ICS Anomaly Detection",
+  "creators": [
+   {
+    "name": "Kulshrestha, Vyom",
+    "affiliation": "Independent Researcher",
+    "orcid": "0009-0009-1434-7148"
+   }
+  ],
+  "description": "<p>Anomaly detectors for industrial control systems (ICS) raise an alarm when a score crosses a threshold. The threshold is calibrated on clean data and must then hold a false-alarm budget for months, so deployments often let it adapt: they recalibrate it daily, track a running quantile, or refit an extreme-value tail as data arrive. Each rule learns from part of its input, and we ask what happens when attacks land there.</p><p>In three pre-registered studies on data that no earlier analysis of ours had opened, a symmetric quantile tracker lost attacks that a frozen threshold caught: 20 of HAI 20.07&#x27;s 38 against 36 (difference -0.42, 95% interval [-0.58, -0.26]), 6 of BATADAL&#x27;s 14 against 14 ([-0.79, -0.29]) and, on the Tennessee Eastman process, 66 of the 104 attacks that follow another attack in their run against 104 ([-0.47, -0.27]). On the first attack of a run the two were equal (116 of 141 each). A tracker calibrated to HAI 20.07&#x27;s false-alarm rate needs 23 exceedance-free hours to undo one minute above its threshold, whatever its step size. Under a stricter count, in which an alarm must begin inside the attack, the loss holds on BATADAL but not on HAI 20.07 or Tennessee Eastman, where later attacks arrive inside alarms already running; that failed the third study&#x27;s primary rule. On a fourth dataset, ProvICS, whose monitor was in alarm for 44% of the time, the tracker lost nothing.</p><p>Deliberate poisoning is cheaper. On 56 sealed attack-free Tennessee Eastman runs (registered), a day of two-minute nuisance alarms left the tracker catching none of 56 later, just-detectable attacks; pulses shorter than what a rule counts as an event did the same to a recalibration that leaves alarm episodes out; and an attacker who held the score just under the current threshold left a standard SPOT threshold catching 16 of 56. The frozen threshold caught all 56 each time and ran at 0.98 times its false-alarm budget over 280 attack-free days. A threshold that only tightens itself cannot miss an event the frozen threshold catches, and a ceiling at a fixed multiple of the calibrated threshold confines every one of these attacks to events below the ceiling. We argue that an alarm threshold may tighten itself but should loosen only inside a fixed band or with operator approval, and we release the registrations, ledger and code.</p><p>Preprint, version 1.1. It adds a third registered study (the Tennessee Eastman attack dataset and ProvICS), a ceiling rule, and further attack experiments. The paper sources, registrations, data-access ledger, harness, verifiers and result files are in <a href=\"https://github.com/VyomKulshrestha/Ferrum-OS\">https://github.com/VyomKulshrestha/Ferrum-OS</a> under docs/research.</p>",
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "version": "1.1",
+  "language": "eng",
+  "keywords": [
+   "industrial control systems",
+   "anomaly detection",
+   "alarm thresholds",
+   "adaptive thresholds",
+   "poisoning attacks",
+   "extreme value theory",
+   "SPOT",
+   "pre-registration",
+   "HAI",
+   "BATADAL"
+  ],
+  "related_identifiers": [
+   {
+    "identifier": "https://github.com/VyomKulshrestha/Ferrum-OS",
+    "relation": "isSupplementedBy",
+    "resource_type": "software",
+    "scheme": "url"
+   },
+   {
+    "identifier": "10.5281/zenodo.23473173",
+    "relation": "cites",
+    "scheme": "doi",
+    "resource_type": "publication-report"
+   }
+  ],
+  "notes": "Preprint."
+ }
+}

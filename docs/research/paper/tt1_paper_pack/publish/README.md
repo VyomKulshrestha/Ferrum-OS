@@ -6,7 +6,15 @@ Zenodo. The ASIA CCS submission is still to do.
 The preprint was published on 2026-11-07 at https://zenodo.org/records/24035418 (DOI 10.5281/zenodo.24035418,
 all versions 10.5281/zenodo.24035417) and added to ORCID 0009-0009-1434-7148 as a preprint. The record and
 file hashes are in `zenodo_metadata.json` under `published`. Any change to the preprint needs Zenodo's
-"New version" (v1.1); the published file cannot be replaced.
+"New version"; the published file cannot be replaced.
+
+**Revision of 2026-11-10.** The paper gained a third registered study (tt1d: Tennessee Eastman and
+ProvICS), the tt1e experiments, Propositions 4 and appendices A to D. `../latex/main.pdf` (17 pages, body
+ends on page 12) is the ASIA CCS submission; `../latex_named/main.pdf` is preprint version 1.1, prepared
+in `zenodo_metadata_v1_1.json` and not published. Publishing it means "New version" on record 24035418,
+the new PDF as `Thresholds_That_Travel_preprint_v1.1.pdf`, version 1.1 and the new description; the
+all-versions DOI then points to it. The anonymized artifact was rebuilt with the new material and must be
+pushed to its private repository and refreshed on anonymous.4open.science before submission.
 
 | File | What it is |
 |---|---|

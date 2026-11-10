@@ -8,7 +8,8 @@ ENTRY = ["tt1_final.py", "tt1b_final.py", "verify_tt1.py", "verify_tt1b.py", "tt
          "tt1_memory_check.py", "tt1_posthoc_alarm_time.py", "tt1_posthoc_transient.py", "tt1b_dev.py",
          "tt1b_attacks_dev.py", "tt1b_frog_dev.py", "tt1b_physfrog_dev.py", "tt1b_posthoc.py",
          "tt1b_frog_synthetic.py", "threshold_transfer_dev.py", "tt1c_baselines_dev.py",
-         "fetch_real_telemetry.py", "threshold_online.py", "tt1b_dev.py"]
+         "fetch_real_telemetry.py", "threshold_online.py", "tt1b_dev.py", "tt1e_defense_dev.py",
+         "tt1d_final.py", "tt1d_provics_amendment1.py", "verify_tt1d.py"]
 local = {p.stem for p in SCRIPTS.glob("*.py")}
 seen, todo = set(), [e for e in ENTRY if (SCRIPTS / e).exists()]
 missing = [e for e in ENTRY if not (SCRIPTS / e).exists()]

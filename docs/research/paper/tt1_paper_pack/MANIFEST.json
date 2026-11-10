@@ -1,6 +1,6 @@
 {
  "schema_version": "tt1-paper-pack-manifest",
- "built": "2026-11-07",
+ "built": "2026-11-10",
  "sha256_note": "sha256 of the file with LF line endings",
  "files": {
   "figure_data/attack_campaigns.csv": {
@@ -112,11 +112,11 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "537b9cd38a732b294611d481a99b87042f69450303878271b7ffba281ff3496d",
-   "built_by": "Claude Science LaTeX session (prompt 3); compile fixes, analysis edits, acmart v2.21 and the 2026-11-07 number-trace fixes by the author"
+   "sha256": "ff74050f3e07a5a134d4c6af28279ef71cc1521175760e7603f9290e3b38f43d",
+   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d and tt1e results, appendices A to D)"
   },
   "latex/refs.bib": {
-   "sha256": "5c3967478830525750841a818c99cfaa9361069cc963e96f75100a85f906c4c2",
+   "sha256": "d425f783cb5030de47120bbb7d7c45963873883f65c6e7bba6da3d39f8432ab9",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "latex_usenix/figures/fig1_learning_regions.pdf": {
@@ -140,11 +140,11 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "6270cff317005f8b9c7046554d9af8e5105eb64800fa310599f77d1251ad5608",
-   "built_by": "Claude Science LaTeX session (prompt 3); compile fixes, analysis edits, acmart v2.21 and the 2026-11-07 number-trace fixes by the author"
+   "sha256": "4f84436b11a79c28b1ed1e677f76979fd62c22a7a5ae6b3911750326ef8a0c7a",
+   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d and tt1e results, appendices A to D)"
   },
   "latex_usenix/refs.bib": {
-   "sha256": "5c3967478830525750841a818c99cfaa9361069cc963e96f75100a85f906c4c2",
+   "sha256": "d425f783cb5030de47120bbb7d7c45963873883f65c6e7bba6da3d39f8432ab9",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "manuscript/threshold_transfer_tt1_findings.md": {
@@ -153,9 +153,10 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "07274fd6ac7d20aeb5cedf6eb68653587af8829cbe5ad08bd52638cfaccf1e26",
+   "sha256": "d1f9b0f7f47a2f01fdc57920bec8ceceb6b36f67867bbfd6a09f484ebeef6d6e",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
-   "identical_to_source": true
+   "identical_to_source": true,
+   "built_by": "superseded by latex/main.tex from 2026-11-10; abstract kept current"
   },
   "prompts/1_review_numbers_and_citations.md": {
    "sha256": "c900b81d14edbff27579a8718f023595940016277991b85c812ee8c1ffce91f4",
@@ -292,12 +293,12 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "5f5b8c48db7fca6a6ec0c3e5a8344df79250baa590f01998c20472bfbbeeacea",
-   "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-07"
+   "sha256": "039daf859276cc4e445a55c83315c934962aeaa395ce0c9fa0e3af898eebe240",
+   "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "e296fbc8fa28f1bea5f7ad1eece2e20d214d4a40ac46393606171b957de15d24",
-   "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-07"
+   "sha256": "450d0bf4218a8c92d86d09c9c308791d64f4d483829180bde615b82ca4535012",
+   "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
    "sha256": "20aed27fdcd1af26d96a7dae6e1a70b0ecc3b62b15066bde349b21590ae6190d",
@@ -352,11 +353,11 @@
    "built_by": "CTAN acmart v2.21 release"
   },
   "latex_named/main.tex": {
-   "sha256": "d9e16f0ce76e46b817f84ac4258ab2df4e8a63808c1dcedf402f5605c1084189",
+   "sha256": "581676b8063e41f4575a63816d9008dbb17280808f48af9edb06771892640447",
    "built_by": "scripts/tt1_named_version.py from latex/main.tex"
   },
   "latex_named/refs.bib": {
-   "sha256": "3fb448354ee95f0446735665ed1bccb404f217984491542ff8577d9b62fb2b9e",
+   "sha256": "cdcac56398e70f65b17087ff9f57094b54eaefe918ee8bf34b32bde40c56818b",
    "built_by": "scripts/tt1_named_version.py from latex/refs.bib"
   },
   "latex_named/acmart.cls": {
@@ -368,15 +369,15 @@
    "built_by": "copy of latex/ACM-Reference-Format.bst"
   },
   "latex_named/main.pdf": {
-   "sha256": "11eb9997f0a09985a8bbbbce0867f1aa11a64e57228066a8214809303f1906ad",
-   "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-07"
+   "sha256": "03117b0e845c559fcdbd89df3d1f6b2fe01ecc5d1db5258ac16efddb37472252",
+   "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "publish/README.md": {
-   "sha256": "fc602ce090497b0f12a05e4c7a756a5200bafc18a64c5938fecf46f9f82eff13",
+   "sha256": "e9e6ac789e9d4ec642e600ff7e750bcc13a43cb2089b6a90557a8570574df789",
    "built_by": "written for the pack, 2026-11-07"
   },
   "publish/abstract.txt": {
-   "sha256": "772e396b115b0c65130e3d19ab522cfe8f14599b2905eba2d338674c7f852a33",
+   "sha256": "3852e9dd6c1f448b671a035e67054233a6f17f6f0ca0a075bf9d0800324050d9",
    "built_by": "abstract of the Markdown draft, plain text"
   },
   "publish/zenodo_metadata.json": {
@@ -402,6 +403,42 @@
   "latex_named/figures/fig5_attack_campaigns.pdf": {
    "sha256": "34cf41acc48eb410aa14aa7d3e5c351c55f98e9d4d60bb11ae47b3d26358d9f6",
    "built_by": "copy of latex/figures/fig5_attack_campaigns.pdf"
+  },
+  "results/threshold_transfer_tt1e_dev_v1.json": {
+   "sha256": "3574edfa3cca5490766011b842c3f1a2d48408c16aa5b5492e2647bb6e9664e6",
+   "built_by": "scripts/tt1e_defense_dev.py merge (exploratory, ledgered)"
+  },
+  "results/threshold_transfer_tt1e_dev_plan.md": {
+   "sha256": "f5cbd8b9b78a000c8c9a8b0b0328759ca48b6129373b4d8ebb97dc804c9f4d09",
+   "built_by": "plan of the tt1e development runs, committed before them"
+  },
+  "results/threshold_transfer_tt1d_result_tep59.json": {
+   "sha256": "c874c23e740093f181f1ef918d69c97008b7baf6a656afe6e41a30a30d725857",
+   "built_by": "scripts/tt1d_final.py final tep59 (registered)"
+  },
+  "results/threshold_transfer_tt1d_result_provics.json": {
+   "sha256": "2b095f30be04d1c844f179c48d1a3a05a7ebd162b101264470bfaad234521f2d",
+   "built_by": "scripts/tt1d_provics_amendment1.py (registered, amendment 1)"
+  },
+  "results/threshold_transfer_tt1d_verification_tep59.json": {
+   "sha256": "f701eceebd05ed0fd6a64e65f224a9d91f6b3926ae0d4f250ce1cd305a6dfdd6",
+   "built_by": "scripts/verify_tt1d.py tep59"
+  },
+  "results/threshold_transfer_tt1d_verification_provics.json": {
+   "sha256": "483b159164ba9a7a89548d902a1e90c314e7ac81060afb65ff3d47730d4c9a06",
+   "built_by": "scripts/verify_tt1d.py provics"
+  },
+  "protocols/threshold_transfer_tt1d_protocol.json": {
+   "sha256": "a8d45aee44f730518932830866d60ef87b45eadcefd60908a8b39f896b0cdb71",
+   "built_by": "registration of tt1d, committed before any final access"
+  },
+  "protocols/threshold_transfer_tt1d_amendment_1.md": {
+   "sha256": "be21a806d75fc44fb16f334fb0ffb1e65df92da5a75f73d89f6c3cab2bbc157d",
+   "built_by": "amendment 1 of tt1d, committed before the second ProvICS attempt"
+  },
+  "publish/zenodo_metadata_v1_1.json": {
+   "sha256": "18f1eaa82c226225bfa3250cb4363d5d31b13f3ae66ca2f421d8b2e5d1828653",
+   "built_by": "Zenodo deposit fields for preprint version 1.1 (prepared, not published)"
   }
  }
 }
