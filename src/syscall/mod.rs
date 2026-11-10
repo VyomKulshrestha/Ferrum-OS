@@ -658,7 +658,7 @@ fn dispatch_with_context(
             {
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-            mmap::sys_mmap(args)
+            mmap::sys_mmap(args, held_capabilities)
         }
         x if x == SyscallNumber::GetRandom as u64 => {
             if !crate::security::holds_capability_token(held_capabilities, "cap:crypto:rng") {

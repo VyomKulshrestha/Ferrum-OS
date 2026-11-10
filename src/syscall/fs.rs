@@ -88,7 +88,7 @@ fn is_package_control_path(path: &str) -> bool {
         && matches!(components.next(), Some("pkgs") | Some("pkgs-available"))
 }
 
-fn authorize_path(path: &str, write: bool, held_capabilities: &[String]) -> bool {
+pub(super) fn authorize_path(path: &str, write: bool, held_capabilities: &[String]) -> bool {
     if !valid_absolute_path(path) {
         return false;
     }
