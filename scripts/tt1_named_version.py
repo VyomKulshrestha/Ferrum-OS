@@ -31,8 +31,8 @@ REPLACE = [
     ("\\documentclass[sigconf,review,anonymous]{acmart}", "\\documentclass[sigconf]{acmart}"),
     ("\\acmConference[ASIA CCS '27]{ACM ASIA Conference on Computer and\n  Communications Security}{July 12--16, 2027}{Macau, China}",
      "\\acmConference[Preprint]{Preprint}{November 2026}{Zenodo}"),
-    ("\\end{document}", "\\special{pdf:docinfo<</Author (Vyom Kulshrestha)>>}  % acmart's own pdfauthor comes out empty\n"
-                        "\\end{document}"),
+    # acmart's own pdfauthor comes out empty; the special sits on the title page so that it is always shipped
+    ("\\maketitle\n", "\\maketitle\n\\special{pdf:docinfo<</Author (Vyom Kulshrestha)>>}\n"),
     ("%% Author block removed for double-blind review.\n\\author{Anonymous Author(s)}",
      "\\author{Vyom Kulshrestha}\n\\orcid{0009-0009-1434-7148}\n\\affiliation{%\n  \\institution{Independent Researcher}\n"
      "  \\country{India}}\n\\renewcommand{\\shortauthors}{Kulshrestha}"),
@@ -77,7 +77,7 @@ def main():
     if tex.count(AI_SECTION) != 1:
         raise SystemExit(f"expected one {AI_SECTION}")
     start = tex.index(AI_SECTION)
-    end = tex.index("\\special{pdf:docinfo", start)
+    end = tex.index("\\end{document}", start)
     tex = tex[:start] + tex[end:]
     for bad in ("anonymous.4open", "[anonymized]", "Anonymous Author", "anonymous]{acmart}", "generative AI",
                 "Claude"):
