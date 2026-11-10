@@ -1,0 +1,102 @@
+{
+ "schema_version": "threshold-transfer-tt1d-protocol",
+ "study_id": "threshold-transfer-tt1d",
+ "title": "Adaptive alarm thresholds under natural and deliberate poisoning: a registered study on two never-opened datasets",
+ "registered_at": "2026-11-10",
+ "status": "registered-before-final-access",
+ "status_note": "Registered before any attack run of the Tennessee Eastman dataset, any of its sealed attack-free runs, any row of the ProvICS attack recording or its ground-truth files, or the sealed last quarter of the ProvICS attack-free recording was read. Each dataset is opened once by scripts/tt1d_final.py final <dataset>, which refuses if the dataset is already in target/real-telemetry/final_access.jsonl or if a frozen file differs from the sha256 below.",
+ "inherits": "threshold-transfer-tt1 and tt1b (registered) and the exploratory development rounds tt1c (docs/research/threshold_transfer_tt1c_dev_plan.md) and tt1e (docs/research/threshold_transfer_tt1e_dev_plan.md).",
+ "motivation": "tt1 and tt1b found that a symmetric quantile tracker loses recall on recorded attacks against a frozen threshold (HAI 20.07, BATADAL). Four things were left open. (1) The stricter onset count was applied post-hoc, and on HAI 20.07 the loss did not survive it. (2) Neither registered test of a deliberate campaign could show an effect (the controls were already at the floor). (3) The stronger adaptive rules, the standard maximum-likelihood SPOT, the sub-event pulse attack and the ceiling rules were tested only on spent development data. (4) The mechanism claim, that attacks which follow attacks are the ones lost, was exploratory. This study registers all four on data no analysis of ours has opened.",
+ "datasets": {
+  "tep59": {
+   "source": "Kaspersky Lab, Tennessee Eastman attack dataset (Filonov, Kitashov and Lavrentyev 2017, arXiv:1709.02232; kas.pr/ics-research/dataset_tep_59). attacks.zip 3,893,991,815 bytes, single_states.zip 5,796,541,788 bytes. No licence text ships with the dataset; it is used for research and not redistributed.",
+   "contents": "Rows every 0.001 h (3.6 s): 41 measurements, 12 manipulated variables, three attack indicators. 142 attack runs (modes 0-6; types 21 integrity, 22 three consecutive denial-of-service attacks, 23 one denial-of-service attack, 24 four consecutive noise attacks) and 200 attack-free runs of 120 h.",
+   "roles": "Fixed by file name before any content was read. Per mode, attack-free runs by ascending id: 5 fit, 2 residual scale, 4 calibration, 2 rehearsal deployment, 8 sealed. The remaining 53 attack-free runs are not read.",
+   "read_before_registration": "README.txt; the member names and sizes of both archives; the development runs (fit, scale, calibration, rehearsal deployment) of every mode. No attack run and no sealed run.",
+   "final_data": "All 142 attack runs and the 56 sealed attack-free runs (ledger ids tep59-attacks, tep59-sealed-normal)."
+  },
+  "provics": {
+   "source": "ProvICS (Shibbir and Tosh 2026, arXiv:2607.05989), Hugging Face trucyberlab/multimodal-ICS-provenance at revision 18b4b0e1359d3d02347301c55f97c3d98f5dab5c. CC BY-NC 4.0, no redistribution; the author accepted these terms on 2026-11-10. Only the two physical_state.csv files and the four ground-truth files are used.",
+   "contents": "A chemical reactor twin controlled by a real PLC; 22 process registers every 1 to 2 s. An attack-free recording (130,941 rows) and an attack recording (51,426 rows) with 32 ground-truth events in 4 campaigns.",
+   "roles": "The first 75 % of the rows of the attack-free recording are development data (fit 60 / scale 20 / calibration 20 %); its last 25 % are sealed.",
+   "read_before_registration": "The dataset card; the development rows; the header line of each ground-truth file and of the attack recording, and the line counts of those files. No data row of the attack recording or of a ground-truth file, and no sealed row.",
+   "final_data": "The attack recording with its ground truth, and the sealed attack-free rows (ledger ids provics-attack, provics-sealed-normal)."
+  }
+ },
+ "frozen_components": {
+  "monitor": "Per unit (a Tennessee Eastman mode, or ProvICS): D1, the world-model residual of tt1 (ridge + 60-tree LightGBM, history 3, horizons 1 and 5, top-3 standardised residuals); D0, top-3 standardised first differences; D2, top-3 standardised residuals after projection on the principal components that explain 95 % of the variance. Each is smoothed over 60 s and calibrated once on attack-free calibration data to 2 false-alarm episodes a day. Columns constant in development data are dropped.",
+  "rules": "threshold_rules_tt1d.Rules: frozen; tracker (eta 0.01 x spread, as registered in tt1); tracker_slow (eta / 10); tracker_tau (eta 0.01 tau0); daily; tighten_only; daily_excl, tracker_hold, tracker_capped and spot_gr of tt1c; static_k, tracker_ceil_k, daily_ceil_k, spot_gr_ceil_k, spot_gate6 and spot_gate24 of tt1e. Durations inside the rules are in seconds (event 60 s, hold-off 1 h, episode gap 60 s) and converted with the dataset's step.",
+  "settings": {
+   "tep59": "3.6 s step, 24,000 steps a day. Smoothing 17 steps (61 s); alarms merged across 17 steps; event length 17 steps; hold-off 1,000 steps (1 h); budget 2 false-alarm episodes a day. Campaign 24,000 steps (24 h), lead 1,000 steps, terminal bump 167 steps (601 s), no campaign start in the first 12,000 steps. Loud pulses 33 steps (119 s) every 2,000 steps; sub-event pulses 12 steps (43 s) every 500 steps.",
+   "provics": "2 s grid, 43,200 steps a day. Smoothing 30 steps (60 s); alarms merged across 30 steps; event length 30 steps; hold-off 1,800 steps; budget 2 false-alarm episodes a day. Campaign 10,800 steps (6 h), lead 1,800 steps, terminal bump 300 steps, no campaign start in the first 900 steps. Loud pulses 60 steps (120 s) every 3,600 steps; sub-event pulses 22 steps (44 s) every 900 steps."
+  },
+  "event_scoring": "Tennessee Eastman: an event is a maximal run of rows whose three attack indicators are constant and not all False; an event is a 'first' event if no event precedes it in its run and a 'follower' otherwise. ProvICS: an event is one ground-truth row, from its start to its end plus 60 s, at least one step. Any-alarm count: an alarm at any step of the event. Onset count: an alarm episode (alarms merged across 60 s) that starts inside the event. False-alarm episodes touch no labelled step.",
+  "campaigns": "On attack-free streams, at the score level, with the rule running online from the stream start. Frog: the attacker sets s_t = max(s_t, 0.97 x the deployed threshold). Loud pulses: s_t = max(s_t, 2 tau0) for 120 s every 2 h. Sub-event pulses: s_t = max(s_t, 2 tau_t) for 45 s every 30 min. Then one quiet hour and a 600 s terminal bump of m x tau0, m in {1.05, 1.25, 1.5, 2}; the rule's state at the start of the terminal window is copied for each m. Control: the same bumps without a campaign. Tennessee Eastman: 24 h campaign, one placement per sealed run, campaign start drawn uniformly after the first 12 h with seed 7 + 707 + the run id. ProvICS: 6 h campaign, 6 placements at evenly spaced starts on the sealed stream after its first 30 minutes.",
+  "inference": "Recall differences: bootstrap with 10,000 resamples, seed 0, 95 % interval; Tennessee Eastman resamples whole runs (events of a run are not independent), ProvICS resamples events. Campaign differences (after minus control): bootstrap over placements."
+ },
+ "hypotheses_tep59": {
+  "H1a": "Natural poisoning, any-alarm count: on follower events, recall(tracker) - recall(frozen) with D1 has a 95 % upper bound below 0.",
+  "H1b": "The same under the onset count.",
+  "H1c": "Boundary: on first events the tracker is not inferior to frozen (lower bound at least -0.10, any-alarm count).",
+  "H2": "Stronger rules hold: daily_excl and tracker_capped are each not inferior to frozen on follower events (lower bound at least -0.10, any-alarm count).",
+  "H3": "Ceiling: each tracker_ceil_k detects at least as many events as static_k (k = 1.1, 1.25, 1.5). This holds by construction and checks the implementation.",
+  "H4": "Silent frog: spot_gr detects the 1.25 tau0 terminal bump in at most (its control fraction - 0.5) of placements, with the interval of the difference below 0, while frozen detects it in at least (control - 0.1) and spot_gr_ceil_1.25 detects the 1.5 tau0 bump in at least (control - 0.1).",
+  "H5": "Loud pulses: the tracker is blinded in the same sense at 1.05 tau0, while frozen and daily_excl hold.",
+  "H6": "Sub-event pulses: daily_excl and tracker_hold are both blinded in the same sense at 1.05 tau0, while frozen holds and tracker_ceil_1.25 and daily_ceil_1.25 detect the 1.5 tau0 bump.",
+  "evaluability": "A campaign hypothesis is 'not evaluable' if a target rule's control fraction at the tested magnitude (1.25 tau0 for H4, 1.05 tau0 otherwise) is below 0.6.",
+  "primary_success_rule": "H1a and H1b. H1c to H6 are separate registered hypotheses, each reported as pass, fail or not evaluable; no multiplicity correction."
+ },
+ "hypotheses_provics": {
+  "P1a": "Natural poisoning, any-alarm count: over all observed events, recall(tracker) - recall(frozen) with D1 has a 95 % upper bound below 0.",
+  "P1b": "The same under the onset count.",
+  "P2": "tracker_capped is not inferior to frozen (lower bound at least -max(0.10, 2/N)).",
+  "P3": "Ceiling consistency, as H3.",
+  "P4_to_P6": "Frog against spot_gr, loud pulses against the tracker, sub-event pulses against tracker_hold, as H4 to H6 without the daily rules. Descriptive: the six placements overlap on one 12 h stream and are not independent.",
+  "primary_success_rule": "P1a and P1b."
+ },
+ "secondary": [
+  "Every rule's detections under both counts on all, first and follower events, by attack type; false alarms and alarm time.",
+  "D0 and D2 for frozen, tracker, daily, daily_excl, tracker_capped, spot_gr and tracker_ceil_1.25.",
+  "False alarms of every rule on the sealed attack-free runs (Tennessee Eastman: 56 runs of 120 h) against the budget.",
+  "Every campaign rule at every terminal magnitude; the approval-gate rules under the frog."
+ ],
+ "rehearsal": {
+  "tep59": "All seven modes, on the 14 rehearsal deployment runs (70 days); every stage ran. The frozen threshold ran at 0.84 times its false-alarm budget. The stand-in events were detected by every rule except daily recalibration (37 of 42). Campaigns, 14 placements: the frog left spot_gr catching 0 of 14 bumps at 1.05 tau0 against 10 of 14 in its control, and 4 of 14 at 1.25 tau0 against 14 of 14. On these data spot_gr starts up to 1.06 tau0, so its control misses some 1.05 tau0 bumps without any attack; H4 is therefore stated at 1.25 tau0. Frozen caught 14 of 14, and spot_gr_ceil_1.25 14 of 14 at 1.5 tau0. Loud pulses: tracker 0 of 14 (control 12), daily_excl 13 (control 12). Sub-event pulses: daily_excl and tracker_hold 0 of 14 (control 12 each); both 1.25 ceilings 14 of 14 at 1.5 tau0.",
+  "provics": "On the last quarter of the development rows (9.7 h). The frozen threshold ran at 21 times its false-alarm budget: short alarms within 10 % of tau0 (static_1.1 raised none). The frog left spot_gr catching 2 of 6 bumps (control 6); loud pulses left the tracker 0 of 6 at 1.05 tau0; sub-event pulses left tracker_hold 0 of 6 at 1.05 and 1.25 tau0. The daily rules never recalibrated (the stream is shorter than a day)."
+ },
+ "limitations_registered_in_advance": [
+  "Tennessee Eastman is a simulated process, and its attacks are large manipulations chosen by the dataset's authors in four families. Recall may be near 1 for every rule if the attacks dwarf any inflated threshold; that outcome would fail H1a and is reported as such.",
+  "Attack types 21 and 23 have one attack per run, so follower events come from types 22 and 24. If consecutive attacks of a run leave no gap, the three indicators may merge them into one event, and where they do not, a follower begins inside the alarm of the attack before it; the onset count then credits no rule, and H1b can fail for that reason alone.",
+  "Some attack runs end early because the plant shuts down.",
+  "The rules, their parameters and the campaigns were developed on HAI at 1 Hz; here their durations are converted to steps of 3.6 s and 2 s.",
+  "One campaign placement per sealed Tennessee Eastman run; placements are independent across runs but the runs of a mode share one monitor and one calibration.",
+  "ProvICS is described in a 2026 preprint; its plant is a software twin controlled by a real PLC. Its authors report that a detector using only the process data finds 17 of the 32 events, so about half the events may leave no trace in the process data and count as missed for every rule.",
+  "ProvICS has 7.8 h of calibration data, and its attack recording is shorter than a day, so the daily rules never recalibrate there and P1 concerns the trackers only. Its six campaign placements overlap on one 12 h stream.",
+  "The campaigns act on the score and read the deployed threshold: upper bounds on a physical attacker.",
+  "The rehearsals' stand-in events are large score bumps that every rule detects, so the real-event hypotheses could not be rehearsed."
+ ],
+ "reporting": "Every rule, score, dataset and hypothesis is reported, including failures and hypotheses that turn out not to be evaluable. The campaigns act on the score and read the threshold: upper bounds on a physical attacker. No claim of deployment safety, runtime authority or incident prevention follows.",
+ "reproduce": {
+  "dry_run": "python scripts/tt1d_final.py dry-run <dataset>",
+  "rehearse": "python scripts/tt1d_final.py rehearse <dataset>",
+  "final": "python scripts/tt1d_final.py final <dataset>",
+  "verify": "python scripts/verify_tt1d.py <dataset>"
+ },
+ "frozen_file_sha256": {
+  "scripts/tt1d_final.py": "957ee4509d60dcc479e38aede1d1b287fc58cba38dac165eff97b3149013cb97",
+  "scripts/tt1d_data.py": "298483e1d729a38f270c8cefc8865479f5ff3a114313c9c65f784c362e5d5e9a",
+  "scripts/threshold_rules_tt1d.py": "41e3764733b8385140836b28bb102423905fa4249af398117a39db3292901082",
+  "scripts/threshold_rules_tt1e.py": "0c48dd884d873e517e9c92e1e1161bee9b2ee025fde81e7b28acbc3e6e266642",
+  "scripts/threshold_rules_tt1c.py": "e4efceaaa39a8e4e95a97c8b3beb98b7e1aea78b9c85fdf4625fa96e78bb61a8",
+  "scripts/threshold_rules_ext.py": "f8933491f4e2693949fbc0bdd5f669e003d886825aef4e34a83d2bd5653cf3dc",
+  "scripts/threshold_online.py": "4818b97ba07c08ffa8d344e5fa065eccc1288d8e78449454a0671f5f937d18fe",
+  "scripts/threshold_rules.py": "4686cc99f1de20838da8314accfd854160bb2825ebc51ece57c89c2284af9826",
+  "scripts/tt1_final.py": "d3d63bf41bd359600914b79e60a065a8aea1f234d4e1e3b197ad60f56e8b82fe",
+  "scripts/threshold_transfer_dev.py": "3e61423612a8985d63dfcf2b0754d5367fd53e8a1e6b12c422c23a930c896113",
+  "scripts/real_telemetry_core.py": "9f4b8f489da8055a075a8a7f9af0a047d80a34e9dc0527387e3a27e87f42bee0",
+  "scripts/real_telemetry_data.py": "926309d12ec0077887f5b717de42d465ca8cd8ec4f3c0668ccddd7d4451dfbaf",
+  "scripts/real_telemetry_detect.py": "cbb298f6877e8990cea1d7560dc87a1c256d8699eeda07437db2f30843fd3377",
+  "scripts/real_telemetry_dev.py": "7f2637355e36c639e9beadd28da77dcee936b381c873cca3f6aeee1cc1e3fd89",
+  "scripts/real_telemetry_injections.py": "779464dbfabf18d13ce4e46c33aea7835ad57891303f1f007529ecc320333b5c"
+ }
+}

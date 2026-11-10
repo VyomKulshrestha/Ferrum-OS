@@ -506,7 +506,8 @@ def gates_tep(real, camp):
          "H2_stronger_rules_hold_followers": bool(all(_lower(rr[r]["follower"].get("vs_frozen"))
                                                       for r in ("daily_excl", "tracker_capped"))),
          "H3_ceiling_bounds_loss": _ceiling(rr),
-         "H4_frog_blinds_spot": verdict([blinded("frog", "spot_gr")],
+         # at 1.25 tau0: on these data spot_gr starts up to 1.06 tau0, so its control misses 1.05 tau0 bumps
+         "H4_frog_blinds_spot": verdict([blinded("frog", "spot_gr", 1.25)],
                                         [holds("frog", "frozen"), holds("frog", "spot_gr_ceil_1.25", 1.5)]),
          "H5_loud_pulses_blind_tracker": verdict([blinded("loud", "tracker")],
                                                  [holds("loud", "frozen"), holds("loud", "daily_excl")]),
