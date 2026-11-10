@@ -51,11 +51,23 @@ def main():
     add("frozen files match the registration", not M.check_frozen(), str(M.check_frozen()))
     add("result digests equal the registered digests", result["frozen_file_sha256"] == protocol["frozen_file_sha256"])
     rows = [json.loads(line) for line in D.FINAL_LEDGER.read_text(encoding="utf-8").splitlines() if line.strip()]
+    amendment = result.get("amendment")
     for dataset in S.ledger_ids:
         mine = [r for r in rows if r["dataset"] == dataset]
+        if amendment:
+            # a failed first attempt, a ledgered count of missing values, and the amended attempt
+            ok = len(mine) == 3 and "diagnostic" in mine[1]["reason"] and f"amendment {amendment['id']}" in mine[2]["reason"]
+            add(f"ledger: {dataset} has the failed attempt, the diagnostic read and the amended attempt", ok, f"{len(mine)} entries")
+            continue
         expected = 2 if result.get("resumed") else 1
         ok = len(mine) == expected and (expected == 1 or "RESUME" in mine[-1]["reason"])
         add(f"ledger: {dataset} opened once", ok, f"{len(mine)} entries")
+    if amendment:
+        import hashlib
+        script = ROOT / amendment["script"]
+        add("amendment script matches the recorded sha256",
+            hashlib.sha256(script.read_bytes().replace(b"\r\n", b"\n")).hexdigest() == amendment["script_sha256"])
+        add("amendment document exists", (ROOT / amendment["document"]).exists(), str(amendment["filled_cells"]))
     again = json.loads(json.dumps(M.assemble(S, result["units"], "final")))
     for key in ("real_events", "campaigns", "gates", "settings"):
         add(f"recomputed {key} equals stored", same(again[key], result[key]))
