@@ -48,6 +48,12 @@ ENABLE_ENV = "FERRUM_VISION_CAUTION"
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ARTIFACT = ROOT / "docs/research/artifacts/vision-caution-v2/selected_caution_head.npz"   # runtime actions
 V1_ARTIFACT = ROOT / "docs/research/artifacts/vision-caution-v1/selected_caution_head.npz"
+# The shipped heads' digests as pinned by the integration protocols (v2 and v1). Loading a shipped
+# path without an explicit digest still checks these, so an altered shipped file abstains.
+PINNED_SHA256 = {
+    DEFAULT_ARTIFACT.resolve(): "77e3ea1ed04421818e1efd6aa4b216b92b75b224c1f13e18e307345fc040042f",
+    V1_ARTIFACT.resolve(): "800797e0701b70c5c471242a3310cb0c46f62335e9db49797945763e3a2f8a2a",
+}
 FRAME_SIZE, N_ACTIONS, OBSCURED_STD = 48, 5, 1e-3
 RUNTIME_ACTION_NAMES = ("move", "inspect", "diagnose", "approve", "repair", "verify", "stop")
 RUNTIME_FEATURES = 3
@@ -101,6 +107,8 @@ def load_artifact(path=DEFAULT_ARTIFACT, expected_sha256: str | None = None) -> 
         raise VisionCautionError("artifact_missing")
     raw = p.read_bytes()
     sha = hashlib.sha256(raw).hexdigest()
+    if expected_sha256 is None:
+        expected_sha256 = PINNED_SHA256.get(p.resolve())
     if expected_sha256 is not None and sha != expected_sha256:
         raise VisionCautionError("artifact_digest_mismatch")
     try:

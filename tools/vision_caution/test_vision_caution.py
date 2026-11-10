@@ -110,6 +110,26 @@ class StructureTests(unittest.TestCase):
             self.assertEqual((rec.status, rec.degradation), ("no_confident_caution", reason))
             self.assertIsNone(rec.caution_probability)
 
+    def test_shipped_path_without_digest_is_checked_against_its_pin(self):
+        import vision_caution as VC
+        for shipped, pin in VC.PINNED_SHA256.items():   # the committed heads match their protocol pins
+            self.assertEqual(load_artifact(shipped)["sha256"], pin)
+        original = self.art.read_bytes()
+        pinned = {self.art.resolve(): hashlib.sha256(original).hexdigest()}
+        with np.load(self.art) as z:
+            arrays = {k: z[k] for k in z.files}
+        meta = json.loads(str(arrays["metadata"]))
+        meta["thresholds_logit"] = {k: v + 100.0 for k, v in meta["thresholds_logit"].items()}   # never caution
+        arrays["metadata"] = np.array(json.dumps(meta))
+        np.savez_compressed(self.art, **arrays)
+        saved = VC.PINNED_SHA256
+        VC.PINNED_SHA256 = pinned
+        try:
+            rec = self.assess(VisionCaution(self.art, enabled=True))
+        finally:
+            VC.PINNED_SHA256 = saved
+        self.assertEqual((rec.status, rec.degradation), ("no_confident_caution", "artifact_digest_mismatch"))
+
     def test_nonfinite_weights_rejected(self):
         bad = Path(self.tmp.name) / "nan.npz"
         with np.load(self.art) as z:
