@@ -945,6 +945,23 @@ impl Orchestrator {
     /// planner tools and ordinary syscall-backed tools share the same
     /// observation and training path.
     fn execute_action(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        // Tools implemented here never reach tool_mapper::execute, so they
+        // take the same tier/confirmation step explicitly (save_memory and
+        // physical_maintenance_demo are Tier 3).
+        const INTERNAL_TOOLS: [&str; 8] = [
+            "query_memory", "save_memory", "load_memory", "set_goal", "get_config",
+            "add_subtask", "physical_status", "physical_maintenance_demo",
+        ];
+        if INTERNAL_TOOLS.contains(&tc.name.as_str()) {
+            if let Some(result) = tool_mapper::confirmation_result(
+                tc,
+                &mut self.confirmation_gate,
+                self.config.auto_approve_tier,
+                self.tick_count,
+            ) {
+                return result;
+            }
+        }
         match tc.name.as_str() {
             "query_memory" => {
                 let query = super::json::find_tool_arg_string(&tc.arguments, "query")
@@ -1107,6 +1124,24 @@ impl Orchestrator {
     /// experience tuple: a predicted-and-refused action is training
     /// signal too, not just an allowed one.
     fn dispatch_with_world_model(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        // Deterministic structural refusals come first and cannot be
+        // approved: ambiguous (duplicate-key) calls, messages to the
+        // daemon's own control mailbox, writes to its own configuration.
+        if let Err(refusal) = super::authority::validate_tool_call(&tc.name, &tc.arguments) {
+            let msg = format!(
+                "[heliox-daemon] [authority] REFUSED tool '{}': {}\n",
+                tc.name.escape_debug(),
+                refusal.as_str()
+            );
+            unsafe {
+                syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
+            }
+            return tool_mapper::ToolResult {
+                tool_name: tc.name.clone(),
+                success: false,
+                output: format!("Refused by authority policy: {}", refusal.as_str()),
+            };
+        }
         // Physical actions have their own observation schema, transition
         // artifact, deterministic interlocks, and audit path. Sending them
         // through the fixed 41-action OS model would create action_id=255
@@ -1508,26 +1543,39 @@ impl Orchestrator {
             Err(_) => return,
         };
 
-        // Parse CONFIRM:<id>, DENY:<id>, GOAL:<text>, CONFIG_UPDATED messages
-        for line in msg.lines() {
-            let trimmed = line.trim();
-            if let Some(id_str) = trimmed.strip_prefix("CONFIRM:") {
-                if let Ok(id) = id_str.trim().parse::<u32>() {
-                    self.confirmation_gate.approve(id);
+        // One message is one command (authority::parse_control_message), so
+        // text inside a GOAL can never be read as a CONFIRM/DENY.
+        {
+            use super::authority::ControlCommand;
+            match super::authority::parse_control_message(msg) {
+                ControlCommand::Confirm(id) => {
+                    let applied = self.confirmation_gate.approve(id);
                     self.emit_telemetry(
                         TelemetryEventKind::ConfirmationQueued,
-                        format!("Confirmation {} approved via IPC", id),
+                        format!("Confirmation {} approved via IPC (applied={})", id, applied),
                     );
                 }
-            } else if let Some(id_str) = trimmed.strip_prefix("DENY:") {
-                if let Ok(id) = id_str.trim().parse::<u32>() {
-                    self.confirmation_gate.deny(id);
+                ControlCommand::Deny(id) => {
+                    let applied = self.confirmation_gate.deny(id);
                     self.emit_telemetry(
                         TelemetryEventKind::ConfirmationQueued,
-                        format!("Confirmation {} denied via IPC", id),
+                        format!("Confirmation {} denied via IPC (applied={})", id, applied),
                     );
                 }
-            } else if let Some(goal_str) = trimmed.strip_prefix("GOAL:") {
+                ControlCommand::Goal(goal) => self.ipc_control_line(&format!("GOAL:{}", goal)),
+                ControlCommand::NeuralArm => self.ipc_control_line("NEURAL_ARM"),
+                ControlCommand::NeuralDisarm => self.ipc_control_line("NEURAL_DISARM"),
+                ControlCommand::ConfigUpdated => self.ipc_control_line("CONFIG_UPDATED"),
+                ControlCommand::Unrecognized => {}
+            }
+        }
+    }
+
+    /// Applies one already-parsed, single-line control command (goal, neural
+    /// arm/disarm, config reload). Confirmations are handled in `ipc_poll`.
+    fn ipc_control_line(&mut self, trimmed: &str) {
+        {
+            if let Some(goal_str) = trimmed.strip_prefix("GOAL:") {
                 self.planner.set_goal(goal_str.trim());
                 self.verifier.reset();
                 self.reflector.reset();

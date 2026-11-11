@@ -1,0 +1,12 @@
+[package]
+name = "heliox-gate-tests"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Host tests for the heliox-daemon authority gate (pure modules compiled from the daemon's own sources)"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
