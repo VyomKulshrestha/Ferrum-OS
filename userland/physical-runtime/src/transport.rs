@@ -517,4 +517,124 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn expiry_and_sequence_boundaries_are_exact_and_rejections_do_not_advance() {
+        let mqtt = MqttPolicy {
+            mutual_tls: true,
+            device_acl_bound: true,
+            maximum_payload_bytes: 512,
+            maximum_expiry_ticks: 10,
+        };
+        let mut conformance = TransportConformance::new();
+        // expires_at 20 at tick 10 is exactly the 10-tick MQTT bound.
+        assert_eq!(
+            conformance.admit(
+                envelope(AdapterProtocol::Mqtt, MessageClass::Telemetry, 1),
+                10,
+                None,
+                Some(mqtt)
+            ),
+            Ok(())
+        );
+        let mut too_long = envelope(AdapterProtocol::Mqtt, MessageClass::Telemetry, 2);
+        too_long.expires_at_tick = 21;
+        assert_eq!(
+            conformance.admit(too_long, 10, None, Some(mqtt)),
+            Err(TransportError::InvalidPolicy)
+        );
+        // Expiry exactly at the current tick is still valid; the rejected
+        // envelope above did not consume sequence 2.
+        let mut at_expiry = envelope(AdapterProtocol::Mqtt, MessageClass::Telemetry, 2);
+        at_expiry.expires_at_tick = 20;
+        assert_eq!(conformance.admit(at_expiry, 20, None, Some(mqtt)), Ok(()));
+        let mut future = envelope(AdapterProtocol::Mqtt, MessageClass::Telemetry, 3);
+        future.observed_at_tick = 21;
+        assert_eq!(
+            conformance.admit(future, 20, None, Some(mqtt)),
+            Err(TransportError::Expired)
+        );
+        let mut new_epoch = envelope(AdapterProtocol::Mqtt, MessageClass::Telemetry, 3);
+        new_epoch.session_epoch = 4;
+        assert_eq!(
+            conformance.admit(new_epoch, 15, None, Some(mqtt)),
+            Err(TransportError::Replay)
+        );
+        let mut last = envelope(AdapterProtocol::Mqtt, MessageClass::Telemetry, u64::MAX);
+        last.expires_at_tick = 15;
+        assert_eq!(conformance.admit(last, 15, None, Some(mqtt)), Ok(()));
+        assert_eq!(
+            conformance.admit(last, 15, None, Some(mqtt)),
+            Err(TransportError::Replay)
+        );
+        let mut oversized = envelope(AdapterProtocol::CanOpen, MessageClass::Telemetry, 1);
+        oversized.payload_bytes = (MAX_TRANSPORT_PAYLOAD_BYTES + 1) as u32;
+        assert_eq!(
+            conformance.admit(oversized, 10, None, None),
+            Err(TransportError::PayloadTooLarge)
+        );
+        for protocol in [
+            AdapterProtocol::Simulator,
+            AdapterProtocol::ModbusTcp,
+            AdapterProtocol::OpcUa,
+            AdapterProtocol::BleGatt,
+            AdapterProtocol::VendorRpc,
+        ] {
+            assert_eq!(
+                conformance.admit(envelope(protocol, MessageClass::Goal, 9), 10, None, None),
+                Err(TransportError::UnsupportedProtocol)
+            );
+        }
+    }
+
+    #[test]
+    fn can_counter_wraps_once_and_repeats_or_bad_crc_are_rejected() {
+        let policy = CanFramePolicy {
+            arbitration_id: 0x120,
+            message_class: MessageClass::Health,
+            payload_length: 4,
+            counter_offset: 1,
+            crc_offset: 3,
+            maximum_rate_hz: 20,
+        };
+        let frame = |counter: u8| {
+            let mut bytes = [5, counter, 9, 0];
+            bytes[3] = crc8_with_zeroed_byte(&bytes, 3);
+            bytes
+        };
+        let mut conformance = CanConformance::new(&[policy]).unwrap();
+        assert_eq!(
+            conformance.admit(0x120, &frame(255)),
+            Ok(MessageClass::Health)
+        );
+        assert_eq!(
+            conformance.admit(0x120, &frame(255)),
+            Err(TransportError::CanCounterMismatch)
+        );
+        assert_eq!(
+            conformance.admit(0x120, &frame(0)),
+            Ok(MessageClass::Health)
+        );
+        let mut corrupt = frame(1);
+        corrupt[3] ^= 1;
+        assert_eq!(
+            conformance.admit(0x120, &corrupt),
+            Err(TransportError::CanCrcMismatch)
+        );
+        assert_eq!(
+            conformance.admit(0x120, &frame(1)[..3]),
+            Err(TransportError::PayloadTooLarge)
+        );
+        assert_eq!(
+            conformance.admit(0x120, &frame(1)),
+            Ok(MessageClass::Health)
+        );
+        conformance.set_bus_state(CanBusState::ErrorPassive);
+        assert_eq!(
+            conformance.admit(0x120, &frame(2)),
+            Err(TransportError::BusUnavailable)
+        );
+        assert!(CanConformance::new(&[policy, policy]).is_err());
+        assert!(CanConformance::new(&[]).is_err());
+    }
 }

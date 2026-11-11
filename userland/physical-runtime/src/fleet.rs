@@ -402,6 +402,25 @@ impl FleetManager {
         adapter_id: AdapterId,
         current_tick: u64,
     ) -> Option<RoutedCommand> {
+        self.claim_next(adapter_id, current_tick, false)
+    }
+
+    /// Claims only a queued emergency stop; used while execution authority
+    /// is unavailable so motion/actuation stays queued until it expires.
+    pub fn claim_next_stop(
+        &mut self,
+        adapter_id: AdapterId,
+        current_tick: u64,
+    ) -> Option<RoutedCommand> {
+        self.claim_next(adapter_id, current_tick, true)
+    }
+
+    fn claim_next(
+        &mut self,
+        adapter_id: AdapterId,
+        current_tick: u64,
+        stop_only: bool,
+    ) -> Option<RoutedCommand> {
         let stop_position = self.command_journal.iter().position(|claim| {
             claim.routed.command.adapter_id == adapter_id
                 && claim.routed.command.kind == crate::adapter::CommandKind::Stop
@@ -409,20 +428,23 @@ impl FleetManager {
                     claim.state,
                     CommandDeliveryState::Queued | CommandDeliveryState::Failed
                 )
-                && current_tick <= claim.routed.command.deadline_tick
+                && !claim_expired(claim, current_tick)
         });
         let ordered_positions = stop_position
             .into_iter()
             .chain(0..self.command_journal.len());
         for position in ordered_positions {
             let claim = &mut self.command_journal[position];
+            if stop_only && claim.routed.command.kind != crate::adapter::CommandKind::Stop {
+                continue;
+            }
             if claim.routed.command.adapter_id == adapter_id
                 && matches!(
                     claim.state,
                     CommandDeliveryState::Queued | CommandDeliveryState::Failed
                 )
             {
-                if current_tick > claim.routed.command.deadline_tick {
+                if claim_expired(claim, current_tick) {
                     claim.state = CommandDeliveryState::Expired;
                     claim.last_transition_tick = current_tick;
                     continue;
@@ -520,6 +542,13 @@ impl FleetManager {
     }
 }
 
+/// A claim is unusable once either the command deadline or the single-use
+/// permit issued for it has passed.
+fn claim_expired(claim: &CommandClaim, current_tick: u64) -> bool {
+    current_tick > claim.routed.command.deadline_tick
+        || current_tick > claim.routed.permit_expires_at_tick
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -591,6 +620,7 @@ mod tests {
             policy_revision: 7,
             twin_event_id: 1,
             confirmation: ConfirmationProvenance::NotRequired,
+            permit_expires_at_tick: deadline_tick,
         }
     }
 

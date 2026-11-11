@@ -173,6 +173,8 @@ pub struct RoutedCommand {
     pub policy_revision: u64,
     pub twin_event_id: u64,
     pub confirmation: ConfirmationProvenance,
+    /// Last tick at which the single-use permit may reach a driver.
+    pub permit_expires_at_tick: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -356,6 +358,14 @@ impl AdapterRegistry {
         if !endpoint_accepts_payload(endpoint, frame.payload) {
             return Err(AdapterError::EndpointMismatch);
         }
+        let payload_site = match frame.payload {
+            AdapterPayload::SensorReading(reading) => Some(reading.site_id),
+            AdapterPayload::ZoneOccupancy(occupancy) => Some(occupancy.site_id),
+            _ => None,
+        };
+        if payload_site.is_some_and(|site_id| site_id != self.adapters[adapter_index].site_id) {
+            return Err(AdapterError::EndpointMismatch);
+        }
 
         let event_id = twin.next_event_id().map_err(AdapterError::TwinRejected)?;
         twin.apply(
@@ -444,6 +454,7 @@ impl AdapterRegistry {
             policy_revision: permit.policy_revision,
             twin_event_id: permit.twin_event_id,
             confirmation: permit.confirmation,
+            permit_expires_at_tick: permit.expires_at_tick,
         })
     }
 }
@@ -897,6 +908,44 @@ mod tests {
     }
 
     #[test]
+    fn adapter_cannot_publish_sensor_or_occupancy_for_another_site() {
+        let mut adapters = registry(AdapterState::Online);
+        let mut domain = domain();
+        domain
+            .register_site(Site {
+                id: SiteId(2),
+                name: "Other".to_string(),
+                emergency_zone_id: 98,
+            })
+            .unwrap();
+        let mut twin = OperationalTwin::new();
+        let mut foreign_sensor = sensor_frame(1);
+        if let AdapterPayload::SensorReading(reading) = &mut foreign_sensor.payload {
+            reading.site_id = SiteId(2);
+        }
+        assert_eq!(
+            adapters.ingest_frame(&mut twin, &mut domain, foreign_sensor, 11, 1),
+            Err(AdapterError::EndpointMismatch)
+        );
+        let mut foreign_occupancy = sensor_frame(1);
+        foreign_occupancy.payload = AdapterPayload::ZoneOccupancy(ZoneOccupancy {
+            site_id: SiteId(2),
+            zone_id: 7,
+            humans: 0,
+            robots: 0,
+            observed_at_tick: 10,
+        });
+        assert_eq!(
+            adapters.ingest_frame(&mut twin, &mut domain, foreign_occupancy, 11, 1),
+            Err(AdapterError::EndpointMismatch)
+        );
+        assert_eq!(twin.snapshot().latest_event_id, 0);
+        assert!(adapters
+            .ingest_frame(&mut twin, &mut domain, sensor_frame(1), 11, 1)
+            .is_ok());
+    }
+
+    #[test]
     fn simulator_queues_real_typed_frames_and_routed_commands() {
         let mut driver = SimulatedAdapter::new(identity(AdapterState::Online)).unwrap();
         driver.queue_frame(sensor_frame(1)).unwrap();
@@ -907,6 +956,7 @@ mod tests {
                 policy_revision: 1,
                 twin_event_id: 1,
                 confirmation: ConfirmationProvenance::NotRequired,
+                permit_expires_at_tick: 100,
             })
             .unwrap();
         assert_eq!(driver.commands().len(), 1);
@@ -945,6 +995,7 @@ mod tests {
             policy_revision: 0,
             twin_event_id: 0,
             confirmation: ConfirmationProvenance::NotRequired,
+            permit_expires_at_tick: 10,
         };
         driver.submit(routed).unwrap();
         assert_eq!(driver.recorded_commands(), &[routed]);

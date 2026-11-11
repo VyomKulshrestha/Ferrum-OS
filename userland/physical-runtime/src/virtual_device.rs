@@ -421,16 +421,20 @@ fn validate_descriptor(descriptor: VirtualDeviceDescriptor) -> Result<(), Virtua
         return Err(VirtualDeviceError::InvalidDescriptor);
     }
 
+    let actuating = descriptor
+        .capabilities
+        .contains(EndpointCapability::Actuate)
+        || descriptor.capabilities.contains(EndpointCapability::Move);
     let valid_capabilities = match descriptor.class {
-        VirtualDeviceClass::MotorActuator | VirtualDeviceClass::Robot => {
+        VirtualDeviceClass::MotorActuator | VirtualDeviceClass::Robot => actuating,
+        // Non-actuator classes skip actuator authorization at registration,
+        // so they must not be able to declare an actuating capability.
+        VirtualDeviceClass::EmergencyStopSignal => {
             descriptor
                 .capabilities
-                .contains(EndpointCapability::Actuate)
-                || descriptor.capabilities.contains(EndpointCapability::Move)
+                .contains(EndpointCapability::EmergencyStop)
+                && !actuating
         }
-        VirtualDeviceClass::EmergencyStopSignal => descriptor
-            .capabilities
-            .contains(EndpointCapability::EmergencyStop),
         VirtualDeviceClass::WatchdogSignal
         | VirtualDeviceClass::Camera
         | VirtualDeviceClass::DepthCamera
@@ -438,7 +442,7 @@ fn validate_descriptor(descriptor: VirtualDeviceDescriptor) -> Result<(), Virtua
         | VirtualDeviceClass::Proximity
         | VirtualDeviceClass::Environment
         | VirtualDeviceClass::EegStream => {
-            descriptor.capabilities.contains(EndpointCapability::Sense)
+            descriptor.capabilities.contains(EndpointCapability::Sense) && !actuating
         }
     };
     if !valid_capabilities {
@@ -516,6 +520,36 @@ mod tests {
         );
         bus.install_authority(authority).unwrap();
         bus.register(actuator, Some(authorization)).unwrap();
+    }
+
+    #[test]
+    fn non_actuator_class_cannot_declare_motion_or_actuation_without_authority() {
+        for capability in [EndpointCapability::Move, EndpointCapability::Actuate] {
+            for class in [
+                VirtualDeviceClass::Camera,
+                VirtualDeviceClass::Proximity,
+                VirtualDeviceClass::EegStream,
+                VirtualDeviceClass::WatchdogSignal,
+            ] {
+                let mut disguised = sensor();
+                disguised.class = class;
+                disguised.capabilities = disguised.capabilities.with(capability);
+                let mut bus = VirtualDeviceBus::new();
+                assert_eq!(
+                    bus.register(disguised, None),
+                    Err(VirtualDeviceError::CapabilityMismatch)
+                );
+            }
+            let mut stop_signal = sensor();
+            stop_signal.class = VirtualDeviceClass::EmergencyStopSignal;
+            stop_signal.capabilities = EndpointCapabilitySet::empty()
+                .with(EndpointCapability::EmergencyStop)
+                .with(capability);
+            assert_eq!(
+                VirtualDeviceBus::new().register(stop_signal, None),
+                Err(VirtualDeviceError::CapabilityMismatch)
+            );
+        }
     }
 
     #[test]
