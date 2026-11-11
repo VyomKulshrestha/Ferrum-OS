@@ -1,0 +1,11 @@
+{
+ "note": "latex_named/main.pdf is a working copy newer than the published preprint version 1.1 (publish/Thresholds_That_Travel_preprint_v1.1.pdf, zenodo_metadata_v1_1.json); it is not published",
+ "file": {
+  "name": "latex_named/main.pdf",
+  "source": "latex_named/main.pdf (scripts/tt1_named_version.py, tectonic)",
+  "bytes": 383522,
+  "md5": "0f08a19536856613775d2a2c25928248",
+  "sha256": "ffca610733bc44a1e95faa69fa0ea5153a45759e2db19b73f012d34a5513046f"
+ },
+ "title": "Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned"
+}

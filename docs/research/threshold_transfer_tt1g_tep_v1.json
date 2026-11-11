@@ -698,6 +698,214 @@
     }
    }
   },
+  "recal_pooled_quiet": {
+   "attack_runs_fa_ratio_to_budget": 1.5545716329039951,
+   "attack_runs_alarm_share": 0.016883406473618166,
+   "first": {
+    "events": 141,
+    "detected": 115,
+    "onset_detected": 115,
+    "vs_frozen": [
+     -0.02127659574468085,
+     0.0
+    ],
+    "vs_frozen_onset": [
+     -0.02127659574468085,
+     0.0
+    ]
+   },
+   "follower": {
+    "events": 104,
+    "detected": 104,
+    "onset_detected": 44,
+    "vs_frozen": [
+     0.0,
+     0.0
+    ],
+    "vs_frozen_onset": [
+     0.0,
+     0.0
+    ]
+   },
+   "sealed_fa_ratio_to_budget": 0.9875,
+   "sealed_median_tau_end": 0.9991566718508705,
+   "watch": {
+    "sealed_runs_with_false_alert": 0,
+    "sealed_runs": 56,
+    "attack_runs_alerted": 0,
+    "attack_runs": 142,
+    "noise_sequences_alerted": 0,
+    "noise_sequences": 36,
+    "noise_median_hours_to_alert": null,
+    "noise_alert_before_last_alarm": 0
+   },
+   "campaigns": {
+    "frog": {
+     "caught_after": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "caught_control": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "silent_placements": 21,
+     "median_alarm_episodes": 1.0,
+     "median_tau_end": 0.9994756823377844,
+     "watch_alerted": 0,
+     "watch_median_hours": null,
+     "watch_alerted_in_control": 0
+    },
+    "loud": {
+     "caught_after": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "caught_control": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "silent_placements": 0,
+     "median_alarm_episodes": 13.0,
+     "median_tau_end": 1.0,
+     "watch_alerted": 0,
+     "watch_median_hours": null,
+     "watch_alerted_in_control": 0
+    },
+    "subl": {
+     "caught_after": [
+      34,
+      42,
+      43,
+      48
+     ],
+     "caught_control": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "silent_placements": 0,
+     "median_alarm_episodes": 48.0,
+     "median_tau_end": 1.0465776525586428,
+     "watch_alerted": 12,
+     "watch_median_hours": 20.423000000000002,
+     "watch_alerted_in_control": 0
+    }
+   }
+  },
+  "recal_pooled_oracle": {
+   "attack_runs_fa_ratio_to_budget": 1.511849249273992,
+   "attack_runs_alarm_share": 0.01682927692293049,
+   "first": {
+    "events": 141,
+    "detected": 112,
+    "onset_detected": 112,
+    "vs_frozen": [
+     -0.05673758865248227,
+     -0.0070921985815602835
+    ],
+    "vs_frozen_onset": [
+     -0.05673758865248227,
+     -0.0070921985815602835
+    ]
+   },
+   "follower": {
+    "events": 104,
+    "detected": 104,
+    "onset_detected": 44,
+    "vs_frozen": [
+     0.0,
+     0.0
+    ],
+    "vs_frozen_onset": [
+     0.0,
+     0.0
+    ]
+   },
+   "sealed_fa_ratio_to_budget": 0.9535714285714286,
+   "sealed_median_tau_end": 1.0028301665050714,
+   "watch": {
+    "sealed_runs_with_false_alert": 0,
+    "sealed_runs": 56,
+    "attack_runs_alerted": 0,
+    "attack_runs": 142,
+    "noise_sequences_alerted": 0,
+    "noise_sequences": 36,
+    "noise_median_hours_to_alert": null,
+    "noise_alert_before_last_alarm": 0
+   },
+   "campaigns": {
+    "frog": {
+     "caught_after": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "caught_control": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "silent_placements": 21,
+     "median_alarm_episodes": 1.0,
+     "median_tau_end": 1.0036147985666801,
+     "watch_alerted": 0,
+     "watch_median_hours": null,
+     "watch_alerted_in_control": 0
+    },
+    "loud": {
+     "caught_after": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "caught_control": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "silent_placements": 0,
+     "median_alarm_episodes": 13.0,
+     "median_tau_end": 1.0036147985666801,
+     "watch_alerted": 0,
+     "watch_median_hours": null,
+     "watch_alerted_in_control": 0
+    },
+    "subl": {
+     "caught_after": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "caught_control": [
+      56,
+      56,
+      56,
+      56
+     ],
+     "silent_placements": 0,
+     "median_alarm_episodes": 49.0,
+     "median_tau_end": 1.0036147985666801,
+     "watch_alerted": 0,
+     "watch_median_hours": null,
+     "watch_alerted_in_control": 0
+    }
+   }
+  },
   "tracker": {
    "attack_runs_fa_ratio_to_budget": 0.8195722573918988,
    "attack_runs_alarm_share": 0.002492865616233692,

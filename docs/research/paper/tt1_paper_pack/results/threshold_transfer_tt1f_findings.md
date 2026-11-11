@@ -166,6 +166,33 @@ smallest step the frozen threshold detects (median 0.19 scaled units).
   score-level campaign wrote 2 times).
 - Calibration check (K1): `calibrate_v2` returns the registered tau0 on HAI 21.03, 22.04 and 23.05.
 
+## 8b. Rules from alarm practice, recalibration as a rule, a threshold watch (tt1g)
+
+Plan `threshold_transfer_tt1g_dev_plan.md` (amendment 1 is post-hoc), result `threshold_transfer_tt1g_tep_v1.json`,
+on the Tennessee Eastman score cache. Frozen: 116 first events, 104 / 44 followers, all 56 bumps in every
+campaign. Bumps caught at 1.05 / 1.25 / 1.5 / 2 tau0, of 56.
+
+| Rule | first | followers any / onset | sealed FA | frog | loud | sub-event |
+|---|---|---|---|---|---|---|
+| median + k MAD, last day | 115 | 56 / 39 | 0.96 | 0 / 0 / 0 / 0 | 53 / 56 / 56 / 56 | 47 / 55 / 56 / 56 |
+| EWMA control limit | 115 | 45 / 35 | 0.95 | 0 / 0 / 0 / 0 | 0 / 6 / 56 / 56 | 0 / 0 / 0 / 41 |
+| EWMA limit, alarms left out | 121 | 104 / 44 | 1.24 | 0 / 0 / 0 / 0 | 55 / 56 / 56 / 56 | 55 / 56 / 56 / 56 |
+| static, 60 s on-delay | 108 | 104 / 51 | 1.01 | 56 each | 56 each | 56 each |
+| recalibration, quiet days, one day | 116 | 104 / 44 | 1.26 | 51 / 56 / 56 / 56 | 54 / 56 / 56 / 56 | 7 / 7 / 7 / 22 |
+| recalibration, oracle, one day | 108 | 104 / 46 | 1.17 | 40 / 44 / 48 / 54 | same | same |
+| recalibration, quiet days, pooled (post-hoc) | 115 | 104 / 44 | 0.99 | 56 each | 56 each | 34 / 42 / 43 / 48 |
+| recalibration, oracle, pooled (post-hoc) | 112 | 104 / 44 | 0.95 | 56 each | 56 each | 56 each |
+
+- The on-delay rule (threshold 0.74 tau0, alarm after 60 s above it) loses 8 of the 34 minute-long integrity
+  attacks and nothing else.
+- The median rule catches 11 of the 59 noise followers and the plain EWMA limit none.
+- One-day oracle recalibration: threshold above 1.5 tau0 on 21 of 56 attack-free runs; control 49 of 56 at
+  1.05 tau0.
+- Threshold watch at 1.5 tau0: alerts in 48 to 56 of 56 placements of every campaign that leaves a threshold
+  above it (frog against SPOT: 32); false alerts on attack-free runs: 0 of 56 for ten of twelve adaptive
+  rules, 15 for daily recalibration, 21 for one-day oracle recalibration. On the recorded noise sequences the
+  watch on the tracker alerts in 36 of 36, a median 0.1 h after the start.
+
 ## 9. What this does to the paper's claims
 
 - "Adaptive thresholds let attacks through" is not what the registered record shows. It shows that a plain

@@ -225,6 +225,14 @@ it. The guarantee holds whether the exceedances come from benign drift or from a
 exploit in Section~\ref{sec:regions}; Proposition~1 (Section~\ref{sec:memory}) follows from the same
 identity, which we test on recorded attacks, and we extend the question to extreme-value thresholds.
 
+\paragraph{Counting a detection}
+Crediting an anomaly once any point inside it is flagged (point adjustment~\cite{xu2018vae}) is known
+to overrate detectors: a random score reaches high adjusted scores on long
+anomalies~\cite{kim2022rigorous}. Range-based precision and recall~\cite{tatbul2018precision} and the
+time-series-aware metrics of the HAI authors~\cite{hwang2019tapr} weigh how much of an anomaly is covered
+and how early. Our any-alarm count is point adjustment at the level of events; the onset count and the
+chance references of Sections~\ref{sec:inflate} and~\ref{sec:tep} answer the same weakness.
+
 \section{Threat model and learning regions}
 \label{sec:threat}
 
@@ -760,48 +768,7 @@ of 41 compare with a chance range of 12 to 24, and the capped tracker's 34 with 
 of the first-event detections in Table~\ref{tab:tep} are what the alarm rates alone would give, which
 weakens H1c and the higher first-event counts of the rules that run above the budget. A frozen
 threshold lowered by 1.5 to 6\% to match each of those rules' alarm rates on the sealed runs detected
-as many first events or more (Tables~\ref{tab:chance} and~\ref{tab:matched}).
-
-\begin{table*}[t]
-\caption{Tennessee Eastman, any-alarm count: events detected, then the mean and central 95\% range of
-the count under random circular shifts of the rule's alarms. Data status: \textbf{exploratory} (tt1f).}
-\label{tab:chance}
-\small
-\begin{tabularx}{\textwidth}{@{}Lcccccc@{}}
-\toprule
-Rule & first (141) & DoS$\times$3 first (30) & DoS 10\,h (41) & noise first (36) & DoS followers (45) & noise followers (59) \\
-\midrule
-frozen & 116; 60.6 [51, 69] & 18; 13.0 [8, 17] & 28; 18.1 [12, 24] & 36; 29.2 [26, 33] & 45; 20.1 [14, 26] & 59; 40.3 [34, 47] \\
-tracker & 116; 56.5 [48, 66] & 18; 10.8 [6, 15] & 28; 21.0 [14, 27] & 36; 24.5 [20, 29] & 45; 16.3 [10, 23] & 21; 29.2 [21, 36] \\
-daily & 106; 53.9 [45, 63] & 13; 10.8 [6, 15] & 23; 17.9 [12, 25] & 36; 24.9 [20, 29] & 44; 17.0 [12, 23] & 15; 29.9 [23, 38] \\
-daily, episodes left out & 113; 65.8 [56, 75] & 19; 13.8 [9, 19] & 24; 21.7 [14, 28] & 36; 30.0 [26, 33] & 45; 21.2 [15, 28] & 59; 41.1 [34, 48] \\
-tighten-only & 122; 69.3 [60, 78] & 20; 14.2 [8, 19] & 32; 24.9 [19, 31] & 36; 29.9 [27, 33] & 45; 21.9 [16, 29] & 59; 41.7 [35, 48] \\
-tracker, capped rise & 130; 84.8 [78, 91] & 26; 19.1 [14, 23] & 34; 33.1 [28, 37] & 36; 32.3 [30, 35] & 45; 29.9 [24, 35] & 59; 44.6 [39, 51] \\
-\bottomrule
-\end{tabularx}
-\end{table*}
-
-\begin{table*}[t]
-\caption{Matched operating points on Tennessee Eastman. For each rule, one multiplier $c$ puts the static
-threshold $c\,\tau_0$ at the rule's number of false-alarm episodes on the 56 sealed runs (an in-sample
-match). Detections on the attack runs: first events, then followers under the any-alarm / onset counts.
-Difference: recall of the static threshold minus recall of the rule on first events, runs resampled.
-False alarms: episodes over the budget on the unlabelled time of the attack runs. Data status:
-\textbf{exploratory} (tt1f).}
-\label{tab:matched}
-\small
-\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
-\toprule
-Rule & $c$ & Rule & Static at its rate & Difference, first events & FA, rule / static \\
-\midrule
-tracker & 0.985 & 116, 66 / 37 & 119, 104 / 44 & $+0.021$ $[-0.028, 0.071]$ & 0.82 / 1.77 \\
-tracker, ceiling $1.25\,\tau_0$ & 0.979 & 121, 104 / 41 & 121, 104 / 44 & $+0.000$ $[-0.050, 0.050]$ & 1.26 / 1.89 \\
-daily, episodes left out & 0.978 & 113, 104 / 44 & 121, 104 / 44 & $+0.057$ $[0.014, 0.106]$ & 1.87 / 1.91 \\
-tighten-only & 0.965 & 122, 104 / 44 & 127, 104 / 46 & $+0.035$ $[0.007, 0.071]$ & 1.81 / 2.20 \\
-tracker, capped rise & 0.942 & 130, 104 / 44 & 130, 104 / 46 & $+0.000$ $[-0.050, 0.050]$ & 2.35 / 2.80 \\
-\bottomrule
-\end{tabularx}
-\end{table*}
+as many first events or more (Tables~\ref{tab:chance} and~\ref{tab:matched} in Appendix~\ref{app:tt1f}).
 
 \subsection{Tennessee Eastman: registered campaigns}
 \label{sec:tepcampaigns}
@@ -973,6 +940,25 @@ terminal step hides it from the frozen threshold in 27 of 30 placements at the s
 19 at three times that size. With this access, poisoning the threshold adds nothing to concealing
 the attack directly.
 
+\subsection{Rules from alarm practice (exploratory)}
+\label{sec:practice}
+
+The rules above come from the anomaly-detection literature. A further round, its plan committed before
+the run, put thresholds an alarm engineer would reach for through the same Tennessee Eastman attacks and
+campaigns (Table~\ref{tab:practice} in Appendix~\ref{app:tt1f}). A threshold at the median plus a
+multiple of the median absolute deviation of the last day, and an exponentially weighted control limit
+that leaves its own alarms out, were both unaffected by the loud and the sub-event pulses, and both were
+blinded completely by the 24\,h frog (0 of 56 at every size up to $2\,\tau_0$), which fills the window
+they learn from. The median rule also lost the noise followers (56 of 104 against 104), and the plain
+control limit lost more (45). A static threshold with a 60\,s on-delay, the alarm-management remedy for
+nuisance alarms, was untouched by all three campaigns and held its budget (1.01); it gave up 8 of the 34
+minute-long integrity attacks. Recalibration run as a rule depends on what accepts a day of data: a rule
+that recalibrates after any day without a long alarm was poisoned by the sub-event pulses (7 of 56
+against 52), and one that accepts only days an oracle knows to be clean was not, although a single day proved
+too little data for a stable threshold. Pooling each accepted day with the original calibration data (post-hoc) removes the noise of a one-day window:
+the oracle version then caught 56 / 56 / 56 / 56 bumps after the sub-event pulses (control 56) at
+0.95 times the budget, and the version that trusts the alarm log 34 / 42 / 43 / 48.
+
 \section{Design guidance}
 \label{sec:design}
 
@@ -989,7 +975,12 @@ recorded attacks. The recommendations are ordered by how well they are supported
   every campaign, and a $\tau_0$ monitor beside the attacked rule would have been in alarm for a median
   99\% of the silent campaign. If the deployed rule adapts, alarm on the fixed threshold as well, or log
   $\tau_t$ against $\tau_0$: a threshold that rises during an incident, or climbs without alarms, is
-  itself an indicator.
+  itself an indicator. A watch that alerts when the deployed threshold passes $1.5\,\tau_0$ fired in 48
+  to 56 of the 56 placements of every campaign that left a threshold above that level, except the frog
+  against SPOT (32), whose threshold often ends below it, and in none of the 56 attack-free runs
+  for ten of the twelve adaptive rules we ran it on; it cannot see poisoning below the watch level,
+  as with the capped tracker (exploratory). The simplest rule that needs no watch is static: a fixed
+  threshold with an on-delay was untouched by every campaign (Section~\ref{sec:practice}).
 \item \textbf{If a threshold must loosen by itself, give it a ceiling.} Under a ceiling
   $\kappa\tau_0$ no poisoning can hide an event above $\kappa\tau_0$ (Proposition~4), and nothing more
   is guaranteed: on Tennessee Eastman the static threshold $1.1\,\tau_0$ caught 80 of the 141 first
@@ -1002,13 +993,13 @@ recorded attacks. The recommendations are ordered by how well they are supported
   (Proposition~3). It ran at 1.57 times the false-alarm budget on the sealed Tennessee Eastman runs
   against 0.98 for frozen, and at 2.43 against 0.70 on BATADAL (registered), and a frozen threshold
   lowered by 3.5\% to the same alarm rate detected more first attacks (127 against 122, exploratory).
-\item \textbf{Loosening beyond the ceiling, and recalibration, belong to change control} (not tested
-  here). Process-alarm standards route alarm changes through authorised management of
+\item \textbf{Loosening beyond the ceiling, and recalibration, belong to change control}. Process-alarm standards route alarm changes through authorised management of
   change~\cite{isa182, eemua191}, and recalibration on verified clean data is the established remedy
   when drift raises false alarms~\cite{cretu2008sanitizing}. Our only evidence is negative: a gate
   that approved loosening whenever the alarm log was quiet let the silent campaign through, and an
-  oracle that blocked loosening only during labelled events caught 1 of 10 terminal steps. We tested
-  no human operator and no recalibration procedure.
+  oracle that blocked loosening only during labelled events caught 1 of 10 terminal steps; recalibration
+  that trusts a quiet alarm log was poisoned by pulses too short to count, and recalibration on days an
+  oracle knows to be clean was not (Section~\ref{sec:practice}). We tested no human operator.
 \item \textbf{Budget alarm time as well as episodes.} On HAI 20.07 a 24-hour alarm that overlapped
   seven attacks did not count against the episode budget, and an attack that begins inside a running
   alarm gives the operator nothing new to see.
@@ -1082,7 +1073,9 @@ simulated process: loud pulses blinded the tracker, sub-event pulses blinded the
 leaves alarms out, and a closed-loop attacker blinded a standard SPOT in five of seven operating modes,
 while the frozen threshold caught every later attack. That silent campaign is silent only to its
 victim; a fixed threshold beside it sees a day-long alarm. A ceiling confines what any of these attacks
-can hide to events at or below it. Automatic tightening kept the frozen threshold's detections by
+can hide to events at or below it. Thresholds from alarm practice that learn from the bulk of the
+scores were blinded by the same silent campaign, and a static threshold with an on-delay was not.
+Automatic tightening kept the frozen threshold's detections by
 construction, cost up to 3.5 times its false alarms, and detected no more than a slightly lower frozen
 threshold. An adaptive alarm threshold should therefore run under a ceiling and beside a fixed
 reference; whether adapting is worth it at all is a question for data with benign drift, which this
@@ -1517,12 +1510,53 @@ new access to attack data or sealed runs is in the ledger with a reason that beg
 \texttt{EXPLORATORY}. Nothing in this appendix is registered.
 
 \paragraph{Chance reference}
-Table~\ref{tab:chance} in Section~\ref{sec:tep} gives, for each rule, the events it detected on Tennessee Eastman and the
+Table~\ref{tab:chance} gives, for each rule, the events it detected on Tennessee Eastman and the
 number its alarms detect when the alarm sequence of each run is shifted circularly by a random offset (200
 shifts per run). Under the onset count the noise followers are detected below chance by both the frozen
 threshold (6 against 23) and the tracker (1 against 26): the alarm is already running, or the rule is
 raised. On BATADAL the frozen threshold's 14 of 14 compare with 5.7 [2, 10] and the $\tau_0$-scaled tracker's 14
 with 4.3 [1, 8] (1000 shifts per file).
+
+\begin{table*}[t]
+\caption{Tennessee Eastman, any-alarm count: events detected, then the mean and central 95\% range of
+the count under random circular shifts of the rule's alarms. Data status: \textbf{exploratory} (tt1f).}
+\label{tab:chance}
+\small
+\begin{tabularx}{\textwidth}{@{}Lcccccc@{}}
+\toprule
+Rule & first (141) & DoS$\times$3 first (30) & DoS 10\,h (41) & noise first (36) & DoS followers (45) & noise followers (59) \\
+\midrule
+frozen & 116; 60.6 [51, 69] & 18; 13.0 [8, 17] & 28; 18.1 [12, 24] & 36; 29.2 [26, 33] & 45; 20.1 [14, 26] & 59; 40.3 [34, 47] \\
+tracker & 116; 56.5 [48, 66] & 18; 10.8 [6, 15] & 28; 21.0 [14, 27] & 36; 24.5 [20, 29] & 45; 16.3 [10, 23] & 21; 29.2 [21, 36] \\
+daily & 106; 53.9 [45, 63] & 13; 10.8 [6, 15] & 23; 17.9 [12, 25] & 36; 24.9 [20, 29] & 44; 17.0 [12, 23] & 15; 29.9 [23, 38] \\
+daily, episodes left out & 113; 65.8 [56, 75] & 19; 13.8 [9, 19] & 24; 21.7 [14, 28] & 36; 30.0 [26, 33] & 45; 21.2 [15, 28] & 59; 41.1 [34, 48] \\
+tighten-only & 122; 69.3 [60, 78] & 20; 14.2 [8, 19] & 32; 24.9 [19, 31] & 36; 29.9 [27, 33] & 45; 21.9 [16, 29] & 59; 41.7 [35, 48] \\
+tracker, capped rise & 130; 84.8 [78, 91] & 26; 19.1 [14, 23] & 34; 33.1 [28, 37] & 36; 32.3 [30, 35] & 45; 29.9 [24, 35] & 59; 44.6 [39, 51] \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Matched operating points on Tennessee Eastman. For each rule, one multiplier $c$ puts the static
+threshold $c\,\tau_0$ at the rule's number of false-alarm episodes on the 56 sealed runs (an in-sample
+match). Detections on the attack runs: first events, then followers under the any-alarm / onset counts.
+Difference: recall of the static threshold minus recall of the rule on first events, runs resampled.
+False alarms: episodes over the budget on the unlabelled time of the attack runs. Data status:
+\textbf{exploratory} (tt1f).}
+\label{tab:matched}
+\small
+\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
+\toprule
+Rule & $c$ & Rule & Static at its rate & Difference, first events & FA, rule / static \\
+\midrule
+tracker & 0.985 & 116, 66 / 37 & 119, 104 / 44 & $+0.021$ $[-0.028, 0.071]$ & 0.82 / 1.77 \\
+tracker, ceiling $1.25\,\tau_0$ & 0.979 & 121, 104 / 41 & 121, 104 / 44 & $+0.000$ $[-0.050, 0.050]$ & 1.26 / 1.89 \\
+daily, episodes left out & 0.978 & 113, 104 / 44 & 121, 104 / 44 & $+0.057$ $[0.014, 0.106]$ & 1.87 / 1.91 \\
+tighten-only & 0.965 & 122, 104 / 44 & 127, 104 / 46 & $+0.035$ $[0.007, 0.071]$ & 1.81 / 2.20 \\
+tracker, capped rise & 0.942 & 130, 104 / 44 & 130, 104 / 46 & $+0.000$ $[-0.050, 0.050]$ & 2.35 / 2.80 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
 
 \paragraph{Time to clear}
 In the 36 noise sequences (median length 41.4\,h) each of the five rules below alarmed in every sequence, at a median of one step
@@ -1576,6 +1610,44 @@ frog, sees only alarms (6\,h) & standard SPOT & 20 / 30 / 30 / 30 & 30 / 30 / 30
 20\,s pulses every 30\,min (24\,h) & frozen & 30 / 30 / 30 / 30 & 30 / 30 / 30 / 30 & 0 & 49 & 1.00 \\
 20\,s pulses every 30\,min (24\,h) & daily, episodes left out & 21 / 30 / 30 / 30 & 30 / 30 / 30 / 30 & 0 & 50 & 1.03 \\
 20\,s pulses every 30\,min (24\,h) & tracker, hold-off & 0 / 0 / 0 / 1 & 21 / 28 / 30 / 30 & 0 & 48 & 12.45 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\paragraph{Rules from alarm practice}
+Table~\ref{tab:practice} gives the rules of Section~\ref{sec:practice} on the Tennessee Eastman score
+cache (no dataset was opened), each calibrated per mode to the registered budget; the plan was committed
+before the run, and the two pooled recalibration rules were added afterwards and are post-hoc. The frozen
+threshold detected 116 first events and 104 / 44 followers and caught all 56 bumps in every campaign. The watch
+column counts the placements in which the rule's threshold passed $1.5\,\tau_0$ during the campaign, and
+the last column the attack-free runs in which it did so with no campaign. On the recorded noise sequences
+the watch on the tracker alerted in all 36, a median 0.1\,h after their start and always before the
+tracker's last alarm.
+
+\begin{table*}[t]
+\caption{Rules from alarm practice on Tennessee Eastman: first events detected (of 141), followers
+under the any-alarm / onset counts (of 104), false-alarm episodes over the budget on the 56 sealed runs,
+bumps of 1.05 / 1.25 / 1.5 / 2\,$\tau_0$ caught after each campaign (of 56), placements in which a watch at
+$1.5\,\tau_0$ alerted during the frog / loud / sub-event campaign, and attack-free runs with a false
+alert. Data status: \textbf{exploratory} (tt1g); pooled recalibration is post-hoc.}
+\label{tab:practice}
+\small
+\begin{tabularx}{\textwidth}{@{}Lcccccccc@{}}
+\toprule
+Rule & first & followers & FA & frog & loud pulses & sub-event pulses & watch & false \\
+\midrule
+median + $k$ MAD, last day & 115 & 56 / 39 & 0.96 & 0 / 0 / 0 / 0 & 53 / 56 / 56 / 56 & 47 / 55 / 56 / 56 & 56 / 0 / 0 & 0 \\
+EWMA control limit & 115 & 45 / 35 & 0.95 & 0 / 0 / 0 / 0 & 0 / 6 / 56 / 56 & 0 / 0 / 0 / 41 & 56 / 0 / 56 & 0 \\
+EWMA limit, alarms left out & 121 & 104 / 44 & 1.24 & 0 / 0 / 0 / 0 & 55 / 56 / 56 / 56 & 55 / 56 / 56 / 56 & 56 / 0 / 0 & 0 \\
+static, 60\,s on-delay & 108 & 104 / 51 & 1.01 & 56 / 56 / 56 / 56 & 56 / 56 / 56 / 56 & 56 / 56 / 56 / 56 & 0 / 0 / 0 & 0 \\
+recalibration, quiet days (one day) & 116 & 104 / 44 & 1.26 & 51 / 56 / 56 / 56 & 54 / 56 / 56 / 56 & 7 / 7 / 7 / 22 & 0 / 0 / 48 & 0 \\
+recalibration, oracle (one day) & 108 & 104 / 46 & 1.17 & 40 / 44 / 48 / 54 & 40 / 44 / 48 / 54 & 40 / 44 / 48 / 54 & 8 / 8 / 8 & 21 \\
+recalibration, quiet days (pooled) & 115 & 104 / 44 & 0.99 & 56 / 56 / 56 / 56 & 56 / 56 / 56 / 56 & 34 / 42 / 43 / 48 & 0 / 0 / 12 & 0 \\
+recalibration, oracle (pooled) & 112 & 104 / 44 & 0.95 & 56 / 56 / 56 / 56 & 56 / 56 / 56 / 56 & 56 / 56 / 56 / 56 & 0 / 0 / 0 & 0 \\
+tracker & 116 & 66 / 37 & 1.21 & 45 / 56 / 56 / 56 & 0 / 0 / 0 / 56 & 0 / 0 / 0 / 0 & 0 / 56 / 56 & 0 \\
+daily, episodes left out & 113 & 104 / 44 & 1.33 & 47 / 56 / 56 / 56 & 49 / 56 / 56 / 56 & 0 / 0 / 0 / 29 & 0 / 0 / 55 & 0 \\
+tracker, capped rise & 130 & 104 / 44 & 2.12 & 51 / 56 / 56 / 56 & 8 / 55 / 56 / 56 & 6 / 55 / 56 / 56 & 0 / 0 / 0 & 0 \\
+standard SPOT & 106 & 104 / 43 & 0.84 & 0 / 16 / 24 / 32 & 44 / 56 / 56 / 56 & 44 / 56 / 56 / 56 & 32 / 0 / 0 & 0 \\
 \bottomrule
 \end{tabularx}
 \end{table*}

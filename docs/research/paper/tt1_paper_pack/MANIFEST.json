@@ -112,11 +112,11 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "3d616c18640e5034878334d03e9b7a8fcf9ff2d7d3b58f77eaa7977205bd0f3d",
-   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e and tt1f results, appendices A to F)"
+   "sha256": "795e81cdfacc280c766145c65d5f2aa19eb12d5793312f05687bb4d00ca9057e",
+   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e, tt1f and tt1g results, appendices A to F)"
   },
   "latex/refs.bib": {
-   "sha256": "d425f783cb5030de47120bbb7d7c45963873883f65c6e7bba6da3d39f8432ab9",
+   "sha256": "cb601a2f80149c59c4461bff6293f992a24aeca116cd64a4bd87b3ee818945e8",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "latex_usenix/figures/fig1_learning_regions.pdf": {
@@ -140,11 +140,11 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "959003e4ad3a38e962493ab4c8aecf41424970570e0cfcf97a865200499b2fee",
-   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e and tt1f results, appendices A to F)"
+   "sha256": "b95a22a637ddef584bf404c71d586d97a3a643fa254aa5630b0f39661ef372f5",
+   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e, tt1f and tt1g results, appendices A to F)"
   },
   "latex_usenix/refs.bib": {
-   "sha256": "d425f783cb5030de47120bbb7d7c45963873883f65c6e7bba6da3d39f8432ab9",
+   "sha256": "cb601a2f80149c59c4461bff6293f992a24aeca116cd64a4bd87b3ee818945e8",
    "built_by": "Claude Science LaTeX session (prompt 3); compile fixes by the author: comments moved out of BibTeX entries, wide tables set with tabularx"
   },
   "manuscript/threshold_transfer_tt1_findings.md": {
@@ -293,11 +293,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "a5401eb0dd97b8a35e1875e01cc6e2aaaef9cb2efc07d3dd403803f65f659b32",
+   "sha256": "5464deda6cc8fceb29980086fd3c1d846e8ec68978be7872f4f92145fcbc4e8d",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "2cd625019badf956b61fe8175920aa4bed5f10fa6397a521447b4138d0d1197f",
+   "sha256": "0c99d0120ea95abe5d3ddea3f5bc70493399c04b5b273d5c32564e9b0d62db8a",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
@@ -353,11 +353,11 @@
    "built_by": "CTAN acmart v2.21 release"
   },
   "latex_named/main.tex": {
-   "sha256": "b7091c7893508aba1f40b4fcf64fd4c1d9d709d95e08c89191c1f00244603164",
+   "sha256": "ad7ca28d165326bd766246c46f1598876c658abbb2507f05dff069cbbd8497ca",
    "built_by": "scripts/tt1_named_version.py from latex/main.tex"
   },
   "latex_named/refs.bib": {
-   "sha256": "cdcac56398e70f65b17087ff9f57094b54eaefe918ee8bf34b32bde40c56818b",
+   "sha256": "051972caf12dfd57b4d2ae888486b4670b85f204291dda25bdb7e87b58395037",
    "built_by": "scripts/tt1_named_version.py from latex/refs.bib"
   },
   "latex_named/acmart.cls": {
@@ -369,7 +369,7 @@
    "built_by": "copy of latex/ACM-Reference-Format.bst"
   },
   "latex_named/main.pdf": {
-   "sha256": "a046f1253fdbf2d53d59f366736b0fee64f95454428a94c37b74dbe28040b762",
+   "sha256": "06fba7bf9fe3f0ad91d219acd825cf6a91ac692459ea75908177f81281b5f054",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "publish/README.md": {
@@ -461,7 +461,7 @@
    "built_by": "scripts/tt1f_process_dev.py merge (exploratory, HAI normal data)"
   },
   "results/threshold_transfer_tt1f_findings.md": {
-   "sha256": "111a45d384c25a7362abd90cbd67bc48bffa8ed68af7534d27e104bc816d5e76",
+   "sha256": "5875a410e8b41c0b53f15651c8c3b344b24d1f3b62bf43f64d067a179c4065b9",
    "built_by": "digest of the tt1f results"
   },
   "results/monitor_audit_2026-11-10.md": {
@@ -499,6 +499,22 @@
   "review/mock_pc_review_r2_claude_science.md": {
    "sha256": "a557c7c3b4bd21b8b142bbe0d86ce0d9c85b4c65b2c2f57fb5cf210a13e6bbcf",
    "built_by": "second mock review, Claude Science (2026-11-10)"
+  },
+  "protocols/threshold_transfer_tt1g_dev_plan.md": {
+   "sha256": "ed2f4d1d251403091321c3d5f0c6bfa589e1a1fde9d9ea1b52a0289100bdf161",
+   "built_by": "plan of the tt1g exploratory round, committed before the run; amendment 1 is post-hoc"
+  },
+  "results/threshold_transfer_tt1g_tep_v1.json": {
+   "sha256": "dcb2311a227192fd321a4aa94e1ef33b0dd2feb24e54073309a465873685f9a2",
+   "built_by": "scripts/tt1g_baselines_dev.py merge (exploratory, from the tt1f score cache)"
+  },
+  "publish/Thresholds_That_Travel_preprint_v1.1.pdf": {
+   "sha256": "a046f1253fdbf2d53d59f366736b0fee64f95454428a94c37b74dbe28040b762",
+   "built_by": "the file published on Zenodo as version 1.1 (record 24123217), kept unchanged"
+  },
+  "publish/working_copy.json": {
+   "sha256": "4c1721c79ee50fc6624a4891ab85716514cbfe6763fd801bb81f833d2c90ff46",
+   "built_by": "hash of the current named build when it is newer than the published version"
   }
  }
 }

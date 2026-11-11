@@ -32,6 +32,7 @@ OUT = ROOT / "docs/research/threshold_transfer_tt1g_tep_v1.json"
 S = M.SETUPS["tep59"]
 NEW = ["median_mad", "ewma", "ewma_excl", "on_delay", "recal_quiet", "recal_oracle"]
 OLD = ["tracker", "daily", "daily_excl", "tracker_capped", "spot_gr"]
+NEW2 = ["recal_pooled_quiet", "recal_pooled_oracle"]            # amendment 1 of the plan (post-hoc)
 REFRESH, DELAY, WATCH = round(3600 / S.step), S.rules.event_l, 1.5
 
 
@@ -82,6 +83,8 @@ def make(rule, cfg, pooled, cal):
         return G.OnDelay(cal["on_delay_threshold"], DELAY)
     if rule in ("recal_quiet", "recal_oracle"):
         return G.Recal(cfg["tau0"], rule.split("_")[1], S.spd, S.gap, S.rules.event_l, S.budget)
+    if rule in NEW2:
+        return G.Recal(cfg["tau0"], rule.rsplit("_", 1)[1], S.spd, S.gap, S.rules.event_l, S.budget, pool=np.split(pooled, 4))
     return Wrap(S.rules.make(rule, cfg, pooled))
 
 
@@ -108,7 +111,7 @@ def score(s, tau, events, lab, tau0):
 
 
 # ---------------------------------------------------------------- recorded attacks and attack-free cost
-def natural():
+def natural(new=NEW, old=OLD, name="natural"):
     reg = F.registered()
     out = {"calibration": {}, "attack_runs": [], "sealed_runs": []}
     for u in reg["units"]:
@@ -123,7 +126,7 @@ def natural():
             events, lab = TD.events(key), np.asarray(key) != 0
             row = {"name": run["name"], "type": run["type"], "events": [list(e) for e in events],
                    "unlabelled_steps": int((~lab).sum()), "rules": {}}
-            for r in NEW + OLD:
+            for r in new + old:
                 v = score(s, path(make(r, cfg, pooled, cal), s, lab), events, lab, cfg["tau0"])
                 if r in OLD and v["found"] != run["scores"]["D1"][r]["found"]:
                     raise SystemExit(f"{run['name']} {r}: registered detections not reproduced")
@@ -135,13 +138,13 @@ def natural():
             s = sealed[run["name"]]
             lab = np.zeros(len(s), bool)
             row = {"name": run["name"], "steps": int(len(s)), "rules": {}}
-            for r in NEW + OLD:
+            for r in new + old:
                 v = score(s, path(make(r, cfg, pooled, cal), s), [], lab, cfg["tau0"])
                 row["rules"][r] = {"fa": v["fa"], "tau_end": v["tau_end"], "watch": v["watch_first"] is not None}
             out["sealed_runs"].append(row)
             print(run["name"], "sealed", flush=True)
     PART.mkdir(parents=True, exist_ok=True)
-    (PART / "natural.json").write_text(json.dumps(out), encoding="utf-8")
+    (PART / f"{name}.json").write_text(json.dumps(out), encoding="utf-8")
 
 
 # ---------------------------------------------------------------- campaigns on the registered placements
@@ -186,7 +189,7 @@ def play(rule, cfg, pooled, cal, s, end, mode):
             "watch_step": watch}
 
 
-def campaigns():
+def campaigns(new=NEW, old=OLD, name="campaigns"):
     reg = F.registered()
     out = []
     for u in reg["units"]:
@@ -198,26 +201,36 @@ def campaigns():
             s = sealed[run["name"]]
             end = run["campaigns"][0]["terminal_start"]
             row = {"name": run["name"], "unit": u["unit"], "rules": {}}
-            for r in NEW + OLD:
+            for r in new + old:
                 row["rules"][r] = {c: play(r, cfg, pooled, cal, s, end, c) for c in ("control", "frog", "loud", "subl")}
             want = run["campaigns"][0]
-            for c, r in (("frog", "spot_gr"), ("loud", "tracker"), ("subl", "daily_excl")):
+            for c, r in (("frog", "spot_gr"), ("loud", "tracker"), ("subl", "daily_excl")) if old else ():
                 if row["rules"][r][c]["hits"] != want[c][r]["after"] or row["rules"][r]["control"]["hits"] != want[c][r]["control"]:
                     raise SystemExit(f"{run['name']}: {r} under {c} does not reproduce the registered outcome")
             out.append(row)
             print(run["name"], round(time.time() - t0), "s", flush=True)
     PART.mkdir(parents=True, exist_ok=True)
-    (PART / "campaigns.json").write_text(json.dumps(out), encoding="utf-8")
+    (PART / f"{name}.json").write_text(json.dumps(out), encoding="utf-8")
 
 
 # ---------------------------------------------------------------- merge
 def merge():
     nat = json.loads((PART / "natural.json").read_text(encoding="utf-8"))
     camp = json.loads((PART / "campaigns.json").read_text(encoding="utf-8"))
-    rules = ["frozen"] + NEW + OLD
+    extra = NEW2 if (PART / "natural2.json").exists() and (PART / "campaigns2.json").exists() else []
+    if extra:
+        nat2 = json.loads((PART / "natural2.json").read_text(encoding="utf-8"))
+        camp2 = {x["name"]: x for x in json.loads((PART / "campaigns2.json").read_text(encoding="utf-8"))}
+        for key in ("attack_runs", "sealed_runs"):
+            more = {x["name"]: x for x in nat2[key]}
+            for x in nat[key]:
+                x["rules"].update({r: more[x["name"]]["rules"][r] for r in extra})
+        for x in camp:
+            x["rules"].update(camp2[x["name"]]["rules"])
+    rules = ["frozen"] + NEW + extra + OLD
     meta, per = [], {r: {"found": [], "onset": []} for r in rules}
     fa, steps, unl = {r: 0 for r in rules}, {r: 0 for r in rules}, 0
-    watch_runs, noise = {r: 0 for r in NEW + OLD}, {r: [] for r in NEW + OLD}
+    watch_runs, noise = {r: 0 for r in rules[1:]}, {r: [] for r in rules[1:]}
     for run in nat["attack_runs"]:
         unl += run["unlabelled_steps"]
         meta += [{"run": run["name"], "order": i} for i in range(len(run["events"]))]
@@ -289,4 +302,5 @@ def merge():
 
 
 if __name__ == "__main__":
-    {"natural": natural, "campaigns": campaigns, "merge": merge}[sys.argv[1]]()
+    {"natural": natural, "campaigns": campaigns, "merge": merge, "natural2": lambda: natural(NEW2, [], "natural2"),
+     "campaigns2": lambda: campaigns(NEW2, [], "campaigns2")}[sys.argv[1]]()

@@ -74,8 +74,11 @@ class OnDelay:
 
 
 class Recal:
-    def __init__(self, tau0, mode, steps_per_day, gap, event_l, budget):
+    def __init__(self, tau0, mode, steps_per_day, gap, event_l, budget, pool=None):
         self.t, self.mode, self.spd, self.gap, self.event_l, self.budget = tau0, mode, steps_per_day, gap, event_l, budget
+        # pool (amendment 1 of the plan): calibration runs to which every accepted day is added; the threshold
+        # is then recalibrated on the whole pool instead of on the one day
+        self.pool = None if pool is None else list(pool)
         self.day, self.n, self.bad = [], 0, False
         self.first, self.last = None, None                 # the running alarm episode
         self.accepted, self.days = 0, 0
@@ -98,7 +101,12 @@ class Recal:
         if self.n % self.spd == 0:
             self.days += 1
             if not self.bad and len(self.day) > self.spd // 2:
-                self.t = R2.calibrate([np.asarray(self.day, float)], self.gap, self.budget, self.spd)
+                day = np.asarray(self.day, float)
+                if self.pool is None:
+                    self.t = R2.calibrate([day], self.gap, self.budget, self.spd)
+                else:
+                    self.pool.append(day)
+                    self.t = R2.calibrate(self.pool, self.gap, self.budget, self.spd)
                 self.accepted += 1
             self.day, self.bad = [], False
 
