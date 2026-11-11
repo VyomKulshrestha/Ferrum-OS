@@ -425,16 +425,21 @@ pub fn extract_tool_calls(response: &JsonValue) -> Vec<ToolCall> {
                         .into();
                     
                     // Arguments may be a JSON string that needs re-parsing
+                    // Arguments that are present but not a JSON object are a
+                    // malformed call: drop it rather than run the tool with
+                    // its defaults.
                     let arguments = match func.get("arguments") {
+                        Some(JsonValue::Str(args_str)) if args_str.trim().is_empty() => Vec::new(),
                         Some(JsonValue::Str(args_str)) => {
                             // Re-parse the arguments string as JSON
                             match parse(args_str) {
                                 Ok(JsonValue::Object(pairs)) => pairs,
-                                _ => Vec::new(),
+                                _ => continue,
                             }
                         }
                         Some(JsonValue::Object(pairs)) => pairs.clone(),
-                        _ => Vec::new(),
+                        None | Some(JsonValue::Null) => Vec::new(),
+                        Some(_) => continue,
                     };
 
                     calls.push(ToolCall { name, arguments });
@@ -447,10 +452,11 @@ pub fn extract_tool_calls(response: &JsonValue) -> Vec<ToolCall> {
         if let Some(content) = message.get("content").and_then(|c| c.as_str()) {
             if let Ok(parsed) = parse(content) {
                 if let Some(tool_name) = parsed.get("tool").and_then(|t| t.as_str()) {
-                    let arguments = parsed.get("args")
-                        .and_then(|a| a.as_object())
-                        .cloned()
-                        .unwrap_or_default();
+                    let arguments = match parsed.get("args") {
+                        Some(JsonValue::Object(pairs)) => pairs.clone(),
+                        None | Some(JsonValue::Null) => Vec::new(),
+                        Some(_) => continue,
+                    };
                     calls.push(ToolCall {
                         name: String::from(tool_name),
                         arguments,

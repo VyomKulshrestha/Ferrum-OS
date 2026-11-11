@@ -873,14 +873,18 @@ impl Orchestrator {
             if let Some(ref content) = content_text {
                 if let Ok(content_parsed) = json::parse(content) {
                     if let Some(tool_name) = content_parsed.get("tool").and_then(|t| t.as_str()) {
-                        let arguments = content_parsed.get("args")
-                            .and_then(|a| a.as_object())
-                            .cloned()
-                            .unwrap_or_default();
-                        tool_calls.push(json::ToolCall {
-                            name: String::from(tool_name),
-                            arguments,
-                        });
+                        // Present-but-not-object args: a malformed call, dropped.
+                        let arguments = match content_parsed.get("args") {
+                            Some(json::JsonValue::Object(pairs)) => Some(pairs.clone()),
+                            None | Some(json::JsonValue::Null) => Some(Vec::new()),
+                            Some(_) => None,
+                        };
+                        if let Some(arguments) = arguments {
+                            tool_calls.push(json::ToolCall {
+                                name: String::from(tool_name),
+                                arguments,
+                            });
+                        }
                     }
                 }
             }

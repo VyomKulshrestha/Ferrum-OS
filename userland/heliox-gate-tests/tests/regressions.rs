@@ -86,3 +86,23 @@ fn digitless_numbers_are_rejected() {
     }
     assert!(matches!(json::parse("-0"), Ok(json::JsonValue::Number(_))));
 }
+
+/// U12: a tool call whose `arguments` string failed to parse ran with no
+/// arguments at all, so tools with defaults (sleep 100 ms, record_audio
+/// 2000 ms) executed something the model never validly asked for.
+#[test]
+fn tool_calls_with_unparseable_arguments_are_dropped() {
+    let response = json::parse(
+        r#"{"choices":[{"message":{"tool_calls":[
+            {"function":{"name":"record_audio","arguments":"{\"duration_ms\": 50"}},
+            {"function":{"name":"sleep","arguments":"[1,2]"}},
+            {"function":{"name":"read_dir","arguments":"{\"path\":\"/disk\"}"}},
+            {"function":{"name":"yield_cpu"}},
+            {"function":{"name":"system_info","arguments":"  "}}
+        ]}}]}"#,
+    )
+    .unwrap();
+    let calls = json::extract_tool_calls(&response);
+    let names: Vec<&str> = calls.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(names, vec!["read_dir", "yield_cpu", "system_info"]);
+}
