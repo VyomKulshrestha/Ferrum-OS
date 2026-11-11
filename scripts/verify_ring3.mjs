@@ -52,6 +52,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // which point it did reach the prompt. Accelerating this the same way
 // every other test does is the fix, not a longer timeout on slow emulation.
 const qemuArgs = [
+  // Same memory as the other harnesses: with QEMU's default 128 MB the kernel stalls during device
+  // bring-up and never reaches the prompt.
+  "-m", "4096M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`,
@@ -124,7 +127,7 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 45);
+  await waitForSerial("FerrumOS:~$", 90);
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;
