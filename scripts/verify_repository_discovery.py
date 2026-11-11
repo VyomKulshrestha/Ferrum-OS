@@ -41,7 +41,10 @@ def main() -> int:
     cargo = (ROOT / "Cargo.toml").read_text(encoding="utf-8")
     funding = (ROOT / ".github" / "FUNDING.yml").read_text(encoding="utf-8")
 
-    opening = readme[:10000].lower()
+    # The opening is everything down to and including the use-case section. The window was 10,000
+    # characters until the v1.3 report summary moved that heading to character 10,415; the check then
+    # failed without failing CI (see the note on multi-command steps in .github/workflows/ci.yml).
+    opening = readme[:12000].lower()
     for phrase in (
         "rust ai-native",
         "simulator-backed cyber-physical research os",
