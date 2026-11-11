@@ -81,8 +81,10 @@ def main():
             check=True,
             stdout=subprocess.DEVNULL,
         )
+        # The evaluator writes text with the platform's line endings; the committed report has LF.
         require(
-            output.read_bytes() == REPORT.read_bytes(),
+            output.read_bytes().replace(b"\r\n", b"\n")
+            == REPORT.read_bytes().replace(b"\r\n", b"\n"),
             "robustness report reproduces byte-for-byte",
         )
     print("\nPhysical JEPA robustness verification passed.")
