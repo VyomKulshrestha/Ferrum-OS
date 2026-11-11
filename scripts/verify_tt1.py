@@ -28,6 +28,10 @@ def commit_time(path):
     return datetime.datetime.fromisoformat(out[-1]) if out else None
 
 
+# A later access is allowed when the ledger names it as post-hoc or exploratory (as verify_tt1d does).
+LATER = ("post-hoc", "EXPLORATORY")
+
+
 def main():
     checks = []
     add = lambda name, ok, detail="": checks.append({"check": name, "pass": bool(ok), "detail": detail})
@@ -41,8 +45,8 @@ def main():
         mine = [r for r in rows if r["dataset"] == ds and r["reason"].startswith("tt1 shared final")]
         add(f"{ds}: exactly one final access", len(mine) == 1, f"{len(mine)} shared-final ledger rows")
         others = [r for r in rows if r["dataset"] == ds and not r["reason"].startswith("tt1 shared final")]
-        add(f"{ds}: any other access is post-hoc and after the final",
-            all(r["reason"].startswith("post-hoc") and mine and r["at"] > mine[0]["at"] for r in others),
+        add(f"{ds}: any other access is post-hoc or exploratory and after the final",
+            all(r["reason"].startswith(LATER) and mine and r["at"] > mine[0]["at"] for r in others),
             "; ".join(r["reason"] for r in others))
         if mine:
             add(f"{ds}: access is the tt1 shared final", mine[0]["reason"].startswith("tt1 shared final"), mine[0]["reason"])

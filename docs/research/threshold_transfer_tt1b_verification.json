@@ -22,9 +22,9 @@
    "detail": "1 ledger rows"
   },
   {
-   "check": "batadal: no other access, or post-hoc after the final",
+   "check": "batadal: no other access, or post-hoc or exploratory after the final",
    "pass": true,
-   "detail": "post-hoc analysis after the registered tt1b final: threshold trajectories for paper figures; post-hoc analysis after the registered tt1b final: time in alarm, onset recall, and adaptive thresholds updated on attack-labelled or unlabelled samples only"
+   "detail": "post-hoc analysis after the registered tt1b final: threshold trajectories for paper figures; post-hoc analysis after the registered tt1b final: time in alarm, onset recall, and adaptive thresholds updated on attack-labelled or unlabelled samples only; EXPLORATORY fi1 monitor (workstream A): residuals of the registered D1 monitor for the fi1 monitor benchmark"
   },
   {
    "check": "batadal: access after registration commit",

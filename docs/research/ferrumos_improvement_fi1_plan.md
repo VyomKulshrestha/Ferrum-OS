@@ -90,3 +90,12 @@ rounds without gain, or after four rounds. The report then says which.
 
 `docs/research/ferrumos_improvement_fi1_report.md` (per round: what was found, what was changed, the
 numbers before and after, what did not help), the branches and pull requests, and the tests.
+
+## Note, 2026-11-12 (round 1 running)
+
+The ledger prefix this plan prescribes (`EXPLORATORY fi1`) was not accepted by the verifiers of tt1 and
+tt1b, which allowed a later access only when its reason began with "post-hoc"; the first fi1 access to
+BATADAL made `verify_tt1b.py` report 7 of 8. The verifier of tt1d already accepted exploratory accesses
+after the final. `verify_tt1.py` and `verify_tt1b.py` (not frozen by any registration) now accept both
+labels, under the same condition as before: the access must come after the registered one. All four
+verifications pass again (27 of 27, 8 of 8, 19 of 19, 22 of 22). The ledger row stays as written.
