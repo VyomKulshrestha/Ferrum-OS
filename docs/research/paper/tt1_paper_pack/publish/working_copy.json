@@ -3,9 +3,9 @@
  "file": {
   "name": "latex_named/main.pdf",
   "source": "latex_named/main.pdf (scripts/tt1_named_version.py, tectonic)",
-  "bytes": 383522,
-  "md5": "0f08a19536856613775d2a2c25928248",
-  "sha256": "ffca610733bc44a1e95faa69fa0ea5153a45759e2db19b73f012d34a5513046f"
+  "bytes": 383523,
+  "md5": "0342814fb4faf5c47c20f408ed903978",
+  "sha256": "e4bdea9d313070cf5f2a5b55b593537088c3ee374f3bf3c6edc0c191785bc265"
  },
  "title": "Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned"
 }
