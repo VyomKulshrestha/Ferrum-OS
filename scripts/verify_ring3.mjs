@@ -127,7 +127,7 @@ function check(name, ok, detail = "") {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 90);
+  await waitForSerial("FerrumOS:~$", Number(process.env.FERRUMOS_BOOT_SECONDS || 90));
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;

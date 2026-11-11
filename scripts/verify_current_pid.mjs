@@ -128,7 +128,7 @@ async function runCommand(cmd) {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 45, 0);
+  await waitForSerial("FerrumOS:~$", Number(process.env.FERRUMOS_BOOT_SECONDS || 45), 0);
   check("boot reaches shell prompt", true);
 
   const yieldOut1 = await runCommand("test-syscall yield");

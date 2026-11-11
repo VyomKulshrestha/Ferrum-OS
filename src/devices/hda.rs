@@ -679,6 +679,7 @@ impl HdaController {
         }
 
         // Poke the CORBWP register so the controller fetches the command.
+        let started_tsc = unsafe { core::arch::x86_64::_rdtsc() };
         self.regs.write16(REG_CORBWP, self.corb_wp);
 
         // Poll RIRBWP until the controller has written a response.
@@ -701,6 +702,18 @@ impl HdaController {
                 return Err("HDA: RIRB timeout waiting for response");
             }
             core::hint::spin_loop();
+        }
+        // Boot timing showed ~16 s inside configure_input_path under WHPX.
+        // Name any verb that takes long, with its poll count: many polls
+        // means the codec answered late; few polls over a long time means
+        // the MMIO accesses themselves blocked in the hypervisor.
+        let polls = POLL_TIMEOUT - timeout;
+        let cycles = unsafe { core::arch::x86_64::_rdtsc() }.wrapping_sub(started_tsc);
+        if polls > 20_000 || cycles > 500_000_000 {
+            crate::serial_println!(
+                "HDA: slow verb nid={} verb={:#07X} polls={} tsc_cycles={}",
+                nid, verb, polls, cycles
+            );
         }
 
         // Advance our software read pointer.
