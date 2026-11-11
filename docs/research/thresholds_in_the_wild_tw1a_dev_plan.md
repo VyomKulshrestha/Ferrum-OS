@@ -166,3 +166,20 @@ discarded and the part is rerun with the rest. What the test changed:
    relative to the target's current reading. Against a threshold that follows the injected scores, that
    attacker's score grows without bound within the day, which no process-level attacker could produce.
    The uncapped campaigns stay as planned; every cell reports the largest injected score.
+
+## Amendment 3 (2026-11-11, after the full run of amendment 2)
+
+All fourteen parts ran. Eight of the nine targets completed with no disagreement between a reading and
+the target's decision. The Gaussian-tail calibrator was stopped in every part by the consistency check,
+during the uncapped sub-event pulses, when the injected score passed 1e12: the reading's search range
+ends there. The other targets' uncapped campaigns show the same growth (injected scores of 1e9 tau0 and
+far beyond), which confirms that the capped variants are the ones to read.
+
+1. **Rerun of the Gaussian-tail calibrator only**, in every part, with the uncapped attacker stopped at
+   1e6 tau0. The other targets are not rerun; their uncapped cells keep the unbounded attacker, and each
+   cell reports the largest injected score.
+2. **Not changed after seeing results:** targets, configurations, placements, magnitudes, the capped
+   variants and the outcome definitions.
+3. **Noted for a later pass, not run here:** the frog sits 3% below the reading (the tt1 value). Where a
+   target's alarm threshold lies less than 3% above the level from which it learns, that frog never
+   enters what the target learns from. A frog closer to the reading is a separate, later test.

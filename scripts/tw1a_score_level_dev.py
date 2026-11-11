@@ -6,6 +6,9 @@ Run with the tw1 environment (river, PySAD, libspot), after scripts/tw1a_export_
 
     python -I scripts/tw1a_score_level_dev.py versions
     python -I scripts/tw1a_score_level_dev.py mode <m> [full|young]    one mode  -> target/tw1/tw1a_mode<m>_<history>.json
+    python -I scripts/tw1a_score_level_dev.py mode <m> <history> <name part> <guard>
+            rerun, inside an existing part file, the targets whose name contains the part;
+            the uncapped attacker stops at <guard> times tau0 (amendment 3)
     python -I scripts/tw1a_score_level_dev.py merge                    summary   -> target/tw1/tw1a_summary.json
 
 Result files stay under target/tw1/ and are not committed (see the plan).
@@ -118,7 +121,7 @@ def reading(t, tau0):
     return v / tau0 if math.isfinite(v) else None
 
 
-def campaign(t, s, end, mode, K, tau0, stats):
+def campaign(t, s, end, mode, K, tau0, stats, guard=None):
     """One campaign on a target that stands at the start of the campaign window; the tt1d placement."""
     c_start, c_end = end - K["lead"] - K["campaign"], end - K["lead"]
     alarm = np.zeros(K["campaign"], bool)
@@ -142,6 +145,9 @@ def campaign(t, s, end, mode, K, tau0, stats):
                 "_cap"
             ):  # amendment 2: an attacker whose score never exceeds the loud level
                 lift = min(lift, cap)
+            elif guard is not None:
+                # amendment 3: a rerun stops the uncapped attacker at a fixed multiple of tau0
+                lift = min(lift, guard * tau0)
             if lift > x:
                 x, injected = lift, max(injected, lift)
         alarm[k] = step(t, x, i, stats, tau)
@@ -173,7 +179,7 @@ def chance(alarm, events, rng):
     return total / SHIFTS
 
 
-def run_mode(mode, history):
+def run_mode(mode, history, only=None, guard=None):
     K, M = SETUP["constants"], SETUP["modes"][str(mode)]
     z = np.load(CACHE / f"mode_{mode}.npz")
     tau0, pooled = M["tau0"], z["pooled"]
@@ -188,9 +194,13 @@ def run_mode(mode, history):
         "targets": {},
     }
     part = OUT / f"tw1a_mode{mode}_{history}.json"
+    if only and part.exists():
+        out = json.loads(part.read_text(encoding="utf-8"))
     for make in A.documented(tau0):
         t0 = time.time()
         warm = make()
+        if only and only not in warm.name:
+            continue
         stats = {
             "checked": 0,
             "in_band": 0,
@@ -201,6 +211,7 @@ def run_mode(mode, history):
         row = {
             "doc": warm.doc,
             "closed_loop": warm.closed_loop,
+            "uncapped_guard_over_tau0": guard,
             "sealed": [],
             "attack": [],
         }
@@ -216,7 +227,7 @@ def run_mode(mode, history):
                 cell = {"name": run["name"], "campaigns": {}}
                 for c in MODES if warm.closed_loop else ("control", "loud"):
                     u = t.clone()
-                    res, during, lead = campaign(u, s, end, c, K, tau0, stats)
+                    res, during, lead = campaign(u, s, end, c, K, tau0, stats, guard)
                     if c == "control":
                         after = feed(u, s[end:], stats, end)
                         whole = np.concatenate([before, during, lead, after])
@@ -387,7 +398,12 @@ if __name__ == "__main__":
     if cmd == "versions":
         print(json.dumps(A.versions(), indent=1))
     elif cmd == "mode":
-        run_mode(int(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "full")
+        run_mode(
+            int(sys.argv[2]),
+            sys.argv[3] if len(sys.argv) > 3 else "full",
+            sys.argv[4] if len(sys.argv) > 4 else None,
+            float(sys.argv[5]) if len(sys.argv) > 5 else None,
+        )
     elif cmd == "merge":
         merge()
     else:
