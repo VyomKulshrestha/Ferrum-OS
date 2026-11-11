@@ -37,7 +37,9 @@ pub fn sys_kexec(args: [u64; 6]) -> SyscallResult {
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
-    if bytes.len() < 4 {
+    // Only the single 4 KiB page at 0x900000 is mapped below; copying a longer
+    // image would write through whatever lies past it.
+    if bytes.len() < 4 || bytes.len() > 4096 {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 

@@ -848,8 +848,19 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
     };
     let kernel_stack_top = aligned_top(&kernel_stack);
     let mut next = NEXT_PID.lock();
-    let pid = *next;
-    *next += 1;
+    let mut pid = *next;
+    // Scheduler bookkeeping tasks (and the userspace model processes built
+    // on them, e.g. the `init` model at boot holding cap:system:all) take
+    // ids from their own counter starting at 100. Once user pids reach that
+    // range they must skip any id already in use: syscall dispatch resolves
+    // a pid's authority from the model registry first, so a ring-3 process
+    // that reused the `init` model's id would run with cap:system:all.
+    while crate::scheduler::capabilities_of(pid).is_some()
+        || crate::userspace::capabilities_for(pid).is_some()
+    {
+        pid += 1;
+    }
+    *next = pid + 1;
     let caps = crate::userspace::capabilities_for_program(name);
     let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
     let max_memory_pages = if is_exempt {
