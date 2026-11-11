@@ -68,3 +68,18 @@ tracker_capped, spot_gr.
 CUSUM (it changes the statistic, not the threshold rule), Telemanom at the budget (run in tt1c above
 the budget), a published detector, and the same analysis on HAI (needs the monitors refitted) or on
 BATADAL (the stored trace has no calibration scores).
+
+## Amendment 1 (2026-11-11, post-hoc: written after the first results were seen)
+
+The first run is in `threshold_transfer_tt1g_tep_v1.json` and stays as it is. In it both recalibration
+rules use one day of scores, and that window is too short: on attack-free runs the threshold of
+recal_oracle exceeded 1.5 tau0 in 21 of 56 runs and the rule caught 49 of 56 bumps of 1.05 tau0 with no
+campaign at all. A one-day window was a poor stand-in for the paper's recommendation, which is to
+recalibrate on verified clean data, not on little data. Two rules are added and reported as post-hoc:
+
+- **recal_pooled_quiet** and **recal_pooled_oracle**: as recal_quiet and recal_oracle, but an accepted
+  day is added to the pool of calibration data (the four calibration runs and every accepted day so far)
+  and the threshold is recalibrated on the whole pool by the same budget search.
+
+Measurements 1 to 4 are repeated for these two rules only (`natural2`, `campaigns2`), and merged into the
+same result file under their own names.
