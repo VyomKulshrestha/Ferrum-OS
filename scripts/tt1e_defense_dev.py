@@ -197,7 +197,7 @@ def play(rule, cfg, calib, s, end, mode):
                 x = max(x, SUBL_H * tau)
             if x > tau:
                 alarms += 1
-                if last is None or i - last > X.GAP:
+                if last is None or i - last > X.GAP + 1:   # fi1: merge across up to GAP quiet steps, as _episodes does
                     episodes += 1
                     first = i
                 last = i

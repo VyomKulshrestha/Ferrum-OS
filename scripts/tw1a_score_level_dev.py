@@ -20,6 +20,7 @@ import json
 import math
 import sys
 import time
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -172,11 +173,25 @@ def chance(alarm, events, rng):
     """Mean number of events with an alarm inside when the alarm sequence is shifted circularly (tt1f)."""
     if not events or not alarm.any():
         return 0.0
-    n, total = len(alarm), 0
-    for shift in rng.integers(1, n, SHIFTS):
-        rolled = np.roll(alarm, int(shift))
-        total += sum(bool(rolled[a:b].any()) for a, b, _ in events)
+    n = len(alarm)
+    shifts = rng.integers(1, n, SHIFTS)
+    # np.roll(alarm, k)[a:b] holds alarm[(a - k) % n : (b - k) % n], wrapped; counted with a cumulative sum
+    # (fi1: same value as rolling the array per shift, without the per-shift copy)
+    cum = np.concatenate([[0], np.cumsum(alarm, dtype=np.int64)])
+    total = 0
+    for a, b, _ in events:
+        lo, hi = (a - shifts) % n, (b - shifts) % n
+        inside = np.where(hi <= lo, cum[n] - cum[lo] + cum[hi], cum[hi] - cum[lo])
+        total += int((inside > 0).sum())
     return total / SHIFTS
+
+
+def chance_rng(mode, name, run):
+    """fi1 audit: one generator per (mode, target, attack run), so a target's chance reference does not depend
+    on which targets ran before it (an `only` rerun reproduces the full run)."""
+    return np.random.default_rng(
+        [20261111, int(mode), zlib.crc32(name.encode()), zlib.crc32(run.encode())]
+    )
 
 
 def run_mode(mode, history, only=None, guard=None):
@@ -184,7 +199,6 @@ def run_mode(mode, history, only=None, guard=None):
     z = np.load(CACHE / f"mode_{mode}.npz")
     tau0, pooled = M["tau0"], z["pooled"]
     hist = pooled if history == "full" else pooled[-YOUNG:]
-    rng = np.random.default_rng(20261111 + mode)
     out = {
         "mode": mode,
         "history": history,
@@ -253,7 +267,11 @@ def run_mode(mode, history, only=None, guard=None):
                         "type": run["type"],
                         "found": [bool(alarm[a:b].any()) for a, b, _ in run["events"]],
                         "onset": [bool(starts[a:b].any()) for a, b, _ in run["events"]],
-                        "chance_found": chance(alarm, run["events"], rng),
+                        "chance_found": chance(
+                            alarm,
+                            run["events"],
+                            chance_rng(mode, warm.name, run["name"]),
+                        ),
                         "fa": int(sum(1 for a, b in eps if not lab[a:b].any())),
                         "alarm_unlabelled": int((alarm & ~lab).sum()),
                         "unlabelled_steps": int((~lab).sum()),
