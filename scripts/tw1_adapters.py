@@ -188,6 +188,7 @@ class PysadGaussian(Target):
 
     eps = 1e-9
     high = math.inf
+    point = None
 
     def __init__(self, window_size=1000, cut=0.99):
         from pysad.transform.probability_calibration import (
@@ -218,11 +219,14 @@ class PysadGaussian(Target):
         shadow = copy.copy(self.g)
         shadow.avg_meter = self._after(self.g.avg_meter, x)
         shadow.var_meter = self._after(self.g.var_meter, x)
-        return shadow._calibrate((sum(prev) + x) / (len(prev) + 1)) >= self.cut
+        window = prev + [
+            x
+        ]  # summed as the target sums its short window (Python compensates float sums)
+        return shadow._calibrate(sum(window) / len(window)) >= self.cut
 
     def tau(self):
         g = self.g
-        self.high = math.inf
+        self.high, self.point = math.inf, None
         if not g.short_window or not g.running_statistics:
             return math.inf
         prev = (
@@ -230,15 +234,21 @@ class PysadGaussian(Target):
             if g.short_window_size > 1
             else []
         )
+        var = g.var_meter.get()
+        if var == 0.0:
+            # The long window holds one repeated value. Through rounding in the comparison of the two means
+            # the target can alarm on exactly that value again; this single point is kept apart.
+            last = g.avg_meter.window[-1]
+            if self._would(last, prev):
+                self.point = last
 
         def would(v):
-            return self._would(v, prev)
+            return v != self.point and self._would(v, prev)
 
         # The score that puts the short-window mean on the long-window mean. It does not alarm, unless the
         # long window holds one repeated value: the target then alarms on anything above that value.
         centre = (len(prev) + 1) * g.avg_meter.get() - sum(prev)
-        sd = math.sqrt(max(g.var_meter.get(), 0.0))
-        unit = max(sd, 1e-9 * max(1.0, abs(centre)))
+        unit = max(math.sqrt(max(var, 0.0)), 1e-9 * max(1.0, abs(centre)))
         if would(centre):
             below = next(
                 (
@@ -252,11 +262,13 @@ class PysadGaussian(Target):
                 return -math.inf
             hit, centre = centre, below
         else:
+            # While the long window is short, a large score raises its own deviation and the alarming scores
+            # form a narrow band above the mean, so the search upward goes in steps of 5%.
             hit = next(
                 (
-                    centre + unit * 2.0**k
-                    for k in range(80)
-                    if would(centre + unit * 2.0**k)
+                    centre + unit * 1.05**k
+                    for k in range(-40, 700)
+                    if would(centre + unit * 1.05**k)
                 ),
                 None,
             )
@@ -268,7 +280,7 @@ class PysadGaussian(Target):
         return bisect_tau(would, centre, hit)
 
     def expected(self, x, tau):
-        return tau < x <= self.high
+        return tau < x <= self.high or x == self.point
 
 
 class PysadLikelihood(Target):

@@ -189,3 +189,11 @@ the consistency check in five. After a long run of one repeated score the calibr
 zero variance, and it then alarms on any score above that value; the reading assumed a non-alarming
 score at the long-window mean. The reading now searches below the mean in that state. The five stopped
 parts are rerun with it; nothing else changes.
+
+Second note to amendment 3 (2026-11-11): one part (mode 2, full history) was stopped once more, at the
+sixth score of the calibration data, which begins with one value repeated seven times. With zero
+variance in its long window the calibrator compares two means of the same values that differ by one
+rounding step, and alarms on the repeated value. The reading now sums the short window as the target
+does and keeps that single point apart. After this, all nine targets completed in all fourteen parts
+with no disagreement between a reading and a decision. The Gaussian-tail parts that had already
+completed were not rerun.
