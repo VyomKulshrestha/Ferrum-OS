@@ -1,4 +1,4 @@
-# Thresholds That Travel: Adaptive Alarm Thresholds Let Attacks Through in ICS Anomaly Detection
+# Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned
 
 **Superseded from the revision of 2026-11-10.** The LaTeX source `tt1_paper_pack/latex/main.tex` is the paper. This draft keeps the text as of 2026-11-07 for the record, except the abstract below, which is the current one; it does not contain the tt1d study (Tennessee Eastman, ProvICS), the tt1e experiments or the appendices.
 

@@ -112,7 +112,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "542df8360d16fcce2bd371578967ee8a5d594a316817397640ae466c44d9ea55",
+   "sha256": "3d616c18640e5034878334d03e9b7a8fcf9ff2d7d3b58f77eaa7977205bd0f3d",
    "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e and tt1f results, appendices A to F)"
   },
   "latex/refs.bib": {
@@ -140,7 +140,7 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "0fd4e6d56d7847322473e3454c9f74edacda7f6cd51ef3fb83a52bfbee63b323",
+   "sha256": "959003e4ad3a38e962493ab4c8aecf41424970570e0cfcf97a865200499b2fee",
    "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e and tt1f results, appendices A to F)"
   },
   "latex_usenix/refs.bib": {
@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "e824c02d0cc4ce699c868f420dac6e1cce0f2a0c0dd8438696de9b7f6824197b",
+   "sha256": "24fc77279601ed5f3423b860f69a2ea5dfa4605de23ff3d63c919982c1e0b26e",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true,
    "built_by": "superseded by latex/main.tex from 2026-11-10; abstract kept current"
@@ -293,11 +293,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "79c97a7830289581ccc17c3d637628b38715080835ddfad81080bb22d0ccbbec",
+   "sha256": "a5401eb0dd97b8a35e1875e01cc6e2aaaef9cb2efc07d3dd403803f65f659b32",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "8d38b15172a668ebd9cf7ebe025dd2b70ac7462b853b180b6721697c9d8bd221",
+   "sha256": "2cd625019badf956b61fe8175920aa4bed5f10fa6397a521447b4138d0d1197f",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
@@ -353,7 +353,7 @@
    "built_by": "CTAN acmart v2.21 release"
   },
   "latex_named/main.tex": {
-   "sha256": "436fc2a104e62407a7523d28526807101c46b8d782daff394bd3c7fdb82dcbf6",
+   "sha256": "b7091c7893508aba1f40b4fcf64fd4c1d9d709d95e08c89191c1f00244603164",
    "built_by": "scripts/tt1_named_version.py from latex/main.tex"
   },
   "latex_named/refs.bib": {
@@ -369,7 +369,7 @@
    "built_by": "copy of latex/ACM-Reference-Format.bst"
   },
   "latex_named/main.pdf": {
-   "sha256": "596374776d4e72023edcc4323ad7140d309cf148bea982a5c6ff380105f3ed10",
+   "sha256": "a046f1253fdbf2d53d59f366736b0fee64f95454428a94c37b74dbe28040b762",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "publish/README.md": {
@@ -437,7 +437,7 @@
    "built_by": "amendment 1 of tt1d, committed before the second ProvICS attempt"
   },
   "publish/zenodo_metadata_v1_1.json": {
-   "sha256": "2fa5abba58ddd8648e19a3252ae6cc9adb68dc5fca4b8f2dfd704810874afec2",
+   "sha256": "053f97a1da892972a424703173b381f87389856e4d02bb7a932e6beecdb506ed",
    "built_by": "Zenodo deposit fields for preprint version 1.1 (prepared, not published)"
   },
   "protocols/threshold_transfer_tt1f_dev_plan.md": {

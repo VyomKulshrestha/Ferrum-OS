@@ -10,14 +10,14 @@
  "file": {
   "name": "Thresholds_That_Travel_preprint_v1.1.pdf",
   "source": "latex_named/main.pdf (scripts/tt1_named_version.py, tectonic)",
-  "bytes": 378975,
-  "md5": "990a367da56344c723af9280570ad7a9",
-  "sha256": "596374776d4e72023edcc4323ad7140d309cf148bea982a5c6ff380105f3ed10"
+  "bytes": 376638,
+  "md5": "cf9d3b205215a8014c0decefa2fc060c",
+  "sha256": "cd3956ff3f28d5b2583f029259e38ecf833f42edb334e2cdec8f2cfb575f03a7"
  },
  "metadata": {
   "upload_type": "publication",
   "publication_type": "preprint",
-  "title": "Thresholds That Travel: Adaptive Alarm Thresholds Let Attacks Through in ICS Anomaly Detection",
+  "title": "Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned",
   "creators": [
    {
     "name": "Kulshrestha, Vyom",

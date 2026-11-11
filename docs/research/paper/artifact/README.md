@@ -1,7 +1,6 @@
 # Thresholds That Travel: review artifact
 
-Artifact for the anonymous submission *Thresholds That Travel: Adaptive Alarm Thresholds Let Attacks
-Through in ICS Anomaly Detection*. It holds the three pre-registrations, the data-access ledger, the
+Artifact for the anonymous submission *Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned*. It holds the three pre-registrations, the data-access ledger, the
 harnesses that ran the registered finals and every exploratory and post-hoc analysis, the verifiers, the
 result file behind every number in the paper, and the figure data and plotting code. The raw datasets are
 public and are not redistributed here.
