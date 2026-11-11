@@ -32,14 +32,14 @@ const SPEC: &[(&str, u8)] = &[
     ("query_memory", 0), ("get_config", 0), ("system_info", 0), ("list_processes", 0),
     ("add_subtask", 0), ("camera_capture", 0), ("gesture_status", 0), ("hud_update", 0),
     ("hit_test", 0), ("physical_status", 0),
-    ("ipc_send", 1), ("audit_write", 1), ("yield_cpu", 1), ("report_status", 1),
+    ("ipc_send", 1), ("physical_maintenance_demo", 1), ("audit_write", 1), ("yield_cpu", 1), ("report_status", 1),
     ("capability_check", 1), ("read_file", 1), ("read_dir", 1), ("sleep", 1),
     ("read_screen", 1), ("set_volume", 1), ("poll_input", 1), ("local_inference", 1),
     ("net_connect", 2), ("net_send", 2), ("net_recv", 2), ("http_get", 2),
     ("load_memory", 2), ("set_goal", 2), ("record_audio", 2), ("browse_url", 2),
     ("write_file", 3), ("create_directory", 3), ("save_memory", 3), ("service_start", 3),
     ("service_stop", 3), ("play_audio", 3), ("keyboard_type", 3), ("mouse_click", 3),
-    ("mouse_move", 3), ("physical_maintenance_demo", 3),
+    ("mouse_move", 3),
     ("exec_process", 4), ("delete_file", 4), ("trigger_kernel_upgrade", 4),
 ];
 
@@ -243,7 +243,7 @@ fn every_decision_cell_matches_the_specification() {
             }
         }
     }
-    assert_eq!(cells, 782, "decision cells enumerated");
+    assert_eq!(cells, 768, "decision cells enumerated");
 }
 
 #[test]

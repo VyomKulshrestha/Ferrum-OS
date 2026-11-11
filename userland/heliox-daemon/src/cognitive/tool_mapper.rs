@@ -226,7 +226,7 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 38. `physical_status` - Inspect the independent physical-operations runtime and model status.
     Arguments: {}
 
-39. `physical_maintenance_demo` - Run the simulator-only maintenance workflow through the physical world model and deterministic safety supervisor (REQUIRES CONFIRMATION).
+39. `physical_maintenance_demo` - Run the simulator-only maintenance workflow through the physical world model and deterministic safety supervisor.
     Arguments: {"confirm_simulation": true}
 
 Respond with a JSON object: {"tool": "<tool_name>", "args": {<arguments>}}

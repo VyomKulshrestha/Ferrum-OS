@@ -946,8 +946,8 @@ impl Orchestrator {
     /// observation and training path.
     fn execute_action(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
         // Tools implemented here never reach tool_mapper::execute, so they
-        // take the same tier/confirmation step explicitly (save_memory and
-        // physical_maintenance_demo are Tier 3).
+        // take the same tier/confirmation step explicitly (save_memory is
+        // Tier 3).
         const INTERNAL_TOOLS: [&str; 8] = [
             "query_memory", "save_memory", "load_memory", "set_goal", "get_config",
             "add_subtask", "physical_status", "physical_maintenance_demo",

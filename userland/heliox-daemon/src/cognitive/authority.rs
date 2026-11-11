@@ -58,6 +58,11 @@ pub const TOOL_TIERS: &[(&str, PermissionTier)] = &[
     ("set_volume", PermissionTier::Safe),
     ("poll_input", PermissionTier::Safe),
     ("local_inference", PermissionTier::Safe),
+    // Simulator-only work order behind the deterministic physical supervisor;
+    // it cannot reach an actuator (Live delivery is refused). Its
+    // `confirm_simulation` flag is chosen by the caller and is not an operator
+    // approval (open question O7 in docs/research/fi1_reports/userland_round1.md).
+    ("physical_maintenance_demo", PermissionTier::Safe),
     // Tier 2: Network
     ("net_connect", PermissionTier::Network),
     ("net_send", PermissionTier::Network),
@@ -77,9 +82,6 @@ pub const TOOL_TIERS: &[(&str, PermissionTier)] = &[
     ("keyboard_type", PermissionTier::Modify),
     ("mouse_click", PermissionTier::Modify),
     ("mouse_move", PermissionTier::Modify),
-    // Simulator-only, but it runs a work order end to end: the model's own
-    // `confirm_simulation` flag is not an operator approval.
-    ("physical_maintenance_demo", PermissionTier::Modify),
     // Tier 4: Destructive
     ("exec_process", PermissionTier::Destructive),
     ("delete_file", PermissionTier::Destructive),
