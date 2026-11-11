@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
 
+# Every multi-command step sets $PSNativeCommandUseErrorActionPreference: without it PowerShell reports
+# only the exit code of a step's last command, and a failing check in the middle of a step would pass.
 jobs:
   build:
     name: Build kernel + userland
@@ -27,6 +29,7 @@ jobs:
 
       - name: Verify public benchmark and capability evidence
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           python scripts/generate_public_evidence.py --check
           python scripts/verify_public_json_schemas.py
           python scripts/verify_public_evidence_contract.py
@@ -37,12 +40,14 @@ jobs:
 
       - name: Lint public evidence tooling
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           ruff check scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
           ruff format --check scripts/generate_public_evidence.py scripts/verify_public_json_schemas.py scripts/verify_public_evidence_contract.py scripts/verify_qemu_command_evidence.py scripts/verify_repository_discovery.py
         shell: pwsh
 
       - name: Verify cyber-physical and neural safety contracts
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           cargo test --manifest-path userland/physical-runtime/Cargo.toml --target x86_64-pc-windows-msvc
           cargo test --manifest-path userland/neural-protocol/Cargo.toml --target x86_64-pc-windows-msvc
           python -m unittest discover -s tools/neurod -p "test_*.py"
@@ -61,8 +66,22 @@ jobs:
 
       - name: Lint physical incident evidence tooling
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           ruff check scripts/physical_incident_scenarios.py scripts/physical_stress_scenarios.py scripts/physical_qualification_scenarios.py scripts/select_physical_incident_jepa.py scripts/evaluate_physical_jepa_v3_baselines.py scripts/promote_physical_jepa_v3.py scripts/verify_physical_jepa_v3_protocol.py scripts/verify_physical_stress_scenarios.py scripts/verify_physical_simulation_caution.py scripts/promote_physical_incident_evidence.py scripts/analyze_physical_jepa_false_negatives.py scripts/verify_physical_incident_sources.py scripts/verify_physical_incident_dataset.py scripts/verify_physical_world_model.py scripts/evaluate_physical_jepa_robustness.py scripts/verify_physical_jepa_robustness.py scripts/evaluate_physical_deployment_qualification.py scripts/calibrate_physical_jepa_runtime.py scripts/verify_physical_deployment_qualification.py
           ruff format --check scripts/physical_incident_scenarios.py scripts/physical_stress_scenarios.py scripts/physical_qualification_scenarios.py scripts/select_physical_incident_jepa.py scripts/evaluate_physical_jepa_v3_baselines.py scripts/promote_physical_jepa_v3.py scripts/verify_physical_jepa_v3_protocol.py scripts/verify_physical_stress_scenarios.py scripts/verify_physical_simulation_caution.py scripts/promote_physical_incident_evidence.py scripts/analyze_physical_jepa_false_negatives.py scripts/verify_physical_incident_sources.py scripts/verify_physical_incident_dataset.py scripts/verify_physical_world_model.py scripts/evaluate_physical_jepa_robustness.py scripts/verify_physical_jepa_robustness.py scripts/evaluate_physical_deployment_qualification.py scripts/calibrate_physical_jepa_runtime.py scripts/verify_physical_deployment_qualification.py
+        shell: pwsh
+
+      # Tests of the analysis code behind the research papers (fi1). They use synthetic inputs and files
+      # tracked in git; no dataset is needed.
+      - name: Analysis pipeline tests
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          python -m pip install --disable-pip-version-check pytest==9.2.0 scipy==1.15.3 scikit-learn==1.9.1 lightgbm==4.6.0 pandas==2.2.3
+          Push-Location scripts
+          python -m pytest -q test_fi1_pipeline.py test_real_telemetry_detect_v2.py test_threshold_online_v2.py test_threshold_rules_tt1c_v2.py test_tt1d_data_v2.py
+          Pop-Location
+          ruff check scripts/test_fi1_pipeline.py scripts/tt1d_final_v2.py scripts/real_telemetry_core_v2.py scripts/fi1_tt1_g2_cluster_check.py scripts/fi1_gpd_cold_check.py scripts/tw1_adapters.py scripts/tw1a_score_level_dev.py
+          ruff format --check scripts/test_fi1_pipeline.py scripts/tt1d_final_v2.py scripts/real_telemetry_core_v2.py scripts/fi1_tt1_g2_cluster_check.py scripts/fi1_gpd_cold_check.py scripts/tw1_adapters.py scripts/tw1a_score_level_dev.py
         shell: pwsh
 
       - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)
@@ -78,6 +97,7 @@ jobs:
 
       - name: Show toolchain (rustup reads rust-toolchain.toml automatically)
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           rustup show
           rustc --version
           clang --version
@@ -95,6 +115,7 @@ jobs:
       # an artifact lets a pull request be booted on a machine that cannot link the kernel itself.
       - name: Build the boot image
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           cargo install bootimage --version 0.10.4 --locked
           cargo bootimage
         shell: pwsh
