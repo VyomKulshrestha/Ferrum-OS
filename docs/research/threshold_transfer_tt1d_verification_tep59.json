@@ -19,6 +19,11 @@
    "detail": "2026-11-10 16:24:27+05:30"
   },
   {
+   "check": "ledger: every other access to tep59-attacks is exploratory and after the final",
+   "pass": true,
+   "detail": "1 exploratory entries"
+  },
+  {
    "check": "ledger: first access to tep59-attacks follows the registration commit",
    "pass": true,
    "detail": "access 2026-11-10T10:54:55.080161+00:00 vs registration 2026-11-10 16:24:27+05:30"
@@ -27,6 +32,11 @@
    "check": "ledger: tep59-attacks opened once",
    "pass": true,
    "detail": "1 entries"
+  },
+  {
+   "check": "ledger: every other access to tep59-sealed-normal is exploratory and after the final",
+   "pass": true,
+   "detail": "1 exploratory entries"
   },
   {
    "check": "ledger: first access to tep59-sealed-normal follows the registration commit",

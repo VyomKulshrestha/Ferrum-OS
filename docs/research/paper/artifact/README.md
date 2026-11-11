@@ -1,7 +1,6 @@
 # Thresholds That Travel: review artifact
 
-Artifact for the anonymous submission *Thresholds That Travel: Adaptive Alarm Thresholds Let Attacks
-Through in ICS Anomaly Detection*. It holds the three pre-registrations, the data-access ledger, the
+Artifact for the anonymous submission *Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned*. It holds the three pre-registrations, the data-access ledger, the
 harnesses that ran the registered finals and every exploratory and post-hoc analysis, the verifiers, the
 result file behind every number in the paper, and the figure data and plotting code. The raw datasets are
 public and are not redistributed here.
@@ -18,10 +17,12 @@ public and are not redistributed here.
 | `docs/research/threshold_transfer_tt1*_data_access.json` | How each dataset was fetched and hashed before registration |
 | `target/real-telemetry/final_access.jsonl` | The access ledger: one line per opening of recorded attack data, with its reason and time |
 | `docs/research/threshold_transfer_tt1_result_*.json`, `..._tt1b_result_batadal.json`, `..._tt1d_result_{tep59,provics}.json` | Registered results (the harness computes the gates itself). The tt1d files hold every per-run record |
-| `docs/research/threshold_transfer_tt1*_verification*.json` | Verifier reports: 27 of 27 checks (tt1), 8 of 8 (tt1b), 17 of 17 and 20 of 20 (tt1d) |
+| `docs/research/threshold_transfer_tt1*_verification*.json` | Verifier reports: 27 of 27 checks (tt1), 8 of 8 (tt1b), 19 of 19 and 22 of 22 (tt1d; two of the checks cover the later, exploratory accesses in the ledger) |
 | `docs/research/threshold_transfer_*dev*.json`, `*posthoc*.json`, `*memory_check.json` | Exploratory analyses on the spent development releases and post-hoc analyses of the registered data, labelled as such in the paper |
 | `docs/research/threshold_transfer_tt1c_dev_plan.md`, `..._tt1c_dev_v1.json` | Stronger adaptive baselines and canonical SPOT (exploratory); the plan was fixed before the runs |
 | `docs/research/threshold_transfer_tt1e_dev_plan.md`, `..._tt1e_dev_v1.json` | Ceilings, sub-event pulses, an approval gate, the frog at several terminal sizes and a reconstruction score (exploratory); the plan was fixed before the runs |
+| `docs/research/threshold_transfer_tt1f_dev_plan.md`, `..._tt1f_{tep,batadal,provics_mask,process}_v1.json`, `..._tt1f_findings.md` | Exploratory round after the second review: a chance reference for the detection counts, matched operating points, time to clear, SPOT under the frog, BATADAL from the stored trace, the ProvICS validity mask, sensor-level campaigns on HAI. The plan and its two amendments were committed before the analyses they cover. |
+| `docs/research/monitor_audit_2026-11-10.md`, `scripts/*_v2.py`, `scripts/test_*_v2.py` | Audit of the frozen analysis code after the finals: five defects, corrected versions beside the frozen files, regression tests. The frozen files are unchanged. |
 | `docs/research/threshold_transfer_tt1_findings.md` | Running findings record of the study |
 | `docs/research/paper/figure_data/`, `docs/research/paper/figures/` | Plot-ready CSVs and the scripts that draw Figures 1-5 |
 | `scripts/` | Rules, loaders, monitor, harnesses, campaigns and verifiers |
@@ -59,7 +60,8 @@ redistribution) into `target/real-telemetry/raw/provics/` with the repository's 
   produced on the full repository.
 - **Exploratory and post-hoc analyses.** `scripts/tt1b_dev.py`, `tt1b_attacks_dev.py`,
   `tt1b_frog_dev.py`, `tt1b_physfrog_dev.py`, `tt1b_frog_synthetic.py`, `tt1b_posthoc.py`,
-  `tt1c_baselines_dev.py`, `tt1e_defense_dev.py`, `tt1_posthoc_alarm_time.py`; `tt1_memory_check.py` uses the figure data only.
+  `tt1c_baselines_dev.py`, `tt1e_defense_dev.py`, `tt1_posthoc_alarm_time.py`, `tt1f_tep_dev.py`, `tt1f_provics_mask.py`, `tt1f_process_dev.py` (HAI normal data only);
+  `tt1f_batadal_trace.py` uses the figure data only; `tt1_memory_check.py` uses the figure data only.
   Each script's docstring gives its commands and output file.
 - **Figures.** From `docs/research/paper/figures/`, `python -B fig1_learning_regions.py` (and `fig2` to
   `fig5`); each script checks its figure against the CSV before saving.

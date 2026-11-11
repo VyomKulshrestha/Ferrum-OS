@@ -34,16 +34,16 @@ tables and figures land after the references, so the preamble relaxes the float 
 `\FloatBarrier` (package `placeins`) before the conclusion flushes every float ahead of it. The USENIX
 copy carries the same settings.
 
-## Page count (from the committed PDFs, 2026-11-01)
+## Page count (from the committed PDFs, 2026-11-11)
 
 | | ACM sigconf | USENIX |
 |---|---|---|
-| Total pages | 11 | 13 |
-| Body text ends | page 10 (conclusion; references begin there) | page 11 |
-| Ethical considerations and Open science appendices | page 11 | page 12 |
+| Total pages | 21 | 23 |
+| Body text ends | page 12 (conclusion; references begin there) | page 14 |
+| Ethical considerations and Open science appendices | page 13 | pages 15 and 16 |
 
 ASIA CCS 2027 allows 12 pages excluding the bibliography and well-marked appendices, plus up to 10
-further pages for them. The body ends on page 10.
+further pages for them. The body ends on page 12 and the references and appendices take pages 12 to 21.
 
 ## Still to do before submission
 

@@ -90,3 +90,19 @@ jobs:
       - name: Build
         run: cargo build
         shell: pwsh
+
+      # The ring-3 and syscall harnesses (scripts/verify_*.mjs) boot this image in QEMU. Keeping it as
+      # an artifact lets a pull request be booted on a machine that cannot link the kernel itself.
+      - name: Build the boot image
+        run: |
+          cargo install bootimage --version 0.10.4 --locked
+          cargo bootimage
+        shell: pwsh
+
+      - name: Upload the boot image
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootimage-ferrumos
+          path: target/x86_64-unknown-none/debug/bootimage-ferrumos.bin
+          retention-days: 7
+          if-no-files-found: error

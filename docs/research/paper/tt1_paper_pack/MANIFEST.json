@@ -112,8 +112,8 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex/main.tex": {
-   "sha256": "21484506f48198b00f1a59130c0d5dde63aaa3e6099c1cfa09af4b68d9a60c10",
-   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d and tt1e results, appendices A to D)"
+   "sha256": "3d616c18640e5034878334d03e9b7a8fcf9ff2d7d3b58f77eaa7977205bd0f3d",
+   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e and tt1f results, appendices A to F)"
   },
   "latex/refs.bib": {
    "sha256": "d425f783cb5030de47120bbb7d7c45963873883f65c6e7bba6da3d39f8432ab9",
@@ -140,8 +140,8 @@
    "built_by": "Claude Science LaTeX session (prompt 3); not yet compiled"
   },
   "latex_usenix/main.tex": {
-   "sha256": "563838d5277475ad559e46cbbe8f9b98cda025e442ff5c4773b39200456a0134",
-   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d and tt1e results, appendices A to D)"
+   "sha256": "959003e4ad3a38e962493ab4c8aecf41424970570e0cfcf97a865200499b2fee",
+   "built_by": "Claude Science LaTeX session (prompt 3); later revisions by the author, the last on 2026-11-10 (tt1d, tt1e and tt1f results, appendices A to F)"
   },
   "latex_usenix/refs.bib": {
    "sha256": "d425f783cb5030de47120bbb7d7c45963873883f65c6e7bba6da3d39f8432ab9",
@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "cdffa35afa8f5471287251ac1f9b306b0af74dfa02a7bac3a408a8c775d0fa75",
+   "sha256": "fc2280d5aff2d30242c7157e418ddbf8e7d9d39f1ce0abb7d09ef4fb8a388b2f",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true,
    "built_by": "superseded by latex/main.tex from 2026-11-10; abstract kept current"
@@ -196,7 +196,7 @@
    "identical_to_source": true
   },
   "README.md": {
-   "sha256": "7ce94575df13ddb973ce3758f18f5e367f15d24930b2cc63e2ee82e6d80a7648",
+   "sha256": "95d3b4c0493d928da034449ed1796f09a2f19de6aa8213ca72b942145d295fe6",
    "built_by": "written for the pack"
   },
   "results/threshold_transfer_dev_v1.json": {
@@ -293,11 +293,11 @@
    "built_by": "Claude Science review session (review_report.md) / response by the author (review_response.md)"
   },
   "latex/main.pdf": {
-   "sha256": "ce94758b00af3a0ea9e46e167e9dea760128a49f6d7b1a092423f3d9817f25c8",
+   "sha256": "a5401eb0dd97b8a35e1875e01cc6e2aaaef9cb2efc07d3dd403803f65f659b32",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "latex_usenix/main.pdf": {
-   "sha256": "fca4742d67b3948110ee15b8d692e7a2ea51ef72438a104a1a0957bda51af6c5",
+   "sha256": "2cd625019badf956b61fe8175920aa4bed5f10fa6397a521447b4138d0d1197f",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "results/threshold_transfer_tt1_memory_check.json": {
@@ -321,7 +321,7 @@
    "built_by": "written for the pack"
   },
   "latex/README.md": {
-   "sha256": "6fad5d55437352f18a8c77f6b4890e5ab315d6743d294576331e0d00c5482886",
+   "sha256": "3377fcb6d9994ef1e986da1ff7be09f3ac7bc93e13fa4f2caed3664b06f9d4b8",
    "built_by": "Claude Science LaTeX session (prompt 3); updated by the author 2026-11-01"
   },
   "review/literature_report.md": {
@@ -353,7 +353,7 @@
    "built_by": "CTAN acmart v2.21 release"
   },
   "latex_named/main.tex": {
-   "sha256": "257069309620f041671222458d7ef21c2f03ab7f9c092be9d75d3810cd02ee45",
+   "sha256": "b7091c7893508aba1f40b4fcf64fd4c1d9d709d95e08c89191c1f00244603164",
    "built_by": "scripts/tt1_named_version.py from latex/main.tex"
   },
   "latex_named/refs.bib": {
@@ -369,15 +369,15 @@
    "built_by": "copy of latex/ACM-Reference-Format.bst"
   },
   "latex_named/main.pdf": {
-   "sha256": "9cd9c0271a0fb10f9283278e81f767764559888cdd0007ff15472485d55a2363",
+   "sha256": "a046f1253fdbf2d53d59f366736b0fee64f95454428a94c37b74dbe28040b762",
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "publish/README.md": {
-   "sha256": "e9e6ac789e9d4ec642e600ff7e750bcc13a43cb2089b6a90557a8570574df789",
+   "sha256": "00f971fa34d82c91293a371e4f417a19384b1171eebf0839dfef382db4080731",
    "built_by": "written for the pack, 2026-11-07"
   },
   "publish/abstract.txt": {
-   "sha256": "dbf68de170cbd8182fa0a00af5b78ffece03c95eabfdb2c5bb008f38a6acfd7b",
+   "sha256": "450b20d6cdbf5fc5597332b986bec5fb1abffe98855d486370072cd6c1a9412e",
    "built_by": "abstract of the Markdown draft, plain text"
   },
   "publish/zenodo_metadata.json": {
@@ -421,11 +421,11 @@
    "built_by": "scripts/tt1d_provics_amendment1.py (registered, amendment 1)"
   },
   "results/threshold_transfer_tt1d_verification_tep59.json": {
-   "sha256": "ef95e4ebb655f4d1459059fb15040beb1216b33962e4b4ee0aed0c647776f465",
+   "sha256": "c87025fbe28e55871a760a629f114df12cd5f79767f1fcdcd38ba7b1582a7785",
    "built_by": "scripts/verify_tt1d.py tep59"
   },
   "results/threshold_transfer_tt1d_verification_provics.json": {
-   "sha256": "62fd72cde0d413aa05eae73d68420df73e8df5150fba2b7287a5e8dfba11245b",
+   "sha256": "41e8a87a97ab05e9cbd4e81ff98a709cf4ccb9c4cb5e291d005da9d829ee2188",
    "built_by": "scripts/verify_tt1d.py provics"
   },
   "protocols/threshold_transfer_tt1d_protocol.json": {
@@ -437,8 +437,68 @@
    "built_by": "amendment 1 of tt1d, committed before the second ProvICS attempt"
   },
   "publish/zenodo_metadata_v1_1.json": {
-   "sha256": "0a3ad00d7d954761c7d9a96cfaba5ae5ae773c222bcc304c409e9c766e2541d4",
+   "sha256": "5c495a1c50ee2c51aa0aea168bc5678a4f0da3d5e6d90c0d9b151cb8eacce706",
    "built_by": "Zenodo deposit fields for preprint version 1.1 (prepared, not published)"
+  },
+  "protocols/threshold_transfer_tt1f_dev_plan.md": {
+   "sha256": "06ad07d0e0844abff58f57ab96799a159eae9956aafb9479e4169ffeed59ff28",
+   "built_by": "plan of the tt1f exploratory round with two amendments, each committed before the analyses it covers"
+  },
+  "results/threshold_transfer_tt1f_tep_v1.json": {
+   "sha256": "d70af5104ce5ad5112b4e5f7ff7a2ebf8e8a32d8793fdfef2e1d60a8d3c584c7",
+   "built_by": "scripts/tt1f_tep_dev.py analyse (exploratory, ledgered second access)"
+  },
+  "results/threshold_transfer_tt1f_batadal_v1.json": {
+   "sha256": "964d3eb869fb3b5746a32ad9404eb1a470f419a3a6948fbc57a783fa27df44ba",
+   "built_by": "scripts/tt1f_batadal_trace.py (exploratory, from the stored traces)"
+  },
+  "results/threshold_transfer_tt1f_provics_mask_v1.json": {
+   "sha256": "5ffbf8aeb531a748cd7dd2736875530b998647e9031873cb37984ff4643a6801",
+   "built_by": "scripts/tt1f_provics_mask.py (exploratory, ledgered third access)"
+  },
+  "results/threshold_transfer_tt1f_process_v1.json": {
+   "sha256": "a84ee27c689ccf1882cc6c4246990217bc8c8d6cd17e3f80293746447779e988",
+   "built_by": "scripts/tt1f_process_dev.py merge (exploratory, HAI normal data)"
+  },
+  "results/threshold_transfer_tt1f_findings.md": {
+   "sha256": "111a45d384c25a7362abd90cbd67bc48bffa8ed68af7534d27e104bc816d5e76",
+   "built_by": "digest of the tt1f results"
+  },
+  "results/monitor_audit_2026-11-10.md": {
+   "sha256": "d66dfcc4f9e8e9fb7178060ad47abb3308de3250399880cb742168ee3601a444",
+   "built_by": "audit of the frozen analysis code after the finals: findings, fixes, affected numbers"
+  },
+  "figure_data/tep_noise_run_trace.csv": {
+   "sha256": "6c65e2f73fa7451e22462bc78fd9e5d6af9a635b1e8839a0dd2d4425a1bb5899",
+   "built_by": "scripts/tt1f_tep_dev.py analyse B (one noise-attack run fixed in the tt1f plan)"
+  },
+  "figures/fig6_tep_noise_trace.py": {
+   "sha256": "6488729b8eaf7dedab81350b793eaea0ec9c058240fac9ca9b1cc3e7121f33ed",
+   "built_by": "figure script (reads figure_data/tep_noise_run_trace.csv)"
+  },
+  "figures/fig6_tep_noise_trace.pdf": {
+   "sha256": "b117c8a3bf1d473a5029d851a93d1f2a734cea2e4d156501d8ab4bad28410501",
+   "built_by": "python -B figures/fig6_tep_noise_trace.py"
+  },
+  "figures/fig6_tep_noise_trace.svg": {
+   "sha256": "39060374571930420cbf1eb49602963bc1f9ec6204582406dad97fe422c73f6a",
+   "built_by": "python -B figures/fig6_tep_noise_trace.py"
+  },
+  "latex/figures/fig6_tep_noise_trace.pdf": {
+   "sha256": "b117c8a3bf1d473a5029d851a93d1f2a734cea2e4d156501d8ab4bad28410501",
+   "built_by": "copy of figures/fig6_tep_noise_trace.pdf"
+  },
+  "prompts/6_mock_pc_review_round2.md": {
+   "sha256": "d2cdf7d1cf319b154e40f1cb5f9e326086dc75909f5a94a764f2fde5bd44e43a",
+   "built_by": "prompt of the second mock review"
+  },
+  "review/mock_pc_review_r2.md": {
+   "sha256": "0f28f7ac064b51523bb3bb009621ff908b8d1861917271b6cbe64d77e27f727d",
+   "built_by": "second mock review, independent agent (2026-11-10)"
+  },
+  "review/mock_pc_review_r2_claude_science.md": {
+   "sha256": "a557c7c3b4bd21b8b142bbe0d86ce0d9c85b4c65b2c2f57fb5cf210a13e6bbcf",
+   "built_by": "second mock review, Claude Science (2026-11-10)"
   }
  }
 }

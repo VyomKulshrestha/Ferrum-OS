@@ -19,6 +19,11 @@
    "detail": "2026-11-10 16:24:27+05:30"
   },
   {
+   "check": "ledger: every other access to provics-attack is exploratory and after the final",
+   "pass": true,
+   "detail": "1 exploratory entries"
+  },
+  {
    "check": "ledger: first access to provics-attack follows the registration commit",
    "pass": true,
    "detail": "access 2026-11-10T10:55:01.709806+00:00 vs registration 2026-11-10 16:24:27+05:30"
@@ -32,6 +37,11 @@
    "check": "ledger: provics-attack has the failed attempt, the diagnostic read and the amended attempt",
    "pass": true,
    "detail": "3 entries"
+  },
+  {
+   "check": "ledger: every other access to provics-sealed-normal is exploratory and after the final",
+   "pass": true,
+   "detail": "1 exploratory entries"
   },
   {
    "check": "ledger: first access to provics-sealed-normal follows the registration commit",
