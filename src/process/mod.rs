@@ -59,6 +59,25 @@ pub const USER_REGION_END: u64 = ((USER_P4_INDEX as u64) + 1) << 39; // 0x100_00
 /// Legacy alias kept for callers that only need the user-region ceiling.
 pub const USER_HALF_SIZE: u64 = USER_REGION_END;
 
+/// Page-aligned span `[start, start + len)` covering `[vaddr, vaddr + memsz)`.
+/// `len` is 0 when `memsz` is 0.
+#[inline]
+pub(crate) fn user_span(vaddr: u64, memsz: u64) -> (u64, u64) {
+    let start = vaddr & !(Size4KiB::SIZE - 1);
+    if memsz == 0 {
+        return (start, 0);
+    }
+    let end = vaddr.saturating_add(memsz);
+    // align_up panics on overflow; clamp instead (callers reject such a span
+    // as outside the user region anyway).
+    let end = if end > u64::MAX - (Size4KiB::SIZE - 1) {
+        u64::MAX & !(Size4KiB::SIZE - 1)
+    } else {
+        align_up(end, Size4KiB::SIZE)
+    };
+    (start, end - start)
+}
+
 /// True if `[vaddr, vaddr+len)` lies entirely within the user region.
 #[inline]
 fn in_user_region(vaddr: u64, len: u64) -> bool {
@@ -153,12 +172,7 @@ impl Process {
         let max_pages = self.max_memory_pages;
         let space = self.space.as_mut().ok_or(MapToError::ParentEntryHugePage)?;
         
-        let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
-        let len_aligned = align_up(
-            vaddr_offset_in_page as u64 + memsz as u64,
-            Size4KiB::SIZE,
-        );
-        let pages_needed = len_aligned / Size4KiB::SIZE;
+        let pages_needed = user_span(vaddr.as_u64(), memsz as u64).1 / Size4KiB::SIZE;
         if current_pages + pages_needed > max_pages {
             return Err(MapToError::FrameAllocationFailed);
         }
@@ -227,6 +241,10 @@ impl Process {
 
         for ph in elf.load_segments() {
             let flags = pt_flags(ph);
+            // Check the range before building a `VirtAddr`: `VirtAddr::new`
+            // panics on a non-canonical address (e.g. p_vaddr =
+            // 0x0000_8000_0000_0000), which would halt the kernel on a
+            // malformed ELF passed to Exec.
             let vaddr = VirtAddr::new(ph.p_vaddr);
             if !in_user_region(vaddr.as_u64(), ph.p_memsz) {
                 return Err("PT_LOAD vaddr outside user region");
@@ -387,13 +405,13 @@ impl AddressSpace {
 
         let start_page = Page::containing_address(vaddr);
         let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
-        let len_aligned = align_up(
-            vaddr_offset_in_page as u64 + memsz as u64,
-            Size4KiB::SIZE,
-        );
-        // `len_aligned == 0` would mean zero bytes, but the chunk loop
-        // also handles that. We use an exclusive end so we don't
-        // accidentally map one extra page past the payload.
+        // The span is measured from the page base. It used to be measured
+        // from `vaddr` itself, so an unaligned segment mapped one page past
+        // its last byte: a segment ending exactly at USER_REGION_END then
+        // mapped a page in P4[2], a slot shared with the kernel, and left a
+        // stale entry there when the process exited.
+        let len_aligned = align_up(vaddr_offset_in_page as u64 + memsz as u64, Size4KiB::SIZE);
+        let span_start = vaddr.as_u64();
         let end_page_exclusive = if len_aligned == 0 {
             start_page
         } else {
@@ -473,7 +491,7 @@ impl AddressSpace {
             }
         }
 
-        self.user_mappings.push((vaddr, len_aligned));
+        self.user_mappings.push((VirtAddr::new(span_start), len_aligned));
         Ok(len_aligned)
     }
 
@@ -848,19 +866,8 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
     };
     let kernel_stack_top = aligned_top(&kernel_stack);
     let mut next = NEXT_PID.lock();
-    let mut pid = *next;
-    // Scheduler bookkeeping tasks (and the userspace model processes built
-    // on them, e.g. the `init` model at boot holding cap:system:all) take
-    // ids from their own counter starting at 100. Once user pids reach that
-    // range they must skip any id already in use: syscall dispatch resolves
-    // a pid's authority from the model registry first, so a ring-3 process
-    // that reused the `init` model's id would run with cap:system:all.
-    while crate::scheduler::capabilities_of(pid).is_some()
-        || crate::userspace::capabilities_for(pid).is_some()
-    {
-        pid += 1;
-    }
-    *next = pid + 1;
+    let pid = *next;
+    *next += 1;
     let caps = crate::userspace::capabilities_for_program(name);
     let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
     let max_memory_pages = if is_exempt {
@@ -908,6 +915,16 @@ pub fn drop_by_pid(pid: u64) -> bool {
     let user_frames = record.process.user_frame_count();
     LAUNCH_CONTEXTS.lock().retain(|(owner, _)| *owner != pid);
     let closed_sockets = crate::net::iface::close_sockets_for_owner(pid);
+    // Windows were closed only by ProcessKill, the window's close button and
+    // the shell's `kill`; a process that exited or faulted left its windows
+    // (up to 4 canvases of ~1.7 MB on the 12 MiB kernel heap) behind for good.
+    if crate::gui::app_window::window_count_for(pid) > 0 {
+        crate::gui::app_window::close_for_pid(pid);
+    }
+    // Never free the page tables the CPU is currently using.
+    if let Some(space) = record.process.space.as_ref() {
+        crate::scheduler::leave_address_space(space.l4_frame().start_address().as_u64());
+    }
     // AddressSpace::drop can return thousands of frames for a large app.
     // Do that work after releasing the process-table lock so process queries
     // and unrelated spawns are never serialized behind frame reclamation.

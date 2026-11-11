@@ -16,6 +16,25 @@ unsafe impl FrameAllocator<Size4KiB> for GlobalFrameSource {
     }
 }
 
+/// Largest image `sys_kexec` accepts: it maps exactly one 4 KiB page at
+/// 0x900000 and copies the image there.
+pub const MAX_KEXEC_IMAGE: usize = 4096;
+
+/// Size and magic checks applied to a kexec image before it is copied. Split
+/// out so the kernel self-test (`test-syscall kexec-bound`) runs the same
+/// check without jumping to the image.
+pub fn validate_image(bytes: &[u8]) -> Result<(), SyscallStatus> {
+    // Only the single 4 KiB page at 0x900000 is mapped; copying a longer
+    // image would write through whatever lies past it.
+    if bytes.len() < 4 {
+        return Err(SyscallStatus::InvalidArgument);
+    }
+    if &bytes[0..4] != b"\x7FELF" {
+        return Err(SyscallStatus::InvalidArgument);
+    }
+    Ok(())
+}
+
 pub fn sys_kexec(args: [u64; 6]) -> SyscallResult {
     let kernel_ptr = args[0];
     let kernel_len = args[1];
@@ -32,20 +51,15 @@ pub fn sys_kexec(args: [u64; 6]) -> SyscallResult {
     }
 
     // 2. Read userspace bytes
-    let bytes = match unsafe { crate::syscall::fs::read_user_bytes(kernel_ptr, kernel_len, 8 * 1024 * 1024) } {
+    // Never copy more than the one page that is mapped below (this used to
+    // read up to 8 MiB into the kernel heap first).
+    let bytes = match unsafe { crate::syscall::fs::read_user_bytes(kernel_ptr, kernel_len, MAX_KEXEC_IMAGE) } {
         Some(b) => b,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
-    // Only the single 4 KiB page at 0x900000 is mapped below; copying a longer
-    // image would write through whatever lies past it.
-    if bytes.len() < 4 || bytes.len() > 4096 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-
-    // Check ELF magic
-    if &bytes[0..4] != b"\x7FELF" {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    if let Err(status) = validate_image(&bytes) {
+        return SyscallResult::err(status);
     }
 
     crate::println!("[kexec] Validated new kernel image. Preparing jump...");

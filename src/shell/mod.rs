@@ -2,6 +2,7 @@ extern crate alloc;
 
 pub mod commands;
 pub mod dashboard;
+pub mod selftest;
 
 use alloc::string::{String, ToString};
 use core::sync::atomic::{AtomicU64, Ordering};

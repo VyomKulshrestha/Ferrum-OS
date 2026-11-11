@@ -235,7 +235,18 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
     next: usize,
+    /// Position of the next fresh frame: index among the usable regions and
+    /// frame offset inside that region. Kept so a fresh allocation is O(1)
+    /// (amortized) instead of re-walking `next` frames of the memory map on
+    /// every call, which made booting (tens of thousands of frames for the
+    /// heliox-daemon image) quadratic.
+    fresh_region: usize,
+    fresh_offset: u64,
     recycled: Vec<PhysFrame>,
+    /// Start addresses of the frames in `recycled`, for an O(log n)
+    /// duplicate check in `recycle` (a linear `contains` made dropping a
+    /// large address space quadratic in its frame count).
+    recycled_set: alloc::collections::BTreeSet<u64>,
 }
 
 impl BootInfoFrameAllocator {
@@ -249,27 +260,11 @@ impl BootInfoFrameAllocator {
         BootInfoFrameAllocator {
             memory_map,
             next: 0,
+            fresh_region: 0,
+            fresh_offset: 0,
             recycled: Vec::new(),
+            recycled_set: alloc::collections::BTreeSet::new(),
         }
-    }
-
-    /// Returns an iterator over usable physical frames
-    fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
-        // Get usable regions from memory map
-        let regions = self.memory_map.iter();
-        let usable_regions = regions
-            .filter(|r| r.region_type == MemoryRegionType::Usable);
-
-        // Map each region to its start address range
-        let addr_ranges = usable_regions
-            .map(|r| r.range.start_addr()..r.range.end_addr());
-
-        // Transform to an iterator of frame start addresses
-        let frame_addresses = addr_ranges
-            .flat_map(|r| r.step_by(4096));
-
-        // Create PhysFrame types from the start addresses
-        frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
     }
 
     /// Number of frames already handed out.
@@ -278,11 +273,26 @@ impl BootInfoFrameAllocator {
     }
 
     fn allocate_fresh_frame(&mut self) -> Option<PhysFrame> {
-        let frame = self.usable_frames().nth(self.next);
-        if frame.is_some() {
-            self.next += 1;
+        // Same order the original iterator walked (usable regions in map order,
+        // `start, start + 4096, ...` below `end`), which `was_allocated`
+        // relies on, without re-walking the frames already handed out.
+        loop {
+            let region = self
+                .memory_map
+                .iter()
+                .filter(|r| r.region_type == MemoryRegionType::Usable)
+                .nth(self.fresh_region)?;
+            let start = region.range.start_addr();
+            let end = region.range.end_addr();
+            let addr = start.saturating_add(self.fresh_offset * Size4KiB::SIZE);
+            if addr < end {
+                self.fresh_offset += 1;
+                self.next += 1;
+                return Some(PhysFrame::containing_address(PhysAddr::new(addr)));
+            }
+            self.fresh_region += 1;
+            self.fresh_offset = 0;
         }
-        frame
     }
 
     fn was_allocated(&self, frame: PhysFrame) -> bool {
@@ -313,15 +323,21 @@ impl BootInfoFrameAllocator {
     }
 
     fn recycle(&mut self, frame: PhysFrame) {
-        if self.was_allocated(frame) && !self.recycled.contains(&frame) {
+        if self.was_allocated(frame) && self.recycled_set.insert(frame.start_address().as_u64()) {
             self.recycled.push(frame);
         }
+    }
+
+    fn pop_recycled(&mut self) -> Option<PhysFrame> {
+        let frame = self.recycled.pop()?;
+        self.recycled_set.remove(&frame.start_address().as_u64());
+        Some(frame)
     }
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        self.recycled.pop().or_else(|| self.allocate_fresh_frame())
+        self.pop_recycled().or_else(|| self.allocate_fresh_frame())
     }
 }
 

@@ -662,6 +662,11 @@ pub fn tick() {
     if let Some(mut sched) = SCHEDULER.try_lock() {
         sched.total_ticks = sched.total_ticks.wrapping_add(1);
         let now = sched.total_ticks;
+        TOTAL_TICKS.store(now, Ordering::SeqCst);
+        let parked = PENDING_CONFIRM_KEY.swap(0, Ordering::SeqCst);
+        if parked != 0 {
+            wake_confirmation_waiters_locked(&mut sched, (parked & 0xFF) as u8, Some(parked >> 8));
+        }
 
         if now % 100 == 0 {
             crate::logging::audit::FLUSH_PENDING.store(true, Ordering::SeqCst);
@@ -942,9 +947,7 @@ fn spawn_internal(name: String, priority: Priority, capabilities: Vec<String>) -
         // would make every `find(|t| t.id == pid)` hit the wrong task, and a
         // userspace model registered under it would lend its capabilities
         // to the live process, so skip ids already present.
-        while sched.tasks.iter().any(|t| t.id == task.id) {
-            task.id = Task::new(String::new(), priority).id;
-        }
+
         task.capabilities = capabilities;
         let id = task.id;
         push_task_locked(&mut sched, task);
@@ -1009,10 +1012,20 @@ pub fn capabilities_of(pid: u64) -> Option<Vec<String>> {
         .map(|t| t.capabilities.clone())
 }
 
+/// Mirror of `Scheduler::total_ticks`, written by `tick()` while it holds the
+/// scheduler lock. Reading it needs no lock, so the keyboard and mouse
+/// interrupt handlers (which timestamp events through `total_ticks()`) can no
+/// longer spin forever on SCHEDULER when they interrupt a kernel task (the
+/// desktop loop, the shell's `ps`) that holds it with interrupts enabled.
+static TOTAL_TICKS: AtomicU64 = AtomicU64::new(0);
+
 pub fn total_ticks() -> u64 {
-    let sched = SCHEDULER.lock();
-    sched.total_ticks
+    TOTAL_TICKS.load(Ordering::SeqCst)
 }
+
+/// How long a confirmation prompt waits for the operator (set in
+/// `syscall::dispatch_for_process`).
+pub const CONFIRMATION_TIMEOUT_MS: u64 = 5000;
 
 pub fn active_task_count() -> usize {
     let sched = SCHEDULER.lock();
@@ -1031,12 +1044,41 @@ pub fn dead_pids() -> Vec<u64> {
         .collect()
 }
 
+/// Leave the address space whose L4 is `l4_phys` if the CPU is running on it,
+/// by switching to the boot page tables. Called before that address space is
+/// freed.
+pub fn leave_address_space(l4_phys: u64) {
+    let boot = BOOT_CR3.load(Ordering::SeqCst);
+    if boot != 0 && boot != l4_phys && crate::memory::active_p4_phys().as_u64() == l4_phys {
+        unsafe { load_cr3(boot) };
+    }
+}
+
+/// Free the process records of every dead task except `keep` (the task whose
+/// stack the caller is running on), then drop their scheduler entries.
+/// `waitpid_current` and `reap_deferred` used to free one process and then
+/// call `cleanup_dead_tasks`, which also removed every other dead task's
+/// scheduler entry; `reap_dead` finds victims only through those entries, so
+/// the other dead processes' frames, kernel stacks and sockets leaked.
+pub fn reap_dead_except(keep: u64) {
+    for pid in dead_pids() {
+        if pid != keep {
+            crate::process::drop_by_pid(pid);
+        }
+    }
+    cleanup_dead_tasks_except(keep);
+}
+
 pub fn cleanup_dead_tasks() {
+    cleanup_dead_tasks_except(u64::MAX);
+}
+
+fn cleanup_dead_tasks_except(keep: u64) {
     let mut sched = SCHEDULER.lock();
     // Walk both vectors in lock-step and drop dead entries.
     let mut i = 0;
     while i < sched.tasks.len() {
-        if sched.tasks[i].state == TaskState::Dead {
+        if sched.tasks[i].state == TaskState::Dead && sched.tasks[i].id != keep {
             let ctx = sched.contexts.remove(i);
             if ctx.simd_state_ptr != 0 {
                 let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
@@ -1293,7 +1335,9 @@ pub fn reap_deferred(current_pid: u64) {
     for pid in pending {
         crate::process::drop_by_pid(pid);
     }
-    cleanup_dead_tasks();
+    // Reap every other dead task too, so none is left without a scheduler
+    // entry (see reap_dead_except).
+    reap_dead_except(current_pid);
 }
 
 /// Exit code of `pid` if it has finished.
@@ -1320,19 +1364,17 @@ pub fn waitpid_current(target: u64) -> Result<Option<u32>, crate::syscall::Sysca
     if target == u64::MAX {
         let found_idx = codes.iter().position(|(_, parent, _)| *parent == current_pid);
         if let Some(idx) = found_idx {
-            let (pid, _, code) = codes.remove(idx);
+            let (_pid, _, code) = codes.remove(idx);
             drop(codes);
-            crate::process::drop_by_pid(pid);
-            cleanup_dead_tasks();
+            reap_dead_except(current_pid);
             return Ok(Some(code));
         }
     } else {
         let found_idx = codes.iter().position(|(pid, parent, _)| *pid == target && *parent == current_pid);
         if let Some(idx) = found_idx {
-            let (pid, _, code) = codes.remove(idx);
+            let (_pid, _, code) = codes.remove(idx);
             drop(codes);
-            crate::process::drop_by_pid(pid);
-            cleanup_dead_tasks();
+            reap_dead_except(current_pid);
             return Ok(Some(code));
         }
     }
@@ -1463,8 +1505,15 @@ pub unsafe fn resume_task(pid: u64) -> ! {
         sched.tasks.iter().find(|t| t.id == pid).map(|t| t.name.clone()).unwrap_or_else(|| String::from("unknown"))
     }, ctx.rip, ctx.rsp, ctx.rax);
     crate::gdt::set_kernel_stack(VirtAddr::new(kstack));
-    if cr3 != 0 {
-        load_cr3(cr3);
+    // Kernel tasks (shell, desktop, dashboard) are registered with cr3 = 0.
+    // They used to keep whatever CR3 the previous task left loaded, often
+    // a ring-3 process that had just exited; reaping that process then
+    // freed the page tables the CPU was still walking, and the next
+    // `AddressSpace::new` zeroed the recycled frame under the live CR3.
+    // Run kernel tasks on the boot page tables instead.
+    let target_cr3 = if cr3 != 0 { cr3 } else { BOOT_CR3.load(Ordering::SeqCst) };
+    if target_cr3 != 0 {
+        load_cr3(target_cr3);
     }
     let slot = &raw mut RESUME_SLOT;
     *slot = ctx;
@@ -1566,13 +1615,40 @@ extern "C" fn kernel_return_entry() -> ! {
     crate::shell::run()
 }
 
-/// Wake any task blocked on confirmation.
+/// Confirmation key pressed while the scheduler lock was busy; applied by the
+/// next `tick()` (0 = none).
+/// Packed as `(press_tick << 8) | key`.
+static PENDING_CONFIRM_KEY: AtomicU64 = AtomicU64::new(0);
+
+/// Wake the task blocked on confirmation, if any, with `key`.
+/// Called from the keyboard interrupt. It must not spin on SCHEDULER: the
+/// interrupted code may be a kernel task holding it with interrupts enabled,
+/// and on one CPU that spin never ends. When the lock is busy the key is
+/// parked and `tick()` applies it.
 pub fn wake_confirmation_waiters(key: u8) -> bool {
-    let mut sched = SCHEDULER.lock();
+    if key == 0 {
+        return false;
+    }
+    let Some(mut sched) = SCHEDULER.try_lock() else {
+        PENDING_CONFIRM_KEY.store((total_ticks() << 8) | key as u64, Ordering::SeqCst);
+        return false;
+    };
+    wake_confirmation_waiters_locked(&mut sched, key, None)
+}
+
+/// `pressed_at`: for a parked key, the tick it was pressed at. A parked key
+/// only answers a prompt that was already showing when it was pressed.
+fn wake_confirmation_waiters_locked(sched: &mut Scheduler, key: u8, pressed_at: Option<u64>) -> bool {
     let mut woken_any = false;
     let mut task_idx = None;
     for (idx, task) in sched.tasks.iter().enumerate() {
         if task.state == TaskState::Blocked && task.blocked_on_confirmation {
+            let prompt_tick = task
+                .wake_at
+                .saturating_sub(CONFIRMATION_TIMEOUT_MS / crate::interrupts::PIT_TICK_MS);
+            if pressed_at.is_some_and(|tick| tick < prompt_tick) {
+                break;
+            }
             task_idx = Some(idx);
             break;
         }

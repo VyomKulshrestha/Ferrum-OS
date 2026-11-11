@@ -272,7 +272,9 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
                 } else {
                     // Need to block and wait for confirmation
                     task.blocked_on_confirmation = true;
-                    task.wake_at = now.saturating_add(5000 / crate::interrupts::PIT_TICK_MS); // 5s timeout
+                    task.wake_at = now.saturating_add(
+                        crate::scheduler::CONFIRMATION_TIMEOUT_MS / crate::interrupts::PIT_TICK_MS,
+                    ); // 5s timeout
                     task.state = crate::scheduler::TaskState::Blocked;
                     task.quotas.used_cpu_ticks_continuous = 0;
                     confirmation_needed = true;
@@ -673,7 +675,9 @@ fn dispatch_with_context(
             {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
-            let mut temp_buf = alloc::vec![0u8; buf_len];
+            let Some(mut temp_buf) = crate::fs::try_zeroed_vec(buf_len) else {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            };
             match crate::security::rand::get_random(&mut temp_buf) {
                 Ok(()) => {
                     if unsafe { crate::syscall::fs::copy_to_user(buf_ptr, &temp_buf, buf_len) }

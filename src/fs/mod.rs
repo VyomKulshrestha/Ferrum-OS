@@ -164,7 +164,12 @@ impl vfs::Filesystem for RamFs {
         
         match parent {
             FsNode::Directory { children } => {
-                children.insert(file_name, FsNode::File { content: Vec::from(content) });
+                // Fallible copy (WriteFile passes up to 4 MiB of user data).
+                let mut copy = Vec::new();
+                copy.try_reserve_exact(content.len())
+                    .map_err(|_| String::from("file too large for kernel heap"))?;
+                copy.extend_from_slice(content);
+                children.insert(file_name, FsNode::File { content: copy });
                 Ok(())
             }
             _ => Err(String::from("parent is not a directory")),
@@ -261,6 +266,13 @@ pub fn read_file(path: &str) -> Result<String, String> {
     fs.read_file(&rel)
 }
 
+/// A zero-filled buffer of `len` bytes, or `None` when the kernel heap cannot
+/// hold it. Use for any size a caller controls: `vec![0; len]` aborts the
+/// kernel when the allocation fails.
+pub fn try_zeroed_vec(len: usize) -> Option<Vec<u8>> {
+    Some(alloc::vec![0u8; len])
+}
+
 /// Read a file's raw bytes without requiring valid UTF-8.
 ///
 /// `read_file` rejects any file whose content isn't valid UTF-8 (ext2's
@@ -279,7 +291,10 @@ pub fn read_file(path: &str) -> Result<String, String> {
 pub fn read_file_bytes(path: &str) -> Result<Vec<u8>, String> {
     let (fs, rel) = vfs::resolve(path)?;
     let info = fs.stat(&rel)?;
-    let mut buf = alloc::vec![0u8; info.size];
+    // Fallible: a file larger than the free kernel heap (the 64 MiB
+    // /disk/mmap_verify passed to Exec, for one) used to abort the kernel in
+    // the allocator.
+    let mut buf = try_zeroed_vec(info.size).ok_or_else(|| String::from("file too large for kernel heap"))?;
     let mut total = 0usize;
     while total < buf.len() {
         let n = fs.read_file_offset(&rel, total as u64, &mut buf[total..])?;

@@ -890,6 +890,12 @@ impl<B: BlockDevice> Ext2Fs<B> {
         inode_num: u32,
         file_type: u8,
     ) -> Result<(), String> {
+        // name_len is one byte, and a new entry must fit in one block: a longer
+        // name used to be truncated into name_len (corrupting the entry) or to
+        // index past the block buffer and abort the kernel.
+        if name.is_empty() || name.len() > 255 {
+            return Err(String::from("ext2: file name must be 1 to 255 bytes"));
+        }
         let parent_inode = self.read_inode(parent_inode_num)?;
         let block_size = self.block_size as usize;
 
@@ -911,7 +917,7 @@ impl<B: BlockDevice> Ext2Fs<B> {
             self.read_block(phys, &mut buf)?;
 
             let mut offset = 0;
-            while offset < block_size {
+            while offset + size_of::<Ext2RawDirEntry>() <= block_size {
                 let entry: Ext2RawDirEntry = unsafe { from_bytes(&buf[offset..]) };
                 if entry.rec_len == 0 {
                     break;
@@ -923,7 +929,7 @@ impl<B: BlockDevice> Ext2Fs<B> {
                 // Check if this is the last entry in this block
                 if offset + entry.rec_len as usize >= block_size {
                     let needed_len = (size_of::<Ext2RawDirEntry>() + name.len() + 3) & !3;
-                    if entry.rec_len as usize - actual_len >= needed_len {
+                    if (entry.rec_len as usize).saturating_sub(actual_len) >= needed_len {
                         // Split it
                         let old_rec_len = entry.rec_len;
                         let mut updated_entry = entry;
@@ -1021,7 +1027,7 @@ impl<B: BlockDevice> Ext2Fs<B> {
             let mut offset = 0;
             let mut prev_offset = None;
 
-            while offset < block_size {
+            while offset + size_of::<Ext2RawDirEntry>() <= block_size {
                 let entry: Ext2RawDirEntry = unsafe { from_bytes(&buf[offset..]) };
                 if entry.rec_len == 0 {
                     break;
@@ -1029,7 +1035,18 @@ impl<B: BlockDevice> Ext2Fs<B> {
 
                 let name_start = offset + size_of::<Ext2RawDirEntry>();
                 let name_end = name_start + entry.name_len as usize;
+                if name_end > block_size {
+                    break;
+                }
                 let name_bytes = &buf[name_start..name_end];
+                // A deleted entry (inode 0) keeps its name. Matching it made a
+                // second delete of a re-created name zero the stale entry and
+                // then free the live file's inode and blocks.
+                if entry.inode == 0 {
+                    prev_offset = Some(offset);
+                    offset += entry.rec_len as usize;
+                    continue;
+                }
                 if let Ok(name_str) = core::str::from_utf8(name_bytes) {
                     if name_str == name {
                         if let Some(prev) = prev_offset {

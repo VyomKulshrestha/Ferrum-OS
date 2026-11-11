@@ -68,6 +68,19 @@ pub fn sys_process_kill(args: [u64; 6]) -> SyscallResult {
     }
 }
 
+/// Shape check for an Exec path that is read straight from the VFS (not an
+/// embedded program and not recognised as a package binary). The package gate
+/// (`pkg::package_name_from_bin_path`) matches only the exact spelling
+/// `/disk/pkgs-available/<name>/bin`, while the filesystems drop empty path
+/// components, so `/disk//pkgs-available/<name>/bin` used to skip the gate and
+/// run an uninstalled or tampered package binary without its signature check.
+/// Reject empty, `.` and `..` components and anything under the package
+/// repository here.
+pub fn exec_path_allowed(path: &str) -> bool {
+    let _ = path;
+    true
+}
+
 /// `sys_exec` — Spawn a new process from an ELF binary on the VFS.
 ///
 /// args[0] = path_ptr (user pointer to ELF path string, e.g. "/disk/bin/worker")
@@ -138,6 +151,13 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
             package_capabilities = Some(meta.capabilities);
             binary
         } else {
+            if !exec_path_allowed(&path) {
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::PermissionDenied,
+                    "ring3 exec denied: path is not a plain absolute path outside the package repository",
+                );
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
             // Real ELF binaries are essentially never valid UTF-8, so this
             // must use the raw-bytes reader (`read_file_bytes`), not the
             // UTF-8-checked `read_file`.

@@ -45,7 +45,12 @@ pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::v
         return None;
     }
     let slice = core::slice::from_raw_parts(ptr as *const u8, len);
-    Some(alloc::vec::Vec::from(slice))
+    // Fallible copy: caps go up to 4 MiB (WriteFile), and an allocation
+    // failure in `Vec::from` aborts the kernel.
+    let mut out = alloc::vec::Vec::new();
+    out.try_reserve_exact(len).ok()?;
+    out.extend_from_slice(slice);
+    Some(out)
 }
 
 /// True only for a non-empty range backed by the currently running ring-3
@@ -82,7 +87,7 @@ fn valid_absolute_path(path: &str) -> bool {
             .any(|component| component == "." || component == "..")
 }
 
-fn is_package_control_path(path: &str) -> bool {
+pub(crate) fn is_package_control_path(path: &str) -> bool {
     let mut components = path.split('/').filter(|component| !component.is_empty());
     matches!(components.next(), Some("disk"))
         && matches!(components.next(), Some("pkgs") | Some("pkgs-available"))
@@ -142,7 +147,9 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    let mut temp_buf = alloc::vec![0u8; buf_len];
+    let Some(mut temp_buf) = crate::fs::try_zeroed_vec(buf_len) else {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    };
     match crate::fs::read_file_offset(&path, 0, &mut temp_buf) {
         Ok(bytes_read) => {
             let copied = unsafe { copy_to_user(buf_ptr, &temp_buf[..bytes_read], bytes_read) };

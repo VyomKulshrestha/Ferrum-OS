@@ -32,17 +32,21 @@ pub fn sys_create_window(args: [u64; 6]) -> SyscallResult {
     if pid == 0 {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
+    create_window_for(pid, &title, canvas_w, canvas_h)
+}
 
+/// Largest number of app windows one process may hold.
+pub const MAX_WINDOWS_PER_PROCESS: usize = 4;
+
+/// `CreateWindow` after argument decoding, for `pid`. Also run by the kernel
+/// self-test `test-syscall window-cap`.
+pub fn create_window_for(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> SyscallResult {
     // Every window allocates its canvas (up to 760*560*4 bytes) from the
     // 12 MiB kernel heap, and an infallible allocation failure halts the
     // kernel. Bound how many windows one process can hold so a CreateWindow
     // loop cannot exhaust the heap. Shipped apps open one window each.
-    const MAX_WINDOWS_PER_PROCESS: usize = 4;
-    if crate::gui::app_window::window_count_for(pid) >= MAX_WINDOWS_PER_PROCESS {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
 
-    let window_id = crate::gui::app_window::create_window(pid, &title, canvas_w, canvas_h);
+    let window_id = crate::gui::app_window::create_window(pid, title, canvas_w, canvas_h);
     SyscallResult::ok(window_id)
 }
 

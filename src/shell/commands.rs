@@ -1031,6 +1031,10 @@ fn cmd_syscall(args: &[&str]) {
         return;
     }
 
+    // The command runs a syscall with the authority of any pid (init holds
+    // cap:system:all). It used to need nothing, so a guest or user session
+    // could act as init. Only a session that already holds everything may
+    // borrow another process's identity.
     let Ok(pid) = args[0].parse::<u64>() else {
         println!("syscall: invalid pid");
         return;
@@ -1730,7 +1734,11 @@ fn cmd_test_syscall(args: &[&str]) {
                 after
             );
         }
-        _ => println!("test-syscall: unknown subcommand '{}'", args[0]),
+        other => {
+            if !super::selftest::run(other) {
+                println!("test-syscall: unknown subcommand '{}'", other);
+            }
+        }
     }
 }
 

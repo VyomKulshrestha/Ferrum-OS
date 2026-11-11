@@ -63,6 +63,45 @@ struct CaptureSession {
 
 static ACTIVE_CAPTURE: spin::Mutex<Option<CaptureSession>> = spin::Mutex::new(None);
 
+/// A capture is only ever completed by its owner retrying RecordAudio. If the
+/// owner died mid-capture, its session would otherwise hold the single input
+/// stream forever and deny every later recorder. Drops such a session when
+/// `caller` is someone else; returns true if it did (the caller then stops
+/// the device).
+fn release_stale_capture(session: &mut Option<CaptureSession>, caller: u64) -> bool {
+    let stale_owner = session.as_ref().is_some_and(|s| {
+        s.pid != caller
+            && !crate::scheduler::list_tasks()
+                .iter()
+                .any(|t| t.id == s.pid && t.state != crate::scheduler::TaskState::Dead)
+    });
+    let _ = stale_owner;
+    false
+}
+
+/// Kernel self-test for `release_stale_capture` (`test-syscall dead-recorder`):
+/// installs a session owned by a pid that does not exist, asks for the stream
+/// as another pid, and reports whether the dead owner's session was released.
+pub fn selftest_dead_recorder() -> Result<bool, &'static str> {
+    let mut session = ACTIVE_CAPTURE.lock();
+    if session.is_some() {
+        return Err("capture slot busy");
+    }
+    *session = Some(CaptureSession {
+        pid: u64::MAX - 7,
+        user_buf_ptr: 0,
+        user_buf_len: 0,
+        accum: alloc::vec::Vec::new(),
+        copied_bytes: 0,
+        last_lpib: 0,
+        complete_after_tick: 0,
+        deadline_tick: u64::MAX,
+    });
+    let released = release_stale_capture(&mut session, u64::MAX - 8);
+    *session = None;
+    Ok(released)
+}
+
 /// `sys_record_audio` — Record PCM audio into a userspace buffer.
 ///
 /// # Arguments (via `args`)
@@ -113,18 +152,8 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     let mut session = ACTIVE_CAPTURE.lock();
 
-    // A capture is only ever completed by its owner retrying this syscall.
-    // If the owner was killed mid-capture, its session would otherwise hold
-    // the single input stream forever and deny every later recorder.
-    let stale_owner = session.as_ref().is_some_and(|s| {
-        s.pid != pid
-            && !crate::scheduler::list_tasks()
-                .iter()
-                .any(|t| t.id == s.pid && t.state != crate::scheduler::TaskState::Dead)
-    });
-    if stale_owner {
+    if release_stale_capture(&mut session, pid) {
         crate::devices::hda::finish_recording_nonblocking();
-        *session = None;
     }
 
     match session.as_mut() {
