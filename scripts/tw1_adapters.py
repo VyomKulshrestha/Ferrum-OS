@@ -187,6 +187,7 @@ class PysadGaussian(Target):
     `_calibrate` what they would say for a candidate score, on shallow copies, and bisects."""
 
     eps = 1e-9
+    high = math.inf
 
     def __init__(self, window_size=1000, cut=0.99):
         from pysad.transform.probability_calibration import (
@@ -221,6 +222,7 @@ class PysadGaussian(Target):
 
     def tau(self):
         g = self.g
+        self.high = math.inf
         if not g.short_window or not g.running_statistics:
             return math.inf
         prev = (
@@ -228,7 +230,28 @@ class PysadGaussian(Target):
             if g.short_window_size > 1
             else []
         )
-        return bisect_tau(lambda v: self._would(v, prev))
+
+        def would(v):
+            return self._would(v, prev)
+
+        # the score that puts the short-window mean on the long-window mean never alarms
+        centre = (len(prev) + 1) * g.avg_meter.get() - sum(prev)
+        if would(centre):
+            return -math.inf
+        sd = math.sqrt(max(g.var_meter.get(), 1e-12))
+        hit = next(
+            (centre + sd * 2.0**k for k in range(60) if would(centre + sd * 2.0**k)),
+            None,
+        )
+        if hit is None:
+            return math.inf
+        if not would(HIGH):
+            # a window that is not yet full: a very large score raises its own deviation enough not to alarm
+            self.high = hit + bisect_tau(lambda d: not would(hit + d), 0.0, HIGH - hit)
+        return bisect_tau(would, centre, hit)
+
+    def expected(self, x, tau):
+        return tau < x <= self.high
 
 
 class PysadLikelihood(Target):
