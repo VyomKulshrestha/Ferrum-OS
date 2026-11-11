@@ -947,7 +947,9 @@ fn spawn_internal(name: String, priority: Priority, capabilities: Vec<String>) -
         // would make every `find(|t| t.id == pid)` hit the wrong task, and a
         // userspace model registered under it would lend its capabilities
         // to the live process, so skip ids already present.
-
+        while sched.tasks.iter().any(|t| t.id == task.id) {
+            task.id = Task::new(String::new(), priority).id;
+        }
         task.capabilities = capabilities;
         let id = task.id;
         push_task_locked(&mut sched, task);

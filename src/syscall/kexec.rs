@@ -26,7 +26,7 @@ pub const MAX_KEXEC_IMAGE: usize = 4096;
 pub fn validate_image(bytes: &[u8]) -> Result<(), SyscallStatus> {
     // Only the single 4 KiB page at 0x900000 is mapped; copying a longer
     // image would write through whatever lies past it.
-    if bytes.len() < 4 {
+    if bytes.len() < 4 || bytes.len() > MAX_KEXEC_IMAGE {
         return Err(SyscallStatus::InvalidArgument);
     }
     if &bytes[0..4] != b"\x7FELF" {

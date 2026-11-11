@@ -45,6 +45,9 @@ pub fn create_window_for(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) ->
     // 12 MiB kernel heap, and an infallible allocation failure halts the
     // kernel. Bound how many windows one process can hold so a CreateWindow
     // loop cannot exhaust the heap. Shipped apps open one window each.
+    if crate::gui::app_window::window_count_for(pid) >= MAX_WINDOWS_PER_PROCESS {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
 
     let window_id = crate::gui::app_window::create_window(pid, title, canvas_w, canvas_h);
     SyscallResult::ok(window_id)

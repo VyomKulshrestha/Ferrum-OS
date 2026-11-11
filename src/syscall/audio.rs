@@ -75,8 +75,10 @@ fn release_stale_capture(session: &mut Option<CaptureSession>, caller: u64) -> b
                 .iter()
                 .any(|t| t.id == s.pid && t.state != crate::scheduler::TaskState::Dead)
     });
-    let _ = stale_owner;
-    false
+    if stale_owner {
+        *session = None;
+    }
+    stale_owner
 }
 
 /// Kernel self-test for `release_stale_capture` (`test-syscall dead-recorder`):

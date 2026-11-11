@@ -245,10 +245,10 @@ impl Process {
             // panics on a non-canonical address (e.g. p_vaddr =
             // 0x0000_8000_0000_0000), which would halt the kernel on a
             // malformed ELF passed to Exec.
-            let vaddr = VirtAddr::new(ph.p_vaddr);
-            if !in_user_region(vaddr.as_u64(), ph.p_memsz) {
+            if !in_user_region(ph.p_vaddr, ph.p_memsz) {
                 return Err("PT_LOAD vaddr outside user region");
             }
+            let vaddr = VirtAddr::new(ph.p_vaddr);
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
             self.map_user(vaddr, ph.p_memsz as usize, file_bytes, flags)
                 .map_err(|_| "pt_load map failed")?;
@@ -410,13 +410,15 @@ impl AddressSpace {
         // its last byte: a segment ending exactly at USER_REGION_END then
         // mapped a page in P4[2], a slot shared with the kernel, and left a
         // stale entry there when the process exited.
-        let len_aligned = align_up(vaddr_offset_in_page as u64 + memsz as u64, Size4KiB::SIZE);
-        let span_start = vaddr.as_u64();
-        let end_page_exclusive = if len_aligned == 0 {
-            start_page
-        } else {
-            Page::containing_address(vaddr + len_aligned - 1u64) + 1
-        };
+        let (span_start, len_aligned) = user_span(vaddr.as_u64(), memsz as u64);
+        if len_aligned == 0 {
+            return Ok(0);
+        }
+        if span_start.saturating_add(len_aligned) > USER_REGION_END {
+            return Err(MapToError::ParentEntryHugePage);
+        }
+        let end_page_exclusive =
+            Page::containing_address(VirtAddr::new(span_start + len_aligned - 1)) + 1;
 
         // The vaddr may not be page-aligned (a segment can start
         // mid-page). The bytes from `bytes[0]` belong at vaddr, which
@@ -866,8 +868,19 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
     };
     let kernel_stack_top = aligned_top(&kernel_stack);
     let mut next = NEXT_PID.lock();
-    let pid = *next;
-    *next += 1;
+    let mut pid = *next;
+    // Scheduler bookkeeping tasks (and the userspace model processes built
+    // on them, e.g. the `init` model at boot holding cap:system:all) take
+    // ids from their own counter starting at 100. Once user pids reach that
+    // range they must skip any id already in use: syscall dispatch resolves
+    // a pid's authority from the model registry first, so a ring-3 process
+    // that reused the `init` model's id would run with cap:system:all.
+    while crate::scheduler::capabilities_of(pid).is_some()
+        || crate::userspace::capabilities_for(pid).is_some()
+    {
+        pid += 1;
+    }
+    *next = pid + 1;
     let caps = crate::userspace::capabilities_for_program(name);
     let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
     let max_memory_pages = if is_exempt {

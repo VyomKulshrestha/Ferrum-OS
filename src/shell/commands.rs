@@ -1035,6 +1035,10 @@ fn cmd_syscall(args: &[&str]) {
     // cap:system:all). It used to need nothing, so a guest or user session
     // could act as init. Only a session that already holds everything may
     // borrow another process's identity.
+    if require_token("cap:system:all").is_err() {
+        return;
+    }
+
     let Ok(pid) = args[0].parse::<u64>() else {
         println!("syscall: invalid pid");
         return;

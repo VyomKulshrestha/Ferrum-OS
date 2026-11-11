@@ -77,8 +77,14 @@ pub fn sys_process_kill(args: [u64; 6]) -> SyscallResult {
 /// Reject empty, `.` and `..` components and anything under the package
 /// repository here.
 pub fn exec_path_allowed(path: &str) -> bool {
-    let _ = path;
-    true
+    let Some(rest) = path.strip_prefix('/') else {
+        return false;
+    };
+    !rest.is_empty()
+        && rest
+            .split('/')
+            .all(|component| !component.is_empty() && component != "." && component != "..")
+        && !super::fs::is_package_control_path(path)
 }
 
 /// `sys_exec` — Spawn a new process from an ELF binary on the VFS.

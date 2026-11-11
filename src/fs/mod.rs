@@ -270,7 +270,10 @@ pub fn read_file(path: &str) -> Result<String, String> {
 /// hold it. Use for any size a caller controls: `vec![0; len]` aborts the
 /// kernel when the allocation fails.
 pub fn try_zeroed_vec(len: usize) -> Option<Vec<u8>> {
-    Some(alloc::vec![0u8; len])
+    let mut buf = Vec::new();
+    buf.try_reserve_exact(len).ok()?;
+    buf.resize(len, 0);
+    Some(buf)
 }
 
 /// Read a file's raw bytes without requiring valid UTF-8.
