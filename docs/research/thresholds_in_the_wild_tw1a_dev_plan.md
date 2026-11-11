@@ -114,3 +114,37 @@ been told. This plan, the harness and the adapters are committed.
 
 A registered version on the 53 reserve runs, with targets, configurations and outcomes fixed from what
 this round shows; and the signal-level round.
+
+## Amendment 1 (2026-11-11, before any campaign or attack run)
+
+Written after the targets were installed and the adapters were smoke-tested on the first 20,000
+calibration scores of mode 1 (consistency of the threshold reading, speed, cloning). No campaign, no
+recorded attack and no sealed run had been replayed through any target.
+
+1. **StreamAD is not run in this round.** Release 0.3.1 pins numpy 1.x, pandas 1.x and statsmodels
+   0.13.5, and its t-digest dependency needs a C build; the development machine has Python 3.12 and no
+   compiler. It will be run in a container with the versions it pins.
+2. **The SPOT authors' `spot.py` is deferred.** It has no step call, and `run()` refuses a second call
+   on the same object, so the closed-loop campaigns cannot be driven through it without changing it. A
+   later pass will give it the recorded attacks and the loud pulses as whole series.
+3. **htm.core's Python likelihood is not run yet.** It is not installed as a package; the adapter loads
+   the catalogued file from the clone. The session's permission guard declined to execute code from the
+   clone, so this target waits for the author's word. PySAD's port of the NuPIC likelihood is run.
+4. **PySAD's Telemanom port is run open-loop only** (recorded attacks, sealed runs, loud pulses). It
+   exposes no cheap reading of the score that would alarm next, so the frog and the sub-event pulses,
+   which need that reading at every step, are not run against it.
+5. **libspot is fitted on the first 1,000 scores of the history** and stepped from there. Its objects
+   cannot be copied, so a branch replays the inputs.
+6. **Consistency check.** The check on the score at hand runs on the first 2,000 steps of every stream
+   and every 100th step after, as planned. The probes just above and below the reading need a copy of
+   the target; they run on the first 200 steps and every 1,000th step, and not at all for libspot, whose
+   reading is the library's own `anomaly_threshold`.
+7. **The Gaussian-tail reading is approximate** (it uses the long-window mean and deviation from before
+   the score). Disagreements within 5% of the reading are counted and reported; one outside stops the
+   run. In the smoke test the largest was 0.6%.
+8. **Configuration B is a second pass.** Its procedure is fixed now: the single parameter is found by
+   bisection so that the target, after one pass over the mode's four calibration runs, raises at most 2
+   alarm episodes a day over a second pass of the same runs; the most sensitive value that meets the
+   budget is used.
+9. **Scores that are not finite** are not given to a target and raise no alarm. The calibration data of
+   the modes checked contain none.
