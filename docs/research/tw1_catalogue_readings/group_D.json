@@ -1,0 +1,718 @@
+[
+  {
+    "target": "Netdata ML (k-means anomaly bit)",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/netdata/netdata",
+    "commit": "034d079edaa468da6b8f259653afb7e013e66702",
+    "version": "v2.12.0-497-nightly (packaging/version); latest release v2.12.3",
+    "licence": "GPL-3.0",
+    "licence_notes": "Agent is GPL-3.0; Netdata Cloud UI not covered. No restriction on running or benchmarking found.",
+    "adoption": "81,367 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Installable product; ML on by default with dbengine; models retrained every 3 h on recent data decide the anomaly bit.",
+    "default_path": "nd_profile.ml_enabled=AUTO (netdata-conf-profile.c:129,145,161) -> ml_config.cc:137 'enabled'; on unless memory mode != dbengine (ml_config.cc:292-296). Bit decided in ml_dimension_predict (ml.cc:1133-1272). Shipped alert ml_1min_node_ar (src/health/health.d/ml.conf:11-23).",
+    "adaptive_quantity": "Per-dimension k-means models (k=2); each model's threshold is its training min/max distance range (score >= 99 of 100).",
+    "update_rule": "Every 3 h train a new model on the trailing 6 h of all stored values; max_dist = max training distance; keep up to 18 models, dropping the oldest.",
+    "learning_region": "All samples in the trailing 6 h window (randomly subsampled to ~1440 vectors), flagged or not.",
+    "evidence": [
+      {
+        "file": "src/ml/ml_config.cc",
+        "lines": "143-149",
+        "quote": "time_t training_window = inicfg_get_duration_seconds(&netdata_config, config_section_ml, \"training window\", 6 * 3600);\n...\nunsigned train_every = inicfg_get_duration_seconds(&netdata_config, config_section_ml, \"train every\", 3 * 3600);\n\nunsigned num_models_to_use = inicfg_get_number(&netdata_config, config_section_ml, \"number of models per dimension\", 18);"
+      },
+      {
+        "file": "src/ml/ml.cc",
+        "lines": "242-246",
+        "quote": "training_response.query_before_t = training_response.last_entry_on_response;\ntraining_response.query_after_t = std::max(\n    training_response.query_before_t - Cfg.training_window,  // Fixed time window\n    training_response.first_entry_on_response\n);"
+      },
+      {
+        "file": "src/ml/ml.cc",
+        "lines": "273-283",
+        "quote": "STORAGE_POINT sp = storage_engine_query_next_metric(&handle);\n...\ncalculated_number_t value = sp.sum / sp.count;\n...\nworker->training_cns[idx] = value;"
+      },
+      {
+        "file": "src/ml/ml_kmeans.cc",
+        "lines": "82-86",
+        "quote": "if (mean_dist < kmeans->min_dist)\n    kmeans->min_dist = mean_dist;\n\nif (mean_dist > kmeans->max_dist)\n    kmeans->max_dist = mean_dist;"
+      },
+      {
+        "file": "src/ml/ml_kmeans.cc",
+        "lines": "122-123",
+        "quote": "calculated_number_t anomaly_score = 100.0 * std::abs((mean_dist - inlined_km->min_dist) / spread);\nreturn (anomaly_score > 100.0) ? 100.0 : anomaly_score;"
+      },
+      {
+        "file": "src/ml/ml.cc",
+        "lines": "1243-1258",
+        "quote": "for (const auto &km_ctx : dim->km_contexts) {\n...\n    if (anomaly_score < (100 * Cfg.dimension_anomaly_score_threshold)) {\n...\n        return false;"
+      },
+      {
+        "file": "src/ml/ml.cc",
+        "lines": "1261-1266",
+        "quote": "dim->suppression_anomaly_counter += sum ? 1 : 0;\n\nif ((dim->suppression_anomaly_counter >= Cfg.suppression_threshold) &&\n    (dim->suppression_window_counter >= Cfg.suppression_window)) {\n    dim->ts = TRAINING_STATUS_SILENCED;"
+      },
+      {
+        "file": "src/ml/ml.cc",
+        "lines": "908-913",
+        "quote": "void ml_dimension_finalize_constant_state(ml_dimension_t *dim)\n{\n    dim->mt = METRIC_TYPE_CONSTANT;\n    dim->ts = TRAINING_STATUS_TRAINED;\n    dim->suppression_anomaly_counter = 0;"
+      },
+      {
+        "file": "src/ml/ml_config.cc",
+        "lines": "114",
+        "quote": "static constexpr double ML_DIMENSION_ANOMALY_SCORE_THRESHOLD_DEFAULT = 0.99;"
+      },
+      {
+        "file": "src/health/health.d/ml.conf",
+        "lines": "11-23",
+        "quote": " template: ml_1min_node_ar\n...\n   lookup: average -1m of anomaly_rate\n...\n     warn: $this > 1\n...\n       to: silent"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "Window 6 h (clamp 1-24 h); retrain 3 h (clamp 1-6 h); 18 models (clamp 1-168) => oldest model covers data up to ~57 h old (inferred); models deleted after 7 days.",
+    "direction_bounds": "Symmetric (range recomputed each retrain). Score threshold clamped 0.01-1.00 (ml_config.cc:121-126). No floor/ceiling on max_dist. Features differenced (diff 1), smoothed 3, lagged 5.",
+    "alarm_logic": "Unanimity: anomalous only if every non-abstaining model scores >= 99 (ml.cc:1243-1258), so the newest model can veto. Self-silencing after >=450 anomalous of >=900 samples since the last model install (ml.cc:1261-1266; defaults ml_config.cc:171-175), cleared on next install (ml.cc:908-913, 992). Shipped node alert: 1 min average anomaly rate > 1 %, to: silent, no delay.",
+    "operator_controls": "enabled; charts/hosts to skip from training; window, retrain, model count, score threshold, suppression settings. No freeze, exclusion window or feedback label found.",
+    "documentation_quote": "docs/ml-ai/ml-anomaly-detection/ml-anomaly-detection.md:184: \"When an anomaly occurs, the newest model will learn it as \\\"normal\\\" within 3 hours.\" Docs (lines 112,116) call the threshold \"the 99th percentile of training data\"; code uses 99 % of the min-max range (ml_kmeans.cc:122).",
+    "closest_tt1_rule": "daily",
+    "differs": "Recompute every 3 h on 6 h, not daily; threshold = window maximum distance, not a quantile; unanimity over 18 models lets the newest absorb-and-veto; per-cycle self-silencing; differenced features.",
+    "predictions": {
+      "sustained": "absorb (prediction): newest model retrains within 3 h on a window containing the attack and vetoes; 450 anomalous seconds also silence the dimension until the next retrain.",
+      "loud": "absorb (prediction): pulses in the trailing 6 h raise the newest model's max_dist if their vectors are sampled (~6.7 % at 1 s).",
+      "frog": "absorb (prediction): threshold is the window maximum, so sub-threshold points lift it at each retrain.",
+      "subl": "absorb (prediction): no exclusion, duration irrelevant; whether the shipped node alert fires at all on one dimension is unclear."
+    },
+    "runnable": "Docker (netdata/netdata), < 1 GB RAM for one node (estimate).",
+    "notes": "Absorption is documented as intended behaviour. Diff features mean a flat level shift is anomalous only near its onset.",
+    "unresolved": "Survival of short pulses through the 6.7 % training subsample; whether ml_1min_node_ar fires for a single-dimension attack."
+  },
+  {
+    "target": "Zabbix baselinewma",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/zabbix/zabbix (mirror of git.zabbix.com)",
+    "commit": "1de5cf68d989e20f308cb00c8e5f4ce518ec4714",
+    "version": "8.2.0alpha1 (include/version.h, master)",
+    "licence": "AGPL-3.0",
+    "licence_notes": "AGPL-3.0 per gh api; no clause on benchmarking or publishing results.",
+    "adoption": "6,557 GitHub stars on the mirror (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Product function whose value (a seasonal baseline) changes with incoming data and decides a trigger; opt-in.",
+    "default_path": "Opt-in per trigger; no shipped template uses baselinewma/baselinedev/trendstl (grep of templates/ returned no file). evaluate_BASELINE (src/libs/zbxcalc/func_eval.c:3868-3984), wma branch 3915-3942; data from zbx_baseline_get_data (src/libs/zbxtrends/baseline.c:209-269).",
+    "adaptive_quantity": "Seasonal baseline: weighted mean of the same period in N previous seasons.",
+    "update_rule": "Recomputed at each trigger evaluation from hourly trends; weight = season_num - index (newest season heaviest).",
+    "learning_region": "All past seasons' period averages from the trends table, regardless of trigger/problem state; current period skipped (skip=1).",
+    "evidence": [
+      {
+        "file": "src/libs/zbxtrends/baseline.c",
+        "lines": "65-78",
+        "quote": "state = zbx_trends_get_avg(table, itemid, start, end, &value_dbl);\n...\nelse\n{\n\tzbx_vector_dbl_append(values, value_dbl);"
+      },
+      {
+        "file": "src/libs/zbxcalc/func_eval.c",
+        "lines": "3919-3920",
+        "quote": "if (SUCCEED != zbx_baseline_get_data(item->itemid, item->value_type, ts->sec, period, season_num,\n\t\tseason_unit, 1, &values, &index, error))"
+      },
+      {
+        "file": "src/libs/zbxcalc/func_eval.c",
+        "lines": "3933-3941",
+        "quote": "for (i = 0; i < values.values_num; i++)\n{\n\tint\tweight = season_num - (int)index.values[i];\n\n\tvalue_dbl += values.values[i] * weight;"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "User-set num_seasons x season unit; hourly trend resolution.",
+    "direction_bounds": "Symmetric; no clamp.",
+    "alarm_logic": "User-written trigger expression; nothing applied by default. Recovery-expression hysteresis is a general trigger feature (not read).",
+    "operator_controls": "Function parameters (period, time shift, season unit, number of seasons). No exclusion of past periods found.",
+    "documentation_quote": "Silent on excluding anomalous periods. Zabbix 7.0 manual, trend functions (fetched 2026-11-11): baselinewma \"Calculates the baseline by averaging data from the same timeframe in multiple equal time periods ('seasons')\"; trendstl \"Returns the rate of anomalies during the detection period\".",
+    "closest_tt1_rule": "daily",
+    "differs": "Seasonal (same period in past seasons) instead of previous day's scores; one-season lag before an attack enters; weighted mean.",
+    "predictions": {
+      "sustained": "absorb (prediction): after one season the attack periods are past-season values with the largest weight; first season resists (current period skipped).",
+      "loud": "resist (prediction): hourly averaging dilutes short pulses; degree unclear.",
+      "frog": "absorb (prediction): one season per step.",
+      "subl": "absorb (prediction): no exclusion; duration irrelevant."
+    },
+    "runnable": "Docker (server + PostgreSQL/MySQL + web), ~1-2 GB (estimate); needs hourly trends history.",
+    "notes": "No shipped template uses it.",
+    "unresolved": "Trigger recovery semantics not read."
+  },
+  {
+    "target": "Zabbix baselinedev",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/zabbix/zabbix (mirror of git.zabbix.com)",
+    "commit": "1de5cf68d989e20f308cb00c8e5f4ce518ec4714",
+    "version": "8.2.0alpha1 (include/version.h, master)",
+    "licence": "AGPL-3.0",
+    "licence_notes": "AGPL-3.0 per gh api; no clause on benchmarking or publishing results.",
+    "adoption": "6,557 GitHub stars on the mirror (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Opt-in function; mean and stddev over current + past seasonal periods decide a trigger.",
+    "default_path": "Opt-in per trigger; no shipped template uses baselinewma/baselinedev/trendstl (grep of templates/ returned no file). evaluate_BASELINE dev branch (func_eval.c:3943-3976).",
+    "adaptive_quantity": "Seasonal mean and population stddev; returns |current - mean| / stddev.",
+    "update_rule": "Recomputed at each evaluation from the current period plus the same period in N past seasons.",
+    "learning_region": "Current period (values[0]) and all past seasons' periods; no state filter.",
+    "evidence": [
+      {
+        "file": "src/libs/zbxcalc/func_eval.c",
+        "lines": "3948-3949",
+        "quote": "if (SUCCEED != zbx_baseline_get_data(item->itemid, item->value_type, ts->sec, period, season_num,\n\t\tseason_unit, 0, &values, &index, error))"
+      },
+      {
+        "file": "src/libs/zbxcalc/func_eval.c",
+        "lines": "3960-3969",
+        "quote": "if (SUCCEED != zbx_eval_calc_stddevpop(&values, &value_dev, error))\n...\n\tvalue_dbl = fabs(values.values[0] - value_avg) / value_dev;"
+      },
+      {
+        "file": "src/libs/zbxtrends/baseline.c",
+        "lines": "65-78",
+        "quote": "state = zbx_trends_get_avg(table, itemid, start, end, &value_dbl);\n...\n\tzbx_vector_dbl_append(values, value_dbl);"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "User-set num_seasons; hourly trends.",
+    "direction_bounds": "Symmetric; returns 0 if stddev < epsilon (func_eval.c:3963-3972).",
+    "alarm_logic": "User-written trigger (e.g. baselinedev(...) > 2).",
+    "operator_controls": "Function parameters only.",
+    "documentation_quote": "Silent on excluding anomalous periods. Zabbix 7.0 manual, trend functions (fetched 2026-11-11): baselinewma \"Calculates the baseline by averaging data from the same timeframe in multiple equal time periods ('seasons')\"; trendstl \"Returns the rate of anomalies during the detection period\".",
+    "closest_tt1_rule": "daily",
+    "differs": "Seasonal mean+k*sd; the period under test is part of its own mean and stddev.",
+    "predictions": {
+      "sustained": "absorb (prediction): over seasons; within a season the current period inflates its own stddev (partial).",
+      "loud": "resist (prediction): hourly averaging dilutes pulses.",
+      "frog": "absorb (prediction).",
+      "subl": "absorb (prediction): no exclusion."
+    },
+    "runnable": "Docker, as baselinewma.",
+    "notes": "No shipped template uses it.",
+    "unresolved": "None beyond trigger semantics."
+  },
+  {
+    "target": "Zabbix trendstl",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/zabbix/zabbix (mirror of git.zabbix.com)",
+    "commit": "1de5cf68d989e20f308cb00c8e5f4ce518ec4714",
+    "version": "8.2.0alpha1 (include/version.h, master)",
+    "licence": "AGPL-3.0",
+    "licence_notes": "AGPL-3.0 per gh api; no clause on benchmarking or publishing results.",
+    "adoption": "6,557 GitHub stars on the mirror (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Opt-in function; STL remainder deviation unit learned over the eval window decides the anomaly rate.",
+    "default_path": "Opt-in per trigger; no shipped template uses baselinewma/baselinedev/trendstl (grep of templates/ returned no file). evaluate_TREND stl branch (func_eval.c:2775-2840) -> trends_eval_stl (2606-2676) -> zbx_get_percentage_of_deviations_in_stl_remainder (anomalystl.c:50-116).",
+    "adaptive_quantity": "Deviation limit = deviations x MAD (default) of the STL remainder over the whole eval period.",
+    "update_rule": "Recomputed at each evaluation: STL on hourly averages of eval_period; count remainder points in detect_period beyond the limit.",
+    "learning_region": "All hourly averages in eval_period, including the detection period under test.",
+    "evidence": [
+      {
+        "file": "src/libs/zbxcalc/anomalystl.c",
+        "lines": "88-94",
+        "quote": "for (i = 0; i < remainder->values_num; i++)\n\tzbx_vector_dbl_append(&remainder_values_dbl, remainder->values[i].value.dbl);\n\nif (SUCCEED != (ret = stat_func(&remainder_values_dbl, &remainder_deviation, error)))\n...\ndeviation_limit = remainder_deviation * deviations_count;"
+      },
+      {
+        "file": "src/libs/zbxcalc/func_eval.c",
+        "lines": "2816-2822",
+        "quote": "if (SUCCEED != get_function_parameter_float(parameters, 4, ZBX_FLAG_DOUBLE_PLAIN, &deviations))\n\tdeviations = STL_DEF_DEVIATIONS;\n\nif (SUCCEED != get_function_parameter_str(parameters, 5, &dev_alg) || '\\0' == *dev_alg)\n{"
+      },
+      {
+        "file": "src/libs/zbxcalc/anomalystl.h",
+        "lines": "32",
+        "quote": "#define ROBUST_DEF\t\t0"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "User-set eval_period (>= 1 h); hourly averages.",
+    "direction_bounds": "Symmetric (absolute remainder); default 3 MAD; STL robust flag off by default.",
+    "alarm_logic": "User-written threshold on the returned anomaly fraction.",
+    "operator_controls": "eval/detect period, season, deviations, devalg, s_window.",
+    "documentation_quote": "Silent on excluding anomalous periods. Zabbix 7.0 manual, trend functions (fetched 2026-11-11): baselinewma \"Calculates the baseline by averaging data from the same timeframe in multiple equal time periods ('seasons')\"; trendstl \"Returns the rate of anomalies during the detection period\".",
+    "closest_tt1_rule": "median_mad",
+    "differs": "MAD of an STL remainder over a user window including the points under test; non-robust STL trend can follow a shift.",
+    "predictions": {
+      "sustained": "absorb (prediction): non-robust STL trend follows a level shift so the remainder shrinks away from edges.",
+      "loud": "resist (prediction): MAD ignores sparse pulses.",
+      "frog": "unclear (prediction).",
+      "subl": "unclear (prediction): hourly averaging dilutes them."
+    },
+    "runnable": "Docker, as baselinewma.",
+    "notes": "No shipped template uses it.",
+    "unresolved": "STL robustness with ROBUST_DEF 0 inferred from the flag name; STL internals not read."
+  },
+  {
+    "target": "Zabbix timeleft/forecast (shipped templates)",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/zabbix/zabbix (mirror of git.zabbix.com)",
+    "commit": "1de5cf68d989e20f308cb00c8e5f4ce518ec4714",
+    "version": "8.2.0alpha1 (include/version.h, master)",
+    "licence": "AGPL-3.0",
+    "licence_notes": "AGPL-3.0 per gh api; no clause on benchmarking or publishing results.",
+    "adoption": "6,557 GitHub stars on the mirror (gh api, 2026-11-11)",
+    "in_scope": false,
+    "scope_reason": "Extrapolates the monitored value itself to a fixed limit (100 %) and horizon (1d); no learned model of normal behaviour, no baseline that flagged samples could enter.",
+    "default_path": "On in 114 files under templates/net (YAML and README), e.g. templates/net/arista_snmp/README.md:217: 'timeleft(/Arista by SNMP/vfs.fs.pused[...],1h,100)<1d', combined by 'and' with a fixed utilisation threshold. forecast: 0 template files.",
+    "adaptive_quantity": "None (fit of the last 1 h of the signal; thresholds fixed).",
+    "update_rule": "n/a",
+    "learning_region": "n/a",
+    "evidence": [
+      {
+        "file": "templates/net/arista_snmp/README.md",
+        "lines": "217",
+        "quote": "timeleft(/Arista by SNMP/vfs.fs.pused[storageUsedPercentage.{#SNMPINDEX}],1h,100)<1d"
+      }
+    ],
+    "learns_from_own_alarms": "not_adaptive",
+    "default_when_configurable": null,
+    "memory": "1 h fit window",
+    "direction_bounds": "Fixed limit 100, horizon 1d",
+    "alarm_logic": "AND with last(...) > fixed macro threshold",
+    "operator_controls": "Template macros",
+    "documentation_quote": "silent",
+    "closest_tt1_rule": "static",
+    "differs": "Threshold constants; extrapolation not a baseline.",
+    "predictions": {
+      "sustained": "n/a",
+      "loud": "n/a",
+      "frog": "n/a",
+      "subl": "n/a"
+    },
+    "runnable": "Docker",
+    "notes": "Recorded to show the shipped templates rely on fixed thresholds.",
+    "unresolved": "timeleft code not read."
+  },
+  {
+    "target": "RRDtool aberrant behaviour detection (HWPREDICT/DEVSEASONAL/FAILURES)",
+    "group": "D",
+    "kind": "library",
+    "repo": "https://github.com/oetiker/rrdtool-1.x",
+    "commit": "cef7e1a9579f4175df52f6ff88c73ee9082d79fa",
+    "version": "1.11.0 (VERSION; = latest release)",
+    "licence": "GPL-2.0",
+    "licence_notes": "No restriction on running or benchmarking.",
+    "adoption": "1,121 GitHub stars (gh api, 2026-11-11); used as storage by other tools (not counted).",
+    "in_scope": true,
+    "scope_reason": "Installed tool; Holt-Winters band and FAILURES flag update with every data point once HWPREDICT is declared.",
+    "default_path": "Opt-in at rrdtool create (RRA:HWPREDICT; other four RRAs implicit, doc/rrdcreate.pod:400-412). update_aberrant_CF (src/rrd_hw.c:437-526) -> update_* in src/rrd_hw_update.c.",
+    "adaptive_quantity": "Holt-Winters intercept, slope, per-slot seasonal coefficient, per-slot deviation (EWMA of |prediction - observed|).",
+    "update_rule": "EWMA updates of all terms at every non-NaN primary data point; band = prediction +/- delta * deviation; FAILURES when >= threshold of last window points violate.",
+    "learning_region": "All non-NaN observations, inside or outside the band.",
+    "evidence": [
+      {
+        "file": "src/rrd_hw_update.c",
+        "lines": "93-97",
+        "quote": "/* update the intercept */\ncoefs[CDP_hw_intercept].u_val =\n    functions->intercept(current_rra->par[RRA_hw_alpha].u_val,\n                         coefs[CDP_scratch_idx].u_val,\n                         seasonal_coef, coefs);"
+      },
+      {
+        "file": "src/rrd_hw_update.c",
+        "lines": "352-358",
+        "quote": "/* exponential smoothing update */\nrrd->cdp_prep[cdp_idx].scratch[CDP_scratch_idx].u_val =\n    functions->seasonal_deviation(rrd->rra_def[rra_idx].\n                                  par[RRA_seasonal_gamma].u_val,\n                                  prediction,"
+      },
+      {
+        "file": "src/rrd_hw_math.c",
+        "lines": "128-136",
+        "quote": "rrd_value_t hw_calculate_seasonal_deviation(\n...\n    return hw_gamma * fabs(prediction - observed)\n        + (1 - hw_gamma) * last;"
+      },
+      {
+        "file": "src/rrd_hw_update.c",
+        "lines": "444-454",
+        "quote": "/* determine if the observed value is a violation */\nif (!isnan(rrd->cdp_prep[cdp_idx].scratch[CDP_scratch_idx].u_val)) {\n    if (hw_is_violation\n...\n    violation = 1;  /* count DNAN values as violations */"
+      },
+      {
+        "file": "src/rrd_create.c",
+        "lines": "1189-1192",
+        "quote": "current_rra->par[RRA_delta_pos].u_val = 2.0;\ncurrent_rra->par[RRA_delta_neg].u_val = 2.0;\ncurrent_rra->par[RRA_failure_threshold].u_cnt = 7;\ncurrent_rra->par[RRA_window_len].u_cnt = 9;"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "EWMA: alpha, beta user-required; gamma = alpha when implicit (rrd_create.c:1152-1153, 1167-1168); per-slot terms update once per season; seasonal smoothing window 0.05.",
+    "direction_bounds": "Symmetric; none. delta_pos/neg default 2.",
+    "alarm_logic": "FAILURES 7 of 9 (implicit defaults); test uses pre-update deviation, so the current point does not widen its own band; NaN counts as violation.",
+    "operator_controls": "rrdtune: deltas, failure threshold, window, alpha/beta/gamma, smoothing windows, --aberrant-reset (doc/rrdtune.pod:157-165).",
+    "documentation_quote": "silent (doc/rrdcreate.pod:328-391 describes the RRAs; nothing on excluding violations)",
+    "closest_tt1_rule": "ewma",
+    "differs": "Seasonal per-slot deviation; Holt-Winters trend; k-of-n (7/9) window acts like an on-delay.",
+    "predictions": {
+      "sustained": "absorb (prediction): intercept follows at rate alpha; slot deviations grow; 7-of-9 count falls.",
+      "loud": "absorb (prediction): each pulse raises its slot deviation for the next season.",
+      "frog": "absorb (prediction).",
+      "subl": "absorb (prediction): pulses < 7 points never fail but update every term."
+    },
+    "runnable": "In-process CLI, negligible resources.",
+    "notes": "",
+    "unresolved": "Which downstream products create HWPREDICT RRAs by default."
+  },
+  {
+    "target": "Graphite-web holtWintersConfidenceBands / holtWintersAberration",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/graphite-project/graphite-web",
+    "commit": "b23b548b24a2300f55d2fb676e37ed9f4bff9c31",
+    "version": "1.2.0 on master (setup.py:82); latest release 1.1.10",
+    "licence": "Apache-2.0",
+    "licence_notes": "No restriction.",
+    "adoption": "6,137 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Installed product; opt-in render functions whose band changes with incoming data (alarming needs an external evaluator).",
+    "default_path": "Opt-in render functions (webapp/graphite/render/functions.py:4141-4247) calling holtWintersAnalysis (4008-4103); defaults delta 3, bootstrap 7d, seasonality 1d; alpha=gamma=0.1, beta=0.0035 hard-coded.",
+    "adaptive_quantity": "Holt-Winters prediction and seasonal deviation; band = prediction +/- delta * deviation.",
+    "update_rule": "Recomputed from scratch at each render over [from - 7d, until]; EWMA updates at every non-None point.",
+    "learning_region": "All non-None points, including the point under test (deviation[i] uses actual[i]).",
+    "evidence": [
+      {
+        "file": "webapp/graphite/render/functions.py",
+        "lines": "4069-4074",
+        "quote": "intercept = holtWintersIntercept(alpha,actual,last_seasonal\n        ,last_intercept,last_slope)\nslope = holtWintersSlope(beta,intercept,last_intercept,last_slope)\nseasonal = holtWintersSeasonal(gamma,actual,intercept,last_seasonal)\nnext_pred = intercept + slope + next_last_seasonal\ndeviation = holtWintersDeviation(gamma,actual,prediction,last_seasonal_dev)"
+      },
+      {
+        "file": "webapp/graphite/render/functions.py",
+        "lines": "4002-4005",
+        "quote": "def holtWintersDeviation(gamma,actual,prediction,last_seasonal_dev):\n  if prediction is None:\n    prediction = 0\n  return gamma * math.fabs(actual - prediction) + (1 - gamma) * last_seasonal_dev"
+      },
+      {
+        "file": "webapp/graphite/render/functions.py",
+        "lines": "4179-4181",
+        "quote": "scaled_deviation = delta * deviation_item\nupperBand.append(forecast_item + scaled_deviation)\nlowerBand.append(forecast_item - scaled_deviation)"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "EWMA alpha=gamma=0.1; history cut at bootstrap 7d + view range per render.",
+    "direction_bounds": "Symmetric; none.",
+    "alarm_logic": "None in Graphite; aberration = distance outside band (functions.py:4224-4232).",
+    "operator_controls": "delta, bootstrapInterval, seasonality per query.",
+    "documentation_quote": "silent (docstrings functions.py:4142-4145, 4212-4215)",
+    "closest_tt1_rule": "ewma",
+    "differs": "Current point included in its own deviation (violation needs |e| > ~3.86 x previous slot deviation, inferred); full recompute per query.",
+    "predictions": {
+      "sustained": "absorb (prediction).",
+      "loud": "absorb (prediction): slot deviation inflated for the next season.",
+      "frog": "absorb (prediction).",
+      "subl": "absorb (prediction): any duration logic is in the external alert rule."
+    },
+    "runnable": "In-process (pure Python) or Docker graphiteapp/graphite-statsd, < 1 GB (estimate).",
+    "notes": "",
+    "unresolved": "Whether 1.1.10 has identical holtWintersAnalysis."
+  },
+  {
+    "target": "Checkmk predictive levels",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/Checkmk/checkmk",
+    "commit": "d1602e8a93e7bc40334eb323951f06705615d7db",
+    "version": "3.0.0b1 (defines.make, master); no GitHub release objects",
+    "licence": "GPL-2.0",
+    "licence_notes": "Repository is GPL-2.0, but docs.checkmk.com presents predictive levels as a commercial-edition feature and the GUI title says 'only on CMC' (cmk/gui/form_specs/visitors/recomposers/levels.py:345). Running it may need a commercial edition.",
+    "adoption": "2,640 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Code public (GPL); reference curve recomputed daily from recent history decides WARN/CRIT; opt-in per rule. Runnability in the free edition unclear.",
+    "default_path": "Opt-in levels type 'predictive'; defaults period wday, horizon 90 d (levels.py:361,373), levels prefill absolute (levels.py:288). compute_prediction (cmk/utils/prediction/_prediction.py:113-144) -> _data_stats (182-190) -> estimate_levels (_plugin_interface.py:72-88); injected at cmk/base/checkers.py:768-786.",
+    "adaptive_quantity": "Reference = average at the same time of day over matching past slices; levels = reference +/- warn/crit x (1 | reference/100 | stdev).",
+    "update_rule": "Once per day (valid_interval = start of day .. +1 d), mean and stdev per time point across matching slices within the horizon.",
+    "learning_region": "All recorded values (RRD max consolidation) of all matching slices in the horizon; only None removed.",
+    "evidence": [
+      {
+        "file": "cmk/utils/prediction/_prediction.py",
+        "lines": "182-190",
+        "quote": "def _data_stats(slices: Iterable[Iterable[float | None]]) -> list[DataStat | None]:\n    return [\n        (\n            DataStat.from_values(point_line)\n            if (point_line := [x for x in time_column if x is not None])"
+      },
+      {
+        "file": "cmk/utils/prediction/_prediction.py",
+        "lines": "46-53",
+        "quote": "def from_values(cls, values: Sequence[float]) -> Self:\n    average = sum(values) / float(len(values))\n    return cls(\n        average=average,\n..."
+      },
+      {
+        "file": "packages/cmk-plugin-apis/cmk/agent_based/prediction_backend.py",
+        "lines": "47-50",
+        "quote": "start_of_day = _start_of_day(now)\nreturn cls(\n    valid_interval=(start_of_day, start_of_day + _ONE_DAY),"
+      },
+      {
+        "file": "cmk/utils/prediction/_plugin_interface.py",
+        "lines": "82-84",
+        "quote": "match meta.direction:\n    case \"upper\":\n        return (max(estimated[0], bound[0]), max(estimated[1], bound[1]))"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "Horizon 90 days (~13 matching weekdays for wday); recompute once per day.",
+    "direction_bounds": "Symmetric reference; optional fixed-limit floor for upper levels (ceiling for lower); no cap on rising.",
+    "alarm_logic": "Standard WARN/CRIT check levels; notification delays not read.",
+    "operator_controls": "period, horizon, levels type/values, fixed limits; no exclusion of past periods.",
+    "documentation_quote": "docs.checkmk.com Predictive monitoring (fetched 2026-11-11): silent on excluding problem periods; standard deviation from \"all measured values of the reference period\"; \"Checkmk learns continuously\".",
+    "closest_tt1_rule": "daily",
+    "differs": "Seasonal reference averaged over ~13 weeks (attack week weight ~1/13); RRD max consolidation.",
+    "predictions": {
+      "sustained": "resist for days, absorb over weeks (prediction): reference moves ~1/13 of the shift per attacked week.",
+      "loud": "resist (prediction) with absolute/relative levels; partial with stdev levels.",
+      "frog": "absorb slowly (prediction).",
+      "subl": "absorb (prediction): nothing excluded; max consolidation may amplify pulses (unclear)."
+    },
+    "runnable": "Unclear: feature tied to commercial CMC core per docs; algorithm can be exercised in-process in Python.",
+    "notes": "",
+    "unresolved": "Whether the GPL edition runs predictive levels; RRD resolution over a 90-day horizon."
+  },
+  {
+    "target": "Grafana promql-anomaly-detection, adaptive strategy (default)",
+    "group": "D",
+    "kind": "plugin",
+    "repo": "https://github.com/grafana/promql-anomaly-detection",
+    "commit": "b22d38956c19fb5540ad24b6d6a7ca5179aa015b",
+    "version": "latest release v0.3.0",
+    "licence": "Apache-2.0",
+    "licence_notes": "No restriction.",
+    "adoption": "433 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Rule pack installed into Prometheus; bands recomputed from recent data decide AnomalyDetected; opt-in per metric label, adaptive is the default strategy.",
+    "default_path": "Copy rules into Prometheus, tag metrics with anomaly_name (README.md:38-50); strategy adaptive by default (adaptive.yml:41); alert AnomalyDetected for: 5m (adaptive.yml:181-189).",
+    "adaptive_quantity": "Upper band = max(avg_1h + 2*stddev_st, 1.5*avg_1h, long-term 1d/1w band); stddev_st = 26 h average of 1 h stddev kept where CoV > 0.5.",
+    "update_rule": "Recording rules re-evaluated every rule interval over sliding windows.",
+    "learning_region": "All samples of the selected series; the CoV filter keeps high-variability hours.",
+    "evidence": [
+      {
+        "file": "rules/adaptive.yml",
+        "lines": "49-51",
+        "quote": "- record: anomaly:adaptive:avg_1h\n  expr: |-\n    avg_over_time(anomaly:adaptive:select[1h])"
+      },
+      {
+        "file": "rules/adaptive.yml",
+        "lines": "59-61",
+        "quote": "- record: anomaly:adaptive:stddev_1h:filtered\n  expr: |-\n    stddev_over_time(anomaly:adaptive:select[1h]) > anomaly:adaptive:avg_1h * on() group_left anomaly:adaptive:threshold_by_covar"
+      },
+      {
+        "file": "rules/adaptive.yml",
+        "lines": "65-67",
+        "quote": "- record: anomaly:adaptive:stddev_st\n  expr: |-\n    avg_over_time(anomaly:adaptive:stddev_1h:filtered[26h])"
+      },
+      {
+        "file": "rules/adaptive.yml",
+        "lines": "181-186",
+        "quote": "- alert: AnomalyDetected\n  for: 5m\n  expr: >\n    last_over_time(anomaly:level[2m]) < last_over_time(anomaly:lower_band{anomaly_strategy=\"adaptive\"}[2m])\n    or"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "1 h mean; 26 h stddev smoothing; 1 d and 1 w look-backs (offset 23h30m, 167h30m).",
+    "direction_bounds": "Upper = max of candidates, lower = min; lower clamp_min 0, pinned 0 for errors/latency; margin floor width 0.5*avg_1h.",
+    "alarm_logic": "for: 5m on-delay; no hysteresis.",
+    "operator_controls": "Constants in the rule file; per-metric strategy label.",
+    "documentation_quote": "README.md:55: adaptive \"minimizing false positives for recurring events\", robust \"is robust to outliers\"; adaptive.yml:63-64 bands \"expand gently in the presence of extreme outliers\". Silent on excluding anomalous samples.",
+    "closest_tt1_rule": "ewma",
+    "differs": "Moving 1 h mean (not EWMA) plus 26 h-smoothed 1 h stddev; widest-of-three band; 5 min on-delay.",
+    "predictions": {
+      "sustained": "absorb (prediction): avg_1h catches up within ~1 h; 1 d look-back carries it next day.",
+      "loud": "absorb (prediction): pulse hours pass the CoV filter and widen stddev_st for 26 h.",
+      "frog": "absorb (prediction).",
+      "subl": "absorb (prediction): pulses < 5 min never alert and still enter windows."
+    },
+    "runnable": "Docker Prometheus (< 1 GB) or promtool test rules in-process.",
+    "notes": "",
+    "unresolved": ""
+  },
+  {
+    "target": "Grafana promql-anomaly-detection, robust strategy",
+    "group": "D",
+    "kind": "plugin",
+    "repo": "https://github.com/grafana/promql-anomaly-detection",
+    "commit": "b22d38956c19fb5540ad24b6d6a7ca5179aa015b",
+    "version": "latest release v0.3.0",
+    "licence": "Apache-2.0",
+    "licence_notes": "No restriction.",
+    "adoption": "433 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Same pack; opt-in strategy via label.",
+    "default_path": "anomaly_strategy=\"robust\" label (robust.yml:29); alert AnomalyDetected for: 5m (robust.yml:164-172).",
+    "adaptive_quantity": "Band = 24 h median +/- 2 * 24 h MAD, margin 0.5*median, 1d/1w seasonal bands; level = 1 h median.",
+    "update_rule": "Recording rules every 1 m (seasonal group 5 m) over sliding windows.",
+    "learning_region": "All samples of the selected series.",
+    "evidence": [
+      {
+        "file": "rules/robust.yml",
+        "lines": "36-37",
+        "quote": "- record: anomaly:robust:median_lt\n  expr: quantile_over_time(0.5, anomaly:robust:select[1d])"
+      },
+      {
+        "file": "rules/robust.yml",
+        "lines": "44-45",
+        "quote": "- record: anomaly:robust:mad_lt\n  expr: quantile_over_time(0.5, anomaly:robust:abs_dev_lt[1d])"
+      },
+      {
+        "file": "rules/robust.yml",
+        "lines": "55-56",
+        "quote": "- record: anomaly:level\n  expr: quantile_over_time(0.5, anomaly:robust:select[1h])"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "24 h median/MAD; 1 h level median; 1 d / 1 w look-backs.",
+    "direction_bounds": "As adaptive; lower clamp_min 0.",
+    "alarm_logic": "for: 5m on-delay.",
+    "operator_controls": "Constants; label.",
+    "documentation_quote": "README.md:55: adaptive \"minimizing false positives for recurring events\", robust \"is robust to outliers\"; adaptive.yml:63-64 bands \"expand gently in the presence of extreme outliers\". Silent on excluding anomalous samples.",
+    "closest_tt1_rule": "median_mad",
+    "differs": "Level is a 1 h median; widest-of-three band; 5 min on-delay.",
+    "predictions": {
+      "sustained": "resist ~12 h, then absorb (prediction): when the shifted level becomes the 24 h median.",
+      "loud": "resist (prediction): median, MAD and 1 h median level ignore sparse pulses.",
+      "frog": "absorb slowly (prediction).",
+      "subl": "resist (prediction) for alerting: 1 h median level ignores them; they still enter windows."
+    },
+    "runnable": "As adaptive.",
+    "notes": "",
+    "unresolved": ""
+  },
+  {
+    "target": "Skyline Analyzer (3-sigma ensemble)",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/earthgecko/skyline",
+    "commit": "0f7419f78bd982c1980556229340b81e1677733a",
+    "version": "5.0.0 (skyline/skyline_version.py:40, branch v5.0.0-alpha); latest release v4.0.0",
+    "licence": "MIT",
+    "licence_notes": "LICENSE is MIT (gh reports NOASSERTION).",
+    "adoption": "596 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "Installed product; algorithms recompute statistics from the last 24 h at every run; on by default.",
+    "default_path": "ANALYZER_ENABLED True (settings.py:428); ALGORITHMS 9 (820-830); CONSENSUS 6 (838); FULL_DURATION 86400 (102); decision in run_selected_algorithm (skyline/analyzer/algorithms.py:1168-2045), threshold = len(ensemble) - CONSENSUS (2006), anomalous if ensemble.count(False) <= threshold (2025).",
+    "adaptive_quantity": "Per-algorithm mean/std, EWMA mean/std (com=50), median/MAD, histogram bins, Grubbs, least squares over the last 24 h.",
+    "update_rule": "Recomputed at each analysis run from the Redis 24 h timeseries.",
+    "learning_region": "All points in the 24 h window including the points under test (mean_subtraction_cumulation excludes only the last point; first_hour_average uses the hour 24 h ago).",
+    "evidence": [
+      {
+        "file": "skyline/analyzer/algorithms.py",
+        "lines": "374-378",
+        "quote": "mean = series.mean()\nstdDev = series.std()\nt = tail_avg(timeseries, series)\n\nreturn abs(t - mean) > 3 * stdDev"
+      },
+      {
+        "file": "skyline/analyzer/algorithms.py",
+        "lines": "400-401",
+        "quote": "expAverage = pandas.Series.ewm(series, ignore_na=False, min_periods=0, adjust=True, com=50).mean()\nstdDev = pandas.Series.ewm(series, ignore_na=False, min_periods=0, adjust=True, com=50).std(bias=False)"
+      },
+      {
+        "file": "skyline/analyzer/algorithms.py",
+        "lines": "243-245",
+        "quote": "median = series.median()\ndemedianed = np.abs(series - median)\nmedian_deviation = demedianed.median()"
+      },
+      {
+        "file": "skyline/settings.py",
+        "lines": "838",
+        "quote": "CONSENSUS = 6"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "24 h rolling window; EWMA com=50 points.",
+    "direction_bounds": "Symmetric; MAD test returns False when MAD = 0 (algorithms.py:254-255).",
+    "alarm_logic": "6 of 9 algorithms; tail_avg of last 3 points; alert expiry per ALERTS tuple (e.g. 1800 s, settings.py:1150).",
+    "operator_controls": "ALGORITHMS, CONSENSUS; Ionosphere training (operator labels).",
+    "documentation_quote": "silent for Analyzer (settings.py docstrings only)",
+    "closest_tt1_rule": "median_mad",
+    "differs": "Ensemble of mean+3sd, EWMA+3sd, median/MAD and others over 24 h, consensus 6/9, current points included.",
+    "predictions": {
+      "sustained": "absorb (prediction): 24 h mean/std inflate; median tests hold ~12 h.",
+      "loud": "absorb for mean/std tests, resist for MAD/histogram (prediction); consensus outcome unclear.",
+      "frog": "absorb (prediction).",
+      "subl": "absorb (prediction): no exclusion; tail_avg dilutes 1-point pulses."
+    },
+    "runnable": "Unclear: needs Redis, MySQL, a Graphite-like feed, several daemons; containers at 2-4 GB (estimate, unverified).",
+    "notes": "Skyline checkout fails on Windows (':' in a docs file name); files read via git show.",
+    "unresolved": ""
+  },
+  {
+    "target": "Skyline Ionosphere (features-profile learning)",
+    "group": "D",
+    "kind": "product",
+    "repo": "https://github.com/earthgecko/skyline",
+    "commit": "0f7419f78bd982c1980556229340b81e1677733a",
+    "version": "5.0.0 (skyline/skyline_version.py:40, branch v5.0.0-alpha); latest release v4.0.0",
+    "licence": "MIT",
+    "licence_notes": "LICENSE is MIT (gh reports NOASSERTION).",
+    "adoption": "596 GitHub stars (gh api, 2026-11-11)",
+    "in_scope": true,
+    "scope_reason": "On by default (IONOSPHERE_ENABLED, IONOSPHERE_LEARN True) and suppresses alerts similar to trained profiles; feedback loop.",
+    "default_path": "settings.py:2976 IONOSPHERE_ENABLED = True; settings.py:3230 IONOSPHERE_LEARN = True. Ionosphere code not read.",
+    "adaptive_quantity": "Set of features profiles / motifs treated as not anomalous.",
+    "update_rule": "unclear (code not read); docs: operator trains profiles, Ionosphere then 'learns, retrospectively'.",
+    "learning_region": "unclear",
+    "evidence": [
+      {
+        "file": "skyline/settings.py",
+        "lines": "3230",
+        "quote": "IONOSPHERE_LEARN = True"
+      }
+    ],
+    "learns_from_own_alarms": "unclear",
+    "default_when_configurable": null,
+    "memory": "IONOSPHERE_LEARN_DEFAULT_FULL_DURATION_DAYS = 30 (settings.py:3289); MAX_GENERATIONS 16 (3257).",
+    "direction_bounds": "unclear",
+    "alarm_logic": "unclear",
+    "operator_controls": "Operator training via webapp; layers rules.",
+    "documentation_quote": "docs/ionosphere.rst:31: \"Ionosphere's goal is to allow us to train Skyline on what is not anomalous\"; line 96: \"Ionosphere then starts to learn, **retrospectively**.\"",
+    "closest_tt1_rule": "none",
+    "differs": "Operator-labelled similarity suppression, not a threshold.",
+    "predictions": {
+      "sustained": "unclear (prediction)",
+      "loud": "unclear (prediction)",
+      "frog": "unclear (prediction)",
+      "subl": "unclear (prediction)"
+    },
+    "runnable": "As Analyzer (unclear).",
+    "notes": "",
+    "unresolved": "Whether auto-learning can create profiles from unlabelled flagged periods (Ionosphere code not read)."
+  },
+  {
+    "target": "SkyPredictor (Apache SkyWalking baseline service)",
+    "group": "D",
+    "kind": "plugin",
+    "repo": "https://github.com/SkyAPM/SkyPredictor",
+    "commit": "c010133531f6a03ee060de61e67865ec4baf9a8a",
+    "version": "no release tag read",
+    "licence": "Apache-2.0",
+    "licence_notes": "No restriction.",
+    "adoption": "7 GitHub stars (gh api, 2026-11-11); named as the default implementation in apache/skywalking docs/en/setup/ai-pipeline/metrics-baseline-integration.md (master b0a3065)",
+    "in_scope": true,
+    "scope_reason": "Addition (2026-11-11): default baseline provider for SkyWalking alarm rules; Prophet refit periodically on recent data; opt-in.",
+    "default_path": "Deploy SkyPredictor; OAP queries predicted metrics; user alarm rule uses the baseline. Fit cron */8 * * * * (baseline/config/config.yaml:27), metrics service_cpm,service_percentile (35), hourly (33), min 2 days (38).",
+    "adaptive_quantity": "Prophet yhat with yhat_upper/yhat_lower served as baseline.",
+    "update_rule": "Refit Prophet (daily seasonality) on all fetched hourly points on each scheduled run.",
+    "learning_region": "All hourly points over the OAP metrics TTL; only NaN rows dropped.",
+    "evidence": [
+      {
+        "file": "baseline/predict.py",
+        "lines": "208-209",
+        "quote": "m = Prophet(daily_seasonality=True, weekly_seasonality=False, yearly_seasonality=False)\nm.fit(meter.single_df)"
+      },
+      {
+        "file": "baseline/predict.py",
+        "lines": "243",
+        "quote": "renamed_df = renamed_df.dropna()"
+      },
+      {
+        "file": "baseline/fetcher.py",
+        "lines": "269-271",
+        "quote": "def query_need_period(self) -> int:\n    resp = self.fetch_get_data(f\"{self.base_address}/status/config/ttl\")\n    total_days = int(resp['metrics']['day'])"
+      }
+    ],
+    "learns_from_own_alarms": "yes",
+    "default_when_configurable": null,
+    "memory": "OAP metrics TTL in days (value not read).",
+    "direction_bounds": "Negative predictions zeroed (predict.py:154-156); Prophet interval width default (not read).",
+    "alarm_logic": "In SkyWalking alarm rules (not read).",
+    "operator_controls": "Env-var config; no exclusion.",
+    "documentation_quote": "silent",
+    "closest_tt1_rule": "daily",
+    "differs": "Prophet forecast band refit on the full TTL window.",
+    "predictions": {
+      "sustained": "absorb (prediction): Prophet trend follows a level shift after refits.",
+      "loud": "unclear (prediction): hourly averaging dilutes; Prophet not outlier-robust.",
+      "frog": "absorb (prediction).",
+      "subl": "unclear (prediction): hourly averaging."
+    },
+    "runnable": "Docker: SkyWalking OAP + storage + SkyPredictor, ~4-6 GB (estimate).",
+    "notes": "Low adoption of its own.",
+    "unresolved": "OAP default TTL; SkyWalking alarm rule semantics; Prophet interval width."
+  }
+]

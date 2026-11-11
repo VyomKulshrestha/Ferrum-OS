@@ -1,0 +1,670 @@
+{
+ "schema": "tw1-verification-v1",
+ "verified_on": "2026-11-11",
+ "method": "Items 4 and 5 of each row marked verified were re-read at the lines given, in the clones at the commits the row records. Rows marked agent only rest on the reading agent's quotes alone and do not count in the decision rule.",
+ "additions": [
+  {
+   "date": "2026-11-11",
+   "target": "Darts darts.ad detectors",
+   "group": "A",
+   "reason": "widely installed time-series library; static control"
+  },
+  {
+   "date": "2026-11-11",
+   "target": "MLPrimitives",
+   "group": "A",
+   "reason": "holds a copy of Orion's find_anomalies primitive"
+  },
+  {
+   "date": "2026-11-11",
+   "target": "OpenSearch alerting-dashboards-plugin",
+   "group": "B",
+   "reason": "sets the default trigger on anomaly grade and confidence"
+  },
+  {
+   "date": "2026-11-11",
+   "target": "NuPIC, htm.core",
+   "group": "C",
+   "reason": "the anomaly likelihood NAB calls, and its maintained port"
+  },
+  {
+   "date": "2026-11-11",
+   "target": "libspot v1 / python3-libspot",
+   "group": "C",
+   "reason": "earlier packaged SPOT and DSPOT"
+  },
+  {
+   "date": "2026-11-11",
+   "target": "SkyPredictor",
+   "group": "D",
+   "reason": "the baseline provider named by the Apache SkyWalking alarm documentation"
+  }
+ ],
+ "left_out": [
+  "SigNoz: anomaly code under an enterprise licence",
+  "Wazuh, Graylog: embed the OpenSearch plugin (not checked in their sources)",
+  "Prometheus, Icinga, LibreNMS, OpenNMS: no learned baseline known to the reading agent (not checked in their sources)",
+  "VictoriaMetrics vmanomaly: enterprise only (not checked)",
+  "Twitter AnomalyDetection: batch only",
+  "rrcf: no thresholder",
+  "Amazon Kinesis RCF, Elastic Cloud: closed; documentation only"
+ ],
+ "rows": {
+  "river anomaly.QuantileFilter (threshold)": {
+   "family": "river",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "river/anomaly/filter.py:180-184",
+   "note": "quantile.update(score) runs for every sample; protect_anomaly_detector shields the wrapped detector only."
+  },
+  "river anomaly.ThresholdFilter + wrapped self-normalising scorer (GaussianScorer, StandardAbsoluteDeviation, HalfSpaceTrees)": {
+   "family": "river",
+   "status": "verified",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "river/base/anomaly_detector.py:155-156; river/anomaly/filter.py:98-99",
+   "note": "Fixed threshold; the wrapped detector learns only samples it did not flag (default protect=True). The same condition means protect=False never updates the detector at all (read at line 155; intent not confirmed)."
+  },
+  "river anomaly.PredictiveAnomalyDetection (internal dynamic threshold)": {
+   "family": "river",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "river/anomaly/pad.py:146-158",
+   "note": "Running mean and variance of the squared error are updated inside score_one for every sample after warm-up."
+  },
+  "river anomaly.HalfSpaceTrees standalone (scorer, no alarm)": {
+   "family": "river",
+   "status": "agent only",
+   "learns_from_own_alarms": "not_adaptive",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Scorer without an alarm; not re-read."
+  },
+  "PySAD transform.postprocessing.QuantileFilter": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/transform/postprocessing/postprocessors.py:157, 181-183",
+   "note": "Every score is fitted after it is labelled."
+  },
+  "PySAD ConformalProbabilityCalibrator (+ fixed ThresholdFilter)": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/transform/probability_calibration/conformal_prediction.py:36, 49-52",
+   "note": "The window takes every score."
+  },
+  "PySAD GaussianTailProbabilityCalibrator": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/transform/probability_calibration/gaussian_tail.py:67-69",
+   "note": "Mean and variance meters take every score."
+  },
+  "PySAD SPOTProbabilityCalibrator": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/transform/probability_calibration/spot.py:91-92",
+   "note": "\"An anomaly does not update the calibrator.\""
+  },
+  "PySAD AnomalyLikelihoodProbabilityCalibrator (NuPIC anomaly likelihood port)": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/transform/probability_calibration/anomaly_likelihood.py:67-75",
+   "note": "Every score enters the window that the Gaussian is refitted on."
+  },
+  "PySAD NonparametricDynamicThresholdPostprocessor (Telemanom threshold, streaming)": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/transform/postprocessing/running_postprocessors.py:119-123",
+   "note": "Every score enters the smoothed window."
+  },
+  "PySAD models.PEWMA (probabilistic EWMA normaliser)": {
+   "family": "PySAD",
+   "status": "verified",
+   "learns_from_own_alarms": "partial",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "pysad/models/pewma.py:76-85",
+   "note": "Improbable values move the mean less than typical ones; the weight never reaches zero."
+  },
+  "StreamAD model.SpotDetector": {
+   "family": "StreamAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "streamad/model/spot_Detector.py:268-282, 316-349",
+   "note": "Any value above the initial threshold refits the peaks; there is no alarm branch that leaves it out, unlike the SPOT paper."
+  },
+  "StreamAD process.ZScoreCalibrator": {
+   "family": "StreamAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "streamad/process/zscore_calibrator.py:34",
+   "note": "Score statistics are updated before the score is judged."
+  },
+  "StreamAD process.TDigestCalibrator": {
+   "family": "StreamAD",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "streamad/process/tdigest_calibrator.py:41-46",
+   "note": "Every score enters the digest before the percentile test."
+  },
+  "Merlion post-rules (AnomScoreCalibrator + AggregateAlarms threshold)": {
+   "family": "Merlion",
+   "status": "verified",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "merlion/post_process/calibrate.py:68-69; merlion/models/anomaly/base.py:286-287",
+   "note": "Calibrator and threshold are trained once and applied; not retrained at inference."
+  },
+  "Merlion DefaultDetector: RandomCutForest member with online_updates=True": {
+   "family": "Merlion",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "merlion/models/anomaly/random_cut_forest.py:159-163, 187; merlion/models/defaults.py:88-90",
+   "note": "The quickstart detector's forest is updated with every new point (online_updates=True); its threshold stays fixed. Needs a JDK."
+  },
+  "Orion find_anomalies (window threshold in verified pipelines)": {
+   "family": "Orion",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": false,
+   "lines_checked": "orion/primitives/timeseries_anomalies.py:158-161",
+   "note": "Threshold is mean + k sd of a window of the stored signal, flagged errors included. Set aside: batch and non-causal."
+  },
+  "ADTK fitted detectors (quickstart SeasonalAD; IQR / quantile bounds)": {
+   "family": "ADTK",
+   "status": "agent only",
+   "learns_from_own_alarms": "configurable",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Static after fit; not re-read."
+  },
+  "ADTK PersistAD / LevelShiftAD reference window": {
+   "family": "ADTK",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": false,
+   "lines_checked": "src/adtk/transformer/_transformer_1d.py:503-511",
+   "note": "Rolling reference window of the preceding points. Set aside: a change detector, built to stop flagging a sustained shift."
+  },
+  "Luminol AnomalyDetector (default bitmap_detector, percent-of-max threshold)": {
+   "family": "Luminol",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": false,
+   "lines_checked": "src/luminol/anomaly_detector.py:110-115",
+   "note": "Threshold is a fraction of the largest score in the same series. Set aside: batch only."
+  },
+  "alibi-detect od.Mahalanobis (online outlier detector)": {
+   "family": "alibi-detect",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "alibi_detect/od/mahalanobis.py:304-310, 341-344",
+   "note": "Mean and covariance are updated with every batch scored; the threshold is fixed. Licence BSL 1.1 (non-production use)."
+  },
+  "alibi-detect outlier detectors with infer_threshold (IForest, AE, VAE, SR, new-style sklearn/pytorch backends)": {
+   "family": "alibi-detect",
+   "status": "agent only",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Static control; not re-read."
+  },
+  "PyOD BaseDetector contamination threshold (static control)": {
+   "family": "PyOD",
+   "status": "agent only",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Static control; not re-read."
+  },
+  "Darts darts.ad detectors (QuantileDetector, IQRDetector, ThresholdDetector) [addition]": {
+   "family": "Darts",
+   "status": "agent only",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Static control added by the reading; not re-read."
+  },
+  "AWS Random Cut Forest: ThresholdedRandomCutForest thresholder (BasicThresholder via PredictorCorrector)": {
+   "family": "AWS Random Cut Forest",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "parkservices/PredictorCorrector.java:732-752, 976; parkservices/threshold/BasicThresholder.java:308-330",
+   "note": "detect() returns early only for a null point or a zero score; otherwise saveScores runs and the thresholder takes the score clamped at 2.0. The deviation that sets the threshold learns only from scores below the mean."
+  },
+  "AWS Random Cut Forest: forest model (time-decayed reservoir sample per tree) under ThresholdedRandomCutForest": {
+   "family": "AWS Random Cut Forest",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "parkservices/ThresholdedRandomCutForest.java:650-652; core preprocessor/Preprocessor.java:437-451",
+   "note": "forest.update runs for every point."
+  },
+  "OpenSearch Anomaly Detection plugin: real-time thresholder (RCF 4.4.0 BasicThresholder with plugin settings)": {
+   "family": "OpenSearch Anomaly Detection",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "ad/ml/ADColdStart.java:205-208; timeseries/ml/RealTimeInferencer.java:267; RCF PredictorCorrector.java:907-946",
+   "note": "Built with alertOnce(true) and autoAdjust(true); processSequentially(..., x -> true) filters the returned list, not the learning. In a run longer than two flagged points that stays within two deviations of its own mean the grade is set to zero (DATA_DRIFT), and alertOnce zeroes later points of a run; the points still reach saveScores and forest.update. Needs Docker."
+  },
+  "OpenSearch Anomaly Detection plugin: RCF forest model (real-time)": {
+   "family": "OpenSearch Anomaly Detection",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "RCF ThresholdedRandomCutForest.java:650-652 through RealTimeInferencer.java:267",
+   "note": "Same call path as the thresholder row."
+  },
+  "OpenSearch Anomaly Detection plugin: input normaliser (RCF NORMALIZE transform)": {
+   "family": "OpenSearch Anomaly Detection",
+   "status": "agent only",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Not re-read."
+  },
+  "Elastic ML (ml-cpp): per-series time-series model (priors, trend decomposition, change-point handling)": {
+   "family": "Elastic ML",
+   "status": "verified",
+   "learns_from_own_alarms": "partial",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "lib/maths/time_series/CTimeSeriesModel.cc:165-168, 204-212, 1238-1253; lib/maths/common/MathsTypes.cc:53-55",
+   "note": "Samples with probability below 1e-3 are down-weighted, to a floor of 0.01 at 1e-5; the weight never reaches zero. Not counted as runnable here until the licence terms for a trial run and for publishing results are read."
+  },
+  "Elastic ML (ml-cpp + x-pack): anomaly score normaliser and renormalisation": {
+   "family": "Elastic ML",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "lib/model/CAnomalyScore.cc:587-593; lib/model/CHierarchicalResultsNormalizer.cc:146-155; include/model/CAnnotatedProbability.h:139",
+   "note": "Every score enters the quantile summary; s_ShouldUpdateQuantiles defaults to true and is cleared only by skip rules."
+  },
+  "Numenta anomaly likelihood via NAB 'numenta' detector (NuPIC 1.0.5)": {
+   "family": "Numenta anomaly likelihood",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "nupic src/nupic/algorithms/anomaly_likelihood.py:363-387, 612-626",
+   "note": "Every score is appended to the history the distribution is re-estimated from. Consecutive red points after the first are reported at the yellow level, so a sustained run alarms at its onset. Runs only in a Python 2.7 image."
+  },
+  "htm.core Python AnomalyLikelihood (hotgym example path)": {
+   "family": "Numenta anomaly likelihood",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "py/htm/algorithms/anomaly_likelihood.py:58-59, 66-74",
+   "note": "A running mean and variance updated with every score."
+  },
+  "htm.core C++ AnomalyLikelihood via TemporalMemory anomalyMode=LIKELIHOOD (opt-in variant)": {
+   "family": "Numenta anomaly likelihood",
+   "status": "agent only",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Opt-in path, out of scope at defaults; not re-read."
+  },
+  "Telemanom nonparametric dynamic threshold": {
+   "family": "Telemanom",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "telemanom/errors.py:245-248, 285-286",
+   "note": "Mean and deviation of the whole trailing window, flagged points included, set the threshold."
+  },
+  "SPOT / biSPOT, authors' spot.py": {
+   "family": "SPOT reference code",
+   "status": "verified",
+   "learns_from_own_alarms": "configurable",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "spot.py:395, 427-439",
+   "note": "run(with_alarm=True) by default: a value above the alarm threshold is listed as an alarm and does not enter the peaks. Source recovered from Software Heritage; the GitHub repository is gone."
+  },
+  "DSPOT / biDSPOT, authors' spot.py": {
+   "family": "SPOT reference code",
+   "status": "verified",
+   "learns_from_own_alarms": "configurable",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "spot.py:1422, 1455-1485",
+   "note": "As SPOT; the local-mean window is also updated only outside the alarm branch."
+  },
+  "libspot v3.1.0 Spot (C library + Python binding)": {
+   "family": "SPOT reference code",
+   "status": "verified",
+   "learns_from_own_alarms": "no",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "src/spot.c:123-126; python/libspotmodule.c:11",
+   "note": "spot_step returns ANOMALY before any update when discard_anomalies is set (default 1 in the Python binding)."
+  },
+  "python3-libspot (archived) over libspot v1.3.1 C++: Spot and DSpot": {
+   "family": "SPOT reference code",
+   "status": "agent only",
+   "learns_from_own_alarms": "configurable",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Not re-read."
+  },
+  "Yahoo EGADS, default ExtremeLowDensityModel with OlympicModel": {
+   "family": "Yahoo EGADS",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": false,
+   "lines_checked": "src/main/java/com/yahoo/egads/models/adm/ExtremeLowDensityModel.java:75-88",
+   "note": "The threshold is tuned on the errors of the series it then scores. Set aside: batch only."
+  },
+  "Yahoo EGADS KSigmaModel (option)": {
+   "family": "Yahoo EGADS",
+   "status": "agent only",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": false,
+   "lines_checked": "",
+   "note": "Batch only; not re-read."
+  },
+  "Yahoo EGADS AdaptiveKernelDensityChangePointDetector (option)": {
+   "family": "Yahoo EGADS",
+   "status": "agent only",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": false,
+   "lines_checked": "",
+   "note": "Change-point detector; not re-read."
+  },
+  "Kitsune / KitNET (Python)": {
+   "family": "Kitsune",
+   "status": "verified",
+   "learns_from_own_alarms": "not_adaptive",
+   "default_absorbs": false,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "KitNET/KitNET.py:51-56",
+   "note": "After the grace periods process() only executes; no threshold in the code. Static control."
+  },
+  "Netdata ML (k-means anomaly bit)": {
+   "family": "Netdata",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "src/ml/ml.cc:269-284, 1243-1266; src/ml/ml_kmeans.cc:82-86; docs/ml-ai/ml-anomaly-detection/ml-anomaly-detection.md:184",
+   "note": "Training reads every stored point of the window. A point is anomalous only if every model scores it above the threshold, so the newest model alone can clear it. The documentation states that a new anomaly is learned as normal within 3 hours. On by default. Needs Docker."
+  },
+  "Zabbix baselinewma": {
+   "family": "Zabbix",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "src/libs/zbxtrends/baseline.c:56-79",
+   "note": "Averages the same period of earlier seasons with no exclusion. Opt-in per trigger; no shipped template uses it (reading agent)."
+  },
+  "Zabbix baselinedev": {
+   "family": "Zabbix",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "src/libs/zbxcalc/func_eval.c:3948-3969",
+   "note": "The current period is inside the mean and deviation it is compared with."
+  },
+  "Zabbix trendstl": {
+   "family": "Zabbix",
+   "status": "agent only",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Not re-read."
+  },
+  "Zabbix timeleft/forecast (shipped templates)": {
+   "family": "Zabbix",
+   "status": "agent only",
+   "learns_from_own_alarms": "not_adaptive",
+   "default_absorbs": false,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Out of scope; not re-read."
+  },
+  "RRDtool aberrant behaviour detection (HWPREDICT/DEVSEASONAL/FAILURES)": {
+   "family": "RRDtool",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": false,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "src/rrd_hw_update.c:88-97, 352-358; src/rrd_hw_math.c:128-136",
+   "note": "Every non-missing observation updates the intercept, and the deviation is smoothed from every prediction error. Opt-in at create."
+  },
+  "Graphite-web holtWintersConfidenceBands / holtWintersAberration": {
+   "family": "Graphite",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "webapp/graphite/render/functions.py:4064-4074",
+   "note": "Intercept, slope, seasonal term and deviation are updated from every actual value, the current one included. A render function, used on request."
+  },
+  "Checkmk predictive levels": {
+   "family": "Checkmk",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "cmk/utils/prediction/_prediction.py:182-190",
+   "note": "Statistics are taken over every non-missing value of the past periods. Opt-in rule; whether the free edition runs it is not established."
+  },
+  "Grafana promql-anomaly-detection, adaptive strategy (default)": {
+   "family": "Grafana promql-anomaly-detection",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "rules/adaptive.yml:49-67",
+   "note": "avg_over_time and stddev_over_time over all samples; the filter keeps hours of high variability. A rule pack that users install."
+  },
+  "Grafana promql-anomaly-detection, robust strategy": {
+   "family": "Grafana promql-anomaly-detection",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": true,
+   "counted": true,
+   "lines_checked": "rules/robust.yml:36-45",
+   "note": "Median and MAD over the last day of all samples."
+  },
+  "Skyline Analyzer (3-sigma ensemble)": {
+   "family": "Skyline",
+   "status": "verified",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "skyline/analyzer/algorithms.py:372-378, 398-401",
+   "note": "Each algorithm's statistics cover the whole series, the tail under test included. Not counted as runnable here (several services)."
+  },
+  "Skyline Ionosphere (features-profile learning)": {
+   "family": "Skyline",
+   "status": "agent only",
+   "learns_from_own_alarms": "unclear",
+   "default_absorbs": false,
+   "product": true,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Learning code not read."
+  },
+  "SkyPredictor (Apache SkyWalking baseline service)": {
+   "family": "Apache SkyWalking SkyPredictor",
+   "status": "agent only",
+   "learns_from_own_alarms": "yes",
+   "default_absorbs": true,
+   "product": true,
+   "runnable_here": false,
+   "counted": true,
+   "lines_checked": "",
+   "note": "Addition by the reading; not re-read."
+  }
+ }
+}

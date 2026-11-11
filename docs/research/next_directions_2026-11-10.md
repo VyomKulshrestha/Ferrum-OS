@@ -118,3 +118,19 @@ and Laskov, JMLR 2012; Tuor et al. 2018, arXiv:1712.00557; Han et al. (OWAD), ND
 arXiv:2607.14493; Tong et al., AAAI 2020, doi:10.1609/aaai.v34i01.5442; Patton, Yurcik and Doss, RAID
 2001; Progent, arXiv:2504.11703; CaMeL, arXiv:2503.18813. Code read directly: `river/anomaly/filter.py`
 and `BasicThresholder.java`, both main branch on 2026-11-10.
+
+## Update, 2026-11-11
+
+- The catalogue step is done (`thresholds_in_the_wild_tw1_catalogue.md`). Under the decision rule fixed in
+  its plan the outcome is **go**: 17 of 26 families learn from samples they flag on the default path,
+  8 of them products or plugins, 14 runnable on the development machine.
+- The prior-art search found no test of any listed target for this effect
+  (`thresholds_in_the_wild_tw1_prior_art.md`).
+- All 18 citations of the triage exist. Corrections before any of them is cited: Atarmla 2026 gives
+  excess-alarm budgets and a blind-set theorem for a quantile tracker and is not adversarial (it gives no
+  guarantee on robust loosening); Tuor et al. 2018 is an AAAI-18 workshop paper and reports AUC and
+  average precision at two levels; Bhattacharjee, Islam and Abedzadeh is the author list of the CPSS 2022
+  paper; Korycki and Krawczyk is Machine Learning 112(10), 2023; the statement that LANL's red-team events
+  come from four hosts rests on Bai et al. (LCN 2019), not on the dataset's own pages.
+- Venue dates confirmed on official pages: DIMVA 2027 cycle 2 on 18 February 2027; USENIX Security 2027
+  cycle 2 on 26 January 2027. RAID, ACSAC and CCS 2027 have not announced deadlines.
