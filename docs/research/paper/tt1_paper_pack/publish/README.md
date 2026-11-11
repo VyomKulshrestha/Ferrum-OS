@@ -12,9 +12,10 @@ file hashes are in `zenodo_metadata.json` under `published`. Any change to the p
 ProvICS), the tt1e experiments, Proposition 4 and, after a second mock review and a code audit, the tt1f
 exploratory round, which narrows the paper's claims (appendices A to F). `../latex/main.pdf` (21 pages,
 body ends on page 12) is the ASIA CCS submission; `../latex_named/main.pdf` is preprint version 1.1,
-prepared in `zenodo_metadata_v1_1.json`. Publishing it means "New version" on record 24035418, the new PDF
-as `Thresholds_That_Travel_preprint_v1.1.pdf`, version 1.1 and the new description; the all-versions DOI
-then points to it. After every rebuild of the anonymized artifact, push it to its private repository and
+**published on 2026-11-11** as a new version of record 24035418: https://zenodo.org/records/24123217, DOI
+10.5281/zenodo.24123217 (all-versions DOI 10.5281/zenodo.24035417). It carries the new title, *Thresholds
+That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned*; version 1.0
+keeps the old one. Fields and file hashes are in `zenodo_metadata_v1_1.json` under `published`. After every rebuild of the anonymized artifact, push it to its private repository and
 use "Force update" on anonymous.4open.science.
 
 | File | What it is |

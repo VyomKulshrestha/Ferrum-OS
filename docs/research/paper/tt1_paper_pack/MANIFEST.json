@@ -153,7 +153,7 @@
    "identical_to_source": true
   },
   "manuscript/thresholds_that_travel_draft_v0_1.md": {
-   "sha256": "24fc77279601ed5f3423b860f69a2ea5dfa4605de23ff3d63c919982c1e0b26e",
+   "sha256": "fc2280d5aff2d30242c7157e418ddbf8e7d9d39f1ce0abb7d09ef4fb8a388b2f",
    "copied_from": "docs/research/paper/thresholds_that_travel_draft_v0_1.md",
    "identical_to_source": true,
    "built_by": "superseded by latex/main.tex from 2026-11-10; abstract kept current"
@@ -373,11 +373,11 @@
    "built_by": "tectonic 0.17.0 (XeTeX) from the main.tex beside it, 2026-11-10"
   },
   "publish/README.md": {
-   "sha256": "36928f568d00a1c93cbb1073a9bee91dc89360d25d444f888bbd51bd9a6cebfb",
+   "sha256": "00f971fa34d82c91293a371e4f417a19384b1171eebf0839dfef382db4080731",
    "built_by": "written for the pack, 2026-11-07"
   },
   "publish/abstract.txt": {
-   "sha256": "b0a3c51a3c81230b7d4538e6dd351034f8471d9a9ba7b502c15890063b5698b5",
+   "sha256": "450b20d6cdbf5fc5597332b986bec5fb1abffe98855d486370072cd6c1a9412e",
    "built_by": "abstract of the Markdown draft, plain text"
   },
   "publish/zenodo_metadata.json": {
@@ -437,7 +437,7 @@
    "built_by": "amendment 1 of tt1d, committed before the second ProvICS attempt"
   },
   "publish/zenodo_metadata_v1_1.json": {
-   "sha256": "053f97a1da892972a424703173b381f87389856e4d02bb7a932e6beecdb506ed",
+   "sha256": "5c495a1c50ee2c51aa0aea168bc5678a4f0da3d5e6d90c0d9b151cb8eacce706",
    "built_by": "Zenodo deposit fields for preprint version 1.1 (prepared, not published)"
   },
   "protocols/threshold_transfer_tt1f_dev_plan.md": {
