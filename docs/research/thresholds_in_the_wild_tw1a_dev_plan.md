@@ -148,3 +148,21 @@ recorded attack and no sealed run had been replayed through any target.
    budget is used.
 9. **Scores that are not finite** are not given to a target and raise no alarm. The calibration data of
    the modes checked contain none.
+
+## Amendment 2 (2026-11-11, after one test part, before the full run)
+
+The harness was run once on one of the fourteen parts (mode 1, young history) to test it. That output is
+discarded and the part is rerun with the rest. What the test changed:
+
+1. **Two readings were wrong and the consistency check stopped them.** The Gaussian-tail calibrator
+   judges a score against a deviation that the score itself has just raised, so the approximate reading
+   of amendment 1 (item 7) was too low. The reading now asks the target's own meters and its own
+   `_calibrate`, on shallow copies, what they would return for a candidate score, and bisects; its band
+   is 1e-9 like the other bisected readings. The likelihood calibrator is two-sided (a short-window mean
+   far below the long mean alarms as well, as in NuPIC); the reading is the upper edge and the check
+   knows the lower one.
+2. **Capped variants of the frog and of the sub-event pulses are added** (`frog_cap`, `subl_cap`): the
+   injected score never exceeds 2 tau0, the level of the loud pulses. The plan defines both campaigns
+   relative to the target's current reading. Against a threshold that follows the injected scores, that
+   attacker's score grows without bound within the day, which no process-level attacker could produce.
+   The uncapped campaigns stay as planned; every cell reports the largest injected score.
