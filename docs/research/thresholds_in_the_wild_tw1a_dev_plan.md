@@ -183,3 +183,9 @@ far beyond), which confirms that the capped variants are the ones to read.
 3. **Noted for a later pass, not run here:** the frog sits 3% below the reading (the tt1 value). Where a
    target's alarm threshold lies less than 3% above the level from which it learns, that frog never
    enters what the target learns from. A frog closer to the reading is a separate, later test.
+
+Note to amendment 3 (2026-11-11): the rerun completed in nine of the fourteen parts and was stopped by
+the consistency check in five. After a long run of one repeated score the calibrator's long window has
+zero variance, and it then alarms on any score above that value; the reading assumed a non-alarming
+score at the long-window mean. The reading now searches below the mean in that state. The five stopped
+parts are rerun with it; nothing else changes.

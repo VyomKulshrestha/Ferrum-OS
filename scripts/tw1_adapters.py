@@ -234,15 +234,32 @@ class PysadGaussian(Target):
         def would(v):
             return self._would(v, prev)
 
-        # the score that puts the short-window mean on the long-window mean never alarms
+        # The score that puts the short-window mean on the long-window mean. It does not alarm, unless the
+        # long window holds one repeated value: the target then alarms on anything above that value.
         centre = (len(prev) + 1) * g.avg_meter.get() - sum(prev)
+        sd = math.sqrt(max(g.var_meter.get(), 0.0))
+        unit = max(sd, 1e-9 * max(1.0, abs(centre)))
         if would(centre):
-            return -math.inf
-        sd = math.sqrt(max(g.var_meter.get(), 1e-12))
-        hit = next(
-            (centre + sd * 2.0**k for k in range(60) if would(centre + sd * 2.0**k)),
-            None,
-        )
+            below = next(
+                (
+                    centre - unit * 2.0**k
+                    for k in range(80)
+                    if not would(centre - unit * 2.0**k)
+                ),
+                None,
+            )
+            if below is None:
+                return -math.inf
+            hit, centre = centre, below
+        else:
+            hit = next(
+                (
+                    centre + unit * 2.0**k
+                    for k in range(80)
+                    if would(centre + unit * 2.0**k)
+                ),
+                None,
+            )
         if hit is None:
             return math.inf
         if not would(HIGH):
