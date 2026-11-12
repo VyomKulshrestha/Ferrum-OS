@@ -54,7 +54,7 @@ fn awaiting_id(c: Clearance) -> u32 {
 fn r3_1_rewriting_the_kernel_image_withdraws_an_approved_upgrade() {
     let none: Vec<(String, JsonValue)> = Vec::new();
     for path in ["/disk/boot/kernel.bin", "//disk/boot//kernel.bin", "/disk/tmp/../boot/kernel.bin", "/disk/BOOT/kernel.bin"] {
-        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
         let id = awaiting_id(clear_for_execution(&mut gate, "trigger_kernel_upgrade", &none, 3, 1));
         assert!(gate.approve(id));
         let w = args(&[("path", s(path)), ("content", s("\u{7f}ELF agent image"))]);
@@ -66,14 +66,14 @@ fn r3_1_rewriting_the_kernel_image_withdraws_an_approved_upgrade() {
         );
     }
     // Deleting the boot directory withdraws it too.
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let id = awaiting_id(clear_for_execution(&mut gate, "trigger_kernel_upgrade", &none, 3, 1));
     assert!(gate.approve(id));
     let d = args(&[("path", s("/disk/boot"))]);
     assert_eq!(clear_for_execution(&mut gate, "delete_file", &d, 4, 2), Clearance::Proceed);
     assert!(!gate.approve(id));
     // An unrelated write does not.
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let id = awaiting_id(clear_for_execution(&mut gate, "trigger_kernel_upgrade", &none, 3, 1));
     assert!(gate.approve(id));
     let w = args(&[("path", s("/disk/boot/kernel.bin.bak")), ("content", s("x"))]);
@@ -83,7 +83,7 @@ fn r3_1_rewriting_the_kernel_image_withdraws_an_approved_upgrade() {
 
 #[test]
 fn r3_1_the_operator_is_told_which_file_an_upgrade_boots() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     match clear_for_execution(&mut gate, "trigger_kernel_upgrade", &[], 3, 1) {
         Clearance::Awaiting { display, full_display, .. } => {
             assert!(full_display.contains(KERNEL_UPGRADE_IMAGE), "{:?}", full_display);
@@ -142,7 +142,7 @@ fn revocation_table_is_exhaustive_over_tools_and_modified_paths() {
             continue; // never queued
         }
         for m in modified {
-            let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+            let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
             let id = awaiting_id(clear_for_execution(&mut gate, tool, &request_args, 0, 1));
             assert!(gate.approve(id));
             let w = args(&[("path", s(m)), ("content", s("y"))]);
@@ -287,7 +287,7 @@ fn r3_4_sleep_cannot_freeze_the_daemon() {
 
 #[test]
 fn documents_q1_read_then_send_runs_unasked_at_the_default_tier() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let calls = [
         ("read_file", args(&[("path", s("/disk/home/user/notes.txt"))])),
         ("read_screen", vec![]),
@@ -317,7 +317,7 @@ fn documents_q1_read_then_send_runs_unasked_at_the_default_tier() {
 
 #[test]
 fn documents_q2_an_approval_needs_no_recent_display_and_the_queue_can_be_filled() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let danger = args(&[("path", s("/disk/home/user/thesis.tex"))]);
     let a = awaiting_id(clear_for_execution(&mut gate, "delete_file", &danger, 2, 1));
     let filler = args(&[("path", s("/disk/notes/todo.txt")), ("content", s(&"Buy milk. ".repeat(790)))]);
@@ -328,7 +328,7 @@ fn documents_q2_an_approval_needs_no_recent_display_and_the_queue_can_be_filled(
     assert!(gate.approve(a), "an older, scrolled-away request can be approved by id");
     assert_eq!(clear_for_execution(&mut gate, "delete_file", &danger, 2, 2), Clearance::Proceed);
 
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     for i in 0..MAX_PENDING {
         let p = args(&[("path", s(&format!("/disk/tmp/f{}", i))), ("content", s("x"))]);
         awaiting_id(clear_for_execution(&mut gate, "write_file", &p, 2, 1));
@@ -345,7 +345,7 @@ fn documents_q2_an_approval_needs_no_recent_display_and_the_queue_can_be_filled(
 
 #[test]
 fn documents_a_denied_call_can_be_asked_again_under_a_new_id() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let a = args(&[("path", s("/disk/x"))]);
     let first = awaiting_id(clear_for_execution(&mut gate, "delete_file", &a, 2, 1));
     assert!(gate.deny(first));

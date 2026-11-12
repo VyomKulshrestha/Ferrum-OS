@@ -62,6 +62,30 @@ pub fn sys_inject_mouse(args: [u64; 6]) -> SyscallResult {
             }
             crate::input::inject_mouse_click(button);
         }
+        2 => {
+            // Click bound to an approved target (fi1 K2): args[1] = button,
+            // args[2] = window id, args[3] = its owner pid, args[4] =
+            // window-relative x << 32 | y (PointerTarget's record). Refused
+            // now if the pointer is not over exactly that; the desktop drops
+            // it later if that changes before the click is processed.
+            if args[1] > 2 {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+            let target = crate::input::ClickTarget {
+                window: args[2],
+                owner: args[3],
+                rel_x: (args[4] >> 32) as u32,
+                rel_y: args[4] as u32,
+            };
+            let (x, y) = {
+                let cursor = crate::gui::cursor::CURSOR.lock();
+                (cursor.x, cursor.y)
+            };
+            if crate::gui::compositor::pointer_target(x, y) != target {
+                return SyscallResult::err(SyscallStatus::VersionMismatch);
+            }
+            crate::input::inject_mouse_click_on(args[1] as u8, target);
+        }
         _ => {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }

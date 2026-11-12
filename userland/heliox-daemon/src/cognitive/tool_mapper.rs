@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 
 use super::json::{JsonValue, ToolCall};
-use super::confirmation::{clear_for_execution_bound, expected_version_word, Clearance, ConfirmationGate, FileVersion};
+use super::confirmation::{clear_for_execution_bound, expected_version_word, Bound, ClickTarget, Clearance, ConfirmationGate, FileVersion};
 use crate::memory::vector_store::MemoryCategory;
 
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
@@ -288,16 +288,16 @@ pub fn confirmation_result(
     confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick).err()
 }
 
-/// `confirmation_result`, keeping the file version an operator approval was
-/// bound to: `Ok(Some(version))` when the call runs on such an approval (the
-/// executor passes it to the kernel's version-guarded call), `Ok(None)` when
-/// it runs without one, `Err(result)` for the refusal or wait to return.
+/// `confirmation_result`, keeping what an operator approval was bound to
+/// (`Bound`: a file version, a click target, or nothing for a call that runs
+/// without one); the executor hands it to the kernel's guarded call.
+/// `Err(result)` is the refusal or wait to return.
 pub fn confirmation_result_bound(
     tool_call: &ToolCall,
     confirmation_gate: &mut ConfirmationGate,
     auto_approve_tier: u8,
     current_tick: u64,
-) -> Result<Option<FileVersion>, ToolResult> {
+) -> Result<Bound, ToolResult> {
     let (clearance, bound) = clear_for_execution_bound(
         confirmation_gate,
         &tool_call.name,
@@ -331,6 +331,9 @@ pub fn confirmation_result_bound(
         Clearance::Refused => String::from(
             "Confirmation refused: queue full, ids exhausted, arguments too large to show the operator, or the kernel could not establish the version of the file the action is about.",
         ),
+        Clearance::TargetChanged => String::from(
+            "Approval withdrawn: the pointer is no longer over the window and position this click was requested for. Request it again.",
+        ),
         Clearance::FileChanged => String::from(
             "Approval withdrawn: the file this action is about changed after the request was made. Request it again.",
         ),
@@ -348,8 +351,8 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
     // `bound`: the file version an operator approval of this call was bound
     // to. The file tools hand it to the kernel, which acts only if the file
     // still has it (fi1 joint round 2, K3's check-then-act window).
-    let bound = match confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
-        Ok(bound) => bound,
+    let (bound, click) = match confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
+        Ok(bound) => (bound.version, bound.click),
         Err(result) => return result,
     };
 
@@ -392,7 +395,7 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "play_audio" => execute_play_audio(),
         "set_volume" => execute_set_volume(&tool_call.arguments),
         "keyboard_type" => execute_keyboard_type(&tool_call.arguments),
-        "mouse_click" => execute_mouse_click(&tool_call.arguments),
+        "mouse_click" => execute_mouse_click(&tool_call.arguments, click),
         "mouse_move" => execute_mouse_move(&tool_call.arguments),
         "browse_url" => execute_browse_url(&tool_call.arguments),
         "poll_input" => execute_poll_input(),
@@ -1114,7 +1117,7 @@ fn execute_keyboard_type(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
-fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_mouse_click(args: &[(String, JsonValue)], click: Option<ClickTarget>) -> ToolResult {
     let button = find_arg_number(args, "button").unwrap_or(0.0) as u64;
     if button > 2 {
         return ToolResult {
@@ -1124,8 +1127,31 @@ fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
         };
     }
 
-    // event_type=1 (click), button_id, 0
-    let result = unsafe { crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0) };
+    // An approved click is bound to its target (fi1 K2): event_type=2 clicks
+    // only if the pointer is over exactly that window, owner and position,
+    // now and when the desktop processes the click. Otherwise event_type=1.
+    let result = unsafe {
+        match click {
+            Some(target) => syscall5(
+                SYS_INJECT_MOUSE,
+                2,
+                button,
+                target.window,
+                target.owner,
+                ((target.rel_x as u64) << 32) | target.rel_y as u64,
+            ),
+            None => crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0),
+        }
+    };
+    if result as i64 == VERSION_MISMATCH {
+        return ToolResult {
+            tool_name: String::from("mouse_click"),
+            success: false,
+            output: String::from(
+                "Approval withdrawn: the pointer is no longer over the window and position this click was approved for. Request it again.",
+            ),
+        };
+    }
 
     let name = match button {
         0 => "left",

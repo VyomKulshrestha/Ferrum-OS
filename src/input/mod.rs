@@ -61,7 +61,28 @@ pub struct InputEvent {
     /// they still reach ordinary app windows, marked. PollInput's 16-byte
     /// record does not carry it.
     pub injected: bool,
+    /// For a click the agent's approval was bound to (InjectMouse type 2):
+    /// the window, its owner and the window-relative pointer position the
+    /// operator approved. The desktop drops the click if the pointer is not
+    /// over exactly that when it is processed (fi1 K2).
+    pub click_target: Option<ClickTarget>,
 }
+
+/// What a pointer click lands on: the top window under the pointer (0 for
+/// the desktop), the pid that owns it (0 for kernel-drawn windows) and the
+/// pointer position relative to the window's origin (absolute on the
+/// desktop).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClickTarget {
+    pub window: u64,
+    pub owner: u64,
+    pub rel_x: u32,
+    pub rel_y: u32,
+}
+
+/// Guarded clicks the desktop dropped because the pointer was no longer over
+/// the approved target. Read by the `click-target` self-test.
+pub static GUARDED_CLICKS_DROPPED: AtomicU64 = AtomicU64::new(0);
 
 // ============================================================================
 // Event Queue — fixed-size ring buffer (256 entries)
@@ -187,6 +208,7 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
         event_type,
         timestamp: now_ticks(),
         injected: INJECTING_AGENT_KEY.load(Ordering::SeqCst),
+        click_target: None,
     };
 
     EVENT_QUEUE.lock().push(event);
@@ -254,6 +276,7 @@ pub fn inject_mouse_event(dx: i16, dy: i16, buttons: u8) {
             event_type: InputEventType::MouseMove(dx, dy),
             timestamp: ts,
             injected: false,
+            click_target: None,
         };
         EVENT_QUEUE.lock().push(event);
         DAEMON_EVENT_QUEUE.lock().push(event);
@@ -271,6 +294,7 @@ pub fn inject_mouse_event(dx: i16, dy: i16, buttons: u8) {
                 event_type: InputEventType::MouseButton(bit, pressed),
                 timestamp: ts,
                 injected: false,
+            click_target: None,
             };
             EVENT_QUEUE.lock().push(event);
             DAEMON_EVENT_QUEUE.lock().push(event);
@@ -307,6 +331,7 @@ pub fn inject_mouse_move(dx: i16, dy: i16) {
         event_type: InputEventType::MouseMove(dx, dy),
         timestamp: now_ticks(),
         injected: true,
+        click_target: None,
     };
     EVENT_QUEUE.lock().push(event);
 }
@@ -320,16 +345,33 @@ pub fn inject_mouse_click(button: u8) {
         event_type: InputEventType::MouseButton(button, true),
         timestamp: ts,
         injected: true,
+        click_target: None,
     };
     let release = InputEvent {
         event_type: InputEventType::MouseButton(button, false),
         timestamp: ts,
         injected: true,
+        click_target: None,
     };
 
     let mut queue = EVENT_QUEUE.lock();
     queue.push(press);
     queue.push(release);
+}
+
+/// Inject a click that the desktop delivers only if the pointer is over
+/// `target` when it processes the click (InjectMouse type 2, fi1 K2).
+pub fn inject_mouse_click_on(button: u8, target: ClickTarget) {
+    let ts = now_ticks();
+    let mut queue = EVENT_QUEUE.lock();
+    for pressed in [true, false] {
+        queue.push(InputEvent {
+            event_type: InputEventType::MouseButton(button, pressed),
+            timestamp: ts,
+            injected: true,
+            click_target: Some(target),
+        });
+    }
 }
 
 /// Inject a gesture event.
@@ -338,6 +380,7 @@ pub fn inject_gesture_event(gesture_id: u8) {
         event_type: InputEventType::GestureEvent(gesture_id),
         timestamp: now_ticks(),
         injected: true,
+        click_target: None,
     };
     EVENT_QUEUE.lock().push(event);
     DAEMON_EVENT_QUEUE.lock().push(event);

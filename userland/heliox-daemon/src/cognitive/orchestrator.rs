@@ -105,6 +105,43 @@ pub fn kernel_file_version(path: &str) -> Result<super::confirmation::FileVersio
     }
 }
 
+/// What a click would land on now (PointerTarget, syscall 66): the window,
+/// its owner and the window-relative pointer position, and the window's
+/// title. Installed into the confirmation gate, which binds every approval
+/// of a click to it (fi1 K2).
+pub fn kernel_click_target() -> Result<(super::confirmation::ClickTarget, String), ()> {
+    const SYS_POINTER_TARGET: u64 = 66;
+    let mut record = [0u8; 24];
+    let mut title = [0u8; 64];
+    let result = unsafe {
+        syscall3(
+            SYS_POINTER_TARGET,
+            record.as_mut_ptr() as u64,
+            title.as_mut_ptr() as u64,
+            title.len() as u64,
+        )
+    };
+    if (result as i64) < 0 {
+        return Err(());
+    }
+    let word = |range: core::ops::Range<usize>| {
+        let mut bytes = [0u8; 8];
+        bytes[..range.len()].copy_from_slice(&record[range]);
+        u64::from_le_bytes(bytes)
+    };
+    let len = (result as usize).min(title.len());
+    let title = String::from_utf8_lossy(&title[..len]).into_owned();
+    Ok((
+        super::confirmation::ClickTarget {
+            window: word(0..8),
+            owner: word(8..16),
+            rel_x: word(16..20) as u32,
+            rel_y: word(20..24) as u32,
+        },
+        title,
+    ))
+}
+
 // ---- Telemetry Definitions -------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]
@@ -470,7 +507,8 @@ impl Orchestrator {
             verifier: Verifier::new(),
             reflector: Reflector::new(),
             confirmation_gate: ConfirmationGate::new(config.confirmation_timeout)
-                .with_file_versions(kernel_file_version),
+                .with_file_versions(kernel_file_version)
+                .with_click_targets(kernel_click_target),
             memory,
             tick_count: 0,
             last_observation: String::new(),

@@ -33,6 +33,15 @@ pub const KERNEL_SYSCALL_FS_SOURCE: &str = include_str!("../../../src/syscall/fs
 pub const KERNEL_SYSCALL_PROCESS_SOURCE: &str = include_str!("../../../src/syscall/process.rs");
 pub const KERNEL_FS_SOURCE: &str = include_str!("../../../src/fs/mod.rs");
 
+/// A click-target source for tests that are not about click targets: the
+/// pointer stays over one window.
+pub fn stable_click_target() -> Result<(cognitive::confirmation::ClickTarget, String), ()> {
+    Ok((
+        cognitive::confirmation::ClickTarget { window: 7, owner: 300, rel_x: 10, rel_y: 12 },
+        String::from("Notes"),
+    ))
+}
+
 /// A file-version source for tests that are not about file versions: every
 /// file is absent and stays so. The daemon's own default fails closed
 /// (`confirmation::versions_unavailable`); the daemon installs the kernel's.

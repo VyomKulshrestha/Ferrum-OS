@@ -224,7 +224,7 @@ fn every_decision_cell_matches_the_specification() {
                 if tier <= auto && state != State::Fresh {
                     continue; // no request is ever created; covered by Fresh
                 }
-                let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions);
+                let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
                 let tick = drive(&mut gate, tool, &a, auto, state);
                 let got = match clear_for_execution(&mut gate, tool, &a, auto, tick) {
                     Clearance::Proceed => Expect::Proceed,
@@ -233,6 +233,7 @@ fn every_decision_cell_matches_the_specification() {
                     Clearance::Expired => Expect::Expired,
                     Clearance::Refused => panic!("refused"),
                     Clearance::FileChanged => panic!("file changed"),
+                    Clearance::TargetChanged => panic!("target changed"),
                 };
                 assert_eq!(got, spec_outcome(tier, auto, state), "{} auto={} {:?}", tool, auto, state);
                 cells += 1;
@@ -253,7 +254,7 @@ fn every_decision_cell_matches_the_specification() {
 fn expiry_boundary_is_inclusive_of_the_timeout() {
     let a = args(&[("path", s("/disk/x"))]);
     for (age, expect_proceed) in [(TIMEOUT - 1, true), (TIMEOUT, true), (TIMEOUT + 1, false)] {
-        let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions);
+        let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
         let id = match clear_for_execution(&mut gate, "write_file", &a, 2, 1_000) {
             Clearance::Awaiting { id, .. } => id,
             o => panic!("{:?}", o),
@@ -266,7 +267,7 @@ fn expiry_boundary_is_inclusive_of_the_timeout() {
 
 #[test]
 fn ids_are_never_reused_and_exhaustion_refuses() {
-    let mut gate = ConfirmationGate::with_next_id(600, u32::MAX - 1).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::with_next_id(600, u32::MAX - 1).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let a = args(&[("path", s("/disk/a"))]);
     let b = args(&[("path", s("/disk/b"))]);
     let c = args(&[("path", s("/disk/c"))]);
@@ -278,7 +279,7 @@ fn ids_are_never_reused_and_exhaustion_refuses() {
 
 #[test]
 fn approving_unknown_or_consumed_ids_does_nothing() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     assert!(!gate.approve(0));
     assert!(!gate.approve(7));
     let a = args(&[("path", s("/disk/a"))]);
@@ -295,7 +296,7 @@ fn approving_unknown_or_consumed_ids_does_nothing() {
 
 #[test]
 fn an_approval_for_one_tool_does_not_cover_another() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let a = args(&[("path", s("/disk/a"))]);
     let id = match clear_for_execution(&mut gate, "write_file", &a, 2, 1) {
         Clearance::Awaiting { id, .. } => id,
@@ -388,7 +389,7 @@ fn fingerprint_distinguishes_types_signs_and_order() {
 fn approval_is_bound_to_the_complete_arguments() {
     for (first, second) in colliding_pairs() {
         assert_ne!(approval_fingerprint(&first), approval_fingerprint(&second));
-        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
         let id = match clear_for_execution(&mut gate, "delete_file", &first, 2, 1) {
             Clearance::Awaiting { id, .. } => id,
             o => panic!("{:?}", o),
@@ -415,7 +416,7 @@ fn operator_display_cannot_forge_lines_and_marks_truncation() {
     assert!(!shown.chars().any(|c| c.is_control()), "control char in {:?}", shown);
     assert!(shown.contains("of 5000 bytes shown"), "{}", shown);
     assert!(shown.len() < 1_024);
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     let _ = clear_for_execution(&mut gate, "write_file", &forged, 2, 1);
     let listing = gate.format_pending();
     assert_eq!(listing.lines().count(), 2, "{}", listing);
@@ -515,7 +516,7 @@ fn control_ids_parse_strictly() {
 #[test]
 fn the_status_enum_round_trips_through_check_or_request() {
     // The legacy entry point stays usable and exact.
-    let mut gate = ConfirmationGate::new(10).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(10).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     assert!(matches!(gate.check_or_request("write_file", "k", PermissionTier::Modify, 0), ConfirmationStatus::Pending(1)));
     assert!(matches!(gate.check_or_request("write_file", "k2", PermissionTier::Modify, 0), ConfirmationStatus::Pending(2)));
 }

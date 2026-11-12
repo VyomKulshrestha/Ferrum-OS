@@ -31,6 +31,7 @@ pub fn run(name: &str) -> bool {
         "injected-terminal" => injected_terminal(),
         "file-version" => file_version(),
         "file-guard" => file_guard(),
+        "click-target" => click_target(),
         _ => return false,
     }
     true
@@ -370,6 +371,107 @@ fn file_version() {
         below_sign_bit,
         crate::fs::file_version("/tmp/../etc/hostname").is_err(),
         crate::fs::file_version("/etc/hostname/x").is_err()
+    );
+}
+
+/// fi1 K2: a click the operator approved is bound to the window, owner and
+/// window-relative position under the pointer (PointerTarget). InjectMouse
+/// type 2 refuses it when the pointer is elsewhere, and the desktop drops it
+/// if the pointer moves before the click is processed.
+fn click_target() {
+    use core::sync::atomic::Ordering;
+    use crate::gui::compositor::COMPOSITOR;
+    use crate::gui::cursor::CURSOR;
+    let was_primed = crate::gui::cursor::input_primed();
+    let (saved_order, saved_focus): (Vec<u64>, Option<u64>) = {
+        let state = COMPOSITOR.lock();
+        (
+            state.windows.iter().map(|window| window.id).collect(),
+            state.focused_idx.and_then(|idx| state.windows.get(idx)).map(|window| window.id),
+        )
+    };
+    let saved_cursor = {
+        let cursor = CURSOR.lock();
+        (cursor.x, cursor.y)
+    };
+    crate::input::discard_stale_keyboard_events();
+    crate::gui::cursor::process_input();
+
+    let window_id = crate::syscall::gui_window::create_window_for(TEST_PID, "selftest-click", 96, 48).value;
+    let origin = COMPOSITOR
+        .lock()
+        .windows
+        .iter()
+        .find(|window| window.id == window_id)
+        .map(|window| (window.x, window.y));
+    let set_cursor = |x: u32, y: u32| {
+        let mut cursor = CURSOR.lock();
+        cursor.x = x;
+        cursor.y = y;
+    };
+    let packed = |t: crate::input::ClickTarget| ((t.rel_x as u64) << 32) | t.rel_y as u64;
+    let inject = |t: crate::input::ClickTarget, rel_x_delta: u32| {
+        crate::syscall::input::sys_inject_mouse([
+            2,
+            0,
+            t.window,
+            t.owner,
+            packed(crate::input::ClickTarget { rel_x: t.rel_x + rel_x_delta, ..t }),
+            0,
+        ])
+    };
+    let (mut target_ok, mut delivered, mut refused_now, mut dropped_later, mut not_delivered) =
+        (false, false, false, false, false);
+    if let Some((wx, wy)) = origin {
+        let (px, py) = (wx + crate::gui::window::CHROME_SIDE + 10, wy + crate::gui::window::CHROME_TOP + 10);
+        set_cursor(px, py);
+        let target = crate::gui::compositor::pointer_target(px, py);
+        target_ok = target.window == window_id && target.owner == TEST_PID;
+
+        // 1. Pointer on the approved target: the click is delivered.
+        let r = inject(target, 0);
+        crate::gui::cursor::process_input();
+        let event = crate::gui::app_window::poll_input(window_id, TEST_PID);
+        while crate::gui::app_window::poll_input(window_id, TEST_PID).is_some() {}
+        delivered = r.status == crate::syscall::SyscallStatus::Ok
+            && event.map(|e| e.tag == 3 && e.injected).unwrap_or(false);
+
+        // 2. Approved for another position: refused at once, nothing queued.
+        let r = inject(target, 5);
+        refused_now = r.status == crate::syscall::SyscallStatus::VersionMismatch;
+
+        // 3. Accepted, then the pointer moves before the desktop processes
+        //    the click: dropped.
+        let dropped_before = crate::input::GUARDED_CLICKS_DROPPED.load(Ordering::SeqCst);
+        let r = inject(target, 0);
+        set_cursor(px + 7, py);
+        crate::gui::cursor::process_input();
+        dropped_later = r.status == crate::syscall::SyscallStatus::Ok
+            && crate::input::GUARDED_CLICKS_DROPPED.load(Ordering::SeqCst) >= dropped_before + 2;
+        not_delivered = crate::gui::app_window::poll_input(window_id, TEST_PID).is_none();
+    }
+    crate::gui::app_window::close_for_pid(TEST_PID);
+    {
+        let mut state = COMPOSITOR.lock();
+        let mut windows = core::mem::take(&mut state.windows);
+        windows.retain(|window| saved_order.contains(&window.id));
+        windows.sort_by_key(|window| saved_order.iter().position(|id| *id == window.id));
+        state.focused_idx = saved_focus.and_then(|id| windows.iter().position(|window| window.id == id));
+        state.windows = windows;
+        state.pressed = crate::gui::compositor::HoverTarget::None;
+        state.drag_active = false;
+        state.needs_redraw = true;
+    }
+    {
+        let mut cursor = CURSOR.lock();
+        cursor.x = saved_cursor.0;
+        cursor.y = saved_cursor.1;
+        cursor.left_down = false;
+    }
+    crate::gui::cursor::set_input_primed(was_primed);
+    println!(
+        "selftest click-target: target_is_window={} on_target_delivered={} moved_target_refused={} moved_after_dropped={} dropped_not_delivered={}",
+        target_ok, delivered, refused_now, dropped_later, not_delivered
     );
 }
 

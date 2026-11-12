@@ -133,6 +133,13 @@ pub enum SyscallNumber {
     /// VFS, as for the programs compiled into the kernel). Checked before the
     /// image is read.
     ExecIfVersion = 65,
+    /// What a click would land on now (fi1 K2): args[0] = pointer to a
+    /// 24-byte record the kernel fills with the top window under the pointer
+    /// (u64, 0 for the desktop), its owner pid (u64, 0 for kernel-drawn
+    /// windows) and the window-relative pointer x and y (u32 each);
+    /// args[1..3] = optional buffer for the window title. Returns the title
+    /// length copied. Needs `hud:overlay`, like HitTest.
+    PointerTarget = 66,
 }
 
 /// Syscall return status.
@@ -658,6 +665,12 @@ fn dispatch_with_context(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             hud::sys_hit_test(args)
+        }
+        x if x == SyscallNumber::PointerTarget as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_pointer_target(args)
         }
         x if x == SyscallNumber::Mmap as u64 => {
             if !crate::security::has_capability(held_capabilities, "memory:mmap:*")

@@ -11,8 +11,8 @@ use heliox_gate_tests::cognitive::authority::{
     control_command_allowed, ControlCommand, ControlSender, SENDER_ASSISTANT_PANEL,
 };
 use heliox_gate_tests::cognitive::confirmation::{
-    clear_for_execution, clear_for_execution_bound, expected_version_word, Clearance,
-    ConfirmationGate, FileVersion,
+    clear_for_execution, clear_for_execution_bound, expected_version_word, Bound, ClickTarget,
+    Clearance, ConfirmationGate, FileVersion,
 };
 use heliox_gate_tests::cognitive::json::JsonValue;
 use heliox_gate_tests::{
@@ -41,7 +41,12 @@ fn test_versions(_path: &str) -> Result<FileVersion, ()> {
 }
 fn gate() -> ConfirmationGate {
     set_version(Some(1));
-    ConfirmationGate::new(600).with_file_versions(test_versions)
+    ConfirmationGate::new(600)
+        .with_file_versions(test_versions)
+        .with_click_targets(heliox_gate_tests::stable_click_target)
+}
+fn file_bound(v: FileVersion) -> Bound {
+    Bound { version: Some(v), click: None }
 }
 
 /// The four tools whose executor hands the bound version to the kernel.
@@ -73,13 +78,13 @@ fn j2_k3_an_approved_file_action_carries_the_version_it_was_approved_for() {
             };
             assert_eq!(
                 clear_for_execution_bound(&mut g, tool, &a, 2, 11),
-                (Clearance::Proceed, Some(expected)),
+                (Clearance::Proceed, file_bound(expected)),
                 "{tool} starting at {start:?}"
             );
             // Used once: the next call is a new request, bound to nothing yet.
             assert!(matches!(
                 clear_for_execution_bound(&mut g, tool, &a, 2, 12),
-                (Clearance::Awaiting { .. }, None)
+                (Clearance::Awaiting { .. }, Bound { version: None, click: None })
             ));
         }
     }
@@ -96,7 +101,7 @@ fn j2_k3_calls_that_run_without_an_approval_carry_no_version() {
     // Auto-approved by tier: no approval, nothing to bind (the old calls).
     let mut g = gate();
     let w = args(&[("path", s("/tmp/j2.txt")), ("content", s("x"))]);
-    assert_eq!(clear_for_execution_bound(&mut g, "write_file", &w, 3, 1), (Clearance::Proceed, None));
+    assert_eq!(clear_for_execution_bound(&mut g, "write_file", &w, 3, 1), (Clearance::Proceed, Bound::default()));
     // An approved Tier-4 call that is not about a file.
     let k = args(&[("text", s("hello"))]);
     let id = match clear_for_execution(&mut g, "keyboard_type", &k, 3, 1) {
@@ -104,12 +109,12 @@ fn j2_k3_calls_that_run_without_an_approval_carry_no_version() {
         other => panic!("{other:?}"),
     };
     g.approve(id);
-    assert_eq!(clear_for_execution_bound(&mut g, "keyboard_type", &k, 3, 2), (Clearance::Proceed, None));
+    assert_eq!(clear_for_execution_bound(&mut g, "keyboard_type", &k, 3, 2), (Clearance::Proceed, Bound::default()));
     // Refusals, waits and withdrawals carry none either.
     let d = args(&[("path", s("/tmp/j2.txt"))]);
-    assert!(matches!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 1), (Clearance::Awaiting { .. }, None)));
+    assert!(matches!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 1), (Clearance::Awaiting { .. }, Bound { version: None, click: None })));
     set_version(Some(2));
-    assert_eq!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 2), (Clearance::FileChanged, None));
+    assert_eq!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 2), (Clearance::FileChanged, Bound::default()));
 }
 
 #[test]
@@ -257,4 +262,158 @@ fn documents_j2_q_the_panel_flag_is_accepted_for_every_operator_command() {
     // ...and it drops injected keys before any of them.
     let input = &ASSISTANT_PANEL_SOURCE[ASSISTANT_PANEL_SOURCE.find("poll_window_input_marked").unwrap()..];
     assert!(input.find("if injected").unwrap() < input.find("ipc_send(").unwrap());
+}
+
+// ---- Item 3 (K2): an approved click is bound to what is under the pointer --
+
+const T0: ClickTarget = ClickTarget { window: 31, owner: 412, rel_x: 40, rel_y: 90 };
+
+thread_local! {
+    static TARGET: Cell<Option<(ClickTarget, &'static str)>> = Cell::new(Some((T0, "Heliox Assistant")));
+}
+fn set_target(t: Option<(ClickTarget, &'static str)>) {
+    TARGET.with(|c| c.set(t));
+}
+fn test_targets() -> Result<(ClickTarget, String), ()> {
+    TARGET.with(|c| c.get()).map(|(t, title)| (t, title.to_string())).ok_or(())
+}
+fn click_gate() -> ConfirmationGate {
+    set_target(Some((T0, "Heliox Assistant")));
+    ConfirmationGate::new(600)
+        .with_file_versions(heliox_gate_tests::stable_versions)
+        .with_click_targets(test_targets)
+}
+fn click_args() -> Vec<(String, JsonValue)> {
+    args(&[("button", JsonValue::Number(0.0))])
+}
+
+#[test]
+fn k2_the_operator_is_shown_the_window_and_position_a_click_lands_on() {
+    let mut g = click_gate();
+    match clear_for_execution(&mut g, "mouse_click", &click_args(), 3, 1) {
+        Clearance::Awaiting { display, full_display, .. } => {
+            for text in [display, full_display] {
+                assert!(
+                    text.contains("[clicks window 31 \"Heliox Assistant\" of pid 412 at (40, 90) in the window]"),
+                    "{text}"
+                );
+            }
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn k2_an_approved_click_carries_its_target_and_is_withdrawn_when_the_target_changes() {
+    let a = click_args();
+    // Each kind of change: another window, the same window id with another
+    // owner, another position in the window, the desktop.
+    let changes = [
+        ClickTarget { window: 32, ..T0 },
+        ClickTarget { owner: 500, ..T0 },
+        ClickTarget { rel_x: 41, ..T0 },
+        ClickTarget { rel_y: 89, ..T0 },
+        ClickTarget { window: 0, owner: 0, rel_x: 300, rel_y: 400 },
+    ];
+    let mut cells = 0;
+    for approved_before_the_change in [false, true] {
+        for change in changes {
+            let mut g = click_gate();
+            let id = match clear_for_execution(&mut g, "mouse_click", &a, 3, 1) {
+                Clearance::Awaiting { id, .. } => id,
+                other => panic!("{other:?}"),
+            };
+            if approved_before_the_change {
+                assert!(g.approve(id));
+            }
+            set_target(Some((change, "Task Manager")));
+            if !approved_before_the_change {
+                // The operator approves the id they were shown.
+                assert!(g.approve(id));
+            }
+            assert_eq!(
+                clear_for_execution_bound(&mut g, "mouse_click", &a, 3, 2),
+                (Clearance::TargetChanged, Bound::default()),
+                "{change:?} approved_before_the_change={approved_before_the_change}"
+            );
+            // Asking again is a new request, shown with the new target.
+            match clear_for_execution(&mut g, "mouse_click", &a, 3, 3) {
+                Clearance::Awaiting { id: again, display, .. } => {
+                    assert_ne!(again, id);
+                    assert!(display.contains("Task Manager") || change.window == 0, "{display}");
+                }
+                other => panic!("{other:?}"),
+            }
+            cells += 1;
+        }
+    }
+    assert_eq!(cells, 10);
+    // Unchanged: the approval runs and hands the target to the executor.
+    let mut g = click_gate();
+    let id = match clear_for_execution(&mut g, "mouse_click", &a, 3, 1) {
+        Clearance::Awaiting { id, .. } => id,
+        other => panic!("{other:?}"),
+    };
+    g.approve(id);
+    assert_eq!(
+        clear_for_execution_bound(&mut g, "mouse_click", &a, 3, 2),
+        (Clearance::Proceed, Bound { version: None, click: Some(T0) })
+    );
+}
+
+#[test]
+fn k2_no_target_refuses_the_click_and_the_default_gate_fails_closed() {
+    let a = click_args();
+    let mut g = click_gate();
+    set_target(None);
+    assert_eq!(clear_for_execution(&mut g, "mouse_click", &a, 3, 1), Clearance::Refused);
+    let mut default_gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    assert_eq!(clear_for_execution(&mut default_gate, "mouse_click", &a, 3, 1), Clearance::Refused);
+    // A click auto-approved by tier (auto_approve_tier 4) is not bound.
+    assert_eq!(
+        clear_for_execution_bound(&mut g, "mouse_click", &a, 4, 1),
+        (Clearance::Proceed, Bound::default())
+    );
+}
+
+#[test]
+fn k2_a_denied_click_stays_denied_when_the_target_changes() {
+    let a = click_args();
+    let mut g = click_gate();
+    let id = match clear_for_execution(&mut g, "mouse_click", &a, 3, 1) {
+        Clearance::Awaiting { id, .. } => id,
+        other => panic!("{other:?}"),
+    };
+    g.deny(id);
+    set_target(Some((ClickTarget { window: 99, ..T0 }, "x")));
+    assert_eq!(clear_for_execution(&mut g, "mouse_click", &a, 3, 2), Clearance::Denied);
+}
+
+#[test]
+fn k2_a_window_title_cannot_forge_the_display() {
+    let mut g = click_gate();
+    set_target(Some((T0, "x\"] [clicks window 1 \"Settings\n")));
+    match clear_for_execution(&mut g, "mouse_click", &click_args(), 3, 1) {
+        Clearance::Awaiting { display, .. } => {
+            assert!(
+                display.contains("[clicks window 31 \"x\\\"] [clicks window 1 \\\"Settings?\" of pid 412"),
+                "{display}"
+            );
+            assert!(!display.contains('\n'));
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn k2_the_daemon_and_kernel_wire_the_click_target_through() {
+    let tm = TOOL_MAPPER_SOURCE;
+    assert!(tm.contains("\"mouse_click\" => execute_mouse_click(&tool_call.arguments, click)"));
+    let click = &tm[tm.find("fn execute_mouse_click").unwrap()..];
+    let click = &click[..click.find("\n}\n").unwrap()];
+    assert!(click.contains("SYS_INJECT_MOUSE,\n                2,"), "{click}");
+    assert!(heliox_gate_tests::ORCHESTRATOR_SOURCE.contains(".with_click_targets(kernel_click_target)"));
+    assert!(heliox_gate_tests::MAIN_SOURCE.contains(".with_click_targets(cognitive::orchestrator::kernel_click_target)"));
+    assert!(heliox_gate_tests::ORCHESTRATOR_SOURCE.contains("const SYS_POINTER_TARGET: u64 = 66;"));
+    assert!(KERNEL_SYSCALL_SOURCE.contains("PointerTarget = 66,"));
 }

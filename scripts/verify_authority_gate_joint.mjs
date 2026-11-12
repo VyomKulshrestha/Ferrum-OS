@@ -183,6 +183,15 @@ try {
       && field(o, "alias_reserved_refused") === "true",
     (o.match(/selftest file-guard: alias.*/) || [""])[0]);
 
+  // K2: a click bound to the window and position under the pointer.
+  o = skip.has("click-target") ? "skipped" : await operator("test-syscall click-target", "dropped_not_delivered=").catch((e) => String(e.message || e).split("\n")[0]);
+  check("K2 kernel: PointerTarget names the window and owner under the pointer; a bound click on it is delivered",
+    field(o, "target_is_window") === "true" && field(o, "on_target_delivered") === "true",
+    (o.match(/selftest click-target: .*/) || [""])[0]);
+  check("K2 kernel: a bound click is refused when the pointer is elsewhere, and dropped if it moves before delivery",
+    field(o, "moved_target_refused") === "true" && field(o, "moved_after_dropped") === "true"
+      && field(o, "dropped_not_delivered") === "true");
+
   // ---- daemon, end to end ------------------------------------------------
   await operator("ring3 init", "[heliox-daemon] sent HELIOX_READY IPC announce", 60);
   await sleep(2000);
@@ -273,6 +282,25 @@ try {
   check("J2-1: the directory and its file are still there", /kept/.test(cat), cat.trim().split("\n").slice(-2).join(" | "));
   } catch (err) {
     check("J2-1 section", false, err && err.message ? err.message.split("\n")[0] : String(err));
+  }
+
+  // K2 end to end: the operator is shown what a click lands on, and the
+  // approved click runs bound to it.
+  try {
+  let mark = serialText().length;
+  const c = await tool("mouse_click", { button: 0 });
+  const cid = awaitingId(c);
+  check("K2: a click waits for the operator", cid !== null, out(c));
+  await waitForSerial(`confirmation ${cid} requested: mouse_click`, 10, mark);
+  const notice = (serialText().slice(mark).match(new RegExp(`confirmation ${cid} requested: mouse_click.*`)) || [""])[0];
+  check("K2: the request names the window (or desktop) and the position the click lands on",
+    /\[clicks (window \d+ ".*" of pid \d+ at \(\d+, \d+\) in the window|the desktop at \(\d+, \d+\))\]/.test(notice), notice);
+  await operator(`heliox confirm ${cid}`, `confirmation gate resolved: ${cid}`);
+  await nudge();
+  const clicked = await tool("mouse_click", { button: 0 });
+  check("K2: the approved click runs while the pointer is on its target", clicked?.result?.success === true, out(clicked));
+  } catch (err) {
+    check("K2 section", false, err && err.message ? err.message.split("\n")[0] : String(err));
   }
 
   check("no kernel panic or fault", !/panicked at|PAGE FAULT|Page Fault|General Protection|DOUBLE FAULT/.test(serialText()));
