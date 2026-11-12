@@ -200,6 +200,60 @@ Questions the round leaves for the author, each pinned by a test of current beha
 The claim the gate supports after three rounds, with its exclusions, is in
 `fi1_reports/userland_round3.md`.
 
-## 4. Monitor (workstream A) and kernel (workstream C)
+## 4. Kernel (workstream C, round 1; draft pull request 3, head 0302dbd, CI green)
 
-Running. Filled in when they report.
+Twelve defects fixed. The agent built a negative-control image (its new harnesses and self-tests with
+the fixes held back) to show that each harness fails without its fix. Detail, the harness table and the
+raw timings: `fi1_reports/kernel_round1.md` on the pull-request branch.
+
+| | Defect | Where |
+|---|---|---|
+| High | kernel tasks kept a dead process's page-table root, so reaping freed live page tables and the next launch hung the kernel | `src/scheduler/mod.rs` |
+| High | the shell's `syscall <pid>` command ran with any process's authority from a guest or user session (now needs `cap:system:all`; diff read by the main session) | `src/shell/commands.rs` |
+| High | a non-canonical load address in an ELF file panicked the kernel from Exec | `src/process/mod.rs` |
+| High | caller-sized kernel buffers aborted the kernel when the heap ran out (file reads, random bytes, socket receive, RamFS writes) | `src/fs/mod.rs` and others |
+| Medium | Exec of a package path with a doubled separator skipped the package signature gate | `src/syscall/process.rs` |
+| Medium | the ELF loader mapped one page past unaligned segments | `src/process/mod.rs` |
+| Medium | keyboard and mouse interrupts spun on the scheduler lock; windows outlived an exited process; dead processes leaked when a wait reaped another; ext2 name and entry bounds | several |
+| Medium | agent-injected keys reached the root kernel shell (the kernel half of the gate's keystroke route) | `src/input/mod.rs` |
+| Low | kexec copied up to 8 MiB into the heap before its size check | `src/syscall/kexec.rs` |
+
+Harnesses (agent's runs): the nine baseline harnesses 81 of 81 on the final image; the new kernel
+self-tests 18 of 18 on the final image against 6 of 12 on the negative control; process reaping 9 of 9
+against a hang on main at the second launch after a kill; pid reuse 6 of 6 against 4 of 6.
+
+Checked by the main session, one run each on images downloaded from CI (identified by digest), machine
+under load:
+
+| Harness | main's image | pull request's image |
+|---|---|---|
+| `verify_kernel_selftests` | 4 of 18, 227 s | 18 of 18, 75 s |
+| `verify_process_reap_cr3` | 3 of 4, the kernel hangs at the second launch after a kill, 238 s | 9 of 9, 64 s |
+| `verify_pid_reuse` | not run | 6 of 6 |
+| `verify_ring3` | 7 of 7, 210 s | 7 of 7 in three of four runs, about 72 s |
+
+The one failing `verify_ring3` run was a race in the harness, which read the serial text the moment the
+banner appeared; the faster kernel exposed it. The harness now waits for the line (pull request 3,
+6009cfc) and passes.
+
+Speed (agent's runs, five alternating boots each, machine under load):
+
+| | main, median | final image, median |
+|---|---|---|
+| boot to the shell prompt | 164.3 s | 52.9 s |
+| ring-3 Exec of the daemon | 33.8 s | 0.8 s |
+
+Two causes: the audio driver waited on two reset bits that QEMU never sets (one of them is write-only by
+specification), 109 seconds of a boot, now bounded (diff read by the main session); and the frame
+allocator re-walked the memory map on every allocation. The remaining 53 seconds are mostly the
+bootloader reading the image and one audio command inside QEMU, neither kernel code.
+
+Designed, not implemented (they need userland to adopt them): a pointer-target query for binding a click
+approval, a per-file change counter for binding an approval to a file version, and a receive call that
+returns the sender. Still open in the kernel: the desktop's terminal window still executes injected
+keys; network items (listen-port hijack, socket limit, packet length bound); quotas never enforced; no
+NX bit; ring-0 faults treated as user faults.
+
+## 5. Monitor (workstream A)
+
+Running. Filled in when it reports.
