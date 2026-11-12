@@ -30,8 +30,18 @@ def main() -> None:
 
     repro_env.pin_threads(args.threads, torch_import=True)
     torch.set_num_threads = lambda n: None
+    import fi1_thread_compare as compare
     import verify_cross_domain_archived_inference_v1_2 as verifier
 
+    # The verifier compares records as canonical JSON, recomputed first, stored second; keep both.
+    seen = []
+    original_canonical = verifier.canonical
+
+    def capturing(record):
+        seen.append(record)
+        return original_canonical(record)
+
+    verifier.canonical = capturing
     start = time.time()
     try:
         report = verifier.verify()
@@ -41,6 +51,18 @@ def main() -> None:
         }
     except AssertionError as error:
         outcome = {"all_checks_pass": False, "error": str(error)}
+    labels = [
+        "ferrumos_original_domain_record",
+        "ferrumos_common_episode_record",
+        "physical_original_domain_record",
+        "physical_common_episode_record",
+        "attribution_diagnostics",
+    ]
+    outcome["differences"] = {
+        label: compare.diff_summary(seen[2 * i], seen[2 * i + 1])
+        for i, label in enumerate(labels)
+        if 2 * i + 1 < len(seen)
+    }
     outcome.update(
         {
             "threads": args.threads,
