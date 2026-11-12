@@ -171,7 +171,7 @@ This is a category-level architecture comparison, not a superiority claim.
 Desktop windows support minimize, maximize/restore, taskbar activation, and Windows-style edge placement: drag a title bar left or right for a half-screen snap, or to the top to maximize while preserving the original floating geometry. Closing an app's main window terminates and reaps its Ring-3 process. The taskbar includes a hardware-RTC-backed UTC clock rather than an uptime placeholder. The privacy lock deliberately resumes with Enter because account passwords are not implemented; it does not pretend to authenticate a user.
 
 ### Package Manager (`ferrumpkg`)
-- Real `pkg list|verify|install|remove|run|status|rollback` shell command — Ed25519-signed manifests bind package identity, version, requested capabilities, and the ELF's SHA-256 digest to a kernel trust root before install or launch; privileged capabilities require `pkg install <name> --confirm`
+- Real `pkg list|verify|install|remove|run|status|rollback` shell command — Ed25519-signed manifests bind package identity, version, requested capabilities, and the ELF's SHA-256 digest to a kernel trust root before install or launch; privileged capabilities require `pkg install <name> --confirm`, and a ring-3 install that claims that confirmation (the App Store) waits for the operator's physical y/n at the kernel prompt
 - Install/remove are serialized transactions recorded in two checksummed, generation-numbered registry slots. A torn/corrupt newest write falls back to the prior valid generation, the next mutation repairs it, and `pkg rollback` restores the previous valid package set; launch authorization and ELF loading are atomic with respect to these transactions
 - Packages are ordinary ELF binaries staged onto the appliance disk at build time (`scripts/make-appliance.ps1`), loaded and executed at runtime via the VFS — the kernel runs genuinely new code it was never compiled with, not just bookkeeping around pre-embedded apps
 - Honestly scoped: this is a local package cache, not a network-fetched repository — no package server exists or is pretended to
@@ -194,7 +194,7 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Capability registry and caller-held capability authorization
 - Ring-3 process creation requires the explicit `cap:process:spawn` token; GUI access alone cannot launch child apps
 - 5-tier permission model with operator confirmation gates (gated Tier 3/4 syscalls require physical key confirmation, using RIP-2 instruction rewinding for restartable blocking calls)
-- Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation)
+- Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation; one escaped line per entry; ring-3 processes cannot change the file)
 - Resource Quotas: Syscall rate limiting, continuous CPU execution limits, and memory mapping bounds check (default 8 MiB)
 - Modular service manager with typed service manifests
 - IPC broker with capability-checked send/receive. A mailbox belongs to the

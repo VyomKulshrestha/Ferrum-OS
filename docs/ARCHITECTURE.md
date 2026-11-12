@@ -209,8 +209,11 @@ repository. Two on-disk locations:
   `sys_exec` (`src/syscall/process.rs`) will actually run them.
 
 Capabilities that access files or audio require an explicit confirmation
-(`pkg install <name> --confirm`; the App Store presents the same authority
-before its confirmed request). Package launch calls `pkg::load_installed`,
+(`pkg install <name> --confirm` at the shell). A ring-3 PackageInstall that
+claims that confirmation (the App Store's second click) is held at the
+kernel's operator prompt, which names the package and its capabilities and
+takes a physical y/n, like DeleteFile. A package may not take the name of a
+compiled-in program. Package launch calls `pkg::load_installed`,
 which holds the same transaction mutex while it validates the registry's
 version/digest binding and loads the signed ELF. Therefore remove/rollback
 cannot race the authorization check into loading replacement bytes; already
@@ -1032,6 +1035,10 @@ creates an account and its home directory (`/disk/home/<name>/`); `login
 which resolves to a real capability set via
 `accounts::capabilities_for_profile` - not merely a display-name change.
 
+Ring-3 processes cannot create, write or delete `/disk/accounts.txt` (nor
+the audit log), even with `fs:write`: the shell reads a logged-in user's
+profile from that file on every command.
+
 There is intentionally no password/credential field yet. `login` selects a
 stored authorization profile but does not prove identity, and the desktop lock
 is correspondingly labeled as a privacy resume screen rather than an
@@ -1067,11 +1074,13 @@ All denied operations, lifecycle events, and agent reasoning telemetry are
 recorded in the kernel audit log. Accessible via the `log` shell command.
 - **Out-of-Interrupt Persistence**: Disk writes inside interrupts (such as timer IRQs) are avoided to prevent deadlocks. An atomic `FLUSH_PENDING` flag is set by the timer interrupt.
 - **Deferred Disk Sync**: The log is flushed from memory to `/disk/heliox/audit.log` during safe out-of-interrupt contexts: syscall returns, process termination/reaping, and system shutdown/reboot.
-- **Log Truncation**: The persistent log is capped at 128KB, using character/newline-aligned front-truncation when the size limit is exceeded.
+- **Log Truncation**: The persistent log is capped at 128KB, using character/newline-aligned front-truncation when the size limit is exceeded. When the filesystem refuses the whole file (the ext2 driver writes at most 12 direct blocks), the flush keeps the newest lines that fit instead of losing the entries.
+- **One line per entry**: control characters and backslashes in a message (a path from a denied write, AuditWrite text) are written as `\xNN`, so no message can add a line to the serial output or to `audit.log`.
+- **Kernel record**: ring-3 processes cannot create, write or delete `/disk/heliox/audit.log` or a directory above it.
 
 ### Agent Confirmation Gates
 
-Kernel-side confirmation gates are enforced for destructive Tier-4 operations (specifically `DeleteFile`, syscall 22):
+Kernel-side confirmation gates are enforced for destructive Tier-4 operations (`DeleteFile`, syscall 22, and `DeleteFileIfVersion`), for `Kexec`, and for a `PackageInstall` (syscall 48) that claims the operator confirmed a package's privileged capabilities:
 - **Syscall Suspension & Sleep Timeout**: When a gated syscall is called by a process lacking `cap:confirmation:bypass`, the calling process is placed into a `Blocked` state and given a 5-second default-deny sleep timeout.
 - **Modal idle handoff**: The blocked requester parks on the scheduler's
   dedicated idle stack until a PIT deadline or physical key IRQ wakes it. This
