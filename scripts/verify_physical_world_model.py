@@ -6,12 +6,18 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import struct
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+
+# The trainer uses NumPy's multi-threaded BLAS, and its result depends on the number of BLAS threads
+# (the order of summation changes with it). The deployed checkpoint was trained with 24 threads; the
+# sweep is rerun with the same number so that it reproduces on machines with a different core count.
+REFERENCE_BLAS_THREADS = "24"
 
 ROOT = Path(__file__).resolve().parents[1]
 RESEARCH = ROOT / "docs" / "research"
@@ -222,7 +228,12 @@ def reproduce(protocol: dict, selection: dict) -> None:
             "--stress-seed",
             str(stress["seed"]),
         ]
-        subprocess.run(command, cwd=ROOT, check=True)
+        subprocess.run(
+            command,
+            cwd=ROOT,
+            check=True,
+            env={**os.environ, "OPENBLAS_NUM_THREADS": REFERENCE_BLAS_THREADS},
+        )
         reproduced = load(report)
         require(
             sha256(artifact) == sha256(ARTIFACT),

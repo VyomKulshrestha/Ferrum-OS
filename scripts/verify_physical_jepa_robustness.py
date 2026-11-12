@@ -4,10 +4,17 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+# The evaluator trains small models with NumPy's multi-threaded BLAS, and its numbers depend on the
+# number of BLAS threads (the order of summation changes with it): with 4 threads the report differs
+# from the committed one in 30 values, by up to 6%. The committed report was produced with 24 threads;
+# the evaluator is rerun with the same number so that it reproduces on machines with other core counts.
+REFERENCE_BLAS_THREADS = "24"
 
 ROOT = Path(__file__).resolve().parents[1]
 EVALUATOR = ROOT / "scripts" / "evaluate_physical_jepa_robustness.py"
@@ -112,6 +119,7 @@ def main():
             cwd=ROOT,
             check=True,
             stdout=subprocess.DEVNULL,
+            env={**os.environ, "OPENBLAS_NUM_THREADS": REFERENCE_BLAS_THREADS},
         )
         # The evaluator writes text with the platform's line endings; the committed report has LF.
         produced = output.read_bytes().replace(b"\r\n", b"\n")
