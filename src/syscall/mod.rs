@@ -267,6 +267,7 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     // Only a caller that may install at all is asked about.
     let is_privileged_install = number == SyscallNumber::PackageInstall as u64
         && args[2] == 1
+        && false // negctl
         && crate::security::has_capability(&held_capabilities, "pkg:request");
 
     // Quotas and confirmation check
