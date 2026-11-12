@@ -89,6 +89,9 @@ class Unit:
         self.sig5 = np.load(self.d / "sig5.npy")
         self.fit_low = np.load(self.d / "fit_low.npy")
         self.fit_high = np.load(self.d / "fit_high.npy")
+        if (self.d / "fit_vlow.npy").exists():
+            self.fit_vlow = np.load(self.d / "fit_vlow.npy")
+            self.fit_vhigh = np.load(self.d / "fit_vhigh.npy")
 
     def streams(self, group):
         return [
@@ -225,10 +228,38 @@ def _shift_counts(alarm, starts, events, rng):
     return any_c, on_c
 
 
-def stream_rows(unit, stream, s, tau, lab, valid, events, rng):
+RANGE_MARGIN = 0.05  # round 1's descriptive definition (fi1_monitor_diagnose.regime)
+
+
+def outside_range(unit, stream, sl=None):
+    """Rule 5 of the plan's note (descriptive, the same for every monitor): a step is outside the fitted range
+    when a scaled sensor lies more than 5 % of its fit span beyond the range of the world-model fit data."""
+    Z = stream.load("Z")
+    if Z is None:
+        return None
+    Z = np.asarray(Z if sl is None else Z[sl])
+    span = np.maximum(unit.fit_high - unit.fit_low, 1e-6)
+    return (
+        (Z < unit.fit_low - RANGE_MARGIN * span)
+        | (Z > unit.fit_high + RANGE_MARGIN * span)
+    ).any(1)
+
+
+def stream_rows(unit, stream, s, tau, lab, valid, events, rng, states=None):
+    """Per-stream metrics. Single-score monitors: alarm = s > tau. Multi-state monitors (`states`, a list of
+    normalised scores, state on where > 1): alarm time is the union; episodes are taken per state, an episode of
+    any state starting inside an event is an onset, and every state's episodes outside events are false alarms
+    (rule 4 of the plan's note)."""
     gap = unit.spec["gap"]
-    alarm = s > tau
-    eps = T._episodes(alarm, gap)
+    if states is None:
+        on = [s > tau]
+    else:
+        xs = [np.where(np.isnan(x), -np.inf, x) for x in states]
+        on = [x > 1 for x in xs]
+        s = np.max(np.stack(xs), 0)
+        tau = 1.0
+    alarm = np.logical_or.reduce(on)
+    eps = [e for a in on for e in T._episodes(a, gap)]
     starts = np.zeros(len(s), bool)
     for a, _ in eps:
         starts[a] = True
@@ -245,7 +276,15 @@ def stream_rows(unit, stream, s, tau, lab, valid, events, rng):
         else (np.zeros(SHIFTS, int), np.zeros(SHIFTS, int))
     )
     ok = np.isfinite(s) & valid
-    return {
+    out = outside_range(unit, stream) if hasattr(stream, "load") else None
+    if out is None:
+        out = np.zeros(len(s), bool)
+    desc = {
+        "unlabelled_outside": int((out & unl).sum()),
+        "unlabelled_inside_alarm": int((alarm & unl & ~out).sum()),
+        "event_inside": [bool(not out[a]) for a, *_ in events],
+    }
+    return desc | {
         "found": found,
         "onset": onset,
         "delay": delay,
@@ -318,6 +357,24 @@ def pool(unit_rows, spec_budget, spd_of):
         "median_episode_seconds": float(np.median(lengths)) if lengths else None,
         "alarm_episodes": len(lengths),
     }
+    # rule 5 of the plan's note (descriptive): outside / inside the fitted range
+    unl_out = sum(r.get("unlabelled_outside", 0) for _, rows in unit_rows for r in rows)
+    unl_in_alarm = sum(
+        r.get("unlabelled_inside_alarm", 0) for _, rows in unit_rows for r in rows
+    )
+    ev_in = sum((r.get("event_inside", []) for _, rows in unit_rows for r in rows), [])
+    if len(ev_in) == n:
+        n_in = int(sum(ev_in))
+        out |= {
+            "unlabelled_share_outside_range": unl_out / max(unl, 1),
+            "alarm_share_inside_range": unl_in_alarm / max(unl - unl_out, 1),
+            "events_starting_inside_range": n_in,
+            "onset_recall_inside_range": float(
+                sum(o for o, i in zip(onset, ev_in) if i) / n_in
+            )
+            if n_in
+            else None,
+        }
     if any(o > 0 for o in order):
         for name, keep in (
             ("first", [o == 0 for o in order]),
@@ -327,26 +384,113 @@ def pool(unit_rows, spec_budget, spd_of):
                 "events": int(sum(keep)),
                 "detected": int(sum(f for f, k in zip(found, keep) if k)),
                 "onset_detected": int(sum(f for f, k in zip(onset, keep) if k)),
+                "onset_recall": float(np.mean([f for f, k in zip(onset, keep) if k]))
+                if any(keep)
+                else None,
             }
     return out
 
 
+def _arrs(st, sl=None):
+    return {
+        k: (None if v is None else np.asarray(v if sl is None else v[sl]))
+        for k, v in st.arrays().items()
+    }
+
+
+def _samples_of(st):
+    lens = st.load("lengths", mmap=False)
+    at = 0
+    for n in lens:
+        yield slice(at, at + n)
+        at += n
+
+
+def episodic_outside(unit, st):
+    """Rule 5 for an episodic unit: a sample is outside the fitted range when any of its steps is."""
+    out = []
+    for sl in _samples_of(st):
+        o = outside_range(unit, st, sl)
+        out.append(bool(o.any()) if o is not None else False)
+    return np.array(out)
+
+
+def _episodic_row(unit, st, seq, tau, outside):
+    flags = st.load("flags", mmap=False).astype(bool)
+    alarm = seq > tau
+    inn = ~outside
+    return {
+        "anomalous": int(flags.sum()),
+        "detected": int(alarm[flags].sum()),
+        "fpr": float(alarm[~flags].mean()),
+        "fpr_ratio_to_target": float(alarm[~flags].mean() / unit.spec["alpha"]),
+        "average_precision": float(
+            average_precision_score(flags, np.maximum(seq, -1e300))
+        ),
+        "unlabelled_share_outside_range": float(outside[~flags].mean()),
+        "alarm_share_inside_range": float(alarm[~flags & inn].mean())
+        if (~flags & inn).any()
+        else None,
+        "events_starting_inside_range": int((flags & inn).sum()),
+        "onset_recall_inside_range": float(alarm[flags & inn].mean())
+        if (flags & inn).any()
+        else None,
+    }
+
+
+def _states(unit, st, monitor, valid):
+    xs = monitor.states(unit, _arrs(st), ~valid)
+    return [np.where(np.isfinite(x) & valid, x, -np.inf) for x in xs]
+
+
+def evaluate_unit_multi(unit, monitor):
+    """A multi-state monitor (fi1_monitor_v4) calibrates itself on attack-free data in fit(); states are on > 1."""
+    monitor.fit(unit)
+    out = {"tau": 1.0}
+    if unit.episodic:
+        st = unit.streams("test")[0]
+        seq = []
+        for sl in _samples_of(st):
+            xs = monitor.states(unit, _arrs(st, sl))
+            seq.append(
+                max(
+                    float(np.nanmax(x)) if np.isfinite(x).any() else -np.inf for x in xs
+                )
+            )
+        out["episodic"] = _episodic_row(
+            unit, st, np.array(seq), 1.0, episodic_outside(unit, st)
+        )
+        return out, None, None
+    rng = np.random.default_rng(SHIFT_SEED)
+    rows = []
+    for st in unit.streams("test"):
+        lab, valid, events = labels_and_events(unit, st)
+        xs = _states(unit, st, monitor, valid)
+        rows.append(stream_rows(unit, st, None, None, lab, valid, events, rng, xs))
+    sealed = []
+    for st in unit.streams("sealed"):
+        lab, valid, _ = labels_and_events(unit, st)
+        on = [x > 1 for x in _states(unit, st, monitor, valid)]
+        sealed.append(
+            {
+                "fa": sum(len(T._episodes(a, unit.spec["gap"])) for a in on),
+                "steps": int(valid.sum()),
+                "alarm": int(np.logical_or.reduce(on).sum()),
+            }
+        )
+    return out, rows, sealed
+
+
 def evaluate_unit(unit, monitor):
     """Calibrate on attack-free data, then score every test (and sealed) stream of the unit."""
+    if getattr(monitor, "multistate", False):
+        return evaluate_unit_multi(unit, monitor)
     tau, cal = calibrate_unit(unit, monitor)
     out = {"tau": tau}
     if unit.episodic:
         st = unit.streams("test")[0]
         seq = episodic_scores(unit, st, monitor)
-        flags = st.load("flags", mmap=False).astype(bool)
-        alarm = seq > tau
-        out["episodic"] = {
-            "anomalous": int(flags.sum()),
-            "detected": int(alarm[flags].sum()),
-            "fpr": float(alarm[~flags].mean()),
-            "fpr_ratio_to_target": float(alarm[~flags].mean() / unit.spec["alpha"]),
-            "average_precision": float(average_precision_score(flags, seq)),
-        }
+        out["episodic"] = _episodic_row(unit, st, seq, tau, episodic_outside(unit, st))
         return out, None, None
     rng = np.random.default_rng(SHIFT_SEED)
     rows = []
@@ -370,7 +514,7 @@ def evaluate_unit(unit, monitor):
 
 
 def evaluate_set(monitor_name, set_name, units_filter=None):
-    import fi1_monitor_v3 as V
+    import fi1_monitor_v4 as V  # plain round-1 names resolve to the same fi1_monitor_v3 objects
 
     datasets = SETS[set_name]
     result = {}
@@ -415,6 +559,15 @@ def evaluate_set(monitor_name, set_name, units_filter=None):
                 "fa_ratio_to_budget": e["fpr_ratio_to_target"],
                 "average_precision": e["average_precision"],
                 "median_seconds_to_first_alarm": None,
+                **{
+                    k: e[k]
+                    for k in (
+                        "unlabelled_share_outside_range",
+                        "alarm_share_inside_range",
+                        "events_starting_inside_range",
+                        "onset_recall_inside_range",
+                    )
+                },
                 "note": "episodic: an event is an anomalous sample; onset = any-alarm = sample alarm; "
                 "alarm share = false-positive rate of normal samples; budget = the 5 % sample target",
             }
@@ -540,6 +693,141 @@ def select(names):
         {"baseline": sb, "candidates": rows},
     )
     return rows
+
+
+def _mean_net(result):
+    v = [
+        r["onset_recall_net_of_chance"]
+        for r in result.values()
+        if not r.get("missing") and r.get("onset_recall_net_of_chance") is not None
+    ]
+    return float(np.mean(v)) if v else None
+
+
+def survives_selection_r2(base, cand):
+    """The round-2 selection rule (docs/research/fi1_reports/monitor_round2.md, commit 60d8f91): round 1's four
+    conditions and mean onset recall net of chance not below the baseline's."""
+    r = survives_selection(base, cand)
+    nb, nc = _mean_net(base), _mean_net(cand)
+    r["checks"]["mean_net_of_chance_not_lower"] = nc >= nb
+    r["survives"] = all(r["checks"].values())
+    r["mean_onset_net_of_chance"] = nc
+    r["mean_onset_net_gain"] = nc - nb
+    return r
+
+
+def select_r2(names):
+    path = WORK / "results" / "selection_table_r2.json"
+    table = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    for n in ["d1"] + [n for n in names if n != "d1"]:
+        if n not in table:
+            table[n] = evaluate_set(n, "selection")
+            save(path, table)
+    rows = {
+        n: survives_selection_r2(table["d1"], r) for n, r in table.items() if n != "d1"
+    }
+    rows = dict(
+        sorted(
+            rows.items(),
+            key=lambda kv: (
+                -kv[1]["mean_onset_net_of_chance"],
+                kv[1]["mean_unlabelled_alarm_share"],
+            ),
+        )
+    )
+    sb = summary(table["d1"])
+    print(
+        f"baseline d1: mean onset {sb['mean_onset_recall']:.3f} net {_mean_net(table['d1']):.3f} "
+        f"mean share {sb['mean_unlabelled_alarm_share']:.4f}"
+    )
+    for n, r in rows.items():
+        tep = table[n]["tep-0-3"]
+        print(
+            f"{n:28s} {'SURVIVES' if r['survives'] else 'out     '} onset {r['mean_onset_recall']:.3f} "
+            f"({r['mean_onset_gain']:+.3f}) net {r['mean_onset_net_of_chance']:.3f} ({r['mean_onset_net_gain']:+.3f}) "
+            f"share {r['mean_unlabelled_alarm_share']:.4f} sealed x{r['tep_sealed_fa_ratio']:.2f} "
+            f"tep first {tep['first']['onset_detected']}/{tep['first']['events']} "
+            f"fol {tep['follower']['onset_detected']}/{tep['follower']['events']} "
+            + " ".join(f"{k} {v:+.3f}" for k, v in r["onset_change"].items())
+            + " | failed: "
+            + ",".join(k for k, ok in r["checks"].items() if not ok)
+        )
+    save(
+        WORK / "results" / "selection_verdicts_r2.json",
+        {
+            "baseline": sb | {"mean_onset_net_of_chance": _mean_net(table["d1"])},
+            "candidates": rows,
+        },
+    )
+    return rows
+
+
+VERDICT_KEYS = ("onset_detected", "events", "onset_recall", "unlabelled_alarm_share")
+
+
+def check_r2(names):
+    """Round 2 on the check set: a second use (plan's note). Each candidate once (the ledger refuses a name it
+    holds). The baseline d1 is not rerun as a candidate: its verdict numbers are round 1's stored ones; it is
+    re-scored once under the ledger label 'd1 (round-2 re-score)' only to add the rule-5 descriptive numbers,
+    and the run stops if its verdict numbers differ from round 1's."""
+    done = set()
+    if CHECK_LEDGER.exists():
+        done = {
+            json.loads(line)["monitor"]
+            for line in CHECK_LEDGER.read_text(encoding="utf-8").splitlines()
+            if line
+        }
+    again = [n for n in names if n in done or n == "d1"]
+    if again:
+        raise SystemExit(f"REFUSE: already run on the check set: {again}")
+    if len(names) > 3:
+        raise SystemExit("REFUSE: at most three round-2 candidates")
+    r1 = json.loads((WORK / "results" / "check_table.json").read_text(encoding="utf-8"))
+    base = r1["d1"]
+    out_path = WORK / "results" / "check_table_r2.json"
+    out = {}
+    label = "d1 (round-2 re-score)"
+
+    def ledger(n):
+        with CHECK_LEDGER.open("a", encoding="utf-8") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "monitor": n,
+                        "round": 2,
+                        "use": "second use of the check set",
+                        "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "datasets": list(CHECK),
+                    }
+                )
+                + "\n"
+            )
+
+    if label not in done:
+        ledger(label)
+        out["d1"] = evaluate_set("d1", "check")
+        for ds, row in out["d1"].items():
+            for k in VERDICT_KEYS:
+                if not np.isclose(row[k], base[ds][k]):
+                    raise SystemExit(
+                        f"STOP: baseline re-score differs from round 1 on {ds} {k}: {row[k]} vs {base[ds][k]}"
+                    )
+        save(out_path, out)
+    for n in names:
+        ledger(n)
+        out[n] = evaluate_set(n, "check")
+        save(out_path, out)
+    verdicts = {n: verdict(base, out[n]) for n in names}
+    for n, v in verdicts.items():
+        print(
+            n,
+            "IMPROVED" if v["improved"] else "not improved",
+            json.dumps(v, default=float),
+        )
+    save(
+        WORK / "results" / "check_verdicts_r2.json",
+        {"baseline": summary(base), "verdicts": verdicts},
+    )
 
 
 def save(path, obj):
@@ -731,6 +1019,10 @@ def main():
         save(WORK / "results" / "registered.json", REGISTERED)
     elif cmd == "select":
         select(sys.argv[2:])
+    elif cmd == "select2":
+        select_r2(sys.argv[2:])
+    elif cmd == "check2":
+        check_r2(sys.argv[2:])
     elif cmd == "check":
         # baseline and the survivors of selection, once each on the check set; a monitor already in the
         # check ledger is refused (no second look)
