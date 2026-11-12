@@ -197,14 +197,31 @@ def environment_record() -> dict:
 RECORD_KEY = "reproducibility_environment"
 
 
+def pin_from_environment(default: int = 1) -> dict:
+    """Pin to ``REPRO_THREADS`` (default ``default``): the switch scripts with their own argument
+    parsing use, so ``REPRO_THREADS=4 python scripts/x.py ...`` reruns them at another count."""
+    return pin_threads(int(os.environ.get("REPRO_THREADS", default)))
+
+
 def stamp_json(path, record: dict | None = None) -> dict:
-    """Add the environment record to a JSON result file under ``RECORD_KEY`` (LF line endings)."""
+    """Add the environment record to a JSON result file under ``RECORD_KEY`` (LF line endings);
+    a result that is not a JSON object gets a ``<stem>.environment.json`` sidecar instead."""
     import json
     from pathlib import Path
 
     path = Path(path)
     data = json.loads(path.read_text(encoding="utf-8"))
-    data[RECORD_KEY] = record if record is not None else environment_record()
+    record = record if record is not None else environment_record()
+    if not isinstance(data, dict):
+        # A result that is not an object keeps its shape; the record goes into a sidecar file.
+        sidecar = path.with_name(path.stem + ".environment.json")
+        sidecar.write_text(
+            json.dumps({RECORD_KEY: record}, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        return data
+    data[RECORD_KEY] = record
     path.write_text(
         json.dumps(data, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

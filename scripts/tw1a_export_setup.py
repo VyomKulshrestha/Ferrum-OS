@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import repro_env
 import tt1d_data as TD
 import tt1d_final as M
 import tt1f_tep_dev as F
@@ -74,6 +75,7 @@ def main():
         }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out), encoding="utf-8")
+    repro_env.stamp_json(OUT)
     n = out["modes"]
     print(
         "written",
@@ -88,4 +90,5 @@ def main():
 
 
 if __name__ == "__main__":
+    repro_env.pin_from_environment()
     main()

@@ -31,6 +31,7 @@ import real_telemetry_core as C
 import real_telemetry_data as D
 import real_telemetry_detect as R
 import real_telemetry_detect_v2 as R2
+import repro_env
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "target/real-telemetry/fi1/pipeline2/rt_calibration_check.json"
@@ -305,8 +306,10 @@ def main():
         )
         OUT.parent.mkdir(parents=True, exist_ok=True)
         OUT.write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
+        repro_env.stamp_json(OUT)
     print("wrote", OUT)
 
 
 if __name__ == "__main__":
+    repro_env.pin_from_environment()
     main()
