@@ -1159,6 +1159,11 @@ fn safety_reason_code(reason: SafetyReason) -> u32 {
         SafetyReason::PredictiveWarning => 14,
         SafetyReason::PredictiveBlock => 15,
         SafetyReason::PredictiveShadowOnly => 16,
+        SafetyReason::MoveStepTooLong => 17,
+        SafetyReason::StaleActorPosition => 18,
+        SafetyReason::MissingOccupancy => 19,
+        SafetyReason::StaleOccupancy => 20,
+        SafetyReason::OperationalLimitExceeded => 21,
     }
 }
 
@@ -1192,6 +1197,17 @@ mod tests {
     fn configured_runtime_with(
         descriptor: SessionDescriptor,
         protocol: AdapterProtocol,
+    ) -> PhysicalRuntime {
+        runtime_with_policy(descriptor, protocol, |_| {}, true)
+    }
+
+    /// The fixture with the zone policy edited before it is installed, and with or
+    /// without the seeded empty-zone record.
+    fn runtime_with_policy(
+        descriptor: SessionDescriptor,
+        protocol: AdapterProtocol,
+        edit: impl FnOnce(&mut SafetyPolicy),
+        seed_empty_zone: bool,
     ) -> PhysicalRuntime {
         let mut runtime = PhysicalRuntime::new_with_session(descriptor).unwrap();
         runtime
@@ -1281,9 +1297,7 @@ mod tests {
             })
             .unwrap();
         runtime.fleet_mut().activate(AdapterId(1), 5, 100).unwrap();
-        runtime
-            .safety_mut()
-            .install_policy(SafetyPolicy {
+        let mut policy = SafetyPolicy {
                 site_id: SiteId(1),
                 zone_id: 7,
                 revision: 1,
@@ -1297,6 +1311,9 @@ mod tests {
                 },
                 proximity_sensor_id: Some(9),
                 minimum_clearance_mm: 500,
+                maximum_step_mm: None,
+                maximum_occupancy_age_ticks: 20,
+                operational_limits: None,
                 maximum_sensor_age_ticks: 20,
                 permit_ttl_ticks: 5,
                 allow_motion_with_humans: false,
@@ -1304,8 +1321,20 @@ mod tests {
                 require_human_approval_for_actuation: true,
                 learned_warning_threshold_permille: 600,
                 learned_block_threshold_permille: 800,
-            })
-            .unwrap();
+            };
+        edit(&mut policy);
+        runtime.safety_mut().install_policy(policy).unwrap();
+        // The zone was observed empty at tick 100 (fi2 O1 requires a fresh record when
+        // humans are not allowed). Seeded without an event so the tests' event ids hold.
+        if seed_empty_zone {
+            runtime.twin.seed_occupancy_for_tests(crate::twin::ZoneOccupancy {
+                site_id: SiteId(1),
+                zone_id: 7,
+                humans: 0,
+                robots: 1,
+                observed_at_tick: 100,
+            });
+        }
         runtime
     }
 
@@ -1961,6 +1990,9 @@ mod tests {
                     },
                     proximity_sensor_id: Some(9),
                     minimum_clearance_mm: 500,
+                    maximum_step_mm: None,
+                    maximum_occupancy_age_ticks: 20,
+                    operational_limits: None,
                     maximum_sensor_age_ticks: 20,
                     permit_ttl_ticks: 5,
                     allow_motion_with_humans: false,
@@ -2119,27 +2151,59 @@ mod tests {
         );
     }
 
-    // ---- Open items O1 and O5 (policy decision pending; NOT fixed) --------
-    // These tests document current behaviour so a policy change shows up as
-    // a deliberate test edit. Flip the assertions when the author decides.
+    // ---- fi2: O1 and O5 decided (fail-closed occupancy; step and resource bounds) ----
+
+    fn simulator() -> SessionDescriptor {
+        SessionDescriptor::simulator(1, 1, 42)
+    }
+
+    fn reasons_at(runtime: &mut PhysicalRuntime, command: AdapterCommand, tick: u64) -> Vec<SafetyReason> {
+        let context = safe_context(runtime);
+        let mut command = command;
+        command.metadata.expected_twin_event_id = context.expected_twin_event_id;
+        command.deadline_tick = tick + 100;
+        runtime
+            .preview_command(&command, context, &[], tick)
+            .unwrap()
+            .reasons
+    }
 
     #[test]
-    fn documents_o1_missing_or_stale_occupancy_counts_as_zero_humans() {
-        // No occupancy record at all: the human interlock is silent and only
-        // the proximity sensor protects (allow_motion_with_humans=false).
-        let mut runtime = configured_runtime();
+    fn o1_a_missing_occupancy_record_blocks_motion_when_humans_are_not_allowed() {
+        // No record for the zone: before fi2 this was read as zero humans and the move was
+        // authorized (only the proximity reading protected).
+        let mut runtime = runtime_with_policy(simulator(), AdapterProtocol::Simulator, |_| {}, false);
         runtime
             .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
             .unwrap();
         assert!(runtime.twin().occupancy(SiteId(1), 7).is_none());
         let context = safe_context(&runtime);
-        assert!(runtime
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(1), context, &[], 100),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
+        assert!(reasons_at(&mut runtime, command(2), 100).contains(&SafetyReason::MissingOccupancy));
+
+        // A zone that allows humans does not need the record (unchanged).
+        let mut lenient = runtime_with_policy(
+            simulator(),
+            AdapterProtocol::Simulator,
+            |policy| policy.allow_motion_with_humans = true,
+            false,
+        );
+        lenient
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&lenient);
+        assert!(lenient
             .authorize_and_queue_command(command(1), context, &[], 100)
             .is_ok());
+    }
 
-        // A zero-human record observed at tick 10 still counts at tick 500:
-        // occupancy freshness is never checked.
-        let mut runtime = configured_runtime();
+    #[test]
+    fn o1_a_stale_occupancy_record_blocks_motion_at_the_age_limit_plus_one() {
+        // A zero-human record observed at tick 10. Before fi2 it still counted at tick 500.
+        let mut runtime = runtime_with_policy(simulator(), AdapterProtocol::Simulator, |_| {}, false);
         let tolerant = ObservationPolicy {
             maximum_clock_skew_ticks: 0,
             maximum_clock_uncertainty_ticks: 0,
@@ -2157,81 +2221,141 @@ mod tests {
         runtime
             .ingest_adapter_frame_with_policy(empty, 10, tolerant)
             .unwrap();
-        let mut fresh = frame(2, 900, 500);
-        fresh.metadata = ObservationMetadata::simulated(2, 1_000);
+        // Proximity is fresh at both ticks checked next.
+        let mut proximity = frame(2, 900, 25);
+        proximity.metadata = ObservationMetadata::simulated(2, 1_000);
+        runtime
+            .ingest_adapter_frame_with_policy(proximity, 25, tolerant)
+            .unwrap();
+        // maximum_occupancy_age_ticks is 20: tick 30 is the last tick the record counts.
+        let at_limit = reasons_at(&mut runtime, command(1), 30);
+        assert!(!at_limit.contains(&SafetyReason::StaleOccupancy), "{at_limit:?}");
+        assert!(!at_limit.contains(&SafetyReason::MissingOccupancy), "{at_limit:?}");
+        let past = reasons_at(&mut runtime, command(2), 31);
+        assert!(past.contains(&SafetyReason::StaleOccupancy), "{past:?}");
+
+        let mut fresh = frame(3, 900, 500);
+        fresh.metadata = ObservationMetadata::simulated(3, 1_000);
         runtime.ingest_adapter_frame(fresh, 500, 0).unwrap();
         let context = safe_context(&runtime);
-        let mut late = command(2);
+        let mut late = command(4);
         late.deadline_tick = 600;
         late.metadata = CommandMetadata::kernel(
             500,
             1,
             context.expected_twin_event_id,
             EndpointCapability::Move,
-            ConfirmationProvenance::LocalHuman { confirmation_id: 2 },
+            ConfirmationProvenance::LocalHuman { confirmation_id: 4 },
         );
-        assert!(runtime
-            .authorize_and_queue_command(late, context, &[], 500)
-            .is_ok());
+        assert_eq!(
+            runtime.authorize_and_queue_command(late, context, &[], 500),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
     }
 
     #[test]
-    fn documents_o5_motion_has_no_step_speed_or_payload_bound() {
-        // The actor stands at the zone origin; one MoveTo to the far corner
-        // of the geofence (1 m, 1 m, 1 m: a 1.73 m step) is authorized. The
-        // command has no speed field, and the actor's payload is not
-        // compared with OperationalLimits on this path.
-        let mut runtime = configured_runtime();
-        runtime
-            .domain_mut()
-            .actor_mut(ActorId(8))
-            .unwrap()
-            .load_permille = 1_000;
+    fn o5_the_step_bound_limits_one_command_to_its_distance_from_the_tracked_position() {
+        let stepped = |policy: &mut SafetyPolicy| policy.maximum_step_mm = Some(500);
+        let mut runtime = runtime_with_policy(simulator(), AdapterProtocol::Simulator, stepped, true);
         runtime
             .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
             .unwrap();
-        let context = safe_context(&runtime);
+        // The actor was last tracked at the origin at tick 100. The far corner is 1.73 m away.
         let mut far = command(1);
         far.argument0 = 1_000;
         far.argument1 = 1_000;
         far.argument2 = 1_000;
-        assert!(runtime
-            .authorize_and_queue_command(far, context, &[], 100)
-            .is_ok());
+        assert_eq!(reasons_at(&mut runtime, far, 100), vec![SafetyReason::MoveStepTooLong]);
+        let context = safe_context(&runtime);
+        assert_eq!(
+            runtime.authorize_and_queue_command(far, context, &[], 100),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
+        // (300, 400, 0) is exactly 500 mm away: allowed. (300, 401, 0) is not.
+        let mut edge = command(2);
+        edge.argument0 = 300;
+        edge.argument1 = 400;
+        edge.argument2 = 0;
+        assert!(reasons_at(&mut runtime, edge, 100).is_empty());
+        edge.argument1 = 401;
+        assert_eq!(reasons_at(&mut runtime, edge, 100), vec![SafetyReason::MoveStepTooLong]);
     }
 
     #[test]
-    fn documents_o5_sixteen_full_diagonal_steps_fit_in_one_rate_window() {
-        // Round 3, quantified (policy unchanged). Each MoveTo is checked
-        // only as an absolute target inside the 1 m geofence cube, and the
-        // rate limiter admits 16 commands per 100 ticks. Alternating between
-        // opposite corners, 16 commands are authorized at one tick: 16 x
-        // 1.732 m = 27.7 m of commanded travel, all inside the geofence.
-        // Leaving the geofence is not possible this way; nothing bounds the
-        // distance per command or per window.
-        let mut runtime = configured_runtime();
+    fn o5_a_stale_tracked_position_blocks_a_bounded_step() {
+        let stepped = |policy: &mut SafetyPolicy| policy.maximum_step_mm = Some(500);
+        let mut runtime = runtime_with_policy(simulator(), AdapterProtocol::Simulator, stepped, true);
+        // Proximity and occupancy fresh at tick 115; the actor was last seen at 100, and
+        // its position is older than maximum_sensor_age_ticks (20) at tick 121.
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 115), 115, 0)
+            .unwrap();
+        runtime.domain_mut().actor_mut(ActorId(8)).unwrap().last_seen_tick = 100;
+        assert!(reasons_at(&mut runtime, command(1), 120).is_empty());
+        let reasons = reasons_at(&mut runtime, command(2), 121);
+        assert!(reasons.contains(&SafetyReason::StaleActorPosition), "{reasons:?}");
+    }
+
+    #[test]
+    fn o5_alternating_corners_no_longer_fit_in_one_rate_window() {
+        // Round 3 quantified 16 opposite-corner steps (27.7 m of commanded travel) in one
+        // rate window. With a 500 mm step bound every target must lie within 500 mm of the
+        // actor's last tracked position, so no far corner is admitted.
+        let stepped = |policy: &mut SafetyPolicy| policy.maximum_step_mm = Some(500);
+        let mut runtime = runtime_with_policy(simulator(), AdapterProtocol::Simulator, stepped, true);
         runtime
             .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
             .unwrap();
         let context = safe_context(&runtime);
-        let mut authorized = 0u64;
+        let mut far_corners = 0u64;
         for id in 1..=20u64 {
             let mut step = command(id);
             let corner = if id % 2 == 1 { 1_000 } else { 0 };
             step.argument0 = corner;
             step.argument1 = corner;
             step.argument2 = corner;
-            match runtime.authorize_and_queue_command(step, context, &[], 100) {
-                Ok(_) => authorized += 1,
-                Err(error) => {
-                    assert_eq!(error, RuntimeError::Supervisor(SupervisorError::RateLimited));
-                    break;
-                }
+            if runtime.authorize_and_queue_command(step, context, &[], 100).is_ok() && corner != 0 {
+                far_corners += 1;
             }
         }
-        assert_eq!(authorized, 16);
-        // Integer millimetres of commanded straight-line travel: 16 x 1732.
-        assert_eq!(authorized * 1_732, 27_712);
+        assert_eq!(far_corners, 0);
+    }
+
+    #[test]
+    fn o5_battery_and_payload_limits_are_checked_on_the_command_path() {
+        let limited = |policy: &mut SafetyPolicy| {
+            policy.operational_limits = Some(crate::supervisor::OperationalLimits {
+                minimum_battery_permille: 200,
+                maximum_payload_grams: 500,
+                maximum_speed_mm_per_second: 1_000,
+                maximum_clock_uncertainty_ticks: 0,
+            })
+        };
+        let mut runtime = runtime_with_policy(simulator(), AdapterProtocol::Simulator, limited, true);
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        // Nominal: battery 900 permille, load 0 of 1000 g.
+        assert!(reasons_at(&mut runtime, command(1), 100).is_empty());
+        // Full load: 1000 g carried against a 500 g limit.
+        runtime.domain_mut().actor_mut(ActorId(8)).unwrap().load_permille = 1_000;
+        assert_eq!(
+            reasons_at(&mut runtime, command(2), 100),
+            vec![SafetyReason::OperationalLimitExceeded]
+        );
+        let context = safe_context(&runtime);
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(2), context, &[], 100),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
+        // 500 g exactly is within the limit; a battery below 200 permille is not.
+        runtime.domain_mut().actor_mut(ActorId(8)).unwrap().load_permille = 500;
+        assert!(reasons_at(&mut runtime, command(3), 100).is_empty());
+        runtime.domain_mut().actor_mut(ActorId(8)).unwrap().battery_permille = 199;
+        assert_eq!(
+            reasons_at(&mut runtime, command(4), 100),
+            vec![SafetyReason::OperationalLimitExceeded]
+        );
     }
 
     #[test]

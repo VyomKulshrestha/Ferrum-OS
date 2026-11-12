@@ -255,6 +255,16 @@ impl OperationalTwin {
             .find(|entry| entry.site_id == site_id && entry.zone_id == zone_id)
     }
 
+    /// Test fixtures only: record a zone as observed empty without an event, so fixtures
+    /// built before occupancy was required (fi2 O1) keep their event numbering.
+    #[cfg(test)]
+    pub(crate) fn seed_occupancy_for_tests(&mut self, occupancy: ZoneOccupancy) {
+        self.zone_occupancies.retain(|existing| {
+            !(existing.site_id == occupancy.site_id && existing.zone_id == occupancy.zone_id)
+        });
+        self.zone_occupancies.push(occupancy);
+    }
+
     pub fn events(&self) -> &VecDeque<EventEnvelope> {
         &self.events
     }
