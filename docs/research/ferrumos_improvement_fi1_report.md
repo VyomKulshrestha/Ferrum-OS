@@ -110,6 +110,58 @@ exactly; Safety-Gymnasium Tables 11 to 15 recompute exactly.
 Not reached: the rt1 SMD calibrations, Tables 9 and 10, the HAI cross-version transfer studies, the
 world-model v3 selection scripts.
 
+### Round 3: do the published conclusions survive the thread count? (merged)
+
+Section 1 showed that digits change with the number of BLAS threads. Round 3 asked whether selections,
+gates and comparisons change. Detail: `fi1_reports/pipeline_round3.md`, numbers in
+`fi1_pipeline_round3.json`. **For two studies they do.**
+
+| Study | Rerun at | Do the conclusions hold? |
+|---|---|---|
+| Physical-JEPA v3 sweep (selection and promotion of the deployed physical model) | 24, 4, 1 threads, in full | **No.** 24 threads reproduces the committed run byte for byte. At 4 and at 1 thread the sweep selects candidate 0 where the committed run selects candidate 3, and promotion fails one gate (4 threads: out-of-distribution false negatives 1 against 0; 1 thread: out-of-distribution one-step error 0.003870 against the 0.003777 allowed) |
+| OS world-model study (`verify_world_model_paper_evaluation.py`) | 4 and 1 threads in full; 24 threads in part | **Not for the verifier's numbers, and one comparison flips.** At 24 threads the committed digests reproduce. Elsewhere every retrained model differs: false alarms on the untouched QEMU replay are 50 (4 threads) and 58 (1 thread) of 1,969 where the committed run has 216; rollout error at H=3 is 0.064 to 0.085 where it has 0.039 to 0.041; and "rules + JEPA at least as good as rules + per-action mean" (0.814 against 0.812, one false positive apart) becomes 0.808 against 0.812 at 4 threads. JEPA above rules only, JEPA above the autoencoder, and the rules-against-combined interval hold at every count |
+| Robustness evaluator | 1, 2, 3, 4, 24 threads | Yes: all five registered gates pass at every count; values move by up to 5.9%; the closest gate keeps a margin of 2.0 to 4.4% |
+| Incident dynamics v3 and v4 (inference and analysis; models not retrained) | 1 and 4 threads | Yes: the selected pipelines are bit-identical; a control changes by 3.6e-7 |
+| Cross-domain study (archived inference; models not retrained) | 1, 4, 16 threads | Yes: changes of at most 1e-6; no table digit changes. Its verifier compares exactly and passes only at the 16 threads it pins |
+| Safety-Gymnasium | not rerun (the simulator package does not import here) | |
+
+**Checked by the main session:** the registered selector was run with the verifier's command line at 4
+BLAS threads (ten minutes): it selected candidate 0 against the committed 3, promotion did not pass, and
+the failing check was `ood_false_negatives_not_increased`, as reported.
+
+**Where it enters.** Float32 matrix products in OpenBLAS during training differ between thread counts
+by up to 7.6e-5 per product; over 400 epochs the weights drift apart, and early stopping and the
+validation gates then pick a different model. Inference with fixed weights is stable. A run at a fixed
+thread count repeats bit for bit, at 1, 4 and 24 threads.
+
+**What it means.** The deployed physical checkpoint is fixed by digest, and every later evaluation of
+that artifact stands. What does not hold is that the registered selection and promotion yield it: at
+another thread count the same procedure selects another candidate and does not promote it. For the OS
+world-model study the comparison that flips is one the report already declines to claim (it says the
+study does not establish that JEPA outperforms the per-action mean), but two numbers the report quotes,
+the replay false alarms and the rollout error, belong to one training run and not to the method. Each
+needs a sentence in a future version; the closest promotion gate in the committed run had no slack
+(0 against 0).
+
+**Built in this round.** `scripts/repro_env.py` pins the thread count for BLAS, OpenMP, LightGBM and
+PyTorch and records the environment in result files; it is adopted in the unfrozen `tw1a` and `fi1`
+scripts (one thread by default), and `_v2` entry points beside the frozen trainers and the robustness
+evaluator do the same without touching the originals. New tests tie each rt1 and rt2 gate to the
+comparison it summarises, recompute the learned-contribution summaries from stored case records,
+re-derive the Safety-Gymnasium thresholds with exact fractions (the Table 13 tie is pinned by name as
+the one known exception), and replace two checks that could not fail; each new check is shown to fail
+when the stored value it guards is perturbed.
+
+**Also found (a second reader's findings, three of them checked by the round's agent):** Table 9's
+event recall uses a threshold held fixed while faults raise the normal-row alarm rate from 1.00% to
+1.95%, so the higher recall reflects more alarms; in Table 10 the learned branch alone blocks all 288
+cases, so the 0% completion follows from the case design; one percentile search in the HAI transfer
+study assumes a predicate that is not monotone; every safety check of the world-model v3 selection
+passed vacuously; the HAI v2 selection is decided by a balanced-accuracy gap of 0.00087.
+
+For future studies: train at one thread, record the environment, and register selection rules over
+several training seeds so that a selection does not hang on one run.
+
 ## 3. Userland agent runtime and authority gate (workstream D, round 1; draft pull request 2)
 
 On main the gate could be talked around. Checked by reading main and by re-running the branch's host
@@ -453,7 +505,55 @@ What the gain is made of: on Tennessee Eastman the candidates trade first events
 events at onset 38 of 51 for the baseline against 32, 33 and 29; followers 19 of 41 against 38, 31 and
 30). The HyGrid-ICS gain is at its chance level (onset recall net of chance about +0.02).
 
-**Round 2.** The plan gives the workstream a second round. Two ideas come out of round 1 and neither
-was tested in it: a combination that keeps the baseline for first events and adds `second` for
-followers, each at half the alarm budget; and a monitor that says when the plant has left the range it
-was fitted on. See the plan's note of 2026-11-12 for how the check set is used a second time.
+### Monitor round 2 (merged): improved under the definition, with costs the definition does not count
+
+Run under the plan's note of 2026-11-12: choices on the selection set only, rule committed first, the
+check set used a second time by a designer who knew round 1's check results. Detail:
+`fi1_reports/monitor_round2.md`, numbers in `fi1_monitor_round2.json`. The verdict table was recomputed
+by the main session from the stored per-dataset numbers; the re-scored baseline equals round 1's.
+
+**The candidate.** The registered score keeps its threshold. A second alarm channel is added on the
+*rise* of the score: the smoothed score minus its own value three smoothing windows earlier. It fires
+when the score climbs again on top of a level it already holds, re-arms on its own, and is calibrated
+on attack-free data to a share of the same episode budget (the registered channel gets 80% or 90%).
+Alarm time is the union of the two channels. Twenty candidates were tried on the selection set; three
+budget splits of this one design went to the check set.
+
+| Monitor | mean onset recall | mean alarm share | worst single-dataset loss | verdict |
+|---|---|---|---|---|
+| baseline | 0.478 | 0.1410 | | |
+| rise channel, registered channel at 80% of the budget | 0.599 (+0.120) | 0.1385 | 0.026 (voraus-AD) | **improved** |
+| the same at 90% | 0.605 (+0.127) | 0.1409 | 0.003 | **improved** (the alarm-share condition holds by 0.0001) |
+| the same at 67% | 0.591 (+0.112) | 0.1367 | 0.061 (voraus-AD) | not improved |
+
+Per dataset at 80% (onset detections): HAI 20.07 26 to 35 of 38; ProvICS 3 to 11 of 32; Tennessee
+Eastman modes 4 to 6, 57 to 71 of 92; HyGrid-ICS 3 to 24 of 91; HAI 23.05 and BATADAL unchanged;
+voraus-AD 243 to 223 of 755. Net of the chance reference the gain is +0.22 on HAI 20.07, +0.12 on
+Tennessee Eastman and +0.13 on ProvICS; on HyGrid-ICS it is at chance.
+
+**What the verdict does not show.**
+
+- **The saturation did not move.** HAI 20.07 stays in alarm for 39.1% of unlabelled time and ProvICS for
+  44.0%. The gain is in telling a new event apart while an alarm is already running.
+- **False-alarm episodes roughly double where the monitor saturates**: 1.11 to 1.52 times the budget on
+  HAI 20.07, 9.6 to 19.2 on HyGrid-ICS, 33.7 to 73.2 on ProvICS. The definition fixed in advance counts
+  alarm time, not episodes; an operator would count episodes. On the sealed attack-free runs the
+  two-channel monitor stays within the budget.
+- **First events are traded for followers** on Tennessee Eastman: first events at onset 38 to 32 of 51,
+  followers 19 to 39 of 41.
+- **Second use.** The result is weaker evidence than a first-use gain; it holds for two of three budget
+  splits, one of them by a margin of 0.0001.
+
+**The out-of-range state did not help.** A monitor state "outside the fitted range", scored as alarm
+time under the plan's rule, raised alarm share on the selection set (0.019 to 0.030 or more on Tennessee
+Eastman): the indicator is not better calibrated than the extrapolating residual. Its descriptive
+numbers are still useful: on HAI 20.07, 41% of unlabelled time lies outside the fitted range, and
+inside the range the alarm share is 3.7% against 39.1% overall; on ProvICS 56% lies outside, with 9.1%
+inside against 44.0%.
+
+**What the two rounds establish.** The registered monitor saturates when the plant is outside the range
+its world model was fitted on, and no static rescaling, channel selection, regime conditioning or
+out-of-range state fitted on attack-free data reduced that alarm time. A second channel on the rise of
+the score recovers onsets of events that begin during a running alarm, at the price of more alarm
+episodes and a few first events. The workstream stops here: the yardstick is met as written, and the
+remaining weakness is a matter of data covering the operating regime, not of the scoring rule.
