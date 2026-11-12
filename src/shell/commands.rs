@@ -1797,7 +1797,10 @@ fn cmd_test_syscall(args: &[&str]) {
             );
         }
         other => {
-            if !super::selftest::run(other) && !super::selftest_p1::run(other) {
+            if !super::selftest::run(other)
+                && !super::selftest_p1::run(other)
+                && !super::selftest_k6::run(other)
+            {
                 println!("test-syscall: unknown subcommand '{}'", other);
             }
         }
