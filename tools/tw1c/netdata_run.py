@@ -63,19 +63,16 @@ def prepare():
 
 
 def chart_of(charts, name):
-    for cid, c in charts.items():
-        if name in cid and "gauge" in cid:
-            return cid
-    for cid, c in charts.items():
-        if name in cid:
-            return cid
-    return None
+    """statsd turns the gauge `tw1c_<series>` into the chart `statsd_tw1c.<series>_gauge`."""
+    cid = "statsd_" + name.replace(PREFIX, PREFIX[:-1] + ".", 1) + "_gauge"
+    return cid if cid in charts else None
 
 
 def read():
     info = json.loads((OUT / "series_info.json").read_text())["series"]
     prog = json.loads((FEED / "progress.json").read_text())
     start, steps = prog["start"], prog["steps"]
+    X = np.fromfile(FEED / "series.bin").reshape(len(info), steps)
     charts = get("/api/v1/charts")["charts"]
     rows, raw = [], {}
     for r in info:
@@ -84,11 +81,12 @@ def read():
         if cid is None:
             rows.append({"name": r["name"], "status": "no chart"})
             continue
+        # Netdata stamps a 1-second point with the end of its interval: step k sits at start + k + 1
         q = dict(
             chart=cid,
             after=start,
-            before=start + steps,
-            points=steps,
+            before=start + steps + 1,
+            points=steps + 1,
             group="max",
             format="json",
         )
@@ -99,12 +97,14 @@ def read():
         bits = {int(t): v for t, *v in bit["data"]}
         vals = {int(t): v for t, *v in val["data"]}
         b = np.array(
-            [max(bits.get(start + k, [0]) or [0]) for k in range(steps)], float
+            [max(bits.get(start + 1 + k, [0]) or [0]) for k in range(steps)], float
         )
         v = np.array(
-            [(vals.get(start + k, [np.nan]) or [np.nan])[0] for k in range(steps)],
+            [(vals.get(start + 1 + k, [np.nan]) or [np.nan])[0] for k in range(steps)],
             float,
         )
+        fed = X[r["row"]]
+        row_fidelity = float(np.nanmax(np.abs(v - fed))) if len(v) else None
         raw[r["name"]] = {
             "chart": cid,
             "anomalous_steps": np.flatnonzero(b > 0).tolist(),
@@ -119,6 +119,8 @@ def read():
         row["alarms_campaign"] = int((b[cs:ce] > 0).sum())
         row["alarms_total"] = int((b > 0).sum())
         row["values_missing"] = int(np.isnan(v).sum())
+        row["largest_stored_minus_fed"] = row_fidelity
+        row["steps_off_by_more_than_0.01"] = int((np.abs(v - fed) > 0.01).sum())
         if r["terminal_start"] is not None:
             lo, hi = r["terminal_start"], r["terminal_start"] + r["terminal_len"]
             row["hit"] = bool((b[lo:hi] > 0).any())
