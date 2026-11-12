@@ -377,7 +377,15 @@ V1_4_PHRASES = [
     "1.00% (clean) to 1.29% (latency), 1.20% (jitter), 1.33% (noise), 1.01% (dropout), and 1.95% (combined)",
     "Initial clearances never exceed 0.271 m (median 0.061 m)",
     "28. The registered selection and promotion of the physical checkpoint",
+    "both numbers describe one training run",
+    "average these per-row errors within each episode and then across episodes",
+    "line 435 for the row error and lines 442 and 447 for the episode average",
+    "12. Section 4.2, correction of a description",
+    "gained 99 lines after the v1.3 lock, in commits d74a4fd and f657b6d (22 October 2026) and ef693f0",
+    "The v1.4 freeze binds the current file.",
 ]
+# Wording removed in the second pass; it must not come back.
+V1_4_RETIRED_PHRASES = ["not to the method", "belong to one training run"]
 
 
 def apply_version_substitutions(line: str) -> str:
@@ -453,7 +461,8 @@ def v1_4_checks(source_text: str) -> dict:
         "v1_4_keeps_every_v1_3_line_except_version_strings": not removed,
         "v1_4_added_statements_present": all(
             phrase in source_text for phrase in V1_4_PHRASES
-        ),
+        )
+        and not any(phrase in source_text for phrase in V1_4_RETIRED_PHRASES),
         "v1_4_cited_audit_files_exist": all(
             path.is_file() and rel(path) in source_text
             for path in (AUDIT_REPORT, AUDIT_ROUND3, AUDIT_ROUND3_RECORD)

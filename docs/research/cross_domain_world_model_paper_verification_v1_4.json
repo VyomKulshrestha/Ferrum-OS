@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_4.json",
-      "sha256": "7a19f18dc95ffd966f6c288d562db8617fa645468ee81e8c32b17851ba9fbb04"
+      "sha256": "e1a51f9debc610dbb5ea1a8e4fe0fc594a1d71f098d97a2a0aa03bcd42bb75cf"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md",
-      "sha256": "eaef5dcc78cabc0edf1add6fc9b9fa929b8e2dadcedb9e622c2428f7e19e86b5"
+      "sha256": "4b646de9a8b00eb322331620fc26a8f62d3b28748dc424935736c7da13723a86"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf",
-      "sha256": "c5ea5d4eebe1b277e63a2461ae1d4555914d383a9956acf6f28ff2670082e340"
+      "sha256": "df60f46390331d82e29e7b1a9a2825a6e6979071cfcffa00a34a873d2137ed0c"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -166,7 +166,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "7a19f18dc95ffd966f6c288d562db8617fa645468ee81e8c32b17851ba9fbb04",
+    "freeze_manifest_sha256": "e1a51f9debc610dbb5ea1a8e4fe0fc594a1d71f098d97a2a0aa03bcd42bb75cf",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -366,11 +366,11 @@
       "writes await confirmation": true
     },
     "pdf_typography": {
-      "character_share_at_least_9_4_points": 0.6703851138678023,
+      "character_share_at_least_9_4_points": 0.6726421422277169,
       "dominant_body_font_size_points": 9.5,
       "maximum_first_page_font_size_points": 21.5
     },
-    "pdf_words_extracted": 24306,
+    "pdf_words_extracted": 24452,
     "positionally_checked_pdf_table_pages": [
       1,
       2,

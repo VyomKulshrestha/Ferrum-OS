@@ -154,7 +154,7 @@
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md",
-      "sha256": "eaef5dcc78cabc0edf1add6fc9b9fa929b8e2dadcedb9e622c2428f7e19e86b5"
+      "sha256": "4b646de9a8b00eb322331620fc26a8f62d3b28748dc424935736c7da13723a86"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -190,12 +190,12 @@
     },
     "paper_verifier": {
       "path": "scripts/verify_cross_domain_world_model_paper_v1_4.py",
-      "sha256": "94bd4067ddc7ddcc4e393be518620515daffd4023382d1e6114e1d678339f836"
+      "sha256": "d83e507411532280913056c5347b492df676edd72b11da4da53cf9d308278be0"
     },
     "pdf": {
       "pages": 52,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf",
-      "sha256": "c5ea5d4eebe1b277e63a2461ae1d4555914d383a9956acf6f28ff2670082e340"
+      "sha256": "df60f46390331d82e29e7b1a9a2825a6e6979071cfcffa00a34a873d2137ed0c"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
