@@ -1004,7 +1004,12 @@ fn cmd_pkg(args: &[&str]) {
                     // `enter_registered`'s own capability re-derivation
                     // (which only knows compiled-in names) doesn't zero
                     // them back out.
-                    crate::userspace::register_dynamic_program(name, "ferrumpkg package", &bin_path, caps);
+                    if !crate::userspace::register_dynamic_program(name, "ferrumpkg package", &bin_path, caps) {
+                        println!("pkg run: {} is the name of a compiled-in program", name);
+                        crate::scheduler::kill(pid);
+                        crate::process::reap_dead();
+                        return;
+                    }
                     crate::process::enter_registered(pid, &current_capabilities());
                 }
                 Err(err) => println!("pkg run: {}", err),
@@ -1113,7 +1118,7 @@ fn cmd_agent(args: &[&str]) {
 
 fn cmd_heliox(args: &[&str]) {
     if args.is_empty() {
-        println!("heliox: usage: heliox <status|methods|tiers|actions|services|send|notif|persona|screen|voice|neural|confirm|execute>");
+        println!("heliox: usage: heliox <status|methods|tiers|actions|services|send|notif|persona|screen|voice|neural|confirm|deny|pending|execute>");
         return;
     }
 
@@ -1131,9 +1136,10 @@ fn cmd_heliox(args: &[&str]) {
         "neural" => cmd_heliox_neural(&args[1..]),
         "confirm" => cmd_heliox_confirm(&args[1..]),
         "deny" => cmd_heliox_deny(&args[1..]),
+        "pending" => cmd_heliox_pending(),
         "execute" => cmd_heliox_execute(&args[1..]),
         _ => println!(
-            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, neural, confirm, deny, execute)",
+            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, neural, confirm, deny, pending, execute)",
             args[0]
         ),
     }
@@ -1511,7 +1517,28 @@ fn cmd_heliox_deny(args: &[&str]) {
     let Ok(held) = require_token("cap:heliox:bridge") else {
         return;
     };
-    let payload = alloc::format!("DENY:{}", id);
+    match send_daemon_control(&alloc::format!("DENY:{}", id), &held) {
+        Ok(()) => println!("confirmation gate denied: {}", id),
+        Err(err) => println!("heliox deny: {}", err),
+    }
+}
+
+/// `heliox pending`: the daemon prints the full text of every request that
+/// waits for the operator, oldest first (fi2 Q2). The one printed last is the
+/// one `heliox confirm` approves at once; any other is printed again first.
+fn cmd_heliox_pending() {
+    let Ok(held) = require_token("cap:heliox:bridge") else {
+        return;
+    };
+    match send_daemon_control("PENDING", &held) {
+        Ok(()) => println!("asked the daemon to show every pending request"),
+        Err(err) => println!("heliox pending: {}", err),
+    }
+}
+
+/// Sends one control message to the daemon's mailbox with the kernel-shell
+/// sender flag; the daemon accepts CONFIRM, DENY and PENDING only with it.
+fn send_daemon_control(payload: &str, held: &[alloc::string::String]) -> Result<(), alloc::string::String> {
     let message = match crate::ipc::Message::new(
         0,
         crate::ipc::Endpoint::new("heliox", "control"),
@@ -1520,15 +1547,11 @@ fn cmd_heliox_deny(args: &[&str]) {
         payload.as_bytes(),
     ) {
         Ok(message) => message.with_sender_flags(crate::ipc::SENDER_KERNEL_SHELL),
-        Err(_) => {
-            println!("heliox deny: failed to construct IPC message");
-            return;
-        }
+        Err(_) => return Err(alloc::string::String::from("failed to construct IPC message")),
     };
-    match crate::ipc::send(message, &held) {
-        Ok(_) => println!("confirmation gate denied: {}", id),
-        Err(err) => println!("heliox deny: {:?}", err),
-    }
+    crate::ipc::send(message, held)
+        .map(|_| ())
+        .map_err(|err| alloc::format!("{:?}", err))
 }
 
 fn cmd_heliox_execute(args: &[&str]) {
@@ -1774,7 +1797,10 @@ fn cmd_test_syscall(args: &[&str]) {
             );
         }
         other => {
-            if !super::selftest::run(other) {
+            if !super::selftest::run(other)
+                && !super::selftest_p1::run(other)
+                && !super::selftest_k6::run(other)
+            {
                 println!("test-syscall: unknown subcommand '{}'", other);
             }
         }

@@ -13,6 +13,13 @@ pub mod cognitive {
     pub mod confirmation;
 }
 
+/// The daemon's configuration parsing (fi2 Q3, Q5), syscall-free.
+#[path = "../../heliox-daemon/src/config_parse.rs"]
+pub mod config_parse;
+
+/// The daemon's configuration loader, for source checks.
+pub const CONFIG_SOURCE: &str = include_str!("../../heliox-daemon/src/config.rs");
+
 /// The daemon sources, for consistency checks between the tier table, the
 /// advertised tool list and the dispatch arms.
 pub const TOOL_MAPPER_SOURCE: &str =
@@ -55,3 +62,40 @@ pub mod http_parse;
 
 /// The daemon's network module source, for checks that it uses `http_parse`.
 pub const NETWORK_SOURCE: &str = include_str!("../../heliox-daemon/src/network.rs");
+
+/// A service-name source for tests that are not about service names: every
+/// id names the service "audit-exporter".
+pub fn stable_service_names(_id: u64) -> Result<Option<String>, ()> {
+    Ok(Some(String::from("audit-exporter")))
+}
+
+/// A focus source for tests that are not about keyboard focus: one window
+/// keeps focus.
+pub fn stable_focus_target() -> Result<(cognitive::confirmation::ClickTarget, String), ()> {
+    Ok((
+        cognitive::confirmation::ClickTarget { window: 7, owner: 300, rel_x: 0, rel_y: 0 },
+        String::from("Notes"),
+    ))
+}
+
+/// A socket-host source for tests: descriptor 3 was opened to
+/// `provider.example`; no other descriptor is known.
+pub fn provider_socket(fd: u64) -> Option<String> {
+    if fd == 3 {
+        Some(String::from("provider.example"))
+    } else {
+        None
+    }
+}
+
+/// The assistant panel's setup-wizard configuration text (fi2 Q5, H1).
+pub mod panel {
+    #[path = "../../../heliox-assistant-panel/src/config_json.rs"]
+    pub mod config_json;
+}
+
+/// Kernel sources for the fi2 policy checks.
+pub const KERNEL_AUDIT_SOURCE: &str = include_str!("../../../src/logging/audit.rs");
+pub const KERNEL_SHELL_SOURCE: &str = include_str!("../../../src/shell/commands.rs");
+pub const KERNEL_INPUT_SYSCALL_SOURCE: &str = include_str!("../../../src/syscall/input.rs");
+pub const KERNEL_CURSOR_SOURCE: &str = include_str!("../../../src/gui/cursor.rs");

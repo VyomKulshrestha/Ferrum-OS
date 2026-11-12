@@ -35,8 +35,11 @@ pub struct AuditEntry {
     pub tick: u64,
     pub event: AuditEvent,
     pub message: String,
-    /// The process charged for this record in the heap ledger (AuditWrite),
-    /// 0 for the kernel's own records.
+    /// Who the entry counts against (fi2 Q6): the pid that wrote it with
+    /// AuditWrite, or the task that was running when the kernel logged it.
+    pub source: u64,
+    /// The process charged for this record in the per-process heap ledger
+    /// (AuditWrite, fi2 K1 item 4); 0 for the kernel's own records.
     pub charged_to: u64,
 }
 
@@ -44,34 +47,43 @@ impl AuditEntry {
     fn heap_cost(&self) -> usize {
         self.message.len() + core::mem::size_of::<AuditEntry>()
     }
-}
 
-/// An AuditWrite record from `pid`, charged to it in the per-process heap
-/// ledger while the ring holds it (fi2 K1 item 4). False when the record
-/// would take the process past its budget; nothing is logged then.
-pub fn log_user_event(pid: u64, message: &str) -> bool {
-    let cost = message.len() + core::mem::size_of::<AuditEntry>();
-    if !crate::memory::ledger::fits(pid, cost) {
-        return false;
-    }
-    log_event(AuditEvent::UserAudit, message);
-    if let Some(mut log) = AUDIT_LOG.try_lock() {
-        if let Some(last) = log.entries.last_mut() {
-            if last.charged_to == 0 && last.event == AuditEvent::UserAudit && last.message == message {
-                last.charged_to = pid;
-                crate::memory::ledger::add(pid, crate::memory::ledger::Kind::Audit, cost);
-            }
+    /// Release the heap-ledger charge of an entry leaving the ring.
+    fn release_charge(&self) {
+        if self.charged_to != 0 {
+            crate::memory::ledger::sub(self.charged_to, crate::memory::ledger::Kind::Audit, self.heap_cost());
         }
     }
-    true
+}
+
+/// An AuditWrite record from `pid`: counted against its share of the ring
+/// (fi2 Q6) and charged to it in the per-process heap ledger while the ring
+/// holds it (fi2 K1 item 4). False when the record would take the process
+/// past its heap budget; nothing is logged then.
+pub fn log_user_event(pid: u64, message: &str) -> bool {
+    log_event_inner(pid, AuditEvent::UserAudit, message, true)
 }
 
 /// Maximum number of audit entries to retain in memory
-const MAX_ENTRIES: usize = 256;
+pub const MAX_ENTRIES: usize = 256;
 
-use core::sync::atomic::AtomicBool;
+/// Most entries one source may hold among the entries not yet flushed to
+/// disk. A source over its share loses its own oldest unflushed entry.
+pub const PER_SOURCE_UNFLUSHED: usize = 64;
+
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 pub static FLUSH_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// fi2 Q6. On (the default): when the ring is full, a writer evicts an
+/// already flushed entry or its own oldest entry, never another source's
+/// unflushed entry, and each source holds at most PER_SOURCE_UNFLUSHED
+/// unflushed entries. Off (the self-test's negative control only): the
+/// oldest entry is dropped, whoever wrote it.
+pub static SOURCE_QUOTA: AtomicBool = AtomicBool::new(true);
+
+/// Entries dropped from memory before they were flushed.
+pub static UNFLUSHED_DROPPED: AtomicU64 = AtomicU64::new(0);
 
 struct AuditLog {
     entries: Vec<AuditEntry>,
@@ -91,37 +103,144 @@ pub fn init() {
     log.initialized = true;
 }
 
-/// Log an audit event
+/// Log an audit event, counted against the task running now.
 pub fn log_event(event: AuditEvent, message: &str) {
+    log_event_from(crate::scheduler::CURRENT_PID.load(Ordering::SeqCst), event, message);
+}
+
+/// Log an audit event counted against `source` (a pid, or the running task).
+pub fn log_event_from(source: u64, event: AuditEvent, message: &str) {
+    log_event_inner(source, event, message, false);
+}
+
+/// `charge`: the record is charged to `source` in the heap ledger (after the
+/// control characters are escaped, so the charge is what the ring holds) and
+/// is refused when it would not fit. Returns false only for that refusal.
+fn log_event_inner(source: u64, event: AuditEvent, message: &str, charge: bool) -> bool {
+    let message = escape_controls(message);
+    let cost = message.len() + core::mem::size_of::<AuditEntry>();
+    // Checked before the ring lock: the check reads the compositor and the
+    // socket table.
+    if charge && !crate::memory::ledger::fits(source, cost) {
+        return false;
+    }
     if let Some(mut log) = AUDIT_LOG.try_lock() {
         if !log.initialized {
-            return;
+            return true;
         }
-        
+
         // Get current tick count (may fail if scheduler not yet initialized)
         let tick = crate::scheduler::total_ticks();
-        
-        log.entries.push(AuditEntry {
+
+        // Also output to serial for external logging
+        crate::serial_println!("[AUDIT] {:?}: {}", event, message);
+
+        let entry = AuditEntry {
             tick,
             event,
-            message: message.to_string(),
-            charged_to: 0,
-        });
+            message,
+            source,
+            charged_to: if charge { source } else { 0 },
+        };
+        if charge {
+            crate::memory::ledger::add(source, crate::memory::ledger::Kind::Audit, cost);
+        }
+        insert_entry(&mut log, entry);
+    }
+    true
+}
 
-        // Trim old entries if over capacity
+/// `message` with every control character (C0, DEL, C1) and backslash
+/// written as `\xNN` (`\u{NNNN}` above 0xFF). Messages carry text a process
+/// chose: a path in a denied write, AuditWrite's text. A line break in one
+/// wrote a second, forged line into the `[AUDIT]` serial output and into
+/// audit.log, whose lines are `[tick] Event: message` (fi2 kernel audit).
+pub fn escape_controls(message: &str) -> String {
+    let mut out = String::with_capacity(message.len());
+    for ch in message.chars() {
+        if ch.is_control() || ch == '\\' {
+            let code = ch as u32;
+            if code <= 0xFF {
+                out.push_str(&alloc::format!("\\x{:02x}", code));
+            } else {
+                out.push_str(&alloc::format!("\\u{{{:04x}}}", code));
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    out
+}
+
+/// Removes entry `index`, keeping `flushed_count` the number of flushed
+/// entries at the front.
+fn remove_entry(log: &mut AuditLog, index: usize) {
+    if index < log.flushed_count {
+        log.flushed_count -= 1;
+    } else {
+        UNFLUSHED_DROPPED.fetch_add(1, Ordering::SeqCst);
+    }
+    log.entries.remove(index).release_charge();
+}
+
+fn insert_entry(log: &mut AuditLog, entry: AuditEntry) {
+    let source = entry.source;
+    log.entries.push(entry);
+    if !SOURCE_QUOTA.load(Ordering::SeqCst) {
+        // Before fi2: drop the oldest entries, whoever wrote them.
         if log.entries.len() > MAX_ENTRIES {
             let drain_count = log.entries.len() - MAX_ENTRIES;
+            let unflushed_lost = drain_count.saturating_sub(log.flushed_count);
+            UNFLUSHED_DROPPED.fetch_add(unflushed_lost as u64, Ordering::SeqCst);
             for dropped in log.entries.drain(0..drain_count) {
-                if dropped.charged_to != 0 {
-                    crate::memory::ledger::sub(dropped.charged_to, crate::memory::ledger::Kind::Audit, dropped.heap_cost());
-                }
+                dropped.release_charge();
             }
             log.flushed_count = log.flushed_count.saturating_sub(drain_count);
         }
-        
-        // Also output to serial for external logging
-        crate::serial_println!("[AUDIT] {:?}: {}", event, message);
+        return;
     }
+    let oldest_own_unflushed = |log: &AuditLog| {
+        (log.flushed_count..log.entries.len()).find(|&i| log.entries[i].source == source)
+    };
+    // A source over its share of the unflushed entries loses its own oldest.
+    let own_unflushed = log.entries[log.flushed_count..]
+        .iter()
+        .filter(|e| e.source == source)
+        .count();
+    if own_unflushed > PER_SOURCE_UNFLUSHED {
+        if let Some(index) = oldest_own_unflushed(log) {
+            remove_entry(log, index);
+        }
+    }
+    // Over capacity: drop a flushed entry if there is one, otherwise the
+    // writer's own oldest unflushed entry (at worst the one just written).
+    while log.entries.len() > MAX_ENTRIES {
+        if log.flushed_count > 0 {
+            remove_entry(log, 0);
+        } else if let Some(index) = oldest_own_unflushed(log) {
+            remove_entry(log, index);
+        } else {
+            break;
+        }
+    }
+}
+
+/// Entries in memory from `source` that are not yet flushed (self-tests).
+pub fn unflushed_from(source: u64) -> usize {
+    let log = AUDIT_LOG.lock();
+    log.entries[log.flushed_count..]
+        .iter()
+        .filter(|e| e.source == source)
+        .count()
+}
+
+/// Whether an entry from `source` with exactly `message` is in memory.
+pub fn holds(source: u64, message: &str) -> bool {
+    AUDIT_LOG
+        .lock()
+        .entries
+        .iter()
+        .any(|e| e.source == source && e.message == message)
 }
 
 /// Get the most recent N audit entries
@@ -162,7 +281,8 @@ pub fn flush_to_disk() -> Result<(), String> {
         return Ok(());
     }
 
-    let log_path = "/disk/heliox/audit.log";
+    let override_path = FLUSH_PATH_OVERRIDE.lock().clone();
+    let log_path = override_path.as_deref().unwrap_or(AUDIT_LOG_PATH);
     let mut content = match crate::fs::read_file(log_path) {
         Ok(c) => c,
         Err(_) => String::new(),
@@ -174,17 +294,59 @@ pub fn flush_to_disk() -> Result<(), String> {
     }
 
     const MAX_SIZE: usize = 128 * 1024;
-    if content.len() > MAX_SIZE {
-        let overflow = content.len() - MAX_SIZE;
-        if let Some(pos) = content[overflow..].find('\n') {
-            content = content[overflow + pos + 1..].to_string();
-        } else {
-            content = content[content.len() - MAX_SIZE..].to_string();
+    let content = trim_log(content, MAX_SIZE);
+
+    // The entries above already count as flushed. The filesystem can refuse
+    // the file (the ext2 driver writes 12 direct blocks, 12 to 48 KiB, under
+    // the 128 KiB cap): every later flush then failed the same way and every
+    // later entry was lost (fi2 kernel audit). Keep the newest lines that fit.
+    if let Err(first) = crate::fs::create_file(log_path, &content) {
+        let mut keep = content.len();
+        loop {
+            keep /= 2;
+            if keep < 1024 {
+                FLUSH_FAILURES.fetch_add(1, Ordering::SeqCst);
+                crate::serial_println!("[AUDIT] flush failed: {}", escape_controls(&first));
+                return Err(first);
+            }
+            let tail = trim_log(content.clone(), keep);
+            if crate::fs::create_file(log_path, &tail).is_ok() {
+                FLUSH_TRIMMED.fetch_add(1, Ordering::SeqCst);
+                break;
+            }
         }
     }
-
-    crate::fs::create_file(log_path, &content)?;
     let _ = crate::fs::sync();
 
     Ok(())
 }
+
+/// The newest whole lines of `content` within `max` bytes (a cut inside a
+/// line drops that line). The cut used to be a byte offset into the
+/// string: one that fell inside a multi-byte character stopped the kernel,
+/// and any process can put such characters into the log through the path
+/// of a denied write (fi2 kernel audit).
+pub fn trim_log(content: String, max: usize) -> String {
+    if content.len() <= max {
+        return content;
+    }
+    let cut = content.len() - max;
+    let bytes = content.as_bytes();
+    let start = match bytes[cut..].iter().position(|&b| b == b'\n') {
+        Some(pos) => cut + pos + 1,
+        None => (cut..=content.len()).find(|&i| content.is_char_boundary(i)).unwrap_or(content.len()),
+    };
+    content[start..].to_string()
+}
+
+/// Where the audit log is flushed.
+pub const AUDIT_LOG_PATH: &str = "/disk/heliox/audit.log";
+
+/// Flushes go here instead while set (self-test `audit-flush` only).
+pub static FLUSH_PATH_OVERRIDE: Mutex<Option<String>> = Mutex::new(None);
+
+/// Flushes whose file the filesystem refused and that kept a shorter tail.
+pub static FLUSH_TRIMMED: AtomicU64 = AtomicU64::new(0);
+
+/// Flushes that could not write even a 1 KiB tail.
+pub static FLUSH_FAILURES: AtomicU64 = AtomicU64::new(0);

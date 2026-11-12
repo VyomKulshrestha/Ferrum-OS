@@ -56,7 +56,6 @@ pub const TOOL_TIERS: &[(&str, PermissionTier)] = &[
     ("sleep", PermissionTier::Safe),
     ("read_screen", PermissionTier::Safe),
     ("set_volume", PermissionTier::Safe),
-    ("poll_input", PermissionTier::Safe),
     ("local_inference", PermissionTier::Safe),
     // Simulator-only work order behind the deterministic physical supervisor;
     // it cannot reach an actuator (Live delivery is refused). Its
@@ -79,6 +78,10 @@ pub const TOOL_TIERS: &[(&str, PermissionTier)] = &[
     ("service_start", PermissionTier::Modify),
     ("service_stop", PermissionTier::Modify),
     ("play_audio", PermissionTier::Modify),
+    // poll_input returns a copy of every key the operator types, including
+    // an API key typed into the setup wizard. Reading the operator's
+    // keystrokes needs the operator's approval (fi2 Q1).
+    ("poll_input", PermissionTier::Modify),
     // Tier 4: Destructive
     // Input injection acts with the operator's own authority: injected keys
     // reach the kernel shell and its GUI terminal (`heliox confirm <id>`,
@@ -134,6 +137,9 @@ pub enum Refusal {
     /// operator's CONFIRM/DENY, goals and neural disarm are not applied
     /// (round 3, R3-4).
     SleepOutOfRange,
+    /// `delete_file` of the configuration or of a directory containing it
+    /// (fi2 Q-J2d).
+    DeletesOwnConfiguration,
 }
 
 /// Longest sleep the agent may request. The kernel's sleep syscall has no
@@ -154,6 +160,9 @@ impl Refusal {
             }
             Refusal::WritesOwnConfiguration => {
                 "the agent may not modify its own authority configuration"
+            }
+            Refusal::DeletesOwnConfiguration => {
+                "the agent may not delete its own authority configuration or a directory that contains it"
             }
         }
     }
@@ -187,6 +196,18 @@ fn path_components(path: &str) -> alloc::vec::Vec<&str> {
 pub fn targets_own_config(path: &str) -> bool {
     let components = path_components(path);
     components.len() == OWN_CONFIG_COMPONENTS.len()
+        && components
+            .iter()
+            .zip(OWN_CONFIG_COMPONENTS.iter())
+            .all(|(have, want)| have.eq_ignore_ascii_case(want))
+}
+
+/// True when `path` names a directory that contains the daemon's
+/// configuration (`/`, `/disk`, `/disk/heliox`, any spelling), or the file
+/// itself. Over-matching only refuses more deletes.
+pub fn is_ancestor_of_own_config(path: &str) -> bool {
+    let components = path_components(path);
+    components.len() <= OWN_CONFIG_COMPONENTS.len()
         && components
             .iter()
             .zip(OWN_CONFIG_COMPONENTS.iter())
@@ -229,6 +250,17 @@ pub fn validate_tool_call(name: &str, args: &[(String, JsonValue)]) -> Result<()
             if let Some(path) = find_str(args, "path") {
                 if targets_own_config(path) {
                     return Err(Refusal::WritesOwnConfiguration);
+                }
+            }
+        }
+        // Deleting a directory removes everything beneath it, so deleting
+        // any ancestor of the configuration (`/disk/heliox`, `/disk`, `/`)
+        // deletes the configuration too (fi2 Q-J2d). The file itself stays
+        // with the world model's protected-path rule as well.
+        "delete_file" => {
+            if let Some(path) = find_str(args, "path") {
+                if is_ancestor_of_own_config(path) {
+                    return Err(Refusal::DeletesOwnConfiguration);
                 }
             }
         }
@@ -597,6 +629,8 @@ pub enum ControlCommand {
     NeuralArm,
     NeuralDisarm,
     ConfigUpdated,
+    /// Print the full text of every pending request again (`heliox pending`).
+    Pending,
     Unrecognized,
 }
 
@@ -634,6 +668,7 @@ pub fn parse_control_message(message: &str) -> ControlCommand {
         "NEURAL_ARM" | "NEURAL_ARM:" => ControlCommand::NeuralArm,
         "NEURAL_DISARM" | "NEURAL_DISARM:" => ControlCommand::NeuralDisarm,
         "CONFIG_UPDATED" | "CONFIG_UPDATED:" => ControlCommand::ConfigUpdated,
+        "PENDING" | "PENDING:" => ControlCommand::Pending,
         _ => ControlCommand::Unrecognized,
     }
 }
@@ -656,21 +691,28 @@ pub struct ControlSender {
 /// it (`None`: the kernel could not establish a sender). Confirmations,
 /// denials, goals, neural arming and configuration reloads act with the
 /// operator's authority and are applied only from the kernel shell
-/// (`heliox confirm|deny|voice|neural`) or the assistant panel the kernel
-/// launched for the operator. A message from this daemon, from a panel the
-/// agent started, or from any other process is refused (fi1 K4). Neural
-/// disarm only takes authority away and is accepted from any sender.
+/// (`heliox confirm|deny|pending|voice|neural`) or the assistant panel the
+/// kernel launched for the operator. A message from this daemon, from a
+/// panel the agent started, or from any other process is refused (fi1 K4).
+/// Neural disarm only takes authority away and is accepted from any sender.
+///
+/// The panel sends only GOAL (text the operator typed) and CONFIG_UPDATED
+/// (after its setup wizard), so its flag authorises only those two
+/// (fi2 Q-J2a). CONFIRM, DENY, PENDING and NEURAL_ARM come only from the
+/// kernel shell.
 pub fn control_command_allowed(command: &ControlCommand, sender: Option<ControlSender>) -> bool {
+    let flags = match sender {
+        Some(s) => s.flags,
+        None => 0,
+    };
     match command {
         ControlCommand::NeuralDisarm => true,
         ControlCommand::Unrecognized => false,
+        ControlCommand::Goal(_) | ControlCommand::ConfigUpdated => flags & OPERATOR_SENDERS != 0,
         ControlCommand::Confirm(_)
         | ControlCommand::Deny(_)
-        | ControlCommand::Goal(_)
-        | ControlCommand::NeuralArm
-        | ControlCommand::ConfigUpdated => {
-            matches!(sender, Some(s) if s.flags & OPERATOR_SENDERS != 0)
-        }
+        | ControlCommand::Pending
+        | ControlCommand::NeuralArm => flags & SENDER_KERNEL_SHELL != 0,
     }
 }
 
@@ -720,4 +762,213 @@ pub fn version_subject(tool: &str, args: &[(String, JsonValue)]) -> Option<Strin
         return None;
     }
     find_str(args, "path").map(String::from)
+}
+
+// ---- fi2 Q1: where network calls go ----------------------------------------
+
+/// Tools that send to a remote host. Each needs operator approval (tier 3)
+/// unless the host is on the network allowlist (the configured provider and
+/// speech hosts plus `network_allowlist` in config.json). `net_recv` only
+/// reads from a connection that `net_connect` already opened.
+pub const NETWORK_SEND_TOOLS: [&str; 4] = ["http_get", "browse_url", "net_connect", "net_send"];
+
+/// The host part of a `browse_url` argument, parsed exactly as
+/// `web_agent::parse_url` parses it (scheme `http://` or `https://`, host up
+/// to the first `/`, then up to the first `:`). `None` when it would not
+/// parse there either.
+pub fn browse_url_host(url: &str) -> Option<&str> {
+    let url = url.trim();
+    let rest = url.strip_prefix("https://").or_else(|| url.strip_prefix("http://"))?;
+    let host_port = match rest.find('/') {
+        Some(idx) => &rest[..idx],
+        None => rest,
+    };
+    let host = match host_port.find(':') {
+        Some(idx) => &host_port[..idx],
+        None => host_port,
+    };
+    if host.is_empty() {
+        None
+    } else {
+        Some(host)
+    }
+}
+
+/// Where a network-sending call goes: `None` when the tool sends nothing,
+/// `Some(None)` when the host cannot be established (no such argument, a URL
+/// that does not parse, a socket the daemon did not open with `net_connect`),
+/// `Some(Some(host))` otherwise. `socket_host` maps a descriptor opened by
+/// the agent's `net_connect` to the host it was opened to.
+pub fn network_destination(
+    tool: &str,
+    args: &[(String, JsonValue)],
+    socket_host: &dyn Fn(u64) -> Option<String>,
+) -> Option<Option<String>> {
+    match tool {
+        "http_get" | "net_connect" => Some(find_str(args, "host").map(String::from)),
+        "browse_url" => Some(find_str(args, "url").and_then(browse_url_host).map(String::from)),
+        "net_send" => Some(
+            args.iter()
+                .find(|(k, _)| k == "fd")
+                .and_then(|(_, v)| match v {
+                    // The executor casts the number to u64; only an exact
+                    // non-negative integer names a descriptor here.
+                    JsonValue::Number(n) if *n >= 0.0 && *n <= 4_294_967_295.0 && *n == (*n as u64) as f64 => {
+                        Some(*n as u64)
+                    }
+                    _ => None,
+                })
+                .and_then(socket_host),
+        ),
+        _ => None,
+    }
+}
+
+/// Exact, case-insensitive match against the allowlist (a trailing `.` is
+/// ignored). An empty host or the placeholder `unconfigured` never matches.
+pub fn host_allowed(host: &str, allowlist: &[String]) -> bool {
+    let host = host.trim().trim_end_matches('.');
+    !host.is_empty()
+        && !host.eq_ignore_ascii_case("unconfigured")
+        && allowlist
+            .iter()
+            .any(|allowed| allowed.trim().trim_end_matches('.').eq_ignore_ascii_case(host))
+}
+
+/// The tier a call is decided at: the table's tier, raised to Modify for a
+/// network send whose destination is not on the allowlist or cannot be
+/// established (fi2 Q1).
+pub fn effective_tier(
+    tool: &str,
+    args: &[(String, JsonValue)],
+    allowlist: &[String],
+    socket_host: &dyn Fn(u64) -> Option<String>,
+) -> PermissionTier {
+    let base = tool_tier(tool);
+    match network_destination(tool, args, socket_host) {
+        Some(Some(host)) if host_allowed(&host, allowlist) => base,
+        Some(_) => core::cmp::max(base, PermissionTier::Modify),
+        None => base,
+    }
+}
+
+/// What the operator is shown about a network call's destination.
+pub fn network_note(tool: &str, args: &[(String, JsonValue)], destination: &Option<String>) -> String {
+    let mut host = String::new();
+    match destination {
+        Some(h) => {
+            host.push('"');
+            push_escaped(&mut host, h);
+            host.push('"');
+        }
+        None => host.push_str("that cannot be established"),
+    }
+    if tool == "net_send" {
+        let fd = args
+            .iter()
+            .find(|(k, _)| k == "fd")
+            .map(|(_, v)| {
+                let mut out = String::new();
+                push_value_fingerprint(&mut out, v);
+                out
+            })
+            .unwrap_or_else(|| String::from("none"));
+        alloc::format!("[sends on connection fd {} to host {}, not on the network allowlist]", fd, host)
+    } else {
+        alloc::format!("[reaches host {}, not on the network allowlist]", host)
+    }
+}
+
+/// Tier-2 calls that run without approval are limited to this many per
+/// window of `TIER2_RATE_WINDOW_TICKS` daemon ticks; a call over the limit is
+/// refused, not queued (the `tool_mapper.rs` header promised a rate limit;
+/// fi2 Q1).
+pub const TIER2_RATE_LIMIT: u32 = 16;
+pub const TIER2_RATE_WINDOW_TICKS: u64 = 100;
+
+// ---- fi2 Q5 ------------------------------------------------------------------
+
+/// Highest `auto_approve_tier` the configuration can set. Tier 4 (input
+/// injection, exec, delete, kernel upgrade) always asks.
+pub const MAX_AUTO_APPROVE_TIER: u8 = 3;
+
+/// `auto_approve_tier` as read from config.json: a number from 0 to 3 (the
+/// fraction dropped); anything else is clamped, NaN and negatives to 0.
+pub fn clamp_auto_approve_tier(value: f64) -> u8 {
+    if !(value >= 0.0) {
+        return 0;
+    }
+    if value >= MAX_AUTO_APPROVE_TIER as f64 {
+        return MAX_AUTO_APPROVE_TIER;
+    }
+    value as u8
+}
+
+/// Whether the periodic autosave may write memory to disk. `save_memory`
+/// persists the same memory (including the model's own responses) and is
+/// tier 3, so autosave runs only when that tier would run without asking.
+/// Otherwise memory reaches disk only through an approved `save_memory`
+/// (fi2 Q5, round 2's P2).
+pub fn autosave_allowed(auto_approve_tier: u8) -> bool {
+    !needs_confirmation(tool_tier("save_memory"), auto_approve_tier)
+}
+
+/// Tools whose approval text names a kernel service by id.
+pub fn names_service(tool: &str) -> bool {
+    tool == "service_stop" || tool == "service_start"
+}
+
+/// The `service_id` argument as the executor reads it (`as u64`), if it is
+/// a plain non-negative integer.
+pub fn service_id_arg(args: &[(String, JsonValue)]) -> Option<u64> {
+    args.iter().find(|(k, _)| k == "service_id").and_then(|(_, v)| match v {
+        JsonValue::Number(n) if *n >= 0.0 && *n <= 9.0e15 && *n == (*n as u64) as f64 => Some(*n as u64),
+        _ => None,
+    })
+}
+
+/// What the operator is shown about the service a call acts on (round 2's
+/// P1: the number alone said nothing). The name comes from the kernel's
+/// registry and is escaped.
+pub fn service_note(tool: &str, id: Option<u64>, name: Option<&str>) -> String {
+    let verb = if tool == "service_stop" { "stops" } else { "starts" };
+    match (id, name) {
+        (Some(id), Some(name)) => {
+            let mut shown = String::new();
+            push_escaped(&mut shown, truncate_utf8(name, 64));
+            alloc::format!("[{} service {} \"{}\"]", verb, id, shown)
+        }
+        (Some(id), None) => alloc::format!("[{} service {}, which is not registered]", verb, id),
+        (None, _) => alloc::format!("[{} no service: service_id is not a whole number]", verb),
+    }
+}
+
+// ---- fi2 Q-J2c: typed text goes to the focused window --------------------------
+
+/// Tools whose approval is bound to the window that has keyboard focus.
+pub fn binds_focus_target(tool: &str) -> bool {
+    tool == "keyboard_type"
+}
+
+/// The text shown to the operator for typed text's target.
+pub fn focus_target_note(window: u64, owner: u64, title: &str) -> String {
+    if window == 0 {
+        return String::from("[types into no window: nothing has keyboard focus]");
+    }
+    let mut shown = String::new();
+    for (count, c) in title.chars().enumerate() {
+        if count == 48 {
+            shown.push_str("...");
+            break;
+        }
+        if c == '"' || c == '\\' {
+            shown.push('\\');
+            shown.push(c);
+        } else if (' '..='~').contains(&c) {
+            shown.push(c);
+        } else {
+            shown.push('?');
+        }
+    }
+    alloc::format!("[types into window {} \"{}\" of pid {}]", window, shown, owner)
 }

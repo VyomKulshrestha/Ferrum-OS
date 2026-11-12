@@ -142,7 +142,7 @@ try {
   const start = serialText().length;
 
   // Write the mmap test trigger file
-  await sendText("write /tmp/mmap_test 1");
+  await sendText("write /tmp/heliox-hooks/mmap_test 1");
   await sendKey("ret");
   await sleep(400);
 

@@ -12,6 +12,7 @@ pub mod cognitive;
 pub mod network;
 pub mod http_parse;
 pub mod config;
+pub mod config_parse;
 pub mod physical;
 pub mod neural;
 
@@ -90,8 +91,38 @@ const FD_CONSOLE: u64 = 2;
 const SYS_INJECT_KEY: u64 = 26;
 const SYS_INJECT_MOUSE: u64 = 27;
 
+// ---- Startup test hooks (fi2 Q4) ----------------------------------------------
+// Each hook below runs before the main loop when its trigger file exists. The
+// triggers live in /tmp/heliox-hooks, which the kernel creates at boot and in
+// which no ring-3 process may create or write a file (src/syscall/fs.rs
+// `is_shell_only_path`): only the kernel shell's `write` command can plant
+// one, so the agent's write_file cannot start a hook. The daemon may still
+// delete a trigger after reading it. The QEMU harnesses and the world-model
+// collection scripts write these files from the shell, as before.
+
+/// Text a remote server sent, as one line of printable ASCII: it can never
+/// pose as a confirmation notice or any other daemon line on the console.
+fn escape_console_text(text: &str, max_bytes: usize) -> String {
+    let mut out = String::new();
+    for ch in text.chars() {
+        if out.len() >= max_bytes {
+            out.push_str("...[truncated]");
+            break;
+        }
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (' '..='~').contains(&c) => out.push(c),
+            c => out.push_str(&alloc::format!("\\u{{{:x}}}", c as u32)),
+        }
+    }
+    out
+}
+
 fn check_and_trigger_supervision_test() {
-    let test_file = "/tmp/daemon_exit_once";
+    let test_file = "/tmp/heliox-hooks/daemon_exit_once";
     let mut buf = [0u8; 1];
     let res = unsafe {
         syscall4(
@@ -116,7 +147,7 @@ fn check_and_trigger_supervision_test() {
 }
 
 fn check_and_trigger_net_test() {
-    let test_file = "/tmp/net_test";
+    let test_file = "/tmp/heliox-hooks/net_test";
     let mut buf = [0u8; 64];
     let res = unsafe {
         syscall4(
@@ -145,7 +176,11 @@ fn check_and_trigger_net_test() {
                         
                         match network::http_get(host, port, &alloc::format!("/{}", path)) {
                             Ok(resp) => {
-                                let success_msg = alloc::format!("[heliox-daemon] net_test response status: {}, body: {}\n", resp.status_code, resp.body);
+                                let success_msg = alloc::format!(
+                                    "[heliox-daemon] net_test response status: {}, body: {}\n",
+                                    resp.status_code,
+                                    escape_console_text(&resp.body, 512)
+                                );
                                 unsafe {
                                     syscall3(SYS_WRITE, FD_CONSOLE, success_msg.as_ptr() as u64, success_msg.len() as u64);
                                     syscall3(SYS_EXIT, 0, 0, 0);
@@ -167,7 +202,7 @@ fn check_and_trigger_net_test() {
 }
 
 fn check_and_trigger_mmap_test() {
-    let test_file = "/tmp/mmap_test";
+    let test_file = "/tmp/heliox-hooks/mmap_test";
     let mut buf = [0u8; 64];
     let res = unsafe {
         syscall4(
@@ -281,7 +316,7 @@ fn check_and_trigger_mmap_test() {
 /// verification harness can confirm real DMA-timed capture happened (not an
 /// instant no-op) while the shell/other tasks stay responsive throughout.
 fn check_and_trigger_audio_test() {
-    let test_file = "/tmp/audio_test";
+    let test_file = "/tmp/heliox-hooks/audio_test";
     let mut buf = [0u8; 64];
     let res = unsafe {
         syscall4(
@@ -341,7 +376,7 @@ fn check_and_trigger_audio_test() {
 /// entirely before the daemon's normal tick loop starts, so it doesn't
 /// compete with anything else for ring-3 time.
 fn check_and_trigger_world_model_collect(orchestrator: &mut cognitive::orchestrator::Orchestrator) {
-    let test_file = "/tmp/world_model_collect";
+    let test_file = "/tmp/heliox-hooks/world_model_collect";
     let mut buf = [0u8; 32];
     let res = unsafe {
         syscall4(
@@ -360,7 +395,9 @@ fn check_and_trigger_world_model_collect(orchestrator: &mut cognitive::orchestra
     }
 
     let count_str = core::str::from_utf8(&buf[..res as usize]).unwrap_or("0").trim();
-    let count: u32 = count_str.parse().unwrap_or(0);
+    // Bounded: the collection scripts ask for at most a few thousand actions.
+    const MAX_COLLECT_ACTIONS: u32 = 100_000;
+    let count: u32 = count_str.parse::<u32>().unwrap_or(0).min(MAX_COLLECT_ACTIONS);
     if count == 0 {
         return;
     }
@@ -375,7 +412,7 @@ fn check_and_trigger_world_model_collect(orchestrator: &mut cognitive::orchestra
 /// Runs the in-guest world-model benchmark before the ambient loop starts.
 /// The trigger file contains the number of preview-only actions per horizon.
 fn check_and_trigger_world_model_benchmark(orchestrator: &mut cognitive::orchestrator::Orchestrator) {
-    let test_file = "/tmp/world_model_benchmark";
+    let test_file = "/tmp/heliox-hooks/world_model_benchmark";
     let mut buf = [0u8; 32];
     let res = unsafe {
         syscall4(
@@ -646,9 +683,10 @@ pub extern "C" fn _start() -> ! {
         };
         let timeout = orchestrator.config.confirmation_timeout;
         orchestrator.confirmation_gate =
-            cognitive::confirmation::ConfirmationGate::with_next_id(timeout, start)
-                .with_file_versions(cognitive::orchestrator::kernel_file_version)
-                .with_click_targets(cognitive::orchestrator::kernel_click_target);
+            cognitive::orchestrator::Orchestrator::install_gate_sources(
+                cognitive::confirmation::ConfirmationGate::with_next_id(timeout, start),
+                &orchestrator.config,
+            );
     }
 
     // The network bridge delegates the daemon's powerful native syscall
@@ -856,7 +894,7 @@ pub extern "C" fn _start() -> ! {
                                         (String::from("button"), cognitive::json::JsonValue::Number(0.0)),
                                     ],
                                 };
-                                let result = orchestrator.execute_tool_with_world_model(&call);
+                                let result = orchestrator.execute_operator_gesture_tool(&call);
                                 let direct_msg = alloc::format!(
                                     "[heliox-daemon] gesture Pointing -> gated mouse_click: {}\n",
                                     result.output
@@ -874,7 +912,7 @@ pub extern "C" fn _start() -> ! {
                                         (String::from("text"), cognitive::json::JsonValue::Str(String::from("help"))),
                                     ],
                                 };
-                                let result = orchestrator.execute_tool_with_world_model(&call);
+                                let result = orchestrator.execute_operator_gesture_tool(&call);
                                 let direct_msg = alloc::format!(
                                     "[heliox-daemon] gesture Peace -> gated keyboard_type: {}\n",
                                     result.output

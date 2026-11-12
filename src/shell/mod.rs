@@ -7,6 +7,8 @@ pub mod selftest_k2;
 pub mod selftest_k3;
 pub mod selftest_k4;
 pub mod selftest_k5;
+pub mod selftest_p1;
+pub mod selftest_k6;
 
 use alloc::string::{String, ToString};
 use core::sync::atomic::{AtomicU64, Ordering};

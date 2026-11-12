@@ -44,7 +44,22 @@ pub struct SafetyPolicy {
     pub geofence: Geofence,
     pub proximity_sensor_id: Option<u64>,
     pub minimum_clearance_mm: i64,
+    /// Longest move a single permit may cover, measured from the controlled actor's last
+    /// tracked position. With it, a clearance reading taken before the move bounds the
+    /// clearance during the move (it can shrink by at most this much), and a target inside a
+    /// convex geofence keeps the straight path inside. `None` keeps the target-only checks.
+    /// (Same field as on the `vision-world-model` branch, commit 090e8a2.)
+    pub maximum_step_mm: Option<i64>,
     pub maximum_sensor_age_ticks: u64,
+    /// Oldest zone-occupancy record that still counts when humans are not allowed. With
+    /// `allow_motion_with_humans == false`, a zone with no occupancy record, or with one
+    /// observed more than this many ticks ago, blocks motion (fi2 O1: a feed that is absent
+    /// or has silently stopped no longer reads as "no humans").
+    pub maximum_occupancy_age_ticks: u64,
+    /// Battery and payload limits for the actor a MoveTo moves (fi2 O5). `None` checks
+    /// nothing. With limits, the controlled actor's last telemetry must be fresh
+    /// (`maximum_sensor_age_ticks`) and within them, or the move is blocked.
+    pub operational_limits: Option<crate::supervisor::OperationalLimits>,
     pub permit_ttl_ticks: u64,
     pub allow_motion_with_humans: bool,
     pub require_human_approval_for_motion: bool,
@@ -125,6 +140,15 @@ pub enum SafetyReason {
     PredictiveWarning,
     PredictiveBlock,
     PredictiveShadowOnly,
+    MoveStepTooLong,
+    StaleActorPosition,
+    /// Humans not allowed and the zone has no occupancy record (fi2 O1).
+    MissingOccupancy,
+    /// Humans not allowed and the zone's occupancy record is older than
+    /// `maximum_occupancy_age_ticks` (fi2 O1).
+    StaleOccupancy,
+    /// The moving actor's battery or payload is outside `operational_limits` (fi2 O5).
+    OperationalLimitExceeded,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -475,6 +499,71 @@ fn apply_deterministic_interlocks(
             );
         }
 
+        // The controlled actor, if its last telemetry is fresh. A registered but never
+        // observed or stale actor gives `None`, and every check that needs it fails closed.
+        let fresh_actor = endpoint
+            .controlled_actor_id
+            .and_then(|actor_id| domain.actor(actor_id))
+            .filter(|actor| {
+                current_tick >= actor.last_seen_tick
+                    && current_tick - actor.last_seen_tick <= policy.maximum_sensor_age_ticks
+            });
+
+        if let Some(maximum_step_mm) = policy.maximum_step_mm {
+            // The step is measured from a fresh tracked position or not at all.
+            match fresh_actor {
+                Some(actor) => {
+                    let dx = i128::from(command.argument0) - i128::from(actor.position.x_mm);
+                    let dy = i128::from(command.argument1) - i128::from(actor.position.y_mm);
+                    let dz = i128::from(command.argument2) - i128::from(actor.position.z_mm);
+                    if dx * dx + dy * dy + dz * dz
+                        > i128::from(maximum_step_mm) * i128::from(maximum_step_mm)
+                    {
+                        add_reason(decision, SafetyVerdict::Block, SafetyReason::MoveStepTooLong);
+                    }
+                }
+                None => add_reason(
+                    decision,
+                    SafetyVerdict::Block,
+                    SafetyReason::StaleActorPosition,
+                ),
+            }
+        }
+
+        if let Some(limits) = policy.operational_limits {
+            match fresh_actor {
+                Some(actor) => {
+                    let payload_grams = (u64::from(actor.load_permille)
+                        * u64::from(actor.max_payload_grams)
+                        / 1_000)
+                        .min(u64::from(u32::MAX)) as u32;
+                    // Speed has no field on AdapterCommand yet (reported open), and
+                    // maintenance and qualification are checked at dispatch; only the
+                    // battery and payload limits are decided here.
+                    let state = crate::supervisor::ResourceSnapshot {
+                        battery_permille: actor.battery_permille,
+                        payload_grams,
+                        requested_speed_mm_per_second: 0,
+                        clock_uncertainty_ticks: 0,
+                        maintenance_ready: true,
+                        qualified: true,
+                    };
+                    if limits.evaluate(state) != crate::supervisor::AuthoritySeverity::Allow {
+                        add_reason(
+                            decision,
+                            SafetyVerdict::Block,
+                            SafetyReason::OperationalLimitExceeded,
+                        );
+                    }
+                }
+                None => add_reason(
+                    decision,
+                    SafetyVerdict::Block,
+                    SafetyReason::StaleActorPosition,
+                ),
+            }
+        }
+
         match policy.proximity_sensor_id {
             Some(sensor_id) => {
                 if twin.sensor(sensor_id).is_some_and(|reading| {
@@ -514,16 +603,40 @@ fn apply_deterministic_interlocks(
             ),
         }
 
-        if twin
-            .occupancy(policy.site_id, policy.zone_id)
-            .is_some_and(|occupancy| occupancy.humans > 0)
-            && !policy.allow_motion_with_humans
-        {
-            add_reason(
-                decision,
-                SafetyVerdict::Block,
-                SafetyReason::HumanOccupiedZone,
-            );
+        if !policy.allow_motion_with_humans {
+            // fi2 O1: when humans are not allowed, "no record" and "old record" are not
+            // evidence of an empty zone.
+            match twin.occupancy(policy.site_id, policy.zone_id) {
+                None => add_reason(
+                    decision,
+                    SafetyVerdict::Block,
+                    SafetyReason::MissingOccupancy,
+                ),
+                Some(occupancy)
+                    if current_tick < occupancy.observed_at_tick
+                        || current_tick - occupancy.observed_at_tick
+                            > policy.maximum_occupancy_age_ticks =>
+                {
+                    add_reason(
+                        decision,
+                        SafetyVerdict::Block,
+                        SafetyReason::StaleOccupancy,
+                    );
+                    if occupancy.humans > 0 {
+                        add_reason(
+                            decision,
+                            SafetyVerdict::Block,
+                            SafetyReason::HumanOccupiedZone,
+                        );
+                    }
+                }
+                Some(occupancy) if occupancy.humans > 0 => add_reason(
+                    decision,
+                    SafetyVerdict::Block,
+                    SafetyReason::HumanOccupiedZone,
+                ),
+                Some(_) => {}
+            }
         }
     }
 }
@@ -593,6 +706,12 @@ fn validate_policy(policy: SafetyPolicy) -> Result<(), SafetyError> {
     if policy.revision == 0
         || policy.permit_ttl_ticks == 0
         || policy.minimum_clearance_mm < 0
+        || policy.maximum_step_mm.is_some_and(|step| step <= 0)
+        || policy.operational_limits.is_some_and(|limits| {
+            limits.minimum_battery_permille > 1_000
+                || limits.maximum_payload_grams == 0
+                || limits.maximum_speed_mm_per_second == 0
+        })
         || policy.learned_warning_threshold_permille > policy.learned_block_threshold_permille
         || policy.learned_block_threshold_permille > 1_000
         || !valid_bounds
@@ -703,6 +822,9 @@ mod tests {
             },
             proximity_sensor_id: Some(9),
             minimum_clearance_mm: 500,
+            maximum_step_mm: None,
+            maximum_occupancy_age_ticks: 20,
+            operational_limits: None,
             maximum_sensor_age_ticks: 10,
             permit_ttl_ticks: 5,
             allow_motion_with_humans: true,
@@ -1122,6 +1244,45 @@ mod tests {
             .unwrap();
         assert_eq!(decision.verdict, SafetyVerdict::Block);
         assert!(decision.reasons.contains(&SafetyReason::HumanOccupiedZone));
+    }
+
+    #[test]
+    fn o5_step_bound_and_operational_limits_must_be_valid() {
+        let limits = crate::supervisor::OperationalLimits {
+            minimum_battery_permille: 200,
+            maximum_payload_grams: 500,
+            maximum_speed_mm_per_second: 1_000,
+            maximum_clock_uncertainty_ticks: 0,
+        };
+        let mut supervisor = SafetySupervisor::new();
+        for bad in [
+            SafetyPolicy { maximum_step_mm: Some(0), ..policy() },
+            SafetyPolicy { maximum_step_mm: Some(-5), ..policy() },
+            SafetyPolicy {
+                operational_limits: Some(crate::supervisor::OperationalLimits {
+                    minimum_battery_permille: 1_001,
+                    ..limits
+                }),
+                ..policy()
+            },
+            SafetyPolicy {
+                operational_limits: Some(crate::supervisor::OperationalLimits {
+                    maximum_payload_grams: 0,
+                    ..limits
+                }),
+                ..policy()
+            },
+        ] {
+            assert_eq!(supervisor.install_policy(bad), Err(SafetyError::InvalidPolicy));
+        }
+        assert_eq!(
+            supervisor.install_policy(SafetyPolicy {
+                maximum_step_mm: Some(1),
+                operational_limits: Some(limits),
+                ..policy()
+            }),
+            Ok(())
+        );
     }
 
     #[test]

@@ -63,7 +63,7 @@ FerrumOS is a bootable x86_64 Rust research operating system. Its deterministic 
 | `mouse_click` | desktop-input | 4 (destructive) | yes |
 | `mouse_move` | desktop-input | 4 (destructive) | yes |
 | `browse_url` | browser | 2 (network) | no |
-| `poll_input` | desktop-input | 1 (safe) | no |
+| `poll_input` | desktop-input | 3 (modify) | yes |
 
 ## Evidence snapshot
 

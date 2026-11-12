@@ -267,6 +267,9 @@ fn verify_package_dir(directory_name: &str) -> Result<PackageMeta, String> {
     if !valid_package_name(directory_name) {
         return Err(String::from("invalid package directory name"));
     }
+    if name_taken_by_program(directory_name) {
+        return Err(String::from("package name belongs to a compiled-in program"));
+    }
     let root = format!("{}/{}", AVAILABLE_ROOT, directory_name);
     let manifest_text = crate::fs::read_file(&format!("{}/manifest.txt", root))?;
     let meta = parse_manifest(&manifest_text)?;
@@ -295,6 +298,13 @@ fn verify_package_dir(directory_name: &str) -> Result<PackageMeta, String> {
         ));
     }
     Ok(meta)
+}
+
+/// True when a program with another entry (a compiled-in one) is
+/// registered under `name`. The kernel launches programs by name and reads
+/// their capabilities by name, so a package may not share one.
+pub fn name_taken_by_program(name: &str) -> bool {
+    crate::userspace::program_entry(name).is_some_and(|entry| entry != bin_path(name))
 }
 
 pub fn verify(name: &str) -> Result<PackageMeta, String> {

@@ -111,11 +111,53 @@ pub fn kernel_file_version(path: &str) -> Result<super::confirmation::FileVersio
 /// of a click to it (fi1 K2).
 pub fn kernel_click_target() -> Result<(super::confirmation::ClickTarget, String), ()> {
     const SYS_POINTER_TARGET: u64 = 66;
+    kernel_target_record(SYS_POINTER_TARGET)
+}
+
+/// The window that has keyboard focus now (window 0: none), its owner and
+/// title, from the kernel's FocusTarget (syscall 67, the PointerTarget record
+/// with a zero position). Installed into the confirmation gate, which binds
+/// every approval of `keyboard_type` to it (fi2 Q-J2c).
+pub fn kernel_focus_target() -> Result<(super::confirmation::ClickTarget, String), ()> {
+    const SYS_FOCUS_TARGET: u64 = 67;
+    kernel_target_record(SYS_FOCUS_TARGET)
+}
+
+/// The name the kernel's service registry holds for `id` (SystemQuery type
+/// 5, a JSON list of `{"id":N,"name":"..."}`), installed into the gate so
+/// the operator is shown which service a service call acts on (fi2 Q5).
+pub fn kernel_service_name(id: u64) -> Result<Option<String>, ()> {
+    const SYS_SYSTEM_QUERY: u64 = 29;
+    const QUERY_SERVICES: u64 = 5;
+    let mut buf = alloc::vec![0u8; 8192];
+    let written = unsafe { syscall4(SYS_SYSTEM_QUERY, QUERY_SERVICES, buf.as_mut_ptr() as u64, buf.len() as u64, 0) };
+    if (written as i64) <= 0 || written as usize > buf.len() {
+        return Err(());
+    }
+    let text = core::str::from_utf8(&buf[..written as usize]).map_err(|_| ())?;
+    let parsed = super::json::parse(text).map_err(|_| ())?;
+    let super::json::JsonValue::Array(items) = parsed else {
+        return Err(());
+    };
+    for item in &items {
+        let Some(fields) = item.as_object() else { continue };
+        let item_id = fields.iter().find(|(k, _)| k == "id").and_then(|(_, v)| v.as_f64());
+        let name = fields.iter().find(|(k, _)| k == "name").and_then(|(_, v)| v.as_str());
+        if let (Some(item_id), Some(name)) = (item_id, name) {
+            if item_id == id as f64 {
+                return Ok(Some(String::from(name)));
+            }
+        }
+    }
+    Ok(None)
+}
+
+fn kernel_target_record(syscall: u64) -> Result<(super::confirmation::ClickTarget, String), ()> {
     let mut record = [0u8; 24];
     let mut title = [0u8; 64];
     let result = unsafe {
         syscall3(
-            SYS_POINTER_TARGET,
+            syscall,
             record.as_mut_ptr() as u64,
             title.as_mut_ptr() as u64,
             title.len() as u64,
@@ -422,6 +464,31 @@ impl Orchestrator {
         self.dispatch_with_world_model(tc)
     }
 
+    /// A call the operator started with a camera gesture. It goes through the
+    /// same gate, and its request may use the slots the agent's requests
+    /// cannot fill (fi2 Q2).
+    pub fn execute_operator_gesture_tool(
+        &mut self,
+        tc: &super::json::ToolCall,
+    ) -> tool_mapper::ToolResult {
+        self.confirmation_gate.set_origin(super::confirmation::Origin::Operator);
+        let result = self.execute_tool_with_world_model(tc);
+        self.confirmation_gate.set_origin(super::confirmation::Origin::Agent);
+        result
+    }
+
+    /// Installs everything the gate reads from the kernel and the
+    /// configuration (file versions, click and focus targets, service names,
+    /// agent sockets, the network allowlist).
+    pub fn install_gate_sources(gate: ConfirmationGate, config: &Config) -> ConfirmationGate {
+        gate.with_file_versions(kernel_file_version)
+            .with_click_targets(kernel_click_target)
+            .with_focus_targets(kernel_focus_target)
+            .with_service_names(kernel_service_name)
+            .with_socket_hosts(tool_mapper::agent_socket_host)
+            .with_network_allowlist(config.network_hosts())
+    }
+
     /// Run one provider-backed ReAct cycle for a supplied goal, ignoring the
     /// normal tick cadence. The hybrid host collector uses this to associate
     /// one prompt/response episode with the exact transition rows it caused.
@@ -446,7 +513,7 @@ impl Orchestrator {
 
     pub fn new() -> Self {
         // Load config from disk, fallback to defaults
-        let config = Config::load("/disk/heliox/config.json");
+        let config = Config::load_reporting("/disk/heliox/config.json");
 
         let world_model_load_start_tick = crate::cognitive::fusion::get_uptime_ticks();
         let world_model_load_start_tsc = unsafe { core::arch::x86_64::_rdtsc() };
@@ -506,9 +573,7 @@ impl Orchestrator {
             planner,
             verifier: Verifier::new(),
             reflector: Reflector::new(),
-            confirmation_gate: ConfirmationGate::new(config.confirmation_timeout)
-                .with_file_versions(kernel_file_version)
-                .with_click_targets(kernel_click_target),
+            confirmation_gate: Self::install_gate_sources(ConfirmationGate::new(config.confirmation_timeout), &config),
             memory,
             tick_count: 0,
             last_observation: String::new(),
@@ -645,13 +710,19 @@ impl Orchestrator {
             return;
         }
 
-        if self.tick_count % self.config.tick_interval != 0 {
+        if self.tick_count % self.config.tick_interval.max(1) != 0 {
             return;
         }
 
         self.emit_telemetry(TelemetryEventKind::TickStart, format!("Tick {}", self.tick_count));
 
-        if self.tick_count % self.config.save_interval == 0 && self.memory.document_count() > 0 {
+        // Autosave writes the same memory an approved save_memory would
+        // (including the model's responses), so it runs only when that
+        // tier-3 tool would run without asking (fi2 Q5).
+        if self.tick_count % self.config.save_interval.max(1) == 0
+            && self.memory.document_count() > 0
+            && super::authority::autosave_allowed(self.config.auto_approve_tier)
+        {
             if let Ok(_) = self.memory.save("/disk/heliox/memory.json") {
                 self.emit_telemetry(TelemetryEventKind::SaveComplete, String::from("Memory persisted to disk"));
             }
@@ -709,7 +780,7 @@ impl Orchestrator {
             );
             
             // Ambient Vision Mode: When idle and goal is empty/done, occasionally look at the screen
-            if self.planner.current_goal().is_empty() && self.tick_count % (self.config.tick_interval * 10) == 0 {
+            if self.planner.current_goal().is_empty() && self.tick_count % self.config.tick_interval.max(1).saturating_mul(10) == 0 {
                 if let Ok(capture) = super::screen_vision::capture_screen() {
                     let text = capture.full_text();
                     if text.contains("Error") || text.contains("Failed") || text.contains("Panic") {
@@ -1657,11 +1728,31 @@ impl Orchestrator {
             }
             match command {
                 ControlCommand::Confirm(id) => {
-                    let applied = self.confirmation_gate.approve(id);
+                    // fi2 Q2: only the request printed last is approved; any
+                    // other is printed again and needs a second CONFIRM.
+                    use super::confirmation::ApprovalOutcome;
+                    let outcome = self.confirmation_gate.confirm(id);
+                    let applied = outcome == ApprovalOutcome::Approved;
+                    if let ApprovalOutcome::ShownAgain(notice) = &outcome {
+                        let lead = format!(
+                            "[heliox-daemon] confirmation {} was not the request shown last; read it again and confirm {} once more to approve exactly this:\n",
+                            id, id
+                        );
+                        tool_mapper::print_notice(&lead);
+                        tool_mapper::print_notice(notice);
+                    }
                     self.emit_telemetry(
                         TelemetryEventKind::ConfirmationQueued,
                         format!("Confirmation {} approved via IPC (applied={})", id, applied),
                     );
+                }
+                ControlCommand::Pending => {
+                    let notices = self.confirmation_gate.pending_notices();
+                    let head = format!("[heliox-daemon] {} pending confirmation request(s)\n", notices.len());
+                    tool_mapper::print_notice(&head);
+                    for notice in &notices {
+                        tool_mapper::print_notice(notice);
+                    }
                 }
                 ControlCommand::Deny(id) => {
                     let applied = self.confirmation_gate.deny(id);
@@ -1725,7 +1816,8 @@ impl Orchestrator {
                     syscall3(34, 1, console_msg.as_ptr() as u64, console_msg.len() as u64);
                 }
             } else if trimmed == "CONFIG_UPDATED" || trimmed == "CONFIG_UPDATED:" {
-                self.config = Config::load("/disk/heliox/config.json");
+                self.config = Config::load_reporting("/disk/heliox/config.json");
+                self.confirmation_gate.set_network_allowlist(self.config.network_hosts());
                 self.emit_telemetry(
                     TelemetryEventKind::TickStart,
                     String::from("Configuration reloaded via IPC"),

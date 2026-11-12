@@ -150,7 +150,7 @@ try {
   const start = serialText().length;
 
   // Write the audio test trigger file
-  await sendText("write /tmp/audio_test 1");
+  await sendText("write /tmp/heliox-hooks/audio_test 1");
   await sendKey("ret");
   await sleep(400);
 

@@ -13,6 +13,8 @@
 //       2 = memory stats (heap used, heap free, heap total)
 //       3 = device list (name, class, state, driver)
 //       4 = persistent filesystem usage (used and total bytes)
+//       5 = service registry: [{"id":N,"name":"..."}] (fi2 Q5, so the
+//           daemon can show which service a service call acts on)
 //     args[1] = buf_ptr — pointer to user buffer for JSON output
 //     args[2] = buf_len — size of buffer in bytes
 //   Returns: number of bytes written on success
@@ -39,6 +41,7 @@ pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
         2 => query_memory_stats(),
         3 => query_device_list(),
         4 => query_disk_usage(),
+        5 => query_services(),
         _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
@@ -55,6 +58,35 @@ pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
     }
 
     SyscallResult::ok(copy_len as u64)
+}
+
+/// Query type 5 for the kernel self-tests (`selftest_p1 service-query`).
+pub fn query_services_for_test() -> String {
+    query_services()
+}
+
+/// Query type 5: the service registry, ids and names.
+fn query_services() -> String {
+    let mut json = String::from("[");
+    for (i, service) in crate::services::list_services().iter().enumerate() {
+        if i > 0 {
+            json.push(',');
+        }
+        let mut name = String::new();
+        for c in service.name.chars() {
+            match c {
+                '"' | '\\' => {
+                    name.push('\\');
+                    name.push(c);
+                }
+                c if (' '..='~').contains(&c) => name.push(c),
+                _ => name.push('?'),
+            }
+        }
+        json.push_str(&format!("{{\"id\":{},\"name\":\"{}\"}}", service.id, name));
+    }
+    json.push(']');
+    json
 }
 
 /// Query type 0: System information.

@@ -386,6 +386,28 @@ pub fn inject_mouse_click_on(button: u8, target: ClickTarget) {
     })
 }
 
+/// Inject a key press and release that the desktop delivers only if
+/// `target` (window and owner; zero position) still has keyboard focus when
+/// it processes them (InjectKey args[1] = 1, fi2 Q-J2c). Marked as injected
+/// and never fed to the kernel shell.
+pub fn inject_key_on(ascii: u8, target: ClickTarget) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let ts = now_ticks();
+        for event_type in [InputEventType::KeyPress(ascii), InputEventType::KeyRelease(ascii)] {
+            let event = InputEvent { event_type, timestamp: ts, injected: true, click_target: Some(target) };
+            EVENT_QUEUE.lock().push(event);
+            DAEMON_EVENT_QUEUE.lock().push(event);
+        }
+        if !crate::gui::captures_keyboard() {
+            INJECTED_KEYS_KEPT_FROM_SHELL.fetch_add(1, Ordering::SeqCst);
+        }
+    })
+}
+
+/// Guarded keys the desktop dropped because keyboard focus had moved off
+/// the approved window. Read by the `focus-target` self-test.
+pub static GUARDED_KEYS_DROPPED: AtomicU64 = AtomicU64::new(0);
+
 /// Inject a gesture event.
 pub fn inject_gesture_event(gesture_id: u8) {
     x86_64::instructions::interrupts::without_interrupts(|| {

@@ -118,7 +118,7 @@ try {
 
   const start = serialText().length;
   // Create daemon trigger and start init supervisor
-  await sendText("write /tmp/daemon_exit_once 1");
+  await sendText("write /tmp/heliox-hooks/daemon_exit_once 1");
   await sendKey("ret");
   await sleep(400);
   await sendText("ring3 init");

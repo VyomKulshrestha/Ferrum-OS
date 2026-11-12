@@ -8,6 +8,9 @@
 // Tier 0: Observe  — read-only internal state, always allowed
 // Tier 1: Safe     — read-only kernel ops, auto-approved
 // Tier 2: Network  — network I/O, auto-approved but rate-limited
+//                    (authority::TIER2_RATE_LIMIT calls per
+//                    TIER2_RATE_WINDOW_TICKS ticks); a network send to a host
+//                    outside the allowlist is decided as Tier 3 (fi2 Q1)
 // Tier 3: Modify   — disk writes, service control, needs confirmation
 // Tier 4: Destructive — process spawn, file delete, needs explicit approval
 // ============================================================================
@@ -20,7 +23,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 
 use super::json::{JsonValue, ToolCall};
-use super::confirmation::{clear_for_execution_bound, expected_version_word, Bound, ClickTarget, Clearance, ConfirmationGate, FileVersion};
+use super::confirmation::{clear_for_execution_bound, expected_version_word, notice_text, Bound, ClickTarget, Clearance, ConfirmationGate, FileVersion};
 use crate::memory::vector_store::MemoryCategory;
 
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
@@ -181,16 +184,16 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 11. `list_processes` - List all running processes.
     Arguments: {}
 
-12. `net_connect` - Open a TCP connection to a remote host.
+12. `net_connect` - Open a TCP connection to a remote host (hosts outside the network allowlist need operator approval).
     Arguments: {"host": "<ip_address>", "port": <number>}
 
-13. `net_send` - Send data on an open socket.
+13. `net_send` - Send data on an open socket (sockets to hosts outside the network allowlist need operator approval).
     Arguments: {"fd": <number>, "data": "<string>"}
 
 14. `net_recv` - Receive data from an open socket.
     Arguments: {"fd": <number>}
 
-15. `http_get` - Make an HTTP GET request to a URL.
+15. `http_get` - Make an HTTP GET request to a URL (hosts outside the network allowlist need operator approval).
     Arguments: {"host": "<hostname>", "port": <number>, "path": "<string>"}
 
 16. `write_file` - Write content to a file (REQUIRES CONFIRMATION).
@@ -247,10 +250,10 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"dx": <number>, "dy": <number>}
 
-34. `browse_url` - Fetch an HTTP or HTTPS URL and extract clean text content from the page.
+34. `browse_url` - Fetch an HTTP or HTTPS URL and extract clean text content from the page (hosts outside the network allowlist need operator approval).
     Arguments: {"url": "<http://... or https://...>"}
 
-35. `poll_input` - Poll pending input events (keyboard/mouse) from the event queue.
+35. `poll_input` - Poll pending input events (keyboard/mouse) from the event queue (REQUIRES CONFIRMATION).
     Arguments: {}
 
 36. `camera_capture` - Capture a camera frame and detect hand gestures.
@@ -308,24 +311,18 @@ pub fn confirmation_result_bound(
     let output = match clearance {
         Clearance::Proceed => return Ok(bound),
         Clearance::Awaiting { id, display: _, full_display } => {
-            // The operator sees every byte of what they would approve. The
-            // kernel console rejects writes over 4096 bytes, so print in
-            // chunks (full_display is at most MAX_APPROVAL_DISPLAY_BYTES and
-            // pure ASCII after escaping).
-            let notice = format!(
-                "[heliox-daemon] confirmation {} requested: {} ({:?}) {}\n",
-                id,
-                tool_call.name,
-                tool_tier(&tool_call.name),
-                full_display
-            );
-            for chunk in notice.as_bytes().chunks(2048) {
-                unsafe {
-                    syscall3(SYS_WRITE_CONSOLE, 1, chunk.as_ptr() as u64, chunk.len() as u64);
-                }
-            }
+            // The operator sees every byte of what they would approve, at the
+            // tier it was decided at (a network send outside the allowlist is
+            // tier 3). The gate recorded this as the last notice printed.
+            let tier = confirmation_gate.effective_tier(&tool_call.name, &tool_call.arguments);
+            print_notice(&notice_text(id, &tool_call.name, tier, &full_display));
             format!("Awaiting confirmation (id={}). Use 'confirm {}' in kernel shell.", id, id)
         }
+        Clearance::RateLimited => format!(
+            "Rate limited: at most {} tier-2 calls run without approval per {} ticks. Try again later.",
+            super::authority::TIER2_RATE_LIMIT,
+            super::authority::TIER2_RATE_WINDOW_TICKS
+        ),
         Clearance::Denied => String::from("Action denied by operator."),
         Clearance::Expired => String::from("Confirmation request expired."),
         Clearance::Refused => String::from(
@@ -345,14 +342,52 @@ pub fn confirmation_result_bound(
     })
 }
 
+/// Prints a confirmation notice. The kernel console rejects writes over 4096
+/// bytes, so it goes in chunks (the text is pure ASCII after escaping and at
+/// most MAX_APPROVAL_DISPLAY_BYTES plus the notes).
+pub fn print_notice(notice: &str) {
+    for chunk in notice.as_bytes().chunks(2048) {
+        unsafe {
+            syscall3(SYS_WRITE_CONSOLE, 1, chunk.as_ptr() as u64, chunk.len() as u64);
+        }
+    }
+}
+
+// ---- Sockets the agent opened (fi2 Q1) ---------------------------------------
+// net_send carries only a descriptor. The gate decides it by the host that
+// descriptor was opened to with net_connect; a descriptor not in this table
+// (one the daemon opened for itself, or a stale number) needs approval.
+
+const MAX_AGENT_SOCKETS: usize = 32;
+static AGENT_SOCKETS: spin::Mutex<Vec<(u64, String)>> = spin::Mutex::new(Vec::new());
+
+fn remember_agent_socket(fd: u64, host: &str) {
+    let mut sockets = AGENT_SOCKETS.lock();
+    sockets.retain(|(known, _)| *known != fd);
+    if sockets.len() >= MAX_AGENT_SOCKETS {
+        sockets.remove(0);
+    }
+    sockets.push((fd, String::from(host)));
+}
+
+/// The gate's socket-host source: the host the agent's `net_connect` opened
+/// descriptor `fd` to.
+pub fn agent_socket_host(fd: u64) -> Option<String> {
+    AGENT_SOCKETS
+        .lock()
+        .iter()
+        .find(|(known, _)| *known == fd)
+        .map(|(_, host)| host.clone())
+}
+
 /// Execute a parsed tool call by dispatching to the appropriate handler.
 /// For tools that require confirmation, returns a pending result.
 pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, auto_approve_tier: u8, current_tick: u64) -> ToolResult {
     // `bound`: the file version an operator approval of this call was bound
     // to. The file tools hand it to the kernel, which acts only if the file
     // still has it (fi1 joint round 2, K3's check-then-act window).
-    let (bound, click) = match confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
-        Ok(bound) => (bound.version, bound.click),
+    let (bound, click, focus) = match confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
+        Ok(bound) => (bound.version, bound.click, bound.focus),
         Err(result) => return result,
     };
 
@@ -394,7 +429,7 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "record_audio" => execute_record_audio(&tool_call.arguments),
         "play_audio" => execute_play_audio(),
         "set_volume" => execute_set_volume(&tool_call.arguments),
-        "keyboard_type" => execute_keyboard_type(&tool_call.arguments),
+        "keyboard_type" => execute_keyboard_type(&tool_call.arguments, focus),
         "mouse_click" => execute_mouse_click(&tool_call.arguments, click),
         "mouse_move" => execute_mouse_move(&tool_call.arguments),
         "browse_url" => execute_browse_url(&tool_call.arguments),
@@ -664,11 +699,14 @@ fn execute_net_connect(args: &[(String, JsonValue)]) -> ToolResult {
     };
 
     match crate::network::tcp_connect(fd, ip, port) {
-        Ok(()) => ToolResult {
-            tool_name: String::from("net_connect"),
-            success: true,
-            output: format!("Connected to {}:{} (fd={})", host, port, fd),
-        },
+        Ok(()) => {
+            remember_agent_socket(fd, &host);
+            ToolResult {
+                tool_name: String::from("net_connect"),
+                success: true,
+                output: format!("Connected to {}:{} (fd={})", host, port, fd),
+            }
+        }
         Err(e) => {
             let _ = crate::network::tcp_close(fd);
             ToolResult {
@@ -918,8 +956,15 @@ fn execute_sleep(args: &[(String, JsonValue)]) -> ToolResult {
 }
 
 fn execute_service_lifecycle(syscall: u64, args: &[(String, JsonValue)]) -> ToolResult {
-    let service_id = find_arg_number(args, "service_id").unwrap_or(0.0) as u64;
     let name = if syscall == SYS_SERVICE_START { "service_start" } else { "service_stop" };
+    // Only the whole number the operator was shown names a service (fi2 Q5).
+    let Some(service_id) = super::authority::service_id_arg(args) else {
+        return ToolResult {
+            tool_name: String::from(name),
+            success: false,
+            output: String::from("service_id must be a whole number"),
+        };
+    };
     let result = unsafe { syscall3(syscall, service_id, 0, 0) };
     ToolResult {
         tool_name: String::from(name),
@@ -1085,7 +1130,13 @@ fn execute_set_volume(args: &[(String, JsonValue)]) -> ToolResult {
 const SYS_INJECT_KEY: u64 = 26;
 const SYS_INJECT_MOUSE: u64 = 27;
 
-fn execute_keyboard_type(args: &[(String, JsonValue)]) -> ToolResult {
+/// InjectKey variant (fi2 Q-J2c): `args[1]` = 1 binds the key to the window
+/// in `args[2]` owned by `args[3]`; the kernel refuses it (-7) unless that
+/// window has keyboard focus, and the desktop drops it if focus moved before
+/// it is processed.
+const INJECT_KEY_TO_FOCUS: u64 = 1;
+
+fn execute_keyboard_type(args: &[(String, JsonValue)], focus: Option<ClickTarget>) -> ToolResult {
     let text = find_arg_string(args, "text").unwrap_or_default();
     if text.is_empty() {
         return ToolResult {
@@ -1098,8 +1149,21 @@ fn execute_keyboard_type(args: &[(String, JsonValue)]) -> ToolResult {
     let mut typed = 0u32;
     for ch in text.bytes() {
         let result = unsafe {
-            crate::syscall4(SYS_INJECT_KEY, ch as u64, 0, 0, 0)
+            match focus {
+                Some(target) => crate::syscall4(SYS_INJECT_KEY, ch as u64, INJECT_KEY_TO_FOCUS, target.window, target.owner),
+                None => crate::syscall4(SYS_INJECT_KEY, ch as u64, 0, 0, 0),
+            }
         };
+        if focus.is_some() && result as i64 == VERSION_MISMATCH {
+            return ToolResult {
+                tool_name: String::from("keyboard_type"),
+                success: false,
+                output: format!(
+                    "Approval withdrawn: keyboard focus left the approved window after {} characters. Request it again.",
+                    typed
+                ),
+            };
+        }
         if (result as i64) < 0 {
             return ToolResult {
                 tool_name: String::from("keyboard_type"),

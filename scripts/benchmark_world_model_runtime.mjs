@@ -111,7 +111,7 @@ async function runCommand(command) {
 
 try {
   await waitForSerial("FerrumOS:~$", 60);
-  await runCommand(`write /tmp/world_model_benchmark ${iterations}`);
+  await runCommand(`write /tmp/heliox-hooks/world_model_benchmark ${iterations}`);
   const start = serialText().length;
   await sendText("ring3 init");
   await mon("sendkey ret 20", 60);

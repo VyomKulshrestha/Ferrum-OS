@@ -47,7 +47,7 @@ fn input_injection_tools_are_destructive() {
     for tool in ["keyboard_type", "mouse_click", "mouse_move"] {
         assert_eq!(tool_tier(tool), PermissionTier::Destructive, "{}", tool);
         for auto in 0u8..=3 {
-            let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+            let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
             let a = args(&[("text", s("hello"))]);
             assert!(
                 matches!(clear_for_execution(&mut gate, tool, &a, auto, 1), Clearance::Awaiting { .. }),
@@ -110,7 +110,7 @@ fn rewriting_a_path_revokes_its_outstanding_approvals() {
         ("delete_file", args(&[("path", s("/disk/tools"))]), 4),
     ];
     for (tool, modify, auto) in cases {
-        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
         let id = awaiting_id(clear_for_execution(&mut gate, "exec_process", &exec, auto.min(3), 1));
         assert!(gate.approve(id));
         assert_eq!(clear_for_execution(&mut gate, tool, &modify, auto, 2), Clearance::Proceed);
@@ -123,7 +123,7 @@ fn rewriting_a_path_revokes_its_outstanding_approvals() {
     }
 
     // A pending delete is withdrawn too when the file is rewritten.
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let del = args(&[("path", s("/disk/data/a.txt"))]);
     let id = awaiting_id(clear_for_execution(&mut gate, "delete_file", &del, 3, 1));
     let w = args(&[("path", s("/disk/data/a.txt")), ("content", s("new"))]);
@@ -132,7 +132,7 @@ fn rewriting_a_path_revokes_its_outstanding_approvals() {
 
     // Unrelated paths do not revoke.
     for other in ["/disk/tools/report.elf.bak", "/disk/toolsx/report.elf", "/disk/other.txt"] {
-        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
         let id = awaiting_id(clear_for_execution(&mut gate, "exec_process", &exec, 3, 1));
         assert!(gate.approve(id));
         let w = args(&[("path", s(other)), ("content", s("x"))]);
