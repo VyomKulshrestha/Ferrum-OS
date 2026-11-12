@@ -78,10 +78,10 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           python -m pip install --disable-pip-version-check pytest==9.2.0 scipy==1.15.3 scikit-learn==1.9.1 lightgbm==4.6.0 pandas==2.2.3
           Push-Location scripts
-          python -m pytest -q test_fi1_pipeline.py test_fi1_pipeline2.py test_real_telemetry_detect_v2.py test_threshold_online_v2.py test_threshold_rules_tt1c_v2.py test_tt1d_data_v2.py
+          python -m pytest -q test_fi1_pipeline.py test_fi1_pipeline2.py test_fi1_pipeline3.py test_repro_env.py test_fi1_monitor_v3.py test_fi1_monitor_v4.py test_real_telemetry_detect_v2.py test_threshold_online_v2.py test_threshold_rules_tt1c_v2.py test_tt1d_data_v2.py
           Pop-Location
-          ruff check scripts/test_fi1_pipeline.py scripts/test_fi1_pipeline2.py scripts/fi1_rt_calibration_check.py scripts/physical_jepa_threshold_choice_v2.py scripts/tt1d_final_v2.py scripts/real_telemetry_core_v2.py scripts/fi1_tt1_g2_cluster_check.py scripts/fi1_gpd_cold_check.py scripts/tw1_adapters.py scripts/tw1a_score_level_dev.py
-          ruff format --check scripts/test_fi1_pipeline.py scripts/test_fi1_pipeline2.py scripts/fi1_rt_calibration_check.py scripts/physical_jepa_threshold_choice_v2.py scripts/tt1d_final_v2.py scripts/real_telemetry_core_v2.py scripts/fi1_tt1_g2_cluster_check.py scripts/fi1_gpd_cold_check.py scripts/tw1_adapters.py scripts/tw1a_score_level_dev.py
+          ruff check scripts/test_fi1_pipeline.py scripts/test_fi1_pipeline2.py scripts/test_fi1_pipeline3.py scripts/test_repro_env.py scripts/repro_env.py scripts/fi1_rt_calibration_check.py scripts/physical_jepa_threshold_choice_v2.py scripts/tt1d_final_v2.py scripts/real_telemetry_core_v2.py scripts/fi1_tt1_g2_cluster_check.py scripts/fi1_gpd_cold_check.py scripts/tw1_adapters.py scripts/tw1a_score_level_dev.py
+          ruff format --check scripts/test_fi1_pipeline.py scripts/test_fi1_pipeline2.py scripts/test_fi1_pipeline3.py scripts/test_repro_env.py scripts/repro_env.py scripts/fi1_rt_calibration_check.py scripts/physical_jepa_threshold_choice_v2.py scripts/tt1d_final_v2.py scripts/real_telemetry_core_v2.py scripts/fi1_tt1_g2_cluster_check.py scripts/fi1_gpd_cold_check.py scripts/tw1_adapters.py scripts/tw1a_score_level_dev.py
         shell: pwsh
 
       - name: Install LLVM (clang/llvm-ar for heliox-daemon's C deps)
