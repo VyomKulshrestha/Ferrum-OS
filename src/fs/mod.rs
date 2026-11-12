@@ -193,20 +193,28 @@ impl vfs::Filesystem for RamFs {
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
-            FsNode::Directory { children, version } => {
+            FsNode::Directory { children, .. } => {
+                // A write replaces a file, never a directory: inserting over
+                // a directory dropped its whole subtree, so a Tier-3 write
+                // of `/disk/heliox` deleted the daemon's configuration and
+                // every file beside it (fi1 joint round 2, J2-1). ext2
+                // already refuses ("not a regular file").
+                if matches!(children.get(&file_name), Some(FsNode::Directory { .. })) {
+                    return Err(String::from("is a directory"));
+                }
                 // Fallible copy (WriteFile passes up to 4 MiB of user data).
                 let mut copy = Vec::new();
                 copy.try_reserve_exact(content.len())
                     .map_err(|_| String::from("file too large for kernel heap"))?;
                 copy.extend_from_slice(content);
-                // Every write gives the file, and the directory whose listing
-                // it is in, a version neither has had before.
+                // Every write gives the file, and every directory above it,
+                // a version none has had before.
                 children.insert(file_name, FsNode::file(copy));
-                *version = next_file_version();
-                Ok(())
             }
-            _ => Err(String::from("parent is not a directory")),
+            _ => return Err(String::from("parent is not a directory")),
         }
+        bump_directory_versions(&mut root_guard, &parent_path);
+        Ok(())
     }
 
     fn create_dir(&self, path: &str) -> Result<(), String> {
@@ -215,16 +223,16 @@ impl vfs::Filesystem for RamFs {
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
-            FsNode::Directory { children, version } => {
+            FsNode::Directory { children, .. } => {
                 if children.contains_key(&dir_name) {
                     return Err(String::from("already exists"));
                 }
                 children.insert(dir_name, FsNode::dir(BTreeMap::new()));
-                *version = next_file_version();
-                Ok(())
             }
-            _ => Err(String::from("parent is not a directory")),
+            _ => return Err(String::from("parent is not a directory")),
         }
+        bump_directory_versions(&mut root_guard, &parent_path);
+        Ok(())
     }
 
     fn remove(&self, path: &str) -> Result<(), String> {
@@ -233,13 +241,13 @@ impl vfs::Filesystem for RamFs {
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
-            FsNode::Directory { children, version } => {
+            FsNode::Directory { children, .. } => {
                 children.remove(&name).ok_or_else(|| String::from("not found"))?;
-                *version = next_file_version();
-                Ok(())
             }
-            _ => Err(String::from("parent is not a directory")),
+            _ => return Err(String::from("parent is not a directory")),
         }
+        bump_directory_versions(&mut root_guard, &parent_path);
+        Ok(())
     }
 
     fn stat(&self, path: &str) -> Result<FsStat, String> {
@@ -438,7 +446,16 @@ pub fn file_version(path: &str) -> Result<Option<u64>, String> {
     if path.split('/').any(|component| component == "." || component == "..") {
         return Err(String::from("path has . or .. components"));
     }
-    let info = match stat(path) {
+    // The filesystem's own record, never `stat`'s synthetic answer for the
+    // mmap test path: `stat("/disk/mmap_verify")` reports a fixed version
+    // while WriteFile, DeleteFile and Exec act on the real file there, so a
+    // rewrite of that file left the version unchanged (fi1 joint round 2,
+    // J2-2).
+    let real_stat = |path: &str| -> Result<FsStat, String> {
+        let (fs, rel) = vfs::resolve(path)?;
+        fs.stat(&rel)
+    };
+    let info = match real_stat(path) {
         Ok(info) => info,
         Err(err) if err.starts_with("no such file or directory") || err.starts_with("file not found") => {
             return Ok(None);
@@ -449,6 +466,51 @@ pub fn file_version(path: &str) -> Result<Option<u64>, String> {
         return Err(String::from("filesystem reports no version"));
     }
     Ok(Some(info.version))
+}
+
+/// Why a version-guarded operation did not run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GuardError {
+    /// The node at the path does not have the expected version (or, for an
+    /// expected 0, something exists there).
+    VersionMismatch,
+    /// The kernel cannot establish a version, or the operation itself failed.
+    Failed(String),
+}
+
+/// Whether `path` has `expected` as its version now; `expected == 0` means
+/// "nothing exists at the path". The check that the daemon's approval binds
+/// to (fi1 K3), made by the kernel in the same syscall as the action.
+pub fn check_version(path: &str, expected: u64) -> Result<(), GuardError> {
+    match file_version(path) {
+        Ok(current) if current.unwrap_or(0) == expected => Ok(()),
+        Ok(_) => Err(GuardError::VersionMismatch),
+        Err(err) => Err(GuardError::Failed(err)),
+    }
+}
+
+/// Write `content` to `path` only if the node there has version `expected`
+/// (0: only if nothing exists there). Syscalls run with interrupts off on the
+/// one CPU the kernel uses, and kernel tasks are preempted only at their
+/// safepoints, so no other filesystem change can fall between the check and
+/// the write; `without_interrupts` keeps that true if this is called from a
+/// context that has them on.
+pub fn write_file_if_version(path: &str, content: &[u8], expected: u64) -> Result<(), GuardError> {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        check_version(path, expected)?;
+        create_file_bytes(path, content).map_err(GuardError::Failed)
+    })
+}
+
+/// Remove the node at `path` only if it has version `expected` (non-zero).
+pub fn remove_if_version(path: &str, expected: u64) -> Result<(), GuardError> {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        if expected == 0 {
+            return Err(GuardError::VersionMismatch);
+        }
+        check_version(path, expected)?;
+        remove(path).map_err(GuardError::Failed)
+    })
 }
 
 pub fn usage() -> Result<FsUsage, String> {
@@ -563,16 +625,49 @@ fn normalize_path(path: &str) -> String {
     }
 }
 
+/// Give the directory at `dir_path` and every directory above it a new
+/// version. A directory's version covers its whole subtree: deleting a RamFS
+/// directory removes everything beneath it, so an approval bound to the
+/// directory must not survive a change further down (fi1 joint round 2,
+/// J2-3).
+fn bump_directory_versions(root: &mut FsNode, dir_path: &str) {
+    let mut current = root;
+    match &mut *current {
+        FsNode::Directory { version, .. } => *version = next_file_version(),
+        FsNode::File { .. } => return,
+    }
+    for part in dir_path.split('/').filter(|part| !part.is_empty()) {
+        let next = match current {
+            FsNode::Directory { children, .. } => match children.get_mut(part) {
+                Some(child) => child,
+                None => return,
+            },
+            FsNode::File { .. } => return,
+        };
+        if let FsNode::Directory { version, .. } = next {
+            *version = next_file_version();
+        }
+        current = next;
+    }
+}
+
 /// Split a path into parent and name
 fn split_path(path: &str) -> Result<(String, String), String> {
     let clean = path.trim_start_matches('/');
     if clean.is_empty() {
         return Err(String::from("invalid path"));
     }
-    
+
     if let Some(pos) = clean.rfind('/') {
         let parent = alloc::format!("/{}", &clean[..pos]);
         let name = clean[pos + 1..].to_string();
+        // `/tmp/x//` used to name a child called "" inside /tmp/x that no
+        // lookup reaches (lookups drop empty components), so the version
+        // the kernel reported for the path and the node a write created
+        // were different nodes.
+        if name.is_empty() {
+            return Err(String::from("invalid path"));
+        }
         Ok((parent, name))
     } else {
         Ok(("/".to_string(), clean.to_string()))

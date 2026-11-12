@@ -20,6 +20,18 @@ pub const TOOL_MAPPER_SOURCE: &str =
 pub const ORCHESTRATOR_SOURCE: &str =
     include_str!("../../heliox-daemon/src/cognitive/orchestrator.rs");
 pub const MAIN_SOURCE: &str = include_str!("../../heliox-daemon/src/main.rs");
+pub const SELF_EVOLVE_SOURCE: &str =
+    include_str!("../../heliox-daemon/src/cognitive/self_evolve.rs");
+pub const ASSISTANT_PANEL_SOURCE: &str =
+    include_str!("../../heliox-assistant-panel/src/main.rs");
+
+/// Kernel sources, for checks of the syscall contract the daemon relies on
+/// (the kernel itself builds only in CI; its run-time behaviour is checked by
+/// `test-syscall` self-tests in the QEMU harnesses).
+pub const KERNEL_SYSCALL_SOURCE: &str = include_str!("../../../src/syscall/mod.rs");
+pub const KERNEL_SYSCALL_FS_SOURCE: &str = include_str!("../../../src/syscall/fs.rs");
+pub const KERNEL_SYSCALL_PROCESS_SOURCE: &str = include_str!("../../../src/syscall/process.rs");
+pub const KERNEL_FS_SOURCE: &str = include_str!("../../../src/fs/mod.rs");
 
 /// A file-version source for tests that are not about file versions: every
 /// file is absent and stays so. The daemon's own default fails closed

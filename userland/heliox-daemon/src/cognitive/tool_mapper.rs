@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 
 use super::json::{JsonValue, ToolCall};
-use super::confirmation::{clear_for_execution, Clearance, ConfirmationGate};
+use super::confirmation::{clear_for_execution_bound, expected_version_word, Clearance, ConfirmationGate, FileVersion};
 use crate::memory::vector_store::MemoryCategory;
 
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
@@ -78,6 +78,42 @@ unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u
         options(nostack, preserves_flags)
     );
     ret
+}
+
+#[inline(always)]
+unsafe fn syscall5(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> u64 {
+    let ret: u64;
+    asm!(
+        "int 0x80",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
+        in("r8") arg5,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
+// Version-guarded file syscalls (fi1 joint round 2). The kernel checks the
+// file's version and acts in one step, and returns VERSION_MISMATCH without
+// acting when the file is not the version the operator approved.
+const SYS_WRITE_FILE_IF_VERSION: u64 = 63;
+const SYS_DELETE_FILE_IF_VERSION: u64 = 64;
+const SYS_EXEC_IF_VERSION: u64 = 65;
+const VERSION_MISMATCH: i64 = -7;
+
+fn changed_since_approval(tool: &str) -> ToolResult {
+    ToolResult {
+        tool_name: String::from(tool),
+        success: false,
+        output: String::from(
+            "Approval withdrawn: the file this action is about changed after it was approved. Request it again.",
+        ),
+    }
 }
 
 // ---- Permission Tiers ------------------------------------------------------
@@ -249,14 +285,28 @@ pub fn confirmation_result(
     auto_approve_tier: u8,
     current_tick: u64,
 ) -> Option<ToolResult> {
-    let output = match clear_for_execution(
+    confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick).err()
+}
+
+/// `confirmation_result`, keeping the file version an operator approval was
+/// bound to: `Ok(Some(version))` when the call runs on such an approval (the
+/// executor passes it to the kernel's version-guarded call), `Ok(None)` when
+/// it runs without one, `Err(result)` for the refusal or wait to return.
+pub fn confirmation_result_bound(
+    tool_call: &ToolCall,
+    confirmation_gate: &mut ConfirmationGate,
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> Result<Option<FileVersion>, ToolResult> {
+    let (clearance, bound) = clear_for_execution_bound(
         confirmation_gate,
         &tool_call.name,
         &tool_call.arguments,
         auto_approve_tier,
         current_tick,
-    ) {
-        Clearance::Proceed => return None,
+    );
+    let output = match clearance {
+        Clearance::Proceed => return Ok(bound),
         Clearance::Awaiting { id, display: _, full_display } => {
             // The operator sees every byte of what they would approve. The
             // kernel console rejects writes over 4096 bytes, so print in
@@ -285,7 +335,7 @@ pub fn confirmation_result(
             "Approval withdrawn: the file this action is about changed after the request was made. Request it again.",
         ),
     };
-    Some(ToolResult {
+    Err(ToolResult {
         tool_name: tool_call.name.clone(),
         success: false,
         output,
@@ -295,9 +345,13 @@ pub fn confirmation_result(
 /// Execute a parsed tool call by dispatching to the appropriate handler.
 /// For tools that require confirmation, returns a pending result.
 pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, auto_approve_tier: u8, current_tick: u64) -> ToolResult {
-    if let Some(result) = confirmation_result(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
-        return result;
-    }
+    // `bound`: the file version an operator approval of this call was bound
+    // to. The file tools hand it to the kernel, which acts only if the file
+    // still has it (fi1 joint round 2, K3's check-then-act window).
+    let bound = match confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
+        Ok(bound) => bound,
+        Err(result) => return result,
+    };
 
     // Dispatch to the appropriate handler
     match tool_call.name.as_str() {
@@ -318,7 +372,7 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "net_send" => execute_net_send(&tool_call.arguments),
         "net_recv" => execute_net_recv(&tool_call.arguments),
         "http_get" => execute_http_get(&tool_call.arguments),
-        "write_file" => execute_write_file(&tool_call.arguments),
+        "write_file" => execute_write_file(&tool_call.arguments, bound),
         "create_directory" => execute_create_directory(&tool_call.arguments),
         "save_memory" => execute_save_memory(),
         "load_memory" => execute_load_memory(),
@@ -326,10 +380,10 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "sleep" => execute_sleep(&tool_call.arguments),
         "service_start" => execute_service_lifecycle(SYS_SERVICE_START, &tool_call.arguments),
         "service_stop" => execute_service_lifecycle(SYS_SERVICE_STOP, &tool_call.arguments),
-        "exec_process" => execute_exec_process(&tool_call.arguments),
-        "delete_file" => execute_delete_file(&tool_call.arguments),
+        "exec_process" => execute_exec_process(&tool_call.arguments, bound),
+        "delete_file" => execute_delete_file(&tool_call.arguments, bound),
         "local_inference" => execute_local_inference(&tool_call.arguments),
-        "trigger_kernel_upgrade" => execute_trigger_kernel_upgrade(),
+        "trigger_kernel_upgrade" => execute_trigger_kernel_upgrade(bound),
         "hud_update" => execute_hud_update(&tool_call.arguments),
         "hit_test" => execute_hit_test(&tool_call.arguments),
         "read_screen" => execute_read_screen(),
@@ -743,7 +797,7 @@ fn execute_gesture_status() -> ToolResult {
     }
 }
 
-fn execute_write_file(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_write_file(args: &[(String, JsonValue)], bound: Option<FileVersion>) -> ToolResult {
     let path = find_arg_string(args, "path").unwrap_or_default();
     let content = find_arg_string(args, "content").unwrap_or_default();
     if path.is_empty() {
@@ -755,9 +809,22 @@ fn execute_write_file(args: &[(String, JsonValue)]) -> ToolResult {
     }
 
     let result = unsafe {
-        syscall4(SYS_WRITE_FILE, path.as_ptr() as u64, path.len() as u64,
-                 content.as_ptr() as u64, content.len() as u64)
+        match bound {
+            Some(version) => syscall5(
+                SYS_WRITE_FILE_IF_VERSION,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                content.as_ptr() as u64,
+                content.len() as u64,
+                expected_version_word(version),
+            ),
+            None => syscall4(SYS_WRITE_FILE, path.as_ptr() as u64, path.len() as u64,
+                             content.as_ptr() as u64, content.len() as u64),
+        }
     };
+    if result as i64 == VERSION_MISMATCH {
+        return changed_since_approval("write_file");
+    }
 
     ToolResult {
         tool_name: String::from("write_file"),
@@ -858,7 +925,7 @@ fn execute_service_lifecycle(syscall: u64, args: &[(String, JsonValue)]) -> Tool
     }
 }
 
-fn execute_exec_process(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_exec_process(args: &[(String, JsonValue)], bound: Option<FileVersion>) -> ToolResult {
     let path = find_arg_string(args, "path").unwrap_or_default();
     if path.is_empty() {
         return ToolResult {
@@ -868,8 +935,19 @@ fn execute_exec_process(args: &[(String, JsonValue)]) -> ToolResult {
         };
     }
     let result = unsafe {
-        syscall3(SYS_EXEC, path.as_ptr() as u64, path.len() as u64, 0)
+        match bound {
+            Some(version) => syscall3(
+                SYS_EXEC_IF_VERSION,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                expected_version_word(version),
+            ),
+            None => syscall3(SYS_EXEC, path.as_ptr() as u64, path.len() as u64, 0),
+        }
     };
+    if result as i64 == VERSION_MISMATCH {
+        return changed_since_approval("exec_process");
+    }
     if (result as i64) > 0 {
         ToolResult {
             tool_name: String::from("exec_process"),
@@ -885,7 +963,7 @@ fn execute_exec_process(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
-fn execute_delete_file(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_delete_file(args: &[(String, JsonValue)], bound: Option<FileVersion>) -> ToolResult {
     let path = find_arg_string(args, "path").unwrap_or_default();
     if path.is_empty() {
         return ToolResult {
@@ -895,8 +973,20 @@ fn execute_delete_file(args: &[(String, JsonValue)]) -> ToolResult {
         };
     }
     let result = unsafe {
-        crate::syscall4(SYS_DELETE_FILE, path.as_ptr() as u64, path.len() as u64, 0, 0)
+        match bound {
+            Some(version) => crate::syscall4(
+                SYS_DELETE_FILE_IF_VERSION,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                expected_version_word(version),
+                0,
+            ),
+            None => crate::syscall4(SYS_DELETE_FILE, path.as_ptr() as u64, path.len() as u64, 0, 0),
+        }
     };
+    if result as i64 == VERSION_MISMATCH {
+        return changed_since_approval("delete_file");
+    }
     ToolResult {
         tool_name: String::from("delete_file"),
         success: result == 0,
@@ -1217,8 +1307,8 @@ fn execute_local_inference(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
-fn execute_trigger_kernel_upgrade() -> ToolResult {
-    match crate::cognitive::self_evolve::trigger_hot_reload() {
+fn execute_trigger_kernel_upgrade(bound: Option<FileVersion>) -> ToolResult {
+    match crate::cognitive::self_evolve::trigger_hot_reload(bound) {
         Ok(()) => ToolResult {
             tool_name: String::from("trigger_kernel_upgrade"),
             success: true,

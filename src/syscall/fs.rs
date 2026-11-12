@@ -176,6 +176,27 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
 ///
 /// Returns: 0 on success, or error.
 pub fn sys_write_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
+    sys_write_file_checked(args, held_capabilities, None)
+}
+
+/// The result of a version-guarded filesystem operation.
+fn guarded_result(result: Result<(), crate::fs::GuardError>) -> SyscallResult {
+    match result {
+        Ok(()) => SyscallResult::ok(0),
+        Err(crate::fs::GuardError::VersionMismatch) => {
+            SyscallResult::err(SyscallStatus::VersionMismatch)
+        }
+        Err(crate::fs::GuardError::Failed(_)) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}
+
+/// WriteFile, and WriteFileIfVersion when `expected` is given (fi1 K3: the
+/// approved write runs only on the version the operator approved).
+pub fn sys_write_file_checked(
+    args: [u64; 6],
+    held_capabilities: &[String],
+    expected: Option<u64>,
+) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
@@ -195,6 +216,9 @@ pub fn sys_write_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
         None if data_len == 0 => alloc::vec::Vec::new(),
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if let Some(expected) = expected {
+        return guarded_result(crate::fs::write_file_if_version(&path, &data, expected));
+    }
     match crate::fs::create_file_bytes(&path, &data) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
@@ -277,12 +301,24 @@ pub fn sys_create_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
 ///
 /// Returns: 0 on success, or error.
 pub fn sys_delete_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
+    sys_delete_file_checked(args, held_capabilities, None)
+}
+
+/// DeleteFile, and DeleteFileIfVersion when `expected` is given.
+pub fn sys_delete_file_checked(
+    args: [u64; 6],
+    held_capabilities: &[String],
+    expected: Option<u64>,
+) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
     if !authorize_path(&path, true, held_capabilities) {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+    if let Some(expected) = expected {
+        return guarded_result(crate::fs::remove_if_version(&path, expected));
     }
 
     match crate::fs::remove(&path) {

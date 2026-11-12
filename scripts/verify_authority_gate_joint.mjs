@@ -159,6 +159,30 @@ try {
       && field(o, "file_as_dir_is_error") === "true",
     (o.match(/selftest file-version: removed.*/) || [""])[0]);
 
+  // Round 2: the version-guarded operations behind an approved action, and
+  // the version defects J2-1 to J2-4.
+  o = await operator("test-syscall file-guard", "alias_reserved_refused=").catch((e) => String(e.message || e).split("\n")[0]);
+  check("K3 guard: a guarded write acts on the expected version and refuses a stale one, writing nothing",
+    field(o, "create_absent") === "true" && field(o, "fresh_write") === "true"
+      && field(o, "stale_write_refused") === "true" && field(o, "absent_expected_refused") === "true"
+      && field(o, "content_kept") === "true",
+    (o.match(/selftest file-guard: create_absent.*/) || [""])[0]);
+  check("K3 guard: a stale delete or exec is refused and the file stays; the current version deletes",
+    field(o, "stale_delete_refused") === "true" && field(o, "stale_exec_refused") === "true"
+      && field(o, "file_kept") === "true" && field(o, "fresh_delete") === "true" && field(o, "removed") === "true",
+    (o.match(/selftest file-guard: stale_delete.*/) || [""])[0]);
+  check("J2-1/J2-3: a write never replaces a directory; a change deep below a directory changes its version",
+    field(o, "write_over_dir_refused") === "true" && field(o, "child_kept") === "true"
+      && field(o, "deep_change_bumps_dir") === "true",
+    (o.match(/selftest file-guard: write_over_dir.*/) || [""])[0]);
+  check("J2-2: the mmap test path reports the real file's version; a trailing // names no node",
+    field(o, "mmap_rewrite_changes") === "true" && field(o, "mmap_absent_after_remove") === "true"
+      && field(o, "empty_name_refused") === "true");
+  check("J2-4: only exact test-program paths run init's ELF under a test name",
+    field(o, "alias_exact") === "true" && field(o, "alias_nested_refused") === "true"
+      && field(o, "alias_reserved_refused") === "true",
+    (o.match(/selftest file-guard: alias.*/) || [""])[0]);
+
   // ---- daemon, end to end ------------------------------------------------
   await operator("ring3 init", "[heliox-daemon] sent HELIOX_READY IPC announce", 60);
   await sleep(2000);
@@ -231,6 +255,24 @@ try {
   check("K3: the request approved for the current version runs", gone?.result?.success === true, out(gone));
   } catch (err) {
     check("K3 section", false, err && err.message ? err.message.split("\n")[0] : String(err));
+  }
+
+  // J2-1 end to end: an approved Tier-3 write of a path that is a directory
+  // must not delete the directory and what is in it (RamFS replaced it).
+  try {
+  await operator("mkdir /tmp/fi1j21", "Directory created: /tmp/fi1j21");
+  await operator("write /tmp/fi1j21/keep kept", "Written to /tmp/fi1j21/keep");
+  const w = await tool("write_file", { path: "/tmp/fi1j21", content: "x" });
+  const wid = awaitingId(w);
+  check("J2-1: a write of a directory path waits for the operator", wid !== null, out(w));
+  await operator(`heliox confirm ${wid}`, `confirmation gate resolved: ${wid}`);
+  await nudge();
+  const ran = await tool("write_file", { path: "/tmp/fi1j21", content: "x" });
+  check("J2-1: the approved write over a directory fails", ran?.result?.success === false, out(ran));
+  const cat = await operator("cat /tmp/fi1j21/keep", "kept", 10).catch(() => "");
+  check("J2-1: the directory and its file are still there", /kept/.test(cat), cat.trim().split("\n").slice(-2).join(" | "));
+  } catch (err) {
+    check("J2-1 section", false, err && err.message ? err.message.split("\n")[0] : String(err));
   }
 
   check("no kernel panic or fault", !/panicked at|PAGE FAULT|Page Fault|General Protection|DOUBLE FAULT/.test(serialText()));

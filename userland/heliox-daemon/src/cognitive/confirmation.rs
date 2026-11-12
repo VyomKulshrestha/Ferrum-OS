@@ -338,7 +338,24 @@ pub fn clear_for_execution(
     auto_approve_tier: u8,
     current_tick: u64,
 ) -> Clearance {
-    let clearance = decide(gate, tool_name, args, auto_approve_tier, current_tick);
+    clear_for_execution_bound(gate, tool_name, args, auto_approve_tier, current_tick).0
+}
+
+/// `clear_for_execution`, plus the file version an approval was bound to.
+/// The version is `Some` exactly when the call proceeds on an operator
+/// approval of an action on a file (`version_subject`); the executor must
+/// then pass it to the kernel's guarded call (WriteFileIfVersion,
+/// DeleteFileIfVersion, ExecIfVersion, or a re-check around the read of the
+/// kernel image), so the action fails if the file changed after this check
+/// (fi1 joint round 2: the check-then-act window of K3).
+pub fn clear_for_execution_bound(
+    gate: &mut ConfirmationGate,
+    tool_name: &str,
+    args: &[(String, super::json::JsonValue)],
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> (Clearance, Option<FileVersion>) {
+    let (clearance, bound) = decide(gate, tool_name, args, auto_approve_tier, current_tick);
     if clearance == Clearance::Proceed
         && super::authority::PATH_MODIFYING_TOOLS.contains(&tool_name)
     {
@@ -346,7 +363,7 @@ pub fn clear_for_execution(
             gate.revoke_path(&path);
         }
     }
-    clearance
+    (clearance, bound)
 }
 
 fn decide(
@@ -355,14 +372,14 @@ fn decide(
     args: &[(String, super::json::JsonValue)],
     auto_approve_tier: u8,
     current_tick: u64,
-) -> Clearance {
+) -> (Clearance, Option<FileVersion>) {
     let tier = super::authority::tool_tier(tool_name);
     if !super::authority::needs_confirmation(tier, auto_approve_tier) {
-        return Clearance::Proceed;
+        return (Clearance::Proceed, None);
     }
     // A call the operator cannot be shown in full is never queued.
     let Some(mut full_display) = super::authority::approval_full_display(args) else {
-        return Clearance::Refused;
+        return (Clearance::Refused, None);
     };
     let fingerprint = super::authority::approval_fingerprint(args);
     // Bind to the file's version (fi1 K3). A version the kernel cannot
@@ -370,13 +387,13 @@ fn decide(
     let version = match super::authority::version_subject(tool_name, args) {
         Some(path) => match gate.file_version(&path) {
             Ok(version) => Some(version),
-            Err(()) => return Clearance::Refused,
+            Err(()) => return (Clearance::Refused, None),
         },
         None => None,
     };
     if let Some(current) = version {
         if gate.withdraw_if_version_changed(tool_name, &fingerprint, current) {
-            return Clearance::FileChanged;
+            return (Clearance::FileChanged, None);
         }
     }
     let mut display = super::authority::approval_display(args);
@@ -391,16 +408,27 @@ fn decide(
         }
     }
     match gate.check_or_request_with_display(tool_name, &fingerprint, &display, tier, current_tick) {
-        ConfirmationStatus::Approved => Clearance::Proceed,
+        // The approval was bound to `version` (any other was withdrawn
+        // above), and the executor hands it to the kernel.
+        ConfirmationStatus::Approved => (Clearance::Proceed, version),
         ConfirmationStatus::Pending(id) => {
             gate.set_subject(id, super::authority::subject_path(tool_name, args));
             // For an existing request this re-records the same version (a
             // different one was withdrawn above).
             gate.set_subject_version(id, version);
-            Clearance::Awaiting { id, display, full_display }
+            (Clearance::Awaiting { id, display, full_display }, None)
         }
-        ConfirmationStatus::Denied => Clearance::Denied,
-        ConfirmationStatus::Expired => Clearance::Expired,
-        ConfirmationStatus::Refused => Clearance::Refused,
+        ConfirmationStatus::Denied => (Clearance::Denied, None),
+        ConfirmationStatus::Expired => (Clearance::Expired, None),
+        ConfirmationStatus::Refused => (Clearance::Refused, None),
+    }
+}
+
+/// The value a version-guarded syscall expects for `version`: 0 for
+/// "nothing exists at the path", otherwise the version itself.
+pub fn expected_version_word(version: FileVersion) -> u64 {
+    match version {
+        FileVersion::Absent => 0,
+        FileVersion::Version(v) => v,
     }
 }

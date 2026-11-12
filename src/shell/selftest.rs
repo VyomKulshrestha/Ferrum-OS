@@ -30,6 +30,7 @@ pub fn run(name: &str) -> bool {
         "ipc-sender" => ipc_sender(),
         "injected-terminal" => injected_terminal(),
         "file-version" => file_version(),
+        "file-guard" => file_guard(),
         _ => return false,
     }
     true
@@ -369,5 +370,100 @@ fn file_version() {
         below_sign_bit,
         crate::fs::file_version("/tmp/../etc/hostname").is_err(),
         crate::fs::file_version("/etc/hostname/x").is_err()
+    );
+}
+
+/// fi1 joint round 2: the version-guarded operations the daemon uses for an
+/// approved action (WriteFileIfVersion, DeleteFileIfVersion, ExecIfVersion),
+/// and the four version defects this round found (J2-1 to J2-4).
+fn file_guard() {
+    use crate::fs::GuardError;
+    let version = |path: &str| crate::fs::file_version(path).ok().flatten().unwrap_or(0);
+    let content = |path: &str| crate::fs::read_file(path).unwrap_or_default();
+
+    // Guarded write and delete: a stale version does nothing, the current
+    // one acts.
+    let path = "/tmp/selftest-guard";
+    let _ = crate::fs::remove(path);
+    let create_absent = crate::fs::write_file_if_version(path, b"one", 0).is_ok();
+    let v1 = version(path);
+    let fresh_write = crate::fs::write_file_if_version(path, b"two", v1).is_ok();
+    let stale_write = crate::fs::write_file_if_version(path, b"evil", v1);
+    let absent_expected_on_existing = crate::fs::write_file_if_version(path, b"evil", 0);
+    let kept = content(path) == "two";
+    let stale_delete = crate::fs::remove_if_version(path, v1);
+    let stale_exec = crate::fs::check_version(path, v1);
+    let still_there = content(path) == "two";
+    let fresh_delete = crate::fs::remove_if_version(path, version(path)).is_ok();
+    let gone = matches!(crate::fs::file_version(path), Ok(None));
+    println!(
+        "selftest file-guard: create_absent={} fresh_write={} stale_write_refused={} absent_expected_refused={} content_kept={}",
+        create_absent,
+        fresh_write,
+        stale_write == Err(GuardError::VersionMismatch),
+        absent_expected_on_existing == Err(GuardError::VersionMismatch),
+        kept
+    );
+    println!(
+        "selftest file-guard: stale_delete_refused={} stale_exec_refused={} file_kept={} fresh_delete={} removed={}",
+        stale_delete == Err(GuardError::VersionMismatch),
+        stale_exec == Err(GuardError::VersionMismatch),
+        still_there,
+        fresh_delete,
+        gone
+    );
+
+    // J2-1: a write never replaces a directory (RamFS dropped the subtree).
+    let dir = "/tmp/selftest-guard-dir";
+    let child = "/tmp/selftest-guard-dir/keep";
+    let _ = crate::fs::create_dir(dir);
+    let _ = crate::fs::create_file(child, "k");
+    let write_over_dir_refused = crate::fs::create_file(dir, "x").is_err();
+    let child_kept = content(child) == "k";
+
+    // J2-3: a change below a directory changes the directory's version (a
+    // RamFS delete of the directory removes everything below it).
+    let sub = "/tmp/selftest-guard-dir/sub";
+    let _ = crate::fs::create_dir(sub);
+    let dir_before = version(dir);
+    let _ = crate::fs::create_file("/tmp/selftest-guard-dir/sub/deep", "d");
+    let dir_after = version(dir);
+    let _ = crate::fs::remove("/tmp/selftest-guard-dir/sub/deep");
+    let _ = crate::fs::remove(sub);
+    let _ = crate::fs::remove(child);
+    let _ = crate::fs::remove(dir);
+
+    // J2-2: the version of the mmap test path is the real file's.
+    let mmap_path = "/mmap_verify";
+    let _ = crate::fs::remove(mmap_path);
+    let _ = crate::fs::create_file(mmap_path, "a");
+    let m1 = version(mmap_path);
+    let _ = crate::fs::create_file(mmap_path, "b");
+    let m2 = version(mmap_path);
+    let _ = crate::fs::remove(mmap_path);
+    let m_absent = matches!(crate::fs::file_version(mmap_path), Ok(None));
+
+    // A trailing `//` names no node (it used to create a child called "").
+    let empty_name_refused = crate::fs::create_file("/tmp//", "x").is_err()
+        && crate::fs::create_file("/tmp/selftest-guard-x//", "x").is_err();
+    let _ = crate::fs::remove("/tmp/selftest-guard-x");
+    println!(
+        "selftest file-guard: write_over_dir_refused={} child_kept={} deep_change_bumps_dir={} mmap_rewrite_changes={} mmap_absent_after_remove={} empty_name_refused={}",
+        write_over_dir_refused,
+        child_kept,
+        dir_before != 0 && dir_before != dir_after,
+        m1 != 0 && m1 != m2,
+        m_absent,
+        empty_name_refused
+    );
+
+    // J2-4: only the exact test-program paths run init's ELF under a test
+    // name.
+    println!(
+        "selftest file-guard: alias_exact={} alias_nested_refused={} alias_reserved_refused={}",
+        crate::syscall::process::is_init_test_alias("/bin/quota-test")
+            && crate::syscall::process::is_init_test_alias("ipc-forge-test"),
+        !crate::syscall::process::is_init_test_alias("/tmp/quota-test/worker"),
+        !crate::syscall::process::is_init_test_alias("/tmp/ipc-forge-test/heliox-assistant-panel")
     );
 }

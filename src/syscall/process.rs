@@ -105,7 +105,30 @@ pub fn vfs_exec_name_allowed(path: &str) -> bool {
 /// `Ready` state; it will be scheduled on the next tick.
 ///
 /// Returns: PID of the new process on success, or error.
+/// Test programs that run init's ELF under their own name (init branches on
+/// the name). Only the exact `/bin/<name>` or the bare name is one: these
+/// used to match any path *containing* the name, so
+/// `/tmp/quota-test/heliox-assistant-panel` ran init's ELF as a process
+/// named `heliox-assistant-panel`, with that program's manifest
+/// capabilities and a claim on its mailbox, past the reserved-name check
+/// that applies only to VFS files (fi1 joint round 2, J2-4).
+pub fn is_init_test_alias(path: &str) -> bool {
+    const TEST_ALIASES: [&str; 5] =
+        ["quota-test", "huge-test", "socket-owner-test", "ipc-owner-test", "ipc-forge-test"];
+    TEST_ALIASES
+        .iter()
+        .any(|name| path == *name || path.strip_prefix("/bin/") == Some(*name))
+}
+
 pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
+    sys_exec_checked(args, None)
+}
+
+/// Exec, and ExecIfVersion when `expected` is given: the path must have that
+/// version (0: nothing in the VFS at the path) when the kernel looks, before
+/// any image is read. Syscalls run with interrupts off on the kernel's one
+/// CPU, so no filesystem change falls between the check and the read.
+pub fn sys_exec_checked(args: [u64; 6], expected: Option<u64>) -> SyscallResult {
     // Read and validate the path string from userspace. `read_user_str`
     // bounds-checks the pointer against the user half (rejecting null,
     // over-long, and kernel-half pointers) and verifies UTF-8.
@@ -114,6 +137,22 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
 
+    if let Some(expected) = expected {
+        match crate::fs::check_version(&path, expected) {
+            Ok(()) => {}
+            Err(crate::fs::GuardError::VersionMismatch) => {
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::PermissionDenied,
+                    "ring3 exec refused: the file changed after it was approved",
+                );
+                return SyscallResult::err(SyscallStatus::VersionMismatch);
+            }
+            Err(crate::fs::GuardError::Failed(_)) => {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
+        }
+    }
+
     let pkg_name = crate::pkg::package_name_from_bin_path(&path);
     let mut package_capabilities = None;
 
@@ -121,14 +160,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     let mut _elf_content_holder: alloc::vec::Vec<u8> = alloc::vec::Vec::new();
     let elf_bytes: &[u8] = if path == "/bin/heliox-daemon" || path == "heliox-daemon" {
         crate::userspace::HELIOX_DAEMON_ELF
-    } else if path == "/bin/init"
-        || path == "init"
-        || path.contains("quota-test")
-        || path.contains("huge-test")
-        || path.contains("socket-owner-test")
-        || path.contains("ipc-owner-test")
-        || path.contains("ipc-forge-test")
-    {
+    } else if path == "/bin/init" || path == "init" || is_init_test_alias(&path) {
         crate::userspace::INIT_ELF
     } else if path == "/bin/gui-smoke-test" || path == "gui-smoke-test" {
         crate::userspace::GUI_SMOKE_TEST_ELF
