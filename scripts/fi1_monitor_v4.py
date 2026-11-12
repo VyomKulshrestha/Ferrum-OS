@@ -310,7 +310,9 @@ class OOR(Multi):
             calibrate_score(unit, lambda a: self._g(unit, a), share * self.q, mask_fn),
             OOR_FLOOR,
         )
-        out_fn = lambda a: self._g(unit, a) > self.tO
+        def out_fn(a):
+            return self._g(unit, a) > self.tO
+
         self.inner.fit(unit, share * (1 - self.q), out_fn)
         return self
 
