@@ -74,7 +74,7 @@ pub fn sys_read_camera_frame(args: [u64; 6]) -> SyscallResult {
     if buf_len < frame_size {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
-    if !super::fs::valid_user_range(buf_ptr, frame_size) {
+    if !super::fs::valid_user_write_range(buf_ptr, frame_size) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -118,7 +118,7 @@ pub fn sys_camera_info(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::ok(0);
     }
 
-    if !super::fs::valid_user_range(buf_ptr, to_copy) {
+    if !super::fs::valid_user_write_range(buf_ptr, to_copy) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     if unsafe { super::fs::copy_to_user(buf_ptr, json, to_copy) } != to_copy {

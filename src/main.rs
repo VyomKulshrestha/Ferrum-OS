@@ -69,6 +69,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // Initialize kernel heap
     ferrumos::memory::heap::init_heap(&mut mapper, &mut frame_allocator)
         .expect("Heap initialization failed");
+    ferrumos::memory::harden_boot_regions(boot_info as *const _ as u64);
     println!(
         "[  OK  ] Kernel heap initialized ({}KB)",
         ferrumos::memory::heap::HEAP_SIZE / 1024

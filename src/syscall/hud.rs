@@ -133,10 +133,10 @@ pub fn sys_pointer_target(args: [u64; 6]) -> SyscallResult {
     let record_ptr = args[0];
     let title_ptr = args[1];
     let title_len = args[2] as usize;
-    if record_ptr == 0 || !super::fs::valid_user_range(record_ptr, RECORD_BYTES) {
+    if record_ptr == 0 || !super::fs::valid_user_write_range(record_ptr, RECORD_BYTES) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
-    if title_ptr != 0 && title_len > 0 && !super::fs::valid_user_range(title_ptr, title_len) {
+    if title_ptr != 0 && title_len > 0 && !super::fs::valid_user_write_range(title_ptr, title_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     let (x, y) = {
@@ -209,7 +209,7 @@ pub fn sys_hit_test(args: [u64; 6]) -> SyscallResult {
     let _copy_len = if label_buf != 0 && label_len > 0 {
         let label_bytes = label.as_bytes();
         let copy_len = core::cmp::min(label_bytes.len(), label_len);
-        if copy_len > 0 && !super::fs::valid_user_range(label_buf, copy_len) {
+        if copy_len > 0 && !super::fs::valid_user_write_range(label_buf, copy_len) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
         if copy_len > 0

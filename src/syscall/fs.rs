@@ -63,6 +63,16 @@ pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
     pid != 0 && crate::process::user_range_is_mapped(pid, ptr, len)
 }
 
+/// `valid_user_range`, and the whole range is writable by the process. Use
+/// for every buffer the kernel writes into, before any side effect.
+pub(crate) fn valid_user_write_range(ptr: u64, len: usize) -> bool {
+    if ptr == 0 || len == 0 {
+        return false;
+    }
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    pid != 0 && crate::process::user_range_is_writable(pid, ptr, len)
+}
+
 /// Copy bytes from a kernel buffer into a userspace buffer.
 ///
 /// # Safety
@@ -71,7 +81,7 @@ pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
 pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
     if to_copy > 0 {
-        if !valid_user_range(dst, to_copy) {
+        if !valid_user_write_range(dst, to_copy) {
             return 0;
         }
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
@@ -143,7 +153,7 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
-    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_range(buf_ptr, buf_len) {
+    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_write_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -245,7 +255,7 @@ pub fn sys_read_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallResu
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
-    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_range(buf_ptr, buf_len) {
+    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_write_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 

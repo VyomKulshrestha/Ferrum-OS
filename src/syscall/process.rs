@@ -20,7 +20,7 @@ pub fn sys_launch_context(args: [u64; 6]) -> SyscallResult {
     let capacity = args[1] as usize;
     if capacity == 0
         || capacity > crate::process::MAX_LAUNCH_CONTEXT_BYTES
-        || !super::fs::valid_user_range(args[0], capacity)
+        || !super::fs::valid_user_write_range(args[0], capacity)
     {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }

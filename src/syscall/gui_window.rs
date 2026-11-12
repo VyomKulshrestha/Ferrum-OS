@@ -86,7 +86,7 @@ pub fn sys_poll_window_input(args: [u64; 6]) -> SyscallResult {
     let out_ptr = args[1];
     let out_len = args[2] as usize;
 
-    if out_len < 20 || !super::fs::valid_user_range(out_ptr, 20) {
+    if out_len < 20 || !super::fs::valid_user_write_range(out_ptr, 20) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -99,7 +99,7 @@ pub fn sys_poll_window_input(args: [u64; 6]) -> SyscallResult {
     // bit 0 = the event was injected by InjectKey/InjectMouse (the agent's
     // input tools), not typed or clicked on a physical device. Additive: a
     // 20-byte caller gets the old record.
-    let record_len = if out_len >= 24 && super::fs::valid_user_range(out_ptr, 24) { 24 } else { 20 };
+    let record_len = if out_len >= 24 && super::fs::valid_user_write_range(out_ptr, 24) { 24 } else { 20 };
     match crate::gui::app_window::poll_input(window_id, pid) {
         Some(ev) => {
             let mut bytes = [0u8; 24];

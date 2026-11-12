@@ -365,6 +365,12 @@ unsafe extern "C" fn timer_interrupt_entry_stub() {
         "push r13",
         "push r14",
         "push r15",
+        // The SysV ABI requires DF = 0 on every call. Ring 3 controls
+        // RFLAGS.DF (`std`), and an interrupt or `int 0x80` does not clear
+        // it, so without this the kernel's memcpy/memset (`rep movs`/`stos`)
+        // run backwards over memory below their destination. The user's DF
+        // is restored by iretq from the saved RFLAGS.
+        "cld",
         "mov rdi, rsp",
         "call {inner}",
         "pop r15",
@@ -397,6 +403,52 @@ pub static TICK_FN_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::A
 pub static TICK_FN_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 pub static TIMER_EOI_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 pub static TIMER_EOI_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+/// Entries into the timer and syscall handlers' Rust code with RFLAGS.DF set
+/// (self-test `df-entry`; must stay 0, see the `cld` in both entry stubs).
+pub static DF_SET_AT_TIMER_ENTRY: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static DF_SET_AT_SYSCALL_ENTRY: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+/// Set by self-test `df-entry`: the next syscall entries copy a buffer with
+/// the kernel's memcpy and count copies whose result differs from the source.
+pub static DF_COPY_PROBE_ARMED: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+pub static DF_COPY_PROBE_RUNS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static DF_COPY_PROBE_BAD: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
+#[inline(always)]
+fn direction_flag_set() -> bool {
+    let flags: u64;
+    unsafe { core::arch::asm!("pushfq", "pop {}", out(reg) flags, options(preserves_flags)) };
+    flags & (1 << 10) != 0
+}
+
+/// Copy 256 bytes inside one static buffer with the kernel's memcpy and check
+/// the result. With DF set, `rep movsb` walks downwards from the destination.
+fn df_copy_probe() {
+    static mut PROBE: [u8; 1024] = [0; 1024];
+    let len = core::hint::black_box(256usize);
+    unsafe {
+        let buf = &raw mut PROBE as *mut u8;
+        for i in 0..len {
+            *buf.add(768 + i) = (i as u8) ^ 0x5A;
+            *buf.add(512 + i) = 0;
+        }
+        core::ptr::copy_nonoverlapping(
+            core::hint::black_box(buf.add(768) as *const u8),
+            core::hint::black_box(buf.add(512)),
+            len,
+        );
+        let mut bad = false;
+        for i in 0..len {
+            if *buf.add(512 + i) != (i as u8) ^ 0x5A {
+                bad = true;
+            }
+        }
+        DF_COPY_PROBE_RUNS.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+        if bad {
+            DF_COPY_PROBE_BAD.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+        }
+    }
+}
+
 pub static SYSCALL_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 pub static SYSCALL_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 
@@ -424,6 +476,9 @@ impl Drop for CycleMeter {
 }
 
 extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
+    if direction_flag_set() {
+        DF_SET_AT_TIMER_ENTRY.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    }
     let _meter = CycleMeter::start(&TIMER_CYCLES, &TIMER_COUNT);
     // Tick the scheduler (if initialized)
     {
@@ -532,8 +587,13 @@ pub fn init_keyboard_queue() {
 
 /// Read a character from the keyboard queue
 pub fn read_keyboard() -> Option<u8> {
-    let mut queue = KEYBOARD_QUEUE.lock();
-    queue.as_mut().and_then(|q| q.pop_front())
+    // The keyboard interrupt pushes into this queue. The shell polls it with
+    // interrupts enabled; a key arriving while the shell held the lock spun
+    // in the interrupt handler for good (one CPU, interrupts off).
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut queue = KEYBOARD_QUEUE.lock();
+        queue.as_mut().and_then(|q| q.pop_front())
+    })
 }
 
 /// Push a synthetic character into the keyboard queue.
@@ -542,12 +602,14 @@ pub fn read_keyboard() -> Option<u8> {
 /// agent-generated keystrokes into the shell. This makes the shell
 /// see injected keys exactly as if they came from the PS/2 keyboard.
 pub fn push_keyboard(ascii: u8) {
-    let mut queue = KEYBOARD_QUEUE.lock();
-    if let Some(q) = queue.as_mut() {
-        if q.len() < 64 {
-            q.push_back(ascii);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut queue = KEYBOARD_QUEUE.lock();
+        if let Some(q) = queue.as_mut() {
+            if q.len() < 64 {
+                q.push_back(ascii);
+            }
         }
-    }
+    })
 }
 
 /// Keyboard interrupt handler (IRQ 1)
@@ -578,18 +640,24 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 pub fn poll_ps2_keyboard() {
     use x86_64::instructions::port::Port;
 
-    let mut status_port = Port::<u8>::new(0x64);
-    let mut data_port = Port::<u8>::new(0x60);
-    for _ in 0..16 {
-        let status = unsafe { status_port.read() };
-        if status & 0x01 == 0 || status & 0x20 != 0 {
-            break;
+    // With interrupts off, as the IRQ 1 handler runs: otherwise the handler
+    // could read the byte between this status check and the data read (this
+    // loop then reads the stale byte again: a doubled key), and it takes the
+    // modifier and event-queue locks this loop may be holding.
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut status_port = Port::<u8>::new(0x64);
+        let mut data_port = Port::<u8>::new(0x60);
+        for _ in 0..16 {
+            let status = unsafe { status_port.read() };
+            if status & 0x01 == 0 || status & 0x20 != 0 {
+                break;
+            }
+            let scancode = unsafe { data_port.read() };
+            if let Some(ch) = scancode_to_ascii(scancode) {
+                crate::input::inject_key_event(ch, true);
+            }
         }
-        let scancode = unsafe { data_port.read() };
-        if let Some(ch) = scancode_to_ascii(scancode) {
-            crate::input::inject_key_event(ch, true);
-        }
-    }
+    })
 }
 
 /// Hardware mouse interrupt handler (IRQ 12)
@@ -791,6 +859,12 @@ unsafe extern "C" fn syscall_entry_stub() {
         "push r13",
         "push r14",
         "push r15",
+        // The SysV ABI requires DF = 0 on every call. Ring 3 controls
+        // RFLAGS.DF (`std`), and an interrupt or `int 0x80` does not clear
+        // it, so without this the kernel's memcpy/memset (`rep movs`/`stos`)
+        // run backwards over memory below their destination. The user's DF
+        // is restored by iretq from the saved RFLAGS.
+        "cld",
         "mov rdi, rsp",
         "call {inner}",
         "pop r15",
@@ -889,6 +963,12 @@ unsafe fn yield_from_syscall(pid: u64, frame: &SyscallFrame) {
 /// file the stub pushed; mutating it changes what the stub pops
 /// before `iretq` (this is how results travel back in rax).
 extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
+    if direction_flag_set() {
+        DF_SET_AT_SYSCALL_ENTRY.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    }
+    if DF_COPY_PROBE_ARMED.load(core::sync::atomic::Ordering::Relaxed) {
+        df_copy_probe();
+    }
     let _meter = CycleMeter::start(&SYSCALL_CYCLES, &SYSCALL_COUNT);
     use crate::serial::SERIAL1;
 

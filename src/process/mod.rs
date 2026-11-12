@@ -18,7 +18,6 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use spin::Mutex;
@@ -126,10 +125,10 @@ pub struct Process {
     pid: u64,
     name: String,
     space: Option<AddressSpace>,
-    /// Boxed kernel stack backing storage. The CPU uses
+    /// Kernel stack (guarded, `memory::kstack`). The CPU uses
     /// `kernel_stack_top` (set in TSS.RSP0) when this process is
     /// interrupted or makes a syscall.
-    kernel_stack: Option<Box<[u8; KERNEL_STACK_SIZE]>>,
+    kernel_stack: Option<crate::memory::kstack::KernelStack>,
     /// Top of the kernel stack (16-byte aligned virtual address).
     kernel_stack_top: VirtAddr,
     /// Top of the user stack (16-byte aligned virtual address),
@@ -250,6 +249,13 @@ impl Process {
             // malformed ELF passed to Exec.
             if !in_user_region(ph.p_vaddr, ph.p_memsz) {
                 return Err("PT_LOAD vaddr outside user region");
+            }
+            // Keep the stack's guard gap free: a segment just below the
+            // stack turned a stack overflow into a silent write into it.
+            if ph.p_vaddr < USER_STACK_BASE + USER_STACK_SIZE as u64
+                && ph.p_vaddr + ph.p_memsz > USER_STACK_BASE - USER_STACK_GUARD
+            {
+                return Err("PT_LOAD overlaps the user stack or its guard");
             }
             let vaddr = VirtAddr::new(ph.p_vaddr);
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
@@ -558,7 +564,9 @@ impl AddressSpace {
         let len_aligned = align_up(len, Size4KiB::SIZE);
         let mut candidate = 0x80_4000_0000u64;
 
-        while candidate + len_aligned <= 0x80_7000_0000 {
+        // Stop USER_STACK_GUARD below the stack: a region that ended exactly
+        // at USER_STACK_BASE let a stack overflow run into it unnoticed.
+        while candidate + len_aligned <= USER_STACK_BASE - USER_STACK_GUARD {
             let mut overlap = false;
 
             // Check program/stack mappings
@@ -847,17 +855,15 @@ pub const USER_STACK_SIZE: usize = 1024 * 1024;
 /// below the slot ceiling (0x100_0000_0000).
 pub const USER_STACK_BASE: u64 = USER_REGION_BASE + 0x7000_0000; // 0x80_7000_0000
 
+/// Unmapped gap kept below the user stack: no ELF segment or mmap region may
+/// use it, so a user stack overflow faults (the process is ended with 139)
+/// instead of writing into the process's other memory.
+pub const USER_STACK_GUARD: u64 = 64 * 1024;
+
 fn l4_to_mut_ptr(frame: PhysFrame) -> *mut PageTable {
     crate::memory::phys_to_virt(frame.start_address()).as_mut_ptr()
 }
 
-/// 16-byte aligned top address of a boxed byte array. Used for
-/// the kernel stack so the SysV ABI's RSP alignment contract
-/// holds when a syscall handler is entered.
-fn aligned_top(buf: &[u8; KERNEL_STACK_SIZE]) -> VirtAddr {
-    let raw = buf.as_ptr() as u64 + KERNEL_STACK_SIZE as u64;
-    VirtAddr::new(raw & !0xFu64)
-}
 
 // ============================================================================
 // Process registry
@@ -955,15 +961,12 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
     let caller = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     process_limit_allows(caller)?;
     let space = AddressSpace::new()?;
-    let kernel_stack: Box<[u8; KERNEL_STACK_SIZE]> = unsafe {
-        let layout = core::alloc::Layout::new::<[u8; KERNEL_STACK_SIZE]>();
-        let ptr = alloc::alloc::alloc_zeroed(layout);
-        if ptr.is_null() {
-            return Err("failed to allocate kernel stack");
-        }
-        Box::from_raw(ptr as *mut [u8; KERNEL_STACK_SIZE])
-    };
-    let kernel_stack_top = aligned_top(&kernel_stack);
+    // A heap box used to hold this stack, with nothing below it but the
+    // next heap object: an overflow in a syscall corrupted the heap silently.
+    // `kstack` maps it with an unmapped guard below (a double fault instead).
+    let kernel_stack =
+        crate::memory::kstack::allocate().ok_or("failed to allocate kernel stack")?;
+    let kernel_stack_top = kernel_stack.top();
     let mut next = NEXT_PID.lock();
     let mut pid = *next;
     // Scheduler bookkeeping tasks (and the userspace model processes built
@@ -1100,6 +1103,39 @@ pub fn user_range_is_mapped(pid: u64, start: u64, len: usize) -> bool {
         .find(|record| record.process.pid == pid)
         .and_then(|record| record.process.space.as_ref())
         .is_some_and(|space| space.contains_user_range(start, len))
+}
+
+/// `user_range_is_mapped`, and every page of the range is mapped present,
+/// user-accessible and writable in the process's page tables. Syscalls that
+/// write to a caller's buffer must use this: ELF text and read-only data are
+/// recorded user mappings too, and a kernel write to one is a ring-0
+/// protection fault, which stops the kernel.
+pub fn user_range_is_writable(pid: u64, start: u64, len: usize) -> bool {
+    use x86_64::structures::paging::mapper::{Translate, TranslateResult};
+    let procs = PROCESSES.lock();
+    let Some(space) = procs
+        .iter()
+        .find(|record| record.process.pid == pid)
+        .and_then(|record| record.process.space.as_ref())
+    else {
+        return false;
+    };
+    if !space.contains_user_range(start, len) {
+        return false;
+    }
+    let table = unsafe { &mut *l4_to_mut_ptr(space.l4_frame) };
+    let mapper = unsafe { OffsetPageTable::new(table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
+    let needed = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE;
+    let end = start + len as u64; // no overflow: contains_user_range checked it
+    let mut page = start & !0xFFF;
+    while page < end {
+        match mapper.translate(VirtAddr::new(page)) {
+            TranslateResult::Mapped { flags, .. } if flags.contains(needed) => {}
+            _ => return false,
+        }
+        page += 4096;
+    }
+    true
 }
 
 /// Look up the user stack top of a registered process by pid.

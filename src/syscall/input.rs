@@ -120,7 +120,7 @@ pub fn sys_poll_input(args: [u64; 6]) -> SyscallResult {
     // advertises a huge buffer.
     let max_events = (buf_len / 16).min(256);
     let writable_len = max_events * 16;
-    if !super::fs::valid_user_range(buf_ptr, writable_len) {
+    if !super::fs::valid_user_write_range(buf_ptr, writable_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     let mut bytes = alloc::vec::Vec::with_capacity(writable_len);

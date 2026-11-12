@@ -699,45 +699,29 @@ pub fn tick() {
             crate::logging::audit::FLUSH_PENDING.store(true, Ordering::SeqCst);
         }
 
-        // First pass: decide which tasks to wake and which
-        // ticks/time-slice to update, collecting them in
-        // plain `Vec`s so we can re-borrow `sched.run_queues`
-        // afterwards without an aliasing violation.
-        let mut to_wake: Vec<u64> = Vec::new();
-        for task in sched.tasks.iter() {
-            if task.state == TaskState::Blocked && task.wake_at <= now {
-                to_wake.push(task.id);
+        // Wake sleepers in place. This runs in the timer interrupt: it used
+        // to collect the pids in a fresh `Vec` on every tick that woke a
+        // task, an allocation from interrupt context.
+        for index in 0..sched.tasks.len() {
+            let task = &mut sched.tasks[index];
+            if task.state != TaskState::Blocked || task.wake_at > now {
+                continue;
+            }
+            task.state = TaskState::Ready;
+            task.wake_at = u64::MAX;
+            task.time_remaining = TIME_SLICE_TICKS;
+            if task.blocked_on_confirmation {
+                task.blocked_on_confirmation = false;
+                task.confirmation_denied = true;
+            }
+            let pid = task.id;
+            let pri = task.priority.index();
+            if !sched.run_queues[pri].contains(&pid) {
+                sched.run_queues[pri].push_back(pid);
             }
         }
 
-        // Second pass: apply the state changes. We touch
-        // `run_queues` and `tasks` separately, releasing the
-        // mutable borrow on each before acquiring the next.
-        for pid in &to_wake {
-            if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == *pid) {
-                task.state = TaskState::Ready;
-                task.wake_at = u64::MAX;
-                task.time_remaining = TIME_SLICE_TICKS;
-                if task.blocked_on_confirmation {
-                    task.blocked_on_confirmation = false;
-                    task.confirmation_denied = true;
-                }
-            }
-            let pri = sched
-                .tasks
-                .iter()
-                .find(|t| t.id == *pid)
-                .map(|t| t.priority.index())
-                .unwrap_or(0);
-            if !sched.run_queues[pri].contains(pid) {
-                sched.run_queues[pri].push_back(*pid);
-            }
-        }
-
-        // Third pass: tick counters and time-slice
-        // accounting. Safe because `to_wake` is the only
-        // outstanding reference into `sched.tasks`.
-        drop(to_wake);
+        // Tick counters and time-slice accounting.
         for task in sched.tasks.iter_mut() {
             if task.state == TaskState::Running || task.state == TaskState::Ready {
                 task.ticks = task.ticks.wrapping_add(1);
@@ -990,6 +974,23 @@ fn spawn_internal(name: String, priority: Priority, capabilities: Vec<String>) -
         "Task spawned",
     );
     id
+}
+
+/// Self-test support (`irq-alloc`): put the bookkeeping task `pid` to sleep
+/// until tick `wake_at`. Returns true if `tick` had woken it since the last
+/// call. Never use on a task that can be resumed.
+pub fn selftest_park(pid: u64, wake_at: u64) -> bool {
+    let mut sched = SCHEDULER.lock();
+    let mut was_woken = false;
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+        was_woken = task.state == TaskState::Ready;
+        task.state = TaskState::Blocked;
+        task.wake_at = wake_at;
+    }
+    for q in sched.run_queues.iter_mut() {
+        q.retain(|p| *p != pid);
+    }
+    was_woken
 }
 
 pub fn kill(id: u64) -> bool {

@@ -689,7 +689,7 @@ fn dispatch_with_context(
             const MAX_RANDOM_BYTES: usize = 1024 * 1024;
             if buf_len == 0
                 || buf_len > MAX_RANDOM_BYTES
-                || !crate::syscall::fs::valid_user_range(buf_ptr, buf_len)
+                || !crate::syscall::fs::valid_user_write_range(buf_ptr, buf_len)
             {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
@@ -841,13 +841,13 @@ fn sys_ipc_receive(
     let buf_ptr = args[0];
     let buf_len = args[1] as usize;
     if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
-        || (buf_len > 0 && !crate::syscall::fs::valid_user_range(buf_ptr, buf_len))
+        || (buf_len > 0 && !crate::syscall::fs::valid_user_write_range(buf_ptr, buf_len))
     {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     const SENDER_RECORD_BYTES: usize = 16;
     if let Some(info) = info_ptr {
-        if info == 0 || !crate::syscall::fs::valid_user_range(info, SENDER_RECORD_BYTES) {
+        if info == 0 || !crate::syscall::fs::valid_user_write_range(info, SENDER_RECORD_BYTES) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
     }

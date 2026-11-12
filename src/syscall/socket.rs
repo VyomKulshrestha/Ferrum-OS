@@ -101,7 +101,7 @@ pub fn sys_recv(
         Ok(value) if value > 0 && value <= MAX_SOCKET_IO => value,
         _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !super::fs::valid_user_range(buf_ptr, requested) {
+    if !super::fs::valid_user_write_range(buf_ptr, requested) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 

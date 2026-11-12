@@ -16,6 +16,7 @@
 // ============================================================================
 
 pub mod heap;
+pub mod kstack;
 
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use alloc::vec::Vec;
@@ -140,6 +141,47 @@ pub fn harden_kernel_mappings() {
     entry.set_addr(addr, flags);
     x86_64::instructions::tlb::flush_all();
     PHYS_MAP_NX_INDEX.store(index, core::sync::atomic::Ordering::SeqCst);
+}
+
+/// P4 indices of the bootloader's stack and boot-information pages, marked
+/// non-executable by `harden_boot_regions` (usize::MAX when not).
+pub static BOOT_STACK_NX_INDEX: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(usize::MAX);
+pub static BOOT_INFO_NX_INDEX: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(usize::MAX);
+
+/// Mark the P4 entries that hold the bootloader's stack (the stack `main` and
+/// the boot-time kernel run on) and the boot-information page non-executable.
+/// bootloader 0.9 maps each in a P4 slot of its own, read-write and
+/// executable. An entry is left alone if it also holds the kernel image,
+/// the heap or the user slot. Call before any address space is created
+/// (they copy the kernel's P4 entries).
+pub fn harden_boot_regions(boot_info_addr: u64) {
+    ensure_nxe();
+    let rsp: u64;
+    unsafe { core::arch::asm!("mov {}, rsp", out(reg) rsp, options(nomem, nostack, preserves_flags)) };
+    let index_of = |addr: u64| ((addr >> 39) & 0x1FF) as usize;
+    let code = index_of(harden_boot_regions as *const () as u64);
+    let heap = index_of(heap::HEAP_START as u64);
+    let offset = PHYS_MEM_OFFSET.lock().map(|o| o.as_u64()).unwrap_or(0);
+    let mark = |addr: u64, record: &core::sync::atomic::AtomicUsize| {
+        let index = index_of(addr);
+        if index == code || index == heap || index == 1 || index == 0 {
+            return;
+        }
+        let l4 = unsafe { &mut *(VirtAddr::new(offset + active_p4_phys().as_u64())).as_mut_ptr::<PageTable>() };
+        let entry = &mut l4[index];
+        if !entry.flags().contains(x86_64::structures::paging::PageTableFlags::PRESENT) {
+            return;
+        }
+        let flags = entry.flags() | x86_64::structures::paging::PageTableFlags::NO_EXECUTE;
+        let frame = entry.addr();
+        entry.set_addr(frame, flags);
+        record.store(index, core::sync::atomic::Ordering::SeqCst);
+    };
+    mark(rsp, &BOOT_STACK_NX_INDEX);
+    mark(boot_info_addr, &BOOT_INFO_NX_INDEX);
+    x86_64::instructions::tlb::flush_all();
 }
 
 /// Flags of the active P4 entry `index` (self-tests).
