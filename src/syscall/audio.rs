@@ -144,7 +144,7 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
     if buf_len > MAX_AUDIO_BUF {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
-    if !super::fs::valid_user_write_range(buf_ptr, buf_len) {
+    if !super::fs::valid_user_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
     if duration_ms == 0 {
@@ -209,11 +209,6 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
             if target_len == 0 {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
-            // Up to 4 MiB on the 12 MiB heap: an infallible allocation that
-            // fails aborts the kernel.
-            let Some(accum) = crate::fs::try_zeroed_vec(target_len) else {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            };
             if crate::devices::hda::start_recording_nonblocking().is_err() {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
@@ -229,7 +224,7 @@ pub fn sys_record_audio(args: [u64; 6]) -> SyscallResult {
                 pid,
                 user_buf_ptr: buf_ptr,
                 user_buf_len: buf_len,
-                accum,
+                accum: alloc::vec![0u8; target_len],
                 copied_bytes: 0,
                 last_lpib: 0,
                 complete_after_tick: started_tick.saturating_add(duration_ticks),

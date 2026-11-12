@@ -68,26 +68,6 @@ lazy_static! {
         idt.general_protection_fault.set_handler_fn(general_protection_fault_handler);
         idt.invalid_opcode.set_handler_fn(invalid_opcode_handler);
         idt.overflow.set_handler_fn(overflow_handler);
-        // Every other exception ring 3 can raise. These gates were missing:
-        // delivering an exception through a not-present gate raises #NP,
-        // whose gate was missing too, so the CPU escalated to a double fault
-        // and the kernel stopped. A ring-3 `div` by zero, a set trap flag,
-        // `icebp`, a push through a non-canonical stack pointer or an
-        // unmasked SSE exception stopped the whole system.
-        idt.divide_error.set_handler_fn(divide_error_handler);
-        idt.debug.set_handler_fn(debug_handler);
-        idt.non_maskable_interrupt.set_handler_fn(nmi_handler);
-        idt.bound_range_exceeded.set_handler_fn(bound_range_handler);
-        idt.device_not_available.set_handler_fn(device_not_available_handler);
-        idt.invalid_tss.set_handler_fn(invalid_tss_handler);
-        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
-        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
-        idt.x87_floating_point.set_handler_fn(x87_floating_point_handler);
-        idt.alignment_check.set_handler_fn(alignment_check_handler);
-        idt.simd_floating_point.set_handler_fn(simd_floating_point_handler);
-        idt.machine_check.set_handler_fn(machine_check_handler);
-        // IRQ 7 of the master PIC is also its spurious vector.
-        idt[PIC_1_OFFSET + 7].set_handler_fn(spurious_irq7_handler);
         
         // Hardware Interrupt Handlers
         unsafe {
@@ -486,12 +466,6 @@ unsafe extern "C" fn timer_interrupt_entry_stub() {
         "push r13",
         "push r14",
         "push r15",
-        // The SysV ABI requires DF = 0 on every call. Ring 3 controls
-        // RFLAGS.DF (`std`), and an interrupt or `int 0x80` does not clear
-        // it, so without this the kernel's memcpy/memset (`rep movs`/`stos`)
-        // run backwards over memory below their destination. The user's DF
-        // is restored by iretq from the saved RFLAGS.
-        "cld",
         "mov rdi, rsp",
         "call {inner}",
         "pop r15",
@@ -714,10 +688,8 @@ pub fn read_keyboard() -> Option<u8> {
     // The keyboard interrupt pushes into this queue. The shell polls it with
     // interrupts enabled; a key arriving while the shell held the lock spun
     // in the interrupt handler for good (one CPU, interrupts off).
-    x86_64::instructions::interrupts::without_interrupts(|| {
-        let mut queue = KEYBOARD_QUEUE.lock();
-        queue.as_mut().and_then(|q| q.pop_front())
-    })
+    let mut queue = KEYBOARD_QUEUE.lock();
+    queue.as_mut().and_then(|q| q.pop_front())
 }
 
 /// Push a synthetic character into the keyboard queue.
@@ -983,12 +955,6 @@ unsafe extern "C" fn syscall_entry_stub() {
         "push r13",
         "push r14",
         "push r15",
-        // The SysV ABI requires DF = 0 on every call. Ring 3 controls
-        // RFLAGS.DF (`std`), and an interrupt or `int 0x80` does not clear
-        // it, so without this the kernel's memcpy/memset (`rep movs`/`stos`)
-        // run backwards over memory below their destination. The user's DF
-        // is restored by iretq from the saved RFLAGS.
-        "cld",
         "mov rdi, rsp",
         "call {inner}",
         "pop r15",

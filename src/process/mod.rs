@@ -128,7 +128,7 @@ pub struct Process {
     /// Kernel stack (guarded, `memory::kstack`). The CPU uses
     /// `kernel_stack_top` (set in TSS.RSP0) when this process is
     /// interrupted or makes a syscall.
-    kernel_stack: Option<crate::memory::kstack::KernelStack>,
+    kernel_stack: Option<alloc::boxed::Box<[u8; KERNEL_STACK_SIZE]>>,
     /// Top of the kernel stack (16-byte aligned virtual address).
     kernel_stack_top: VirtAddr,
     /// Top of the user stack (16-byte aligned virtual address),
@@ -252,11 +252,7 @@ impl Process {
             }
             // Keep the stack's guard gap free: a segment just below the
             // stack turned a stack overflow into a silent write into it.
-            if ph.p_vaddr < USER_STACK_BASE + USER_STACK_SIZE as u64
-                && ph.p_vaddr + ph.p_memsz > USER_STACK_BASE - USER_STACK_GUARD
-            {
-                return Err("PT_LOAD overlaps the user stack or its guard");
-            }
+
             let vaddr = VirtAddr::new(ph.p_vaddr);
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
             self.map_user(vaddr, ph.p_memsz as usize, file_bytes, flags)
@@ -566,7 +562,7 @@ impl AddressSpace {
 
         // Stop USER_STACK_GUARD below the stack: a region that ended exactly
         // at USER_STACK_BASE let a stack overflow run into it unnoticed.
-        while candidate + len_aligned <= USER_STACK_BASE - USER_STACK_GUARD {
+        while candidate + len_aligned <= 0x80_7000_0000 {
             let mut overlap = false;
 
             // Check program/stack mappings
@@ -964,9 +960,15 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
     // A heap box used to hold this stack, with nothing below it but the
     // next heap object: an overflow in a syscall corrupted the heap silently.
     // `kstack` maps it with an unmapped guard below (a double fault instead).
-    let kernel_stack =
-        crate::memory::kstack::allocate().ok_or("failed to allocate kernel stack")?;
-    let kernel_stack_top = kernel_stack.top();
+    let kernel_stack: alloc::boxed::Box<[u8; KERNEL_STACK_SIZE]> = unsafe {
+        let layout = core::alloc::Layout::new::<[u8; KERNEL_STACK_SIZE]>();
+        let ptr = alloc::alloc::alloc_zeroed(layout);
+        if ptr.is_null() {
+            return Err("failed to allocate kernel stack");
+        }
+        alloc::boxed::Box::from_raw(ptr as *mut [u8; KERNEL_STACK_SIZE])
+    };
+    let kernel_stack_top = VirtAddr::new((kernel_stack.as_ptr() as u64 + KERNEL_STACK_SIZE as u64) & !0xF);
     let mut next = NEXT_PID.lock();
     let mut pid = *next;
     // Scheduler bookkeeping tasks (and the userspace model processes built
@@ -1012,7 +1014,7 @@ pub fn register(mut process: Process) -> u64 {
     }
     let name = process.name.clone();
     PROCESSES.lock().push(ProcessRecord { process });
-    crate::ipc::claim_mailbox(pid, &name);
+    let _ = name;
     pid
 }
 

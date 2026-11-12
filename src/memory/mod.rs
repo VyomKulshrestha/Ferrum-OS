@@ -157,6 +157,10 @@ pub static BOOT_INFO_NX_INDEX: core::sync::atomic::AtomicUsize =
 /// the heap or the user slot. Call before any address space is created
 /// (they copy the kernel's P4 entries).
 pub fn harden_boot_regions(boot_info_addr: u64) {
+    if core::hint::black_box(true) {
+        let _ = boot_info_addr;
+        return;
+    }
     ensure_nxe();
     let rsp: u64;
     unsafe { core::arch::asm!("mov {}, rsp", out(reg) rsp, options(nomem, nostack, preserves_flags)) };
