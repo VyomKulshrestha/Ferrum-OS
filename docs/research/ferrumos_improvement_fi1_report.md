@@ -5,9 +5,11 @@ rounds finish. Everything measured on recorded attacks is exploratory; no regist
 was recomputed or replaced. "Checked" means the main session re-ran or re-read the claim; everything
 else is the reporting agent's.
 
-Status on 2026-11-12: workstream B rounds 1 and 2 merged; workstream D round 1 in draft pull request 2;
-the CI repair in draft pull request 4; workstreams A (monitor) and C (kernel) and the second round of D
-still running.
+Status on 2026-11-12, end of the program: every workstream has stopped under the plan's rule. Merged to
+main: the analysis pipeline (three rounds) and the monitor (two rounds). Waiting for the owner's review
+in draft pull request 6, which contains pull requests 2, 3, 4 and 5: the strict CI, the authority gate
+(three rounds and two joint rounds) and the kernel (four rounds). Section 7 gives the outcome and the
+decisions that are the owner's.
 
 ## 1. CI was passing while checks failed (main session)
 
@@ -23,6 +25,17 @@ five checks that were failing on main:
 | `verify_physical_jepa_robustness.py` | the evaluator writes CRLF on Windows; compared byte for byte with an LF file | compared after normalising line endings; content identical |
 | `tools/physical_sim_bridge` PyBullet test | pybullet has no wheel for the runner's Python and is not installed | skipped with a reason when absent |
 | `verify_physical_jepa_robustness.py` (regeneration) and `verify_physical_world_model.py` (full sweep) | the results depend on the number of BLAS threads (below) | regeneration skipped, with a printed reason, on machines with fewer than 24 logical CPUs |
+
+A sixth appeared when the strict rule was merged into the kernel and gate branch (pull request 6,
+commit d92c6c5): `generate_public_evidence.py --check` stopped with "could not parse tool_tier". The
+gate work had moved the daemon's tool tiers from match arms in `tool_mapper.rs` to a table in
+`authority.rs`, and the old CI reported the step green all the same. The generator now reads the table,
+lists `authority.rs` as a source in the provenance record, and accepts the two simulator-only tools
+that are tiered without being world-model actions. The regenerated `capabilities.json` shows the one
+real difference: `keyboard_type`, `mouse_click` and `mouse_move` are tier 4, where the published file
+said tier 3. With that, both workflows pass on pull request 6's head (1efd7a6) under the strict rule,
+and the boot image CI built there is byte for byte the image the round-4 harness runs used (sha256
+c9ab1985...): the merge changed no kernel or userland source.
 
 ### The physical-JEPA evidence depends on the number of BLAS threads
 
@@ -142,6 +155,16 @@ study does not establish that JEPA outperforms the per-action mean), but two num
 the replay false alarms and the rollout error, belong to one training run and not to the method. Each
 needs a sentence in a future version; the closest promotion gate in the committed run had no slack
 (0 against 0).
+
+**Correction, 2026-11-12 (found while writing v1.4).** "The report" in the paragraph above is wrong for
+the OS world-model study. The replay false alarms (216 of 1,969) and the rollout error are quoted in
+"When Agents Control the Kernel" v1.2 (DOI 10.5281/zenodo.21829808), which "Prediction Is Not
+Permission" cites as [15]; v1.3 of the latter does not quote them. "Prediction Is Not Permission"
+depends on that study only through the protected FerrumOS encoder, which is fixed by digest. The
+statement about the OS world-model numbers therefore belongs in a new version of "When Agents Control
+the Kernel"; the statement about the physical model's selection belongs in v1.4 of "Prediction Is Not
+Permission". Whether the earlier report claims or declines the comparison with the per-action mean is
+being read from its text for that new version and is not asserted here.
 
 **Built in this round.** `scripts/repro_env.py` pins the thread count for BLAS, OpenMP, LightGBM and
 PyTorch and records the environment in result files; it is adopted in the unfrozen `tw1a` and `fi1`
@@ -394,6 +417,50 @@ of the vector registers pass between processes; the kernel's static stacks have 
 write paths trust the bitmaps; the delete prompt does not name the path; and every "one CPU, interrupts
 off" argument in these reports assumes a single processor.
 
+### Kernel round 4, the last the plan allows (same pull request 6; code head 2c31ef9, CI green)
+
+Eleven more defects, two of them high. Detail, the negative-control image and the per-check table:
+`fi1_reports/kernel_round4.md` on the pull-request branch.
+
+| | Defect |
+|---|---|
+| High | the upper halves of the AVX registers passed from one process to the next. The kernel enabled AVX and saved only the SSE part at a process switch. Round 3 had called this a covert channel on the grounds that no shipped program uses AVX; the daemon's local inference does (AVX2 whenever the CPU reports it). On the negative control a new process found all 16 upper halves non-zero at its first instruction, and of two programs writing different patterns the first kept 0 of 16. The scheduler now saves and restores the full state with XSAVE and XRSTOR |
+| High | app windows could exhaust the kernel heap: each canvas (up to 1.7 MB) was allocated infallibly from the 12 MiB heap, and three programs with the ordinary window capability could hold 20 MB. The negative control panicked. All app canvases together are now limited to 6 MiB and reserved fallibly |
+| Medium | the ext2 allocators trusted the disk's bitmaps and would hand out the superblock, the root directory's inode or an inode that still had links; removing one of two hard links freed the file under the other |
+| Medium | the shell, desktop, dashboard, idle, return and double-fault stacks had no guard page (round 3 covered only the per-process stacks). An overflow on the negative control stopped the kernel with no message; it is now a reported double fault |
+| Medium | the delete confirmation said "DeleteFile" without the path. The prompt now names the requesting process and the path, with control bytes escaped so a file name cannot draw its own "APPROVED" line |
+| Medium | with two confirmations pending, the operator's key answered the first request in task order, not the one shown last. Only one confirmation can be pending now; a second request is refused at once |
+| Low | removing `dir/.` from the kernel shell freed a live directory; the versioned exec checked a file at a compiled-in program's path, so any writer could block that program; one `unwrap` in Kexec; one unchecked inode number |
+
+The first XSAVE image had a defect of its own, found by the harness and fixed in the same round: under
+this hypervisor the CPUID leaf for the save-area size reports 576 bytes while the save writes 832, so
+every process switch wrote 256 bytes past the task's area, and every command typed at the shell arrived
+as zero bytes. The area is now sized from each enabled component.
+
+**The single-processor assumption is now a checked fact.** The SMP code only copies a trampoline; no
+second processor is ever started. Boot prints the count (`online_cpus=1
+application_processors_started=0`), the harness checks it on a default boot and on a two-processor
+virtual machine, and the timer stops the kernel if a second processor ever enters it. The round report
+lists nine things that must change before one may: the check-then-act file calls, kill and reap, the
+scheduler's global state, vector state, the locking rules for interrupt handlers, TLB shootdown, the
+interrupt controller, the deadlock detector's owner field, and the user-pointer argument.
+
+**Checked by the main session** on the final code's image from CI (sha256 c9ab1985...): twenty-one
+harnesses, one at a time, each passing on its first run, 315 of 315 checks. That is the twenty harnesses
+of round 3 (276 checks) plus the new `verify_kernel_k4` (39 of 39). Host tests: heliox-gate-tests 78,
+physical-runtime 175, neural-protocol 19.
+
+**State of the kernel after four rounds.** 52 defects fixed (12, 15, 14, 11), each with a run-time test
+where one could reach it and each harness run against a negative-control image. Boot to the shell
+prompt fell from 164 s to about 50 s in the same virtual machine. On main's image the first round's
+harness passes 4 of 18 checks and the process-reap test hangs; on the final image all 315 pass. Open,
+each named in the round report: the kernel has no SMEP, SMAP or page-table isolation; any process can
+print a line that looks like the `[SECURITY]` prompt; no ledger caps one process's total kernel heap;
+ext2 gaps that need a disk made elsewhere; and the areas no round examined (the compositor, the xHCI,
+HDA, VirtIO-GPU and VBE drivers, ACPI AML, package signatures, the audit flush to disk, the
+bootloader). The workstream stops at the plan's limit of four rounds, not because a round came back
+empty: round 4 still found two high-severity defects.
+
 ## 5. Kernel and userland together (joint round 1; draft pull request 5, head 47e97e0, CI green)
 
 Pull request 5 contains pull requests 2 and 3 and is to be reviewed after them. It removes two of the
@@ -588,3 +655,77 @@ out-of-range state fitted on attack-free data reduced that alarm time. A second 
 the score recovers onsets of events that begin during a running alarm, at the price of more alarm
 episodes and a few first events. The workstream stops here: the yardstick is met as written, and the
 remaining weakness is a matter of data covering the operating regime, not of the scoring rule.
+
+## 7. Outcome, and what is left to the owner
+
+### What moved
+
+| Area | Measure | Before | After | Where |
+|---|---|---|---|---|
+| CI | failing checks reported green | six (five on main, one on the kernel and gate branch) | none known; a failing command fails its step | pull request 6 |
+| Reproducibility | committed physical-JEPA evidence regenerates byte for byte | no; the CI runner's values differed in 30 places, cause unknown | yes at 24 BLAS threads; cause identified, thread count pinned and recorded | main and pull request 6 |
+| Analysis pipeline | tests over the papers' pipelines | 46 in `scripts/` | 105 added; the CI step runs 122 | main |
+| Monitor | mean onset recall on the check set, at an alarm share not higher | 0.478 at 0.1410 | 0.599 at 0.1385 (second use of the check set) | main |
+| Authority gate | routes by which the agent acts without the operator's approval | three on main: it approved its own request, one approval covered a different action, it typed the confirmation | none found by the last two attacking rounds | pull request 6 |
+| Kernel | harness checks passing | main's image: 4 of 18 on the round-1 harness, the process-reap test hangs | 315 of 315 over twenty-one harnesses | pull request 6 |
+| Kernel | boot to the shell prompt, same virtual machine | 164 s | about 50 s | pull request 6 |
+
+### What did not move
+
+- **The monitor still saturates outside the fitted range.** HAI 20.07 stays in alarm for 39.1% of
+  unlabelled time and ProvICS for 44.0%. Two rounds found no rule fitted on attack-free data that
+  lowers it. The cause is in the data: on HAI 20.07, 94% of alarm time has a sensor outside the range
+  the model was fitted on.
+- **No registered or published number changed**, and none was recomputed.
+- **The kernel is improved and not finished.** The workstream stopped at the plan's limit of four
+  rounds while round 4 was still finding high-severity defects. The open items are in section 4.
+
+### What this says about the papers
+
+The program began from the owner's suspicion that gaps in FerrumOS were causing problems in the papers.
+Four findings bear on that.
+
+1. **"Prediction Is Not Permission" v1.3.** The selection and promotion of the deployed physical model
+   change with the number of BLAS threads (section 2, round 3). The deployed checkpoint is fixed by
+   digest, so evaluations of it stand. Several tables rest on rules the text does not state (section 2,
+   round 2: Tables 7, 13, 19, 30 and others). None overturns a headline; each needs a sentence.
+   (Corrected 2026-11-12: the OS world-model study, whose numbers and one comparison also change with
+   the thread count, is reported in "When Agents Control the Kernel" v1.2, not in this report; see the
+   correction in section 2.)
+2. **"Thresholds That Travel".** The registered comparison of tracker and frozen threshold holds under
+   a stream-level bootstrap. The saturation the paper reports on HAI 20.07 is explained by plant states
+   outside the fitted range, which the paper can cite as a post-hoc diagnosis.
+3. **The real-telemetry study rt2.** One published comparison (D1 against DR on HAI 21.03) is decided
+   by how a resample with no baseline misses is scored.
+4. **The planned operator study.** On main the agent could approve its own request. The v1.3 report
+   claims only that a prediction cannot bypass confirmation, so no published claim is contradicted, but
+   an experiment with an operator in the loop would have measured a gate the agent could walk around.
+   That is fixed in pull request 6.
+
+### Decisions that are the owner's
+
+1. **Review and merge pull request 6.** It contains pull requests 2, 3, 4 and 5; merged with a merge
+   commit, the other four show as merged. Behaviour changes to accept with it: kernel services need
+   `cap:system:all` to start or stop, so the daemon's `service_start` and `service_stop` are denied and
+   new world-model collections will record those denials; the continuous-CPU quota is enforced for
+   ordinary apps; a ring-0 fault stops the kernel; the three input-injection tools are tier 4; one
+   confirmation at a time; app canvases share 6 MiB.
+2. **A version 1.4 of "Prediction Is Not Permission"**, or not: the thread-count dependence, the Table
+   13 tie, the unreachable threshold in Table 7, the search rule of Table 30, the control rows for
+   Table 19, the 0/0 bootstrap convention.
+3. **Policy questions the gate rounds left pinned by tests, behaviour unchanged.** Reading and sending
+   both run unasked at the default tier, so anything the daemon can read can leave the machine without
+   an approval (Q1); the operator approves by id from a console the agent can scroll (Q2); a
+   `config.json` that does not parse falls back to tier 2 (Q3); test hooks under `/tmp` are compiled
+   into the production daemon (Q4); `service_stop` shows only a number, autosave writes model text
+   without the approval `save_memory` asks for, and an auto-approve tier of 4 approves everything (Q5):
+   `fi1_reports/userland_round3.md`. The panel's flag is accepted for CONFIRM, the boot-time setup
+   panel is marked as the operator's, keyboard focus is not part of an approval, and a delete of the
+   directory above `config.json` is not refused (Q-J2a to Q-J2d): `fi1_reports/joint_round2.md`. In the
+   physical runtime a missing or stale occupancy record counts as zero humans (O1), and a motion command
+   has no step, speed or payload bound (O5): `fi1_reports/userland_round2.md`. Each entry lists options
+   and their cost.
+4. **Whether future monitor studies use the two-channel monitor.** If they do, the yardstick should
+   count alarm episodes as well as alarm time; this program's did not, and that is where the cost fell.
+5. **Whether the kernel gets rounds beyond the plan**, and on which open item first. The largest are
+   SMEP and SMAP, the forgeable `[SECURITY]` line, and the areas no round examined.
