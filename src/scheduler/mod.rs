@@ -473,20 +473,13 @@ pub fn register_user(
     let caller_pid = CURRENT_PID.load(Ordering::SeqCst);
     let parent_id = if caller_pid == 0 { None } else { Some(caller_pid) };
     
-    let safe_name = sanitize_task_name(name);
-    let name = safe_name.as_str();
     let mut sched = SCHEDULER.lock();
     let is_exempt = capabilities.iter().any(|c| c == "cap:quota:exempt");
-    let mut quotas = if is_exempt {
+    let quotas = if is_exempt {
         TaskQuotas::unlimited()
     } else {
         TaskQuotas::default_user()
     };
-    // The root supervisor (init) runs long compute self-tests in ring 3; the
-    // continuous-CPU limit applies to everything below it.
-    if capabilities.iter().any(|c| c == "cap:system:all") {
-        quotas.max_cpu_ticks_continuous = u64::MAX;
-    }
     
     if let Some(idx) = sched.tasks.iter().position(|t| t.id == pid) {
         sched.tasks[idx].name = String::from(name);
@@ -561,26 +554,6 @@ pub fn register_user(
     // Mark which index in `tasks`/`contexts` the pid lives at so
     // we can do O(1) lookups without scanning.
     debug_assert_eq!(sched.tasks[idx].id, pid);
-}
-
-/// Longest task name kept (bytes).
-pub const MAX_TASK_NAME: usize = 64;
-
-/// Task names come from the last component of an Exec path, so a process can
-/// choose its own. They are written into JSON (SystemQuery's process list),
-/// shown by `ps` and matched as mailbox names. Keep printable ASCII other than
-/// `"` and `\`, replace everything else with `_`, and cap the length, so no
-/// name can close a JSON string or forge fields after it.
-pub fn sanitize_task_name(name: &str) -> String {
-    let mut out = String::with_capacity(name.len().min(MAX_TASK_NAME));
-    for byte in name.bytes().take(MAX_TASK_NAME) {
-        let keep = (0x20..0x7F).contains(&byte) && byte != b'"' && byte != b'\\';
-        out.push(if keep { byte as char } else { '_' });
-    }
-    if out.is_empty() {
-        out.push('_');
-    }
-    out
 }
 
 /// Register a long-running ring-0 loop (e.g. the desktop compositor)
@@ -742,6 +715,7 @@ pub fn tick() {
             if task.state == TaskState::Running || task.state == TaskState::Ready {
                 task.ticks = task.ticks.wrapping_add(1);
                 if task.state == TaskState::Running {
+                    task.quotas.used_cpu_ticks_continuous = task.quotas.used_cpu_ticks_continuous.saturating_add(1);
                     if task.time_remaining > 0 {
                         task.time_remaining -= 1;
                     }
@@ -897,12 +871,9 @@ pub fn yield_current() -> bool {
     let mut sched = SCHEDULER.lock();
     if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
         if task.state == TaskState::Running {
-            // The continuous-CPU count is not reset here: this is also the
-            // timer's preemption path, and resetting on preemption meant the
-            // count never got past one time slice. Syscalls reset it
-            // (`note_syscall_entry`), sys_yield among them.
             task.state = TaskState::Ready;
             task.time_remaining = TIME_SLICE_TICKS;
+            task.quotas.used_cpu_ticks_continuous = 0;
             let pri = task.priority.index();
             if !sched.run_queues[pri].contains(&pid) {
                 sched.run_queues[pri].push_back(pid);
@@ -1708,42 +1679,9 @@ fn wake_confirmation_waiters_locked(sched: &mut Scheduler, key: u8, pressed_at: 
     woken_any
 }
 
-/// Pid whose syscall entry has not yet been folded into its CPU count.
-static SYSCALL_ENTERED: AtomicU64 = AtomicU64::new(0);
-
-/// Called on every ring-3 syscall entry: the task left ring 3 of its own
-/// accord, so its continuous run ends. Lock-free; `charge_user_tick` applies
-/// it on the task's next charged tick.
-pub fn note_syscall_entry(pid: u64) {
-    SYSCALL_ENTERED.store(pid, Ordering::SeqCst);
-}
-
-/// Charge one timer tick that interrupted `pid` in ring 3 and enforce the
-/// continuous-CPU quota. Returns true when the task was killed for it (the
-/// caller must switch away). Ticks spent in the kernel on the task's behalf
-/// are not charged.
-pub fn charge_user_tick(pid: u64) -> bool {
-    {
-        // Interrupted ring 3, so no kernel code on this CPU holds the lock.
-        let Some(mut sched) = SCHEDULER.try_lock() else { return false };
-        let entered = SYSCALL_ENTERED.swap(0, Ordering::SeqCst) == pid;
-        let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) else { return false };
-        if entered {
-            task.quotas.used_cpu_ticks_continuous = 0;
-        }
-        task.quotas.used_cpu_ticks_continuous = task.quotas.used_cpu_ticks_continuous.saturating_add(1);
-    }
-    check_and_enforce_quotas(pid)
-}
-
-/// Continuous ring-3 ticks charged to `pid` (self-tests).
+// NEGATIVE CONTROL: fix held back; the items below only let the round-2 self-tests build.
 pub fn continuous_cpu_ticks(pid: u64) -> Option<u64> {
-    SCHEDULER
-        .lock()
-        .tasks
-        .iter()
-        .find(|t| t.id == pid)
-        .map(|t| t.quotas.used_cpu_ticks_continuous)
+    SCHEDULER.lock().tasks.iter().find(|t| t.id == pid).map(|t| t.quotas.used_cpu_ticks_continuous)
 }
 
 /// Check if the running task has exceeded its CPU continuous execution quota.

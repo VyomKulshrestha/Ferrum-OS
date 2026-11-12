@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // FerrumOS - Modular Service Manager
 // ============================================================================
 // Manages lifecycle of kernel and userspace services.
@@ -252,32 +252,6 @@ pub fn register_manifest(manifest: ServiceManifest) -> u64 {
     id
 }
 
-/// The capability a caller lacks to start, stop or restart `service`, if
-/// any. A service's own `required_capabilities` were the only check, and
-/// every core service (kernel.memory, kernel.security, ...) has none, so any
-/// process, holding no capability at all, could mark the security service
-/// stopped in the operator's service table. Kernel-layer services now need
-/// `cap:system:all`; a runtime service without its own requirement needs the
-/// (non-delegatable) service-registration capability.
-fn missing_lifecycle_capability(service: &Service, held_capabilities: &[String]) -> Option<String> {
-    if service.layer == ServiceLayer::Kernel {
-        if !held_capabilities.iter().any(|held| held == "cap:system:all") {
-            return Some(String::from("cap:system:all"));
-        }
-        return None;
-    }
-    if service.required_capabilities.is_empty()
-        && !crate::security::holds_capability_token(held_capabilities, "cap:service:register")
-    {
-        return Some(String::from("cap:service:register"));
-    }
-    service
-        .required_capabilities
-        .iter()
-        .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
-        .cloned()
-}
-
 /// Start a service by ID
 pub fn start_service(id: u64) -> Result<(), String> {
     let held_capabilities = alloc::vec![String::from("cap:system:all")];
@@ -294,7 +268,11 @@ pub fn start_service_authorized(id: u64, held_capabilities: &[String]) -> Result
             .find(|svc| svc.id == id)
             .ok_or_else(|| String::from("service not found"))?;
 
-        missing_lifecycle_capability(service, held_capabilities)
+        service
+            .required_capabilities
+            .iter()
+            .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
+            .cloned()
     };
 
     if let Some(required) = missing_capability {
@@ -346,7 +324,11 @@ pub fn stop_service_authorized(id: u64, held_capabilities: &[String]) -> Result<
             .find(|svc| svc.id == id)
             .ok_or_else(|| String::from("service not found"))?;
 
-        missing_lifecycle_capability(service, held_capabilities)
+        service
+            .required_capabilities
+            .iter()
+            .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
+            .cloned()
     };
 
     if let Some(required) = missing_capability {
@@ -396,7 +378,11 @@ pub fn restart_service_authorized(id: u64, held_capabilities: &[String]) -> Resu
             .find(|svc| svc.id == id)
             .ok_or_else(|| String::from("service not found"))?;
 
-        missing_lifecycle_capability(service, held_capabilities)
+        service
+            .required_capabilities
+            .iter()
+            .find(|required| !crate::security::holds_capability_token(held_capabilities, required))
+            .cloned()
     };
 
     if let Some(required) = missing_capability {

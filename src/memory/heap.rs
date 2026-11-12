@@ -61,17 +61,12 @@ pub fn init_heap(
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
 
-    // NO_EXECUTE is a reserved bit unless EFER.NXE is set.
-    super::ensure_nxe();
-
     // Map each page to a physical frame
     for page in page_range {
         let frame = frame_allocator
             .allocate_frame()
             .ok_or(MapToError::FrameAllocationFailed)?;
-        // Heap pages hold data only (Vec buffers, process kernel stacks,
-        // canvases); they were mapped executable.
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         unsafe {
             mapper.map_to(page, frame, flags, frame_allocator)?.flush();
         }
@@ -81,8 +76,6 @@ pub fn init_heap(
     unsafe {
         ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE);
     }
-
-    super::harden_kernel_mappings();
 
     Ok(())
 }

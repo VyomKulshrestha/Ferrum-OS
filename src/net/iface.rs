@@ -31,11 +31,6 @@ pub struct SocketEntry {
     /// authority and must never be usable by another ring-3 task that guesses
     /// the small numeric FD.
     pub owner_pid: u64,
-    /// Port this socket listens on (0 when it never listened).
-    pub listen_port: u16,
-    /// Millisecond timestamp at which a listener was first seen half-open
-    /// (SYN-RECEIVED), 0 when it is not.
-    pub half_open_since_ms: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,19 +39,8 @@ pub enum SocketType {
 }
 
 const MAX_SOCKETS: usize = 64;
-/// Descriptors one process may hold at once. Without it one process with
-/// `net:connect` could take all 64 (and 2 MiB of kernel heap in buffers),
-/// leaving the daemon none.
-pub const MAX_SOCKETS_PER_OWNER: usize = 16;
-/// A listener that sits in SYN-RECEIVED this long (the peer never completed
-/// the handshake) is reset to LISTEN. smoltcp keeps one connection per
-/// socket and has no SYN-RECEIVED timeout of its own, so a single SYN from an
-/// address that never answers kept the listener busy for good and every
-/// later client was refused.
-pub const HALF_OPEN_TIMEOUT_MS: u64 = 3000;
-/// Listeners reset by the half-open timeout since boot.
+// NEGATIVE CONTROL: fix held back; the items below only let the round-2 self-tests build.
 pub static HALF_OPEN_RESETS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
-const SOCKET_BUFFER_BYTES: usize = 16384;
 const FD_BASE: u64 = 100; // FDs start at 100 to avoid collision with stdio
 static NEXT_EPHEMERAL_PORT: AtomicU16 = AtomicU16::new(0);
 
@@ -130,15 +114,8 @@ pub fn socket_create_tcp(owner_pid: u64) -> Result<u64, &'static str> {
     // flight (ServerHello + Certificate + CertVerify + Finished can exceed
     // 4 KiB). 16 KiB matches the daemon's embedded-tls record buffers and
     // avoids handshake stalls/resets from receive-window starvation.
-    //
-    // The per-owner limit is checked before any allocation, and the buffers
-    // are allocated fallibly: 32 KiB per socket on the 12 MiB kernel heap
-    // used to abort the kernel when the heap could not hold them.
-    if sockets_owned_by(owner_pid) >= MAX_SOCKETS_PER_OWNER {
-        return Err("per-process socket limit reached");
-    }
-    let rx_buffer = tcp::SocketBuffer::new(try_socket_buffer().ok_or("out of kernel memory")?);
-    let tx_buffer = tcp::SocketBuffer::new(try_socket_buffer().ok_or("out of kernel memory")?);
+    let rx_buffer = tcp::SocketBuffer::new(vec![0u8; 16384]);
+    let tx_buffer = tcp::SocketBuffer::new(vec![0u8; 16384]);
     let socket = tcp::Socket::new(rx_buffer, tx_buffer);
 
     let mut sockets = SOCKETS.lock();
@@ -154,8 +131,6 @@ pub fn socket_create_tcp(owner_pid: u64) -> Result<u64, &'static str> {
                 socket_type: SocketType::Tcp,
                 in_use: true,
                 owner_pid,
-                listen_port: 0,
-                half_open_since_ms: 0,
             });
             return Ok(FD_BASE + i as u64);
         }
@@ -176,11 +151,10 @@ pub fn socket_connect(owner_pid: u64, fd: u64, ip_packed: u64, port: u64) -> Res
 
     let entry = lookup_fd(owner_pid, fd)?;
     let handle = entry.handle;
-    // `port as u16` used to truncate: 65616 connected to port 80.
-    let remote_port = valid_port(port)?;
 
     let ip_bytes = (ip_packed as u32).to_be_bytes();
     let remote_addr = Ipv4Address::new(ip_bytes[0], ip_bytes[1], ip_bytes[2], ip_bytes[3]);
+    let remote_port = port as u16;
 
     // FD slots are deliberately reused after close; deriving a local port
     // from only the FD immediately reused the same TCP 4-tuple and could make
@@ -214,85 +188,16 @@ pub fn socket_bind(owner_pid: u64, fd: u64, port: u64) -> Result<(), &'static st
 
     let entry = lookup_fd(owner_pid, fd)?;
     let handle = entry.handle;
-    let port = valid_port(port)?;
 
     let mut sockets = SOCKETS.lock();
     let sockets = sockets.as_mut().ok_or("socket set not initialized")?;
-    let mut fd_table = FD_TABLE.lock();
-
-    // A port another process listens on (or holds a connection on) is taken.
-    // smoltcp hands an incoming SYN to the first listening socket in its set,
-    // so a second `net:listen` holder that bound the daemon's port in a lower
-    // slot received the daemon's next client.
-    for other in fd_table.iter().flatten() {
-        if other.owner_pid == owner_pid || other.handle == handle {
-            continue;
-        }
-        let other_socket = sockets.get::<tcp::Socket>(other.handle);
-        let listening_here = other.listen_port == port && other_socket.state() != tcp::State::Closed;
-        let connected_here = other_socket
-            .local_endpoint()
-            .map(|endpoint| endpoint.port == port)
-            .unwrap_or(false);
-        if listening_here || connected_here {
-            return Err("port in use by another process");
-        }
-    }
 
     let socket = sockets.get_mut::<tcp::Socket>(handle);
     socket
-        .listen(port)
+        .listen(port as u16)
         .map_err(|_| "TCP bind/listen failed")?;
-    if let Ok(idx) = fd_to_index(fd) {
-        if let Some(slot) = fd_table[idx].as_mut() {
-            slot.listen_port = port;
-            slot.half_open_since_ms = 0;
-        }
-    }
 
     Ok(())
-}
-
-/// A TCP port number from a syscall argument: 1..=65535.
-fn valid_port(port: u64) -> Result<u16, &'static str> {
-    if port == 0 || port > u16::MAX as u64 {
-        return Err("invalid port");
-    }
-    Ok(port as u16)
-}
-
-fn try_socket_buffer() -> Option<alloc::vec::Vec<u8>> {
-    let mut buffer = alloc::vec::Vec::new();
-    buffer.try_reserve_exact(SOCKET_BUFFER_BYTES).ok()?;
-    buffer.resize(SOCKET_BUFFER_BYTES, 0);
-    Some(buffer)
-}
-
-/// Reset listeners that have been half-open for longer than
-/// `HALF_OPEN_TIMEOUT_MS` back to LISTEN. Caller holds SOCKETS (lock order
-/// SOCKETS -> FD_TABLE, as in `socket_close`).
-fn expire_half_open(sockets: &mut SocketSet<'static>, now_ms: u64) {
-    let now_ms = now_ms.max(1);
-    let mut fd_table = FD_TABLE.lock();
-    for entry in fd_table.iter_mut().flatten() {
-        if entry.listen_port == 0 {
-            continue;
-        }
-        let socket = sockets.get_mut::<tcp::Socket>(entry.handle);
-        if socket.state() != tcp::State::SynReceived {
-            entry.half_open_since_ms = 0;
-            continue;
-        }
-        if entry.half_open_since_ms == 0 {
-            entry.half_open_since_ms = now_ms;
-        } else if now_ms.saturating_sub(entry.half_open_since_ms) >= HALF_OPEN_TIMEOUT_MS {
-            socket.abort();
-            let _ = socket.listen(entry.listen_port);
-            entry.half_open_since_ms = 0;
-            HALF_OPEN_RESETS.fetch_add(1, Ordering::Relaxed);
-            crate::serial_println!("[net] listener on port {} reset after a half-open handshake", entry.listen_port);
-        }
-    }
 }
 
 /// Send data through a TCP socket. Returns bytes written.
@@ -456,25 +361,14 @@ pub fn poll() {
     if let (Some(iface), Some(sockets)) = (iface_guard.as_mut(), sockets_guard.as_mut()) {
         // Convert ticks to milliseconds at the PIT's configured rate.
         let ticks = crate::scheduler::total_ticks();
-        let now_ms = ticks * crate::interrupts::PIT_TICK_MS;
-        let timestamp = Instant::from_millis(now_ms as i64);
+        let timestamp = Instant::from_millis((ticks * crate::interrupts::PIT_TICK_MS) as i64);
         iface.poll(timestamp, &mut *device_guard, sockets);
-        expire_half_open(sockets, now_ms);
     }
 }
 
 // ---- Helpers ---------------------------------------------------------------
 
-/// Number of descriptors `owner_pid` holds.
-pub fn sockets_owned_by(owner_pid: u64) -> usize {
-    FD_TABLE
-        .lock()
-        .iter()
-        .filter(|slot| slot.map(|entry| entry.owner_pid == owner_pid).unwrap_or(false))
-        .count()
-}
-
-/// TCP state of a descriptor, for the kernel self-tests.
+// NEGATIVE CONTROL: fix held back; the items below only let the round-2 self-tests build.
 pub fn socket_state_name(owner_pid: u64, fd: u64) -> &'static str {
     let Ok(entry) = lookup_fd(owner_pid, fd) else { return "none" };
     let mut sockets = SOCKETS.lock();

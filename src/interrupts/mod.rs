@@ -181,31 +181,12 @@ pub fn init_pit() {
 // CPU Exception Handlers
 // ============================================================================
 
-/// Kernel faults that were not turned into a user-process kill since boot
-/// (the self-test `ring0-fault` checks the classification below).
-pub static KERNEL_FAULTS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
-
-/// True when the exception interrupted ring 3. A fault taken in ring 0 is a
-/// kernel bug (or a kernel access a syscall should have refused) even while a
-/// user process is current: it used to be treated as that process's fault,
-/// which killed the process, hid the corruption and resumed the scheduler
-/// with whatever locks the faulting kernel code held.
-pub fn fault_from_user_mode(code_segment: u64) -> bool {
-    code_segment & 3 == 3
-}
-
 fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -> bool {
+    // In x86_64 0.14.x, SegmentSelector has a privilege_level method, but we can just check the raw bits
+    // Actually, x86_64 doesn't have an easy method to extract the raw u16 from SegmentSelector in all versions,
+    // so we can use stack_frame.cs.0 if it's public, or just skip the CS check if we can't do it easily,
+    // wait, we can just check CURRENT_PID! If CURRENT_PID > 0, it's a userspace task!
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
-    let from_user = fault_from_user_mode(stack_frame.code_segment.0 as u64);
-    if !from_user {
-        KERNEL_FAULTS.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
-        crate::serial_println!(
-            "[KERNEL] {} in ring 0 (current pid {}): stopping the kernel",
-            fault_name,
-            pid
-        );
-        return false;
-    }
     if pid != 0 {
         use x86_64::registers::control::Cr2;
         let rsp = stack_frame.stack_pointer.as_u64();
@@ -432,16 +413,6 @@ extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
     if (frame.cs & 3) == 3 {
         let current_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
         if current_pid != 0 {
-            // Charge this tick to the task's continuous ring-3 run (reset
-            // by every syscall). `check_and_enforce_quotas` existed but was
-            // never called, so a non-exempt task could spin for ever.
-            if crate::scheduler::charge_user_tick(current_pid) {
-                crate::serial_println!(
-                    "[KERNEL] pid {} exceeded its continuous CPU quota, terminating.",
-                    current_pid
-                );
-                unsafe { resume_after_death() }
-            }
             if crate::scheduler::should_preempt(current_pid) {
                 unsafe {
                     if crate::scheduler::yield_current() {
@@ -894,18 +865,7 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
     let current_pid =
         crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
 
-    // The legacy Linux-numbered path below trusts its pointers (SYS_WRITE
-    // copies from arg0 unchecked) and is meant for ring-0 callers. Ring-3
-    // code always runs with its pid in CURRENT_PID; if it ever reached here
-    // without one, refuse rather than act with kernel trust.
-    if current_pid == 0 && fault_from_user_mode(frame.cs) {
-        frame.rax = EPERM;
-        return;
-    }
-
     if current_pid > 0 {
-        // Entering the kernel restarts the task's continuous-CPU count.
-        crate::scheduler::note_syscall_entry(current_pid);
         use crate::syscall::SyscallNumber;
         let args = [arg0, arg1, arg2, arg3, frame.r8, frame.r9];
 
