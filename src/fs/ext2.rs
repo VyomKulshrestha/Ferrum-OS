@@ -242,6 +242,101 @@ fn set_bit(buf: &mut [u8], bit: usize, val: bool) {
 }
 
 // ============================================================================
+// Mount-time validation
+// ============================================================================
+
+/// Largest group count accepted (the descriptor table is read into the
+/// kernel heap: 8192 groups is 256 KiB, a 64 GiB filesystem at 8 MiB groups).
+pub const MAX_GROUPS: u32 = 8192;
+
+/// Geometry derived from a validated superblock.
+pub struct Ext2Geometry {
+    pub block_size: u32,
+    pub groups_count: u32,
+    pub inode_size: u32,
+    /// Blocks each group's inode table occupies.
+    pub inode_table_blocks: u32,
+}
+
+/// Check every superblock field the driver relies on. `sector_count` 0 means
+/// the device size is unknown.
+pub fn validate_superblock(sb: &Superblock, sector_size: usize, sector_count: u64) -> Result<Ext2Geometry, String> {
+    let bad = |what: &str| Err(alloc::format!("invalid ext2 superblock: {}", what));
+    if sb.magic != EXT2_MAGIC {
+        return bad("magic");
+    }
+    // 1 KiB .. 64 KiB blocks.
+    if sb.log_block_size > 6 {
+        return bad("block size");
+    }
+    let block_size = 1024u32 << sb.log_block_size;
+    if sector_size == 0 || block_size as usize % sector_size != 0 {
+        return bad("block size is not a multiple of the sector size");
+    }
+    let bitmap_bits = block_size.saturating_mul(8);
+    if sb.blocks_count == 0 || sb.inodes_count == 0 {
+        return bad("empty filesystem");
+    }
+    if sb.blocks_per_group == 0 || sb.blocks_per_group > bitmap_bits {
+        return bad("blocks per group");
+    }
+    if sb.inodes_per_group == 0 || sb.inodes_per_group > bitmap_bits {
+        return bad("inodes per group");
+    }
+    if sb.first_data_block > 1 || sb.first_data_block >= sb.blocks_count {
+        return bad("first data block");
+    }
+    let inode_size = if sb.rev_level >= 1 { sb.inode_size as u32 } else { 128 };
+    if inode_size < 128 || !inode_size.is_power_of_two() || inode_size > block_size {
+        return bad("inode size");
+    }
+    let groups_by_inodes = sb.inodes_count.div_ceil(sb.inodes_per_group);
+    let groups_by_blocks = (sb.blocks_count - sb.first_data_block).div_ceil(sb.blocks_per_group);
+    if groups_by_inodes == 0 || groups_by_inodes > MAX_GROUPS || groups_by_inodes > groups_by_blocks {
+        return bad("group count");
+    }
+    if sector_count != 0 {
+        let sectors = sb.blocks_count as u64 * (block_size as u64 / sector_size as u64);
+        if sectors > sector_count {
+            return bad("larger than the device");
+        }
+    }
+    // The descriptor table must fit after the superblock's block.
+    let gdt_blocks = (groups_by_inodes as u64 * size_of::<BlockGroupDescriptor>() as u64).div_ceil(block_size as u64);
+    if sb.first_data_block as u64 + 1 + gdt_blocks > sb.blocks_count as u64 {
+        return bad("descriptor table outside the filesystem");
+    }
+    let inode_table_blocks = (sb.inodes_per_group as u64 * inode_size as u64).div_ceil(block_size as u64);
+    Ok(Ext2Geometry {
+        block_size,
+        groups_count: groups_by_inodes,
+        inode_size,
+        inode_table_blocks: inode_table_blocks as u32,
+    })
+}
+
+/// Check that a group descriptor's bitmaps and inode table lie inside the
+/// filesystem (block arithmetic on them is then free of overflow).
+pub fn validate_group_descriptor(
+    sb: &Superblock,
+    geometry: &Ext2Geometry,
+    group: u32,
+    desc: &BlockGroupDescriptor,
+) -> Result<(), String> {
+    let first = sb.first_data_block as u64;
+    let end = sb.blocks_count as u64;
+    let inside = |block: u32, len: u64| block as u64 >= first && block as u64 + len <= end;
+    let (block_bitmap, inode_bitmap, inode_table) = (desc.block_bitmap, desc.inode_bitmap, desc.inode_table);
+    if !inside(block_bitmap, 1)
+        || !inside(inode_bitmap, 1)
+        || !inside(inode_table, geometry.inode_table_blocks.max(1) as u64)
+    {
+        return Err(alloc::format!("invalid ext2 group descriptor {}: block outside the filesystem", group));
+    }
+    Ok(())
+}
+
+// ============================================================================
 // Implementation
 // ============================================================================
 
@@ -258,13 +353,15 @@ impl<B: BlockDevice> Ext2Fs<B> {
             return Err(alloc::format!("invalid ext2 magic: 0x{:X}", magic));
         }
 
-        let block_size = 1024 << superblock.log_block_size;
-        let inodes_per_group = superblock.inodes_per_group;
-        if inodes_per_group == 0 {
-            return Err(String::from("invalid inodes_per_group in superblock"));
-        }
-
-        let groups_count = (superblock.inodes_count + inodes_per_group - 1) / inodes_per_group;
+        // Every field below sizes a buffer, indexes a bitmap or a table, or
+        // is used in block arithmetic. A crafted image used to stop the
+        // kernel: `1024 << log_block_size` overflowed, a group count of
+        // ~2^32 asked the heap for gigabytes, an inode size above the block
+        // size sliced past the block buffer, `blocks_per_group == 0` divided
+        // by zero, and descriptor block numbers near u32::MAX overflowed.
+        let geometry = validate_superblock(&superblock, device.sector_size(), device.sector_count())?;
+        let block_size = geometry.block_size;
+        let groups_count = geometry.groups_count;
 
         // Read block group descriptors
         let bgdt_block = superblock.first_data_block + 1;
@@ -287,6 +384,7 @@ impl<B: BlockDevice> Ext2Fs<B> {
         for g in 0..groups_count {
             let offset = g as usize * size_of::<BlockGroupDescriptor>();
             let desc: BlockGroupDescriptor = unsafe { from_bytes(&bgdt_buf[offset..offset + size_of::<BlockGroupDescriptor>()]) };
+            validate_group_descriptor(&superblock, &geometry, g, &desc)?;
             group_descs.push(desc);
         }
 
