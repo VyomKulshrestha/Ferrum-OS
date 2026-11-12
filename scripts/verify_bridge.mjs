@@ -425,7 +425,8 @@ try {
   const auditStart = serialText().length;
   const auditResponse = await executeTool(120, "audit_write", { message: "bridge audit event" });
   check("audit_write appends the caller-provided event", auditResponse?.result?.success === true);
-  await waitForSerial("[AUDIT] UserAudit: bridge audit event", 15, auditStart);
+  // Agent-written entries are marked and escaped to one line (round 3, R3-2).
+  await waitForSerial("[AUDIT] UserAudit: agent-audit: bridge audit event", 15, auditStart);
   check("audit_write reaches the kernel audit trail", true);
 
   const statusStart = serialText().length;

@@ -2201,6 +2201,92 @@ mod tests {
     }
 
     #[test]
+    fn documents_o5_sixteen_full_diagonal_steps_fit_in_one_rate_window() {
+        // Round 3, quantified (policy unchanged). Each MoveTo is checked
+        // only as an absolute target inside the 1 m geofence cube, and the
+        // rate limiter admits 16 commands per 100 ticks. Alternating between
+        // opposite corners, 16 commands are authorized at one tick: 16 x
+        // 1.732 m = 27.7 m of commanded travel, all inside the geofence.
+        // Leaving the geofence is not possible this way; nothing bounds the
+        // distance per command or per window.
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        let mut authorized = 0u64;
+        for id in 1..=20u64 {
+            let mut step = command(id);
+            let corner = if id % 2 == 1 { 1_000 } else { 0 };
+            step.argument0 = corner;
+            step.argument1 = corner;
+            step.argument2 = corner;
+            match runtime.authorize_and_queue_command(step, context, &[], 100) {
+                Ok(_) => authorized += 1,
+                Err(error) => {
+                    assert_eq!(error, RuntimeError::Supervisor(SupervisorError::RateLimited));
+                    break;
+                }
+            }
+        }
+        assert_eq!(authorized, 16);
+        // Integer millimetres of commanded straight-line travel: 16 x 1732.
+        assert_eq!(authorized * 1_732, 27_712);
+    }
+
+    #[test]
+    fn documents_rp3_one_confirmation_id_authorizes_different_commands() {
+        // Round 3 (R-P3 / round-1 O2, policy unchanged): the operator's
+        // confirmation id in CommandMetadata is not single-use and not bound
+        // to the command, so one confirmation authorizes two different
+        // targets. The crate trusts Heliox to build the metadata.
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        let first = command(1);
+        let mut second = command(2);
+        second.argument0 = 900;
+        second.argument1 = 900;
+        second.metadata = first.metadata;
+        assert!(runtime
+            .authorize_and_queue_command(first, context, &[], 100)
+            .is_ok());
+        assert!(runtime
+            .authorize_and_queue_command(second, context, &[], 100)
+            .is_ok());
+    }
+
+    #[test]
+    fn documents_rp1_a_second_runtime_redelivers_a_delivered_command_id() {
+        // Round 3 (R-P1, policy unchanged): replay protection lives in one
+        // runtime's memory. A second runtime, or the same one after a
+        // restart, authorizes and delivers a command id and idempotency key
+        // that the first already delivered to the same adapter endpoint and
+        // session epoch.
+        let mut delivered = Vec::new();
+        for _ in 0..2 {
+            let mut runtime = configured_runtime();
+            runtime
+                .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+                .unwrap();
+            let context = safe_context(&runtime);
+            let routed = runtime
+                .authorize_and_queue_command(command(1), context, &[], 100)
+                .unwrap();
+            let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+            let mut driver = SimulatedAdapter::new(identity).unwrap();
+            assert_eq!(
+                runtime.deliver_next(AdapterId(1), &mut driver, 101),
+                Ok(Some(routed))
+            );
+            delivered.push(routed);
+        }
+        assert_eq!(delivered[0].command, delivered[1].command);
+    }
+
+    #[test]
     fn stop_still_leaves_after_actor_emergency_stop() {
         let mut runtime = configured_runtime();
         runtime

@@ -124,6 +124,14 @@ fn spec_refusal(tool: &str, a: &[(String, JsonValue)]) -> Option<Refusal> {
             let t = get("text")?;
             t.bytes().any(|b| !(0x20..=0x7e).contains(&b)).then_some(Refusal::InputControlCharacter)
         }
+        // Round 3 (R3-4): a present `ms` must be a number from 0 to 10 s.
+        "sleep" => {
+            let (_, v) = a.iter().find(|(k, _)| k == "ms")?;
+            match v {
+                JsonValue::Number(n) if (0.0..=10_000.0).contains(n) => None,
+                _ => Some(Refusal::SleepOutOfRange),
+            }
+        }
         _ => None,
     }
 }
@@ -145,6 +153,14 @@ fn refusal_table_is_exhaustive_over_tools_and_adversarial_arguments() {
         args(&[("text", s("heliox confirm 3\n"))]),
         args(&[("text", s("heliox confirm 3"))]),
         args(&[("text", JsonValue::Number(10.0))]),
+        // Round 3 (R3-4): sleep bounds.
+        args(&[("ms", JsonValue::Number(10_000.0))]),
+        args(&[("ms", JsonValue::Number(10_000.5))]),
+        args(&[("ms", JsonValue::Number(1e300))]),
+        args(&[("ms", JsonValue::Number(-1.0))]),
+        args(&[("ms", JsonValue::Number(-0.0))]),
+        args(&[("ms", s("99999999"))]),
+        args(&[("ms", JsonValue::Null)]),
     ];
     let mut tools: Vec<&str> = TOOL_TIERS.iter().map(|(n, _)| *n).collect();
     tools.push("unknown_tool");

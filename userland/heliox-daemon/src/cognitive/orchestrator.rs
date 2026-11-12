@@ -745,7 +745,8 @@ impl Orchestrator {
         // reasoning prompt rather than only in the rare idle-anomaly branch.
         let mut observation = self.last_observation.clone();
         if let Ok(capture) = super::screen_vision::capture_screen() {
-            let screen = capture.full_text();
+            // The bridge pairing secret never enters a prompt (R3-3).
+            let screen = super::authority::redact_screen_secrets(&capture.full_text());
             if !screen.trim().is_empty() {
                 const MAX_SCREEN_CONTEXT_BYTES: usize = 4096;
                 let mut start = screen.len().saturating_sub(MAX_SCREEN_CONTEXT_BYTES);

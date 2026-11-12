@@ -173,7 +173,7 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
     Arguments: {"goal": "<string>"}
 
 21. `sleep` - Sleep for a number of milliseconds.
-    Arguments: {"ms": <number>}
+    Arguments: {"ms": <number 0-10000>}
 
 22. `service_start` - Start a registered kernel service (REQUIRES CONFIRMATION).
     Arguments: {"service_id": <number>}
@@ -377,13 +377,22 @@ fn execute_ipc_send(args: &[(String, JsonValue)]) -> ToolResult {
 
 fn execute_audit_write(args: &[(String, JsonValue)]) -> ToolResult {
     let message = find_arg_string(args, "message").unwrap_or_default();
+    if message.trim().is_empty() {
+        return ToolResult {
+            tool_name: String::from("audit_write"),
+            success: false,
+            output: String::from("Missing 'message' argument"),
+        };
+    }
+    // One escaped line, marked as the agent's (R3-2).
+    let entry = super::authority::agent_audit_text(super::authority::AGENT_AUDIT_PREFIX, &message);
     let result = unsafe {
-        syscall3(SYS_AUDIT_WRITE, message.as_ptr() as u64, message.len() as u64, 0)
+        syscall3(SYS_AUDIT_WRITE, entry.as_ptr() as u64, entry.len() as u64, 0)
     };
     ToolResult {
         tool_name: String::from("audit_write"),
         success: result == 0,
-        output: format!("Audit written ({} bytes), result={}", message.len(), result),
+        output: format!("Audit written ({} bytes), result={}", entry.len(), result),
     }
 }
 
@@ -398,7 +407,9 @@ fn execute_yield() -> ToolResult {
 
 fn execute_report_status(args: &[(String, JsonValue)]) -> ToolResult {
     let status = find_arg_string(args, "status").unwrap_or_default();
-    let msg = format!("HELIOX_STATUS:{}", status);
+    // One escaped line (R3-2); the HELIOX_STATUS: prefix marks it as the
+    // agent's.
+    let msg = super::authority::agent_audit_text("HELIOX_STATUS:", &status);
     let result = unsafe {
         syscall3(SYS_AUDIT_WRITE, msg.as_ptr() as u64, msg.len() as u64, 0)
     };
@@ -443,8 +454,10 @@ fn execute_read_file(args: &[(String, JsonValue)]) -> ToolResult {
         }
     } else {
         let content = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("<binary>");
+        // The provider API key in the daemon's own config is not shown (R3-3).
+        let content = super::authority::redact_file_secrets(&path, content);
         // Truncate for output
-        let preview = truncate_utf8(content, 512);
+        let preview = truncate_utf8(&content, 512);
         ToolResult {
             tool_name: String::from("read_file"),
             success: true,
@@ -801,7 +814,8 @@ fn execute_read_screen() -> ToolResult {
         Ok(capture) => ToolResult {
             tool_name: String::from("read_screen"),
             success: true,
-            output: capture.full_text(),
+            // The bridge pairing secret is for the physical operator (R3-3).
+            output: super::authority::redact_screen_secrets(&capture.full_text()),
         },
         Err(e) => ToolResult {
             tool_name: String::from("read_screen"),

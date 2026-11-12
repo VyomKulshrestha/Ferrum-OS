@@ -294,11 +294,21 @@ fn decide(
         return Clearance::Proceed;
     }
     // A call the operator cannot be shown in full is never queued.
-    let Some(full_display) = super::authority::approval_full_display(args) else {
+    let Some(mut full_display) = super::authority::approval_full_display(args) else {
         return Clearance::Refused;
     };
     let fingerprint = super::authority::approval_fingerprint(args);
-    let display = super::authority::approval_display(args);
+    let mut display = super::authority::approval_display(args);
+    // A file the tool acts on without naming it is shown too (R3-1).
+    if let Some(path) = super::authority::implicit_subject(tool_name) {
+        let note = alloc::format!("[acts on the file \"{}\" as it is when the action runs]", path);
+        for text in [&mut full_display, &mut display] {
+            if !text.is_empty() {
+                text.push(' ');
+            }
+            text.push_str(&note);
+        }
+    }
     match gate.check_or_request_with_display(tool_name, &fingerprint, &display, tier, current_tick) {
         ConfirmationStatus::Approved => Clearance::Proceed,
         ConfirmationStatus::Pending(id) => {

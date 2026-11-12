@@ -129,7 +129,16 @@ pub enum Refusal {
     /// Escape, Backspace, Tab, Ctrl-<x> or non-ASCII bytes. Without them the
     /// agent can type into a field but never submit, erase or save it.
     InputControlCharacter,
+    /// `sleep` longer than MAX_SLEEP_MS, negative, or not a number. A sleep
+    /// blocks the whole daemon: the control mailbox is not polled, so the
+    /// operator's CONFIRM/DENY, goals and neural disarm are not applied
+    /// (round 3, R3-4).
+    SleepOutOfRange,
 }
+
+/// Longest sleep the agent may request. The kernel's sleep syscall has no
+/// upper bound (`ms` saturates to u64::MAX, roughly forever).
+pub const MAX_SLEEP_MS: f64 = 10_000.0;
 
 impl Refusal {
     pub fn as_str(self) -> &'static str {
@@ -137,6 +146,7 @@ impl Refusal {
             Refusal::InputControlCharacter => {
                 "keyboard_type may only type printable ASCII (no Enter, Escape, Backspace, Tab or control keys)"
             }
+            Refusal::SleepOutOfRange => "sleep must be a number of milliseconds from 0 to 10000",
             Refusal::MalformedToolName => "malformed tool name",
             Refusal::DuplicateArgument => "duplicate argument key (ambiguous call)",
             Refusal::ControlMessageToOwnMailbox => {
@@ -230,6 +240,18 @@ pub fn validate_tool_call(name: &str, args: &[(String, JsonValue)]) -> Result<()
             if let Some(text) = find_str(args, "text") {
                 if !text.bytes().all(|b| (0x20..=0x7e).contains(&b)) {
                     return Err(Refusal::InputControlCharacter);
+                }
+            }
+        }
+        // An absent `ms` means the executor's 100 ms default. A present one
+        // must be a number in range: the executor would read a string as the
+        // default, so only numbers can lengthen the sleep, but anything that
+        // is not a plain in-range number is refused (fail closed).
+        "sleep" => {
+            if let Some((_, value)) = args.iter().find(|(k, _)| k == "ms") {
+                let in_range = matches!(value, JsonValue::Number(n) if *n >= 0.0 && *n <= MAX_SLEEP_MS);
+                if !in_range {
+                    return Err(Refusal::SleepOutOfRange);
                 }
             }
         }
@@ -393,10 +415,29 @@ const PATH_SUBJECT_TOOLS: [&str; 4] = ["write_file", "create_directory", "delete
 /// Tools that change the file at their `path` argument.
 pub const PATH_MODIFYING_TOOLS: [&str; 3] = ["write_file", "create_directory", "delete_file"];
 
+/// The image `trigger_kernel_upgrade` reads and kexecs
+/// (`self_evolve::trigger_hot_reload`). Normalized form.
+pub const KERNEL_UPGRADE_IMAGE: &str = "/disk/boot/kernel.bin";
+
+/// Tools whose meaning depends on a fixed file that is not among their
+/// arguments. An approval of `trigger_kernel_upgrade {}` is an approval to
+/// boot whatever `/disk/boot/kernel.bin` holds when it runs, so a later
+/// write to that file must withdraw it, and the operator must be told which
+/// file it is about (round 3, R3-1).
+pub fn implicit_subject(tool: &str) -> Option<&'static str> {
+    match tool {
+        "trigger_kernel_upgrade" => Some(KERNEL_UPGRADE_IMAGE),
+        _ => None,
+    }
+}
+
 /// The normalized path an approval for `tool` is about, if any: components
 /// with `.`/empty dropped and `..` applied, lowercased (over-matching only
 /// revokes more approvals, never fewer).
 pub fn subject_path(tool: &str, args: &[(String, JsonValue)]) -> Option<String> {
+    if let Some(path) = implicit_subject(tool) {
+        return Some(String::from(path));
+    }
     if !PATH_SUBJECT_TOOLS.contains(&tool) {
         return None;
     }
@@ -422,6 +463,129 @@ pub fn paths_overlap(a: &str, b: &str) -> bool {
                 && child.as_bytes()[parent.len()] == b'/')
     }
     under(a, b) || under(b, a)
+}
+
+/// Prefix of every audit entry the agent writes through `audit_write`. The
+/// daemon's own entries ("neural: ...") and the kernel's never start with
+/// it, so an agent entry cannot pose as one of them.
+pub const AGENT_AUDIT_PREFIX: &str = "agent-audit: ";
+/// The kernel refuses audit messages over 1024 bytes.
+pub const MAX_AUDIT_BYTES: usize = 1024;
+
+/// The audit text written for agent-chosen `body`: `prefix` followed by
+/// `body` escaped to one line of printable ASCII, cut (and marked) to fit
+/// the kernel's 1024-byte bound. The kernel stores and prints entries as
+/// `[tick] Event: message` lines (`src/logging/audit.rs`), so an unescaped
+/// line break would let the agent forge further entries (round 3, R3-2).
+pub fn agent_audit_text(prefix: &str, body: &str) -> String {
+    let mut escaped = String::new();
+    push_escaped(&mut escaped, body);
+    let marker = "...[truncated]";
+    let room = MAX_AUDIT_BYTES - prefix.len();
+    let mut out = String::from(prefix);
+    if escaped.len() <= room {
+        out.push_str(&escaped);
+    } else {
+        // Escaped text is ASCII, so any byte index is a char boundary.
+        out.push_str(&escaped[..room - marker.len()]);
+        out.push_str(marker);
+    }
+    out
+}
+
+/// Marker the daemon prints with the bridge pairing secret (main.rs).
+pub const PAIRING_TOKEN_MARKER: &str = "bridge pairing token:";
+
+/// Screen text as the agent may see it: the bridge pairing secret, printed on
+/// the console for the physical operator, is replaced. Without this the
+/// secret reached the model in every prompt (`observe` adds the screen) and
+/// through `read_screen` (Tier 1), and `http_get` (Tier 2) could send it out
+/// (round 3, R3-3).
+pub fn redact_screen_secrets(screen: &str) -> String {
+    const TOKEN_HEX_CHARS: usize = 32;
+    let mut out = String::with_capacity(screen.len());
+    // Hex characters of a token still to redact at the start of the next
+    // row, when the console wrapped the token line.
+    let mut carry = 0usize;
+    for (i, line) in screen.split('\n').enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        let mut rest = line;
+        if carry > 0 {
+            let hex = rest
+                .bytes()
+                .take(carry)
+                .take_while(|b| b.is_ascii_hexdigit())
+                .count();
+            if hex > 0 {
+                out.push_str("[redacted]");
+                rest = &rest[hex..];
+            }
+            carry = 0;
+        }
+        match rest.find(PAIRING_TOKEN_MARKER) {
+            Some(at) => {
+                let tail = &rest[at + PAIRING_TOKEN_MARKER.len()..];
+                let shown = tail.trim_start().bytes().take_while(|b| b.is_ascii_hexdigit()).count();
+                out.push_str(&rest[..at + PAIRING_TOKEN_MARKER.len()]);
+                out.push_str(" [redacted]");
+                carry = TOKEN_HEX_CHARS.saturating_sub(shown);
+            }
+            None => out.push_str(rest),
+        }
+    }
+    out
+}
+
+/// File content as `read_file` returns it to the agent: for the daemon's own
+/// configuration, the value of every `"api_key"` member is replaced. The
+/// JSON-RPC `get_config` already omits the key ("not to round-trip
+/// secrets"), but `read_file /disk/heliox/config.json` (Tier 1) returned it,
+/// and `http_get` (Tier 2) could send it out (round 3, R3-3). Textual, so it
+/// also covers a truncated or malformed file; an unterminated value is
+/// redacted to the end.
+pub fn redact_file_secrets(path: &str, content: &str) -> String {
+    if !targets_own_config(path) {
+        return String::from(content);
+    }
+    const KEY: &str = "\"api_key\"";
+    let bytes = content.as_bytes();
+    let mut out = String::with_capacity(content.len());
+    let mut i = 0;
+    while let Some(found) = content[i..].find(KEY) {
+        let after_key = i + found + KEY.len();
+        out.push_str(&content[i..after_key]);
+        let mut j = after_key;
+        while j < bytes.len() && (bytes[j] == b' ' || bytes[j] == b'\t' || bytes[j] == b'\n' || bytes[j] == b'\r' || bytes[j] == b':') {
+            j += 1;
+        }
+        out.push_str(&content[after_key..j]);
+        if j < bytes.len() && bytes[j] == b'"' {
+            // Skip the string value, honouring backslash escapes.
+            let mut k = j + 1;
+            while k < bytes.len() && bytes[k] != b'"' {
+                k += if bytes[k] == b'\\' { 2 } else { 1 };
+            }
+            out.push_str("\"[redacted]\"");
+            i = core::cmp::min(k + 1, bytes.len());
+        } else {
+            // Not a string (or cut off): redact the rest of the member.
+            let mut k = j;
+            while k < bytes.len() && bytes[k] != b',' && bytes[k] != b'}' {
+                k += 1;
+            }
+            if k > j {
+                out.push_str("[redacted]");
+            }
+            i = k;
+        }
+        while i < bytes.len() && !content.is_char_boundary(i) {
+            i += 1;
+        }
+    }
+    out.push_str(&content[i..]);
+    out
 }
 
 /// An operator control command read from the daemon's mailbox.

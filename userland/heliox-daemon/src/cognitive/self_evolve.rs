@@ -55,7 +55,9 @@ fn read_file_to_vec(path: &str) -> Result<Vec<u8>, &'static str> {
 }
 
 pub fn trigger_hot_reload() -> Result<(), &'static str> {
-    let kernel_path = "/disk/boot/kernel.bin";
+    // The same path the authority gate binds approvals of this tool to
+    // (authority::implicit_subject), so a rewrite withdraws them.
+    let kernel_path = super::authority::KERNEL_UPGRADE_IMAGE;
     
     // Read the compiled new kernel binary
     let bytes = match read_file_to_vec(kernel_path) {
