@@ -44,6 +44,13 @@ does not reproduce there under either setting. On the runner at 4 threads the fu
 still pass (for example JEPA against the matched autoencoder); only the exact values and the checkpoint
 digest differ.
 
+The full training sweep was then rerun on the development machine with the pinned 24 threads
+(`verify_physical_world_model.py` without `--quick`): it reproduces the deployed checkpoint, the
+selection, every promotion decision and the training corpus byte for byte (20 of 20 checks). The same
+dependence shows in the threshold studies' monitor: refitting it with BLAS and LightGBM capped at two
+threads moves calibrated thresholds by up to 0.4% (workstream A), with identical detection counts where
+compared.
+
 Consequences. The evidence described as deterministic reproduces only on a machine that runs 24 BLAS
 threads natively; the workflow "Reproduce deterministic public evidence" never reproduced it on GitHub
 (hidden by the exit-code gap). Both verifiers now pin the reference thread count for their subprocess,
