@@ -133,7 +133,11 @@ impl RamFs {
         
         // Create standard directories
         children.insert("etc".to_string(), FsNode::dir(BTreeMap::new()));
-        children.insert("tmp".to_string(), FsNode::dir(BTreeMap::new()));
+        // /tmp/heliox-hooks: the daemon's startup test-hook triggers, which
+        // only the kernel shell can create (src/syscall/fs.rs, fi2 Q4).
+        let mut tmp_children = BTreeMap::new();
+        tmp_children.insert("heliox-hooks".to_string(), FsNode::dir(BTreeMap::new()));
+        children.insert("tmp".to_string(), FsNode::dir(tmp_children));
         children.insert("var".to_string(), FsNode::dir(BTreeMap::new()));
         children.insert("srv".to_string(), FsNode::dir(BTreeMap::new()));
 

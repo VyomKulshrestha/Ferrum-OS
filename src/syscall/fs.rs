@@ -103,6 +103,29 @@ pub(crate) fn is_package_control_path(path: &str) -> bool {
         && matches!(components.next(), Some("pkgs") | Some("pkgs-available"))
 }
 
+/// The daemon's startup test hooks read their triggers from here (fi2 Q4).
+pub const SHELL_ONLY_DIR: &str = "/tmp/heliox-hooks";
+
+/// True for `/tmp/heliox-hooks` and everything beneath it (any number of
+/// slashes). No ring-3 process may create or write anything there: only the
+/// kernel shell's `write` command (which does not go through a syscall) can
+/// plant a hook trigger. Removing is allowed; it can only stop a hook.
+pub fn is_shell_only_path(path: &str) -> bool {
+    let mut components = path.split('/').filter(|component| !component.is_empty());
+    matches!(components.next(), Some("tmp")) && matches!(components.next(), Some("heliox-hooks"))
+}
+
+fn refuse_shell_only(path: &str) -> bool {
+    if is_shell_only_path(path) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("write to a shell-only path denied: {}", path),
+        );
+        return true;
+    }
+    false
+}
+
 pub(super) fn authorize_path(path: &str, write: bool, held_capabilities: &[String]) -> bool {
     if !valid_absolute_path(path) {
         return false;
@@ -211,7 +234,7 @@ pub fn sys_write_file_checked(
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) {
+    if !authorize_path(&path, true, held_capabilities) || refuse_shell_only(&path) {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
@@ -294,7 +317,7 @@ pub fn sys_create_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) {
+    if !authorize_path(&path, true, held_capabilities) || refuse_shell_only(&path) {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 

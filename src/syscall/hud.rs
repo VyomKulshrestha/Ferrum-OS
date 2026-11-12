@@ -129,6 +129,22 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
 /// `sys_pointer_target` (PointerTarget = 66): what a click would land on now.
 /// See `SyscallNumber::PointerTarget`.
 pub fn sys_pointer_target(args: [u64; 6]) -> SyscallResult {
+    let (x, y) = {
+        let cursor = crate::gui::cursor::CURSOR.lock();
+        (cursor.x, cursor.y)
+    };
+    write_target_record(args, crate::gui::compositor::pointer_target(x, y))
+}
+
+/// `sys_focus_target` (FocusTarget = 67): the window keyboard input reaches
+/// now. See `SyscallNumber::FocusTarget`.
+pub fn sys_focus_target(args: [u64; 6]) -> SyscallResult {
+    write_target_record(args, crate::gui::compositor::focus_target())
+}
+
+/// Writes `target` as the 24-byte record (window, owner, x, y) at args[0]
+/// and its title into args[1..3].
+fn write_target_record(args: [u64; 6], target: crate::input::ClickTarget) -> SyscallResult {
     const RECORD_BYTES: usize = 24;
     let record_ptr = args[0];
     let title_ptr = args[1];
@@ -139,11 +155,6 @@ pub fn sys_pointer_target(args: [u64; 6]) -> SyscallResult {
     if title_ptr != 0 && title_len > 0 && !super::fs::valid_user_write_range(title_ptr, title_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
-    let (x, y) = {
-        let cursor = crate::gui::cursor::CURSOR.lock();
-        (cursor.x, cursor.y)
-    };
-    let target = crate::gui::compositor::pointer_target(x, y);
     let title = if target.window == 0 {
         alloc::string::String::from("desktop")
     } else {

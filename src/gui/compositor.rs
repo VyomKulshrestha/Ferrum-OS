@@ -587,6 +587,26 @@ pub fn pointer_target(mx: u32, my: u32) -> crate::input::ClickTarget {
     crate::input::ClickTarget { window: 0, owner: 0, rel_x: mx, rel_y: my }
 }
 
+/// The window keyboard input reaches now (fi2 Q-J2c): the focused window,
+/// its owner pid (0 for kernel-drawn windows) and a zero position; window 0
+/// when nothing is focused or the privacy lock is up (keys then reach no
+/// window). Typed text the operator approved is bound to this.
+pub fn focus_target() -> crate::input::ClickTarget {
+    let state = COMPOSITOR.lock();
+    let none = crate::input::ClickTarget { window: 0, owner: 0, rel_x: 0, rel_y: 0 };
+    if state.session_locked {
+        return none;
+    }
+    let Some(window) = state.focused_idx.and_then(|idx| state.windows.get(idx)) else {
+        return none;
+    };
+    let owner = match window.win_type {
+        crate::gui::window::WindowType::App(pid) => pid,
+        _ => 0,
+    };
+    crate::input::ClickTarget { window: window.id, owner, rel_x: 0, rel_y: 0 }
+}
+
 /// Helper to hit test overlapping windows. `exclude_hud` is unused now that
 /// the kernel-drawn Agent HUD window is retired (kept as a parameter since
 /// `hit_test` below is a thin wrapper over this and existing callers pass

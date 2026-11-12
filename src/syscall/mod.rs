@@ -140,6 +140,11 @@ pub enum SyscallNumber {
     /// args[1..3] = optional buffer for the window title. Returns the title
     /// length copied. Needs `hud:overlay`, like HitTest.
     PointerTarget = 66,
+    /// Which window keyboard input reaches now (fi2 Q-J2c): the
+    /// PointerTarget record for the focused window (0: none, or the privacy
+    /// lock is up) with a zero position, and its title. Needs `hud:overlay`.
+    /// InjectKey with args[1] = 1 types only into the window this names.
+    FocusTarget = 67,
 }
 
 /// Syscall return status.
@@ -544,7 +549,10 @@ fn dispatch_with_context(
                 Some(message) if !message.trim().is_empty() && message.len() <= 1024 => message,
                 _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
             };
-            crate::logging::audit::log_event(
+            // Attributed to the caller: its entries count against its own
+            // share of the in-memory ring (fi2 Q6).
+            crate::logging::audit::log_event_from(
+                caller_pid,
                 crate::logging::audit::AuditEvent::UserAudit,
                 &message,
             );
@@ -731,6 +739,12 @@ fn dispatch_with_context(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             hud::sys_pointer_target(args)
+        }
+        x if x == SyscallNumber::FocusTarget as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_focus_target(args)
         }
         x if x == SyscallNumber::Mmap as u64 => {
             if !crate::security::has_capability(held_capabilities, "memory:mmap:*")
