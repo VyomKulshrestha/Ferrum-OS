@@ -208,11 +208,15 @@ pub fn init() {
 /// This enables legacy FPU, SSE registers, FXSAVE/FXRSTOR support,
 /// and AVX register state management.
 pub unsafe fn enable_sse_extensions() {
-    // 1. Enable legacy FPU & SSE in CR0 by clearing EM and setting MP
+    // 1. Enable legacy FPU & SSE in CR0 by clearing EM and setting MP, and
+    // set NE (bit 5): an unmasked x87 error raises #MF in the process that
+    // caused it. With NE clear the error went to the legacy FERR#/IRQ 13
+    // line, which is masked, and the process ran on with the error pending
+    // (fi1 kernel round 4; fi2 K1 item 6).
     core::arch::asm!(
         "mov rax, cr0",
         "and ax, 0xFFFB", // clear EM (bit 2)
-        "or ax, 0x0002",  // set MP (bit 1)
+        "or ax, 0x0022",  // set MP (bit 1) and NE (bit 5)
         "mov cr0, rax",
         out("rax") _,
     );

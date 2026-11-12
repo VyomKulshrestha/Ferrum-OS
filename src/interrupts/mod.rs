@@ -446,10 +446,37 @@ extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStac
     user_or_fatal("Stack Segment Fault", &stack_frame);
 }
 
+/// Exit code of a process ended by an x87 (#MF) or SIMD (#XM) floating-point
+/// exception: 128 + SIGFPE, so a parent's WaitPid tells it from a kill (137).
+pub const EXIT_FLOATING_POINT: u32 = 136;
+
+/// Record the floating-point exit code for the ring-3 process that faulted
+/// (the kill that follows keeps the first code recorded).
+fn record_floating_point_exit(stack_frame: &InterruptStackFrame) {
+    if fault_from_user_mode(stack_frame.code_segment.0 as u64) {
+        let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+        if pid != 0 {
+            crate::scheduler::record_exit(pid, EXIT_FLOATING_POINT);
+        }
+    }
+}
+
 extern "x86-interrupt" fn x87_floating_point_handler(stack_frame: InterruptStackFrame) {
     crate::cpu_protect::clear_ac_on_entry();
-    user_or_fatal("x87 Floating Point", &stack_frame);
+    // CR0.NE is set (fi2 K1 item 6): an unmasked x87 error in ring 3 arrives
+    // here at the process's next x87 instruction and ends that process. The
+    // kernel runs no x87 code, so a ring-0 #MF stops the kernel. The pending
+    // exception flags are cleared before the process's state is dropped.
+    X87_MF_COUNT.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+    if fault_from_user_mode(stack_frame.code_segment.0 as u64) {
+        unsafe { core::arch::asm!("fnclex", options(nomem, nostack)) };
+    }
+    record_floating_point_exit(&stack_frame);
+    user_or_fatal("x87 Floating Point (#MF)", &stack_frame);
 }
+
+/// #MF exceptions taken since boot (self-test `x87-mf`).
+pub static X87_MF_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 
 extern "x86-interrupt" fn alignment_check_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
     crate::cpu_protect::clear_ac_on_entry();
@@ -458,6 +485,7 @@ extern "x86-interrupt" fn alignment_check_handler(stack_frame: InterruptStackFra
 
 extern "x86-interrupt" fn simd_floating_point_handler(stack_frame: InterruptStackFrame) {
     crate::cpu_protect::clear_ac_on_entry();
+    record_floating_point_exit(&stack_frame);
     user_or_fatal("SIMD Floating Point", &stack_frame);
 }
 

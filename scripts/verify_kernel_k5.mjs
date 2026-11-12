@@ -132,6 +132,22 @@ async function ledgerChecks() {
     field(out, "failed_calls") === "none" && Number(field(out, "total")) > cap, line(out, "heap-ledger"));
 }
 
+// Item 6: CR0.NE set; an unmasked x87 error ends the process that caused it.
+async function x87Checks() {
+  if (skip.has("x87-mf")) return;
+  let out = await run("x87-mf", 30);
+  check("A: x87: CR0.NE is set; an unmasked x87 divide by zero raises #MF in the process, which ends with exit 136",
+    field(out, "cr0_ne") === "true" && field(out, "mf_exceptions") === "1" && field(out, "ended") === "true"
+      && field(out, "exit") === "136", line(out, "x87-mf"));
+  check("A: x87: the next process computes 1 + 1 on the x87 normally (exit 2)",
+    field(out, "next_ended") === "true" && field(out, "next_exit") === "2");
+  await run("cr0-ne-off");
+  out = await run("x87-mf", 30);
+  await run("cr0-ne-on");
+  check("A: x87 control (CR0.NE cleared, same image): no #MF, the process runs on until it is killed (137)",
+    field(out, "cr0_ne") === "false" && field(out, "mf_exceptions") === "0" && field(out, "exit") === "137", line(out, "x87-mf"));
+}
+
 // ---- boot A: Haswell (SMEP, no SMAP) ----------------------------------------
 if (boots.includes("A")) {
   try {
@@ -148,6 +164,7 @@ if (boots.includes("A")) {
     await sweepCheck("A:", false);
     await consoleChecks();
     await ledgerChecks();
+    await x87Checks();
     check("A: no kernel fault", !kernelFault(shell.serial()));
   } catch (error) {
     check("A: harness completed", false, String(error?.message || error).split("\n")[0]);
@@ -228,7 +245,9 @@ function docker(args) {
 
 function buildDisks(dir) {
   fs.mkdirSync(dir, { recursive: true });
-  fs.copyFileSync(path.join(repo, "scripts", "k5_ext2_images.sh"), path.join(dir, "k5_ext2_images.sh"));
+  // Without carriage returns (a CRLF checkout would break `sh`).
+  fs.writeFileSync(path.join(dir, "k5_ext2_images.sh"),
+    fs.readFileSync(path.join(repo, "scripts", "k5_ext2_images.sh"), "utf8").replace(/\r/g, ""));
   const r = docker(["run", "--rm", "--name", "fi2k-mkext2", "-v", `${dir.replace(/\\/g, "/")}:/work`, "alpine:3.20", "sh", "/work/k5_ext2_images.sh"]);
   return r.code === 0 && fs.existsSync(path.join(dir, "clean.img")) && fs.existsSync(path.join(dir, "crafted.img"));
 }

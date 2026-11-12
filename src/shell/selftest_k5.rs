@@ -89,6 +89,9 @@ pub fn run(name: &str) -> bool {
             crate::fs::ext2::FI2_FIXES.store(true, Ordering::SeqCst);
             println!("selftest ext2-fi2-on: fi2_fixes=true");
         }
+        "x87-mf" => x87_mf(),
+        "cr0-ne-off" => set_cr0_ne(false),
+        "cr0-ne-on" => set_cr0_ne(true),
         _ => return false,
     }
     true
@@ -604,6 +607,58 @@ fn ext2_real() {
             );
         }
     }
+}
+
+// ---- x87 errors (item 6) ----------------------------------------------------------
+
+fn cr0() -> u64 {
+    let v: u64;
+    unsafe { core::arch::asm!("mov {}, cr0", out(reg) v) };
+    v
+}
+
+fn set_cr0_ne(on: bool) {
+    x86_64::instructions::interrupts::without_interrupts(|| unsafe {
+        let v = cr0();
+        let v = if on { v | (1 << 5) } else { v & !(1 << 5) };
+        core::arch::asm!("mov cr0, {}", in(reg) v);
+    });
+    println!("selftest cr0-ne-{}: cr0_ne={}", if on { "on" } else { "off" }, cr0() & (1 << 5) != 0);
+}
+
+/// An x87 divide by zero with the zero-divide exception unmasked, reported
+/// at the next `fwait`. With CR0.NE the process gets #MF and ends with exit
+/// 136; then a second process adds 1 + 1 on the x87 and exits with the
+/// result (its x87 state is clean).
+fn x87_mf() {
+    let before = crate::interrupts::X87_MF_COUNT.load(Ordering::SeqCst);
+    // push 0x037B; fldcw [rsp]; fld1; fldz; fdivp; fwait; jmp $
+    let faulting = [
+        0x68, 0x7B, 0x03, 0x00, 0x00, 0xD9, 0x2C, 0x24, 0xD9, 0xE8, 0xD9, 0xEE, 0xDE, 0xF9, 0x9B, 0xEB, 0xFE,
+    ];
+    let (ended, exit) = match start_ring3("selftest-x87-mf", &faulting, &[]) {
+        Ok(pid) => run_until_dead(pid, 2000),
+        Err(_) => (false, None),
+    };
+    let mf = crate::interrupts::X87_MF_COUNT.load(Ordering::SeqCst) - before;
+    // fld1; fld1; faddp; fistp dword [rsp-8]; mov ebx, [rsp-8]; exit(ebx)
+    let adder = [
+        0xD9, 0xE8, 0xD9, 0xE8, 0xDE, 0xC1, 0xDB, 0x5C, 0x24, 0xF8, 0x8B, 0x5C, 0x24, 0xF8, 0x89, 0xDF, 0xB8, 0x1E,
+        0x00, 0x00, 0x00, 0xCD, 0x80, 0xEB, 0xFE,
+    ];
+    let (next_ended, next_exit) = match start_ring3("selftest-x87-next", &adder, &[]) {
+        Ok(pid) => run_until_dead(pid, 2000),
+        Err(_) => (false, None),
+    };
+    println!(
+        "selftest x87-mf: cr0_ne={} mf_exceptions={} ended={} exit={} next_ended={} next_exit={} kernel_alive=true",
+        cr0() & (1 << 5) != 0,
+        mf,
+        ended,
+        exit_str(exit),
+        next_ended,
+        exit_str(next_exit)
+    );
 }
 
 // ---- console forgery (item 3) --------------------------------------------------
