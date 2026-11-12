@@ -14,3 +14,8 @@ three datasets, each weighted equally):
 
 At most three survivors, ranked by mean onset recall, go to the check set, once each. Candidates seen so far:
 d1 (baseline), mad, tail, max, second, stable, loro, h1, h5, clip, and '+'-combinations of them.
+
+## Selection outcome (2026-11-12, before any check-set run of a candidate)
+
+Survivors, in rank order: `mad+second`, `second`, `second+loro`. These three, and the baseline, go to the check
+set once each. Full table: `docs/research/fi1_monitor_round1.json` (selection section).
