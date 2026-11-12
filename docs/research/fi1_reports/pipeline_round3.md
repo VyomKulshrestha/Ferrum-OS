@@ -16,11 +16,100 @@ A "gate" is a registered pass/fail rule; a "claim" is a comparison a report stat
 row is a check of an existing verifier that reads a number a rerun produces. Margins are relative to the
 threshold (positive passes).
 
-PLACEHOLDER_STUDIES
+### 1.1 Physical-JEPA v3 sweep (`verify_physical_world_model.py`, full sweep): the selection and the promotion flip
+
+The registered sweep (four candidates, 8,000 to 9,000 epochs each, NumPy float32 training) was rerun with
+the registered command at 24, 4 and 1 BLAS threads (`fi1_thread_sweep_run.py`; 18, 16 and 21 minutes).
+
+| | committed | 24 threads | 4 threads | 1 thread |
+|---|---|---|---|---|
+| deployed checkpoint reproduced | | yes, byte for byte | no | no |
+| candidates accepted on validation | 0, 2, 3 | 0, 2, 3 | 0, 1, 2 | 0, 1, 3 |
+| selection scores (lower wins) | .875 .927 .829 **.764** | identical | **.807** .861 .869 .942 | **.802** .867 .941 .874 |
+| selected | 3 (128 by 256, seed 91) | 3 | 0 (96 by 192, seed 42) | 0 |
+| epochs completed (early stopping) | 8000 7425 8500 8175 | identical | 8000 7425 6700 7200 | 8000 8000 8575 9000 |
+| promotion (11 gates) | passes | passes | **fails**: OOD false negatives 1 against 0 | **fails**: OOD one-step error 0.003870 against the limit 0.003777 |
+| selector exit code | 0 | 0 | 1 | 1 |
+
+Validation checks that flip:
+
+| Check | committed | 4 threads | 1 thread |
+|---|---|---|---|
+| candidate 1: incident validation geometric ratio <= 0.95 | 0.972, fails | 0.902, passes | 0.895, passes |
+| candidate 3: original validation worst ratio <= 1.02 | 0.774, passes | 1.101, fails | 0.857, passes |
+| candidate 2: original validation worst ratio <= 1.02 | 0.869, passes | 0.997, passes | 1.084, fails |
+
+Checks of `verify_physical_world_model.py` that read numbers the sweep produces, and fail at 1 and 4
+threads: the selected index is 3 (both); OOD rules-plus-JEPA false negatives 0 (4 threads: 1); ordinary,
+incident and stress test false negatives 8, 1, 1 (4 threads: 6, 1, 1; 1 thread: 1, 2, 0); the deployed
+digest (both). The checks that hold at every count: 682 malformed OOD observations rejected, and H=3 error
+below the deployed baseline's on the ordinary, incident and stress tests. The matched-autoencoder
+comparison could not be produced at 1 or 4 threads: `evaluate_physical_jepa_v3_baselines.py` refuses a
+selection whose promotion failed.
+
+Closest gates of the committed run: the promotion gate "OOD false negatives not increased" has no slack
+(0 against 0): one more miss fails it, and at 4 threads one more miss is what happened. The next closest
+are "OOD one-step error <= 0.95 x deployed" (10.5% margin; fails at 1 thread) and "incident test geometric
+ratio <= 0.90" (10.5%). The rejected candidate 1 sits 2.3% outside its incident gate and 0.43% inside its
+worst-horizon gate. The selection score of the selected candidate leads the runner-up by 8.5%.
+
+The evaluation of fixed weights does not depend on the thread count here: the deployed baseline's test
+metrics (`current_test`, 0 of its numeric leaves changed at 4 threads) are identical. The dependence is in
+training.
+
+Largest relative change: not meaningful as a percentage, because different candidates are selected; every
+candidate's validation metrics differ (215 numeric leaves of `candidates` at 4 threads).
+
+### 1.2 Physical-JEPA robustness evaluator (`verify_physical_jepa_robustness.py`): conclusions hold
+
+Rerun with the verifier's artifact (`incident-v1-baseline.bin`) at 1 (twice), 2, 3, 4 (twice) and 24
+(twice) threads, about 30 to 55 seconds each.
+
+| Threads | numeric leaves changed (of 148) | largest relative change | registered gates | data-scaling gate: final h3 / smallest-data h3 |
+|---|---|---|---|---|
+| committed | | | 5 of 5 | 0.026644 / 0.027420, margin 2.8% |
+| 24 | PLACEHOLDER_R24 | | | |
+| 4 | 30 | 5.9% (matched autoencoder test FP 16 against 17) | 5 of 5 | 0.026443 / 0.027209, 2.8% |
+| 3 | 26 | 4.4% (data scaling, 1,750 episodes, h5) | 5 of 5 | 0.027859 / 0.028434, 2.0% |
+| 2 | 30 | 5.9% | 5 of 5 | 0.027779 / 0.028346, 2.0% |
+| 1 | 30 | 5.9% | 5 of 5 | 0.026298 / 0.027501, 4.4% |
+
+The gate that can fail is "data scaling: final h3 below the smallest-data h3"; it is the only registered
+gate that reads a trained model (the counterfactual accuracy, 1.0 against 0.95, and the rare-hazard false
+negatives, 0 against 21 for the rules alone, use the fixed artifact and do not change). Its margin is 2.0%
+to 4.4% across the counts measured here. This is the gate that most plausibly failed on GitHub's 4-core
+runner with 24 threads forced (not run here: the runner's processor may select another OpenBLAS kernel,
+which changes results as the thread count does). A claim-level change: the committed curve is not
+monotone (h3 rises from 0.026518 at 1,000 episodes to 0.026644 at 1,750), while at 1 and 4 threads it
+falls at that step; a report that describes the curve as decreasing at every step would be wrong in the
+committed numbers and right in others. Two runs at the same count are bit-identical (1, 4 and 24).
+
+PLACEHOLDER_OTHER_STUDIES
 
 ## 2. Where the nondeterminism enters
 
-PLACEHOLDER_WHERE
+Measured with `fi1_thread_where.py` (one process; thread counts switched with threadpoolctl):
+
+- **Every float32 matrix product of the physical-JEPA trainer** (`train_physical_jepa.train`: the forward
+  products, the weight gradients `X.T @ G` and the back-propagated products, at the registered shapes,
+  batch 1024, latent 128, hidden 256) differs bit for bit between 1 and 4 threads, by up to 6e-5 in
+  absolute value. NumPy's `sum(axis=0)` (pairwise, no BLAS) does not depend on the thread count. The
+  dependence is OpenBLAS's SGEMM: the partition of the product across threads changes the order of the
+  floating-point additions.
+- **It grows in training.** Training the registered 128-by-256 shape (seed 91, 1,200 simulator episodes)
+  at 4 threads departs from 1 thread at the first checkpoint (epoch 25, relative weight difference 4e-8)
+  and the difference reaches 3.6e-6 by epoch 325. Over 8,000 to 9,000 Adam steps it changes which
+  validation checkpoint early stopping keeps (epochs completed differ, table 1.1) and then which
+  candidate passes its validation checks. The selection rules turn a small numerical difference into a
+  different model.
+- **Inference with fixed weights does not change** with the thread count in the physical evaluators
+  (`current_test` identical at 4 threads; the robustness gates that read the fixed artifact identical at
+  every count). Those paths predict one row at a time (matrix-vector products), which OpenBLAS computes
+  the same way at any thread count.
+- **Single-threaded runs repeat bit for bit**: the robustness evaluator at 1 thread twice (identical
+  files), the 400-epoch training trace at 1 thread twice (identical at every checkpoint). So do repeated
+  runs at 4 and at 24 threads.
+- PLACEHOLDER_WHERE_TORCH
 
 ## 3. What each report needs
 
@@ -86,7 +175,32 @@ The verifiers are unchanged; these checks run as tests.
 
 ## 6. What round 2 did not reach
 
-PLACEHOLDER_ITEM4
+A second reader worked read-only on this part (scratch scripts in the session scratchpad, `b3reader/`).
+I checked the stored numbers behind H1 and M1 myself and read the code of T1. The rest is the reader's.
+Every printed number of PINP Tables 9 and 10 matches its stored JSON.
+
+| # | Where | What | Published number it touches | Sentence needed |
+|---|---|---|---|---|
+| H1 | Table 9, `evaluate_physical_jepa_recorded_hil_replay.py:134-151, 362` | Event recall is read at a post-hoc threshold (99th percentile of clean non-attack errors of the same test files) held fixed across fault conditions; the faults raise the alarm rate. Checked in `physical_jepa_recorded_hil_replay_result_v1.json`: row FPR 1.00% clean, 1.29% latency, 1.20% jitter, 1.33% noise, 1.01% dropout, 1.95% combined; false alerts 17.5 to 32.8 per hour; recall 38.5% to 50.0%. A chance reference from mean event length (52 events, mean 218.9 s) puts at least one random alarm in an average event about 65% of the time at the clean rate (reader's estimate; per-event lengths not read) | Table 9, event recall column | "Event recall uses a post-hoc threshold at the 99th percentile of clean non-attack test errors, held fixed across conditions; under faults the normal-row alarm rate rises from 1.00% to 1.95%, so the higher recall reflects more alarms, not better detection." |
+| H2 | Table 9, recovery, lines 385-413 with `select_physical_jepa_v5.py:83-102` | The predictor is memoryless, so the first row after a fault window equals the clean prediction; "recovery 0 s in 472/472" holds by construction. PINP already says it is not a physical recovery claim | Table 9, recovery | "Because the model is memoryless, the first post-window row equals the clean prediction, so this measure is zero by construction." |
+| M1 | Table 10, `run_physical_jepa_multi_embodiment_3d.py:283-333` | Checked in the stored 288 cases: initial clearance at most 0.271 m, median 0.061; the rule blocks the 265 cases below 0.2; the learned branch blocks all 288. A shielded run is simulated only when the union does not block, so no shielded trajectory was run and "0 shielded contacts, Wilson [0, 1.32%]" counts no trials | Table 10 and PINP line 349 ("No shielded contact was observed in this run") | "Generated clearances never exceed 0.271 m (median 0.061) against block thresholds of 0.2 (rule) and 0.18 (predicted, learned); the learned branch alone blocks all 288 cases, so 0% completion follows from the case design, and no shielded trajectory was simulated." |
+| T1 | HAI cross-version v2, `train_physical_hai_v2.py:219-249` (`shared_percentile`) | The registered rule is "the first percentile whose alert-event rate is at most two per hour". The code binary-searches a predicate that is not monotone (3-of-5 rule plus cooldown), then steps down only while the previous index is eligible, so it can skip an earlier eligible percentile (reader's reproduction with the real function: returns 0.961 where the rule gives 0.95). It can only return an equal or higher percentile, so the final 48/50 at 0.555 false alerts per hour is not inflated. Whether any stored percentile differs needs the scores (a ridge refit on the HAI files); not done | v2 selection and the registered 21.03 threshold (percentile 0.967), only if the rate is non-monotone there | "The shared percentile was found by binary search, which assumes the alert-event rate is monotone in the threshold; the registered rule is the first eligible percentile." |
+| T2 | v1, `train_physical_hai_temporal.py:845-855` | The code's sort drops the registered primary key (masked state error); all candidates share one masked model, so it is a constant tie and the outcome is unchanged | none | none |
+| W1 | world-model v3.x selection | The four safety checks of the selection pass for all 30 candidates because learned-only misses all 256 dangerous validation episodes and the rules alone have 0 FN and 0 FP; the choice was decided by rollout error on engineered fixtures | interpretation of the v3.x selection | "The safety checks of the v3 selection were met by every candidate because the rule path alone separated the validation catalog; the selection rests on rollout error." |
+| S1 | rt1 SMD, `real_telemetry_detect.py:113-124` (frozen) | The lowest-within-budget rule (round 2, R2) with a 10-minute merge gap lets a threshold keep a machine in long alarm while its episode count stays within budget. Stored: DR thresholds exactly 0.0 on machine-2-3 and machine-3-10; on test normal minutes DR alarms 34.5% of the time, D1 17.7%. PINP attributes the SMD alarm rates to the forecaster; the calibration rule is a second plausible cause. Size per machine not measured (needs the 335 MB bundle) | rt1 SMD (already reported inconclusive) | "SMD thresholds are the lowest within an episode budget whose episodes merge across gaps of up to 10 minutes; several DR thresholds are 0, so normal-minute alarm fractions are not bounded by the budget." |
+
+Thin margins (stored JSON, reader's arithmetic):
+
+- HAI v2 selection: selected balanced accuracy 0.755142 against the eligible runner-up 0.754271 (gap
+  0.00087). Three 38/52 candidates fail the source-selection false-alarm gate at 2.0001 and 2.0004 per
+  hour, because hours are counted after trimming context rows (78.9967 h instead of 79.0); at 79.0 h, 158
+  events equal 2.0 exactly. None would have won.
+- HAI v1 final (registered, failed): the transition gate passes at 0.946213 against 0.95 (0.4%).
+- World-model v3 selection: the selected candidate's incident ratio 0.0027237 against the runner-up's
+  0.0030814, a 13.1% gap; every rejected candidate is at least ten times worse. A 1-6% numerical change
+  cannot change the selection. Its own acceptance margins are 2.3% (base H5 ratio 0.9969 against 1.02)
+  and 3.4% (base geometric 0.96685 against 1.0). All 30 base and incident ratios and the accepted set of
+  18 recompute from the stored per-horizon errors.
 
 ## 7. Commands
 
