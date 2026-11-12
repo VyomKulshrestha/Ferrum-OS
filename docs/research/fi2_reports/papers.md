@@ -5,7 +5,121 @@ arXiv or anywhere else; publication is the owner's step. No number was recompute
 evaluation was rerun. Every added number is copied from an fi1 report, an fi1 JSON record, or a result
 file v1.3 already binds.
 
-## Ready
+## Second pass (coordinator's items A to D)
+
+### A. "When Agents Control the Kernel" v1.2 to v1.3
+
+How v1.2 was built: `scripts/build_world_model_technical_report_v1_2.py` (ReportLab, invariant mode) at
+commit 8db5211 (sha256 ef7c45ca..., the digest in `world_model_technical_report_freeze_v1_2.json`), output
+`output/pdf/FerrumOS_WorldModel_Technical_Report_v1.2.pdf` (untracked); verifier
+`scripts/verify_world_model_technical_report_v1_2.py` against that freeze. The builder in the repository
+has been edited 16 times since (for PINP), so today's file no longer matches the freeze and the v1.2
+verifier also cannot find its untracked PDF; both are pre-existing. Extracted from 8db5211, the frozen
+builder rebuilds the v1.2 PDF byte for byte (sha256 6f335f48..., equal to the freeze).
+
+New files: `docs/research/paper/when_agents_control_kernel_technical_report_v1_3.md`,
+`docs/research/paper/FerrumOS_WorldModel_Technical_Report_v1.3.pdf` (19 pages; v1.2 had 18),
+`scripts/build_world_model_technical_report_v1_3.py` (the 8db5211 builder with version strings and default
+paths changed, then ruff-formatted; the PDF is byte-identical before and after formatting),
+`scripts/verify_world_model_technical_report_v1_3.py` (57 of 57: the v1.2 checks plus v1.2 source
+unchanged, every v1.2 word kept apart from the date line, the added statements present in source and PDF,
+and the added numbers equal to `fi1_pipeline_round3.json`), `docs/research/world_model_technical_report_freeze_v1_3.json`
+(prepublication; version DOI a marked placeholder). The source stays ASCII and has no generative-AI
+statement, as in v1.2.
+
+What v1.2 quotes, and what it does not:
+
+- It quotes the H=3 rollout error of the selected JEPA, 3.87% (Section 6.2 table), which is the committed
+  seed-17 transition model's 0.0387; the 0.039 to 0.041 range covers seeds 17, 42 and 91.
+- It quotes the per-action-mean comparison and declines to claim it. Its own words (Section 8.2): "The
+  per-action mean differs from selected JEPA on only three correctness outcomes: JEPA is uniquely correct
+  twice and the mean model once, exact McNemar p=1.0. The 0.2-point balanced-accuracy difference does not
+  establish a material JEPA safety advantage." Section 14.2: "Neither the original per-action mean
+  comparison nor the new final rules-only ablation establishes JEPA superiority for thresholded safety
+  decisions." Limitation 8 and the conclusion say the same.
+- It does **not** quote the 216 safe-replay false alarms. It lists the 1,969-row safe replay as an arm of
+  the protocol (Section 7) and gives no count. The 216 (109.7 alerts per 1,000) is in
+  `docs/research/WORLD_MODEL_PAPER_EVALUATION.md` and `docs/research/WORLD_MODEL_RESEARCH.md`, not in
+  either published report. I added it in Section 8.2 next to the other thread-count numbers because the
+  replay is an arm of the protocol the report describes.
+
+| Where in v1.3 | Added statement | Source and field |
+|---|---|---|
+| Section 6.2 | encoder and seed-17 transition reproduce byte for byte at 24 threads; every retrained model differs at 4 and 1; H=3 rollout 0.039 to 0.041 committed (3.87% = seed 17) against 0.064 to 0.085 | J3 `os_world_model/runs/t24_run1/digests_match`; R3 section 1.5 table (rollout per seed: 0.0387 / 0.0411 / 0.0399; 0.0847 / 0.0840 / 0.0808; 0.0675 / 0.0640 / 0.0663) |
+| Section 8.2 | rules + JEPA 185 / 65 / 31 / 219 (4 threads), 199 / 51 / 41 / 209 (1 thread), balanced accuracy 80.8% and 81.6% | J3 `runs/{t4_run1,t1_run1}/gates` "verifier: rules_plus_jepa confusion" and the claim gates' `value` |
+| Section 8.2 | rules + calibrated JEPA 204 / 46 / 40 / 210 at 4 threads, unchanged at 1 | J3 "verifier: rules_plus_validation_calibrated_jepa confusion" |
+| Section 8.2 | rules + per-action mean and rules only unchanged | R3 section 1.5 table ("identical") |
+| Section 8.2 | 81.4% against 81.2% becomes 80.8% against 81.2% at 4 threads, holds at 1 | J3 claim gate "rules_plus_jepa balanced accuracy at least rules_plus_mean_delta" (`value`, `threshold`, `passed`) |
+| Section 8.2 | above rules only and above rules + autoencoder at every count; rules-versus-combined accuracy difference 0.062 [0.030, 0.094], 0.056 [0.030, 0.084], 0.064 [0.032, 0.096] | J3 claim gates (all `passed`); intervals from R3 section 1.5 table (not stored in J3) |
+| Section 8.2 | safe-replay false alarms 216 against 50 and 58 | J3 "verifier: untouched QEMU safe replay rules_plus_jepa fp is 216" |
+| Limitation 13; "Changes in version 1.3" | summary of the above | as above |
+
+Other fi1 findings on this report's tables (not added, listed for you): R3 row W1 and the "world-model v3
+selection" margins (every safety check of the v3 selection passed for all 30 candidates; selection decided
+by rollout error; selected incident ratio 0.0027237 against 0.0030814) concern the OS world-model v3.x
+selection, which is likely the v3 to v3.4 lineage of Sections 11 and 12. R3 marks them as the second
+reader's and not checked by the round's agent, so they stay out. The five complete pipelines of Section 9.1
+were not rerun at other thread counts. R2 does not cover this report.
+
+### B. PINP v1.4 corrections
+
+1. Section 4.2: `scripts/cross_domain_world_model_models.py` line 435 computes the per-row error
+   (`np.mean(np.abs(predicted - actual) / spec.scale, axis=1)`); `episode_bootstrap` averages it within each
+   episode (line 442) and reports the mean of the episode means (line 447); `evaluate_cross_domain_world_models.py`
+   line 619 uses that estimate for the ensemble rows of Table 4. Both wordings are partly right: the error
+   is per row, the average is per episode. One sentence after the v1.3 statement says so, names the file
+   and lines and points to Section 5.2; it is Changes item 12, "correction of a description".
+2. "belong to one training run, not to the method" is now "describe one training run" in Section 11 and in
+   Changes item 2; limitation 28 did not use the construction. The verifier now fails if either old phrase
+   returns.
+3. The manifest binding: the coordinator's figure is incomplete. Since the v1.3 lock (5029572),
+   `real_telemetry_data_manifest_v1.json` changed in three commits, not one: d74a4fd (22 October, +61
+   lines), f657b6d (22 October, +13) and ef693f0 (23 October, +25), 99 added lines in total and 0 removed or
+   changed (`git show` of each; `git diff 5029572 HEAD` shows 99 insertions and 0 deletions). The v1.3
+   freeze digest dd20597c... is the CRLF form of the file at 5029572. The sentence in Section 11 names the
+   three commits and the 99 lines; it is Changes item 13.
+4. Rebuilt: 52 pages (unchanged). Verifier refreshed (status prepublication) and passes read-only.
+
+### C. Thresholds That Travel
+
+1. `scripts/tt1_build_artifact.py` now copies `fi1_monitor_round1.json`, `fi1_monitor_round2.json` and
+   `fi1_reports/monitor_round1.md`, `monitor_round2.md` (round 2 holds the 5%-of-span definition). The
+   anonymizer already rewrites JSON string values: it works on the file text, and its `(?i)ferrum[- ]?os`
+   pattern turned `ferrumos_improvement_fi1_plan.md` in the `plan` field into `[project]_improvement_fi1_plan.md`
+   (ANONYMIZATION.md lists it), so no extension or test was needed. Built locally into the scratchpad
+   (140 files); the builder's own scan passed, and my independent search found nothing:
+
+   ```
+   grep -r -i -a -n -E 'ferrum|vyom|kulshrestha|hardik|marcu|VyomKulsh|github\.com/vyom|0009-0009-1434-7148|orcid\.org|@gmail|vyomkulshrestha2004|C:[\\/]+Users|/c/Users|cursor-os|heliox|dovel|zenodo\.(2346936|2347318|2209232|2209235|2182919|2211639|2403541|2412321)' --exclude-dir=.git .
+   (no output; exit status 1)
+   ```
+
+   Nothing was pushed to the artifact's private repository or force-updated on anonymous.4open.science.
+   `ruff check` passes on the builder; it was never ruff-formatted and I did not reformat it.
+2. USENIX copy: `sync_body` is not in the repository. Before my paragraph the USENIX body and appendices
+   were identical to the ACM source from `\section{Introduction}` to the end, apart from the bibliography
+   style line; I copied those two regions. Built with tectonic: 25 pages before and after, body ends on
+   page 14 (references start there) before and after, 0 overfull, 0 undefined. The pack records no USENIX
+   page limit and I did not check the 2027 call; if the limit is USENIX Security's usual 13 pages of body,
+   the copy was already one page over before this change.
+3. `publish/zenodo_metadata_v1_2.json` (DRAFT) and `publish/zenodo_metadata_v1_2_DRAFT_NOTE.md`. The
+   description keeps v1.1's three abstract paragraphs (the abstract did not change) and replaces the version
+   paragraph with one covering the tt1g round, the appendix headings and the fitted-range paragraph. No
+   generative-AI statement, as in v1.1.
+
+### D. PINP Zenodo record
+
+`docs/research/prediction_is_not_permission_zenodo_v1_4_DRAFT.json`, in the form of
+`prediction_is_not_permission_zenodo_v1_3.json`. The DOI, record URL, reservation date and tag are marked
+PLACEHOLDER. The dataset record is reused unchanged.
+
+### Verifiers after the second pass
+
+PINP v1.4 verifier: pass (read-only, after refresh). Kernel v1.3 verifier: 57 of 57. tt1 27 of 27, tt1b 8 of
+8, repository discovery, public JSON schemas, public evidence contract: pass. The first-pass items 3, 5, 6
+and 7 below are now addressed by B1, C1, C3 and C2.
+
+## Ready (first pass)
 
 | Document | New files | Pages | Builds clean |
 |---|---|---|---|
