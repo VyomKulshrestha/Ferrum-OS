@@ -19,3 +19,4 @@ pub const TOOL_MAPPER_SOURCE: &str =
     include_str!("../../heliox-daemon/src/cognitive/tool_mapper.rs");
 pub const ORCHESTRATOR_SOURCE: &str =
     include_str!("../../heliox-daemon/src/cognitive/orchestrator.rs");
+pub const MAIN_SOURCE: &str = include_str!("../../heliox-daemon/src/main.rs");

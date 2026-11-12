@@ -38,8 +38,9 @@ const SPEC: &[(&str, u8)] = &[
     ("net_connect", 2), ("net_send", 2), ("net_recv", 2), ("http_get", 2),
     ("load_memory", 2), ("set_goal", 2), ("record_audio", 2), ("browse_url", 2),
     ("write_file", 3), ("create_directory", 3), ("save_memory", 3), ("service_start", 3),
-    ("service_stop", 3), ("play_audio", 3), ("keyboard_type", 3), ("mouse_click", 3),
-    ("mouse_move", 3),
+    ("service_stop", 3), ("play_audio", 3),
+    // Round 2 (R2-1): input injection carries the operator's whole authority.
+    ("keyboard_type", 4), ("mouse_click", 4), ("mouse_move", 4),
     ("exec_process", 4), ("delete_file", 4), ("trigger_kernel_upgrade", 4),
 ];
 
@@ -243,7 +244,8 @@ fn every_decision_cell_matches_the_specification() {
             }
         }
     }
-    assert_eq!(cells, 768, "decision cells enumerated");
+    // 768 in round 1; +7 for each of the three input tools moved to Tier 4.
+    assert_eq!(cells, 789, "decision cells enumerated");
 }
 
 #[test]

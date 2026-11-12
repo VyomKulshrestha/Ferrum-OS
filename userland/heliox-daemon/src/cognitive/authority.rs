@@ -79,10 +79,15 @@ pub const TOOL_TIERS: &[(&str, PermissionTier)] = &[
     ("service_start", PermissionTier::Modify),
     ("service_stop", PermissionTier::Modify),
     ("play_audio", PermissionTier::Modify),
-    ("keyboard_type", PermissionTier::Modify),
-    ("mouse_click", PermissionTier::Modify),
-    ("mouse_move", PermissionTier::Modify),
     // Tier 4: Destructive
+    // Input injection acts with the operator's own authority: injected keys
+    // reach the kernel shell and its GUI terminal (`heliox confirm <id>`,
+    // `write`, `rm`) and injected clicks drive any focused app (task-manager
+    // kill, app-store install/remove). A tool that can do anything the
+    // operator can do is not a Tier-3 tool (round 2, finding R2-1).
+    ("keyboard_type", PermissionTier::Destructive),
+    ("mouse_click", PermissionTier::Destructive),
+    ("mouse_move", PermissionTier::Destructive),
     ("exec_process", PermissionTier::Destructive),
     ("delete_file", PermissionTier::Destructive),
     ("trigger_kernel_upgrade", PermissionTier::Destructive),
@@ -120,11 +125,18 @@ pub enum Refusal {
     DuplicateArgument,
     ControlMessageToOwnMailbox,
     WritesOwnConfiguration,
+    /// keyboard_type text containing anything but printable ASCII: Enter,
+    /// Escape, Backspace, Tab, Ctrl-<x> or non-ASCII bytes. Without them the
+    /// agent can type into a field but never submit, erase or save it.
+    InputControlCharacter,
 }
 
 impl Refusal {
     pub fn as_str(self) -> &'static str {
         match self {
+            Refusal::InputControlCharacter => {
+                "keyboard_type may only type printable ASCII (no Enter, Escape, Backspace, Tab or control keys)"
+            }
             Refusal::MalformedToolName => "malformed tool name",
             Refusal::DuplicateArgument => "duplicate argument key (ambiguous call)",
             Refusal::ControlMessageToOwnMailbox => {
@@ -210,11 +222,26 @@ pub fn validate_tool_call(name: &str, args: &[(String, JsonValue)]) -> Result<()
                 }
             }
         }
+        // Enter is what turns typed text into a shell command (`heliox
+        // confirm <id>` approves any pending request); Escape saves in the
+        // text editor; Backspace erases what the operator typed. The agent
+        // may type, a human submits.
+        "keyboard_type" => {
+            if let Some(text) = find_str(args, "text") {
+                if !text.bytes().all(|b| (0x20..=0x7e).contains(&b)) {
+                    return Err(Refusal::InputControlCharacter);
+                }
+            }
+        }
         _ => {}
     }
     Ok(())
 }
 
+/// Escapes everything outside printable ASCII. The operator's console font
+/// is ASCII, and bidirectional overrides (U+202E), zero-width characters and
+/// homoglyphs would otherwise let model-chosen text read as something else.
+/// Injective: `\` itself is escaped, so `\u{..}` only arises from escaping.
 fn push_escaped(out: &mut String, value: &str) {
     for ch in value.chars() {
         match ch {
@@ -223,7 +250,7 @@ fn push_escaped(out: &mut String, value: &str) {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 || (c as u32) == 0x7f || ((c as u32) >= 0x80 && (c as u32) < 0xa0) => {
+            c if !(' '..='~').contains(&c) => {
                 out.push_str(&format!("\\u{{{:x}}}", c as u32));
             }
             c => out.push(c),
@@ -334,6 +361,67 @@ pub fn approval_display(args: &[(String, JsonValue)]) -> String {
         }
     }
     out
+}
+
+/// Largest complete rendering of a call the operator can be shown. A call
+/// whose arguments do not fit is refused rather than approved half-seen.
+pub const MAX_APPROVAL_DISPLAY_BYTES: usize = 8192;
+
+/// Every byte of every argument, escaped onto one line, or `None` when that
+/// exceeds `MAX_APPROVAL_DISPLAY_BYTES`. This is what the console prints when
+/// a request is created, so an operator never approves text they could not
+/// see (the short `approval_display` truncates values at 48 bytes).
+pub fn approval_full_display(args: &[(String, JsonValue)]) -> Option<String> {
+    let mut out = String::new();
+    for (i, (key, value)) in args.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        out.push('"');
+        push_escaped(&mut out, key);
+        out.push_str("\"=");
+        push_value_fingerprint(&mut out, value);
+        if out.len() > MAX_APPROVAL_DISPLAY_BYTES {
+            return None;
+        }
+    }
+    Some(out)
+}
+
+/// Tools whose meaning depends on the file at their `path` argument.
+const PATH_SUBJECT_TOOLS: [&str; 4] = ["write_file", "create_directory", "delete_file", "exec_process"];
+/// Tools that change the file at their `path` argument.
+pub const PATH_MODIFYING_TOOLS: [&str; 3] = ["write_file", "create_directory", "delete_file"];
+
+/// The normalized path an approval for `tool` is about, if any: components
+/// with `.`/empty dropped and `..` applied, lowercased (over-matching only
+/// revokes more approvals, never fewer).
+pub fn subject_path(tool: &str, args: &[(String, JsonValue)]) -> Option<String> {
+    if !PATH_SUBJECT_TOOLS.contains(&tool) {
+        return None;
+    }
+    let path = find_str(args, "path")?;
+    let mut out = String::new();
+    for component in path_components(path) {
+        out.push('/');
+        out.push_str(&component.to_ascii_lowercase());
+    }
+    if out.is_empty() {
+        out.push('/');
+    }
+    Some(out)
+}
+
+/// True when one normalized path is the other or lies beneath it.
+pub fn paths_overlap(a: &str, b: &str) -> bool {
+    fn under(child: &str, parent: &str) -> bool {
+        child == parent
+            || parent == "/"
+            || (child.len() > parent.len()
+                && child.starts_with(parent)
+                && child.as_bytes()[parent.len()] == b'/')
+    }
+    under(a, b) || under(b, a)
 }
 
 /// An operator control command read from the daemon's mailbox.

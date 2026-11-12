@@ -202,13 +202,13 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 30. `set_volume` - Set the audio output volume.
     Arguments: {"level": <number 0-127>}
 
-31. `keyboard_type` - Type a string of text as keyboard input (REQUIRES CONFIRMATION).
+31. `keyboard_type` - Type printable ASCII text as keyboard input; no Enter or control keys (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"text": "<string>"}
 
-32. `mouse_click` - Click a mouse button (REQUIRES CONFIRMATION).
+32. `mouse_click` - Click a mouse button (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"button": <number 0=left, 1=right, 2=middle>}
 
-33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES CONFIRMATION).
+33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"dx": <number>, "dy": <number>}
 
 34. `browse_url` - Fetch an HTTP or HTTPS URL and extract clean text content from the page.
@@ -257,22 +257,30 @@ pub fn confirmation_result(
         current_tick,
     ) {
         Clearance::Proceed => return None,
-        Clearance::Awaiting { id, display } => {
+        Clearance::Awaiting { id, display: _, full_display } => {
+            // The operator sees every byte of what they would approve. The
+            // kernel console rejects writes over 4096 bytes, so print in
+            // chunks (full_display is at most MAX_APPROVAL_DISPLAY_BYTES and
+            // pure ASCII after escaping).
             let notice = format!(
                 "[heliox-daemon] confirmation {} requested: {} ({:?}) {}\n",
                 id,
                 tool_call.name,
                 tool_tier(&tool_call.name),
-                display
+                full_display
             );
-            unsafe {
-                syscall3(SYS_WRITE_CONSOLE, 1, notice.as_ptr() as u64, notice.len() as u64);
+            for chunk in notice.as_bytes().chunks(2048) {
+                unsafe {
+                    syscall3(SYS_WRITE_CONSOLE, 1, chunk.as_ptr() as u64, chunk.len() as u64);
+                }
             }
             format!("Awaiting confirmation (id={}). Use 'confirm {}' in kernel shell.", id, id)
         }
         Clearance::Denied => String::from("Action denied by operator."),
         Clearance::Expired => String::from("Confirmation request expired."),
-        Clearance::Refused => String::from("Confirmation queue full; request refused."),
+        Clearance::Refused => String::from(
+            "Confirmation refused: queue full, ids exhausted, or arguments too large to show the operator.",
+        ),
     };
     Some(ToolResult {
         tool_name: tool_call.name.clone(),

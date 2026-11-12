@@ -54,6 +54,9 @@ pub struct PendingConfirmation {
     pub tier: PermissionTier,
     pub created_at_tick: u64,
     pub status: InternalStatus,
+    /// Normalized path the action is about (`authority::subject_path`).
+    /// A later change to that path revokes the request (`revoke_path`).
+    pub subject: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -80,7 +83,8 @@ impl ConfirmationGate {
         }
     }
 
-    /// Test hook: start issuing ids from `next_id`.
+    /// Start issuing ids from `next_id` (the daemon seeds it at random per
+    /// boot; tests use it to reach the id-exhaustion boundary).
     pub fn with_next_id(timeout_ticks: u64, next_id: u32) -> Self {
         Self { requests: Vec::new(), next_id, timeout_ticks }
     }
@@ -159,9 +163,31 @@ impl ConfirmationGate {
             tier,
             created_at_tick: current_tick,
             status: InternalStatus::Pending,
+            subject: None,
         });
 
         ConfirmationStatus::Pending(id)
+    }
+
+    /// Records the path a request is about (set right after it is created).
+    pub fn set_subject(&mut self, id: u32, subject: Option<String>) {
+        if let Some(req) = self.requests.iter_mut().find(|r| r.id == id) {
+            req.subject = subject;
+        }
+    }
+
+    /// The file at `path` is about to change: every pending or approved
+    /// request about that path, a path beneath it or a directory above it
+    /// is withdrawn. The operator approved an action on what was there; a
+    /// replaced binary or file is a different action and must be asked for
+    /// again. Returns how many requests were withdrawn.
+    pub fn revoke_path(&mut self, path: &str) -> usize {
+        let before = self.requests.len();
+        self.requests.retain(|r| match &r.subject {
+            Some(subject) => !super::authority::paths_overlap(subject, path),
+            None => true,
+        });
+        before - self.requests.len()
     }
 
     /// Approve a pending confirmation by ID (called from kernel shell via
@@ -226,15 +252,37 @@ impl ConfirmationGate {
 pub enum Clearance {
     /// No confirmation needed, or a matching approval was consumed.
     Proceed,
-    Awaiting { id: u32, display: String },
+    /// `display` is the short line for listings; `full_display` is every
+    /// byte of the arguments, printed when the request is created.
+    Awaiting { id: u32, display: String, full_display: String },
     Denied,
     Expired,
     Refused,
 }
 
 /// The single confirmation decision used by every execution path
-/// (`tool_mapper::execute` and the orchestrator's internal tools).
+/// (`tool_mapper::execute` and the orchestrator's internal tools). A
+/// `Proceed` for a path-modifying tool withdraws every outstanding request
+/// about that path, because the call is about to run.
 pub fn clear_for_execution(
+    gate: &mut ConfirmationGate,
+    tool_name: &str,
+    args: &[(String, super::json::JsonValue)],
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> Clearance {
+    let clearance = decide(gate, tool_name, args, auto_approve_tier, current_tick);
+    if clearance == Clearance::Proceed
+        && super::authority::PATH_MODIFYING_TOOLS.contains(&tool_name)
+    {
+        if let Some(path) = super::authority::subject_path(tool_name, args) {
+            gate.revoke_path(&path);
+        }
+    }
+    clearance
+}
+
+fn decide(
     gate: &mut ConfirmationGate,
     tool_name: &str,
     args: &[(String, super::json::JsonValue)],
@@ -245,11 +293,18 @@ pub fn clear_for_execution(
     if !super::authority::needs_confirmation(tier, auto_approve_tier) {
         return Clearance::Proceed;
     }
+    // A call the operator cannot be shown in full is never queued.
+    let Some(full_display) = super::authority::approval_full_display(args) else {
+        return Clearance::Refused;
+    };
     let fingerprint = super::authority::approval_fingerprint(args);
     let display = super::authority::approval_display(args);
     match gate.check_or_request_with_display(tool_name, &fingerprint, &display, tier, current_tick) {
         ConfirmationStatus::Approved => Clearance::Proceed,
-        ConfirmationStatus::Pending(id) => Clearance::Awaiting { id, display },
+        ConfirmationStatus::Pending(id) => {
+            gate.set_subject(id, super::authority::subject_path(tool_name, args));
+            Clearance::Awaiting { id, display, full_display }
+        }
         ConfirmationStatus::Denied => Clearance::Denied,
         ConfirmationStatus::Expired => Clearance::Expired,
         ConfirmationStatus::Refused => Clearance::Refused,
