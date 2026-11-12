@@ -10,6 +10,7 @@ use alloc::vec::Vec;
 pub mod memory;
 pub mod cognitive;
 pub mod network;
+pub mod http_parse;
 pub mod config;
 pub mod physical;
 pub mod neural;

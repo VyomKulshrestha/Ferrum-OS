@@ -590,11 +590,8 @@ fn dns_resolve_ipv4(host: &str) -> Option<[u8; 4]> {
 
 // ---- HTTP Client -----------------------------------------------------------
 
-/// Result of an HTTP request.
-pub struct HttpResponse {
-    pub status_code: u16,
-    pub body: String,
-}
+pub use crate::http_parse::HttpResponse;
+use crate::http_parse::{parse_http_response, receive_response};
 
 fn validate_http_target(host: &str, port: u16, path: &str) -> Result<(), &'static str> {
     let known_alias = matches!(host, "host" | "localhost" | "dns");
@@ -650,35 +647,12 @@ pub fn http_get(host: &str, port: u16, path: &str) -> Result<HttpResponse, &'sta
         }
     }
 
-    let mut response_buf = alloc::vec![0u8; 32768];
-    let mut total_received = 0;
-    loop {
-        match tcp_recv(fd, &mut response_buf[total_received..]) {
-            Ok(0) => {
-                break;
-            }
-            Ok(n) => {
-                total_received += n;
-                if total_received >= response_buf.len() {
-                    break;
-                }
-            }
-            Err("blocked") => {
-                unsafe { crate::syscall3(0, 0, 0, 0); }
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-
-    if total_received == 0 {
-        return Err("No HTTP response received");
-    }
-
-    let response_str = core::str::from_utf8(&response_buf[..total_received])
-        .unwrap_or("");
-    parse_http_response(response_str)
+    // Read until the peer closes or the declared length has arrived; more
+    // than 1 MiB is an error (it used to be cut at 32 KiB and parsed).
+    let raw = receive_response(|buf| tcp_recv(fd, buf), || unsafe {
+        crate::syscall3(0, 0, 0, 0);
+    })?;
+    parse_http_response(&raw)
 }
 
 /// Perform an HTTP POST request to the given host:port/path with a JSON body.
@@ -736,38 +710,13 @@ pub fn http_post(host: &str, port: u16, path: &str, json_body: &str, api_key: &s
         }
     }
 
-    // 6. Receive the response (up to 8 KiB)
-    let mut response_buf = alloc::vec![0u8; 32768];
-    let mut total_received = 0;
-    loop {
-        match tcp_recv(fd, &mut response_buf[total_received..]) {
-            Ok(0) => {
-                break;
-            }
-            Ok(n) => {
-                total_received += n;
-                if total_received >= response_buf.len() {
-                    break;
-                }
-            }
-            Err("blocked") => {
-                unsafe { crate::syscall3(0, 0, 0, 0); }
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-
-    if total_received == 0 {
-        return Err("no response received");
-    }
-
-    // 7. Parse the HTTP response
-    let raw = core::str::from_utf8(&response_buf[..total_received])
-        .map_err(|_| "invalid UTF-8 in response")?;
-
-    parse_http_response(raw)
+    // 6. Receive the response
+    // Read until the peer closes or the declared length has arrived; more
+    // than 1 MiB is an error (it used to be cut at 32 KiB and parsed).
+    let raw = receive_response(|buf| tcp_recv(fd, buf), || unsafe {
+        crate::syscall3(0, 0, 0, 0);
+    })?;
+    parse_http_response(&raw)
 }
 
 /// Perform an HTTP POST request to the given host:port/path with a binary body.
@@ -847,104 +796,12 @@ pub fn http_post_binary(
     }
 
     // 7. Receive the response
-    let mut response_buf = alloc::vec![0u8; 32768];
-    let mut total_received = 0;
-    loop {
-        match tcp_recv(fd, &mut response_buf[total_received..]) {
-            Ok(0) => {
-                break;
-            }
-            Ok(n) => {
-                total_received += n;
-                if total_received >= response_buf.len() {
-                    break;
-                }
-            }
-            Err("blocked") => {
-                unsafe { crate::syscall3(0, 0, 0, 0); }
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-
-    if total_received == 0 {
-        return Err("No HTTP response received");
-    }
-
-    // 8. Parse the HTTP response
-    let raw = core::str::from_utf8(&response_buf[..total_received])
-        .map_err(|_| "invalid UTF-8 in response")?;
-
-    parse_http_response(raw)
-}
-
-fn decode_chunked_body(encoded: &[u8]) -> Result<String, &'static str> {
-    let mut decoded = Vec::new();
-    let mut offset = 0usize;
-    loop {
-        let line_end = encoded[offset..]
-            .windows(2)
-            .position(|pair| pair == b"\r\n")
-            .map(|position| offset + position)
-            .ok_or("malformed chunk size")?;
-        let size_line = core::str::from_utf8(&encoded[offset..line_end])
-            .map_err(|_| "invalid chunk size")?;
-        let size_text = size_line.split(';').next().unwrap_or("").trim();
-        let size = usize::from_str_radix(size_text, 16).map_err(|_| "invalid chunk size")?;
-        offset = line_end + 2;
-        if size == 0 {
-            return String::from_utf8(decoded).map_err(|_| "invalid UTF-8 in chunked body");
-        }
-        let chunk_end = offset.checked_add(size).ok_or("chunk size overflow")?;
-        if chunk_end + 2 > encoded.len() || &encoded[chunk_end..chunk_end + 2] != b"\r\n" {
-            return Err("truncated chunked body");
-        }
-        decoded.extend_from_slice(&encoded[offset..chunk_end]);
-        offset = chunk_end + 2;
-        if offset >= encoded.len() {
-            return Err("missing terminal HTTP chunk");
-        }
-    }
-}
-
-/// Parse a raw HTTP response string into status code and body. HTTP/1.1
-/// providers commonly use chunked transfer encoding even for non-streaming
-/// JSON; decode that framing before the cognitive JSON parser sees the body.
-fn parse_http_response(raw: &str) -> Result<HttpResponse, &'static str> {
-    // Find the status line: "HTTP/1.1 200 OK\r\n"
-    let status_line_end = raw.find("\r\n").ok_or("malformed HTTP response")?;
-    let status_line = &raw[..status_line_end];
-
-    // Extract status code (starts after "HTTP/x.x ")
-    let status_code = status_line
-        .split(' ')
-        .nth(1)
-        .ok_or("no status code")?
-        .parse::<u16>()
-        .map_err(|_| "invalid status code")?;
-
-    // Find the body (after \r\n\r\n)
-    let header_end = raw.find("\r\n\r\n").ok_or("missing HTTP header terminator")?;
-    let body_start = header_end + 4;
-    let headers = &raw[..header_end];
-    let is_chunked = headers.lines().any(|line| {
-        let mut parts = line.splitn(2, ':');
-        matches!((parts.next(), parts.next()), (Some(name), Some(value))
-            if name.trim().eq_ignore_ascii_case("transfer-encoding")
-                && value.split(',').any(|encoding| encoding.trim().eq_ignore_ascii_case("chunked")))
-    });
-    let body = if is_chunked {
-        decode_chunked_body(&raw.as_bytes()[body_start..])?
-    } else {
-        String::from(&raw[body_start..])
-    };
-
-    Ok(HttpResponse {
-        status_code,
-        body,
-    })
+    // Read until the peer closes or the declared length has arrived; more
+    // than 1 MiB is an error (it used to be cut at 32 KiB and parsed).
+    let raw = receive_response(|buf| tcp_recv(fd, buf), || unsafe {
+        crate::syscall3(0, 0, 0, 0);
+    })?;
+    parse_http_response(&raw)
 }
 
 // ---- LLM-Specific Helpers --------------------------------------------------
@@ -1130,39 +987,28 @@ fn http_tls_request(
     tls.flush().map_err(|_| "TLS flush failed")?;
 
     // 10. Receive the response
-    let mut response_buf = alloc::vec![0u8; 32768];
-    let mut total_received = 0;
-    loop {
-        match tls.read(&mut response_buf[total_received..]) {
-            Ok(0) => {
-                break;
-            }
+    let mut got_data = false;
+    let raw = receive_response(
+        |buf| match tls.read(buf) {
             Ok(n) => {
-                total_received += n;
-                if total_received >= response_buf.len() {
-                    break;
-                }
+                got_data |= n > 0;
+                Ok(n)
             }
+            // Many servers close without a TLS close_notify after the last
+            // byte. Treat that as the end of the stream; the parser still
+            // refuses a body shorter than its Content-Length or a chunked
+            // body without its terminal chunk.
+            Err(_) if got_data => Ok(0),
             Err(e) => {
-                if total_received > 0 {
-                    break;
-                }
-                let log_msg = alloc::format!("[heliox-daemon] [ ERROR ] TLS Read error: {:?}\n", e);
+                let log_msg = alloc::format!("[heliox-daemon] [ ERROR ] TLS Read error: {:?}
+", e);
                 unsafe { syscall3(34, 1, log_msg.as_ptr() as u64, log_msg.len() as u64); }
-                return Err("TLS read error");
+                Err("TLS read error")
             }
-        }
-    }
-
-    if total_received == 0 {
-        return Err("no response received");
-    }
-
-    // 11. Parse response
-    let raw = core::str::from_utf8(&response_buf[..total_received])
-        .map_err(|_| "invalid UTF-8 in response")?;
-
-    parse_http_response(raw)
+        },
+        || {},
+    )?;
+    parse_http_response(&raw)
 }
 
 /// Send a prompt to an OpenAI-compatible API running on the QEMU host.
@@ -1375,90 +1221,99 @@ pub fn ws_send_text_server(fd: u64, data: &str) -> Result<(), &'static str> {
 /// - Close (marks connection as disconnected)
 /// - Continuation frames (appended to payload)
 pub fn ws_recv_frame(conn: &mut WsConnection) -> Result<WsFrame, &'static str> {
-    if !conn.connected {
-        return Err("ws: not connected");
-    }
-
-    // Read the first 2 bytes (minimum frame header).
-    let mut header = [0u8; 2];
-    ws_read_exact(conn.fd, &mut header, true)?;
-
-    let fin = (header[0] & 0x80) != 0;
-    let opcode = header[0] & 0x0F;
-    let masked = (header[1] & 0x80) != 0;
-    let len_byte = header[1] & 0x7F;
-
-    // Determine payload length.
-    let payload_len: usize = if len_byte < 126 {
-        len_byte as usize
-    } else if len_byte == 126 {
-        let mut ext = [0u8; 2];
-        ws_read_exact(conn.fd, &mut ext, false)?;
-        u16::from_be_bytes(ext) as usize
-    } else {
-        // 127 → 8-byte extended length
-        let mut ext = [0u8; 8];
-        ws_read_exact(conn.fd, &mut ext, false)?;
-        u64::from_be_bytes(ext) as usize
-    };
-
-    // Read optional masking key (server frames should NOT be masked,
-    // but handle it gracefully).
-    let mask_key = if masked {
-        let mut mk = [0u8; 4];
-        ws_read_exact(conn.fd, &mut mk, false)?;
-        Some(mk)
-    } else {
-        None
-    };
-
-    // Read payload.
-    let mut payload = alloc::vec![0u8; payload_len];
-    if payload_len > 0 {
-        ws_read_exact(conn.fd, &mut payload, false)?;
-    }
-
-    // Unmask if needed.
-    if let Some(mk) = mask_key {
-        for (i, byte) in payload.iter_mut().enumerate() {
-            *byte ^= mk[i % 4];
+    const MAX_PINGS_PER_RECEIVE: u32 = 64;
+    let mut pings_answered = 0u32;
+    loop {
+        if !conn.connected {
+            return Err("ws: not connected");
         }
-    }
 
-    // Handle control frames.
-    match opcode {
-        WS_OP_PING => {
-            // Auto-respond with pong. If received frame was masked, we are server (no masking in response).
-            if masked {
-                let _ = ws_send_frame_server(conn.fd, WS_OP_PONG, &payload);
-            } else {
-                let _ = ws_send_frame(conn.fd, WS_OP_PONG, &payload);
+        // Read the first 2 bytes (minimum frame header).
+        let mut header = [0u8; 2];
+        ws_read_exact(conn.fd, &mut header, true)?;
+
+        let fin = (header[0] & 0x80) != 0;
+        let opcode = header[0] & 0x0F;
+        let masked = (header[1] & 0x80) != 0;
+        let len_byte = header[1] & 0x7F;
+
+        // Determine payload length (bounded: it sizes an allocation).
+        let payload_len: usize = if len_byte < 126 {
+            len_byte as usize
+        } else if len_byte == 126 {
+            let mut ext = [0u8; 2];
+            ws_read_exact(conn.fd, &mut ext, false)?;
+            u16::from_be_bytes(ext) as usize
+        } else {
+            // 127 → 8-byte extended length
+            let mut ext = [0u8; 8];
+            ws_read_exact(conn.fd, &mut ext, false)?;
+            crate::http_parse::ws_payload_len(u64::from_be_bytes(ext))?
+        };
+
+        // Read optional masking key (server frames should NOT be masked,
+        // but handle it gracefully).
+        let mask_key = if masked {
+            let mut mk = [0u8; 4];
+            ws_read_exact(conn.fd, &mut mk, false)?;
+            Some(mk)
+        } else {
+            None
+        };
+
+        // Read payload.
+        let mut payload = alloc::vec![0u8; payload_len];
+        if payload_len > 0 {
+            ws_read_exact(conn.fd, &mut payload, false)?;
+        }
+
+        // Unmask if needed.
+        if let Some(mk) = mask_key {
+            for (i, byte) in payload.iter_mut().enumerate() {
+                *byte ^= mk[i % 4];
             }
-            // Recurse to get the next data frame.
-            return ws_recv_frame(conn);
         }
-        WS_OP_CLOSE => {
-            // Send close frame back and mark disconnected.
-            if masked {
-                let _ = ws_send_frame_server(conn.fd, WS_OP_CLOSE, &[]);
-            } else {
-                let _ = ws_send_frame(conn.fd, WS_OP_CLOSE, &[]);
-            }
-            conn.connected = false;
-            return Ok(WsFrame {
-                opcode: WS_OP_CLOSE,
-                fin: true,
-                payload: Vec::new(),
-            });
-        }
-        _ => {}
-    }
 
-    Ok(WsFrame {
-        opcode,
-        fin,
-        payload,
-    })
+        // Handle control frames.
+        match opcode {
+            WS_OP_PING => {
+                // Auto-respond with pong. If received frame was masked, we are server (no masking in response).
+                if masked {
+                    let _ = ws_send_frame_server(conn.fd, WS_OP_PONG, &payload);
+                } else {
+                    let _ = ws_send_frame(conn.fd, WS_OP_PONG, &payload);
+                }
+                // Get the next data frame. This recursed once per ping, so a
+                // peer sending pings without end grew the stack without bound.
+                pings_answered += 1;
+                if pings_answered > MAX_PINGS_PER_RECEIVE {
+                    return Err("ws: too many consecutive pings");
+                }
+                continue;
+            }
+            WS_OP_CLOSE => {
+                // Send close frame back and mark disconnected.
+                if masked {
+                    let _ = ws_send_frame_server(conn.fd, WS_OP_CLOSE, &[]);
+                } else {
+                    let _ = ws_send_frame(conn.fd, WS_OP_CLOSE, &[]);
+                }
+                conn.connected = false;
+                return Ok(WsFrame {
+                    opcode: WS_OP_CLOSE,
+                    fin: true,
+                    payload: Vec::new(),
+                });
+            }
+            _ => {}
+        }
+
+        return Ok(WsFrame {
+            opcode,
+            fin,
+            payload,
+        });
+    }
 }
 
 /// Read exactly `buf.len()` bytes from the socket, retrying as needed.

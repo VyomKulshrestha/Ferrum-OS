@@ -48,3 +48,10 @@ pub fn stable_click_target() -> Result<(cognitive::confirmation::ClickTarget, St
 pub fn stable_versions(_path: &str) -> Result<cognitive::confirmation::FileVersion, ()> {
     Ok(cognitive::confirmation::FileVersion::Absent)
 }
+
+/// The daemon's HTTP response framing (fi1 kernel round 3), syscall-free.
+#[path = "../../heliox-daemon/src/http_parse.rs"]
+pub mod http_parse;
+
+/// The daemon's network module source, for checks that it uses `http_parse`.
+pub const NETWORK_SOURCE: &str = include_str!("../../heliox-daemon/src/network.rs");

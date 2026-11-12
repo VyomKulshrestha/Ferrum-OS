@@ -77,7 +77,11 @@ and can evolve without destabilizing the kernel.
 
 - Preemptive round-robin with 4 priority levels
 - Context switching via `switch_to()` assembly stub
-- Per-task kernel stacks, sleep/wake/yield syscalls
+- Per-task kernel stacks, sleep/wake/yield syscalls. Each process's 32 KiB
+  kernel stack is mapped (no-execute) in its own 64 KiB slot of a dedicated
+  region with the lower 32 KiB never mapped, so an overflow is a double fault
+  that stops the kernel instead of a silent heap overwrite; the user stack has
+  a 64 KiB unmapped gap below it that no ELF segment or mmap region may use
 - PID assignment, task state tracking (Ready/Running/Blocked/Dead)
 - 275 ms default time slice, derived from the PIT period so timer-rate changes
   do not silently alter scheduling or quota durations
@@ -278,7 +282,7 @@ Longest-prefix mount matching. Currently two mounts:
 
 | Mount | Type | Description |
 |-------|------|-------------|
-| `/` | RamFS | Volatile in-memory filesystem |
+| `/` | RamFS | Volatile in-memory filesystem (at most 4 MiB of file data, 2048 nodes, 32 path components; it lives on the kernel heap) |
 | `/disk` | Ext2 | ATA PIO block storage, persistent |
 
 The VFS exposes separate text and raw-byte paths. `WriteFile(16)` and offset

@@ -197,9 +197,12 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation)
 - Resource Quotas: Syscall rate limiting, continuous CPU execution limits, and memory mapping bounds check (default 8 MiB)
 - Modular service manager with typed service manifests
-- IPC broker with capability-checked send/receive, live or preloaded service
-  ownership, process-owned receive mailboxes, and bounded per-service
-  backpressure so one absent or stalled consumer cannot starve Heliox
+- IPC broker with capability-checked send/receive. A mailbox belongs to the
+  process that registered under its name while it was free (a second
+  instance never inherits it, and messages queued for a dead owner are
+  dropped); per-mailbox backpressure is 16 messages, of which 4 are reserved
+  for messages the kernel marks as the operator's, so a flooding sender
+  cannot make an operator DENY or disarm fail
 
 ### Networking
 - RTL8139 PCI NIC driver with real TCP/IP via smoltcp
