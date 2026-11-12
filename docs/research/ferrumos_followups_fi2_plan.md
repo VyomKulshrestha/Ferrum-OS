@@ -121,6 +121,17 @@ A new study that uses it registers it before any of its data is opened, with the
 counts alarm episodes as well as alarm time. Published and registered results keep the monitor they
 were registered with.
 
+## Notes after the plan was committed
+
+- 2026-11-12, 14:45 UTC: the owner merged pull request 6 with a merge commit (main c80f7dd); pull
+  requests 2 to 5 show as merged with it. The Rust workstreams' branches start from a commit that main
+  now contains, so their pull requests show only their own changes.
+- 2026-11-12: the owner set the cost rule for workstream O. The API balance is about 180 US dollars and
+  the Claude arm uses `claude-haiku-5-5` only. The pilot stays under 5 dollars. The registered run has
+  a cap of 30 dollars including retries and is designed so that its estimate, with the Batches API and
+  prompt caching, stays under 20. No request goes to a larger Claude model; adding one later is a
+  separate, costed extension that the owner decides on.
+
 ## Stopping
 
 Each workstream runs once through its list. A second round on a workstream starts only if its own
