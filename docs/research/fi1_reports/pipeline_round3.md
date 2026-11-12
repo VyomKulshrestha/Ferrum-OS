@@ -95,8 +95,13 @@ recomputed from the recomputed evidence against the stored result.
 
 | Run (physical domain) | catalogs | pipelines bit-identical | largest absolute difference (pipeline) | within the verifier's atol 1e-7 | analysis leaves changed | gates, counts or intervals changed |
 |---|---|---|---|---|---|---|
-| v3, torch 4 threads (registered: 8) | identical | 12 of 15 | 3.6e-7, scores of `v2-paper-action_conditioned_jepa` | no (that pipeline, all three populations) | 30 (that pipeline's mean errors, Brier, ECE, bin means; relative change about 1e-8) | none |
-PLACEHOLDER_INCIDENT_ROWS
+| v3, torch 4 threads (registered: 8) | identical | 12 of 15 | 3.6e-7, scores of `v2-paper-action_conditioned_jepa` | no (that pipeline, all three populations) | 30, all of that pipeline (mean errors, Brier, ECE, bin means); largest relative change 4.7e-8 | none |
+| v4, torch 4 threads | identical | 14 of 17 | 3.6e-7, same pipeline | no (same) | 30, same pipeline; 5.5e-8 | none |
+| v3, torch 1 thread | identical | 12 of 15 | 3.6e-7, same pipeline | no (same) | 30, same pipeline; 5.5e-9 | none |
+
+The FerrumOS domain was not run (its historical rows need the published dataset through the frozen
+loaders; time). A rerun at 8 threads, the registered count, is what the runner's own verify stage does;
+round 2 did not rerun it and neither did this round.
 
 The pipelines the study is about are bit-identical: the selected v3 physical pipeline (an ensemble of
 three LightGBM models, `p24-gbr-h8-iw4-scaled`, which predicts each row independently) and the v2 ridge
@@ -107,7 +112,24 @@ inference check of the runner's own verify stage would fail for that control at 
 
 ### 1.4 Cross-domain study (Tables 3 to 7, D1)
 
-PLACEHOLDER_CROSSDOMAIN
+Training was not rerun (18 torch checkpoints; the study's training used deterministic torch algorithms).
+`verify_cross_domain_archived_inference_v1_2.py` recomputes the historical tables from the archived
+checkpoints and compares them with the stored records by canonical JSON equality, with torch pinned to
+16 threads in its code. `fi1_thread_crossdomain.py` runs it unchanged with torch and BLAS at another count
+(its own pin neutralised) and records how large each difference is.
+
+| Record | numeric leaves | changed at 4 threads | largest relative change | verdicts, flags or orderings changed |
+|---|---|---|---|---|
+| FerrumOS, original domain record (Tables 3, 4, D1) | 572 | 23 | 1.6e-7 | none |
+| FerrumOS, common-episode record (Table 5) | 266 | 133 | 4.2e-7 | none |
+| Physical, original domain record | 711 | 93 | 1.0e-6 (a risk-coverage uncertainty bound) | none |
+| Physical, common-episode record | 266 | 135 | 3.1e-8 | none |
+| Attribution diagnostics | 1,288 | 0 | 0 | none |
+
+PLACEHOLDER_CROSS_T1_T16
+
+So the verifier's four exact-equality checks fail at any thread count other than the pinned one, while
+no printed digit of Tables 3 to 7 can change (the largest change is a millionth of the value).
 
 ### 1.5 OS world-model study (`verify_world_model_paper_evaluation.py`)
 
