@@ -64,6 +64,38 @@ pub fn versions_unavailable(_path: &str) -> Result<FileVersion, ()> {
     Err(())
 }
 
+/// What a pointer click lands on (the kernel's PointerTarget, fi1 K2): the
+/// top window under the pointer (0: the desktop), its owner pid (0: a
+/// kernel-drawn window) and the pointer position relative to the window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClickTarget {
+    pub window: u64,
+    pub owner: u64,
+    pub rel_x: u32,
+    pub rel_y: u32,
+}
+
+/// Where the gate reads the click target from: the target and the window's
+/// title (as the window chose it; escaped before it is shown). `Err(())`
+/// means the kernel could not say; the gate then refuses the click.
+pub type ClickTargetSource = fn() -> Result<(ClickTarget, String), ()>;
+
+/// The default source: no target, so every click that needs an approval is
+/// refused. The daemon installs the kernel's (`orchestrator::kernel_click_target`).
+pub fn click_targets_unavailable() -> Result<(ClickTarget, String), ()> {
+    Err(())
+}
+
+/// What an operator approval of a call was bound to, handed to the executor
+/// so the kernel can refuse the action if it no longer holds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Bound {
+    /// The file's version (write, delete, exec, kernel upgrade).
+    pub version: Option<FileVersion>,
+    /// The click's target (`mouse_click`).
+    pub click: Option<ClickTarget>,
+}
+
 /// A single pending confirmation request.
 #[derive(Debug, Clone)]
 pub struct PendingConfirmation {
@@ -84,6 +116,10 @@ pub struct PendingConfirmation {
     /// when the request was made. The approval holds only while the file
     /// still has this version.
     pub subject_version: Option<FileVersion>,
+    /// For a click: the window, owner and position under the pointer when
+    /// the request was made (fi1 K2). The approval holds only while the
+    /// pointer is over exactly that.
+    pub click_target: Option<ClickTarget>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -101,6 +137,8 @@ pub struct ConfirmationGate {
     timeout_ticks: u64,
     /// Source of file versions (fails closed until one is installed).
     file_versions: FileVersionSource,
+    /// Source of click targets (fails closed until one is installed).
+    click_targets: ClickTargetSource,
 }
 
 impl ConfirmationGate {
@@ -110,19 +148,57 @@ impl ConfirmationGate {
             next_id: 1,
             timeout_ticks,
             file_versions: versions_unavailable,
+            click_targets: click_targets_unavailable,
         }
     }
 
     /// Start issuing ids from `next_id` (the daemon seeds it at random per
     /// boot; tests use it to reach the id-exhaustion boundary).
     pub fn with_next_id(timeout_ticks: u64, next_id: u32) -> Self {
-        Self { requests: Vec::new(), next_id, timeout_ticks, file_versions: versions_unavailable }
+        Self {
+            requests: Vec::new(),
+            next_id,
+            timeout_ticks,
+            file_versions: versions_unavailable,
+            click_targets: click_targets_unavailable,
+        }
     }
 
     /// Read file versions from `source` (the daemon passes the kernel's).
     pub fn with_file_versions(mut self, source: FileVersionSource) -> Self {
         self.file_versions = source;
         self
+    }
+
+    /// Read click targets from `source` (the daemon passes the kernel's).
+    pub fn with_click_targets(mut self, source: ClickTargetSource) -> Self {
+        self.click_targets = source;
+        self
+    }
+
+    /// What a click would land on now, as the installed source reports it.
+    pub fn click_target(&self) -> Result<(ClickTarget, String), ()> {
+        (self.click_targets)()
+    }
+
+    /// Records the click target a request is bound to.
+    pub fn set_click_target(&mut self, id: u32, target: Option<ClickTarget>) {
+        if let Some(req) = self.requests.iter_mut().find(|r| r.id == id) {
+            req.click_target = target;
+        }
+    }
+
+    /// Withdraws a pending or approved click for these exact arguments whose
+    /// bound target is not `current`. A denial stays final.
+    fn withdraw_if_target_changed(&mut self, tool_name: &str, args_fingerprint: &str, current: ClickTarget) -> bool {
+        let before = self.requests.len();
+        self.requests.retain(|r| {
+            !(r.tool_name == tool_name
+                && r.args_fingerprint == args_fingerprint
+                && r.status != InternalStatus::Denied
+                && r.click_target != Some(current))
+        });
+        self.requests.len() != before
     }
 
     /// The version `path` has now, as the installed source reports it.
@@ -227,6 +303,7 @@ impl ConfirmationGate {
             status: InternalStatus::Pending,
             subject: None,
             subject_version: None,
+            click_target: None,
         });
 
         ConfirmationStatus::Pending(id)
@@ -325,6 +402,9 @@ pub enum Clearance {
     /// request was made; the request or approval is withdrawn and must be
     /// asked for again.
     FileChanged,
+    /// The window, owner or position under the pointer is not what the
+    /// click was requested for; the request or approval is withdrawn.
+    TargetChanged,
 }
 
 /// The single confirmation decision used by every execution path
@@ -338,7 +418,26 @@ pub fn clear_for_execution(
     auto_approve_tier: u8,
     current_tick: u64,
 ) -> Clearance {
-    let clearance = decide(gate, tool_name, args, auto_approve_tier, current_tick);
+    clear_for_execution_bound(gate, tool_name, args, auto_approve_tier, current_tick).0
+}
+
+/// `clear_for_execution`, plus what an operator approval was bound to. The
+/// version is `Some` exactly when the call proceeds on an approval of an
+/// action on a file (`version_subject`); the executor must then pass it to
+/// the kernel's guarded call (WriteFileIfVersion, DeleteFileIfVersion,
+/// ExecIfVersion, or a re-check after the read of the kernel image), so the
+/// action fails if the file changed after this check (fi1 joint round 2:
+/// the check-then-act window of K3). The click target is `Some` exactly when
+/// an approved `mouse_click` proceeds; the executor passes it to InjectMouse
+/// type 2, which clicks only on that target (K2).
+pub fn clear_for_execution_bound(
+    gate: &mut ConfirmationGate,
+    tool_name: &str,
+    args: &[(String, super::json::JsonValue)],
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> (Clearance, Bound) {
+    let (clearance, bound) = decide(gate, tool_name, args, auto_approve_tier, current_tick);
     if clearance == Clearance::Proceed
         && super::authority::PATH_MODIFYING_TOOLS.contains(&tool_name)
     {
@@ -346,7 +445,7 @@ pub fn clear_for_execution(
             gate.revoke_path(&path);
         }
     }
-    clearance
+    (clearance, bound)
 }
 
 fn decide(
@@ -355,14 +454,15 @@ fn decide(
     args: &[(String, super::json::JsonValue)],
     auto_approve_tier: u8,
     current_tick: u64,
-) -> Clearance {
+) -> (Clearance, Bound) {
+    let none = Bound::default();
     let tier = super::authority::tool_tier(tool_name);
     if !super::authority::needs_confirmation(tier, auto_approve_tier) {
-        return Clearance::Proceed;
+        return (Clearance::Proceed, none);
     }
     // A call the operator cannot be shown in full is never queued.
     let Some(mut full_display) = super::authority::approval_full_display(args) else {
-        return Clearance::Refused;
+        return (Clearance::Refused, none);
     };
     let fingerprint = super::authority::approval_fingerprint(args);
     // Bind to the file's version (fi1 K3). A version the kernel cannot
@@ -370,37 +470,77 @@ fn decide(
     let version = match super::authority::version_subject(tool_name, args) {
         Some(path) => match gate.file_version(&path) {
             Ok(version) => Some(version),
-            Err(()) => return Clearance::Refused,
+            Err(()) => return (Clearance::Refused, none),
         },
         None => None,
     };
     if let Some(current) = version {
         if gate.withdraw_if_version_changed(tool_name, &fingerprint, current) {
-            return Clearance::FileChanged;
+            return (Clearance::FileChanged, none);
+        }
+    }
+    // Bind a click to what is under the pointer (fi1 K2), the same way.
+    let click = if super::authority::binds_click_target(tool_name) {
+        match gate.click_target() {
+            Ok(target) => Some(target),
+            Err(()) => return (Clearance::Refused, none),
+        }
+    } else {
+        None
+    };
+    if let Some((current, _)) = &click {
+        if gate.withdraw_if_target_changed(tool_name, &fingerprint, *current) {
+            return (Clearance::TargetChanged, none);
         }
     }
     let mut display = super::authority::approval_display(args);
-    // A file the tool acts on without naming it is shown too (R3-1).
+    // A file the tool acts on without naming it is shown too (R3-1), and so
+    // is what a click lands on (K2).
+    let mut notes = Vec::new();
     if let Some(path) = super::authority::implicit_subject(tool_name) {
-        let note = alloc::format!("[acts on the file \"{}\" as it is when the action runs]", path);
+        notes.push(alloc::format!("[acts on the file \"{}\" as it is when the action runs]", path));
+    }
+    if let Some((target, title)) = &click {
+        notes.push(super::authority::click_target_note(
+            target.window,
+            target.owner,
+            target.rel_x,
+            target.rel_y,
+            title,
+        ));
+    }
+    for note in &notes {
         for text in [&mut full_display, &mut display] {
             if !text.is_empty() {
                 text.push(' ');
             }
-            text.push_str(&note);
+            text.push_str(note);
         }
     }
+    let click = click.map(|(target, _)| target);
     match gate.check_or_request_with_display(tool_name, &fingerprint, &display, tier, current_tick) {
-        ConfirmationStatus::Approved => Clearance::Proceed,
+        // The approval was bound to `version` (any other was withdrawn
+        // above), and the executor hands it to the kernel.
+        ConfirmationStatus::Approved => (Clearance::Proceed, Bound { version, click }),
         ConfirmationStatus::Pending(id) => {
             gate.set_subject(id, super::authority::subject_path(tool_name, args));
-            // For an existing request this re-records the same version (a
-            // different one was withdrawn above).
+            // For an existing request this re-records the same version and
+            // target (a different one was withdrawn above).
             gate.set_subject_version(id, version);
-            Clearance::Awaiting { id, display, full_display }
+            gate.set_click_target(id, click);
+            (Clearance::Awaiting { id, display, full_display }, none)
         }
-        ConfirmationStatus::Denied => Clearance::Denied,
-        ConfirmationStatus::Expired => Clearance::Expired,
-        ConfirmationStatus::Refused => Clearance::Refused,
+        ConfirmationStatus::Denied => (Clearance::Denied, none),
+        ConfirmationStatus::Expired => (Clearance::Expired, none),
+        ConfirmationStatus::Refused => (Clearance::Refused, none),
+    }
+}
+
+/// The value a version-guarded syscall expects for `version`: 0 for
+/// "nothing exists at the path", otherwise the version itself.
+pub fn expected_version_word(version: FileVersion) -> u64 {
+    match version {
+        FileVersion::Absent => 0,
+        FileVersion::Version(v) => v,
     }
 }

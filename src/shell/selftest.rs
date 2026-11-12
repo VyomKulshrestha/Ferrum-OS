@@ -30,6 +30,8 @@ pub fn run(name: &str) -> bool {
         "ipc-sender" => ipc_sender(),
         "injected-terminal" => injected_terminal(),
         "file-version" => file_version(),
+        "file-guard" => file_guard(),
+        "click-target" => click_target(),
         _ => return super::selftest_k2::run(name),
     }
     true
@@ -369,5 +371,201 @@ fn file_version() {
         below_sign_bit,
         crate::fs::file_version("/tmp/../etc/hostname").is_err(),
         crate::fs::file_version("/etc/hostname/x").is_err()
+    );
+}
+
+/// fi1 K2: a click the operator approved is bound to the window, owner and
+/// window-relative position under the pointer (PointerTarget). InjectMouse
+/// type 2 refuses it when the pointer is elsewhere, and the desktop drops it
+/// if the pointer moves before the click is processed.
+fn click_target() {
+    use core::sync::atomic::Ordering;
+    use crate::gui::compositor::COMPOSITOR;
+    use crate::gui::cursor::CURSOR;
+    let was_primed = crate::gui::cursor::input_primed();
+    let (saved_order, saved_focus): (Vec<u64>, Option<u64>) = {
+        let state = COMPOSITOR.lock();
+        (
+            state.windows.iter().map(|window| window.id).collect(),
+            state.focused_idx.and_then(|idx| state.windows.get(idx)).map(|window| window.id),
+        )
+    };
+    let saved_cursor = {
+        let cursor = CURSOR.lock();
+        (cursor.x, cursor.y)
+    };
+    crate::input::discard_stale_keyboard_events();
+    crate::gui::cursor::process_input();
+
+    let window_id = crate::syscall::gui_window::create_window_for(TEST_PID, "selftest-click", 96, 48).value;
+    let origin = COMPOSITOR
+        .lock()
+        .windows
+        .iter()
+        .find(|window| window.id == window_id)
+        .map(|window| (window.x, window.y));
+    let set_cursor = |x: u32, y: u32| {
+        let mut cursor = CURSOR.lock();
+        cursor.x = x;
+        cursor.y = y;
+    };
+    let packed = |t: crate::input::ClickTarget| ((t.rel_x as u64) << 32) | t.rel_y as u64;
+    let inject = |t: crate::input::ClickTarget, rel_x_delta: u32| {
+        crate::syscall::input::sys_inject_mouse([
+            2,
+            0,
+            t.window,
+            t.owner,
+            packed(crate::input::ClickTarget { rel_x: t.rel_x + rel_x_delta, ..t }),
+            0,
+        ])
+    };
+    let (mut target_ok, mut delivered, mut refused_now, mut dropped_later, mut not_delivered) =
+        (false, false, false, false, false);
+    if let Some((wx, wy)) = origin {
+        let (px, py) = (wx + crate::gui::window::CHROME_SIDE + 10, wy + crate::gui::window::CHROME_TOP + 10);
+        set_cursor(px, py);
+        let target = crate::gui::compositor::pointer_target(px, py);
+        target_ok = target.window == window_id && target.owner == TEST_PID;
+
+        // 1. Pointer on the approved target: the click is delivered.
+        let r = inject(target, 0);
+        crate::gui::cursor::process_input();
+        let event = crate::gui::app_window::poll_input(window_id, TEST_PID);
+        while crate::gui::app_window::poll_input(window_id, TEST_PID).is_some() {}
+        delivered = r.status == crate::syscall::SyscallStatus::Ok
+            && event.map(|e| e.tag == 3 && e.injected).unwrap_or(false);
+
+        // 2. Approved for another position: refused at once, nothing queued.
+        let r = inject(target, 5);
+        refused_now = r.status == crate::syscall::SyscallStatus::VersionMismatch;
+
+        // 3. Accepted, then the pointer moves before the desktop processes
+        //    the click: dropped.
+        let dropped_before = crate::input::GUARDED_CLICKS_DROPPED.load(Ordering::SeqCst);
+        let r = inject(target, 0);
+        set_cursor(px + 7, py);
+        crate::gui::cursor::process_input();
+        dropped_later = r.status == crate::syscall::SyscallStatus::Ok
+            && crate::input::GUARDED_CLICKS_DROPPED.load(Ordering::SeqCst) >= dropped_before + 2;
+        not_delivered = crate::gui::app_window::poll_input(window_id, TEST_PID).is_none();
+    }
+    crate::gui::app_window::close_for_pid(TEST_PID);
+    {
+        let mut state = COMPOSITOR.lock();
+        let mut windows = core::mem::take(&mut state.windows);
+        windows.retain(|window| saved_order.contains(&window.id));
+        windows.sort_by_key(|window| saved_order.iter().position(|id| *id == window.id));
+        state.focused_idx = saved_focus.and_then(|id| windows.iter().position(|window| window.id == id));
+        state.windows = windows;
+        state.pressed = crate::gui::compositor::HoverTarget::None;
+        state.drag_active = false;
+        state.needs_redraw = true;
+    }
+    {
+        let mut cursor = CURSOR.lock();
+        cursor.x = saved_cursor.0;
+        cursor.y = saved_cursor.1;
+        cursor.left_down = false;
+    }
+    crate::gui::cursor::set_input_primed(was_primed);
+    println!(
+        "selftest click-target: target_is_window={} on_target_delivered={} moved_target_refused={} moved_after_dropped={} dropped_not_delivered={}",
+        target_ok, delivered, refused_now, dropped_later, not_delivered
+    );
+}
+
+/// fi1 joint round 2: the version-guarded operations the daemon uses for an
+/// approved action (WriteFileIfVersion, DeleteFileIfVersion, ExecIfVersion),
+/// and the four version defects this round found (J2-1 to J2-4).
+fn file_guard() {
+    use crate::fs::GuardError;
+    let version = |path: &str| crate::fs::file_version(path).ok().flatten().unwrap_or(0);
+    let content = |path: &str| crate::fs::read_file(path).unwrap_or_default();
+
+    // Guarded write and delete: a stale version does nothing, the current
+    // one acts.
+    let path = "/tmp/selftest-guard";
+    let _ = crate::fs::remove(path);
+    let create_absent = crate::fs::write_file_if_version(path, b"one", 0).is_ok();
+    let v1 = version(path);
+    let fresh_write = crate::fs::write_file_if_version(path, b"two", v1).is_ok();
+    let stale_write = crate::fs::write_file_if_version(path, b"evil", v1);
+    let absent_expected_on_existing = crate::fs::write_file_if_version(path, b"evil", 0);
+    let kept = content(path) == "two";
+    let stale_delete = crate::fs::remove_if_version(path, v1);
+    let stale_exec = crate::fs::check_version(path, v1);
+    let still_there = content(path) == "two";
+    let fresh_delete = crate::fs::remove_if_version(path, version(path)).is_ok();
+    let gone = matches!(crate::fs::file_version(path), Ok(None));
+    println!(
+        "selftest file-guard: create_absent={} fresh_write={} stale_write_refused={} absent_expected_refused={} content_kept={}",
+        create_absent,
+        fresh_write,
+        stale_write == Err(GuardError::VersionMismatch),
+        absent_expected_on_existing == Err(GuardError::VersionMismatch),
+        kept
+    );
+    println!(
+        "selftest file-guard: stale_delete_refused={} stale_exec_refused={} file_kept={} fresh_delete={} removed={}",
+        stale_delete == Err(GuardError::VersionMismatch),
+        stale_exec == Err(GuardError::VersionMismatch),
+        still_there,
+        fresh_delete,
+        gone
+    );
+
+    // J2-1: a write never replaces a directory (RamFS dropped the subtree).
+    let dir = "/tmp/selftest-guard-dir";
+    let child = "/tmp/selftest-guard-dir/keep";
+    let _ = crate::fs::create_dir(dir);
+    let _ = crate::fs::create_file(child, "k");
+    let write_over_dir_refused = crate::fs::create_file(dir, "x").is_err();
+    let child_kept = content(child) == "k";
+
+    // J2-3: a change below a directory changes the directory's version (a
+    // RamFS delete of the directory removes everything below it).
+    let sub = "/tmp/selftest-guard-dir/sub";
+    let _ = crate::fs::create_dir(sub);
+    let dir_before = version(dir);
+    let _ = crate::fs::create_file("/tmp/selftest-guard-dir/sub/deep", "d");
+    let dir_after = version(dir);
+    let _ = crate::fs::remove("/tmp/selftest-guard-dir/sub/deep");
+    let _ = crate::fs::remove(sub);
+    let _ = crate::fs::remove(child);
+    let _ = crate::fs::remove(dir);
+
+    // J2-2: the version of the mmap test path is the real file's.
+    let mmap_path = "/mmap_verify";
+    let _ = crate::fs::remove(mmap_path);
+    let _ = crate::fs::create_file(mmap_path, "a");
+    let m1 = version(mmap_path);
+    let _ = crate::fs::create_file(mmap_path, "b");
+    let m2 = version(mmap_path);
+    let _ = crate::fs::remove(mmap_path);
+    let m_absent = matches!(crate::fs::file_version(mmap_path), Ok(None));
+
+    // A trailing `//` names no node (it used to create a child called "").
+    let empty_name_refused = crate::fs::create_file("/tmp//", "x").is_err()
+        && crate::fs::create_file("/tmp/selftest-guard-x//", "x").is_err();
+    let _ = crate::fs::remove("/tmp/selftest-guard-x");
+    println!(
+        "selftest file-guard: write_over_dir_refused={} child_kept={} deep_change_bumps_dir={} mmap_rewrite_changes={} mmap_absent_after_remove={} empty_name_refused={}",
+        write_over_dir_refused,
+        child_kept,
+        dir_before != 0 && dir_before != dir_after,
+        m1 != 0 && m1 != m2,
+        m_absent,
+        empty_name_refused
+    );
+
+    // J2-4: only the exact test-program paths run init's ELF under a test
+    // name.
+    println!(
+        "selftest file-guard: alias_exact={} alias_nested_refused={} alias_reserved_refused={}",
+        crate::syscall::process::is_init_test_alias("/bin/quota-test")
+            && crate::syscall::process::is_init_test_alias("ipc-forge-test"),
+        !crate::syscall::process::is_init_test_alias("/tmp/quota-test/worker"),
+        !crate::syscall::process::is_init_test_alias("/tmp/ipc-forge-test/heliox-assistant-panel")
     );
 }

@@ -126,6 +126,56 @@ pub fn sys_hud_update(args: [u64; 6]) -> SyscallResult {
     SyscallResult::ok(size as u64)
 }
 
+/// `sys_pointer_target` (PointerTarget = 66): what a click would land on now.
+/// See `SyscallNumber::PointerTarget`.
+pub fn sys_pointer_target(args: [u64; 6]) -> SyscallResult {
+    const RECORD_BYTES: usize = 24;
+    let record_ptr = args[0];
+    let title_ptr = args[1];
+    let title_len = args[2] as usize;
+    if record_ptr == 0 || !super::fs::valid_user_range(record_ptr, RECORD_BYTES) {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    if title_ptr != 0 && title_len > 0 && !super::fs::valid_user_range(title_ptr, title_len) {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    let (x, y) = {
+        let cursor = crate::gui::cursor::CURSOR.lock();
+        (cursor.x, cursor.y)
+    };
+    let target = crate::gui::compositor::pointer_target(x, y);
+    let title = if target.window == 0 {
+        alloc::string::String::from("desktop")
+    } else {
+        crate::gui::compositor::COMPOSITOR
+            .lock()
+            .windows
+            .iter()
+            .find(|window| window.id == target.window)
+            .map(|window| window.title.clone())
+            .unwrap_or_default()
+    };
+    let mut record = [0u8; RECORD_BYTES];
+    record[..8].copy_from_slice(&target.window.to_le_bytes());
+    record[8..16].copy_from_slice(&target.owner.to_le_bytes());
+    record[16..20].copy_from_slice(&target.rel_x.to_le_bytes());
+    record[20..24].copy_from_slice(&target.rel_y.to_le_bytes());
+    if unsafe { super::fs::copy_to_user(record_ptr, &record, RECORD_BYTES) } != RECORD_BYTES {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    let copied = if title_ptr != 0 && title_len > 0 {
+        let bytes = title.as_bytes();
+        let n = bytes.len().min(title_len);
+        if n > 0 && unsafe { super::fs::copy_to_user(title_ptr, bytes, n) } != n {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
+        }
+        n
+    } else {
+        0
+    };
+    SyscallResult::ok(copied as u64)
+}
+
 pub fn sys_hit_test(args: [u64; 6]) -> SyscallResult {
     let x = args[0] as u32;
     let y = args[1] as u32;

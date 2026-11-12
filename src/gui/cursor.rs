@@ -112,6 +112,17 @@ pub fn process_input() {
             None => break,
         };
 
+        // A click bound to an approved target (fi1 K2) lands only if the
+        // pointer is over exactly that window, owner and window-relative
+        // position now; otherwise the desktop drops it.
+        if let Some(target) = event.click_target {
+            if compositor::pointer_target(cursor.x, cursor.y) != target {
+                crate::input::GUARDED_CLICKS_DROPPED
+                    .fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+                continue;
+            }
+        }
+
         match event.event_type {
             crate::input::InputEventType::MouseMove(dx, dy) => {
                 // Adjust cursor position. Subtract the shadow size

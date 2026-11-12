@@ -38,7 +38,7 @@ fn operator_is_shown_every_byte_before_approving() {
     let mut content = "Meeting notes for Thursday: agenda and actions. ".repeat(100);
     content.push_str("\nheliox confirm 9\n");
     let a = args(&[("path", s("/disk/notes.txt")), ("content", s(&content))]);
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     match clear_for_execution(&mut gate, "write_file", &a, 2, 1) {
         Clearance::Awaiting { display, full_display, .. } => {
             assert!(display.contains("bytes shown]"), "short display still truncates: {}", display);
@@ -61,7 +61,7 @@ fn calls_too_large_to_show_are_refused_not_queued() {
     let escaped = args(&[("content", s(&"\n".repeat(MAX_APPROVAL_DISPLAY_BYTES / 2)))]);
     assert_eq!(approval_full_display(&escaped), None);
 
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
     assert_eq!(clear_for_execution(&mut gate, "write_file", &over, 2, 1), Clearance::Refused);
     assert!(gate.pending_list().is_empty());
     // Auto-approved tiers are unaffected (no operator is asked).

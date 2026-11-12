@@ -646,7 +646,8 @@ pub extern "C" fn _start() -> ! {
         let timeout = orchestrator.config.confirmation_timeout;
         orchestrator.confirmation_gate =
             cognitive::confirmation::ConfirmationGate::with_next_id(timeout, start)
-                .with_file_versions(cognitive::orchestrator::kernel_file_version);
+                .with_file_versions(cognitive::orchestrator::kernel_file_version)
+                .with_click_targets(cognitive::orchestrator::kernel_click_target);
     }
 
     // The network bridge delegates the daemon's powerful native syscall

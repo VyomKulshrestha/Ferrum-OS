@@ -119,6 +119,27 @@ pub enum SyscallNumber {
     /// path, or an error when the kernel cannot establish it. Needs read
     /// access to the path.
     FileVersion = 62,
+    /// WriteFile that runs only if the file has an expected version:
+    /// args[0..4] as WriteFile, args[4] = expected version (0: nothing may
+    /// exist at the path). The check and the write are one step in the
+    /// kernel; a mismatch returns `VersionMismatch` and writes nothing.
+    WriteFileIfVersion = 63,
+    /// DeleteFile that runs only if the node has an expected version:
+    /// args[0..2] as DeleteFile, args[2] = expected version (non-zero).
+    /// Gated by the kernel's confirmation prompt exactly like DeleteFile.
+    DeleteFileIfVersion = 64,
+    /// Exec that runs only if the path has an expected version: args[0..2] as
+    /// Exec, args[2] = expected version (0: nothing exists at the path in the
+    /// VFS, as for the programs compiled into the kernel). Checked before the
+    /// image is read.
+    ExecIfVersion = 65,
+    /// What a click would land on now (fi1 K2): args[0] = pointer to a
+    /// 24-byte record the kernel fills with the top window under the pointer
+    /// (u64, 0 for the desktop), its owner pid (u64, 0 for kernel-drawn
+    /// windows) and the window-relative pointer x and y (u32 each);
+    /// args[1..3] = optional buffer for the window title. Returns the title
+    /// length copied. Needs `hud:overlay`, like HitTest.
+    PointerTarget = 66,
 }
 
 /// Syscall return status.
@@ -135,6 +156,10 @@ pub enum SyscallStatus {
     /// interrupt layer returns this status to userspace immediately instead
     /// of rewinding and parking the task on the syscall instruction.
     WouldBlock = -6,
+    /// A version-guarded operation (WriteFileIfVersion, DeleteFileIfVersion,
+    /// ExecIfVersion) found another version than the caller expected and did
+    /// nothing.
+    VersionMismatch = -7,
 }
 
 /// Raw syscall result.
@@ -264,7 +289,8 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             }
 
             // 2. Gated syscall checks
-            let is_delete_file = number == SyscallNumber::DeleteFile as u64;
+            let is_delete_file = number == SyscallNumber::DeleteFile as u64
+                || number == SyscallNumber::DeleteFileIfVersion as u64;
             let is_kexec = number == SyscallNumber::Kexec as u64;
             let is_gated = is_delete_file || is_kexec;
             let is_bypass = !is_kexec
@@ -406,6 +432,22 @@ fn dispatch_with_context(
             sys_ipc_receive(args, held_capabilities, caller_pid, Some(args[4]))
         }
         x if x == SyscallNumber::FileVersion as u64 => fs::sys_file_version(args, held_capabilities),
+        x if x == SyscallNumber::WriteFileIfVersion as u64 => {
+            fs::sys_write_file_checked(args, held_capabilities, Some(args[4]))
+        }
+        x if x == SyscallNumber::DeleteFileIfVersion as u64 => {
+            fs::sys_delete_file_checked(args, held_capabilities, Some(args[2]))
+        }
+        x if x == SyscallNumber::ExecIfVersion as u64 => {
+            if !crate::security::has_capability(held_capabilities, "process:spawn") {
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::PermissionDenied,
+                    "ring3 exec denied: caller lacks process:spawn",
+                );
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            process::sys_exec_checked(args, Some(args[2]))
+        }
         x if x == SyscallNumber::ServiceStart as u64 => {
             match crate::services::start_service_authorized(args[0], held_capabilities) {
                 Ok(()) => SyscallResult::ok(args[0]),
@@ -623,6 +665,12 @@ fn dispatch_with_context(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             hud::sys_hit_test(args)
+        }
+        x if x == SyscallNumber::PointerTarget as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_pointer_target(args)
         }
         x if x == SyscallNumber::Mmap as u64 => {
             if !crate::security::has_capability(held_capabilities, "memory:mmap:*")

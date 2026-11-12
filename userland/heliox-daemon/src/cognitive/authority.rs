@@ -674,6 +674,40 @@ pub fn control_command_allowed(command: &ControlCommand, sender: Option<ControlS
     }
 }
 
+/// Tools whose approval is bound to what is under the pointer (fi1 K2).
+pub fn binds_click_target(tool: &str) -> bool {
+    tool == "mouse_click"
+}
+
+/// The text shown to the operator for a click's target. The title is chosen
+/// by the window's owner, so it is escaped to printable ASCII and cut.
+pub fn click_target_note(window: u64, owner: u64, rel_x: u32, rel_y: u32, title: &str) -> String {
+    const MAX_TITLE: usize = 48;
+    let mut shown = String::new();
+    for (count, c) in title.chars().enumerate() {
+        if count == MAX_TITLE {
+            shown.push_str("...");
+            break;
+        }
+        if c == '"' || c == '\\' {
+            shown.push('\\');
+            shown.push(c);
+        } else if (' '..='~').contains(&c) {
+            shown.push(c);
+        } else {
+            shown.push('?');
+        }
+    }
+    if window == 0 {
+        alloc::format!("[clicks the desktop at ({}, {})]", rel_x, rel_y)
+    } else {
+        alloc::format!(
+            "[clicks window {} \"{}\" of pid {} at ({}, {}) in the window]",
+            window, shown, owner, rel_x, rel_y
+        )
+    }
+}
+
 /// The path the kernel is asked for the version of, for a tool whose
 /// approval is bound to a file: the fixed file of `implicit_subject`, or the
 /// `path` argument exactly as the tool will pass it to the kernel (not the

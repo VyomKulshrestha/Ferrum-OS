@@ -563,6 +563,30 @@ pub fn hit_test(mx: u32, my: u32) -> (u64, alloc::string::String) {
     hit_test_exclude(mx, my, false)
 }
 
+/// What a click at (`mx`, `my`) lands on: the top visible window there, its
+/// owner pid (0 for the kernel-drawn terminal and monitor) and the position
+/// relative to the window's origin; the desktop (window 0) otherwise. A
+/// click the operator approved is bound to this (fi1 K2).
+pub fn pointer_target(mx: u32, my: u32) -> crate::input::ClickTarget {
+    let state = COMPOSITOR.lock();
+    for window in state.windows.iter().rev() {
+        if window.minimized || !window.contains_point(mx, my) {
+            continue;
+        }
+        let owner = match window.win_type {
+            crate::gui::window::WindowType::App(pid) => pid,
+            _ => 0,
+        };
+        return crate::input::ClickTarget {
+            window: window.id,
+            owner,
+            rel_x: mx - window.x,
+            rel_y: my - window.y,
+        };
+    }
+    crate::input::ClickTarget { window: 0, owner: 0, rel_x: mx, rel_y: my }
+}
+
 /// Helper to hit test overlapping windows. `exclude_hud` is unused now that
 /// the kernel-drawn Agent HUD window is retired (kept as a parameter since
 /// `hit_test` below is a thin wrapper over this and existing callers pass
