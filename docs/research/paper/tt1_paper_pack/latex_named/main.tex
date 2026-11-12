@@ -523,6 +523,14 @@ average for the frozen threshold (central 95\% range 11 to 23) and 1.4 for the t
 of chance the two rules are close. The BATADAL gap does not depend on long alarms; it depends on the
 tracker's step (Section~\ref{sec:batadal}).
 
+\paragraph{Alarm time outside the fitted range (exploratory, post hoc)}
+An audit run after all results were known, on spent data, refitted the registered monitor, which
+reproduced the registered counts. A step is outside the fitted range when a scaled sensor lies more
+than 5\% of its span beyond the world model's fit data. On HAI 20.07, 41\% of the unlabelled time and
+94\% of its alarm time lie outside; inside, the frozen threshold is in alarm 3.7\% of the time against
+39.1\% overall. On ProvICS 56\% lies outside, with 9.1\% in alarm inside against 44.0\% overall
+(\texttt{docs/research/fi1\_monitor\_round1.json}, \texttt{round2.json}).
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/fig2_trajectories_hai2007.pdf}
