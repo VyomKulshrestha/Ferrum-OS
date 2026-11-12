@@ -499,6 +499,10 @@ class CommittedResultTests(unittest.TestCase):
             attribution_threshold_problems(_load(ATTRIBUTION_PROTOCOL)), []
         )
 
+    def test_attribution_v2_carries_the_same_thresholds_and_exception(self):
+        protocol = _load("physical_jepa_safety_gymnasium_attribution_protocol_v2.json")
+        self.assertEqual(attribution_threshold_problems(protocol), [])
+
 
 class PerturbationTests(unittest.TestCase):
     """Each check fails when the stored value it guards is changed."""
