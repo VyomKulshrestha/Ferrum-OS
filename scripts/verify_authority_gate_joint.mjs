@@ -123,7 +123,7 @@ try {
   check("boot reaches shell prompt", true);
 
   // ---- kernel self-tests -------------------------------------------------
-  let o = await operator("test-syscall ipc-sender", "vfs_plain_allowed=");
+  let o = await operator("test-syscall ipc-sender", "vfs_plain_allowed=").catch((e) => String(e.message || e).split("\n")[0]);
   check("K4 kernel: a process gets the panel flag only once marked, and loses it when reaped",
     field(o, "unmarked_flags") === "0" && field(o, "panel_flags") === "2" && field(o, "after_reap_flags") === "0",
     (o.match(/selftest ipc-sender: unmarked.*/) || [""])[0]);
@@ -134,7 +134,7 @@ try {
       && field(o, "vfs_init_name_denied") === "true" && field(o, "vfs_plain_allowed") === "true",
     (o.match(/selftest ipc-sender: vfs.*/) || [""])[0]);
 
-  o = await operator("test-syscall injected-terminal", "kept_from_operator_controls=");
+  o = await operator("test-syscall injected-terminal", "kept_from_operator_controls=").catch((e) => String(e.message || e).split("\n")[0]);
   check("K1 kernel: injected keys do not reach the terminal window; physical keys do",
     field(o, "terminal_kept") === "true" && field(o, "physical_reaches_terminal") === "true",
     (o.match(/selftest injected-terminal: terminal.*/) || [""])[0]);
@@ -145,7 +145,7 @@ try {
     field(o, "launcher_injected_launched") === "false",
     (o.match(/selftest injected-terminal: launcher.*/) || [""])[0]);
 
-  o = await operator("test-syscall file-version", "file_as_dir_is_error=");
+  o = await operator("test-syscall file-version", "file_as_dir_is_error=").catch((e) => String(e.message || e).split("\n")[0]);
   check("K3 kernel: a file has a version; any rewrite (same content) and its directory change it",
     field(o, "absent_is_none") === "true" && field(o, "present") === "true"
       && field(o, "same_content_rewrite_changes") === "true" && field(o, "parent_changes") === "true",
@@ -164,7 +164,9 @@ try {
   assertPaired(await rpcCall(ws, "pair", "pair", { token: await waitForPairingToken(serialText) }));
   check("paired JSON-RPC client", true);
 
-  // K4: a CONFIRM from a process that is not the operator.
+  // K4: a CONFIRM from a process that is not the operator. Each part runs
+  // even if an earlier one fails, so an older image still reports the rest.
+  try {
   const target = { path: "/disk/fi1k4-target.txt", content: "k4 probe" };
   const w = await tool("write_file", target);
   const writeId = awaitingId(w);
@@ -200,7 +202,12 @@ try {
   const denied = await tool("write_file", { path: "/disk/fi1k4-denied.txt", content: "deny me" });
   check("K4: heliox deny from the kernel shell denies the request", /denied by operator/.test(out(denied)), out(denied));
 
+  } catch (err) {
+    check("K4 section", false, err && err.message ? err.message.split("\n")[0] : String(err));
+  }
+
   // K3: another process changes the file after the operator approved.
+  try {
   await operator("write /tmp/fi1k3.txt original", "Written to /tmp/fi1k3.txt");
   const del = await tool("delete_file", { path: "/tmp/fi1k3.txt" });
   const delId = awaitingId(del);
@@ -219,6 +226,9 @@ try {
   await nudge();
   const gone = await tool("delete_file", { path: "/tmp/fi1k3.txt" });
   check("K3: the request approved for the current version runs", gone?.result?.success === true, out(gone));
+  } catch (err) {
+    check("K3 section", false, err && err.message ? err.message.split("\n")[0] : String(err));
+  }
 
   check("no kernel panic or fault", !/panicked at|PAGE FAULT|Page Fault|General Protection|DOUBLE FAULT/.test(serialText()));
 } catch (err) {
