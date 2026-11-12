@@ -108,7 +108,7 @@ const qemuArgs = [
 if (!visible) qemuArgs.push("-display", "none");
 
 console.log("[test] starting QEMU for assistant panel verification...");
-let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"), ...qemuArgs], { windowsHide: !visible });
 await sleep(2500);
 if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
   console.log("WHPX unsupported or failed, falling back to TCG...");

@@ -37,7 +37,7 @@ export async function bootShell(repo, logName, {
     "-display", "none", "-no-reboot",
   ];
   const started = Date.now();
-  let child = spawn(qemu, args("whpx,kernel-irqchip=off", "Haswell"), { windowsHide: true });
+  let child = spawn(qemu, args("whpx,kernel-irqchip=off", (process.env.FERRUMOS_QEMU_CPU || "Haswell")), { windowsHide: true });
   await sleep(2500);
   if (child.exitCode !== null) {
     child = spawn(qemu, args("tcg", "max"), { windowsHide: true });

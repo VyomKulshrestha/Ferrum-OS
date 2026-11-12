@@ -77,7 +77,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // (src/process/mod.rs's map_user_range), and this reliably took long enough
 // under unaccelerated/under-provisioned QEMU to blow through every timeout
 // in this script, every run - not because anything was actually hung.
-let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"), ...qemuArgs], { windowsHide: !visible });
 await sleep(2500);
 if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
   console.log("[test] WHPX unsupported or failed, falling back to TCG...");

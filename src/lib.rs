@@ -167,6 +167,9 @@ pub mod gui;
 /// GDT module - manages segment descriptors and TSS
 pub mod gdt;
 
+/// SMEP and SMAP: CR4 bits, the user-access window, the ring-0 fault probe
+pub mod cpu_protect;
+
 // ============================================================================
 // Kernel Initialization
 // ============================================================================
@@ -187,6 +190,17 @@ pub fn init() {
     interrupts::set_pic_auto_eoi(true);
     interrupts::init_pit();
     unsafe { enable_sse_extensions() };
+    // SMEP and SMAP wherever CPUID reports them (fi2 K1). Before this, CR4
+    // bits 20 and 21 were never set: a kernel bug that jumped to or followed
+    // a user pointer was not stopped by the CPU.
+    let (smep, smap) = cpu_protect::enable();
+    println!(
+        "[  OK  ] CPU protections: smep={} smap={} (cpuid smep={} smap={})",
+        smep,
+        smap,
+        cpu_protect::CPU_HAS_SMEP.load(core::sync::atomic::Ordering::SeqCst),
+        cpu_protect::CPU_HAS_SMAP.load(core::sync::atomic::Ordering::SeqCst)
+    );
     x86_64::instructions::interrupts::enable();
 }
 

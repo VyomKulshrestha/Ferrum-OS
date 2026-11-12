@@ -295,6 +295,7 @@ fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -
 /// 
 /// Triggered by the `int3` instruction. Used for debugging.
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     println!("[EXCEPTION] Breakpoint\n{:#?}", stack_frame);
 }
 
@@ -317,10 +318,18 @@ extern "x86-interrupt" fn double_fault_handler(
 /// - Writing to read-only pages
 /// - Executing non-executable pages
 extern "x86-interrupt" fn page_fault_handler(
-    stack_frame: InterruptStackFrame,
+    mut stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode,
 ) {
     use x86_64::registers::control::Cr2;
+    crate::cpu_protect::clear_ac_on_entry();
+    // A self-test's deliberate ring-0 fault (SMEP, SMAP): resume at the
+    // probe's recovery point.
+    if !fault_from_user_mode(stack_frame.code_segment.0 as u64)
+        && crate::cpu_protect::probe_fixup(&mut stack_frame, error_code.bits())
+    {
+        return;
+    }
     if let Ok(cr2_addr) = Cr2::read() {
         let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
         if pid != 0 {
@@ -360,6 +369,7 @@ extern "x86-interrupt" fn general_protection_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: u64,
 ) {
+    crate::cpu_protect::clear_ac_on_entry();
     if handle_userspace_fault("General Protection Fault", &stack_frame) {
         return;
     }
@@ -378,6 +388,7 @@ extern "x86-interrupt" fn general_protection_fault_handler(
 
 /// Invalid opcode handler
 extern "x86-interrupt" fn invalid_opcode_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     if handle_userspace_fault("Invalid Opcode", &stack_frame) {
         return;
     }
@@ -397,10 +408,12 @@ fn user_or_fatal(name: &str, stack_frame: &InterruptStackFrame) {
 }
 
 extern "x86-interrupt" fn divide_error_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Divide Error", &stack_frame);
 }
 
 extern "x86-interrupt" fn debug_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Debug Exception", &stack_frame);
 }
 
@@ -409,34 +422,42 @@ extern "x86-interrupt" fn nmi_handler(_stack_frame: InterruptStackFrame) {
 }
 
 extern "x86-interrupt" fn bound_range_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Bound Range Exceeded", &stack_frame);
 }
 
 extern "x86-interrupt" fn device_not_available_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Device Not Available", &stack_frame);
 }
 
 extern "x86-interrupt" fn invalid_tss_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Invalid TSS", &stack_frame);
 }
 
 extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Segment Not Present", &stack_frame);
 }
 
 extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Stack Segment Fault", &stack_frame);
 }
 
 extern "x86-interrupt" fn x87_floating_point_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("x87 Floating Point", &stack_frame);
 }
 
 extern "x86-interrupt" fn alignment_check_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("Alignment Check", &stack_frame);
 }
 
 extern "x86-interrupt" fn simd_floating_point_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     user_or_fatal("SIMD Floating Point", &stack_frame);
 }
 
@@ -448,6 +469,7 @@ extern "x86-interrupt" fn machine_check_handler(stack_frame: InterruptStackFrame
 /// it is really in service (an EOI for a spurious IRQ 7 would clear the
 /// in-service bit of another, real interrupt).
 extern "x86-interrupt" fn spurious_irq7_handler(_stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     use x86_64::instructions::port::Port;
     let mut command: Port<u8> = Port::new(0x20);
     let in_service = unsafe {
@@ -461,6 +483,7 @@ extern "x86-interrupt" fn spurious_irq7_handler(_stack_frame: InterruptStackFram
 
 /// Overflow exception handler
 extern "x86-interrupt" fn overflow_handler(stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     println!("[EXCEPTION] Overflow\n{:#?}", stack_frame);
 }
 
@@ -597,6 +620,7 @@ impl Drop for CycleMeter {
 }
 
 extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     if direction_flag_set() {
         DF_SET_AT_TIMER_ENTRY.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
     }
@@ -679,6 +703,7 @@ extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
 /// sends EOI. The PIO driver uses polling, so this handler only
 /// exists to prevent spurious-IRQ lockups.
 extern "x86-interrupt" fn ata_primary_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     // Read status to acknowledge the interrupt on the drive
     unsafe {
         x86_64::instructions::port::PortReadOnly::<u8>::new(0x1F7).read();
@@ -690,6 +715,7 @@ extern "x86-interrupt" fn ata_primary_interrupt_handler(_stack_frame: InterruptS
 
 /// ATA secondary channel interrupt handler (IRQ 15)
 extern "x86-interrupt" fn ata_secondary_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     unsafe {
         x86_64::instructions::port::PortReadOnly::<u8>::new(0x177).read();
     }
@@ -741,6 +767,7 @@ pub fn push_keyboard(ascii: u8) {
 /// Reads PS/2 scancodes and translates them to ASCII characters.
 /// Characters are queued for the shell to consume.
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     use x86_64::instructions::port::Port;
     
     // Read scancode from PS/2 keyboard data port
@@ -786,6 +813,7 @@ pub fn poll_ps2_keyboard() {
 
 /// Hardware mouse interrupt handler (IRQ 12)
 extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    crate::cpu_protect::clear_ac_on_entry();
     // Process the mouse input
     crate::devices::ps2_mouse::handle_interrupt();
 
@@ -1087,6 +1115,9 @@ unsafe fn yield_from_syscall(pid: u64, frame: &SyscallFrame) {
 /// file the stub pushed; mutating it changes what the stub pops
 /// before `iretq` (this is how results travel back in rax).
 extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
+    // Ring 3 may have set RFLAGS.AC, which would turn SMAP off for the
+    // whole syscall (see `cpu_protect`).
+    crate::cpu_protect::clear_ac_on_entry();
     if direction_flag_set() {
         DF_SET_AT_SYSCALL_ENTRY.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
     }
@@ -1121,6 +1152,7 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
     if current_pid > 0 {
         // Entering the kernel restarts the task's continuous-CPU count.
         crate::scheduler::note_syscall_entry(current_pid);
+        crate::cpu_protect::entry_probe(current_pid, arg0);
         use crate::syscall::SyscallNumber;
         let args = [arg0, arg1, arg2, arg3, frame.r8, frame.r9];
 

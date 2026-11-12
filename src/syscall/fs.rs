@@ -29,8 +29,22 @@ pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
     if len == 0 || len > MAX_PATH_LEN || !valid_user_range(ptr, len) {
         return None;
     }
-    let slice = core::slice::from_raw_parts(ptr as *const u8, len);
-    core::str::from_utf8(slice).ok().map(String::from)
+    let bytes = copy_from_user(ptr, len)?;
+    String::from_utf8(bytes).ok()
+}
+
+/// Copy `len` bytes at user address `ptr` into a new kernel buffer, inside a
+/// `UserAccess` window (SMAP). The caller has checked the range. The buffer
+/// is reserved before the window opens.
+unsafe fn copy_from_user(ptr: u64, len: usize) -> Option<alloc::vec::Vec<u8>> {
+    let mut out = alloc::vec::Vec::new();
+    out.try_reserve_exact(len).ok()?;
+    {
+        let _window = crate::cpu_protect::UserAccess::open();
+        core::ptr::copy_nonoverlapping(ptr as *const u8, out.as_mut_ptr(), len);
+        out.set_len(len);
+    }
+    Some(out)
 }
 
 /// Read raw bytes from a userspace pointer. Returns None if the
@@ -44,18 +58,14 @@ pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::v
     if len == 0 || len > cap || !valid_user_range(ptr, len) {
         return None;
     }
-    let slice = core::slice::from_raw_parts(ptr as *const u8, len);
     // Fallible copy: caps go up to 4 MiB (WriteFile), and an allocation
     // failure in `Vec::from` aborts the kernel.
-    let mut out = alloc::vec::Vec::new();
-    out.try_reserve_exact(len).ok()?;
-    out.extend_from_slice(slice);
-    Some(out)
+    copy_from_user(ptr, len)
 }
 
 /// True only for a non-empty range backed by the currently running ring-3
 /// process. Kernel-half and unmapped-but-canonical pointers are both denied.
-pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
+pub(crate) fn valid_user_range(ptr: u64, len: usize) -> bool {
     if ptr == 0 || len == 0 {
         return false;
     }
@@ -84,6 +94,7 @@ pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize
         if !valid_user_write_range(dst, to_copy) {
             return 0;
         }
+        let _window = crate::cpu_protect::UserAccess::open();
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
     }
     to_copy

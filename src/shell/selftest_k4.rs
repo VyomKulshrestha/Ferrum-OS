@@ -41,7 +41,7 @@ pub fn run(name: &str) -> bool {
             println!("selftest confirm-single-on: single_confirmation=true");
         }
         "static-stack-overflow" => static_stack_overflow(),
-        _ => return false,
+        _ => return super::selftest_k5::run(name),
     }
     true
 }

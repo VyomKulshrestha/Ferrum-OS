@@ -84,7 +84,7 @@ const hdaDuplexArgs = ["-device", "hda-duplex,audiodev=hda0"];
 
 const whpxArgs = [
   "-accel", "whpx,kernel-irqchip=off",
-  "-cpu", "Haswell",
+  "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"),
   "-m", "4096M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
