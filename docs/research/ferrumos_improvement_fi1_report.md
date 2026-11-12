@@ -261,6 +261,56 @@ returns the sender. Still open in the kernel: the desktop's terminal window stil
 keys; network items (listen-port hijack, socket limit, packet length bound); quotas never enforced; no
 NX bit; ring-0 faults treated as user faults.
 
+### Kernel round 2 (draft pull request 6, stacked on pull request 5; head 8d21d68 after the merge below, CI green)
+
+Fifteen defects fixed in the areas round 1 left. Detail and the negative-control table:
+`fi1_reports/kernel_round2.md` on the pull-request branch.
+
+| | Defect |
+|---|---|
+| High | the network card's receive path let one 60,000-byte frame overwrite about 57 KiB of other physical memory, then read up to 64 KiB out of bounds through the frame's length field |
+| High | DMA addresses were truncated to 32 bits (a transmit buffer above 4 GiB would send another page of memory onto the wire; not testable here) |
+| High | a fault in ring 0 was blamed on the current process: the process was killed and the kernel ran on. Any ring-0 fault now stops the kernel |
+| High | nothing was non-executable: user data, stacks, mmap pages, the kernel heap and the physical-memory alias now are |
+| High | the page quota could be escaped (the exemption followed the program's name; mmap fault-in ignored the quota) |
+| Medium | the continuous-CPU quota was never enforced (a ring-3 task that runs 5.5 s without a system call is now ended; the daemon holds the exemption capability, checked by the main session); a second process could bind a port another listened on; a half-open handshake held a listener forever; no limits on sockets or processes; any process could stop a kernel service; a crafted ext2 superblock panicked the kernel |
+| Low | task names in JSON output; the legacy system-call path from ring 3; unused interrupts unmasked; the embedded programs copied into the boot image two or three times (image 10.06 MB to 6.36 MB) |
+
+Boot to the prompt (agent's runs, five each): 53.9 s to 47.0 s, almost all from the smaller image.
+
+Two changes of behaviour that the author should know before merging:
+
+- **Starting or stopping a kernel service now needs `cap:system:all`.** The daemon's `service_start` and
+  `service_stop` tools get a denial, so world-model data collected on this kernel records a denial
+  where earlier collections recorded success.
+- **The continuous-CPU limit is enforced** for ordinary programs (not for the daemon or init).
+
+**Merge and verification by the main session.** Pull request 5 gained commits after pull request 6
+branched from it. The two were merged on pull request 6's branch (one conflict, in the self-test
+dispatch table; both sides kept), CI built the result, and nineteen harnesses were run on that image
+(sha256 2b4bc33b...), one at a time, each passing on its first run: 228 of 228 checks.
+
+| Harness | merged image | Harness | merged image |
+|---|---|---|---|
+| `verify_kernel_selftests` | 18 of 18 | `verify_ipc_isolation` | 6 of 6 |
+| `verify_kernel_selftests_k2` | 37 of 37 | `verify_process_reap_cr3` | 9 of 9 |
+| `verify_net_k2` | 12 of 12 | `verify_pid_reuse` | 6 of 6 |
+| `verify_authority_gate_joint` | 37 of 37 | `verify_assistant_panel` | 5 of 5 |
+| `verify_authority_gate_self_approval` | 11 of 11 | `verify_net` | 5 of 5 |
+| `verify_authority_gate_input_injection` | 7 of 7 | `verify_user_pointer_isolation` | 4 of 4 |
+| `verify_ring3` | 7 of 7 | `verify_scheduler_stubs` | 7 of 7 |
+| `verify_mmap` | 7 of 7 | `verify_current_pid` | 6 of 6 |
+| `verify_core_apps` | 24 of 24 | `verify_audio_nonblocking` | 7 of 7 |
+| `verify_app_window` | 13 of 13 | | |
+
+Host tests on the merged branch: heliox-gate-tests 70, physical-runtime 175, neural-protocol 19.
+
+Left for a third round: concurrency in the interrupt and context-switch paths; kernel stacks without a
+guard page; the bootloader's stack still executable; an audit of `src/syscall`, `src/ipc` and `src/fs`
+by a reader who did not write the gate changes; mailboxes owned by task name; a crafted ext2 inode size
+that aborts the kernel; and, in the daemon's HTTP client, a chunk length that can overflow (one crafted
+response crashes the daemon) and responses silently cut at 32 KiB.
+
 ## 5. Kernel and userland together (joint round 1; draft pull request 5, head 47e97e0, CI green)
 
 Pull request 5 contains pull requests 2 and 3 and is to be reviewed after them. It removes two of the
