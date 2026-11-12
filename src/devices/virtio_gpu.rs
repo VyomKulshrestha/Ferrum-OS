@@ -123,12 +123,27 @@ struct Device {
     /// transfer/flush.
     backing: *mut u8,
     backing_phys: u64,
+    /// Bytes allocated for `backing`.
+    backing_len: usize,
     width: u32,
     height: u32,
 }
 unsafe impl Send for Device {}
 
 static DEVICE: Mutex<Option<Device>> = Mutex::new(None);
+
+/// Largest frame the backing holds: vga_fb's fixed 1024x768 at 4 bytes per
+/// pixel. `present` refuses anything larger.
+pub const BACKING_BYTES: usize = 1024 * 768 * 4;
+
+/// Entries per virtqueue: one 4 KiB page of descriptors (16 bytes each).
+const MAX_QUEUE_SIZE: u16 = 256;
+
+/// (backing physical address, backing size in bytes), for the self-test
+/// `virtio-backing`.
+pub fn backing_region() -> Option<(u64, usize)> {
+    DEVICE.lock().as_ref().map(|device| (device.backing_phys, device.backing_len))
+}
 
 fn alloc_dma_pages(pages: usize) -> (u64, *mut u8) {
     let frame = allocate_contiguous_frames(pages).expect("virtio-gpu: out of DMA memory");
@@ -152,6 +167,12 @@ fn find_virtio_cap(dev: pci::PciDevice, cfg_type: u8) -> Option<(u8, u32, u32)> 
     let mut guard = 0;
     while ptr != 0 && guard < 64 {
         guard += 1;
+        // A virtio capability is read up to ptr + 19 (notify multiplier);
+        // a pointer past 0xEC would overflow the u8 offsets below, which
+        // stops the kernel (overflow checks are on in this build).
+        if ptr > 0xEC {
+            break;
+        }
         let cap_id = pci::read_config_u8(dev.bus, dev.slot, dev.func, ptr);
         let next = pci::read_config_u8(dev.bus, dev.slot, dev.func, ptr + 1);
         if cap_id == PCI_CAP_ID_VENDOR {
@@ -173,6 +194,10 @@ fn find_virtio_cap(dev: pci::PciDevice, cfg_type: u8) -> Option<(u8, u32, u32)> 
 }
 
 fn bar_virt_addr(dev: pci::PciDevice, bar_index: u8) -> Option<u64> {
+    // Six BARs; a capability naming another index is malformed.
+    if bar_index > 5 {
+        return None;
+    }
     let bar_offset = 0x10 + (bar_index as u8) * 4;
     let lo = pci::read_config_u32(dev.bus, dev.slot, dev.func, bar_offset);
     if lo & 0x1 == 1 {
@@ -240,9 +265,16 @@ pub fn init() -> Result<(), &'static str> {
 
         // Queue 0 (controlq) setup.
         common.write_u16(22, QUEUE_CONTROL);
-        let qsize = common.read_u16(24);
+        let mut qsize = common.read_u16(24);
         if qsize == 0 {
             return Err("virtio-gpu: controlq size is zero");
+        }
+        // The descriptor table, avail ring and used ring below are one page
+        // each, which holds 256 entries. A device offering more would have
+        // the driver index the avail ring past its page; ask for 256.
+        if qsize > MAX_QUEUE_SIZE {
+            qsize = MAX_QUEUE_SIZE;
+            common.write_u16(24, qsize);
         }
 
         let (desc_phys, desc_virt) = alloc_dma_pages(1);
@@ -261,7 +293,11 @@ pub fn init() -> Result<(), &'static str> {
 
         let (_, req_buf) = alloc_dma_pages(1);
         let (_, resp_buf) = alloc_dma_pages(1);
-        let (backing_phys, backing) = alloc_dma_pages(256); // up to 1MB backing (1024x768x4 fits in ~192 pages)
+        // The backing holds one whole frame. It was 256 pages (1 MiB) while
+        // a 1024x768 frame is 3 MiB, so every present wrote 2 MiB past it
+        // into the next DMA allocations (fi2 kernel audit).
+        let backing_pages = BACKING_BYTES / 4096;
+        let (backing_phys, backing) = alloc_dma_pages(backing_pages);
 
         let controlq = VirtQueue {
             desc: desc_virt,
@@ -279,6 +315,7 @@ pub fn init() -> Result<(), &'static str> {
             resp_buf,
             backing,
             backing_phys,
+            backing_len: backing_pages * 4096,
             width: 0,
             height: 0,
         });
@@ -420,11 +457,15 @@ pub fn present(pixels: &[u32], width: u32, height: u32) -> Result<(), &'static s
     let mut guard = DEVICE.lock();
     let device = guard.as_mut().ok_or("virtio-gpu: not initialized")?;
 
+    let pixel_count = (width as usize).saturating_mul(height as usize);
+    let byte_len = pixel_count.saturating_mul(4);
+    if byte_len > device.backing_len || pixels.len() < pixel_count {
+        return Err("virtio-gpu: frame larger than the backing or the pixel buffer");
+    }
+
     if device.width != width || device.height != height {
         setup_scanout(device, width, height)?;
     }
-
-    let byte_len = (width as usize) * (height as usize) * 4;
     unsafe {
         core::ptr::copy_nonoverlapping(pixels.as_ptr() as *const u8, device.backing, byte_len);
 
