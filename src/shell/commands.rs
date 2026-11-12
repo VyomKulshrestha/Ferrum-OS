@@ -1004,7 +1004,12 @@ fn cmd_pkg(args: &[&str]) {
                     // `enter_registered`'s own capability re-derivation
                     // (which only knows compiled-in names) doesn't zero
                     // them back out.
-                    crate::userspace::register_dynamic_program(name, "ferrumpkg package", &bin_path, caps);
+                    if !crate::userspace::register_dynamic_program(name, "ferrumpkg package", &bin_path, caps) {
+                        println!("pkg run: {} is the name of a compiled-in program", name);
+                        crate::scheduler::kill(pid);
+                        crate::process::reap_dead();
+                        return;
+                    }
                     crate::process::enter_registered(pid, &current_capabilities());
                 }
                 Err(err) => println!("pkg run: {}", err),

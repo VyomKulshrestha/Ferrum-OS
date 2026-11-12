@@ -254,6 +254,16 @@ pub fn list_programs() -> Vec<ProgramManifest> {
 /// True when `name` has a program manifest (compiled in, or registered for an
 /// installed package). Exec of a VFS file with such a name is refused
 /// (`ipc::is_reserved_program_name`).
+/// The entry path of the program registered as `name`, if any.
+pub fn program_entry(name: &str) -> Option<String> {
+    USERSPACE
+        .lock()
+        .programs
+        .iter()
+        .find(|program| program.name == name)
+        .map(|program| program.entry.clone())
+}
+
 pub fn is_compiled_program(name: &str) -> bool {
     USERSPACE.lock().programs.iter().any(|program| program.name == name)
 }
@@ -313,13 +323,22 @@ pub fn launch_embedded_app_with_context(name: &str, launch_context: Option<&str>
 /// already uses - `enter_registered` re-derives capabilities from this
 /// same table via `capabilities_for_program`, which would otherwise
 /// silently return empty for any name it wasn't compiled with.
-pub fn register_dynamic_program(name: &str, description: &str, entry: &str, capabilities: Vec<String>) {
+///
+/// Refused (false) when `name` belongs to a program with another entry: a
+/// package named like a compiled-in program replaced that program's
+/// capabilities, so the next launch of the real program (from the desktop
+/// launcher, for example) ran with the package's set (fi2 kernel audit).
+pub fn register_dynamic_program(name: &str, description: &str, entry: &str, capabilities: Vec<String>) -> bool {
     let mut state = USERSPACE.lock();
     if let Some(existing) = state.programs.iter_mut().find(|p| p.name == name) {
+        if existing.entry != entry {
+            return false;
+        }
         existing.requested_capabilities = capabilities;
     } else {
         state.programs.push(ProgramManifest::new(name, description, entry, capabilities));
     }
+    true
 }
 
 /// Un-registers a manifest entry previously added by
