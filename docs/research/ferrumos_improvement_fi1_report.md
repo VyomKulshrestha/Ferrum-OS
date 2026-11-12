@@ -108,6 +108,40 @@ Open: the kernel gives an IPC receiver no sender identity (handed to workstream 
 record counts as zero humans, and speed and payload limits are not wired into the command path (policy
 decisions for the author); a second agent is attacking the fixed gate.
 
+### Round 2: a second agent attacks the fixed gate (same pull request, head 7fec04e)
+
+Round 1's two fixes held: no alias, case or encoding of the target reaches the daemon's control mailbox
+through `ipc_send`, and an approval covers exactly one set of arguments. Another route did not hold.
+Checked by reading main (`tool_mapper.rs:109` put the input tools at tier 3; `src/input/mod.rs` feeds
+injected keys to the kernel shell; `src/heliox/mod.rs:852-871` forwards `confirm <id>` as `CONFIRM:<id>`)
+and by re-running the branch's host tests (heliox-gate-tests 34, physical-runtime 172, neural-protocol 19).
+
+- **Typed keystrokes approved pending requests.** `keyboard_type` was tier 3, its keys reached the
+  kernel shell, and the shell's `heliox confirm <id>` approved the request. With the auto-approve tier
+  at 3 no operator was involved; at the default 2 it took one approval of a keystroke call whose
+  displayed text hid the command. The agent reproduced it in QEMU on the round-1 image. Now the input
+  tools are tier 4 and typed text may not contain Enter, control keys or non-ASCII; no approval lifts
+  that.
+- **The operator approved what they could not see.** Values were shown up to 48 bytes, unescaped. Now
+  every byte is printed, escaped to printable ASCII; a call too long to show is refused.
+- **An approval outlived the file it was about** (approve `exec_process` of a path, replace the file,
+  run). A write, mkdir or delete now withdraws pending and approved requests on that path, beneath it
+  and above it.
+- Lower: confirmation ids restarted at 1 with every daemon start; `execute_tool` ran calls with
+  malformed arguments on defaults.
+- Physical runtime: a permit outlived the state it was issued against (emergency stop, proximity, a
+  human entering the zone after queueing); an older observation could overwrite a newer one; actor
+  telemetry could clear a latched emergency stop; ordinary commands could fill the queue so that no Stop
+  fitted; an endpoint could publish telemetry for another actor. All fixed with tests that fail before.
+
+What the gate can be claimed to guarantee after round 2, and what it cannot, is written out in
+`fi1_reports/userland_round2.md`. Four gaps need the kernel (with workstream C): injected keys are not
+told apart from physical ones; a click cannot be bound to its target; an approval cannot be bound to a
+file version; the mailbox carries no sender identity. Decisions for the author: `service_stop` shows
+only a numeric id; model-authored memory is autosaved without approval although `save_memory` is tier
+3; an auto-approve tier of 4 or more approves everything by design; the two physical-runtime items
+above. Because each round found a critical route, a third agent is attacking the claim.
+
 ## 4. Monitor (workstream A) and kernel (workstream C)
 
 Running. Filled in when they report.
