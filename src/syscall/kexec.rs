@@ -87,7 +87,12 @@ pub fn sys_kexec(args: [u64; 6]) -> SyscallResult {
     
     unsafe {
         let mut allocator = GlobalFrameSource;
-        let _ = mapper.map_to(page, frame, flags, &mut allocator).unwrap().flush();
+        // A failed mapping (no frame for a page table) was an `unwrap`, a
+        // kernel panic; the call now fails instead.
+        match mapper.map_to(page, frame, flags, &mut allocator) {
+            Ok(flush) => flush.flush(),
+            Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
+        }
         
         // Copy the payload directly to 0x900000
         let dest_slice = core::slice::from_raw_parts_mut(0x900000 as *mut u8, bytes.len());

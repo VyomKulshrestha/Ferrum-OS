@@ -216,18 +216,9 @@ fn write_raw_block(
     Ok(())
 }
 
-/// Find the first free bit (0) in a bitmap buffer
-fn find_free_bit(buf: &[u8]) -> Option<usize> {
-    for (byte_idx, &byte) in buf.iter().enumerate() {
-        if byte != 0xFF {
-            for bit_idx in 0..8 {
-                if (byte & (1 << bit_idx)) == 0 {
-                    return Some(byte_idx * 8 + bit_idx);
-                }
-            }
-        }
-    }
-    None
+/// Find the first free bit (0) at or after `from` in a bitmap buffer
+fn find_free_bit(buf: &[u8], from: usize) -> Option<usize> {
+    (from..buf.len() * 8).find(|&bit| buf[bit / 8] & (1 << (bit % 8)) == 0)
 }
 
 /// Set a specific bit in a bitmap buffer
@@ -566,9 +557,17 @@ impl<B: BlockDevice> Ext2Fs<B> {
         let inner = self.inner.lock();
         let block_size = self.block_size;
         let inodes_per_group = inner.superblock.inodes_per_group;
+        // Same bounds as `read_inode_inner`: inode 0 underflowed below and a
+        // number past the last group indexed past the descriptor table.
+        if inode_num == 0 || inode_num > inner.superblock.inodes_count {
+            return Err(alloc::format!("invalid inode number: {}", inode_num));
+        }
 
         let group = (inode_num - 1) / inodes_per_group;
         let index = (inode_num - 1) % inodes_per_group;
+        if group >= self.groups_count {
+            return Err(alloc::format!("inode group out of bounds: {}", group));
+        }
 
         let desc = &inner.group_descs[group as usize];
         let inode_size = if inner.superblock.rev_level >= 1 {
@@ -855,6 +854,27 @@ impl<B: BlockDevice> Ext2Fs<B> {
         inner.device.flush()
     }
 
+    /// Whether `block` holds filesystem metadata: the boot block, the
+    /// superblock and the primary descriptor table, or any group's bitmaps
+    /// and inode table. The allocators must never hand one out.
+    fn is_metadata_block(&self, inner: &Ext2FsInner<B>, block: u32) -> bool {
+        let block = block as u64;
+        let first_data = inner.superblock.first_data_block as u64;
+        let gdt_blocks = (self.groups_count as u64 * size_of::<BlockGroupDescriptor>() as u64)
+            .div_ceil(self.block_size as u64);
+        if block <= first_data + gdt_blocks {
+            return true;
+        }
+        let inode_size = if inner.superblock.rev_level >= 1 { inner.superblock.inode_size as u64 } else { 128 };
+        let table_blocks = (inner.superblock.inodes_per_group as u64 * inode_size)
+            .div_ceil(self.block_size as u64)
+            .max(1);
+        inner.group_descs.iter().any(|d| {
+            let (bb, ib, it) = (d.block_bitmap as u64, d.inode_bitmap as u64, d.inode_table as u64);
+            block == bb || block == ib || (block >= it && block < it + table_blocks)
+        })
+    }
+
     /// Allocate a block in the filesystem.
     fn alloc_block(&self) -> Result<u32, String> {
         let mut inner = self.inner.lock();
@@ -865,15 +885,18 @@ impl<B: BlockDevice> Ext2Fs<B> {
             if desc.free_blocks_count == 0 {
                 continue;
             }
+            let bitmap_block = desc.block_bitmap;
 
             let mut bitmap_buf = Vec::new();
             bitmap_buf.resize(block_size as usize, 0);
-            read_raw_block(&inner.device, block_size, desc.block_bitmap, &mut bitmap_buf)?;
+            read_raw_block(&inner.device, block_size, bitmap_block, &mut bitmap_buf)?;
 
-            if let Some(bit) = find_free_bit(&bitmap_buf) {
-                let blocks_per_group = inner.superblock.blocks_per_group;
+            let blocks_per_group = inner.superblock.blocks_per_group;
+            let mut from = 0;
+            while let Some(bit) = find_free_bit(&bitmap_buf, from) {
+                from = bit + 1;
                 if bit >= blocks_per_group as usize {
-                    continue;
+                    break;
                 }
                 let phys_block = g * blocks_per_group + inner.superblock.first_data_block + bit as u32;
                 // A bitmap with a clear bit past the last block (the end of the
@@ -881,9 +904,16 @@ impl<B: BlockDevice> Ext2Fs<B> {
                 if phys_block >= inner.superblock.blocks_count {
                     return Err(String::from("ext2: block bitmap marks blocks past the end free"));
                 }
+                // A bitmap that marks a superblock, descriptor, bitmap or
+                // inode-table block free used to get that block handed out as
+                // file data, and the file's bytes were then written over the
+                // filesystem's own metadata (fi1 kernel round 4).
+                if self.is_metadata_block(&inner, phys_block) {
+                    continue;
+                }
 
                 set_bit(&mut bitmap_buf, bit, true);
-                write_raw_block(&inner.device, block_size, desc.block_bitmap, &bitmap_buf)?;
+                write_raw_block(&inner.device, block_size, bitmap_block, &bitmap_buf)?;
 
                 let desc_mut = &mut inner.group_descs[g as usize];
                 desc_mut.free_blocks_count = desc_mut.free_blocks_count.saturating_sub(1);
@@ -939,18 +969,48 @@ impl<B: BlockDevice> Ext2Fs<B> {
                 continue;
             }
 
+            let bitmap_block = desc.inode_bitmap;
             let mut bitmap_buf = Vec::new();
             bitmap_buf.resize(block_size as usize, 0);
-            read_raw_block(&inner.device, block_size, desc.inode_bitmap, &mut bitmap_buf)?;
+            read_raw_block(&inner.device, block_size, bitmap_block, &mut bitmap_buf)?;
 
-            if let Some(bit) = find_free_bit(&bitmap_buf) {
-                let inodes_per_group = inner.superblock.inodes_per_group;
+            let inodes_per_group = inner.superblock.inodes_per_group;
+            // Inodes below the first ordinary inode are reserved (2 is the
+            // root directory). A bitmap marking one free gave it to a new
+            // file: the root directory's inode was overwritten by a file's.
+            let first_ino = if inner.superblock.rev_level >= 1 {
+                inner.superblock.first_ino.max(11)
+            } else {
+                11
+            };
+            let mut from = 0;
+            let mut found = None;
+            while let Some(bit) = find_free_bit(&bitmap_buf, from) {
+                from = bit + 1;
                 if bit >= inodes_per_group as usize {
+                    break;
+                }
+                let inode_num = g * inodes_per_group + bit as u32 + 1;
+                if inode_num > inner.superblock.inodes_count {
+                    break;
+                }
+                if inode_num < first_ino {
                     continue;
                 }
-
+                // An inode the bitmap calls free but that still has links is
+                // in use: handing it out made two names share one inode, and
+                // removing either freed the other's data.
+                match self.read_inode_inner(&inner, inode_num) {
+                    Ok(inode) if inode.links_count == 0 => {
+                        found = Some(bit);
+                        break;
+                    }
+                    _ => continue,
+                }
+            }
+            if let Some(bit) = found {
                 set_bit(&mut bitmap_buf, bit, true);
-                write_raw_block(&inner.device, block_size, desc.inode_bitmap, &bitmap_buf)?;
+                write_raw_block(&inner.device, block_size, bitmap_block, &bitmap_buf)?;
 
                 let desc_mut = &mut inner.group_descs[g as usize];
                 desc_mut.free_inodes_count = desc_mut.free_inodes_count.saturating_sub(1);
@@ -1550,6 +1610,12 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
 
         let target_inode = self.read_inode(target_inode_num)?;
         let is_dir = (target_inode.mode & S_IFMT) == S_IFDIR;
+        // `.` and `..` name the directory itself and its parent: removing
+        // `/a/.` from an empty `a` unlinked `.`, freed a's inode and blocks and
+        // left `a` in the root pointing at a free inode.
+        if name == "." || name == ".." {
+            return Err(String::from("invalid path"));
+        }
 
         if is_dir {
             let entries = self.read_dir_entries(&target_inode)?;
@@ -1567,6 +1633,21 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         // size) returned with the entry removed and the parent's version
         // unchanged, which a version-bound approval relies on.
         self.bump_version(parent_inode_num);
+
+        // Another name still links to a regular file (a hard link): drop one
+        // link and keep the inode and its blocks. `remove` used to free them
+        // regardless, leaving the other name on a free inode that the next
+        // create reused (two files sharing data, and a version keyed by the
+        // inode number that moved under the other name).
+        let links = target_inode.links_count;
+        if !is_dir && links > 1 {
+            let mut kept = target_inode;
+            kept.links_count = links - 1;
+            let _ = self.write_inode(target_inode_num, &kept);
+            self.bump_version(target_inode_num);
+            let _ = self.write_metadata();
+            return Ok(());
+        }
         self.versions.lock().remove(&target_inode_num);
 
         // Freeing is best effort from here on: the entry is gone either way,
@@ -1585,6 +1666,13 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
                 }
             }
         }
+        // Mark the inode deleted on disk (no links, a deletion time) before
+        // its bitmap bit is cleared: `alloc_inode` reuses only inodes
+        // without links.
+        let mut dead = target_inode;
+        dead.links_count = 0;
+        dead.dtime = 1;
+        freed &= self.write_inode(target_inode_num, &dead).is_ok();
         freed &= self.free_inode(target_inode_num).is_ok();
         if !freed {
             crate::serial_println!("[ext2] remove {}: blocks or inode not freed (left allocated)", path);
@@ -1691,7 +1779,7 @@ fn split_path(path: &str) -> Result<(String, String), String> {
         // `/f/` named the entry "" inside the regular file `f`: `remove`
         // then parsed f's data as directory entries, freed f's inode and
         // blocks, and left the real entry `f` pointing at a free inode.
-        if name.is_empty() {
+        if name.is_empty() || name == "." || name == ".." {
             return Err(String::from("invalid path"));
         }
         Ok((parent, name))

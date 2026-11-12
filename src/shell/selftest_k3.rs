@@ -16,7 +16,7 @@ use alloc::vec::Vec;
 use core::sync::atomic::Ordering;
 use x86_64::structures::paging::PageTableFlags;
 
-const USER_BASE: u64 = 0x80_0000_0000;
+pub(super) const USER_BASE: u64 = 0x80_0000_0000;
 
 pub fn run(name: &str) -> bool {
     match name {
@@ -35,7 +35,7 @@ pub fn run(name: &str) -> bool {
         "pic-aeoi-off" => pic_aeoi(false),
         "perf-reset" => perf_reset(),
         "kstack-overflow" => kstack_overflow(),
-        _ => return false,
+        _ => return super::selftest_k4::run(name),
     }
     true
 }
@@ -44,7 +44,7 @@ pub fn run(name: &str) -> bool {
 
 /// ELF64 executable with one PT_LOAD at `base` holding the headers and
 /// `code`, entry at the code. `flags` are the segment's p_flags.
-fn elf_at(base: u64, code: &[u8], flags: u32) -> Vec<u8> {
+pub(super) fn elf_at(base: u64, code: &[u8], flags: u32) -> Vec<u8> {
     let code_off = 64 + 56;
     let mut elf = vec![0u8; code_off + code.len()];
     elf[0..4].copy_from_slice(b"\x7FELF");
@@ -73,7 +73,7 @@ fn elf_at(base: u64, code: &[u8], flags: u32) -> Vec<u8> {
 }
 
 /// Park the shell at its safepoint for about `ms` so other tasks run.
-fn yield_for(ms: u64) {
+pub(super) fn yield_for(ms: u64) {
     let shell = crate::scheduler::list_tasks()
         .into_iter()
         .find(|t| t.name == "shell")
@@ -91,7 +91,7 @@ fn yield_for(ms: u64) {
 
 /// Start a ring-3 process running `code` (R+X segment at USER_BASE) with
 /// `caps`. Returns its pid.
-fn start_ring3(name: &str, code: &[u8], caps: &[String]) -> Result<u64, String> {
+pub(super) fn start_ring3(name: &str, code: &[u8], caps: &[String]) -> Result<u64, String> {
     let mut process = crate::process::create(name).map_err(String::from)?;
     let entry = process.load_elf(&elf_at(USER_BASE, code, 5)).map_err(String::from)?;
     let pid = process.pid();
@@ -109,7 +109,7 @@ fn start_ring3(name: &str, code: &[u8], caps: &[String]) -> Result<u64, String> 
 
 /// Let `pid` run for up to `ms`; kill it if it is still alive. Returns
 /// (ended by itself or by the kernel, exit code).
-fn run_until_dead(pid: u64, ms: u64) -> (bool, Option<u32>) {
+pub(super) fn run_until_dead(pid: u64, ms: u64) -> (bool, Option<u32>) {
     let start = crate::scheduler::total_ticks();
     let mut dead = false;
     while crate::scheduler::total_ticks() < start + ms / crate::interrupts::PIT_TICK_MS {
@@ -127,7 +127,7 @@ fn run_until_dead(pid: u64, ms: u64) -> (bool, Option<u32>) {
     (dead, exit)
 }
 
-fn code_with_imm64(prefix: &[u8], imm: u64, suffix: &[u8]) -> Vec<u8> {
+pub(super) fn code_with_imm64(prefix: &[u8], imm: u64, suffix: &[u8]) -> Vec<u8> {
     let mut code = Vec::from(prefix);
     code.extend_from_slice(&imm.to_le_bytes());
     code.extend_from_slice(suffix);
@@ -526,8 +526,8 @@ fn ramfs_limits() {
     );
 }
 
-struct RamDisk {
-    bytes: spin::Mutex<Vec<u8>>,
+pub(super) struct RamDisk {
+    pub(super) bytes: spin::Mutex<Vec<u8>>,
 }
 
 impl crate::fs::block::BlockDevice for RamDisk {
@@ -560,19 +560,19 @@ impl crate::fs::block::BlockDevice for RamDisk {
     }
 }
 
-fn put16(b: &mut [u8], off: usize, v: u16) {
+pub(super) fn put16(b: &mut [u8], off: usize, v: u16) {
     b[off..off + 2].copy_from_slice(&v.to_le_bytes());
 }
-fn put32(b: &mut [u8], off: usize, v: u32) {
+pub(super) fn put32(b: &mut [u8], off: usize, v: u32) {
     b[off..off + 4].copy_from_slice(&v.to_le_bytes());
 }
 
-const BS: usize = 1024;
-const ITABLE: usize = 5 * BS;
-const ROOT_BLOCK: u32 = 7;
+pub(super) const BS: usize = 1024;
+pub(super) const ITABLE: usize = 5 * BS;
+pub(super) const ROOT_BLOCK: u32 = 7;
 
 /// Write inode `n` (128-byte inodes, table at block 5).
-fn put_inode(img: &mut [u8], n: u32, mode: u16, size: u32, blocks: &[u32]) {
+pub(super) fn put_inode(img: &mut [u8], n: u32, mode: u16, size: u32, blocks: &[u32]) {
     let at = ITABLE + (n as usize - 1) * 128;
     put16(img, at, mode);
     put32(img, at + 4, size);
@@ -584,7 +584,7 @@ fn put_inode(img: &mut [u8], n: u32, mode: u16, size: u32, blocks: &[u32]) {
 }
 
 /// Directory entry at byte `at`.
-fn put_dirent(img: &mut [u8], at: usize, inode: u32, rec_len: u16, name: &[u8], ftype: u8) {
+pub(super) fn put_dirent(img: &mut [u8], at: usize, inode: u32, rec_len: u16, name: &[u8], ftype: u8) {
     put32(img, at, inode);
     put16(img, at + 4, rec_len);
     img[at + 6] = name.len() as u8;
@@ -595,7 +595,7 @@ fn put_dirent(img: &mut [u8], at: usize, inode: u32, rec_len: u16, name: &[u8], 
 /// A 64 KiB ext2 image with a working root directory (inode 2, block 7) and
 /// bitmaps that match: blocks 1-7 and inodes 1-11 in use, everything past the
 /// end marked used. Free: 56 blocks, 5 inodes.
-fn ext2_base() -> Vec<u8> {
+pub(super) fn ext2_base() -> Vec<u8> {
     let mut img = vec![0u8; 64 * BS];
     let sb = 1024;
     put32(&mut img, sb, 16);
@@ -641,7 +641,7 @@ fn ext2_base() -> Vec<u8> {
 
 /// Add a regular file inode 12 named `name` as the second entry after `..`
 /// (shrinks `..` to 12 bytes).
-fn add_file(img: &mut [u8], name: &[u8], size: u32, blocks: &[u32], rec_len: u16) {
+pub(super) fn add_file(img: &mut [u8], name: &[u8], size: u32, blocks: &[u32], rec_len: u16) {
     let rb = ROOT_BLOCK as usize * BS;
     put16(img, rb + 12 + 4, 12);
     put_dirent(img, rb + 24, 12, rec_len, name, 1);
@@ -823,7 +823,7 @@ fn perf_reset() {
 // ---- destructive -----------------------------------------------------------
 
 #[inline(never)]
-fn recurse(depth: u64) -> u64 {
+pub(super) fn recurse(depth: u64) -> u64 {
     let buf = core::hint::black_box([depth as u8; 512]);
     if depth == 0 {
         buf[0] as u64

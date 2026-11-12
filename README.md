@@ -846,7 +846,8 @@ Heliox paths, and world-model safety gate. Current boundaries are explicit:
 - Camera syscalls are backed by the deterministic synthetic YUYV generator;
   there is no UVC hardware driver yet.
 - SMP currently discovers processor topology and stages an AP trampoline, but
-  does not send INIT/SIPI or schedule work on application processors.
+  does not send INIT/SIPI or schedule work on application processors. The
+  kernel assumes one CPU; the boot log states it (`online_cpus=1`).
 - Shut down uses QEMU/Bochs/VirtualBox power ports; ACPI AML `_S5` evaluation is
   not implemented. Reboot uses the 8042 reset pulse.
 - Accounts switch real capability profiles but do not authenticate passwords,

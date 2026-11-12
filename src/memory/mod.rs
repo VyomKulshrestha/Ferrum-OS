@@ -206,6 +206,18 @@ pub fn active_p4_frame() -> PhysFrame {
     Cr3::read().0
 }
 
+/// Type of the boot memory-map region holding physical address `addr`
+/// (`None` before the frame allocator is installed or outside every region).
+pub fn boot_region_type(addr: u64) -> Option<MemoryRegionType> {
+    let guard = FRAME_ALLOCATOR.lock();
+    let allocator = guard.as_ref()?;
+    allocator
+        .memory_map
+        .iter()
+        .find(|r| r.range.start_addr() <= addr && addr < r.range.end_addr())
+        .map(|r| r.region_type)
+}
+
 /// Allocate a single 4 KiB physical frame from the global allocator.
 /// Returns `None` if the allocator is not installed or the memory map is
 /// exhausted.

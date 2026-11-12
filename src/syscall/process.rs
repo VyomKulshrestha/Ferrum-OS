@@ -120,6 +120,41 @@ pub fn is_init_test_alias(path: &str) -> bool {
         .any(|name| path == *name || path.strip_prefix("/bin/") == Some(*name))
 }
 
+/// Whether `path` runs an image compiled into the kernel (see the chain in
+/// `sys_exec_checked`), never a file from the VFS.
+pub fn is_embedded_exec_path(path: &str) -> bool {
+    const EMBEDDED: [&str; 12] = [
+        "heliox-daemon", "init", "gui-smoke-test", "text-editor", "calculator", "file-manager",
+        "heliox-assistant-panel", "settings", "browser", "app-store", "notification-center", "task-manager",
+    ];
+    is_init_test_alias(path)
+        || EMBEDDED
+            .iter()
+            .any(|name| path == *name || path.strip_prefix("/bin/") == Some(*name))
+}
+
+/// ExecIfVersion's check. For a compiled-in image there is nothing in the
+/// VFS to check: the version of whatever file sits at that path says nothing
+/// about the image that runs, and any holder of `fs:write` could make every
+/// ExecIfVersion of that name fail by writing a file there. The image cannot
+/// change, so the check passes (fi1 kernel round 4).
+pub fn exec_version_check(path: &str, expected: u64) -> Result<(), SyscallStatus> {
+    if is_embedded_exec_path(path) {
+        return Ok(());
+    }
+    match crate::fs::check_version(path, expected) {
+        Ok(()) => Ok(()),
+        Err(crate::fs::GuardError::VersionMismatch) => {
+            crate::logging::audit::log_event(
+                crate::logging::audit::AuditEvent::PermissionDenied,
+                "ring3 exec refused: the file changed after it was approved",
+            );
+            Err(SyscallStatus::VersionMismatch)
+        }
+        Err(crate::fs::GuardError::Failed(_)) => Err(SyscallStatus::InvalidArgument),
+    }
+}
+
 pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
     sys_exec_checked(args, None)
 }
@@ -138,18 +173,8 @@ pub fn sys_exec_checked(args: [u64; 6], expected: Option<u64>) -> SyscallResult 
     };
 
     if let Some(expected) = expected {
-        match crate::fs::check_version(&path, expected) {
-            Ok(()) => {}
-            Err(crate::fs::GuardError::VersionMismatch) => {
-                crate::logging::audit::log_event(
-                    crate::logging::audit::AuditEvent::PermissionDenied,
-                    "ring3 exec refused: the file changed after it was approved",
-                );
-                return SyscallResult::err(SyscallStatus::VersionMismatch);
-            }
-            Err(crate::fs::GuardError::Failed(_)) => {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            }
+        if let Err(status) = exec_version_check(&path, expected) {
+            return SyscallResult::err(status);
         }
     }
 

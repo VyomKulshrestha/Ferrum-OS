@@ -211,9 +211,15 @@ pub unsafe fn enable_sse_extensions() {
         out("rax") _,
     );
 
-    // 3. Enable AVX if supported by the hardware
+    // 3. Enable AVX if supported by the hardware. With AVX on, a task's
+    // vector state is larger than the FXSAVE area (the upper halves of the
+    // YMM registers are not in it), so the scheduler then saves and restores
+    // with XSAVE/XRSTOR into an area of the size CPUID leaf 0xD reports
+    // (`scheduler::enable_xsave`). It used to save only the FXSAVE area: the
+    // YMM upper halves passed from one process to the next (fi1 kernel round
+    // 4, finding 1). The daemon's local inference uses AVX2.
     let cpuid_1 = core::arch::x86_64::__cpuid(1);
-    let avx_supported = (cpuid_1.ecx & (1 << 28)) != 0;
+    let avx_supported = (cpuid_1.ecx & (1 << 28)) != 0 && (cpuid_1.ecx & (1 << 26)) != 0;
     if avx_supported {
         core::arch::asm!(
             "mov rax, cr4",
@@ -227,6 +233,9 @@ pub unsafe fn enable_sse_extensions() {
             out("rcx") _,
             out("rdx") _,
         );
+        // Bytes XSAVE writes for the features now enabled in XCR0.
+        let size = core::arch::x86_64::__cpuid_count(0xD, 0).ebx as usize;
+        scheduler::enable_xsave(size);
     }
 }
 

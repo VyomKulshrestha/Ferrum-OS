@@ -70,6 +70,13 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     ferrumos::memory::heap::init_heap(&mut mapper, &mut frame_allocator)
         .expect("Heap initialization failed");
     ferrumos::memory::harden_boot_regions(boot_info as *const _ as u64);
+    // Guard pages below the static kernel stacks (shell, desktop, dashboard,
+    // idle, return, double fault).
+    ferrumos::memory::kstack::protect_static_stacks();
+    println!(
+        "[  OK  ] Guard pages below {} of 6 static kernel stacks",
+        ferrumos::memory::kstack::STATIC_GUARDS.load(core::sync::atomic::Ordering::SeqCst)
+    );
     println!(
         "[  OK  ] Kernel heap initialized ({}KB)",
         ferrumos::memory::heap::HEAP_SIZE / 1024

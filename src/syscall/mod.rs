@@ -322,17 +322,14 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     }
 
     if confirmation_needed {
-        let name = if number == SyscallNumber::Kexec as u64 {
-            "Kexec"
-        } else {
-            "DeleteFile"
-        };
+        let name = confirmation_subject(number, args);
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::SecurityViolation,
             &alloc::format!("{} syscall confirmation required", name),
         );
         crate::println!(
-            "\n[SECURITY] Process is requesting destructive syscall: {}",
+            "\n[SECURITY] Process {} is requesting destructive syscall: {}",
+            pid,
             name
         );
         crate::println!("[SECURITY] Operator confirmation required. Press 'y' to approve, 'n' to deny (5s timeout).");
@@ -355,6 +352,44 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         }
     }
     res
+}
+
+/// What the operator is asked to approve: the syscall and, for DeleteFile
+/// and DeleteFileIfVersion, the path it will delete. The prompt used to say
+/// only "DeleteFile", so the operator approved a deletion without seeing its
+/// target (fi1 kernel round 4). The approved call is the same instruction
+/// re-executed with the same registers (the task is blocked meanwhile, and
+/// no other task can write its memory), so the path shown is the path
+/// deleted.
+pub fn confirmation_subject(number: u64, args: [u64; 6]) -> alloc::string::String {
+    if number == SyscallNumber::Kexec as u64 {
+        return alloc::string::String::from("Kexec");
+    }
+    let name = if number == SyscallNumber::DeleteFileIfVersion as u64 {
+        "DeleteFileIfVersion"
+    } else {
+        "DeleteFile"
+    };
+    match unsafe { fs::read_user_str(args[0], args[1]) } {
+        Some(path) => alloc::format!("{} path=\"{}\"", name, escape_printable(&path)),
+        None => alloc::format!("{} path=<unreadable>", name),
+    }
+}
+
+/// `s` as printable ASCII: bytes 0x20 to 0x7E except `\` and `"` as they
+/// are, every other byte as `\xNN`. A path is shown to the operator through
+/// this, so it cannot carry terminal escapes, line breaks or a forged second
+/// line.
+pub fn escape_printable(s: &str) -> alloc::string::String {
+    let mut out = alloc::string::String::with_capacity(s.len());
+    for b in s.bytes() {
+        if (0x20..0x7F).contains(&b) && b != b'\\' && b != b'"' {
+            out.push(b as char);
+        } else {
+            out.push_str(&alloc::format!("\\x{:02x}", b));
+        }
+    }
+    out
 }
 
 pub fn dispatch_with_capabilities(

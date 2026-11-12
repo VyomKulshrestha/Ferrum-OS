@@ -73,8 +73,15 @@ fn tss_ref() -> &'static TaskStateSegment {
 
 /// IST stack for the double fault handler. Placed in `.bss` so
 /// the kernel can keep using it after the initial mapping.
-static mut DOUBLE_FAULT_STACK: [u8; DOUBLE_FAULT_STACK_SIZE] =
-    [0; DOUBLE_FAULT_STACK_SIZE];
+/// A guard page below it (`memory::kstack::GuardedStack`): an overflow of
+/// this stack is a triple fault (a reset) instead of a silent overwrite.
+static mut DOUBLE_FAULT_STACK: crate::memory::kstack::GuardedStack<DOUBLE_FAULT_STACK_SIZE> =
+    crate::memory::kstack::GuardedStack::new();
+
+/// (lowest, one past the highest) address of the double-fault IST stack.
+pub fn double_fault_stack_bounds() -> (u64, u64) {
+    crate::memory::kstack::static_stack_bounds(&raw const DOUBLE_FAULT_STACK)
+}
 
 struct Selectors {
     kernel_code: SegmentSelector,
@@ -127,8 +134,7 @@ pub unsafe fn set_kernel_stack(rsp0: VirtAddr) {
 /// once at init time.
 fn install_double_fault_ist() {
     // Safety: single-threaded init code, no concurrent access.
-    let stack_top =
-        VirtAddr::from_ptr(&raw const DOUBLE_FAULT_STACK) + DOUBLE_FAULT_STACK_SIZE as u64;
+    let stack_top = VirtAddr::new(double_fault_stack_bounds().1);
     unsafe {
         TSS.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = stack_top;
     }

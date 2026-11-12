@@ -34,7 +34,7 @@ extern crate alloc;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use spin::Mutex;
 use x86_64::VirtAddr;
 
@@ -430,23 +430,56 @@ pub fn init() {
     SCHEDULER_INIT.store(true, Ordering::SeqCst);
 }
 
+/// True once `lib::enable_sse_extensions` has enabled AVX in XCR0: task
+/// switches then save and restore the vector state with XSAVE/XRSTOR (the
+/// FXSAVE area holds only the low 128 bits of each YMM register). Read by the
+/// switch asm in `context_switch_to`.
+#[no_mangle]
+pub static XSAVE_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+/// Bytes of each task's vector-state area (512 for FXSAVE; CPUID.(0xD,0).EBX
+/// with XSAVE). Set once at boot, before the first task exists.
+static SIMD_AREA_SIZE: AtomicUsize = AtomicUsize::new(512);
+
+/// Switch the scheduler to XSAVE areas of `size` bytes. Called once from
+/// `lib::enable_sse_extensions`, before any task is created.
+pub fn enable_xsave(size: usize) {
+    // The legacy region (512) and the XSAVE header (64) come first.
+    if size < 576 || size > 64 * 1024 {
+        return;
+    }
+    SIMD_AREA_SIZE.store(size, Ordering::SeqCst);
+    XSAVE_ACTIVE.store(true, Ordering::SeqCst);
+}
+
+/// Size of a task's vector-state area and whether XSAVE is used (self-tests).
+pub fn simd_area_info() -> (usize, bool) {
+    (SIMD_AREA_SIZE.load(Ordering::SeqCst), XSAVE_ACTIVE.load(Ordering::SeqCst))
+}
+
+/// Layout of a task's vector-state area: XSAVE needs 64-byte alignment.
+fn simd_layout() -> core::alloc::Layout {
+    core::alloc::Layout::from_size_align(SIMD_AREA_SIZE.load(Ordering::Relaxed), 64).unwrap()
+}
+
+/// Put an area in the initial state: all zero (an XSAVE header with
+/// XSTATE_BV = 0, so XRSTOR loads every component's initial state, YMM upper
+/// halves included), FCW 0x037F and MXCSR 0x1F80 (all exceptions masked).
+unsafe fn reset_simd_area(ptr: *mut u8) {
+    core::ptr::write_bytes(ptr, 0, SIMD_AREA_SIZE.load(Ordering::Relaxed));
+    *(ptr as *mut u16) = 0x037F;
+    *(ptr.add(24) as *mut u32) = 0x1F80;
+}
+
 fn allocate_simd_buffer() -> u64 {
-    let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
-    let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+    let ptr = unsafe { alloc::alloc::alloc_zeroed(simd_layout()) };
     // On heap exhaustion this wrote to address 0 (a ring-0 page fault). A
-    // task without a buffer still runs: the switch path skips FXRSTOR and
-    // `save_simd_state` skips FXSAVE for a zero pointer.
+    // task without a buffer still runs: the switch path skips the restore
+    // and `save_simd_state` skips the save for a zero pointer.
     if ptr.is_null() {
         return 0;
     }
-    unsafe {
-        // FPU Control Word (FCW) at offset 0: default 0x037F (all exceptions masked)
-        let fcw_ptr = ptr as *mut u16;
-        *fcw_ptr = 0x037F;
-        // MXCSR at offset 24: default 0x1F80 (all exceptions masked)
-        let mxcsr_ptr = ptr.add(24) as *mut u32;
-        *mxcsr_ptr = 0x1F80;
-    }
+    unsafe { reset_simd_area(ptr) };
     ptr as u64
 }
 
@@ -532,12 +565,9 @@ fn register_user_task(
         let mut ctx = TaskContext::new();
         ctx.simd_state_ptr = old_simd;
         if old_simd != 0 {
-            unsafe {
-                let fcw_ptr = old_simd as *mut u16;
-                *fcw_ptr = 0x037F;
-                let mxcsr_ptr = (old_simd as *mut u8).add(24) as *mut u32;
-                *mxcsr_ptr = 0x1F80;
-            }
+            // The new image starts from the initial vector state, not from
+            // the registers of the image it replaces.
+            unsafe { reset_simd_area(old_simd as *mut u8) };
         }
         sched.contexts[idx] = ctx;
 
@@ -705,6 +735,8 @@ pub fn tick() {
     if !SCHEDULER_INIT.load(Ordering::SeqCst) {
         return;
     }
+    // The scheduler's locking assumes one CPU (src/smp/mod.rs).
+    crate::smp::assert_single_cpu();
     if let Some(mut sched) = SCHEDULER.try_lock() {
         sched.total_ticks = sched.total_ticks.wrapping_add(1);
         let now = sched.total_ticks;
@@ -1137,8 +1169,7 @@ fn cleanup_dead_tasks_except(keep: u64) {
         if sched.tasks[i].state == TaskState::Dead && sched.tasks[i].id != keep {
             let ctx = sched.contexts.remove(i);
             if ctx.simd_state_ptr != 0 {
-                let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
-                unsafe { alloc::alloc::dealloc(ctx.simd_state_ptr as *mut u8, layout) };
+                unsafe { alloc::alloc::dealloc(ctx.simd_state_ptr as *mut u8, simd_layout()) };
             }
             sched.tasks.remove(i);
         } else {
@@ -1153,10 +1184,20 @@ pub fn save_simd_state(pid: u64) {
         let ptr = sched.contexts[idx].simd_state_ptr;
         if ptr != 0 {
             unsafe {
-                core::arch::asm!(
-                    "fxsave64 [{}]",
-                    in(reg) ptr
-                );
+                if XSAVE_ACTIVE.load(Ordering::Relaxed) {
+                    // Every component enabled in XCR0 (x87, SSE, AVX).
+                    core::arch::asm!(
+                        "xsave64 [{}]",
+                        in(reg) ptr,
+                        in("eax") u32::MAX,
+                        in("edx") u32::MAX,
+                    );
+                } else {
+                    core::arch::asm!(
+                        "fxsave64 [{}]",
+                        in(reg) ptr
+                    );
+                }
             }
         }
     }
@@ -1219,11 +1260,21 @@ pub unsafe extern "C" fn context_switch_to(
         // Switch to the incoming task's kernel stack.
         "mov rsp, rdx",
         
-        // Restore SIMD/SSE state for the incoming task.
-        "mov rax, [rsi + 0xA0]",
-        "test rax, rax",
+        // Restore the incoming task's vector state: XRSTOR of every XCR0
+        // component when AVX is enabled (FXRSTOR left the YMM upper halves
+        // of the previous task in place), FXRSTOR otherwise. rax, rcx and
+        // rdx are reloaded from the context below.
+        "mov rcx, [rsi + 0xA0]",
+        "test rcx, rcx",
         "jz 9f",
-        "fxrstor64 [rax]",
+        "cmp byte ptr [rip + {xsave_active}], 0",
+        "je 8f",
+        "mov eax, 0xFFFFFFFF",
+        "mov edx, 0xFFFFFFFF",
+        "xrstor64 [rcx]",
+        "jmp 9f",
+        "8:",
+        "fxrstor64 [rcx]",
         "9:",
         
         // Push the incoming task's iretq frame on the new stack:
@@ -1259,6 +1310,7 @@ pub unsafe extern "C" fn context_switch_to(
         "mov rsi, [rsi + 0x50]",
         
         "iretq",
+        xsave_active = sym XSAVE_ACTIVE,
     );
 }
 
@@ -1301,6 +1353,15 @@ static EXIT_CODES: Mutex<Vec<(u64, u64, u32)>> = Mutex::new(Vec::new());
 /// because that function still executes on the exiting child's kernel stack;
 /// the next ring-3 syscall is the first universally safe reclamation point.
 static DEFERRED_REAPS: Mutex<Vec<u64>> = Mutex::new(Vec::new());
+
+/// Queue `pid` for `reap_deferred`, as the blocked-wait fast path does
+/// (self-tests).
+pub fn defer_reap(pid: u64) {
+    let mut deferred = DEFERRED_REAPS.lock();
+    if !deferred.contains(&pid) {
+        deferred.push(pid);
+    }
+}
 
 /// Packed (pid << 32 | code) of the most recent exit, displayed by
 /// the kernel return trampoline. `u64::MAX` means "none pending".
@@ -1516,15 +1577,15 @@ pub fn claim_for_run(pid: u64) {
 
 const KERNEL_TASK_STACK_SIZE: usize = 32 * 1024;
 
-#[repr(C, align(16))]
-struct KernelTaskStack([u8; KERNEL_TASK_STACK_SIZE]);
+/// In `.bss` with a guard page below it (`memory::kstack::GuardedStack`).
+type KernelTaskStack = crate::memory::kstack::GuardedStack<KERNEL_TASK_STACK_SIZE>;
 
 /// Stack for the idle loop that runs while every task is sleeping.
-static mut IDLE_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK_SIZE]);
+static mut IDLE_STACK: KernelTaskStack = KernelTaskStack::new();
 
 /// Stack for the return-to-shell trampoline that runs after the last
 /// user task exits.
-static mut RETURN_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK_SIZE]);
+static mut RETURN_STACK: KernelTaskStack = KernelTaskStack::new();
 
 /// Stable slot for the *incoming* context of `context_switch_to`.
 /// Must not alias the scratch (outgoing) slot: the switch asm writes
@@ -1533,7 +1594,15 @@ static mut RETURN_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK
 static mut RESUME_SLOT: TaskContext = TaskContext::new();
 
 fn kernel_stack_top(stack: *mut KernelTaskStack) -> u64 {
-    ((stack as u64) + KERNEL_TASK_STACK_SIZE as u64) & !0xF
+    crate::memory::kstack::static_stack_bounds(stack as *const KernelTaskStack).1
+}
+
+/// (lowest, one past the highest) address of the idle and the return stack.
+pub fn static_stack_bounds() -> [(u64, u64); 2] {
+    [
+        crate::memory::kstack::static_stack_bounds(&raw const IDLE_STACK),
+        crate::memory::kstack::static_stack_bounds(&raw const RETURN_STACK),
+    ]
 }
 
 unsafe fn load_cr3(phys: u64) {
