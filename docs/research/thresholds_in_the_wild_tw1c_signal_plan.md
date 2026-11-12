@@ -256,3 +256,26 @@ builder, the drivers and their tests are committed. Findings: `target/tw1c/tw1c_
 Netdata at its default training window, real-time OpenSearch detection, closed-loop campaigns against the
 products (they expose no threshold reading), the Zabbix functions in shipped templates (none use them),
 Elastic ML (licence), and budget-matched settings for the products.
+
+## Amendment 1 (2026-11-12, before any StreamAD or htm.core campaign)
+
+Written after a smoke test of the StreamAD adapters on the first 20,000 calibration scores of mode 1 (no
+campaign, no attack run, no sealed run). The OpenSearch runs had started under the plan as written; nothing
+in the product protocols changes here.
+
+1. **StreamAD is installed from a wheelhouse** built once in a `python:3.10-slim` container with a C
+   compiler (the t-digest dependency `accumulation_tree` 0.6.4 is a source package). The run containers
+   install from that wheelhouse with no network. Installed: StreamAD 0.3.1, numpy 1.26.4, pandas 1.5.3,
+   statsmodels 0.13.5, scipy 1.15.3, tdigest 0.5.2.2.
+2. **`TDigestCalibrator` runs open-loop** (control, loud, recorded attacks). The digest takes the score
+   before it reads its percentiles, and where a score near the 99th percentile falls among the centroids
+   moves that percentile. The cheap reading (the percentile after one very large score) disagreed with
+   the target's decision by 1e-5 of its value on the 99th step, and a bisection on deep copies of the
+   digest would cost tens of milliseconds per step of the frog. This is the rule the plan states for a
+   reading that disagrees.
+3. **`SpotDetector` runs open-loop** for the same reason as tw1a's Telemanom port: a reading would need a
+   generalized Pareto refit per candidate score.
+4. **The z-score reading** uses the closed form of the statistic (the score enters the mean and the
+   deviation it is judged against) to place a bracket of 1e-6 of its value, then bisects the target's
+   own call inside it; if the bracket does not hold the edge, tw1a's full search is used. In the smoke
+   test the earlier full search ran at 5.7 ms a step and agreed with every decision.

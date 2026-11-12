@@ -64,17 +64,35 @@ class StreamadZScore(A.Target):
         return out is not None and out >= 1.0
 
     def tau(self):
+        """The statistics include the score they judge: after it enters, |x - mean'| / std' equals
+        |d| n / sqrt(n' ss + d^2 n) with d = x - mean, so the score at k deviations is
+        mean + k sqrt(n' ss / (n^2 - k^2 n)). The alarm region above the mean starts at the extreme edge,
+        or at the sigma edge for a new running maximum (the min-max branch then returns 1.0). That closed
+        form only places a narrow bracket; the reading is bisected inside it on the target's own call."""
         s = self.c.score_stats
         if s._num_items < s._window.maxlen:
             self.low = -math.inf
             return math.inf  # the warm-up returns None for the next score
-        centre = s._mean[0]
-        if self._would(centre):
+        n, m, ss, mx = s._num_items, s._mean[0], s._sum_squares[0], s._max[0]
+
+        def edge(k):
+            den = n * n - k * k * n
+            return math.sqrt(k * k * (n + 1) * ss / den) if den > 0 else math.inf
+
+        d5, d3 = edge(self.c.extreme_sigma), edge(self.c.sigma)
+        self.low = m - d5
+        guess = min(m + d5, max(m + d3, mx))
+        if math.isfinite(guess) and ss > 0:
+            w = max(abs(guess), 1e-9) * 1e-6
+            if not self._would(guess - w) and self._would(guess + w):
+                return A.bisect_tau(self._would, guess - w, guess + w)
+        # fallback: the full search of tw1a's readings
+        if self._would(m):
             self.low = math.inf
             return -math.inf
-        d = A.bisect_tau(lambda v: self._would(centre - v), 0.0, A.HIGH)
-        self.low = centre - d
-        return A.bisect_tau(self._would, centre, A.HIGH)
+        d = A.bisect_tau(lambda v: self._would(m - v), 0.0, A.HIGH)
+        self.low = m - d
+        return A.bisect_tau(self._would, m, A.HIGH)
 
     def expected(self, x, tau):
         return x > tau or x < self.low
@@ -82,45 +100,24 @@ class StreamadZScore(A.Target):
 
 class StreamadTDigest(A.Target):
     """TDigestCalibrator(percentile_up=99, percentile_down=0) of calibrator_usage.ipynb; alarm when the
-    output is 1.0. The digest takes the score before the percentiles are read. A score far above the 99th
-    percentile moves that percentile by the same small amount whatever its size, so the reading is the
-    99th percentile of a copy that has taken one such score. Below the reading the decision of a copy is
-    used for the lower edge (percentile 0), which no campaign approaches."""
+    output is 1.0. The digest takes the score before the percentiles are read, and where a score near the
+    99th percentile lands among the centroids moves that percentile, so a reading needs a bisection on deep
+    copies of the digest (tens of milliseconds per reading). The smoke test found the cheap reading (the
+    percentile after one very large score) wrong by 1e-5 of its value, so the target runs open-loop
+    (amendment 1)."""
 
-    eps = 1e-6
+    closed_loop = False
 
     def __init__(self, up=99, down=0):
         from streamad.process import TDigestCalibrator
 
         self.c = TDigestCalibrator(percentile_up=up, percentile_down=down)
-        self.up = up
         self.name = f"StreamAD TDigestCalibrator(percentile_up={up}, percentile_down={down}) == 1"
         self.doc = "docs/source/example/calibrator_usage.ipynb"
 
     def step(self, x):
         v = self.c.normalize(x)
         return v is not None and v >= 1.0
-
-    def _copy_would(self, v):
-        c = copy.deepcopy(self.c)
-        out = c.normalize(v)
-        return out is not None and out >= 1.0
-
-    def tau(self):
-        c = self.c
-        if len(c.score_deque) + 1 < c.score_deque.maxlen:
-            return math.inf
-        d = copy.deepcopy(c.score_stats)
-        big = max(d.percentile(100) * 10.0, 1.0)
-        d.update(big)
-        return d.percentile(self.up)
-
-    def expected(self, x, tau):
-        if x > tau:
-            return True
-        if x < 1.01 * self.c.score_stats.percentile(0):
-            return self._copy_would(x)
-        return False
 
 
 class StreamadSpot(A.Target):
