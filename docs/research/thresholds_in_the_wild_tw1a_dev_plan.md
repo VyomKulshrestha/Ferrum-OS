@@ -330,3 +330,12 @@ From the catalogue readings (absorbing, count-based or hold-out) and tw1a's numb
 
 A prediction that fails is reported as failed. Nothing here changes after the runs start; a change
 needed by a stopped run goes in a dated note below with its reason.
+
+Note to amendment 4 (2026-11-12, after the harness check, before any run of the new conditions): the
+harness check passed (river `ThresholdFilter` at tau0 with the current code: false alarms 0.98 times
+the budget, 116 of 141 first events, 104 of 104 followers with 44 at onset, 56 of 56 in every campaign,
+both histories). One detail of section 3 is fixed now, for cost: in the planned frog, the terminal
+outcome at each magnitude is the planner's (the script's own update, stepped from the state after the
+lead), and the script itself is run on the whole series once more for the largest magnitude, 2 tau0;
+the two must agree. A whole-series run of a frog stream takes about half an hour, because every frog
+step adds a peak and refits.
