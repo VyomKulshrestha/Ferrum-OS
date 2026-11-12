@@ -212,6 +212,7 @@ try {
   check("no frame longer than 1518 bytes reached the network stack", Number.isFinite(maxLen) && maxLen <= 1518, summary);
   check("the driver dropped the oversized frames", Number(field(summary, "rx_dropped_oversize")) >= 1);
   check("the half-open listener was reset by the kernel", Number(field(summary, "half_open_resets")) >= 1);
+  check("well-formed device headers (the runt frame among them) never reset the receiver", Number(field(summary, "rx_resets")) === 0);
   await shell.waitFor(/half_open_resets=[^\n]*\n[\s\S]*FerrumOS:~\$/, 30, from);
   const echo = await shell.command("echo k2-alive");
   check("the shell still runs commands afterwards", /k2-alive/.test(echo));

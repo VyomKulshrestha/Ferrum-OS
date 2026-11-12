@@ -392,6 +392,11 @@ unsafe extern "C" fn timer_interrupt_entry_stub() {
 /// Read by `test-syscall perf`.
 pub static TIMER_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 pub static TIMER_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+/// The two parts of a timer interrupt: `scheduler::tick` and the PIC EOI.
+pub static TICK_FN_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TICK_FN_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TIMER_EOI_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TIMER_EOI_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 pub static SYSCALL_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 pub static SYSCALL_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 
@@ -421,11 +426,17 @@ impl Drop for CycleMeter {
 extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
     let _meter = CycleMeter::start(&TIMER_CYCLES, &TIMER_COUNT);
     // Tick the scheduler (if initialized)
-    crate::scheduler::tick();
-    
+    {
+        let _tick = CycleMeter::start(&TICK_FN_CYCLES, &TICK_FN_COUNT);
+        crate::scheduler::tick();
+    }
+
     // Send End-of-Interrupt to the PIC
-    unsafe {
-        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+    {
+        let _eoi = CycleMeter::start(&TIMER_EOI_CYCLES, &TIMER_EOI_COUNT);
+        unsafe {
+            PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        }
     }
 
     // Preempt the current task if it was running in Ring 3 and its time slice has expired.

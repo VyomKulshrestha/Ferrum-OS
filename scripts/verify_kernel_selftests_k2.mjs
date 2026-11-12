@@ -87,6 +87,7 @@ try {
     check("an oversized receive length is never delivered", field(out, "oversize_60004") === "skip");
     check("a header without ROK resets the receiver", field(out, "no_rok") === "reset");
     check("a header with an error bit resets the receiver", field(out, "crc_error") === "reset");
+    check("a good header for a runt frame is skipped, not treated as lost ring position", field(out, "runt_14") === "skip");
   }
 
   out = await run("service-lifecycle");

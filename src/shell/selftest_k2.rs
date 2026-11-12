@@ -384,12 +384,13 @@ fn rx_header() {
         _ => String::from("stall"),
     };
     println!(
-        "selftest rx-header: good_64={} oversize_60004={} no_rok={} crc_error={} short_3={}",
+        "selftest rx-header: good_64={} oversize_60004={} no_rok={} crc_error={} short_3={} runt_14={}",
         show(classify_rx_header(0x0001, 64)),
         show(classify_rx_header(0x0001, 60004)),
         show(classify_rx_header(0x0000, 64)),
         show(classify_rx_header(0x0005, 64)),
-        show(classify_rx_header(0x0001, 3))
+        show(classify_rx_header(0x0001, 3)),
+        show(classify_rx_header(0x0001, 14))
     );
 }
 
@@ -587,7 +588,10 @@ fn ext2_case(case: &str) {
 // ---- performance -----------------------------------------------------------
 
 fn perf() {
-    use crate::interrupts::{SYSCALL_COUNT, SYSCALL_CYCLES, TIMER_COUNT, TIMER_CYCLES};
+    use crate::interrupts::{
+        SYSCALL_COUNT, SYSCALL_CYCLES, TICK_FN_COUNT, TICK_FN_CYCLES, TIMER_COUNT, TIMER_CYCLES,
+        TIMER_EOI_COUNT, TIMER_EOI_CYCLES,
+    };
     let avg = |cycles: u64, count: u64| if count == 0 { 0 } else { cycles / count };
     let (tc, tn) = (TIMER_CYCLES.load(Ordering::Relaxed), TIMER_COUNT.load(Ordering::Relaxed));
     let (sc, sn) = (SYSCALL_CYCLES.load(Ordering::Relaxed), SYSCALL_COUNT.load(Ordering::Relaxed));
@@ -605,6 +609,11 @@ fn perf() {
         crate::memory::deallocate_frame(frame);
     }
     let t2 = unsafe { core::arch::x86_64::_rdtsc() };
+    println!(
+        "selftest perf: tick_fn_avg_cycles={} timer_eoi_avg_cycles={}",
+        avg(TICK_FN_CYCLES.load(Ordering::Relaxed), TICK_FN_COUNT.load(Ordering::Relaxed)),
+        avg(TIMER_EOI_CYCLES.load(Ordering::Relaxed), TIMER_EOI_COUNT.load(Ordering::Relaxed))
+    );
     println!(
         "selftest perf: timer_ticks={} timer_avg_cycles={} syscalls={} syscall_avg_cycles={} frame_alloc_avg_cycles={} frame_free_avg_cycles={} tasks={}",
         tn,

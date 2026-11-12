@@ -101,10 +101,14 @@ pub fn classify_rx_header(status: u16, length: usize) -> RxHeader {
     if status & 0x01 == 0 || status & 0x3E != 0 {
         return RxHeader::Reset;
     }
-    if length < MIN_RX_FRAME_LEN || length > RX_SLACK - 16 - 4 {
+    // The device writes frame length + 4, so a good header never has a
+    // length below 4; such a header means the ring position is lost.
+    if length < 4 || length > RX_SLACK - 16 - 4 {
         return RxHeader::Reset;
     }
-    if length > MAX_RX_FRAME_LEN {
+    // A good header for a frame the stack will not take (a runt, or longer
+    // than any Ethernet frame): consume it and move on.
+    if length < MIN_RX_FRAME_LEN || length > MAX_RX_FRAME_LEN {
         return RxHeader::Skip;
     }
     RxHeader::Deliver(length - 4)
