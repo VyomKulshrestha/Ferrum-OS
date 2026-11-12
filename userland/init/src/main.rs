@@ -687,9 +687,12 @@ pub extern "C" fn _start() -> ! {
             // deterministic opportunity to seed its owned mailbox.
             sleep(20);
             let payload = "private-child-message";
-            let mut sent = 0;
+            // A mailbox holds 16 messages, 4 of them reserved for messages
+            // the kernel marks as the operator's (fi1 kernel round 3), so an
+            // ordinary sender fills it after 12.
+            let mut accepted = 0;
             for _ in 0..16 {
-                sent = unsafe {
+                let sent = unsafe {
                     syscall4(
                         SYS_IPC_SEND,
                         "ipc-owner-test".as_ptr() as u64,
@@ -699,7 +702,9 @@ pub extern "C" fn _start() -> ! {
                     )
                 };
                 if (sent as i64) < 0 { break; }
+                accepted += 1;
             }
+            let sent: u64 = accepted;
             let saturated = unsafe {
                 syscall4(
                     SYS_IPC_SEND,
@@ -719,11 +724,11 @@ pub extern "C" fn _start() -> ! {
                     fair_payload.len() as u64,
                 )
             };
-            if (sent as i64) < 0
+            if sent != 12
                 || (saturated as i64) != -3
                 || (fair_send as i64) < 0
             {
-                write_num("[ipc-test] ERROR seed send=", sent as i64, "\n");
+                write_num("[ipc-test] ERROR seed sends accepted=", sent as i64, "\n");
                 write_num("[ipc-test] ERROR saturated send=", saturated as i64, "\n");
                 write_num("[ipc-test] ERROR fair send=", fair_send as i64, "\n");
                 unsafe { syscall3(SYS_EXIT, 1, 0, 0); }

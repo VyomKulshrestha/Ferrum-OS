@@ -17,7 +17,8 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push(`${ok ? "PASS" : "FAIL"}\t${name}${detail ? "\t" + detail : ""}`);
 const skip = new Set((process.env.FERRUMOS_SKIP_SELFTESTS || "").split(",").filter(Boolean));
-const field = (text, name) => (text.match(new RegExp(`\\b${name}=([^\\s]+)`)) || [])[1];
+// The last value printed for `name` (ext2-r3 prints "<case>=starting" first).
+const field = (text, name) => [...text.matchAll(new RegExp(`\\b${name}=([^\\s]+)`, "g"))].map((m) => m[1]).pop();
 const line = (text, name) => (text.match(new RegExp(`selftest ${name}:.*`, "g")) || []).join(" | ");
 
 let shell;
@@ -92,8 +93,8 @@ try {
     const d = line(out, "user-stack");
     check("no mmap region can end at the user stack", field(out, "mmap_reaches_stack") === "false", d);
     check("no ELF segment can end at the user stack", field(out, "segment_below_stack_accepted") === "false");
-    check("a user stack overflow ends the process (139) and the kernel runs on",
-      field(out, "overflow_ended") === "true" && field(out, "overflow_exit") === "139");
+    check("a user stack overflow ends the process (killed, 137) and the kernel runs on",
+      field(out, "overflow_ended") === "true" && field(out, "overflow_exit") === "137");
   }
 
   out = await run("ipc-mailbox");

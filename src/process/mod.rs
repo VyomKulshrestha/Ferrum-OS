@@ -856,7 +856,7 @@ pub const USER_STACK_SIZE: usize = 1024 * 1024;
 pub const USER_STACK_BASE: u64 = USER_REGION_BASE + 0x7000_0000; // 0x80_7000_0000
 
 /// Unmapped gap kept below the user stack: no ELF segment or mmap region may
-/// use it, so a user stack overflow faults (the process is ended with 139)
+/// use it, so a user stack overflow faults (the kernel kills the process, exit code 137)
 /// instead of writing into the process's other memory.
 pub const USER_STACK_GUARD: u64 = 64 * 1024;
 
