@@ -1010,9 +1010,7 @@ pub fn register(mut process: Process) -> u64 {
     if process.name == "huge-test" {
         process.max_memory_pages = 2;
     }
-    let name = process.name.clone();
     PROCESSES.lock().push(ProcessRecord { process });
-    crate::ipc::claim_mailbox(pid, &name);
     pid
 }
 

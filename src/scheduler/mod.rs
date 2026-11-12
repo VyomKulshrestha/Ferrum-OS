@@ -476,6 +476,19 @@ pub fn register_user(
     if !SCHEDULER_INIT.load(Ordering::SeqCst) {
         return;
     }
+    register_user_task(pid, name, priority, kernel_stack_top, cr3, capabilities);
+    // After the scheduler lock is released: the claim reads task states.
+    crate::ipc::claim_mailbox(pid, name);
+}
+
+fn register_user_task(
+    pid: u64,
+    name: &str,
+    priority: Priority,
+    kernel_stack_top: VirtAddr,
+    cr3: u64,
+    capabilities: &[String],
+) {
     let caller_pid = CURRENT_PID.load(Ordering::SeqCst);
     let parent_id = if caller_pid == 0 { None } else { Some(caller_pid) };
     

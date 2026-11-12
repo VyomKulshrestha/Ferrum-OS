@@ -396,23 +396,39 @@ fn ipc_mailbox() {
         Message::new(0, Endpoint::new(SVC, "default"), MessageKind::Request, "cap:system:all", b"x")
             .map(|m| m.with_sender_flags(flags))
     };
-    let new_proc = || crate::process::create(SVC).map(crate::process::register);
+    // Registered and given a scheduler task (where the mailbox is claimed),
+    // never dispatched; killed and reaped below.
+    let new_proc = || {
+        crate::process::create(SVC).map(|process| {
+            let kernel_rsp = process.kernel_stack_top();
+            let pid = crate::process::register(process);
+            x86_64::instructions::interrupts::without_interrupts(|| {
+                crate::scheduler::register_user(pid, SVC, crate::scheduler::Priority::Idle, kernel_rsp, 0, &[]);
+                crate::scheduler::selftest_park(pid, u64::MAX);
+            });
+            pid
+        })
+    };
+    let end = |pid: u64| {
+        crate::scheduler::kill(pid);
+        crate::process::reap_dead();
+    };
     let Ok(a) = new_proc() else {
         println!("selftest ipc-mailbox: create_error");
         return;
     };
     let owner_first = crate::ipc::service_owner_pid(SVC);
     let Ok(b) = new_proc() else {
-        crate::process::drop_by_pid(a);
+        end(a);
         println!("selftest ipc-mailbox: create_error");
         return;
     };
     let owner_with_two = crate::ipc::service_owner_pid(SVC);
     let queued_for_a = msg(0).map(|m| crate::ipc::send(m, &held).is_ok()).unwrap_or(false);
-    crate::process::drop_by_pid(a);
+    end(a);
     let owner_after_first_died = crate::ipc::service_owner_pid(SVC);
     let second_got_firsts_message = crate::ipc::receive_for_owner(SVC, b).is_ok();
-    crate::process::drop_by_pid(b);
+    end(b);
 
     // Quota: a fresh owner, unflagged senders fill the mailbox, then the
     // operator's message.
@@ -434,7 +450,7 @@ fn ipc_mailbox() {
     while crate::ipc::receive_for_owner(SVC, c).is_ok() {
         delivered += 1;
     }
-    crate::process::drop_by_pid(c);
+    end(c);
     let show = |o: Option<u64>| match o {
         None => String::from("none"),
         Some(p) if p == a => String::from("first"),

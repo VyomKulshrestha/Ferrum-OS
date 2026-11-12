@@ -157,19 +157,17 @@ fn mailbox_name(service: &str) -> &str {
     }
 }
 
-/// A pid is alive while its scheduler task is not Dead, or, before it has a
-/// task, while its process record exists.
+/// A mailbox owner is alive while its scheduler task exists and is not Dead.
 fn pid_alive(pid: u64) -> bool {
-    match crate::scheduler::task_state(pid) {
-        Some(state) => state != crate::scheduler::TaskState::Dead,
-        None => crate::process::is_registered(pid),
-    }
+    crate::scheduler::task_state(pid).is_some_and(|state| state != crate::scheduler::TaskState::Dead)
 }
 
-/// Called when a ring-3 process is registered: it becomes the owner of the
-/// mailbox named after it unless a live process already owns that mailbox.
-/// A process that registered while another owner was live never owns it,
-/// even after that owner dies.
+/// Called when a ring-3 process gets its scheduler task
+/// (`scheduler::register_user`): it becomes the owner of the mailbox named
+/// after it unless a live process already owns that mailbox. A process that
+/// registered while another owner was live never owns it, even after that
+/// owner dies. Messages queued before any process ran under the name (for a
+/// boot image that was registered but never dispatched) pass to the owner.
 pub fn claim_mailbox(pid: u64, process_name: &str) {
     let current = x86_64::instructions::interrupts::without_interrupts(|| {
         MAILBOX_OWNERS.lock().get(process_name).copied()
@@ -179,10 +177,28 @@ pub fn claim_mailbox(pid: u64, process_name: &str) {
             return;
         }
     }
+    let queued_targets: Vec<u64> = x86_64::instructions::interrupts::without_interrupts(|| {
+        BROKER
+            .lock()
+            .queue
+            .iter()
+            .filter(|m| mailbox_name(&m.target.service) == process_name)
+            .map(|m| m.target_pid)
+            .collect()
+    });
+    let never_ran: Vec<u64> = queued_targets
+        .into_iter()
+        .filter(|t| *t != pid && crate::scheduler::task_state(*t).is_none())
+        .collect();
     x86_64::instructions::interrupts::without_interrupts(|| {
         MAILBOX_OWNERS
             .lock()
             .insert(String::from(process_name), pid);
+        for message in BROKER.lock().queue.iter_mut() {
+            if mailbox_name(&message.target.service) == process_name && never_ran.contains(&message.target_pid) {
+                message.target_pid = pid;
+            }
+        }
     });
 }
 
@@ -402,8 +418,15 @@ pub fn service_owner_pid(service: &str) -> Option<u64> {
         return pid_alive(owner).then_some(owner);
     }
 
-    // No ring-3 owner: kernel tasks that serve a mailbox by name (the agentd
-    // boundary task). Ring-3 processes own mailboxes only through a claim.
+    // No process has run under this name yet. A boot image registered but
+    // not yet dispatched may have messages queued for it (they pass to the
+    // first process that claims the mailbox); otherwise kernel tasks that
+    // serve a mailbox by name (the agentd boundary task).
+    if let Some((pid, _, _)) = crate::process::list().into_iter().find(|(pid, name, _)| {
+        name == mailbox && crate::scheduler::task_state(*pid).is_none()
+    }) {
+        return Some(pid);
+    }
     crate::scheduler::list_tasks()
         .into_iter()
         .find(|task| {
