@@ -94,17 +94,40 @@ pub fn log_event_from(source: u64, event: AuditEvent, message: &str) {
         // Get current tick count (may fail if scheduler not yet initialized)
         let tick = crate::scheduler::total_ticks();
         
+        let message = escape_controls(message);
+        // Also output to serial for external logging
+        crate::serial_println!("[AUDIT] {:?}: {}", event, message);
+
         let entry = AuditEntry {
             tick,
             event,
-            message: message.to_string(),
+            message,
             source,
         };
         insert_entry(&mut log, entry);
-
-        // Also output to serial for external logging
-        crate::serial_println!("[AUDIT] {:?}: {}", event, message);
     }
+}
+
+/// `message` with every control character (C0, DEL, C1) and backslash
+/// written as `\xNN` (`\u{NNNN}` above 0xFF). Messages carry text a process
+/// chose: a path in a denied write, AuditWrite's text. A line break in one
+/// wrote a second, forged line into the `[AUDIT]` serial output and into
+/// audit.log, whose lines are `[tick] Event: message` (fi2 kernel audit).
+pub fn escape_controls(message: &str) -> String {
+    let mut out = String::with_capacity(message.len());
+    for ch in message.chars() {
+        if ch.is_control() || ch == '\\' {
+            let code = ch as u32;
+            if code <= 0xFF {
+                out.push_str(&alloc::format!("\\x{:02x}", code));
+            } else {
+                out.push_str(&alloc::format!("\\u{{{:04x}}}", code));
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    out
 }
 
 /// Removes entry `index`, keeping `flushed_count` the number of flushed
@@ -214,7 +237,8 @@ pub fn flush_to_disk() -> Result<(), String> {
         return Ok(());
     }
 
-    let log_path = "/disk/heliox/audit.log";
+    let override_path = FLUSH_PATH_OVERRIDE.lock().clone();
+    let log_path = override_path.as_deref().unwrap_or(AUDIT_LOG_PATH);
     let mut content = match crate::fs::read_file(log_path) {
         Ok(c) => c,
         Err(_) => String::new(),
@@ -226,17 +250,59 @@ pub fn flush_to_disk() -> Result<(), String> {
     }
 
     const MAX_SIZE: usize = 128 * 1024;
-    if content.len() > MAX_SIZE {
-        let overflow = content.len() - MAX_SIZE;
-        if let Some(pos) = content[overflow..].find('\n') {
-            content = content[overflow + pos + 1..].to_string();
-        } else {
-            content = content[content.len() - MAX_SIZE..].to_string();
+    let content = trim_log(content, MAX_SIZE);
+
+    // The entries above already count as flushed. The filesystem can refuse
+    // the file (the ext2 driver writes 12 direct blocks, 12 to 48 KiB, under
+    // the 128 KiB cap): every later flush then failed the same way and every
+    // later entry was lost (fi2 kernel audit). Keep the newest lines that fit.
+    if let Err(first) = crate::fs::create_file(log_path, &content) {
+        let mut keep = content.len();
+        loop {
+            keep /= 2;
+            if keep < 1024 {
+                FLUSH_FAILURES.fetch_add(1, Ordering::SeqCst);
+                crate::serial_println!("[AUDIT] flush failed: {}", escape_controls(&first));
+                return Err(first);
+            }
+            let tail = trim_log(content.clone(), keep);
+            if crate::fs::create_file(log_path, &tail).is_ok() {
+                FLUSH_TRIMMED.fetch_add(1, Ordering::SeqCst);
+                break;
+            }
         }
     }
-
-    crate::fs::create_file(log_path, &content)?;
     let _ = crate::fs::sync();
 
     Ok(())
 }
+
+/// The newest whole lines of `content` within `max` bytes (a cut inside a
+/// line drops that line). The cut used to be a byte offset into the
+/// string: one that fell inside a multi-byte character stopped the kernel,
+/// and any process can put such characters into the log through the path
+/// of a denied write (fi2 kernel audit).
+pub fn trim_log(content: String, max: usize) -> String {
+    if content.len() <= max {
+        return content;
+    }
+    let cut = content.len() - max;
+    let bytes = content.as_bytes();
+    let start = match bytes[cut..].iter().position(|&b| b == b'\n') {
+        Some(pos) => cut + pos + 1,
+        None => (cut..=content.len()).find(|&i| content.is_char_boundary(i)).unwrap_or(content.len()),
+    };
+    content[start..].to_string()
+}
+
+/// Where the audit log is flushed.
+pub const AUDIT_LOG_PATH: &str = "/disk/heliox/audit.log";
+
+/// Flushes go here instead while set (self-test `audit-flush` only).
+pub static FLUSH_PATH_OVERRIDE: Mutex<Option<String>> = Mutex::new(None);
+
+/// Flushes whose file the filesystem refused and that kept a shorter tail.
+pub static FLUSH_TRIMMED: AtomicU64 = AtomicU64::new(0);
+
+/// Flushes that could not write even a 1 KiB tail.
+pub static FLUSH_FAILURES: AtomicU64 = AtomicU64::new(0);
