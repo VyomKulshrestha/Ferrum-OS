@@ -29,7 +29,10 @@ jobs:
         run: python -m pip install --disable-pip-version-check numpy==2.2.6
 
       - name: Reproduce software and simulator evidence
+        # Without this setting PowerShell reports only the last command's exit code, and a verifier
+        # that fails in the middle of the step would not fail it.
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           python scripts/verify_world_model_paper_evaluation.py
           python scripts/verify_world_model_research_sources.py
           python scripts/verify_physical_incident_sources.py

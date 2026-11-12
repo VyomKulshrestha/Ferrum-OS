@@ -170,7 +170,7 @@ def play(rule, cfg, pooled, cal, s, end, mode):
                 x, flag = max(x, S.subl[2] * base), True
             if x > tau:
                 alarms += 1
-                if last is None or i - last > S.gap:
+                if last is None or i - last > S.gap + 1:   # fi1: merge across up to gap quiet steps, as _episodes does
                     episodes += 1
                 last = i
         if inside and watch is None and np.isfinite(tau) and tau > WATCH * tau0:

@@ -25,8 +25,12 @@ def bisect_tau(would_alarm, lo=0.0, hi=HIGH, iters=80):
     Minus infinity when the lowest score already alarms, infinity when no score does."""
     if would_alarm(lo):
         return -math.inf
-    if not would_alarm(hi):
-        return math.inf
+    # fi1 audit: a threshold above `hi` used to read as infinity ("no score alarms"); widen the bracket
+    # geometrically first, so infinity means that no finite score up to 1e300 alarms
+    while not would_alarm(hi):
+        if hi >= 1e300:
+            return math.inf
+        lo, hi = hi, min(hi * 1e3, 1e300)
     for _ in range(iters):
         mid = 0.5 * (lo + hi)
         if would_alarm(mid):
@@ -98,7 +102,8 @@ class RiverQuantile(Target):
 
     def tau(self):
         v = self.f.quantile.get()
-        return math.inf if v is None else v
+        # river classifies with `score >= (quantile.get() or inf)`: a quantile of exactly 0.0 never alarms
+        return math.inf if not v else v
 
 
 class RiverThreshold(Target):

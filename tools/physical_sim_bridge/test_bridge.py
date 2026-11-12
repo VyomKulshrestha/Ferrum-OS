@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import importlib.util
 import unittest
 
 from tools.physical_sim_bridge.bridge import (
@@ -181,6 +182,11 @@ class BridgeSessionTests(unittest.TestCase):
         except BridgeError as error:
             self.assertIn("Webots", str(error))
 
+    # PyBullet has no binary wheel for the CI runner's Python, so CI does not install it. Without the
+    # skip this test errored there on every run (unnoticed while a step reported only its last exit code).
+    @unittest.skipUnless(
+        importlib.util.find_spec("pybullet"), "pybullet is not installed"
+    )
     def test_pybullet_direct_executes_only_a_simulated_command(self) -> None:
         backend = PyBulletBackend(run_id=7, simulator_epoch=3, source_clock_id=9)
         session = BridgeSession(

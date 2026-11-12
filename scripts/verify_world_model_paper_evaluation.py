@@ -45,7 +45,16 @@ artifact_paths = {
     "fixture": RESEARCH / "world_model_safety_scenarios.json",
 }
 for name, path in artifact_paths.items():
-    assert sha256(path) == report["artifacts"][name]["sha256"]
+    recorded = report["artifacts"][name]["sha256"]
+    if path.suffix == ".json":
+        # The digest of the text fixture was recorded from a Windows working copy with CRLF line endings.
+        # The repository stores the file with LF (.gitattributes), so the same content hashes differently
+        # on every checkout; both forms are accepted. Binary artifacts are compared byte for byte.
+        lf = path.read_bytes().replace(b"\r\n", b"\n")
+        forms = {hashlib.sha256(lf).hexdigest(), hashlib.sha256(lf.replace(b"\n", b"\r\n")).hexdigest()}
+        assert recorded in forms, name
+    else:
+        assert sha256(path) == recorded, name
 
 mapping = {
     "rules_only": ("jepa", "rules_only"),

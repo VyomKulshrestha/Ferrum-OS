@@ -547,8 +547,8 @@
       "execution_route": "Ring-3 orchestrator -> world-model decision -> capability-gated syscall",
       "name": "keyboard_type",
       "operator_confirmation_required": true,
-      "permission_tier": 3,
-      "permission_tier_name": "modify",
+      "permission_tier": 4,
+      "permission_tier_name": "destructive",
       "verification": {
         "catalog_source_parity": true,
         "qemu_runtime_suite": "collective command and bridge coverage",
@@ -562,8 +562,8 @@
       "execution_route": "Ring-3 orchestrator -> world-model decision -> capability-gated syscall",
       "name": "mouse_click",
       "operator_confirmation_required": true,
-      "permission_tier": 3,
-      "permission_tier_name": "modify",
+      "permission_tier": 4,
+      "permission_tier_name": "destructive",
       "verification": {
         "catalog_source_parity": true,
         "qemu_runtime_suite": "collective command and bridge coverage",
@@ -577,8 +577,8 @@
       "execution_route": "Ring-3 orchestrator -> world-model decision -> capability-gated syscall",
       "name": "mouse_move",
       "operator_confirmation_required": true,
-      "permission_tier": 3,
-      "permission_tier_name": "modify",
+      "permission_tier": 4,
+      "permission_tier_name": "destructive",
       "verification": {
         "catalog_source_parity": true,
         "qemu_runtime_suite": "collective command and bridge coverage",
@@ -635,7 +635,7 @@
   "platform": "bootable x86_64 research OS; documented QEMU/Bochs profile",
   "project": "FerrumOS",
   "provenance": {
-    "action_catalog_sha256": "e696ae9a0d95a65f467447ef9959063906dc58514e90275399d0b6e76441a2a4",
+    "action_catalog_sha256": "c7a3d3366ac036b84d75143ee32166572f9442a15506ed2c0e110f590357c736",
     "generator": "scripts/generate_public_evidence.py",
     "inputs": [
       {
@@ -644,7 +644,11 @@
       },
       {
         "path": "userland/heliox-daemon/src/cognitive/tool_mapper.rs",
-        "sha256": "2666dddbd7fb5b54f9df26222f259291e0f7e06b0d543b3f5e29f0fc1bb78583"
+        "sha256": "02dca8008772b9b13d148dbdd2d9111e0f1257a9bfbca75ae89c532850b807c5"
+      },
+      {
+        "path": "userland/heliox-daemon/src/cognitive/authority.rs",
+        "sha256": "330eca8d49a322b21fdf03cc24ed84fe9ac3ec629d6606f7b43fb94862af7e60"
       }
     ]
   },
