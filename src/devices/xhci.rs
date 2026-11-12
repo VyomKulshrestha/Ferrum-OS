@@ -43,6 +43,9 @@ const XHCI_PCI_PROG_IF: u8 = 0x30;
 const QEMU_XHCI_VENDOR: u16 = 0x1B36;
 const QEMU_XHCI_DEVICE: u16 = 0x000D;
 
+/// Entries in the one-page scratchpad buffer array (8 bytes each).
+const MAX_SCRATCHPAD_ENTRIES: usize = 4096 / 8;
+
 /// PCI configuration space offsets.
 const PCI_COMMAND: u8 = 0x04;
 const PCI_BAR0: u8 = 0x10;
@@ -809,6 +812,12 @@ pub fn init() -> Result<(), &'static str> {
     let scratchpad_hi = ((hcsparams2 >> 21) & 0x1F) as usize;
     let scratchpad_lo = ((hcsparams2 >> 27) & 0x1F) as usize;
     let scratchpad_count = (scratchpad_hi << 5) | scratchpad_lo;
+    // The scratchpad buffer array is one 4 KiB page: 512 entries of 8
+    // bytes. The field allows 1023, and every entry past 512 was written
+    // into the next physical frame.
+    if scratchpad_count > MAX_SCRATCHPAD_ENTRIES {
+        return Err("XHCI: scratchpad count exceeds one array page");
+    }
 
     // Read HCCPARAMS1 for 64-bit addressing capability.
     let hccparams1 = temp_regs.cap_read32(CAP_HCCPARAMS1);
