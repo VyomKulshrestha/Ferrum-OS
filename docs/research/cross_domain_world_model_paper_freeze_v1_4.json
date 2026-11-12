@@ -1,0 +1,351 @@
+{
+  "artifacts": {
+    "authority_test_inventory": {
+      "path": "docs/research/cross_domain_authority_test_inventory_v1.json",
+      "sha256": "d33cab53c52f36d5f638b6989a10b9af6bf9606f25c9fee4193069e97c564a66"
+    },
+    "checkpoint_restoration_review": {
+      "path": "docs/research/cross_domain_checkpoint_restoration_review_v1_2.json",
+      "sha256": "43e23285d6ab3c50f821603dd6833b458447ccc5e19eeb48403ad64d370d637d"
+    },
+    "evidence_snapshot": {
+      "path": "docs/research/cross_domain_world_model_improvement_verification_v1.json",
+      "sha256": "35dacec9fc9e264b3117df8743d1c8a44de3934643a822e4ca7998b41324c3b5"
+    },
+    "external_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_result_v14.json",
+      "sha256": "a44519d466ef72dabdfefa093dc8b86e47e27391b87bd218dfad437eb5ea159e"
+    },
+    "external_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_verification_v14.json",
+      "sha256": "ca6d8655ba3ca5f91c1fca95b13158cc4d3fcc0c43c7ceb1ced93107df47a16f"
+    },
+    "fi1_audit_report": {
+      "path": "docs/research/ferrumos_improvement_fi1_report.md",
+      "sha256": "64e221d1966f1b9851ddecd24855b1950d74886f6081652fed5f0fcd8ac1c324"
+    },
+    "fi1_pipeline_round1": {
+      "path": "docs/research/fi1_reports/pipeline_round1.md",
+      "sha256": "cefc7ab214caf389faddb2302299c3c26e1f49afc2d830a7e7517e8fe19a921a"
+    },
+    "fi1_pipeline_round2": {
+      "path": "docs/research/fi1_reports/pipeline_round2.md",
+      "sha256": "052dd4454dcdda163ea3dcaf3b13ef8c2562a82ff06f9de74b3f5c674728fba5"
+    },
+    "fi1_pipeline_round3": {
+      "path": "docs/research/fi1_reports/pipeline_round3.md",
+      "sha256": "e36d74649251731461aa7f005f24d1460df83a3437455bc3dea3b3910aa96574"
+    },
+    "fi1_pipeline_round3_record": {
+      "path": "docs/research/fi1_pipeline_round3.json",
+      "sha256": "ac29bf29bc618a9f1a26ff8d4076c61930efe5501213779cd96d8b21ca3567fc"
+    },
+    "figures": [
+      {
+        "bytes": 123678,
+        "path": "docs/research/figures/cross_domain_world_model/authority_factorization.png",
+        "sha256": "2a2f178dd0c60f3079a00017df7432fbb4b7bff1f09f1d2b196069200c03eecb"
+      },
+      {
+        "bytes": 109239,
+        "path": "docs/research/figures/cross_domain_world_model/matched_rollout_results.png",
+        "sha256": "2cde4e384cb99a715de5ec6188e3f55a56f6f5c6e7f71f0f337aa7f1e0e68537"
+      },
+      {
+        "bytes": 116280,
+        "path": "docs/research/figures/cross_domain_world_model/evidence_ladder_v1_2.png",
+        "sha256": "9f5be33682a205e61f017b0a67f712ac9394f601d8bab595a0dde3181aa90c2d"
+      },
+      {
+        "bytes": 185284,
+        "path": "docs/research/figures/cross_domain_world_model/real_telemetry_results_v1_3.png",
+        "sha256": "d3197ce931dc119239e1d7e016364b297663832bf600cddb52e585174168c906"
+      },
+      {
+        "bytes": 145249,
+        "path": "docs/research/figures/cross_domain_world_model/causal_vs_operational.png",
+        "sha256": "7560813b9384a3eac5bc81b2a22384d0fa03437cba8961f519951321c72b52eb"
+      },
+      {
+        "bytes": 131587,
+        "path": "docs/research/figures/cross_domain_world_model/incident_dynamics_v3_v4_results.png",
+        "sha256": "1a46374b6aeab9096174aefe1cbb0f923a6ad3a681c9eeeef09cb14e7d918738"
+      }
+    ],
+    "historical_inference_archive": {
+      "path": "docs/research/cross_domain_inference_archive_v1_2.json",
+      "sha256": "15b5d79e7a81336273f748bd88767a71058f8fc44beac480c95b5c587d663b97"
+    },
+    "historical_inference_verification": {
+      "path": "docs/research/cross_domain_archived_inference_verification_v1_2.json",
+      "sha256": "04dff4e06574b3127e25bda4949bfd91679fa73bce1b7903fa159e69188eba51"
+    },
+    "historical_inference_verifier": {
+      "path": "scripts/verify_cross_domain_archived_inference_v1_2.py",
+      "sha256": "9e6f1f31efce5e2392ea9c3307fecea7bd6b7de86df3dc44874c6593d64d7e5e"
+    },
+    "incident_dynamics_portable_verification_v2": {
+      "path": "docs/research/incident_dynamics_portable_verification_v2.json",
+      "sha256": "14faead91292f2a793c7ee9ccbcf739ba0e5d72d5f49639f24b74cae46a25d39"
+    },
+    "incident_dynamics_protocol_v1": {
+      "path": "docs/research/incident_dynamics_protocol_v1.json",
+      "sha256": "8388ca452659e8f34b71acc76d7cf2b1474772b82984eb0553add296b3221905"
+    },
+    "incident_dynamics_protocol_v2": {
+      "path": "docs/research/incident_dynamics_protocol_v2.json",
+      "sha256": "c246bc267837220995101e55a3899dc1944ecf80dd442d31c3a285c74fde9d6b"
+    },
+    "incident_dynamics_protocol_v3": {
+      "path": "docs/research/incident_dynamics_protocol_v3.json",
+      "sha256": "5c7970cd873a0d19ea2b1435a419c7818c6aef6733cb634d6435ac51fc455082"
+    },
+    "incident_dynamics_protocol_v4": {
+      "path": "docs/research/incident_dynamics_protocol_v4.json",
+      "sha256": "c35d60e639baf5cd0e03cf231d6d9631951277a3d749bf573a1bd56a3b509619"
+    },
+    "incident_dynamics_result_v2": {
+      "path": "docs/research/incident_dynamics_result_v2.json",
+      "sha256": "b5ff8a93a567adf7838e9a40da23a85fd970dbc22b8b13abbcf52d3168f5bcc3"
+    },
+    "incident_dynamics_result_v3": {
+      "path": "docs/research/incident_dynamics_result_v3.json",
+      "sha256": "b6e7c0b1e714026c4cca1cceb8fa94792209a780c7d28ec256303273eecd0015"
+    },
+    "incident_dynamics_result_v4": {
+      "path": "docs/research/incident_dynamics_result_v4.json",
+      "sha256": "f5b300ef55ba846c9afd8cf68b7ce82154a71df3e22749a36b0af967429e6c91"
+    },
+    "incident_dynamics_selection_v2": {
+      "path": "docs/research/incident_dynamics_selection_v2.json",
+      "sha256": "f9708f39b34509dcf22c493f5ce8d7e68d59b614d2ae6ce46fdf84fc8c25c169"
+    },
+    "incident_dynamics_selection_v3": {
+      "path": "docs/research/incident_dynamics_selection_v3.json",
+      "sha256": "f0e8a2e748fab28d4b7c31afd4bfe36973ed4c7a859017682f9dc9152bbf6655"
+    },
+    "incident_dynamics_selection_v4": {
+      "path": "docs/research/incident_dynamics_selection_v4.json",
+      "sha256": "c6c40873a91afb2b7284c63754ff418427d5e3abab4f5ec78d70eb7624bf3a6b"
+    },
+    "incident_dynamics_sources_v1": {
+      "path": "docs/research/incident_dynamics_sources_v1.json",
+      "sha256": "43242ced846c67fc4ee6c959ead2cd344baec18bbb7069b7acf1f5a9d4b2da16"
+    },
+    "incident_dynamics_sources_v3": {
+      "path": "docs/research/incident_dynamics_sources_v3.json",
+      "sha256": "7f059a8a6618098b3f5800cf7b438fca8f5923a658d530c9965893b9ff643a28"
+    },
+    "incident_dynamics_v3_development_plan": {
+      "path": "docs/research/incident_dynamics_v3_development_plan.json",
+      "sha256": "fe00780653a0d62294bea8dcfbc3304e04427f51a11cc3c9e6d895bf89e21246"
+    },
+    "incident_dynamics_verification_v2": {
+      "path": "docs/research/incident_dynamics_verification_v2.json",
+      "sha256": "daa8b3998623748d63c2b179b23c9800579072c00af26af5132eceeb9478a4eb"
+    },
+    "incident_dynamics_verification_v3": {
+      "path": "docs/research/incident_dynamics_verification_v3.json",
+      "sha256": "25c569e2e3ac83e063819ff6ea269883fa8681fb5e429d3bed065caa969e7dd4"
+    },
+    "incident_dynamics_verification_v4": {
+      "path": "docs/research/incident_dynamics_verification_v4.json",
+      "sha256": "1cbcfb4d517cfc52638585d447c91f997566066806da9ec0e495641bee4de6a9"
+    },
+    "manuscript": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md",
+      "sha256": "eaef5dcc78cabc0edf1add6fc9b9fa929b8e2dadcedb9e622c2428f7e19e86b5"
+    },
+    "output_ablation_failed_attempt": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
+      "sha256": "ed68b02869e8a178450e67b2951638747f7c3c6f123ed35b505bc0ad6a84bc41"
+    },
+    "output_ablation_recovery_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_protocol_v2.json",
+      "sha256": "e85fee2c795f07d490108766405306d16ee3b7b0e7334ab3160db73882defce6"
+    },
+    "output_ablation_recovery_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_result_v2.json",
+      "sha256": "40c54e01fbfdaee0c1afd4ae002e389006d8155f99f915412da6b8ae7ced06a7"
+    },
+    "output_ablation_recovery_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_recovery_verification_v3.json",
+      "sha256": "1bb8523a90e002d7df6cc9b7cee604aae0995656b1667fd46cb2000ce869f933"
+    },
+    "output_ablation_v1_protocol": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_protocol_v1.json",
+      "sha256": "79104c1443c3e4a51ac32e5539c5564e7acbb47a186ad137ff1b4e93ac8407a7"
+    },
+    "output_ablation_verification_amendment": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_verification_amendment_v3.json",
+      "sha256": "d6555034df03e660e0de567aa26f0b820f5585daa9b214cf4d547fe15d0c248e"
+    },
+    "paired_uncertainty_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_result_v1.json",
+      "sha256": "b16a4879046b7cbe6febf6824679263f2755ab3aeba66d6158aaf61d640f9710"
+    },
+    "paired_uncertainty_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_paired_uncertainty_verification_v1.json",
+      "sha256": "906657cbf9ed9079de58c023683ff5789f0a1f93c105f4c7b318b382d9c54f66"
+    },
+    "paper_verifier": {
+      "path": "scripts/verify_cross_domain_world_model_paper_v1_4.py",
+      "sha256": "94bd4067ddc7ddcc4e393be518620515daffd4023382d1e6114e1d678339f836"
+    },
+    "pdf": {
+      "pages": 52,
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf",
+      "sha256": "c5ea5d4eebe1b277e63a2461ae1d4555914d383a9956acf6f28ff2670082e340"
+    },
+    "posthoc_sensitivity_result": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
+      "sha256": "ca7e166792baeb2a8583164fe754ab6e0e83d150ad921e80147763db376cfc3d"
+    },
+    "posthoc_sensitivity_verification": {
+      "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_verification_v1.json",
+      "sha256": "7fc5ba1c67429730ec11122d6a3aa4983b07d506b418723ae59dae99852e07d4"
+    },
+    "predecessor_freeze_v1_3": {
+      "path": "docs/research/cross_domain_world_model_paper_freeze_v1_3.json",
+      "sha256": "77fed36e18911d5107cc868de8655a5ecc02625c11fff7a9a7e29cc3cb959e9a"
+    },
+    "predecessor_manuscript_v1_3": {
+      "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_3.md",
+      "sha256": "e08d15d37527e099631fc90c5d9229754e3a21dcd843cc9db3b12cb435942eef"
+    },
+    "predecessor_pdf_v1_3": {
+      "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf",
+      "sha256": "215aae5db228f68d175c239c4f7eed9bbd6a75012e2fcd4dc21a5056aac14f4f"
+    },
+    "real_telemetry_real_telemetry_data_manifest_v1": {
+      "path": "docs/research/real_telemetry_data_manifest_v1.json",
+      "sha256": "73f0fe1d51bd42ca23a2be1fda35a27ba75e59662158a794add5c24a5c324ab1"
+    },
+    "real_telemetry_real_telemetry_posthoc_rt1": {
+      "path": "docs/research/real_telemetry_posthoc_rt1.json",
+      "sha256": "df282dff93bab38e7148fba356c75e2a5405df2bf88b8183709aa6fc8a0339dd"
+    },
+    "real_telemetry_real_telemetry_protocol_rt2": {
+      "path": "docs/research/real_telemetry_protocol_rt2.json",
+      "sha256": "18ba696a4949dfc810ba8553ba2f9e8e74c430a11ffe46bfcad3b6905fafbf51"
+    },
+    "real_telemetry_real_telemetry_protocol_rt2_amendment1": {
+      "path": "docs/research/real_telemetry_protocol_rt2_amendment1.json",
+      "sha256": "f0533bdf16e9b3a9ae12be7188eb7e8d7aaa103c61d30aedf5e270a3ae3647ed"
+    },
+    "real_telemetry_real_telemetry_protocol_v1": {
+      "path": "docs/research/real_telemetry_protocol_v1.json",
+      "sha256": "df8f2382ed28b9bf4aea76c8c02195ef17f08ffa88b8fed20e7e09717670cdbc"
+    },
+    "real_telemetry_real_telemetry_result_rt2": {
+      "path": "docs/research/real_telemetry_result_rt2.json",
+      "sha256": "c04061b22c3a34186eeec09567123df6c632cf0525de746b2a09b3de163e221c"
+    },
+    "real_telemetry_real_telemetry_result_v1": {
+      "path": "docs/research/real_telemetry_result_v1.json",
+      "sha256": "5008687f7cb26ad45bbf1a9e7db8e1ebe49864d982c07229bc4cd0b70712cd23"
+    },
+    "real_telemetry_real_telemetry_selection_rt2": {
+      "path": "docs/research/real_telemetry_selection_rt2.json",
+      "sha256": "6c95b515e4393673e0052a09be2d8401d7e97ed20a73ddd396383323f9084519"
+    },
+    "real_telemetry_real_telemetry_selection_v1": {
+      "path": "docs/research/real_telemetry_selection_v1.json",
+      "sha256": "3ad12f73d1de7516d9b7b9c301253fd66e8a9d1ca0d7b8519a9fe4b779424b1e"
+    },
+    "real_telemetry_real_telemetry_sources_v1": {
+      "path": "docs/research/real_telemetry_sources_v1.json",
+      "sha256": "69214ea571d0f41468c6462da6915319d1a5c71e9f5c9f514bd261ed2b225d77"
+    },
+    "real_telemetry_real_telemetry_verification": {
+      "path": "docs/research/real_telemetry_verification.json",
+      "sha256": "239aed9f87f87dd9ebfbde399e1d1d0784cf74ffc44c46e66718026f8dc2395d"
+    },
+    "real_telemetry_table_builder": {
+      "path": "scripts/build_real_telemetry_tables.py",
+      "sha256": "264ea4b337ea03bdaa3b553736b29616f3849fc90bc83d087c4cafb426deec5f"
+    },
+    "report_builder": {
+      "path": "scripts/build_prediction_is_not_permission_v1_4.py",
+      "sha256": "5ceccbffcb863fbbd74bd77ba358ffec7d3153c96b262e8a0a6af4744ca2096c"
+    },
+    "report_layout_builder": {
+      "path": "scripts/build_prediction_report_layout_v1_2.py",
+      "sha256": "65a51edd624cecc0adb2ef021bcdd56ab4fd6b4a9176d685d99940302b1639d7"
+    },
+    "reproduction_requirements": {
+      "path": "requirements-prediction-report-v1_2.txt",
+      "sha256": "d856f759bfb12983e8311bf05744ecd5419deef9c999912dea16f5df3241db39"
+    },
+    "risk_source_attribution_result": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_result_v2.json",
+      "sha256": "89c0652cd9658abd594a0ada979de7a3217b2d95e138c0cb39b42118f4795102"
+    },
+    "risk_source_attribution_verification": {
+      "path": "docs/research/physical_jepa_safety_gymnasium_attribution_verification_v2.json",
+      "sha256": "83be962f72b42f79520da771bb606e6a8c273dd06ece0a79fd3b2167f7d74d10"
+    }
+  },
+  "author": "Vyom Kulshrestha",
+  "claim_boundary": [
+    "The architecture results isolate model family under matched data, curriculum, parameter budget, update budget, seeds, and final cases.",
+    "The new causal catalogs show counterfactual sensitivity but zero operational learned-only hazard avoidance at the frozen zero-false-positive threshold; all eight families place danger beyond the present-state deterministic predicates' evaluation window.",
+    "The OS evidence is QEMU shadow execution and the physical evidence is host replay of externally recorded testbed data; neither is deployment or independent safety assessment.",
+    "Natural-use evidence comprises 24 privacy-bounded records from three researcher-operated visible QEMU sessions; it is not production telemetry or labelled accuracy evidence.",
+    "Four-client contention establishes read-only preview isolation and fairness in one serial QEMU guest, not parallel or distributed field execution.",
+    "Externally authored Anchor-Lab telemetry is retained as semantically incompatible with direct Physical JEPA v5 replay rather than projected into a misleading result.",
+    "The local multi-embodiment 3D stress run is retained as a negative result: its union policy intervened on every case and completed no task.",
+    "The Safety-Gymnasium v14 result uses a third-party task and cost implementation but a researcher-authored adapter, privileged planner, deterministic tangent shield, local execution, and local analysis; the union passes its registered naive-baseline gates while increasing hazard cost relative to the planner.",
+    "Every counted Safety-Gymnasium intervention changes the applied action; warning recall, effective action-change recall, 23.04% intervention precision, and planner divergence are reported separately.",
+    "The post-hoc paired episode bootstrap finds that neither the union's observed completion gain nor its observed hazard-cost increase is statistically separated from zero at the 95% level.",
+    "The fresh-seed risk-source attribution finds that the JEPA-output-only pipeline intervenes less and records fewer hazard steps than the full adapter, but it varies a complete warning pipeline and does not isolate architecture-only causality or establish superiority to the privileged planner.",
+    "A later planner-fallback Simplex amendment fails development and never opens its reserved final seed range; it is retained as a selection negative rather than promoted into another final test.",
+    "No protected deployed artifact was promoted or replaced by this study.",
+    "The registered FerrumOS horizon populations differ; the common-episode post-hoc sensitivity changes the ranking, so the registered reversal is not isolated as a horizon effect.",
+    "The original attribution warning metrics are on-policy. The common-proposal sensitivity fixes inputs to the full-arm visited-state catalog and is not an independent detector sample.",
+    "JEPA-only versus full was one prospectively specified family member, not a unique primary contrast. Adjusted and leave-one-out intervals support an exploratory pipeline result, not preserved completion or architecture-only causality.",
+    "Authority tests distinguish host unit, host integration, and QEMU in-guest coverage; physical permit unit tests do not establish FerrumOS syscall-path enforcement.",
+    "Multiplicity control is familywise across three non-full-versus-full pipeline contrasts within each endpoint; it does not cover every endpoint or comparison, and leave-one-out checks are sensitivity analyses rather than independent replications.",
+    "The output-ablation design, estimands, fresh seed range, and bootstrap seeds were fixed before either catalog existed. The simulator execution was prospective, but its result failed the final protected-file gate; recovery v2 is the retrospective reportable analysis.",
+    "The output-ablation multiplicity checks are post-hoc. Seven displayed endpoints and all 11 registered paired outputs leave only warning FPR and intervention rate separated from zero; neither result establishes benefit.",
+    "Incident-dynamics v2 passes four adjusted prediction and two warning gates on fresh locally generated episodes, with six historical point-estimate regression guards; source labels are not independent dynamics or telemetry holdout.",
+    "The new study changes data, objective, model and calibration together, with unequal budgets and seed counts; it does not identify architecture-only, Dream-RSI, controller-outcome or physical-safety benefit.",
+    "The new OS warning gain has a statistically resolved false-positive increase; the 1 percent calibration target is not a population guarantee.",
+    "The failed incident-dynamics v1 schema attempt is retained; v2 uses unchanged selected models and thresholds with a prospectively registered fresh seed."
+  ],
+  "evidence_frozen_date": "2026-10-19",
+  "orcid": "0009-0009-1434-7148",
+  "promotion_eligible": false,
+  "protected_deployed_artifacts": {
+    "ferrumos_encoder": {
+      "expected_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "observed_sha256": "9fb5f08b3c5ac16b37a34376b2bb4cbbd249c536bf419dbd80e52a90a0bfc9b3",
+      "unchanged": true
+    },
+    "ferrumos_manifest": {
+      "expected_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "observed_sha256": "0ac0bfe402605e20ef861c03cf6849d4b8a57844996a3fa4eb46fed28500eff7",
+      "unchanged": true
+    },
+    "ferrumos_transition": {
+      "expected_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "observed_sha256": "f6bf2e502aa9d8abeeba47b81205468f02ec54203f4f39931d6ea42359cf0dc8",
+      "unchanged": true
+    },
+    "physical_transition": {
+      "expected_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "observed_sha256": "23a06f37d668ee3f323bb8868dba4eed2baedef642fc32ab6410d4ee1da6e864",
+      "unchanged": true
+    }
+  },
+  "release": {
+    "dataset_doi": "10.5281/zenodo.23473185",
+    "evidence_snapshot_commit": "cd1054e5c4f85b2ec92c0ce4048f4b3fabf7783f",
+    "predecessor_version_doi": "10.5281/zenodo.23473173",
+    "status": "prepublication v1.4 candidate; no version DOI reserved and no repository tag; v1.3 (10.5281/zenodo.23473173) and v1.2 (10.5281/zenodo.23469363) remain retained"
+  },
+  "report_version": "1.4",
+  "schema": "cross-domain-world-model-paper-freeze-v1-4",
+  "text_revised_date": "2026-11-12",
+  "title": "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority"
+}
