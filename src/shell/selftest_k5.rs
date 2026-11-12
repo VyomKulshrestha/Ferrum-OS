@@ -80,6 +80,15 @@ pub fn run(name: &str) -> bool {
             crate::memory::ledger::ENFORCE.store(true, Ordering::SeqCst);
             println!("selftest ledger-on: enforce=true");
         }
+        "ext2-real" => ext2_real(),
+        "ext2-fi2-off" => {
+            crate::fs::ext2::FI2_FIXES.store(false, Ordering::SeqCst);
+            println!("selftest ext2-fi2-off: fi2_fixes=false");
+        }
+        "ext2-fi2-on" => {
+            crate::fs::ext2::FI2_FIXES.store(true, Ordering::SeqCst);
+            println!("selftest ext2-fi2-on: fi2_fixes=true");
+        }
         _ => return false,
     }
     true
@@ -444,6 +453,157 @@ fn heap_ledger() {
         crate::gui::app_window::canvas_bytes_of(pid),
         crate::net::iface::sockets_owned_by(pid)
     );
+}
+
+// ---- ext2 on disks made by mke2fs (item 5) ---------------------------------------
+
+/// The disk on the secondary IDE channel, `drive` 0 (master) or 1 (slave),
+/// mounted on a private ext2 instance (not in the VFS, so nothing else
+/// writes it during the test).
+fn mount_secondary(drive: u8) -> Result<crate::fs::ext2::Ext2Fs<crate::fs::block::AtaBlockDevice>, String> {
+    let info = crate::ata::list_drives()
+        .into_iter()
+        .find(|d| d.bus == crate::ata::AtaBus::Secondary && d.drive == drive && d.present)
+        .ok_or_else(|| String::from("no_disk"))?;
+    crate::fs::ext2::Ext2Fs::mount(crate::fs::block::AtaBlockDevice::new(info.bus, info.drive, info.sectors))
+}
+
+fn ext2_real() {
+    use crate::fs::vfs::Filesystem;
+    let fixes = crate::fs::ext2::FI2_FIXES.load(Ordering::SeqCst);
+    println!("selftest ext2-real: fi2_fixes={}", fixes);
+    let ok = |r: Result<(), String>| r.is_ok();
+
+    // ---- clean.img (secondary master): ordinary work, checked by e2fsck --
+    match mount_secondary(0) {
+        Err(e) => println!("selftest ext2-real: clean mount=err:{}", e.replace(' ', "_")),
+        Ok(fs) => {
+            let root: Vec<String> = fs.list_dir("/").map(|v| v.into_iter().map(|e| e.name).collect()).unwrap_or_default();
+            let bigdir = fs.list_dir("/bigdir").map(|v| v.len()).unwrap_or(0);
+            let mut buf = vec![0u8; 320 * 1024];
+            let big_read = fs.read_file_offset("/big", 0, &mut buf).unwrap_or(0);
+            println!(
+                "selftest ext2-real: clean mount=ok root_has_big={} root_has_lost_found={} bigdir_entries={} big_bytes_read={}",
+                root.iter().any(|n| n == "big"),
+                root.iter().any(|n| n == "lost+found"),
+                bigdir,
+                big_read
+            );
+            // A hard link (round 4 finding 4 on a real disk).
+            let unlink = ok(fs.remove("/link1"));
+            let link2 = fs.read_file("/link2").map(|s| s == "hard link content\n").unwrap_or(false);
+            // Overwrite the 300 KiB file (12 direct, 256 through the single
+            // indirect block, 32 through the double) with 5 KiB.
+            let big_inode = fs.resolve_path("/big").and_then(|n| fs.read_inode(n));
+            let (data, pointers) = big_inode.as_ref().ok().and_then(|i| fs.inode_blocks(i).ok()).unwrap_or_default();
+            let (free0, _) = fs.free_counts();
+            let over = ok(fs.create_file_bytes("/big", &[b'b'; 5 * 1024]));
+            let (free1, _) = fs.free_counts();
+            println!(
+                "selftest ext2-real: clean unlink_one_of_two={} other_link_intact={} big_data_blocks={} big_pointer_blocks={} overwrite={} overwrite_freed={}",
+                unlink,
+                link2,
+                data.len(),
+                pointers.len(),
+                over,
+                free1 as i64 - free0 as i64
+            );
+            // A directory past 12 blocks: 120 names of 100 bytes (9 per block).
+            let made = ok(fs.create_dir("/growdir"));
+            let mut created = 0;
+            for i in 0..120 {
+                let name = alloc::format!("/growdir/{:0>100}", i);
+                if fs.create_file_bytes(&name, b"").is_ok() {
+                    created += 1;
+                } else {
+                    break;
+                }
+            }
+            let listed = fs.list_dir("/growdir").map(|v| v.len()).unwrap_or(0);
+            let gd = fs.resolve_path("/growdir").and_then(|n| fs.read_inode(n));
+            let gd_blocks = gd.as_ref().map(|i| i.size / fs.block_size).unwrap_or(0);
+            let last_found = fs.resolve_path(&alloc::format!("/growdir/{:0>100}", 119)).is_ok();
+            let mut removed = 0;
+            for i in (0..120).step_by(6) {
+                if fs.remove(&alloc::format!("/growdir/{:0>100}", i)).is_ok() {
+                    removed += 1;
+                }
+            }
+            println!(
+                "selftest ext2-real: clean growdir_made={} created={} listed={} dir_blocks={} last_found={} removed={}",
+                made, created, listed, gd_blocks, last_found, removed
+            );
+            // Remove the rewritten file and a small one; a nested directory.
+            let (f2, _) = fs.free_counts();
+            let rm_big = ok(fs.remove("/big"));
+            let rm_small = ok(fs.remove("/small"));
+            let nested = ok(fs.create_dir("/n1")) && ok(fs.create_dir("/n1/n2")) && ok(fs.create_file_bytes("/n1/n2/f", b"x"));
+            let unnest = ok(fs.remove("/n1/n2/f")) && ok(fs.remove("/n1/n2")) && ok(fs.remove("/n1"));
+            let (f3, _) = fs.free_counts();
+            println!(
+                "selftest ext2-real: clean remove_big={} remove_small={} nested={} unnested={} freed={}",
+                rm_big,
+                rm_small,
+                nested,
+                unnest,
+                f3 as i64 - f2 as i64
+            );
+            // A second 300 KiB file is not creatable (12-block files), so the
+            // indirect remove path is exercised on the crafted disk's filler.
+        }
+    }
+
+    // ---- crafted.img (secondary slave): damaged by debugfs ------------------
+    match mount_secondary(1) {
+        Err(e) => println!("selftest ext2-real: crafted mount=err:{}", e.replace(' ', "_")),
+        Ok(fs) => {
+            let victim0 = fs.read_file("/victim").ok();
+            // `xlink` shares its block with `victim`.
+            let rm_xlink = ok(fs.remove("/xlink"));
+            // `evil` points at group 1's backup superblock (block 8193).
+            let rm_evil = ok(fs.remove("/evil"));
+            // The filler (6.5 MiB: single, double indirect) is removed: every
+            // data and pointer block must come back.
+            let filler = fs.resolve_path("/filler").and_then(|n| fs.read_inode(n));
+            let (fd, fp) = filler.as_ref().ok().and_then(|i| fs.inode_blocks(i).ok()).unwrap_or_default();
+            let (g0, _) = fs.free_counts();
+            let rm_filler = ok(fs.remove("/filler"));
+            let (g1, _) = fs.free_counts();
+            // Fill: 40 files of 12 blocks. Group 0 is marked full, so they
+            // come from group 1, whose backup superblock, descriptor and
+            // reserved descriptor blocks (8193-8321) the bitmap calls free.
+            let mut in_meta = 0;
+            let mut written = 0;
+            for i in 0..40 {
+                let name = alloc::format!("/fill{}", i);
+                if fs.create_file_bytes(&name, &[b'F'; 12 * 1024]).is_err() {
+                    break;
+                }
+                written += 1;
+                if let Ok(inode) = fs.resolve_path(&name).and_then(|n| fs.read_inode(n)) {
+                    let blocks = inode.block;
+                    in_meta += blocks.iter().take(12).filter(|&&b| (8193..=8321).contains(&b)).count();
+                }
+            }
+            let mut sb = vec![0u8; fs.block_size as usize];
+            let backup_magic = fs.read_block(8193, &mut sb).map(|_| u16::from_le_bytes([sb[56], sb[57]])).unwrap_or(0);
+            let victim1 = fs.read_file("/victim").ok();
+            println!(
+                "selftest ext2-real: crafted mount=ok remove_xlink={} remove_evil={} victim_before={} victim_intact_after={} filler_data_blocks={} filler_pointer_blocks={} remove_filler={} filler_freed={} files_written={} file_blocks_in_backup_metadata={} backup_superblock_magic={:#x}",
+                rm_xlink,
+                rm_evil,
+                victim0.as_deref().map(|v| v.starts_with("victim")).unwrap_or(false),
+                victim0.is_some() && victim0 == victim1,
+                fd.len(),
+                fp.len(),
+                rm_filler,
+                g1 as i64 - g0 as i64,
+                written,
+                in_meta,
+                backup_magic
+            );
+        }
+    }
 }
 
 // ---- console forgery (item 3) --------------------------------------------------

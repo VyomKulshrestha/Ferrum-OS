@@ -7,8 +7,11 @@
 //   node scripts/verify_kernel_k5.mjs
 //
 // Boot A uses -cpu Haswell (SMEP, no SMAP), boot B -cpu Broadwell-noTSX
-// (SMEP and SMAP under WHPX on the reference host). FERRUMOS_K5_BOOTS=A or
-// =B runs one of them. FERRUMOS_SKIP_SELFTESTS=name,... skips self-tests.
+// (SMEP and SMAP under WHPX on the reference host), boots C and D attach two
+// ext2 disks made by mke2fs in Docker (fixes on, fixes off).
+// FERRUMOS_K5_BOOTS=A,C (for example) runs a subset. FERRUMOS_SKIP_SELFTESTS=name,... skips self-tests.
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bootShell, report, sleep } from "./lib/qemu_shell.mjs";
@@ -18,7 +21,7 @@ const results = [];
 const check = (name, ok, detail = "") => results.push(`${ok ? "PASS" : "FAIL"}\t${name}${detail ? "\t" + detail : ""}`);
 const note = (text) => console.log(`NOTE\t${text}`);
 const skip = new Set((process.env.FERRUMOS_SKIP_SELFTESTS || "").split(",").filter(Boolean));
-const boots = (process.env.FERRUMOS_K5_BOOTS || "A,B").split(",");
+const boots = (process.env.FERRUMOS_K5_BOOTS || "A,B,C,D").split(",");
 const field = (text, name) => [...(text || "").matchAll(new RegExp(`\\b${name}=([^\\s]+)`, "g"))].map((m) => m[1]).pop();
 const line = (text, name) => ((text || "").match(new RegExp(`selftest ${name}:.*`, "g")) || []).join(" | ");
 const kernelFault = (text) => /panicked at|DOUBLE FAULT|in ring 0|\[EXCEPTION\]/.test(text);
@@ -207,6 +210,111 @@ if (boots.includes("B")) {
     check("B: harness completed", false, String(error?.message || error).split("\n")[0]);
   } finally {
     shell?.close();
+  }
+}
+
+// ---- boots C and D: ext2 on disks made by a real mke2fs (item 5) -------------
+// The disks are built in a throw-away Alpine container (scripts/
+// k5_ext2_images.sh) and attached as the secondary IDE master (clean.img)
+// and slave (crafted.img). Boot C runs the self-test with the fixes; boot D
+// switches them off first (negative control). After each boot, e2fsck -fn
+// checks the clean disk.
+const sub2 = (text, label) => ((text || "").match(new RegExp(`selftest ext2-real: ${label}(.*)`)) || [, ""])[1];
+
+function docker(args) {
+  const r = spawnSync("docker", args, { encoding: "utf8", timeout: 300000 });
+  return { code: r.status, out: `${r.stdout || ""}${r.stderr || ""}` };
+}
+
+function buildDisks(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.copyFileSync(path.join(repo, "scripts", "k5_ext2_images.sh"), path.join(dir, "k5_ext2_images.sh"));
+  const r = docker(["run", "--rm", "--name", "fi2k-mkext2", "-v", `${dir.replace(/\\/g, "/")}:/work`, "alpine:3.20", "sh", "/work/k5_ext2_images.sh"]);
+  return r.code === 0 && fs.existsSync(path.join(dir, "clean.img")) && fs.existsSync(path.join(dir, "crafted.img"));
+}
+
+function fsck(dir, file) {
+  const r = docker(["run", "--rm", "--name", "fi2k-fsck", "-v", `${dir.replace(/\\/g, "/")}:/work`, "alpine:3.20", "sh", "-c",
+    `apk add --no-cache e2fsprogs >/dev/null && e2fsck -fn /work/${file}; echo "fsck_exit=$?"`]);
+  const exit = Number((r.out.match(/fsck_exit=(\d+)/) || [])[1] ?? -1);
+  return { exit, out: r.out };
+}
+
+async function ext2Boot(tag, control) {
+  const dir = path.join(repo, "target", "k5ext2");
+  const clean = `${tag}-clean.img`;
+  const crafted = `${tag}-crafted.img`;
+  fs.copyFileSync(path.join(dir, "clean.img"), path.join(dir, clean));
+  fs.copyFileSync(path.join(dir, "crafted.img"), path.join(dir, crafted));
+  let out = "";
+  try {
+    shell = await bootShell(repo, `kernel-k5-${tag.toLowerCase()}-serial.log`, {
+      cpu: "Haswell",
+      extraArgs: ["-drive", `format=raw,file=${path.join(dir, clean)},if=ide,index=2`,
+        "-drive", `format=raw,file=${path.join(dir, crafted)},if=ide,index=3`],
+    });
+    if (control) await run("ext2-fi2-off");
+    out = await run("ext2-real", 600);
+    if (control) await run("ext2-fi2-on");
+    check(`${tag}: no kernel fault`, !kernelFault(shell.serial()));
+  } catch (error) {
+    check(`${tag}: ext2 boot completed`, false, String(error?.message || error).split("\n")[0]);
+  } finally {
+    shell?.close();
+  }
+  await sleep(1500);
+  return { out, fsck: fsck(dir, clean) };
+}
+
+if (boots.includes("C") || boots.includes("D")) {
+  const dir = path.join(repo, "target", "k5ext2");
+  const built = buildDisks(dir);
+  check("C/D: mke2fs (e2fsprogs in Alpine 3.20) builds the clean and the crafted disk; the clean disk passes e2fsck -fn before the kernel touches it",
+    built && /0\.0% non-contiguous|files \(/.test(fs.readFileSync(path.join(dir, "clean.fsck.txt"), "utf8"))
+      && !/Fix\?/.test(fs.readFileSync(path.join(dir, "clean.fsck.txt"), "utf8")),
+    built ? fs.readFileSync(path.join(dir, "layout.txt"), "utf8").split("\n").filter((l) => /features|Reserved GDT|Backup superblock at 8193/.test(l)).join(" | ") : "docker build failed");
+  if (built && boots.includes("C")) {
+    const { out, fsck: f } = await ext2Boot("C", false);
+    const m = sub2(out, "clean mount=ok");
+    check("C: a real mke2fs disk mounts (features ext_attr resize_inode dir_index filetype sparse_super large_file); a 300 KiB file through double indirect blocks reads whole; a 302-entry directory lists",
+      /root_has_big=true root_has_lost_found=true bigdir_entries=302 big_bytes_read=307200/.test(m), m || line(out, "ext2-real").slice(0, 300));
+    const ow = sub2(out, "clean unlink");
+    check("C: removing one of two hard links keeps the other (round 4 finding 4, real disk)", /_one_of_two=true other_link_intact=true/.test(`unlink${ow}`), `unlink${ow}`);
+    check("C: overwriting the 300 KiB file frees its 300 data blocks and 3 indirect blocks (5 new blocks taken)",
+      /big_data_blocks=300 big_pointer_blocks=3 overwrite=true overwrite_freed=298/.test(ow), ow);
+    const gd = sub2(out, "clean growdir_made");
+    check("C: a directory grows past 12 blocks (120 entries of 100 bytes) and every name resolves",
+      /=true created=120 listed=122/.test(`growdir_made${gd}`) && Number(field(gd, "dir_blocks")) > 12 && /last_found=true removed=20/.test(gd), `growdir_made${gd}`);
+    const rm = sub2(out, "clean remove_big");
+    check("C: remove of files and of a nested directory (round 2 and 3 paths, real disk)",
+      /=true remove_small=true nested=true unnested=true/.test(`remove_big${rm}`), `remove_big${rm}`);
+    check("C: e2fsck -fn finds the clean disk clean after the kernel's writes",
+      f.exit === 0 && !/Fix\?|differences|ERROR/i.test(f.out), f.out.split("\n").filter((l) => /Fix|differences|files \(|exit/.test(l)).slice(0, 6).join(" | "));
+    const cr = sub2(out, "crafted mount=ok");
+    check("C: a block shared by two files (cross-link) stays allocated when one is removed; the other file's data survives later writes",
+      /remove_xlink=true/.test(cr) && /victim_before=true victim_intact_after=true/.test(cr), cr);
+    check("C: backup superblock and reserved descriptor blocks marked free are never handed out; a pointer to one is not freed",
+      field(cr, "file_blocks_in_backup_metadata") === "0" && field(cr, "backup_superblock_magic") === "0xef53"
+        && Number(field(cr, "files_written")) === 40, cr);
+    check("C: removing the 6.5 MiB filler frees every data and indirect block",
+      Number(field(cr, "filler_freed")) === Number(field(cr, "filler_data_blocks")) + Number(field(cr, "filler_pointer_blocks"))
+        && Number(field(cr, "filler_pointer_blocks")) > 2, cr);
+  }
+  if (built && boots.includes("D")) {
+    const { out, fsck: f } = await ext2Boot("D", true);
+    const ow = sub2(out, "clean unlink");
+    const gd = sub2(out, "clean growdir_made");
+    const cr = sub2(out, "crafted mount=ok");
+    note(`D (fixes off): ${ow} | growdir_made${gd} | ${cr}`);
+    check("D control (fixes off, same image): overwrite frees only the 12 direct blocks (indirect blocks and their data leak)",
+      Number(field(ow, "overwrite_freed")) < 298, ow);
+    check("D control: the directory stops at 12 blocks", Number(field(gd, "created")) < 120, `growdir_made${gd}`);
+    check("D control: e2fsck -fn reports damage on the clean disk",
+      f.exit !== 0 && /differences|Fix\?/.test(f.out), f.out.split("\n").filter((l) => /differences|Fix|exit/.test(l)).slice(0, 4).join(" | "));
+    check("D control: the cross-linked block is freed and reused (the other file's data changes) or backup metadata is handed out",
+      /victim_intact_after=false/.test(cr) || Number(field(cr, "file_blocks_in_backup_metadata")) > 0, cr);
+    check("D control: files are written over the backup superblock",
+      Number(field(cr, "file_blocks_in_backup_metadata")) > 0 && field(cr, "backup_superblock_magic") !== "0xef53", cr);
   }
 }
 
