@@ -33,7 +33,9 @@ use crate::neural::{NeuralCommit, NeuralService};
 
 // Syscall numbers for telemetry and IPC
 const SYS_IPC_SEND: u64 = 1;
-const SYS_IPC_RECEIVE: u64 = 2;
+/// IpcReceive plus the kernel's record of who sent the message (pid and
+/// `SENDER_*` flags). The daemon reads its control mailbox only through it.
+const SYS_IPC_RECEIVE_FROM: u64 = 61;
 
 #[inline(always)]
 unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
@@ -66,6 +68,41 @@ unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u
         options(nostack, preserves_flags)
     );
     ret
+}
+
+#[inline(always)]
+unsafe fn syscall5(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> u64 {
+    let ret: u64;
+    asm!(
+        "int 0x80",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
+        in("r8") arg5,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
+/// The kernel's version of the file at `path` (FileVersion, syscall 62):
+/// a non-zero version, `Absent` when nothing is there, `Err` when the kernel
+/// cannot establish it. Installed into the confirmation gate, which binds
+/// every approval of an action on a file to the version seen when the
+/// request was made.
+pub fn kernel_file_version(path: &str) -> Result<super::confirmation::FileVersion, ()> {
+    const SYS_FILE_VERSION: u64 = 62;
+    let result = unsafe { syscall3(SYS_FILE_VERSION, path.as_ptr() as u64, path.len() as u64, 0) };
+    if (result as i64) < 0 {
+        Err(())
+    } else if result == 0 {
+        Ok(super::confirmation::FileVersion::Absent)
+    } else {
+        Ok(super::confirmation::FileVersion::Version(result))
+    }
 }
 
 // ---- Telemetry Definitions -------------------------------------------------
@@ -432,7 +469,8 @@ impl Orchestrator {
             planner,
             verifier: Verifier::new(),
             reflector: Reflector::new(),
-            confirmation_gate: ConfirmationGate::new(config.confirmation_timeout),
+            confirmation_gate: ConfirmationGate::new(config.confirmation_timeout)
+                .with_file_versions(kernel_file_version),
             memory,
             tick_count: 0,
             last_observation: String::new(),
@@ -1534,9 +1572,18 @@ impl Orchestrator {
         let buf_ptr = buf.as_mut_ptr() as u64;
         let buf_len = buf.len() as u64;
         let svc = "heliox";
+        // Filled by the kernel: sender pid, then its SENDER_* flags.
+        let mut sender = [0u64; 2];
 
         let bytes_received = unsafe {
-            syscall4(SYS_IPC_RECEIVE, buf_ptr, buf_len, svc.as_ptr() as u64, svc.len() as u64)
+            syscall5(
+                SYS_IPC_RECEIVE_FROM,
+                buf_ptr,
+                buf_len,
+                svc.as_ptr() as u64,
+                svc.len() as u64,
+                sender.as_mut_ptr() as u64,
+            )
         };
 
         if bytes_received == 0 || (bytes_received as i64) < 0 {
@@ -1552,7 +1599,25 @@ impl Orchestrator {
         // text inside a GOAL can never be read as a CONFIRM/DENY.
         {
             use super::authority::ControlCommand;
-            match super::authority::parse_control_message(msg) {
+            let command = super::authority::parse_control_message(msg);
+            let from = super::authority::ControlSender { pid: sender[0], flags: sender[1] };
+            // Confirmations, denials, goals, neural arming and config reloads
+            // are the operator's: the kernel says whether the sender is the
+            // kernel shell or the operator's assistant panel. Anything else,
+            // including this daemon itself, is refused (fi1 K4).
+            if !super::authority::control_command_allowed(&command, Some(from)) {
+                if command != ControlCommand::Unrecognized {
+                    let notice = format!(
+                        "[heliox-daemon] control message from pid {} (sender flags {}) refused: not the operator\n",
+                        from.pid, from.flags
+                    );
+                    unsafe {
+                        syscall3(34, 1, notice.as_ptr() as u64, notice.len() as u64);
+                    }
+                }
+                return;
+            }
+            match command {
                 ControlCommand::Confirm(id) => {
                     let applied = self.confirmation_gate.approve(id);
                     self.emit_telemetry(

@@ -13,7 +13,10 @@
 // Confirmations expire after `timeout_ticks` with auto-deny.
 // An approval is bound to the tool name and the complete argument
 // fingerprint (authority::approval_fingerprint), is single-use, and cannot
-// override a denial. At most MAX_PENDING requests wait at once.
+// override a denial. At most MAX_PENDING requests wait at once. For a tool
+// that acts on a file, the approval is also bound to the kernel's version of
+// that file when the request was made (FileVersion): a change by any process
+// withdraws it, and a version the kernel cannot establish refuses the call.
 // ============================================================================
 
 extern crate alloc;
@@ -41,6 +44,26 @@ pub enum ConfirmationStatus {
 /// Most requests that may wait for the operator at once.
 pub const MAX_PENDING: usize = 32;
 
+/// The kernel's change counter for a file (FileVersion syscall): `Absent`
+/// when nothing exists at the path, otherwise a non-zero version that
+/// changes on every write, create or remove by any process and never
+/// repeats within a boot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileVersion {
+    Absent,
+    Version(u64),
+}
+
+/// Where the gate reads file versions from. `Err(())` means the kernel could
+/// not establish one; the gate then refuses.
+pub type FileVersionSource = fn(&str) -> Result<FileVersion, ()>;
+
+/// The default source: no versions, so every call that needs one is refused.
+/// The daemon installs the kernel's (`orchestrator::kernel_file_version`).
+pub fn versions_unavailable(_path: &str) -> Result<FileVersion, ()> {
+    Err(())
+}
+
 /// A single pending confirmation request.
 #[derive(Debug, Clone)]
 pub struct PendingConfirmation {
@@ -57,6 +80,10 @@ pub struct PendingConfirmation {
     /// Normalized path the action is about (`authority::subject_path`).
     /// A later change to that path revokes the request (`revoke_path`).
     pub subject: Option<String>,
+    /// Kernel version of the file the action is about (`version_subject`)
+    /// when the request was made. The approval holds only while the file
+    /// still has this version.
+    pub subject_version: Option<FileVersion>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -72,6 +99,8 @@ pub struct ConfirmationGate {
     next_id: u32,
     /// How many ticks before a pending request auto-expires.
     timeout_ticks: u64,
+    /// Source of file versions (fails closed until one is installed).
+    file_versions: FileVersionSource,
 }
 
 impl ConfirmationGate {
@@ -80,13 +109,46 @@ impl ConfirmationGate {
             requests: Vec::new(),
             next_id: 1,
             timeout_ticks,
+            file_versions: versions_unavailable,
         }
     }
 
     /// Start issuing ids from `next_id` (the daemon seeds it at random per
     /// boot; tests use it to reach the id-exhaustion boundary).
     pub fn with_next_id(timeout_ticks: u64, next_id: u32) -> Self {
-        Self { requests: Vec::new(), next_id, timeout_ticks }
+        Self { requests: Vec::new(), next_id, timeout_ticks, file_versions: versions_unavailable }
+    }
+
+    /// Read file versions from `source` (the daemon passes the kernel's).
+    pub fn with_file_versions(mut self, source: FileVersionSource) -> Self {
+        self.file_versions = source;
+        self
+    }
+
+    /// The version `path` has now, as the installed source reports it.
+    pub fn file_version(&self, path: &str) -> Result<FileVersion, ()> {
+        (self.file_versions)(path)
+    }
+
+    /// Records the file version a request is bound to (set when it is made).
+    pub fn set_subject_version(&mut self, id: u32, version: Option<FileVersion>) {
+        if let Some(req) = self.requests.iter_mut().find(|r| r.id == id) {
+            req.subject_version = version;
+        }
+    }
+
+    /// Withdraws a pending or approved request for this exact call whose
+    /// bound file version is not `current`. A denial stays (it is final).
+    /// Returns true when one was withdrawn.
+    fn withdraw_if_version_changed(&mut self, tool_name: &str, args_fingerprint: &str, current: FileVersion) -> bool {
+        let before = self.requests.len();
+        self.requests.retain(|r| {
+            !(r.tool_name == tool_name
+                && r.args_fingerprint == args_fingerprint
+                && r.status != InternalStatus::Denied
+                && r.subject_version != Some(current))
+        });
+        self.requests.len() != before
     }
 
     fn is_expired(&self, req: &PendingConfirmation, current_tick: u64) -> bool {
@@ -164,6 +226,7 @@ impl ConfirmationGate {
             created_at_tick: current_tick,
             status: InternalStatus::Pending,
             subject: None,
+            subject_version: None,
         });
 
         ConfirmationStatus::Pending(id)
@@ -258,6 +321,10 @@ pub enum Clearance {
     Denied,
     Expired,
     Refused,
+    /// The file the action is about changed (by any process) after the
+    /// request was made; the request or approval is withdrawn and must be
+    /// asked for again.
+    FileChanged,
 }
 
 /// The single confirmation decision used by every execution path
@@ -298,6 +365,20 @@ fn decide(
         return Clearance::Refused;
     };
     let fingerprint = super::authority::approval_fingerprint(args);
+    // Bind to the file's version (fi1 K3). A version the kernel cannot
+    // establish refuses the call: no request is made and none is used.
+    let version = match super::authority::version_subject(tool_name, args) {
+        Some(path) => match gate.file_version(&path) {
+            Ok(version) => Some(version),
+            Err(()) => return Clearance::Refused,
+        },
+        None => None,
+    };
+    if let Some(current) = version {
+        if gate.withdraw_if_version_changed(tool_name, &fingerprint, current) {
+            return Clearance::FileChanged;
+        }
+    }
     let mut display = super::authority::approval_display(args);
     // A file the tool acts on without naming it is shown too (R3-1).
     if let Some(path) = super::authority::implicit_subject(tool_name) {
@@ -313,6 +394,9 @@ fn decide(
         ConfirmationStatus::Approved => Clearance::Proceed,
         ConfirmationStatus::Pending(id) => {
             gate.set_subject(id, super::authority::subject_path(tool_name, args));
+            // For an existing request this re-records the same version (a
+            // different one was withdrawn above).
+            gate.set_subject_version(id, version);
             Clearance::Awaiting { id, display, full_display }
         }
         ConfirmationStatus::Denied => Clearance::Denied,

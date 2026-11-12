@@ -637,3 +637,53 @@ pub fn parse_control_message(message: &str) -> ControlCommand {
         _ => ControlCommand::Unrecognized,
     }
 }
+
+/// Sender flags the kernel attaches to a mailbox message (IpcReceiveFrom,
+/// `src/ipc/mod.rs`). Set only by kernel code, never by the sender.
+pub const SENDER_KERNEL_SHELL: u64 = 1 << 0;
+pub const SENDER_ASSISTANT_PANEL: u64 = 1 << 1;
+/// Either of the operator's channels.
+pub const OPERATOR_SENDERS: u64 = SENDER_KERNEL_SHELL | SENDER_ASSISTANT_PANEL;
+
+/// Who sent a control message, as the kernel reports it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ControlSender {
+    pub pid: u64,
+    pub flags: u64,
+}
+
+/// Whether a control command may be applied, given who the kernel says sent
+/// it (`None`: the kernel could not establish a sender). Confirmations,
+/// denials, goals, neural arming and configuration reloads act with the
+/// operator's authority and are applied only from the kernel shell
+/// (`heliox confirm|deny|voice|neural`) or the assistant panel the kernel
+/// launched for the operator. A message from this daemon, from a panel the
+/// agent started, or from any other process is refused (fi1 K4). Neural
+/// disarm only takes authority away and is accepted from any sender.
+pub fn control_command_allowed(command: &ControlCommand, sender: Option<ControlSender>) -> bool {
+    match command {
+        ControlCommand::NeuralDisarm => true,
+        ControlCommand::Unrecognized => false,
+        ControlCommand::Confirm(_)
+        | ControlCommand::Deny(_)
+        | ControlCommand::Goal(_)
+        | ControlCommand::NeuralArm
+        | ControlCommand::ConfigUpdated => {
+            matches!(sender, Some(s) if s.flags & OPERATOR_SENDERS != 0)
+        }
+    }
+}
+
+/// The path the kernel is asked for the version of, for a tool whose
+/// approval is bound to a file: the fixed file of `implicit_subject`, or the
+/// `path` argument exactly as the tool will pass it to the kernel (not the
+/// lowercased `subject_path`, which only serves to over-revoke).
+pub fn version_subject(tool: &str, args: &[(String, JsonValue)]) -> Option<String> {
+    if let Some(path) = implicit_subject(tool) {
+        return Some(String::from(path));
+    }
+    if !PATH_SUBJECT_TOOLS.contains(&tool) {
+        return None;
+    }
+    find_str(args, "path").map(String::from)
+}

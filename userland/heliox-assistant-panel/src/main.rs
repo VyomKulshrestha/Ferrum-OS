@@ -267,9 +267,17 @@ pub extern "C" fn _start() -> ! {
     loop {
         let mut dirty = false;
 
-        while let Some(InputEvent { tag, a, .. }) = ferrumgui::poll_window_input(window_id) {
+        while let Some((InputEvent { tag, a, .. }, injected)) = ferrumgui::poll_window_input_marked(window_id) {
             if tag != 0 {
                 continue; // only keypresses matter for this app
+            }
+            if injected {
+                // The kernel marks the operator's panel as an operator
+                // channel (its messages carry SENDER_ASSISTANT_PANEL), so
+                // keys the agent injects are not typed into it: they could
+                // otherwise post a goal or rewrite the configuration in the
+                // operator's name.
+                continue;
             }
             let ascii = a as u8;
             match ascii {

@@ -279,7 +279,10 @@ pub fn confirmation_result(
         Clearance::Denied => String::from("Action denied by operator."),
         Clearance::Expired => String::from("Confirmation request expired."),
         Clearance::Refused => String::from(
-            "Confirmation refused: queue full, ids exhausted, or arguments too large to show the operator.",
+            "Confirmation refused: queue full, ids exhausted, arguments too large to show the operator, or the kernel could not establish the version of the file the action is about.",
+        ),
+        Clearance::FileChanged => String::from(
+            "Approval withdrawn: the file this action is about changed after the request was made. Request it again.",
         ),
     };
     Some(ToolResult {
