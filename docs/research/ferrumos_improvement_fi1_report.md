@@ -44,6 +44,13 @@ does not reproduce there under either setting. On the runner at 4 threads the fu
 still pass (for example JEPA against the matched autoencoder); only the exact values and the checkpoint
 digest differ.
 
+The full training sweep was then rerun on the development machine with the pinned 24 threads
+(`verify_physical_world_model.py` without `--quick`): it reproduces the deployed checkpoint, the
+selection, every promotion decision and the training corpus byte for byte (20 of 20 checks). The same
+dependence shows in the threshold studies' monitor: refitting it with BLAS and LightGBM capped at two
+threads moves calibrated thresholds by up to 0.4% (workstream A), with identical detection counts where
+compared.
+
 Consequences. The evidence described as deterministic reproduces only on a machine that runs 24 BLAS
 threads natively; the workflow "Reproduce deterministic public evidence" never reproduced it on GitHub
 (hidden by the exit-code gap). Both verifiers now pin the reference thread count for their subprocess,
@@ -102,6 +109,58 @@ exactly; Safety-Gymnasium Tables 11 to 15 recompute exactly.
 
 Not reached: the rt1 SMD calibrations, Tables 9 and 10, the HAI cross-version transfer studies, the
 world-model v3 selection scripts.
+
+### Round 3: do the published conclusions survive the thread count? (merged)
+
+Section 1 showed that digits change with the number of BLAS threads. Round 3 asked whether selections,
+gates and comparisons change. Detail: `fi1_reports/pipeline_round3.md`, numbers in
+`fi1_pipeline_round3.json`. **For two studies they do.**
+
+| Study | Rerun at | Do the conclusions hold? |
+|---|---|---|
+| Physical-JEPA v3 sweep (selection and promotion of the deployed physical model) | 24, 4, 1 threads, in full | **No.** 24 threads reproduces the committed run byte for byte. At 4 and at 1 thread the sweep selects candidate 0 where the committed run selects candidate 3, and promotion fails one gate (4 threads: out-of-distribution false negatives 1 against 0; 1 thread: out-of-distribution one-step error 0.003870 against the 0.003777 allowed) |
+| OS world-model study (`verify_world_model_paper_evaluation.py`) | 4 and 1 threads in full; 24 threads in part | **Not for the verifier's numbers, and one comparison flips.** At 24 threads the committed digests reproduce. Elsewhere every retrained model differs: false alarms on the untouched QEMU replay are 50 (4 threads) and 58 (1 thread) of 1,969 where the committed run has 216; rollout error at H=3 is 0.064 to 0.085 where it has 0.039 to 0.041; and "rules + JEPA at least as good as rules + per-action mean" (0.814 against 0.812, one false positive apart) becomes 0.808 against 0.812 at 4 threads. JEPA above rules only, JEPA above the autoencoder, and the rules-against-combined interval hold at every count |
+| Robustness evaluator | 1, 2, 3, 4, 24 threads | Yes: all five registered gates pass at every count; values move by up to 5.9%; the closest gate keeps a margin of 2.0 to 4.4% |
+| Incident dynamics v3 and v4 (inference and analysis; models not retrained) | 1 and 4 threads | Yes: the selected pipelines are bit-identical; a control changes by 3.6e-7 |
+| Cross-domain study (archived inference; models not retrained) | 1, 4, 16 threads | Yes: changes of at most 1e-6; no table digit changes. Its verifier compares exactly and passes only at the 16 threads it pins |
+| Safety-Gymnasium | not rerun (the simulator package does not import here) | |
+
+**Checked by the main session:** the registered selector was run with the verifier's command line at 4
+BLAS threads (ten minutes): it selected candidate 0 against the committed 3, promotion did not pass, and
+the failing check was `ood_false_negatives_not_increased`, as reported.
+
+**Where it enters.** Float32 matrix products in OpenBLAS during training differ between thread counts
+by up to 7.6e-5 per product; over 400 epochs the weights drift apart, and early stopping and the
+validation gates then pick a different model. Inference with fixed weights is stable. A run at a fixed
+thread count repeats bit for bit, at 1, 4 and 24 threads.
+
+**What it means.** The deployed physical checkpoint is fixed by digest, and every later evaluation of
+that artifact stands. What does not hold is that the registered selection and promotion yield it: at
+another thread count the same procedure selects another candidate and does not promote it. For the OS
+world-model study the comparison that flips is one the report already declines to claim (it says the
+study does not establish that JEPA outperforms the per-action mean), but two numbers the report quotes,
+the replay false alarms and the rollout error, belong to one training run and not to the method. Each
+needs a sentence in a future version; the closest promotion gate in the committed run had no slack
+(0 against 0).
+
+**Built in this round.** `scripts/repro_env.py` pins the thread count for BLAS, OpenMP, LightGBM and
+PyTorch and records the environment in result files; it is adopted in the unfrozen `tw1a` and `fi1`
+scripts (one thread by default), and `_v2` entry points beside the frozen trainers and the robustness
+evaluator do the same without touching the originals. New tests tie each rt1 and rt2 gate to the
+comparison it summarises, recompute the learned-contribution summaries from stored case records,
+re-derive the Safety-Gymnasium thresholds with exact fractions (the Table 13 tie is pinned by name as
+the one known exception), and replace two checks that could not fail; each new check is shown to fail
+when the stored value it guards is perturbed.
+
+**Also found (a second reader's findings, three of them checked by the round's agent):** Table 9's
+event recall uses a threshold held fixed while faults raise the normal-row alarm rate from 1.00% to
+1.95%, so the higher recall reflects more alarms; in Table 10 the learned branch alone blocks all 288
+cases, so the 0% completion follows from the case design; one percentile search in the HAI transfer
+study assumes a predicate that is not monotone; every safety check of the world-model v3 selection
+passed vacuously; the HAI v2 selection is decided by a balanced-accuracy gap of 0.00087.
+
+For future studies: train at one thread, record the environment, and register selection rules over
+several training seeds so that a selection does not hang on one run.
 
 ## 3. Userland agent runtime and authority gate (workstream D, round 1; draft pull request 2)
 
@@ -254,6 +313,247 @@ returns the sender. Still open in the kernel: the desktop's terminal window stil
 keys; network items (listen-port hijack, socket limit, packet length bound); quotas never enforced; no
 NX bit; ring-0 faults treated as user faults.
 
-## 5. Monitor (workstream A)
+### Kernel round 2 (draft pull request 6, stacked on pull request 5; head 8d21d68 after the merge below, CI green)
 
-Running. Filled in when it reports.
+Fifteen defects fixed in the areas round 1 left. Detail and the negative-control table:
+`fi1_reports/kernel_round2.md` on the pull-request branch.
+
+| | Defect |
+|---|---|
+| High | the network card's receive path let one 60,000-byte frame overwrite about 57 KiB of other physical memory, then read up to 64 KiB out of bounds through the frame's length field |
+| High | DMA addresses were truncated to 32 bits (a transmit buffer above 4 GiB would send another page of memory onto the wire; not testable here) |
+| High | a fault in ring 0 was blamed on the current process: the process was killed and the kernel ran on. Any ring-0 fault now stops the kernel |
+| High | nothing was non-executable: user data, stacks, mmap pages, the kernel heap and the physical-memory alias now are |
+| High | the page quota could be escaped (the exemption followed the program's name; mmap fault-in ignored the quota) |
+| Medium | the continuous-CPU quota was never enforced (a ring-3 task that runs 5.5 s without a system call is now ended; the daemon holds the exemption capability, checked by the main session); a second process could bind a port another listened on; a half-open handshake held a listener forever; no limits on sockets or processes; any process could stop a kernel service; a crafted ext2 superblock panicked the kernel |
+| Low | task names in JSON output; the legacy system-call path from ring 3; unused interrupts unmasked; the embedded programs copied into the boot image two or three times (image 10.06 MB to 6.36 MB) |
+
+Boot to the prompt (agent's runs, five each): 53.9 s to 47.0 s, almost all from the smaller image.
+
+Two changes of behaviour that the author should know before merging:
+
+- **Starting or stopping a kernel service now needs `cap:system:all`.** The daemon's `service_start` and
+  `service_stop` tools get a denial, so world-model data collected on this kernel records a denial
+  where earlier collections recorded success.
+- **The continuous-CPU limit is enforced** for ordinary programs (not for the daemon or init).
+
+**Merge and verification by the main session.** Pull request 5 gained commits after pull request 6
+branched from it. The two were merged on pull request 6's branch (one conflict, in the self-test
+dispatch table; both sides kept), CI built the result, and nineteen harnesses were run on that image
+(sha256 2b4bc33b...), one at a time, each passing on its first run: 228 of 228 checks.
+
+| Harness | merged image | Harness | merged image |
+|---|---|---|---|
+| `verify_kernel_selftests` | 18 of 18 | `verify_ipc_isolation` | 6 of 6 |
+| `verify_kernel_selftests_k2` | 37 of 37 | `verify_process_reap_cr3` | 9 of 9 |
+| `verify_net_k2` | 12 of 12 | `verify_pid_reuse` | 6 of 6 |
+| `verify_authority_gate_joint` | 37 of 37 | `verify_assistant_panel` | 5 of 5 |
+| `verify_authority_gate_self_approval` | 11 of 11 | `verify_net` | 5 of 5 |
+| `verify_authority_gate_input_injection` | 7 of 7 | `verify_user_pointer_isolation` | 4 of 4 |
+| `verify_ring3` | 7 of 7 | `verify_scheduler_stubs` | 7 of 7 |
+| `verify_mmap` | 7 of 7 | `verify_current_pid` | 6 of 6 |
+| `verify_core_apps` | 24 of 24 | `verify_audio_nonblocking` | 7 of 7 |
+| `verify_app_window` | 13 of 13 | | |
+
+Host tests on the merged branch: heliox-gate-tests 70, physical-runtime 175, neural-protocol 19.
+
+Left for a third round: concurrency in the interrupt and context-switch paths; kernel stacks without a
+guard page; the bootloader's stack still executable; an audit of `src/syscall`, `src/ipc` and `src/fs`
+by a reader who did not write the gate changes; mailboxes owned by task name; a crafted ext2 inode size
+that aborts the kernel; and, in the daemon's HTTP client, a chunk length that can overflow (one crafted
+response crashes the daemon) and responses silently cut at 32 KiB.
+
+## 5. Kernel and userland together (joint round 1; draft pull request 5, head 47e97e0, CI green)
+
+Pull request 5 contains pull requests 2 and 3 and is to be reviewed after them. It removes two of the
+exclusions the gate's claim carried and narrows a third.
+
+- **Sender identity (done).** A new receive call (syscall 61) returns the sender's pid and two flags
+  that only the kernel sets: "the kernel shell" and "the assistant panel the kernel launched for the
+  operator". The daemon reads its control mailbox only through it and applies a confirmation, denial,
+  goal, neural arming or configuration reload only from those two senders; a sender the kernel cannot
+  establish is refused (logic read by the main session in `authority.rs` and `orchestrator.rs`). A panel
+  started by any process, the daemon included, carries no flag, and Exec of a file named like a built-in
+  program is refused. The shell gains `heliox deny <id>`.
+- **Injected input (done).** Input events carry an "injected" mark. Injected keys and clicks no longer
+  reach the desktop terminal, the privacy lock, the launcher, the power menu, the dock, window close
+  buttons or the operator's panel; ordinary application windows still receive them.
+- **File version (done, with one window left).** Every file has a change counter (syscall 62). An
+  approval of a write, create, delete, exec or kernel upgrade is bound to the file's version at request
+  time, so a change by any process withdraws it. Still open: a change between the daemon's version check
+  and its action, which are two system calls.
+- **Click target (not done).**
+
+Checked by the main session on images downloaded from CI. The image of the pull request's head has the
+same digest as the one the agent tested (e3f39abf...), so the build is reproducible from the same source.
+
+| Harness | negative control (enforcement held back) | pull request 5's head |
+|---|---|---|
+| `verify_authority_gate_joint` | 17 of 24: a forged CONFIRM approved the write; an approved delete ran after another process changed the file; injected keys reached the terminal | 24 of 24 |
+| `verify_authority_gate_self_approval` | | 11 of 11 |
+| `verify_authority_gate_input_injection` | | 7 of 7 |
+| `verify_kernel_selftests` | | 18 of 18 |
+| `verify_ring3` | | 7 of 7 |
+| `verify_ipc_isolation` | | 6 of 6 |
+
+Host tests re-run by the main session: heliox-gate-tests 54, physical-runtime 175, neural-protocol 19,
+capability matcher 19 of 19.
+
+Exclusions that remain in the claim: the click target; the check-then-act window of the file version;
+read-then-send at the default tier; approvals by id from a console the agent can scroll; whoever types
+at the physical keyboard or serial console is the operator; the two physical-runtime replay items.
+
+### Joint round 2: a fresh agent attacks pull request 5's mechanisms (same pull request, head 3170366, CI green)
+
+No critical break: no way was found to have an operator command applied from a non-operator, or to get
+a tier-3 or tier-4 effect with no approval, through the sender flags or the injected mark. Four defects
+were found in and under the file-version mechanism and fixed:
+
+- **High: a write deleted a directory tree.** In the in-memory filesystem a write to a path that names
+  a directory replaced the directory node and dropped everything under it. `write_file` of
+  `/disk/heliox` (tier 3) removed the daemon's configuration and every file beside it, after which the
+  daemon fell back to the default auto-approve tier. A write now refuses a directory, as ext2 already
+  did (fix read by the main session in `src/fs/mod.rs`).
+- **Medium:** one test path reported a fixed file version, so an approved exec there survived a rewrite
+  of the binary.
+- **Medium:** a directory's version did not change when something deeper inside it changed, although
+  deleting the directory removes all of it. Every change now gives a new version to every directory
+  above it.
+- **Low:** Exec treated any path containing a test program's name as that program, which bypassed the
+  reserved-name rule.
+
+Built in the same round:
+
+- **The check-then-act window is closed.** New calls (syscalls 63 to 65) write, delete and execute only
+  if the file still has the expected version, checked in the kernel in the same step as the action. The
+  daemon passes the version an approval was bound to.
+- **Click target.** A new call (syscall 66) reports the window, its owner and the position under the
+  pointer. An approved click is bound to that target, the operator is shown it, and the click is refused
+  if the target changed. Not covered: what the application draws at that position, and keyboard focus.
+
+Checked by the main session: host tests heliox-gate-tests 70, physical-runtime 175, neural-protocol 19;
+on the head's image from CI (sha256 ec5f18fa..., the image the agent left in place):
+`verify_authority_gate_joint` 37 of 37, `verify_authority_gate_self_approval` 11 of 11,
+`verify_authority_gate_input_injection` 7 of 7, `verify_kernel_selftests` 18 of 18, `verify_ring3` 7 of
+7, `verify_app_window` 13 of 13, each on its first run.
+
+What the claim still excludes: what an application does with an approved click, and which window
+receives approved typed text; physical input after an approved pointer move or focus change;
+read-then-send at the default tier; approvals by id from a scrollable console; the two physical-runtime
+replay items; and the assumption that whoever types at the keyboard or serial console is the operator.
+New questions for the author: the panel's flag is accepted for confirmations although the panel never
+sends them; the boot-time setup launch marks a panel the operator did not ask for; deleting a directory
+above the daemon's configuration is not refused (it needs a tier-4 approval).
+
+With two consecutive rounds (userland round 3 and this one) finding no critical break, the gate
+workstream stops here under the plan's rule.
+
+## 6. Monitor (workstream A, round 1; merged to main)
+
+**Verdict: not improved.** No candidate meets the definition the plan fixed in advance. The harness, the
+diagnosis and the negative result are on main; detail in `fi1_reports/monitor_round1.md`, numbers in
+`fi1_monitor_round1.json`. The verdict table below was recomputed by the main session from the stored
+per-dataset numbers.
+
+**The harness reproduces the registered record.** Fed the registered Tennessee Eastman scores it gives
+every registered figure exactly (116 of 141 first events, 104 of 104 followers with 44 at onset, false
+alarms 0.984 times the budget on the sealed runs). Refitted monitors reproduce the registered counts on
+HAI 20.07 (36 of 38, onset 26, 39.1% of unlabelled time in alarm), HAI 21.03, 22.04 and 23.05, HyGrid-ICS,
+BATADAL, ProvICS and Tennessee Eastman. voraus-AD gives 243 of 755 where the registered run has 252: the
+refit ran with two BLAS threads, the threshold came out 0.2% higher, and nine samples lie between the two.
+
+**Why the monitor stays in alarm.**
+
+1. Calibration does carry over between attack-free recordings of one dataset (thresholds within 8 to
+   13%), so too little normal data is not the cause on the selection set.
+2. Five channels account for most of the excess: they appear in 82 to 99% of unlabelled alarm steps.
+3. After attacks those channels run far above their normal residual spread (up to 3.4 times on HAI, 14
+   to 17 times on Tennessee Eastman) while the plant is still disturbed.
+4. Part of it is the operating regime: on HAI 21.03, 24% of unlabelled alarm steps have a sensor outside
+   the range the model was fitted on, against 0.6% of quiet steps.
+5. Described after the check run, without changing anything: on **HAI 20.07, 94% of the alarm time has a
+   sensor outside the fit range**, and thresholds calibrated on each of its own training recordings span
+   a factor of 2.2; on **ProvICS every one of the 13 channels runs above twice its normal spread across
+   the whole attack recording** (median 14 times). The two saturating recordings are outside the regime
+   the monitor was fitted on. That is a property of the data and of any model fitted on it; channel
+   aggregation does not address it.
+
+**Candidates.** Selection (rule committed before the results) kept three: scoring by the mean of the
+second to fourth largest channel residuals (`second`), the same with median and MAD scaling
+(`mad+second`), and with the threshold of the worst calibration recording (`second+loro`). On the
+selection set they raised mean onset recall from 0.80 to about 0.85.
+
+**Check set, run once** (onset detections of events; share of unlabelled time in alarm):
+
+| Dataset | baseline | `mad+second` | `second` | `second+loro` |
+|---|---|---|---|---|
+| HAI 20.07 | 26 of 38; 0.391 | 26; 0.391 | 26; 0.391 | 26; 0.391 |
+| HAI 23.05 | 31 of 52; 0.0071 | 30; 0.0066 | 31; 0.0067 | 31; 0.0067 |
+| BATADAL | 14 of 14; 0.0138 | 14; 0.0127 | 14; 0.0101 | 14; 0.0100 |
+| HyGrid-ICS | 3 of 91; 0.0407 | 14; 0.0368 | 15; 0.0067 | 15; 0.0067 |
+| voraus-AD | 243 of 755; 0.081 | 324; 0.148 | 277; 0.098 | 277; 0.098 |
+| Tennessee Eastman, modes 4 to 6 | 57 of 92; 0.0136 | 70; 0.0066 | 64; 0.0129 | 59; 0.0125 |
+| ProvICS | 3 of 32; 0.440 | 3; 0.422 | 3; 0.389 | 3; 0.389 |
+| **mean onset recall** | 0.478 | 0.528 (+0.050) | 0.514 (+0.036) | 0.507 (+0.028) |
+| **mean alarm share** | 0.1410 | 0.1463 | 0.1306 | 0.1305 |
+
+`mad+second` reaches the required gain but its alarm share is higher (voraus-AD); the other two lower the
+alarm share but gain too little. No dataset loses more than 0.05 under any candidate. The alarm share on
+HAI 20.07 does not move, and on ProvICS it falls from 0.44 to 0.39 at best.
+
+What the gain is made of: on Tennessee Eastman the candidates trade first events for followers (first
+events at onset 38 of 51 for the baseline against 32, 33 and 29; followers 19 of 41 against 38, 31 and
+30). The HyGrid-ICS gain is at its chance level (onset recall net of chance about +0.02).
+
+### Monitor round 2 (merged): improved under the definition, with costs the definition does not count
+
+Run under the plan's note of 2026-11-12: choices on the selection set only, rule committed first, the
+check set used a second time by a designer who knew round 1's check results. Detail:
+`fi1_reports/monitor_round2.md`, numbers in `fi1_monitor_round2.json`. The verdict table was recomputed
+by the main session from the stored per-dataset numbers; the re-scored baseline equals round 1's.
+
+**The candidate.** The registered score keeps its threshold. A second alarm channel is added on the
+*rise* of the score: the smoothed score minus its own value three smoothing windows earlier. It fires
+when the score climbs again on top of a level it already holds, re-arms on its own, and is calibrated
+on attack-free data to a share of the same episode budget (the registered channel gets 80% or 90%).
+Alarm time is the union of the two channels. Twenty candidates were tried on the selection set; three
+budget splits of this one design went to the check set.
+
+| Monitor | mean onset recall | mean alarm share | worst single-dataset loss | verdict |
+|---|---|---|---|---|
+| baseline | 0.478 | 0.1410 | | |
+| rise channel, registered channel at 80% of the budget | 0.599 (+0.120) | 0.1385 | 0.026 (voraus-AD) | **improved** |
+| the same at 90% | 0.605 (+0.127) | 0.1409 | 0.003 | **improved** (the alarm-share condition holds by 0.0001) |
+| the same at 67% | 0.591 (+0.112) | 0.1367 | 0.061 (voraus-AD) | not improved |
+
+Per dataset at 80% (onset detections): HAI 20.07 26 to 35 of 38; ProvICS 3 to 11 of 32; Tennessee
+Eastman modes 4 to 6, 57 to 71 of 92; HyGrid-ICS 3 to 24 of 91; HAI 23.05 and BATADAL unchanged;
+voraus-AD 243 to 223 of 755. Net of the chance reference the gain is +0.22 on HAI 20.07, +0.12 on
+Tennessee Eastman and +0.13 on ProvICS; on HyGrid-ICS it is at chance.
+
+**What the verdict does not show.**
+
+- **The saturation did not move.** HAI 20.07 stays in alarm for 39.1% of unlabelled time and ProvICS for
+  44.0%. The gain is in telling a new event apart while an alarm is already running.
+- **False-alarm episodes roughly double where the monitor saturates**: 1.11 to 1.52 times the budget on
+  HAI 20.07, 9.6 to 19.2 on HyGrid-ICS, 33.7 to 73.2 on ProvICS. The definition fixed in advance counts
+  alarm time, not episodes; an operator would count episodes. On the sealed attack-free runs the
+  two-channel monitor stays within the budget.
+- **First events are traded for followers** on Tennessee Eastman: first events at onset 38 to 32 of 51,
+  followers 19 to 39 of 41.
+- **Second use.** The result is weaker evidence than a first-use gain; it holds for two of three budget
+  splits, one of them by a margin of 0.0001.
+
+**The out-of-range state did not help.** A monitor state "outside the fitted range", scored as alarm
+time under the plan's rule, raised alarm share on the selection set (0.019 to 0.030 or more on Tennessee
+Eastman): the indicator is not better calibrated than the extrapolating residual. Its descriptive
+numbers are still useful: on HAI 20.07, 41% of unlabelled time lies outside the fitted range, and
+inside the range the alarm share is 3.7% against 39.1% overall; on ProvICS 56% lies outside, with 9.1%
+inside against 44.0%.
+
+**What the two rounds establish.** The registered monitor saturates when the plant is outside the range
+its world model was fitted on, and no static rescaling, channel selection, regime conditioning or
+out-of-range state fitted on attack-free data reduced that alarm time. A second channel on the rise of
+the score recovers onsets of events that begin during a running alarm, at the price of more alarm
+episodes and a few first events. The workstream stops here: the yardstick is met as written, and the
+remaining weakness is a matter of data covering the operating regime, not of the scoring rule.

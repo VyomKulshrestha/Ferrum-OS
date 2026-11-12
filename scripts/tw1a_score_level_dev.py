@@ -26,6 +26,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import repro_env
 import tw1_adapters as A
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -291,6 +292,7 @@ def run_mode(mode, history, only=None, guard=None):
         )
         OUT.mkdir(parents=True, exist_ok=True)
         part.write_text(json.dumps(out), encoding="utf-8")
+        repro_env.stamp_json(part)
     print("written", part)
 
 
@@ -397,6 +399,7 @@ def merge():
     (OUT / "tw1a_summary.json").write_text(
         json.dumps(summary, indent=1) + "\n", encoding="utf-8"
     )
+    repro_env.stamp_json(OUT / "tw1a_summary.json")
     for history, table in summary["histories"].items():
         print(f"== history {history}")
         for name, v in table.items():
@@ -412,6 +415,7 @@ def merge():
 
 
 if __name__ == "__main__":
+    repro_env.pin_from_environment()
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "versions":
         print(json.dumps(A.versions(), indent=1))
