@@ -12,6 +12,9 @@ import { bootShell, report } from "./lib/qemu_shell.mjs";
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push(`${ok ? "PASS" : "FAIL"}\t${name}${detail ? "\t" + detail : ""}`);
+// FERRUMOS_SKIP_SELFTESTS=elf-bounds,... skips self-tests by name (to see the
+// later checks on an image where an earlier one halts the kernel).
+const skip = new Set((process.env.FERRUMOS_SKIP_SELFTESTS || "").split(",").filter(Boolean));
 const field = (text, name) => (text.match(new RegExp(`${name}=([^\\s]+)`)) || [])[1];
 
 let shell;
@@ -34,14 +37,22 @@ try {
   check("a dead recorder's capture session is released", field(out, "stale_session_released") === "true", (out.match(/selftest dead-recorder:.*/) || [""])[0]);
 
   // Second audit: ELF loader.
-  out = await shell.command("test-syscall elf-bounds", 20);
-  check("a non-canonical PT_LOAD address is refused without a kernel panic", field(out, "noncanonical_rejected") === "true", (out.match(/selftest elf-bounds: noncanonical.*/) || ["no result line (kernel halted?)"])[0]);
-  check("an unaligned one-page segment maps exactly one page", field(out, "unaligned_tail_pages") === "1", (out.match(/selftest elf-bounds: unaligned.*/) || [""])[0]);
+  if (skip.has("elf-bounds")) {
+    console.log("NOTE\telf-bounds skipped (FERRUMOS_SKIP_SELFTESTS)");
+  } else {
+    out = await shell.command("test-syscall elf-bounds", 20);
+    check("a non-canonical PT_LOAD address is refused without a kernel panic", field(out, "noncanonical_rejected") === "true", (out.match(/selftest elf-bounds: noncanonical.*/) || ["no result line (kernel halted?)"])[0]);
+    check("an unaligned one-page segment maps exactly one page", field(out, "unaligned_tail_pages") === "1", (out.match(/selftest elf-bounds: unaligned.*/) || [""])[0]);
+  }
 
   // Second audit: caller-sized kernel buffers fail cleanly instead of aborting.
-  out = await shell.command("test-syscall heap-bounds", 20);
-  check("a buffer larger than the kernel heap is refused, not fatal", field(out, "oversize_refused") === "true", (out.match(/selftest heap-bounds:.*/) || ["no result line (kernel halted?)"])[0]);
-  check("ordinary buffers still allocate", field(out, "small_ok") === "true");
+  if (skip.has("heap-bounds")) {
+    console.log("NOTE\theap-bounds skipped (FERRUMOS_SKIP_SELFTESTS)");
+  } else {
+    out = await shell.command("test-syscall heap-bounds", 20);
+    check("a buffer larger than the kernel heap is refused, not fatal", field(out, "oversize_refused") === "true", (out.match(/selftest heap-bounds:.*/) || ["no result line (kernel halted?)"])[0]);
+    check("ordinary buffers still allocate", field(out, "small_ok") === "true");
+  }
 
   // Second audit: Exec path that slipped past the package signature gate.
   out = await shell.command("test-syscall exec-path");
@@ -58,6 +69,13 @@ try {
   await shell.command("session root");
   out = await shell.command(`syscall ${initPid} 5 4`);
   check("the root session still can", /syscall result: Ok value=1/.test(out));
+
+  // Workstream D, K1: keys injected by the agent (InjectKey) must not reach the
+  // kernel shell, where `heliox confirm <id>` approves pending actions.
+  out = await shell.command("test-syscall injected-key");
+  check("an agent-injected key is kept out of the kernel shell", field(out, "kept_from_shell") === "1", (out.match(/selftest injected-key:.*/) || [""])[0]);
+  out = await shell.command("echo probe");
+  check("the next shell command line holds no injected key", /echo probe\s*\r?\nprobe/.test(out) && !/qecho/.test(out));
 
   check("no kernel panic or fault", !/panicked at|PAGE FAULT|Page Fault|General Protection|DOUBLE FAULT/.test(shell.serial()));
 } catch (error) {

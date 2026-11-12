@@ -19,6 +19,8 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 pub static INJECTING_AGENT_KEY: AtomicBool = AtomicBool::new(false);
 static DESKTOP_PHYSICAL_KEY_COUNT: AtomicU64 = AtomicU64::new(0);
+/// Agent-injected keys kept out of the kernel shell (see `inject_key_event`).
+pub static INJECTED_KEYS_KEPT_FROM_SHELL: AtomicU64 = AtomicU64::new(0);
 
 /// Internal key token emitted by both hardware keyboard paths for Alt+Tab.
 /// It is consumed by the compositor and is never forwarded to an app window.
@@ -185,8 +187,18 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
     // Bridge into the shell only when the desktop does not own keyboard
     // input. Duplicating one physical key into both queues caused focused
     // GUI apps (and the privacy lock) to leak input into the hidden shell.
+    //
+    // Keys injected by InjectKey (the agent's keyboard tools) never reach the
+    // kernel shell: the shell runs with the session's authority (root by
+    // default), and `heliox confirm <id>` there forwards CONFIRM to the
+    // daemon, so typed keystrokes could approve the agent's own pending
+    // actions. Injected keys still reach GUI windows through EVENT_QUEUE.
     if pressed && ascii != 0 && !crate::gui::captures_keyboard() {
-        feed_to_shell(ascii);
+        if INJECTING_AGENT_KEY.load(Ordering::SeqCst) {
+            INJECTED_KEYS_KEPT_FROM_SHELL.fetch_add(1, Ordering::SeqCst);
+        } else {
+            feed_to_shell(ascii);
+        }
     }
 }
 

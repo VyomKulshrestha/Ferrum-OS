@@ -80,7 +80,14 @@ export async function bootShell(repo, logName, { bootSeconds = Number(process.en
     return out;
   }
 
-  await waitFor("FerrumOS:~$", bootSeconds);
+  try {
+    await waitFor("FerrumOS:~$", bootSeconds);
+  } catch (error) {
+    // The caller never gets a handle to close, so stop QEMU here.
+    try { monitor.destroy(); } catch {}
+    child.kill("SIGKILL");
+    throw error;
+  }
   const bootMs = Date.now() - started;
   return {
     bootMs, serial, waitFor, type, key, command,

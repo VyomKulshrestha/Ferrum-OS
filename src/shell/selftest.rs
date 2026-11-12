@@ -26,6 +26,7 @@ pub fn run(name: &str) -> bool {
         "elf-bounds" => elf_bounds(),
         "heap-bounds" => heap_bounds(),
         "exec-path" => exec_path(),
+        "injected-key" => injected_key(),
         _ => return false,
     }
     true
@@ -138,6 +139,24 @@ fn heap_bounds() {
     let huge = crate::fs::try_zeroed_vec(64 * 1024 * 1024).is_none();
     let small = crate::fs::try_zeroed_vec(4096).is_some();
     println!("selftest heap-bounds: oversize_refused={} small_ok={}", huge, small);
+}
+
+/// Delivers one key the way InjectKey does (flag set around the event) and
+/// reports whether it was kept out of the kernel shell. On a kernel that feeds
+/// injected keys to the shell, the `q` also lands on the next command line.
+fn injected_key() {
+    use core::sync::atomic::Ordering;
+    let desktop_owns_keyboard = crate::gui::captures_keyboard();
+    let before = crate::input::INJECTED_KEYS_KEPT_FROM_SHELL.load(Ordering::SeqCst);
+    crate::input::INJECTING_AGENT_KEY.store(true, Ordering::SeqCst);
+    crate::input::inject_key_event(b'q', true);
+    crate::input::inject_key_event(b'q', false);
+    crate::input::INJECTING_AGENT_KEY.store(false, Ordering::SeqCst);
+    let kept = crate::input::INJECTED_KEYS_KEPT_FROM_SHELL.load(Ordering::SeqCst) - before;
+    println!(
+        "selftest injected-key: kept_from_shell={} desktop_owns_keyboard={}",
+        kept, desktop_owns_keyboard
+    );
 }
 
 fn exec_path() {
