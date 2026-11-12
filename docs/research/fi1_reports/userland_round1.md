@@ -103,15 +103,18 @@ and returned to the model. Minimal reproduction: `delete_file {path:X}` → `Awa
 `ipc_send {target_service:"heliox", message:"CONFIRM:1"}`; `delete_file {path:X}` → executes. The same
 works from a paired JSON-RPC client through `execute_tool`. Fix: `validate_tool_call` refuses `ipc_send`
 to `heliox`/`heliox-daemon` (any case, surrounding whitespace) before prediction or confirmation; this
-cannot be approved. Test: G `ipc_to_the_daemons_own_mailbox_is_refused`. The pre-fix path lives in
-syscall code and has no host reproduction; the QEMU reproduction is listed under "not tested".
+cannot be approved. Tests: G `ipc_to_the_daemons_own_mailbox_is_refused`; QEMU
+`scripts/verify_authority_gate_self_approval.mjs` reproduces it end to end on main's image (the write runs
+after the self-sent CONFIRM) and passes on the branch image.
 
 **U1. One approval covers a different action.** The approval key was `format_args_summary`, which kept
 32 bytes of each string and printed every non-string as `...`. Approving
 `delete_file path=/disk/home/user/projects/old-build-001.log` also approved
 `.../old-build-001.log/../../../../heliox/memory.json`; approving a `write_file` whose content starts with
 the same 32 bytes approved any longer content. Fix: approvals bind to `approval_fingerprint`, the complete
-escaped serialization of every argument (type, sign of zero, order). Tests: G
+escaped serialization of every argument (type, sign of zero, order). On main's image the QEMU harness shows
+an operator approval for `/disk/fi1gate-binding-probe-00000001-approved.txt` executing
+`...-substitute.txt` instead. Tests: G
 `legacy_binding_key_collides_on_these_pairs` (documents 4 colliding pairs under the old key),
 `approval_is_bound_to_the_complete_arguments`, `fingerprint_distinguishes_types_signs_and_order`.
 
@@ -236,8 +239,8 @@ Move/Actuate without actuator authority. Tests P
 
 ## Not tested, and why
 
-- The U8 self-approval and U9 config chain end to end in QEMU: a new harness needs a mock provider that
-  issues the three calls; not written in this round. The decision logic is covered on the host.
+- U11 (GOAL text turned into CONFIRM) end to end in QEMU: the shell cannot type a newline into a goal;
+  covered on the host only.
 - World-model risk scoring in Rust on the host: `learned.rs`/`observation.rs` call syscalls; covered by the
   existing QEMU harnesses only.
 - `scripts/verify_physical_jepa_robustness.py` fails byte-for-byte on this machine on main as well as on
@@ -247,5 +250,16 @@ Move/Actuate without actuator authority. Tests P
 
 ## QEMU harnesses
 
-See the table in the pull request description / final report of this round (image from the CI run of the
-branch against main's image), run one at a time under `C:/Users/marcu/Videos/fi1-qemu.lock`.
+Images: main = CI run 43111829305 (`dba7016`); branch = CI run 43119793262 (`df61cb0`). One harness at a
+time under `C:/Users/marcu/Videos/fi1-qemu.lock`; the machine had 0.5 to 1.3 GB of free physical memory
+during the runs (other sessions active).
+
+| Harness | main | branch | Note |
+|---|---|---|---|
+| `verify_authority_gate_self_approval.mjs` (new) | 6/11 | 11/11 | main fails: self-approval via `ipc_send` executes the write; config write is queued, not refused; the operator's approval covers a substituted path |
+| `verify_jsonrpc_methods.mjs` | 18/20 | 18/20 | same two failures on both (configured scenario: empty goal, zero telemetry); not caused by this branch |
+| `verify_voice.mjs` | 0/1, rerun 0/1 | 0/1 | boot stalls after `HDA: GCAP=...` on both images (harness boots with `-m 2048M` and HDA audio); kernel/host issue for workstream C |
+| `verify_bridge.mjs` | 0/1, rerun 0/1 | see final report | same boot stall on main |
+
+`verify_world_model*.mjs` and `verify_heliox_memory_persistence.mjs` need `target/heliox-disk.img`
+(`scripts/make-appliance.ps1`), which does not exist on this machine; not run.
