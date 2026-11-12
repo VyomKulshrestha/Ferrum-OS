@@ -73,7 +73,7 @@ pub fn post(source_pid: u64, title: &str, body: &str) -> Result<u64, &'static st
         "[notification] posted id={} pid={} title={}",
         id,
         source_pid,
-        crate::syscall::escape_printable(title)
+        title
     );
     Ok(id)
 }

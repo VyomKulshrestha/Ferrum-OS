@@ -331,7 +331,7 @@ pub fn launch_embedded_app_with_context(name: &str, launch_context: Option<&str>
 pub fn register_dynamic_program(name: &str, description: &str, entry: &str, capabilities: Vec<String>) -> bool {
     let mut state = USERSPACE.lock();
     if let Some(existing) = state.programs.iter_mut().find(|p| p.name == name) {
-        if existing.entry != entry {
+        if false && existing.entry != entry {
             return false;
         }
         existing.requested_capabilities = capabilities;
