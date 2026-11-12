@@ -99,3 +99,31 @@ BATADAL made `verify_tt1b.py` report 7 of 8. The verifier of tt1d already accept
 after the final. `verify_tt1.py` and `verify_tt1b.py` (not frozen by any registration) now accept both
 labels, under the same condition as before: the access must come after the registered one. All four
 verifications pass again (27 of 27, 8 of 8, 19 of 19, 22 of 22). The ledger row stays as written.
+
+## Note, 2026-11-12: monitor round 2 and the second use of the check set
+
+Monitor round 1 ended "not improved" (report, section 6). The check set has now been run once, and its
+results, including a description of the two saturating recordings written after the run, are known.
+Round 2 is therefore run under these rules, fixed before it starts:
+
+1. **Choices are made on the selection set only** (HAI 21.03, HAI 22.04, Tennessee Eastman modes 0 to
+   3), under a selection rule written and committed before selection results for the new candidates
+   exist. At most three new candidates go to the check set, once each.
+2. **The check results of round 2 are a second use** and are labelled so wherever they appear. The two
+   ideas of round 2 both predate the first check run: the role of the operating regime is item 4 of the
+   round-1 diagnosis on the selection set, and the trade of first events for followers was visible in
+   the selection results. The designer nevertheless knows the round-1 check numbers; that is disclosed
+   with the results, and a round-2 gain is weaker evidence than a round-1 gain would have been.
+3. **The definition of improved is unchanged** and is applied to the same baseline: mean onset recall on
+   the check set up by at least 0.05; mean share of unlabelled time in alarm not higher; no check dataset
+   loses more than 0.05 of onset recall.
+4. **A monitor with more than one output state** (for example "alarm" and "outside the fitted range") is
+   scored with every non-normal state counted as alarm: time in any such state is alarm time, and an
+   episode of any such state that starts inside an event is an onset. A monitor cannot improve under the
+   definition by renaming alarm time.
+5. **Reported beside the verdict, defined now:** onset recall net of its chance reference; first and
+   follower events separately; the share of unlabelled time outside the fitted range; alarm share and
+   onset recall restricted to time inside the fitted range. These describe a candidate; they do not
+   decide the verdict.
+6. If round 2 is also "not improved", the workstream stops under the plan's rule, and the report says
+   what the two rounds establish about the monitor.

@@ -396,6 +396,64 @@ above the daemon's configuration is not refused (it needs a tier-4 approval).
 With two consecutive rounds (userland round 3 and this one) finding no critical break, the gate
 workstream stops here under the plan's rule.
 
-## 6. Monitor (workstream A)
+## 6. Monitor (workstream A, round 1; merged to main)
 
-Running. Filled in when it reports.
+**Verdict: not improved.** No candidate meets the definition the plan fixed in advance. The harness, the
+diagnosis and the negative result are on main; detail in `fi1_reports/monitor_round1.md`, numbers in
+`fi1_monitor_round1.json`. The verdict table below was recomputed by the main session from the stored
+per-dataset numbers.
+
+**The harness reproduces the registered record.** Fed the registered Tennessee Eastman scores it gives
+every registered figure exactly (116 of 141 first events, 104 of 104 followers with 44 at onset, false
+alarms 0.984 times the budget on the sealed runs). Refitted monitors reproduce the registered counts on
+HAI 20.07 (36 of 38, onset 26, 39.1% of unlabelled time in alarm), HAI 21.03, 22.04 and 23.05, HyGrid-ICS,
+BATADAL, ProvICS and Tennessee Eastman. voraus-AD gives 243 of 755 where the registered run has 252: the
+refit ran with two BLAS threads, the threshold came out 0.2% higher, and nine samples lie between the two.
+
+**Why the monitor stays in alarm.**
+
+1. Calibration does carry over between attack-free recordings of one dataset (thresholds within 8 to
+   13%), so too little normal data is not the cause on the selection set.
+2. Five channels account for most of the excess: they appear in 82 to 99% of unlabelled alarm steps.
+3. After attacks those channels run far above their normal residual spread (up to 3.4 times on HAI, 14
+   to 17 times on Tennessee Eastman) while the plant is still disturbed.
+4. Part of it is the operating regime: on HAI 21.03, 24% of unlabelled alarm steps have a sensor outside
+   the range the model was fitted on, against 0.6% of quiet steps.
+5. Described after the check run, without changing anything: on **HAI 20.07, 94% of the alarm time has a
+   sensor outside the fit range**, and thresholds calibrated on each of its own training recordings span
+   a factor of 2.2; on **ProvICS every one of the 13 channels runs above twice its normal spread across
+   the whole attack recording** (median 14 times). The two saturating recordings are outside the regime
+   the monitor was fitted on. That is a property of the data and of any model fitted on it; channel
+   aggregation does not address it.
+
+**Candidates.** Selection (rule committed before the results) kept three: scoring by the mean of the
+second to fourth largest channel residuals (`second`), the same with median and MAD scaling
+(`mad+second`), and with the threshold of the worst calibration recording (`second+loro`). On the
+selection set they raised mean onset recall from 0.80 to about 0.85.
+
+**Check set, run once** (onset detections of events; share of unlabelled time in alarm):
+
+| Dataset | baseline | `mad+second` | `second` | `second+loro` |
+|---|---|---|---|---|
+| HAI 20.07 | 26 of 38; 0.391 | 26; 0.391 | 26; 0.391 | 26; 0.391 |
+| HAI 23.05 | 31 of 52; 0.0071 | 30; 0.0066 | 31; 0.0067 | 31; 0.0067 |
+| BATADAL | 14 of 14; 0.0138 | 14; 0.0127 | 14; 0.0101 | 14; 0.0100 |
+| HyGrid-ICS | 3 of 91; 0.0407 | 14; 0.0368 | 15; 0.0067 | 15; 0.0067 |
+| voraus-AD | 243 of 755; 0.081 | 324; 0.148 | 277; 0.098 | 277; 0.098 |
+| Tennessee Eastman, modes 4 to 6 | 57 of 92; 0.0136 | 70; 0.0066 | 64; 0.0129 | 59; 0.0125 |
+| ProvICS | 3 of 32; 0.440 | 3; 0.422 | 3; 0.389 | 3; 0.389 |
+| **mean onset recall** | 0.478 | 0.528 (+0.050) | 0.514 (+0.036) | 0.507 (+0.028) |
+| **mean alarm share** | 0.1410 | 0.1463 | 0.1306 | 0.1305 |
+
+`mad+second` reaches the required gain but its alarm share is higher (voraus-AD); the other two lower the
+alarm share but gain too little. No dataset loses more than 0.05 under any candidate. The alarm share on
+HAI 20.07 does not move, and on ProvICS it falls from 0.44 to 0.39 at best.
+
+What the gain is made of: on Tennessee Eastman the candidates trade first events for followers (first
+events at onset 38 of 51 for the baseline against 32, 33 and 29; followers 19 of 41 against 38, 31 and
+30). The HyGrid-ICS gain is at its chance level (onset recall net of chance about +0.02).
+
+**Round 2.** The plan gives the workstream a second round. Two ideas come out of round 1 and neither
+was tested in it: a combination that keeps the baseline for first events and adds `second` for
+followers, each at half the alarm budget; and a monitor that says when the plant has left the range it
+was fitted on. See the plan's note of 2026-11-12 for how the check set is used a second time.
