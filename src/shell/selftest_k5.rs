@@ -491,7 +491,12 @@ fn console_forge() {
     let b1 = p.put(b"[SECUR");
     let b2 = p.put(prompt("b")[6..].as_bytes());
     let c = p.put(alloc::format!("decoy\r{}", prompt("c")).as_bytes());
-    let d = p.put(alloc::format!("{}{}", " ".repeat(100), prompt("d")).as_bytes());
+    // Five whole rows of spaces, so the tag starts a wrapped row.
+    let cols = crate::graphics::console::CONSOLE
+        .try_lock()
+        .and_then(|g| g.as_ref().map(|c| c.columns() as usize))
+        .unwrap_or(80);
+    let d = p.put(alloc::format!("{}{}", " ".repeat(cols * 5), prompt("d")).as_bytes());
     let e = p.put(prompt("e").as_bytes());
     let f = p.put(prompt("f").replacen("SECURITY", "S\u{0415}CURITY", 1).as_bytes());
     for (fd, (ptr, len)) in [(1, a), (1, b1), (1, b2), (1, c), (1, d), (2, e), (1, f)] {
