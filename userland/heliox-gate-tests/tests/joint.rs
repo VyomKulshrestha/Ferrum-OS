@@ -30,32 +30,38 @@ fn k4_sender_table_is_exhaustive_over_commands_and_senders() {
         ControlCommand::NeuralArm,
         ControlCommand::NeuralDisarm,
         ControlCommand::ConfigUpdated,
+        ControlCommand::Pending,
         ControlCommand::Unrecognized,
     ];
-    // (description, sender, is an operator channel)
-    let senders: [(&str, Option<ControlSender>, bool); 8] = [
-        ("kernel could not say", None, false),
-        ("kernel shell", Some(ControlSender { pid: 0, flags: SENDER_KERNEL_SHELL }), true),
-        ("operator panel", Some(ControlSender { pid: 412, flags: SENDER_ASSISTANT_PANEL }), true),
-        ("both bits", Some(ControlSender { pid: 0, flags: SENDER_KERNEL_SHELL | SENDER_ASSISTANT_PANEL }), true),
-        ("the daemon itself", Some(ControlSender { pid: 108, flags: 0 }), false),
-        ("panel the agent exec'd", Some(ControlSender { pid: 500, flags: 0 }), false),
-        ("pid 0 without the shell flag", Some(ControlSender { pid: 0, flags: 0 }), false),
-        ("unknown flag bits only", Some(ControlSender { pid: 9, flags: 1 << 7 }), false),
+    // (description, sender, is an operator channel, is the kernel shell)
+    let senders: [(&str, Option<ControlSender>, bool, bool); 8] = [
+        ("kernel could not say", None, false, false),
+        ("kernel shell", Some(ControlSender { pid: 0, flags: SENDER_KERNEL_SHELL }), true, true),
+        ("operator panel", Some(ControlSender { pid: 412, flags: SENDER_ASSISTANT_PANEL }), true, false),
+        ("both bits", Some(ControlSender { pid: 0, flags: SENDER_KERNEL_SHELL | SENDER_ASSISTANT_PANEL }), true, true),
+        ("the daemon itself", Some(ControlSender { pid: 108, flags: 0 }), false, false),
+        ("panel the agent exec'd", Some(ControlSender { pid: 500, flags: 0 }), false, false),
+        ("pid 0 without the shell flag", Some(ControlSender { pid: 0, flags: 0 }), false, false),
+        ("unknown flag bits only", Some(ControlSender { pid: 9, flags: 1 << 7 }), false, false),
     ];
     let mut cells = 0;
     for command in &commands {
-        for (name, sender, operator) in &senders {
+        for (name, sender, operator, shell) in &senders {
+            // fi2 Q-J2a: the panel's flag covers only what the panel sends.
             let expected = match command {
                 ControlCommand::NeuralDisarm => true,
                 ControlCommand::Unrecognized => false,
-                _ => *operator,
+                ControlCommand::Goal(_) | ControlCommand::ConfigUpdated => *operator,
+                ControlCommand::Confirm(_)
+                | ControlCommand::Deny(_)
+                | ControlCommand::Pending
+                | ControlCommand::NeuralArm => *shell,
             };
             assert_eq!(control_command_allowed(command, *sender), expected, "{:?} from {}", command, name);
             cells += 1;
         }
     }
-    assert_eq!(cells, 56);
+    assert_eq!(cells, 64);
 }
 
 #[test]
@@ -77,7 +83,7 @@ fn k4_the_daemon_reads_its_mailbox_only_with_sender_identity() {
     assert!(!ORCHESTRATOR_SOURCE.contains("SYS_IPC_RECEIVE,"));
     let poll = ORCHESTRATOR_SOURCE.split("fn ipc_poll").nth(1).expect("ipc_poll");
     let check = poll.find("control_command_allowed").expect("policy");
-    let apply = poll.find("confirmation_gate.approve").expect("approve");
+    let apply = poll.find("confirmation_gate.confirm(").expect("confirm");
     assert!(check < apply, "the sender check must come before approving");
 }
 
@@ -213,11 +219,13 @@ fn k3_the_default_gate_fails_closed_and_the_daemon_installs_the_kernel_source() 
     let a = args(&[("path", s("/tmp/k3.txt"))]);
     assert_eq!(clear_for_execution(&mut g, "delete_file", &a, 2, 10), Clearance::Refused);
     // Tools that do not act on a file need no version.
-    let b = args(&[("service_id", JsonValue::Number(3.0))]);
-    assert!(matches!(clear_for_execution(&mut g, "service_stop", &b, 2, 10), Clearance::Awaiting { .. }));
-    // Both places the daemon builds its gate install the kernel source.
+    let b: Vec<(String, JsonValue)> = Vec::new();
+    assert!(matches!(clear_for_execution(&mut g, "play_audio", &b, 2, 10), Clearance::Awaiting { .. }));
+    // Both places the daemon builds its gate install the kernel source
+    // (through Orchestrator::install_gate_sources since fi2).
     assert!(ORCHESTRATOR_SOURCE.contains(".with_file_versions(kernel_file_version)"));
-    assert!(MAIN_SOURCE.contains(".with_file_versions(cognitive::orchestrator::kernel_file_version)"));
+    assert!(ORCHESTRATOR_SOURCE.contains("Self::install_gate_sources(ConfirmationGate::new("));
+    assert!(MAIN_SOURCE.contains("cognitive::orchestrator::Orchestrator::install_gate_sources("));
     assert!(ORCHESTRATOR_SOURCE.contains("const SYS_FILE_VERSION: u64 = 62;"));
 }
 
