@@ -149,7 +149,7 @@ no printed digit of Tables 3 to 7 can change (the largest change is a millionth 
 
 The commands of `reproduce_world_model_paper.py --full` (JEPA encoder, transition seeds 17, 42 and 91,
 autoencoder baseline, paper evaluation), run by `fi1_thread_os_world_model.py` with the published
-dataset (digest ae7498c7..., read from the main checkout). Full pipeline at 4 threads (64 minutes on a
+dataset (digest ae7498c7..., read from the main checkout). Full pipeline at 4 threads (52 minutes on a
 loaded machine) and at 1 thread (38 minutes); at 24 threads the JEPA encoder and the selected transition
 seed 17 only (truncated, to keep the time under the machine lock short).
 
@@ -291,6 +291,9 @@ Pinned entry points beside frozen or byte-verified producers (originals unchange
 | `train_world_model_jepa_v2.py` | the OS JEPA encoder trainer | frozen in `world_model_training_config.json` |
 
 Each takes `--threads N` (default 1) plus the original's arguments and stamps the original's JSON output.
+Checked end to end: `evaluate_physical_jepa_robustness_v2.py --threads 1 --artifact <verifier's artifact>`
+writes exactly the 1-thread evaluator's report plus `reproducibility_environment` (OpenBLAS 0.3.29,
+Haswell, 1 thread).
 
 Tests: `scripts/test_repro_env.py`, 13 tests (pinning in process and in a child, unpin, LightGBM
 keywords, torch, the record's fields, single-thread repeatability of a training-sized product, the
