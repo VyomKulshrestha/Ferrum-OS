@@ -82,6 +82,17 @@ pub fn total_canvas_bytes() -> usize {
         .sum()
 }
 
+/// Canvas bytes held by `pid`'s app windows (the heap ledger reads it).
+pub fn canvas_bytes_of(pid: u64) -> usize {
+    compositor::COMPOSITOR
+        .lock()
+        .windows
+        .iter()
+        .filter(|w| matches!(w.win_type, WindowType::App(owner) if owner == pid))
+        .map(|w| w.pixels.len() * 4)
+        .sum()
+}
+
 /// Create a new app-owned window for `pid` and register it with the
 /// compositor. Returns the new window's id, or 0 when the canvas would take
 /// the app windows past `MAX_TOTAL_CANVAS_BYTES` or the heap cannot hold it.
@@ -90,6 +101,10 @@ pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64
     let canvas_h = clamp_dim(canvas_h, MIN_CANVAS_H, MAX_CANVAS_H);
     let requested = canvas_w as usize * canvas_h as usize * 4;
     if total_canvas_bytes() + requested > MAX_TOTAL_CANVAS_BYTES {
+        return 0;
+    }
+    // The process's whole kernel heap, canvases included (fi2 K1 item 4).
+    if !crate::memory::ledger::fits(pid, requested) {
         return 0;
     }
     let id = NEXT_APP_WINDOW_ID.fetch_add(1, Ordering::SeqCst);

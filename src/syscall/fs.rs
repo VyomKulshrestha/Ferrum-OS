@@ -237,10 +237,14 @@ pub fn sys_write_file_checked(
         None if data_len == 0 => alloc::vec::Vec::new(),
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    // RamFS content is charged to the writing process (heap ledger).
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     if let Some(expected) = expected {
-        return guarded_result(crate::fs::write_file_if_version(&path, &data, expected));
+        return guarded_result(crate::memory::ledger::with_fs_owner(pid, || {
+            crate::fs::write_file_if_version(&path, &data, expected)
+        }));
     }
-    match crate::fs::create_file_bytes(&path, &data) {
+    match crate::memory::ledger::with_fs_owner(pid, || crate::fs::create_file_bytes(&path, &data)) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }

@@ -106,6 +106,29 @@ async function consoleChecks() {
     field(out, "exit") === "0" && portLine(tail), line(out, "port-forge"));
 }
 
+// Item 4: one process's kernel heap across windows, IPC, audit, sockets and
+// RamFS is capped as a whole.
+async function ledgerChecks() {
+  if (skip.has("heap-ledger")) return;
+  let out = await run("heap-ledger", 60);
+  let d = line(out, "heap-ledger");
+  const cap = Number(field(out, "cap"));
+  check("A: ledger: the request that would pass the per-process cap (the second 400 KiB file) is refused, every other call succeeds",
+    field(out, "failed_calls") === "WriteFile_b" && Number(field(out, "refused")) >= 1
+      && Number(field(out, "peak")) <= cap && Number(field(out, "total")) <= cap, d);
+  check("A: ledger: windows, RamFS, audit and socket bytes are all charged to the process",
+    Number(field(out, "windows")) >= 3404800 && Number(field(out, "ramfs")) >= 409600
+      && Number(field(out, "audit")) > 0 && Number(field(out, "sockets")) > 0);
+  check("A: ledger: released at reap (no entry, no window, no socket left)",
+    field(out, "ended") === "true" && field(out, "entry_after_reap") === "false"
+      && field(out, "windows_after") === "0" && field(out, "sockets_after") === "0");
+  await run("ledger-off");
+  out = await run("heap-ledger", 60);
+  await run("ledger-on");
+  check("A: ledger control (enforcement switched off, same image): the process holds more than the cap and nothing is refused",
+    field(out, "failed_calls") === "none" && Number(field(out, "total")) > cap, line(out, "heap-ledger"));
+}
+
 // ---- boot A: Haswell (SMEP, no SMAP) ----------------------------------------
 if (boots.includes("A")) {
   try {
@@ -121,6 +144,7 @@ if (boots.includes("A")) {
         && field(out, "bracketed_read_faulted") === "false", line(out, "smap"));
     await sweepCheck("A:", false);
     await consoleChecks();
+    await ledgerChecks();
     check("A: no kernel fault", !kernelFault(shell.serial()));
   } catch (error) {
     check("A: harness completed", false, String(error?.message || error).split("\n")[0]);

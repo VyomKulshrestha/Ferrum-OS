@@ -35,6 +35,35 @@ pub struct AuditEntry {
     pub tick: u64,
     pub event: AuditEvent,
     pub message: String,
+    /// The process charged for this record in the heap ledger (AuditWrite),
+    /// 0 for the kernel's own records.
+    pub charged_to: u64,
+}
+
+impl AuditEntry {
+    fn heap_cost(&self) -> usize {
+        self.message.len() + core::mem::size_of::<AuditEntry>()
+    }
+}
+
+/// An AuditWrite record from `pid`, charged to it in the per-process heap
+/// ledger while the ring holds it (fi2 K1 item 4). False when the record
+/// would take the process past its budget; nothing is logged then.
+pub fn log_user_event(pid: u64, message: &str) -> bool {
+    let cost = message.len() + core::mem::size_of::<AuditEntry>();
+    if !crate::memory::ledger::fits(pid, cost) {
+        return false;
+    }
+    log_event(AuditEvent::UserAudit, message);
+    if let Some(mut log) = AUDIT_LOG.try_lock() {
+        if let Some(last) = log.entries.last_mut() {
+            if last.charged_to == 0 && last.event == AuditEvent::UserAudit && last.message == message {
+                last.charged_to = pid;
+                crate::memory::ledger::add(pid, crate::memory::ledger::Kind::Audit, cost);
+            }
+        }
+    }
+    true
 }
 
 /// Maximum number of audit entries to retain in memory
@@ -76,12 +105,17 @@ pub fn log_event(event: AuditEvent, message: &str) {
             tick,
             event,
             message: message.to_string(),
+            charged_to: 0,
         });
-        
+
         // Trim old entries if over capacity
         if log.entries.len() > MAX_ENTRIES {
             let drain_count = log.entries.len() - MAX_ENTRIES;
-            log.entries.drain(0..drain_count);
+            for dropped in log.entries.drain(0..drain_count) {
+                if dropped.charged_to != 0 {
+                    crate::memory::ledger::sub(dropped.charged_to, crate::memory::ledger::Kind::Audit, dropped.heap_cost());
+                }
+            }
             log.flushed_count = log.flushed_count.saturating_sub(drain_count);
         }
         

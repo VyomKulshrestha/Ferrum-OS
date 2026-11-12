@@ -110,6 +110,18 @@ impl Message {
     pub fn payload(&self) -> &[u8] {
         &self.payload
     }
+
+    /// Kernel heap this message holds while queued, charged to its sender
+    /// in the per-process heap ledger.
+    fn heap_cost(&self) -> usize {
+        self.payload.len() + self.target.service.len() + self.target.channel.len()
+            + self.required_capability.len() + core::mem::size_of::<Message>()
+    }
+
+    /// Release the sender's ledger charge for a message leaving the queue.
+    fn release_charge(&self) {
+        crate::memory::ledger::sub(self.source_pid, crate::memory::ledger::Kind::Ipc, self.heap_cost());
+    }
 }
 
 /// Pids of assistant panels the kernel launched for the operator. Pids are
@@ -132,7 +144,13 @@ pub fn forget_pid(pid: u64) {
     x86_64::instructions::interrupts::without_interrupts(|| {
         OPERATOR_PANEL_PIDS.lock().remove(&pid);
         MAILBOX_OWNERS.lock().retain(|_, owner| *owner != pid);
-        BROKER.lock().queue.retain(|message| message.target_pid != pid);
+        BROKER.lock().queue.retain(|message| {
+            let keep = message.target_pid != pid;
+            if !keep {
+                message.release_charge();
+            }
+            keep
+        });
     });
 }
 
@@ -327,6 +345,12 @@ pub fn send(message: Message, held_capabilities: &[String]) -> Result<u64, IpcEr
 
     let id = message.id;
     let operator = message.sender_flags & OPERATOR_SENDERS != 0;
+    // The sender's whole kernel heap (fi2 K1 item 4).
+    let cost = message.heap_cost();
+    let sender = message.source_pid;
+    if !crate::memory::ledger::fits(sender, cost) {
+        return Err(IpcError::QueueFull);
+    }
     let mailbox = String::from(mailbox_name(&message.target.service));
 
     x86_64::instructions::interrupts::without_interrupts(|| {
@@ -334,7 +358,11 @@ pub fn send(message: Message, held_capabilities: &[String]) -> Result<u64, IpcEr
         // Messages left for an earlier owner of this mailbox are never
         // delivered; do not let them hold its slots.
         broker.queue.retain(|queued| {
-            mailbox_name(&queued.target.service) != mailbox || queued.target_pid == owner
+            let keep = mailbox_name(&queued.target.service) != mailbox || queued.target_pid == owner;
+            if !keep {
+                queued.release_charge();
+            }
+            keep
         });
         let service_depth = broker
             .queue
@@ -356,6 +384,7 @@ pub fn send(message: Message, held_capabilities: &[String]) -> Result<u64, IpcEr
             return Err(IpcError::QueueFull);
         }
         broker.queue.push_back(message);
+        crate::memory::ledger::add(sender, crate::memory::ledger::Kind::Ipc, cost);
         broker.sent += 1;
         Ok(id)
     })
@@ -374,6 +403,7 @@ pub fn receive_for_service(service: &str) -> Result<Message, IpcError> {
         };
 
         let message = broker.queue.remove(index).ok_or(IpcError::NoMessage)?;
+        message.release_charge();
         broker.received += 1;
         Ok(message)
     })
@@ -391,6 +421,7 @@ pub fn receive_for_owner(service: &str, owner: u64) -> Result<Message, IpcError>
             return Err(IpcError::NoMessage);
         };
         let message = broker.queue.remove(index).ok_or(IpcError::NoMessage)?;
+        message.release_charge();
         broker.received += 1;
         Ok(message)
     })

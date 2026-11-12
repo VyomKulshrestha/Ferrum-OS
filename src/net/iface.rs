@@ -57,6 +57,9 @@ pub const HALF_OPEN_TIMEOUT_MS: u64 = 3000;
 /// Listeners reset by the half-open timeout since boot.
 pub static HALF_OPEN_RESETS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 const SOCKET_BUFFER_BYTES: usize = 16384;
+/// Kernel heap one TCP socket holds (two buffers and the socket), for the
+/// per-process heap ledger.
+pub const SOCKET_HEAP_BYTES: usize = 2 * SOCKET_BUFFER_BYTES + 1024;
 const FD_BASE: u64 = 100; // FDs start at 100 to avoid collision with stdio
 static NEXT_EPHEMERAL_PORT: AtomicU16 = AtomicU16::new(0);
 
@@ -136,6 +139,9 @@ pub fn socket_create_tcp(owner_pid: u64) -> Result<u64, &'static str> {
     // used to abort the kernel when the heap could not hold them.
     if sockets_owned_by(owner_pid) >= MAX_SOCKETS_PER_OWNER {
         return Err("per-process socket limit reached");
+    }
+    if !crate::memory::ledger::fits(owner_pid, SOCKET_HEAP_BYTES) {
+        return Err("out of kernel memory");
     }
     let rx_buffer = tcp::SocketBuffer::new(try_socket_buffer().ok_or("out of kernel memory")?);
     let tx_buffer = tcp::SocketBuffer::new(try_socket_buffer().ok_or("out of kernel memory")?);

@@ -545,10 +545,9 @@ fn dispatch_with_context(
                 Some(message) if !message.trim().is_empty() && message.len() <= 1024 => message,
                 _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
             };
-            crate::logging::audit::log_event(
-                crate::logging::audit::AuditEvent::UserAudit,
-                &message,
-            );
+            if !crate::logging::audit::log_user_event(caller_pid, &message) {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
             SyscallResult::ok(0)
         }
         x if x == SyscallNumber::Socket as u64 => {

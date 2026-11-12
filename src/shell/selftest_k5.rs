@@ -71,6 +71,15 @@ pub fn run(name: &str) -> bool {
             crate::scheduler::USER_IOPL3.store(false, Ordering::SeqCst);
             println!("selftest iopl3-off: user_iopl3=false");
         }
+        "heap-ledger" => heap_ledger(),
+        "ledger-off" => {
+            crate::memory::ledger::ENFORCE.store(false, Ordering::SeqCst);
+            println!("selftest ledger-off: enforce=false");
+        }
+        "ledger-on" => {
+            crate::memory::ledger::ENFORCE.store(true, Ordering::SeqCst);
+            println!("selftest ledger-on: enforce=true");
+        }
         _ => return false,
     }
     true
@@ -360,6 +369,80 @@ fn smap_sweep() {
         ended,
         exit_str(exit),
         if failed.is_empty() { String::from("none") } else { failed.join(",") }
+    );
+}
+
+// ---- per-process heap ledger (item 4) -------------------------------------------
+
+/// One ring-3 process asks the kernel to hold more than its budget through
+/// five kinds of objects: two of the largest windows (3.4 MB), a 4 KiB IPC
+/// message to its own mailbox, an audit record, a socket, and two 400 KiB
+/// RamFS files. Each kind alone is within its own bound; together they pass
+/// the 4 MiB ledger cap at the second file. The process then receives its
+/// message, sleeps while the test samples the ledger, and exits.
+fn heap_ledger() {
+    use crate::memory::ledger;
+    let out = |n: u64| crate::process::USER_STACK_BASE + 0x1000 * n;
+    let big = crate::process::USER_STACK_BASE + 0x10000; // 400 KiB of zeros
+    let mut p = SweepProgram { data: Vec::new(), calls: Vec::new() };
+    let title = p.put(b"k5 ledger");
+    let me = p.put(b"selftest-ledger");
+    let audit = p.put(b"k5 ledger audit record");
+    let fa = p.put(b"/k5ledger-a");
+    let fb = p.put(b"/k5ledger-b");
+    let names = [
+        "CreateWindow", "CreateWindow", "IpcSend", "AuditWrite", "Socket", "WriteFile_a", "WriteFile_b",
+        "IpcReceive", "Sleep",
+    ];
+    p.call(44, [title.0, title.1, 760, 560, 0]);
+    p.call(44, [title.0, title.1, 760, 560, 0]);
+    p.call(1, [me.0, me.1, out(1), 4096, 0]);
+    p.call(6, [audit.0, audit.1, 0, 0, 0]);
+    p.call(7, [2, 1, 0, 0, 0]);
+    p.call(16, [fa.0, fa.1, big, 400 * 1024, 0]);
+    p.call(16, [fb.0, fb.1, big, 400 * 1024, 0]);
+    p.call(2, [out(3), 4096, me.0, me.1, 0]);
+    p.call(32, [1500, 0, 0, 0, 0]);
+    let code = p.build();
+    let caps = [String::from("cap:system:all")];
+    let refused_before = ledger::REFUSED.load(Ordering::SeqCst);
+    let pid = match start_ring3("selftest-ledger", &code, &caps) {
+        Ok(pid) => pid,
+        Err(e) => {
+            println!("selftest heap-ledger: start_error={}", e.replace(' ', "_"));
+            return;
+        }
+    };
+    super::selftest_k3::yield_for(700);
+    let u = ledger::usage(pid);
+    let total: usize = u.iter().sum();
+    let peak = ledger::peak(pid);
+    let (ended, exit) = run_until_dead(pid, 6000);
+    let _ = crate::fs::remove("/k5ledger-a");
+    let _ = crate::fs::remove("/k5ledger-b");
+    let failed: Vec<&str> = match exit {
+        Some(mask) => names.iter().enumerate().filter(|(i, _)| mask & (1 << i) != 0).map(|(_, n)| *n).collect(),
+        None => Vec::new(),
+    };
+    println!(
+        "selftest heap-ledger: enforce={} cap={} ipc={} launch={} audit={} ramfs={} windows={} sockets={} total={} peak={} refused={} ended={} exit={} failed_calls={} entry_after_reap={} windows_after={} sockets_after={}",
+        ledger::ENFORCE.load(Ordering::SeqCst),
+        ledger::PROCESS_HEAP_CAP,
+        u[0],
+        u[1],
+        u[2],
+        u[3],
+        u[4],
+        u[5],
+        total,
+        peak,
+        ledger::REFUSED.load(Ordering::SeqCst) - refused_before,
+        ended,
+        exit_str(exit),
+        if failed.is_empty() { String::from("none") } else { failed.join(",") },
+        ledger::has_entry(pid),
+        crate::gui::app_window::canvas_bytes_of(pid),
+        crate::net::iface::sockets_owned_by(pid)
     );
 }
 
