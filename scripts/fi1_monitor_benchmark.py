@@ -121,9 +121,12 @@ def labels_and_events(unit, stream):
         import tt1d_data_v2 as TD2
 
         v = stream.load("valid", mmap=False)
-        valid = TD2.provics_valid_v2(
-            v, unit.spec["window"]
-        )  # the audit's extended mask
+        if (
+            v is not None
+        ):  # development segments carry no mask: they are cut at gaps, every step is valid
+            valid = TD2.provics_valid_v2(
+                v, unit.spec["window"]
+            )  # the audit's extended mask
         ev = stream.load("events", mmap=False)
         lab = np.zeros(n, bool)
         events = []

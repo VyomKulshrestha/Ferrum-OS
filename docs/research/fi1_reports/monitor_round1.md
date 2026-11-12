@@ -142,6 +142,106 @@ reference: d1 103 against 60.6 [52, 70]; mad+second 128 against 72.0 [61, 85]; s
 second+loro 122 against 63.2 [52, 75]. Net of chance, TEP onset recall rises from 0.277 to 0.366 / 0.358 / 0.384,
 about half the raw gain: shorter alarms also make chance onsets more likely.
 
-## Check set
+## Check set (run once, 2026-11-12 08:23-08:25 UTC; `python scripts/fi1_monitor_benchmark.py check mad+second second second+loro`)
 
-(filled in after the single check run)
+All eight check units were extracted (no failure; voraus-AD took 56 minutes). Check ledger:
+`target/real-telemetry/fi1/monitor/check_ledger.jsonl`, one row per monitor. Nothing was changed after the run.
+
+### Reproduction on the check units (baseline d1, refitted)
+
+| dataset | harness | registered |
+|---|---|---|
+| HAI 20.07 | any 36/38, onset 26, share 0.3910, 2.23 FA/day; tau0 17.2595 | 36/38, onset 26, 0.3910, 2.23; tau0 17.2588 |
+| HAI 23.05 | 31/52, onset 31, share 0.0071, 1.27 FA/day | 31/52, onset 31, 0.0071, 1.27 (tt1c, exploratory) |
+| HyGrid-ICS | 27/91, onset 3, share 0.0407, 19.20 FA/day | 27/91, onset 3, 0.0407, 19.20 |
+| ProvICS (extended mask) | 23/32, onset 3, share 0.4399, FA 33.71 x, sealed 0.92 x | 23/32, onset 3, 0.4399, 33.71 x, sealed 0.92 x |
+| TEP modes 4-6 | any 79/92, onset 57, share 0.0136; sealed FA 0.93 x | 79/92, onset 57, 0.0136 (registered units mode_4..6) |
+| voraus-AD | 243/755 anomalous samples, FPR 0.0811; tau0 9.798 | 252/755, FPR 0.0811; tau0 9.776 |
+
+Every count reproduces except voraus-AD (243 instead of 252 detected samples at the same false-positive rate). Its
+threshold is 0.2 % higher because of the thread settings; with 755 per-sample maxima close together, 9 samples sit
+between the two thresholds.
+
+### Before and after
+
+Onset detected / events, onset recall net of its circular-shift chance reference in brackets, then the share of
+unlabelled time in alarm. voraus-AD: detected anomalous samples, and the false-positive rate of normal samples as
+its alarm share (no chance reference for samples).
+
+| dataset | d1 (baseline) | mad+second | second | second+loro |
+|---|---|---|---|---|
+| HAI 20.07 | 26/38 (+0.645), 0.3910 | 26/38 (+0.643), 0.3910 | 26/38 (+0.645), 0.3908 | 26/38 (+0.647), 0.3906 |
+| HAI 23.05 | 31/52 (+0.568), 0.0071 | 30/52 (+0.548), 0.0066 | 31/52 (+0.567), 0.0067 | 31/52 (+0.567), 0.0067 |
+| BATADAL | 14/14 (+0.661), 0.0138 | 14/14 (+0.523), 0.0127 | 14/14 (+0.614), 0.0101 | 14/14 (+0.622), 0.0100 |
+| HyGrid-ICS | 3/91 (-0.021), 0.0407 | 14/91 (+0.018), 0.0368 | 15/91 (+0.021), 0.0067 | 15/91 (+0.021), 0.0067 |
+| voraus-AD | 243/755, 0.0811 | 324/755, 0.1480 | 277/755, 0.0979 | 277/755, 0.0979 |
+| TEP modes 4-6 | 57/92 (+0.222), 0.0136 | 70/92 (+0.313), 0.0066 | 64/92 (+0.256), 0.0129 | 59/92 (+0.253), 0.0125 |
+| ProvICS | 3/32 (-0.038), 0.4399 | 3/32 (-0.053), 0.4224 | 3/32 (-0.041), 0.3889 | 3/32 (-0.041), 0.3889 |
+| mean onset recall | 0.478 | 0.528 (+0.050) | 0.514 (+0.036) | 0.507 (+0.028) |
+| mean alarm share | 0.1410 | 0.1463 (+0.0053) | 0.1305 (-0.0105) | 0.1305 (-0.0105) |
+| largest onset loss on one dataset | | -0.019 (HAI 23.05) | 0 | 0 |
+
+Other columns of the check output (all in the JSON):
+- False alarms against the budget went above 1 on BATADAL for mad+second (1.21 x; baseline 0.73 x), and on voraus-AD
+  for every monitor (FPR 1.62 x the 5 % target for d1, 2.96 x for mad+second, 1.96 x for second and second+loro).
+- On TEP modes 4-6 every survivor loses first events (onset 38/51 for d1; 32, 33 and 29) and gains followers (19/41
+  for d1; 38, 31 and 30). Median alarm-episode length on TEP stays at 50-68 s.
+- On HyGrid-ICS the onset gain (3 to 14-15 of 91) sits at its chance level (chance 12-13, against 4.9 for d1).
+
+### Verdict (the plan's definition, applied as written)
+
+| candidate | mean onset recall up >= 0.05 | mean alarm share not higher | no dataset loses > 0.05 | improved |
+|---|---|---|---|---|
+| mad+second | yes (+0.0500) | no (+0.0053, from voraus-AD) | yes | no |
+| second | no (+0.036) | yes | yes | no |
+| second+loro | no (+0.028) | yes | yes | no |
+
+**Not improved.** No candidate meets the definition on the check set. The alarm share on HAI 20.07 stays at 0.391
+for every candidate; on ProvICS it falls from 0.440 to 0.389 (second, second+loro) or 0.422 (mad+second). Onset
+recall on both is unchanged. Where onset recall rose (TEP, HyGrid-ICS, voraus-AD), half or more of the rise is the
+higher chance level of shorter alarms, and on TEP it is bought with first-event detections.
+
+## Post-check description of the two saturating recordings (not used to choose anything)
+
+`python scripts/fi1_monitor_diagnose.py hai-20.07 provics`, run after the check; no candidate was changed or rerun.
+Running it exposed a bug in `labels_and_events` for ProvICS development segments (they carry no validity mask); the
+check run never passes those segments through it, so no check number is affected. Fixed in the final commit.
+
+- **HAI 20.07.** 94 % of unlabelled alarm steps have a sensor outside the world-model fit range (6.7 % of quiet
+  steps). On unlabelled test time 18 of 31 channels run above twice their normal residual spread (median 2.3x, max
+  38x), and several carry a constant offset (mean residual up to 27 normal scales). The attack-free training
+  recordings already disagree: one runs at 3.3x on some channel, and thresholds calibrated on each recording alone
+  span a factor 2.2. Dropping the five busiest channels (chosen on the test alarms, so an oracle, not a candidate)
+  would cut the share from 0.39 to 0.11 and raise onsets from 26 to 34 of 38.
+- **ProvICS.** The attack-free recordings agree (thresholds within 1 %), but on the attack recording every one of
+  the 13 channels has a residual spread above twice normal (median 14x, max 90x). The unlabelled time of the attack
+  recording is not in the regime of the benign recording; no static recombination of the residuals brings its alarm
+  share down far.
+
+## What to try next
+
+1. A regime check in front of the residual score: time when sensors leave the fit range (94 % of the HAI 20.07
+   alarm time) is flagged as "outside the model's competence" with its own budget, instead of as an attack alarm.
+   The clipped model (`clip`, exact and cheap) could score inside that state.
+2. Normal data that covers the test regime for HAI 20.07: its own training recordings already differ by a factor 2.2
+   in calibrated threshold.
+3. Keep the ranks 2-4 combination (`second`) only as a second score for follower attacks on TEP, not as a
+   replacement: it trades first events for followers.
+4. In later rounds, count onset gains net of chance and report first and follower events separately.
+
+## Commands
+
+    python scripts/fi1_monitor_extract.py <unit>                 # residual cache (units: fi1_monitor_extract.UNITS)
+    python scripts/fi1_monitor_extract.py coefs batadal hai-22.04 hai-21.03
+    python scripts/fi1_monitor_extract.py tep-add-sensors tep-m0
+    python scripts/fi1_monitor_benchmark.py tep-cache             # metric code against the registered TEP record
+    python scripts/fi1_monitor_benchmark.py registered
+    python scripts/fi1_monitor_diagnose.py hai-21.03 hai-22.04 tep-m2 tep-m3
+    python scripts/fi1_monitor_benchmark.py select mad tail max second stable loro h1 h5 clip mad+second clip+second clip+mad+second second+loro
+    python scripts/fi1_monitor_benchmark.py check mad+second second second+loro
+    python scripts/fi1_monitor_diagnose.py hai-20.07 provics      # post-check, descriptive
+    python scripts/fi1_monitor_collect.py                         # docs/research/fi1_monitor_round1.json
+    python -m pytest -q scripts/test_fi1_monitor_v3.py            # 11 tests
+
+Process notes: the first TEP mode 1 extraction ran out of memory while fitting (LightGBM "bad allocation" at 0.8 GB
+free) and was redone; the session restarted once, and the cut-off HAI 20.07 cache was deleted and rebuilt.
