@@ -21,6 +21,8 @@ use crate::twin::{
 pub const MAX_ADAPTERS: usize = 128;
 pub const MAX_ENDPOINTS: usize = 512;
 pub const MAX_COMMAND_CLAIMS: usize = 1_024;
+/// Claims only an emergency stop may use (see fleet::STOP_RESERVED_JOURNAL_SLOTS).
+pub const STOP_RESERVED_COMMAND_CLAIMS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AdapterId(pub u64);
@@ -366,6 +368,20 @@ impl AdapterRegistry {
         if payload_site.is_some_and(|site_id| site_id != self.adapters[adapter_index].site_id) {
             return Err(AdapterError::EndpointMismatch);
         }
+        // Actor telemetry is bound to the actor the endpoint controls, or,
+        // for an endpoint that controls none (gateway, wearable), to an actor
+        // of the adapter's own site.
+        if let AdapterPayload::ActorTelemetry(telemetry) = frame.payload {
+            let bound = match endpoint.controlled_actor_id {
+                Some(actor_id) => actor_id == telemetry.actor_id,
+                None => domain
+                    .actor(telemetry.actor_id)
+                    .is_some_and(|actor| actor.site_id == self.adapters[adapter_index].site_id),
+            };
+            if !bound {
+                return Err(AdapterError::EndpointMismatch);
+            }
+        }
 
         let event_id = twin.next_event_id().map_err(AdapterError::TwinRejected)?;
         twin.apply(
@@ -445,7 +461,12 @@ impl AdapterRegistry {
         if self.command_claims.contains(&command.idempotency_key) {
             return Err(AdapterError::DuplicateCommand);
         }
-        if self.command_claims.len() >= MAX_COMMAND_CLAIMS {
+        let claim_limit = if command.kind == CommandKind::Stop {
+            MAX_COMMAND_CLAIMS
+        } else {
+            MAX_COMMAND_CLAIMS - STOP_RESERVED_COMMAND_CLAIMS
+        };
+        if self.command_claims.len() >= claim_limit {
             return Err(AdapterError::CapacityExceeded);
         }
         self.command_claims.push(command.idempotency_key);
@@ -849,6 +870,30 @@ mod tests {
             ),
             Err(AdapterError::DuplicateCommand)
         );
+    }
+
+    #[test]
+    fn ordinary_commands_cannot_exhaust_route_claims_for_stops() {
+        let mut adapters = registry(AdapterState::Online);
+        let permit = ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired);
+        let mut key = 1;
+        while adapters.route_authorized(command(key), permit, 10).is_ok() {
+            key += 1;
+        }
+        assert_eq!(
+            adapters.route_authorized(command(key), permit, 10),
+            Err(AdapterError::CapacityExceeded)
+        );
+        let mut stop = command(key + 1);
+        stop.kind = CommandKind::Stop;
+        stop.metadata = CommandMetadata::kernel(
+            10,
+            1,
+            1,
+            EndpointCapability::EmergencyStop,
+            ConfirmationProvenance::NotRequired,
+        );
+        assert!(adapters.route_authorized(stop, permit, 10).is_ok());
     }
 
     #[test]

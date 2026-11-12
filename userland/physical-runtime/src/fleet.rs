@@ -13,6 +13,9 @@ use crate::domain::SiteId;
 pub const MAX_FLEET_DEVICES: usize = 128;
 pub const MAX_PENDING_UPDATES: usize = 128;
 pub const MAX_COMMAND_JOURNAL: usize = 2_048;
+/// Journal slots only an emergency stop may use, so ordinary commands can
+/// never exhaust the journal and leave a stop unqueueable.
+pub const STOP_RESERVED_JOURNAL_SLOTS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceLifecycle {
@@ -391,7 +394,12 @@ impl FleetManager {
         }) {
             return Err(FleetError::DuplicateCommand);
         }
-        if self.command_journal.len() >= MAX_COMMAND_JOURNAL {
+        let limit = if routed.command.kind == crate::adapter::CommandKind::Stop {
+            MAX_COMMAND_JOURNAL
+        } else {
+            MAX_COMMAND_JOURNAL - STOP_RESERVED_JOURNAL_SLOTS
+        };
+        if self.command_journal.len() >= limit {
             return Err(FleetError::CapacityExceeded);
         }
         Ok(())
@@ -489,6 +497,26 @@ impl FleetManager {
             return Err(FleetError::CommandConflict);
         }
         claim.state = state;
+        claim.last_transition_tick = tick;
+        Ok(())
+    }
+
+    /// Revokes a claimed command whose permit no longer holds at the time of
+    /// use. Expired is terminal: the command can never be claimed again.
+    pub(crate) fn revoke_dispatched(
+        &mut self,
+        command_id: u64,
+        tick: u64,
+    ) -> Result<(), FleetError> {
+        let claim = self
+            .command_journal
+            .iter_mut()
+            .find(|claim| claim.routed.command.command_id == command_id)
+            .ok_or(FleetError::UnknownCommand)?;
+        if claim.state != CommandDeliveryState::Dispatched {
+            return Err(FleetError::CommandConflict);
+        }
+        claim.state = CommandDeliveryState::Expired;
         claim.last_transition_tick = tick;
         Ok(())
     }
@@ -743,6 +771,24 @@ mod tests {
             fleet.command_claim(1).unwrap().state,
             CommandDeliveryState::Expired
         );
+    }
+
+    #[test]
+    fn ordinary_commands_cannot_exhaust_the_journal_for_stops() {
+        let mut fleet = FleetManager::new();
+        let mut id = 1;
+        while fleet.queue_command(command(id, 100), 10).is_ok() {
+            id += 1;
+        }
+        assert_eq!(
+            fleet.queue_command(command(id, 100), 10),
+            Err(FleetError::CapacityExceeded)
+        );
+        let mut stop = command(id + 1, 100);
+        stop.command.kind = CommandKind::Stop;
+        stop.command.metadata.requested_capability = EndpointCapability::EmergencyStop;
+        fleet.queue_command(stop, 10).unwrap();
+        assert_eq!(fleet.claim_next_ready(AdapterId(1), 10), Some(stop));
     }
 
     #[test]

@@ -292,87 +292,24 @@ impl SafetySupervisor {
                 SafetyReason::TwinRevisionMismatch,
             );
         }
-        if endpoint
-            .controlled_actor_id
-            .and_then(|actor_id| domain.actor(actor_id))
-            .is_some_and(|actor| actor.status == ActorStatus::EmergencyStop)
+        apply_deterministic_interlocks(
+            policy,
+            endpoint,
+            domain,
+            twin,
+            command,
+            current_tick,
+            &mut decision,
+        );
+        if command.kind == CommandKind::MoveTo
+            && policy.require_human_approval_for_motion
+            && !context.human_approved
         {
             add_reason(
                 &mut decision,
-                SafetyVerdict::Block,
-                SafetyReason::EmergencyStoppedActor,
+                SafetyVerdict::RequireApproval,
+                SafetyReason::HumanApprovalRequired,
             );
-        }
-
-        if command.kind == CommandKind::MoveTo {
-            if !policy
-                .geofence
-                .contains(command.argument0, command.argument1, command.argument2)
-            {
-                add_reason(
-                    &mut decision,
-                    SafetyVerdict::Block,
-                    SafetyReason::GeofenceViolation,
-                );
-            }
-
-            match policy.proximity_sensor_id {
-                Some(sensor_id) => {
-                    if twin.sensor(sensor_id).is_some_and(|reading| {
-                        reading.kind != SensorKind::ProximityMillimeters
-                            || reading.site_id != policy.site_id
-                    }) {
-                        add_reason(
-                            &mut decision,
-                            SafetyVerdict::Block,
-                            SafetyReason::MissingProximitySensor,
-                        );
-                    } else if !twin.sensor_is_fresh(
-                        sensor_id,
-                        current_tick,
-                        policy.maximum_sensor_age_ticks,
-                    ) {
-                        add_reason(
-                            &mut decision,
-                            SafetyVerdict::Block,
-                            SafetyReason::StaleProximitySensor,
-                        );
-                    } else if twin
-                        .sensor(sensor_id)
-                        .is_some_and(|reading| reading.value < policy.minimum_clearance_mm)
-                    {
-                        add_reason(
-                            &mut decision,
-                            SafetyVerdict::Block,
-                            SafetyReason::UnsafeProximity,
-                        );
-                    }
-                }
-                None => add_reason(
-                    &mut decision,
-                    SafetyVerdict::Block,
-                    SafetyReason::MissingProximitySensor,
-                ),
-            }
-
-            if twin
-                .occupancy(policy.site_id, policy.zone_id)
-                .is_some_and(|occupancy| occupancy.humans > 0)
-                && !policy.allow_motion_with_humans
-            {
-                add_reason(
-                    &mut decision,
-                    SafetyVerdict::Block,
-                    SafetyReason::HumanOccupiedZone,
-                );
-            }
-            if policy.require_human_approval_for_motion && !context.human_approved {
-                add_reason(
-                    &mut decision,
-                    SafetyVerdict::RequireApproval,
-                    SafetyReason::HumanApprovalRequired,
-                );
-            }
         }
 
         if command.kind == CommandKind::SetOutput
@@ -441,6 +378,157 @@ impl SafetySupervisor {
         Ok(decision)
     }
 
+    /// Time-of-use re-check for a queued non-stop command. The permit was
+    /// issued against an earlier twin state; between issue and delivery the
+    /// actor may have been emergency-stopped, a human may have entered the
+    /// zone, proximity may have closed, the zone policy may have changed, or
+    /// the device may have left service. Any of these revokes the permit.
+    /// Predictions are not re-run: they may only add caution and already did
+    /// so at issue time.
+    pub(crate) fn permits_delivery(
+        &self,
+        adapters: &AdapterRegistry,
+        domain: &DomainRegistry,
+        twin: &OperationalTwin,
+        command: &AdapterCommand,
+        permit_policy_revision: u64,
+        current_tick: u64,
+    ) -> bool {
+        if command.kind == CommandKind::Stop {
+            return true;
+        }
+        let Some(adapter) = adapters.adapter(command.adapter_id) else {
+            return false;
+        };
+        let Some(endpoint) = adapters.endpoint(command.endpoint_id) else {
+            return false;
+        };
+        if adapter.state != crate::adapter::AdapterState::Online
+            || adapter.session_epoch != command.session_epoch
+            || endpoint.adapter_id != command.adapter_id
+        {
+            return false;
+        }
+        let Some(policy) = self
+            .policies
+            .iter()
+            .find(|policy| policy.site_id == adapter.site_id && policy.zone_id == endpoint.zone_id)
+        else {
+            return false;
+        };
+        if policy.revision != permit_policy_revision {
+            return false;
+        }
+        let mut decision = SafetyDecision {
+            verdict: SafetyVerdict::Allow,
+            policy_revision: policy.revision,
+            reasons: Vec::new(),
+            maximum_validated_risk_permille: 0,
+            maximum_shadow_risk_permille: 0,
+        };
+        apply_deterministic_interlocks(
+            policy,
+            endpoint,
+            domain,
+            twin,
+            command,
+            current_tick,
+            &mut decision,
+        );
+        decision.verdict == SafetyVerdict::Allow
+    }
+}
+
+/// Interlocks that depend only on current state (never on a model, the
+/// caller's approval flag or predictions). Shared by issue-time evaluation and
+/// the delivery-time re-check so the two cannot drift apart.
+fn apply_deterministic_interlocks(
+    policy: &SafetyPolicy,
+    endpoint: &crate::adapter::Endpoint,
+    domain: &DomainRegistry,
+    twin: &OperationalTwin,
+    command: &AdapterCommand,
+    current_tick: u64,
+    decision: &mut SafetyDecision,
+) {
+    if endpoint
+        .controlled_actor_id
+        .and_then(|actor_id| domain.actor(actor_id))
+        .is_some_and(|actor| actor.status == ActorStatus::EmergencyStop)
+    {
+        add_reason(
+            decision,
+            SafetyVerdict::Block,
+            SafetyReason::EmergencyStoppedActor,
+        );
+    }
+
+    if command.kind == CommandKind::MoveTo {
+        if !policy
+            .geofence
+            .contains(command.argument0, command.argument1, command.argument2)
+        {
+            add_reason(
+                decision,
+                SafetyVerdict::Block,
+                SafetyReason::GeofenceViolation,
+            );
+        }
+
+        match policy.proximity_sensor_id {
+            Some(sensor_id) => {
+                if twin.sensor(sensor_id).is_some_and(|reading| {
+                    reading.kind != SensorKind::ProximityMillimeters
+                        || reading.site_id != policy.site_id
+                }) {
+                    add_reason(
+                        decision,
+                        SafetyVerdict::Block,
+                        SafetyReason::MissingProximitySensor,
+                    );
+                } else if !twin.sensor_is_fresh(
+                    sensor_id,
+                    current_tick,
+                    policy.maximum_sensor_age_ticks,
+                ) {
+                    add_reason(
+                        decision,
+                        SafetyVerdict::Block,
+                        SafetyReason::StaleProximitySensor,
+                    );
+                } else if twin
+                    .sensor(sensor_id)
+                    .is_some_and(|reading| reading.value < policy.minimum_clearance_mm)
+                {
+                    add_reason(
+                        decision,
+                        SafetyVerdict::Block,
+                        SafetyReason::UnsafeProximity,
+                    );
+                }
+            }
+            None => add_reason(
+                decision,
+                SafetyVerdict::Block,
+                SafetyReason::MissingProximitySensor,
+            ),
+        }
+
+        if twin
+            .occupancy(policy.site_id, policy.zone_id)
+            .is_some_and(|occupancy| occupancy.humans > 0)
+            && !policy.allow_motion_with_humans
+        {
+            add_reason(
+                decision,
+                SafetyVerdict::Block,
+                SafetyReason::HumanOccupiedZone,
+            );
+        }
+    }
+}
+
+impl SafetySupervisor {
     pub fn authorize_and_route(
         &self,
         adapters: &mut AdapterRegistry,
