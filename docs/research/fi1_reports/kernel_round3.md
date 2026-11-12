@@ -17,15 +17,16 @@ push the kernel was type-checked on the host from a scratch copy (round 2's meth
 | A (first candidate) | 43189963256 | `7ed1bb1` | `6b81729c166eff25b97b61ab1a1233c8f6495f7ccba3d852cbcf8d3893755cc0` | 6,730,752 |
 | negctl | 43190864541 | `679a159` | `4e43738f4480a20212e5b183f08ffc6496bdcf1e7b3bede5d75690893a3580a4` | 6,620,160 |
 | B | 43190989931 | `479d444` | `f121ac0677b930927d6b60899322cf67528cadb9c72113b09140f9f555b01548` | 6,740,992 |
-| final | 43192738780 | `26dff86` | `c3ea01496b37467ef5f261c2d4c55ebd4222a165793b1bbe6335a3578bcf6c14` | 6,762,496 |
+| F (all fixes, normal EOI) | 43192738780 | `26dff86` | `c3ea01496b37467ef5f261c2d4c55ebd4222a165793b1bbe6335a3578bcf6c14` | 6,762,496 |
+| final (F + auto-EOI at boot, this report) | 43199460468 | `992752f` | `438ee579214bc8d52cc9819aa849104cc4eb38d53d7a38dd9911997ff96fdaeb` | 6,762,496 |
 
 negctl (`679a159`) is the final self-tests, harness and counters with every round-3 kernel fix held back
 (scratch script: the fixed files restored from `8d21d68`, plus a one-line `receive_for_owner` stub that
 forwards to the old broker); `479d444` reverts it (its tree equals `5b73643`). Not held back in negctl: the
 `allocate_simd_buffer` null check, the guards on `push_keyboard` and `poll_ps2_keyboard` (only `read_keyboard`
-and the input queues were reverted), and the auto-EOI switch, which is off by default. `26dff86` adds to B
+and the input queues were reverted), and the auto-EOI switch, which is off by default there. `26dff86` adds to B
 the mailbox-claim correction found by the harnesses (finding 7 below) and the matching change to init's IPC
-test.
+test; `992752f` adds only the auto-EOI default (see Performance) and this report.
 
 ## Harness results
 
@@ -79,36 +80,41 @@ On image A the same harness showed the round's other fixes passing; its failures
 (a field read before its last value; exit code 139 expected where the kernel records 137), corrected before
 the final runs, and the exception self-test, which A did not contain.
 
-### Every harness on the final image (sha256 `c3ea0149…cf6c14`, CI run 43192738780)
+### Every harness on F and on the final image
 
-| Harness | expected | baseline (round 2 / joint round 2) | final |
-|---|---|---|---|
-| verify_kernel_k3 (new) | 48 | not run (self-tests absent) | 48/48 |
-| verify_kernel_selftests | 18 | 18/18 | 18/18 |
-| verify_kernel_selftests_k2 | 37 | 37/37 | 37/37 |
-| verify_net_k2 | 12 | 12/12 | 12/12 |
-| verify_authority_gate_joint | 37 | 37/37 | 37/37 |
-| verify_authority_gate_self_approval | 11 | 11/11 | 11/11 |
-| verify_authority_gate_input_injection | 7 | 7/7 | 7/7 |
-| verify_ring3 | 7 | 7/7 | 7/7 |
-| verify_mmap | 7 | 7/7 | 7/7 |
-| verify_core_apps | 24 | 24/24 | 24/24 |
-| verify_app_window | 13 | 13/13 | 13/13 |
-| verify_ipc_isolation | 6 | 6/6 | 6/6 |
-| verify_process_reap_cr3 | 9 | 9/9 | 9/9 |
-| verify_pid_reuse | 6 | 6/6 | 6/6 |
-| verify_assistant_panel | 5 | 5/5 | 5/5 |
-| verify_net | 5 | 5/5 | 5/5 |
-| verify_user_pointer_isolation | 4 | 4/4 | 4/4 |
-| verify_scheduler_stubs | 7 | 7/7 | 7/7 |
-| verify_current_pid | 6 | 6/6 | 6/6 |
-| verify_audio_nonblocking | 7 | 7/7 | 7/7 |
+| Harness | expected | baseline (round 2 / joint round 2) | F (`c3ea0149…`) | final (`438ee579…`) |
+|---|---|---|---|---|
+| verify_kernel_k3 (new) | 48 | not run (self-tests absent) | 48/48 | 48/48 |
+| verify_kernel_selftests | 18 | 18/18 | 18/18 | 18/18 |
+| verify_kernel_selftests_k2 | 37 | 37/37 | 37/37 | 37/37 |
+| verify_net_k2 | 12 | 12/12 | 12/12 | 12/12 |
+| verify_authority_gate_joint | 37 | 37/37 | 37/37 | 37/37 |
+| verify_authority_gate_self_approval | 11 | 11/11 | 11/11 | 11/11 |
+| verify_authority_gate_input_injection | 7 | 7/7 | 7/7 | 7/7 |
+| verify_ring3 | 7 | 7/7 | 7/7 | 7/7 |
+| verify_mmap | 7 | 7/7 | 7/7 | 7/7 |
+| verify_core_apps | 24 | 24/24 | 24/24 | 24/24 |
+| verify_app_window | 13 | 13/13 | 13/13 | 13/13 |
+| verify_ipc_isolation | 6 | 6/6 | 6/6 | 6/6 |
+| verify_process_reap_cr3 | 9 | 9/9 | 9/9 | 9/9 |
+| verify_pid_reuse | 6 | 6/6 | 6/6 | 6/6 |
+| verify_assistant_panel | 5 | 5/5 | 5/5 | 5/5 |
+| verify_net | 5 | 5/5 | 5/5 | first run 0/1, rerun 5/5 (then 5/5, 5/5) |
+| verify_user_pointer_isolation | 4 | 4/4 | 4/4 | 4/4 |
+| verify_scheduler_stubs | 7 | 7/7 | 7/7 | 7/7 |
+| verify_current_pid | 6 | 6/6 | 6/6 | 6/6 |
+| verify_audio_nonblocking | 7 | 7/7 | 7/7 | 7/7 |
 
-Every harness passed on its first run on the final image; none was rerun. The baseline column is the result
-recorded for `8d21d68` when this round was set up; those were not rerun here.
+On F every harness passed on its first run. On the final image every harness passed on its first run except
+`verify_net`, whose first run failed: the guest's serial log stops after `HDA: output path configured` and the
+harness's fixed 90 s boot limit (it does not read `FERRUMOS_BOOT_SECONDS`) ran out, at a moment the host had
+2.0 GB of free memory. In passing boots of every image this round, F included, the next HDA verb takes about
+36.9 G TSC cycles (`HDA: slow verb nid=4 verb=0x20011`), a pre-existing wait in the HDA driver that leaves
+little of the 90 s on a loaded host. The rerun passed 5/5, and two further runs passed 5/5. The baseline
+column is the result recorded for `8d21d68` when this round was set up; those were not rerun here.
 
-Two harnesses failed on image B and led to the last kernel change: `verify_ipc_isolation` 2/3 and
-`verify_authority_gate_joint` 29/33, both from the first version of finding 7 (see there). init's IPC test
+Two harnesses failed on image A and led to the last kernel change: `verify_ipc_isolation` 2/3 and
+`verify_authority_gate_joint` 29/33 (both twice), both from the first version of finding 7 (see there). init's IPC test
 (`userland/init/src/main.rs`, test mode 8) asserted that one sender gets all 16 slots of a mailbox; it now
 asserts 12, the unflagged share.
 
@@ -322,6 +328,14 @@ auto-EOI window was the slower one, which is what widens its range. The other ha
 on the master it is a no-op in this mode (no in-service bit is ever set), and the slave (mouse, ATA) stays in
 normal mode. The spurious-IRQ7 handler reads the in-service register, so it never sends an EOI in this mode.
 
+Confirmation on the final image (`438ee579…`, which boots in auto-EOI mode), three boots, the same
+protocol with the order reversed (20 s with the default, then `pic-aeoi-off`, reset, 20 s): auto-EOI 45,607,
+42,421 and 44,171 cycles; normal EOI 64,143, 61,117 and 72,845 (host load 71, 14 and 27 %). One further
+single-window boot of the final image measured 98,469 cycles in auto-EOI mode with every other counter also
+two to three times its usual value (`tick` 21,080 cycles, frame allocation 54,081), consistent with a loaded
+host rather than with the mode. `timer_eoi_avg_cycles` is 0 on the final image: the timer no longer writes an
+EOI.
+
 These figures are lower than round 2's 114,801 because round 2 averaged from boot (boot work included) and
 this round resets the counters after 20 s at the prompt. Boot to prompt in the benchmark boots was 39.4, 39.9,
 39.5, 39.4 and 39.0 s; the host was quieter than during round 2's measurement, so no boot-time comparison is
@@ -421,7 +435,7 @@ Run tools: `kernel_round3_tools/` (`h.sh` one harness under the lock, `suite.sh`
 failure, `bench_aeoi.sh` the timer benchmark, `negctl.py` the script that built the negative control,
 `ed.py` its helper). Paths in them are this machine's.
 
-CI runs used: 5 (43189963256, 43190864541, 43190989931, 43192738780, and the run for the auto-EOI default with this report).
+CI runs used: 6 (43189963256, 43190864541, 43190989931, 43192738780, 43199460468 for the auto-EOI default, and one for the final edit of this report, which changes no code).
 
 ## What remains
 
