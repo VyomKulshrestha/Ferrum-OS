@@ -43,7 +43,7 @@ pub fn run(name: &str) -> bool {
         "ext2-gdt" => ext2_case("gdt"),
         "perf" => perf(),
         "ring0-fault" => ring0_fault(),
-        _ => return false,
+        _ => return super::selftest_k3::run(name),
     }
     true
 }

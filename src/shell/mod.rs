@@ -4,6 +4,7 @@ pub mod commands;
 pub mod dashboard;
 pub mod selftest;
 pub mod selftest_k2;
+pub mod selftest_k3;
 
 use alloc::string::{String, ToString};
 use core::sync::atomic::{AtomicU64, Ordering};

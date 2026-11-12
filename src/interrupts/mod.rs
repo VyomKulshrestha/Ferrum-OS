@@ -107,6 +107,34 @@ lazy_static! {
     };
 }
 
+/// True while the master 8259 runs in auto-EOI mode (ICW4 bit 1): it clears
+/// the in-service bit itself when the CPU acknowledges an interrupt, so the
+/// timer handler skips its EOI write, a port write that under WHPX with
+/// `kernel-irqchip=off` exits to QEMU's user process on every tick. Other
+/// handlers still send their EOI; on the master it is then a no-op, and the
+/// slave (IRQ 8-15) stays in normal mode.
+pub static PIC_AUTO_EOI: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+
+/// Re-initialise the master 8259 with or without auto-EOI, keeping its
+/// vector offset, cascade wiring and interrupt mask.
+pub fn set_pic_auto_eoi(on: bool) {
+    use x86_64::instructions::port::Port;
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let _pics = PICS.lock();
+        let mut command: Port<u8> = Port::new(0x20);
+        let mut data: Port<u8> = Port::new(0x21);
+        unsafe {
+            let mask = data.read();
+            command.write(0x11); // ICW1: edge, cascade, ICW4 follows
+            data.write(PIC_1_OFFSET); // ICW2: vector offset
+            data.write(0x04); // ICW3: slave on IRQ2
+            data.write(if on { 0x03 } else { 0x01 }); // ICW4: 8086 mode (+ auto-EOI)
+            data.write(mask);
+        }
+        PIC_AUTO_EOI.store(on, core::sync::atomic::Ordering::SeqCst);
+    });
+}
+
 /// Load the IDT into the CPU
 pub fn init_idt() {
     IDT.load();
@@ -486,8 +514,8 @@ extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
         crate::scheduler::tick();
     }
 
-    // Send End-of-Interrupt to the PIC
-    {
+    // Send End-of-Interrupt to the PIC (not needed in auto-EOI mode)
+    if !PIC_AUTO_EOI.load(core::sync::atomic::Ordering::Relaxed) {
         let _eoi = CycleMeter::start(&TIMER_EOI_CYCLES, &TIMER_EOI_COUNT);
         unsafe {
             PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
@@ -537,6 +565,9 @@ extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
     if kernel_task_pid != 0 {
         unsafe {
             if crate::scheduler::yield_current_kernel_task(kernel_task_pid) {
+                // The task is no longer executing at its safepoint once we
+                // switch away; it re-marks itself the next time it parks.
+                crate::scheduler::leave_kernel_task_safepoint();
                 save_user_context(kernel_task_pid, frame);
                 if let Some(next) = crate::scheduler::schedule_next() {
                     if next != kernel_task_pid {

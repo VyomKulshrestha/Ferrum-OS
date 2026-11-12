@@ -433,6 +433,12 @@ pub fn init() {
 fn allocate_simd_buffer() -> u64 {
     let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
     let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+    // On heap exhaustion this wrote to address 0 (a ring-0 page fault). A
+    // task without a buffer still runs: the switch path skips FXRSTOR and
+    // `save_simd_state` skips FXSAVE for a zero pointer.
+    if ptr.is_null() {
+        return 0;
+    }
     unsafe {
         // FPU Control Word (FCW) at offset 0: default 0x037F (all exceptions masked)
         let fcw_ptr = ptr as *mut u16;

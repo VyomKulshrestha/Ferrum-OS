@@ -20,6 +20,11 @@ use x86_64::{
 use crate::devices::pci;
 use crate::memory;
 
+/// TSD bit 13: the driver owns the descriptor again (DMA to the FIFO is done).
+const TSD_OWN: u32 = 1 << 13;
+/// Sends refused because the next TX descriptor was still the device's.
+pub static TX_BUSY_DROPS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
 const RTL8139_VENDOR_ID: u16 = 0x10EC;
 const RTL8139_DEVICE_ID: u16 = 0x8139;
 
@@ -227,12 +232,29 @@ impl Rtl8139 {
         let tx_phys = self.tx_buffers[self.tx_curr as usize];
         let tx_virt = memory::phys_to_virt(tx_phys);
 
+        // The descriptor (and its buffer) may be reused only once the device
+        // has handed it back (TSD.OWN, bit 13). The driver used to overwrite
+        // the buffer and rewrite TSAD/TSD whatever the state, which corrupts
+        // a frame still being read by DMA on hardware that completes later.
+        let tsd_port = self.io_base + TSD0 + (self.tx_curr as u16 * 4);
+        let mut owned = false;
+        for _ in 0..100_000 {
+            if unsafe { PortReadOnly::<u32>::new(tsd_port).read() } & TSD_OWN != 0 {
+                owned = true;
+                break;
+            }
+            core::hint::spin_loop();
+        }
+        if !owned {
+            TX_BUSY_DROPS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+            return Err("TX descriptor still owned by the device");
+        }
+
         unsafe {
             let tx_slice = slice::from_raw_parts_mut(tx_virt.as_mut_ptr::<u8>(), data.len());
             tx_slice.copy_from_slice(data);
 
             let tsad_port = self.io_base + TSAD0 + (self.tx_curr as u16 * 4);
-            let tsd_port = self.io_base + TSD0 + (self.tx_curr as u16 * 4);
 
             PortWriteOnly::<u32>::new(tsad_port).write(tx_phys.as_u64() as u32);
             PortWriteOnly::<u32>::new(tsd_port).write(data.len() as u32);
