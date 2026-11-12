@@ -154,6 +154,14 @@ try {
     check("the unanswered prompt times out as a denial", field(out, "denied") === "true", line(out, "delete-prompt"));
   }
 
+  out = await run("window-budget", 60);
+  if (out) {
+    const d = line(out, "window-budget");
+    check("app-window canvases stay within the system-wide budget; the rest are refused",
+      field(out, "within_budget") === "true" && Number(field(out, "refused")) > 0 && Number(field(out, "created")) > 0, d);
+    check("the windows are released afterwards", field(out, "after") === (out.match(/canvas_bytes_before=(\d+)/) || [])[1]);
+  }
+
   check("no kernel fault during the self-tests",
     !/panicked at|DOUBLE FAULT|in ring 0|\[EXCEPTION\]/.test(shell.serial()));
 

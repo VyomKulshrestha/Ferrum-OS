@@ -95,14 +95,20 @@ impl Window {
     /// pixel area the owning process presents into; the window's total
     /// on-screen size is the canvas plus the shared chrome (title bar,
     /// border) so app authors never need to know about chrome geometry.
-    pub fn new_app(id: u64, pid: u64, title: &str, x: u32, y: u32, canvas_w: u32, canvas_h: u32) -> Self {
+    /// `None` when the kernel heap cannot hold the canvas: the infallible
+    /// allocation it used stopped the kernel instead.
+    pub fn new_app(id: u64, pid: u64, title: &str, x: u32, y: u32, canvas_w: u32, canvas_h: u32) -> Option<Self> {
         let total_w = canvas_w + 2 * CHROME_SIDE;
         let total_h = canvas_h + CHROME_TOP + CHROME_BOTTOM;
         let mut w = Self::new(id, WindowType::App(pid), title, x, y, total_w, total_h, 0x00202020);
-        w.pixels = alloc::vec![0x00202020u32; (canvas_w as usize) * (canvas_h as usize)];
+        let len = (canvas_w as usize) * (canvas_h as usize);
+        let mut pixels = Vec::new();
+        pixels.try_reserve_exact(len).ok()?;
+        pixels.resize(len, 0x00202020u32);
+        w.pixels = pixels;
         w.canvas_w = canvas_w;
         w.canvas_h = canvas_h;
-        w
+        Some(w)
     }
 
     /// Close button rect `(x, y, w, h)`. Geometry unchanged from before

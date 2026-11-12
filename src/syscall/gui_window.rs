@@ -50,6 +50,10 @@ pub fn create_window_for(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) ->
     }
 
     let window_id = crate::gui::app_window::create_window(pid, title, canvas_w, canvas_h);
+    if window_id == 0 {
+        // The system-wide canvas budget is spent, or the heap is short.
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
     SyscallResult::ok(window_id)
 }
 

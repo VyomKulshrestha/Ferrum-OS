@@ -30,6 +30,7 @@ pub fn run(name: &str) -> bool {
         "exit-closes-windows" => exit_closes_windows(),
         "reap-others" => reap_others(),
         "user-x87" => user_x87(),
+        "window-budget" => window_budget(),
         "static-stack-overflow" => static_stack_overflow(),
         _ => return false,
     }
@@ -443,6 +444,38 @@ fn exec_embedded_version() {
     println!(
         "selftest exec-embedded-version: vfs_file_written={} embedded_check_passes={} control_written={} control_mismatch_refused={}",
         wrote, embedded, control_wrote, control_refused
+    );
+}
+
+/// Largest canvases for ten processes (four windows each would be allowed
+/// per process): the app windows together must stay within the budget and
+/// the kernel must keep running.
+fn window_budget() {
+    use crate::gui::app_window::{close_for_pid, create_window, total_canvas_bytes, MAX_TOTAL_CANVAS_BYTES};
+    let before = total_canvas_bytes();
+    println!("selftest window-budget: starting canvas_bytes_before={}", before);
+    let mut created = 0;
+    let mut refused = 0;
+    for i in 0..10u64 {
+        let pid = 900_000 + i;
+        if create_window(pid, "k4-budget", 760, 560) != 0 {
+            created += 1;
+        } else {
+            refused += 1;
+        }
+    }
+    let peak = total_canvas_bytes();
+    for i in 0..10u64 {
+        close_for_pid(900_000 + i);
+    }
+    println!(
+        "selftest window-budget: created={} refused={} peak_canvas_bytes={} budget={} within_budget={} after={}",
+        created,
+        refused,
+        peak,
+        MAX_TOTAL_CANVAS_BYTES,
+        peak <= MAX_TOTAL_CANVAS_BYTES,
+        total_canvas_bytes()
     );
 }
 

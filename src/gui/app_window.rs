@@ -63,14 +63,40 @@ fn clamp_dim(v: u32, min: u32, max: u32) -> u32 {
     v.max(min).min(max)
 }
 
+/// Canvas bytes all app windows together may hold on the 12 MiB kernel heap.
+/// `MAX_WINDOWS_PER_PROCESS` bounded one process (4 canvases of up to 1.7
+/// MB), not the system: three processes with the window capability could
+/// hold 20 MB of canvases, and the infallible canvas allocation, or the next
+/// allocation anywhere in the kernel, then stopped the kernel (fi1 kernel
+/// round 4). The shipped apps' canvases are 0.2 to 0.9 MB each.
+pub const MAX_TOTAL_CANVAS_BYTES: usize = 6 * 1024 * 1024;
+
+/// Canvas bytes held by all app windows.
+pub fn total_canvas_bytes() -> usize {
+    compositor::COMPOSITOR
+        .lock()
+        .windows
+        .iter()
+        .filter(|w| matches!(w.win_type, WindowType::App(_)))
+        .map(|w| w.pixels.len() * 4)
+        .sum()
+}
+
 /// Create a new app-owned window for `pid` and register it with the
-/// compositor. Returns the new window's id.
+/// compositor. Returns the new window's id, or 0 when the canvas would take
+/// the app windows past `MAX_TOTAL_CANVAS_BYTES` or the heap cannot hold it.
 pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64 {
     let canvas_w = clamp_dim(canvas_w, MIN_CANVAS_W, MAX_CANVAS_W);
     let canvas_h = clamp_dim(canvas_h, MIN_CANVAS_H, MAX_CANVAS_H);
+    let requested = canvas_w as usize * canvas_h as usize * 4;
+    if total_canvas_bytes() + requested > MAX_TOTAL_CANVAS_BYTES {
+        return 0;
+    }
     let id = NEXT_APP_WINDOW_ID.fetch_add(1, Ordering::SeqCst);
 
-    let window = Window::new_app(id, pid, title, DEFAULT_APP_X, DEFAULT_APP_Y, canvas_w, canvas_h);
+    let Some(window) = Window::new_app(id, pid, title, DEFAULT_APP_X, DEFAULT_APP_Y, canvas_w, canvas_h) else {
+        return 0;
+    };
 
     // Every window normally takes focus immediately on creation (a direct
     // user action - clicking a launcher entry - expects that). The one
