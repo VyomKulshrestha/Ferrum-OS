@@ -176,9 +176,16 @@ fn j2_k3_the_kernel_checks_and_acts_in_one_syscall() {
     assert!(KERNEL_SYSCALL_FS_SOURCE.contains("sys_write_file_checked(args, held_capabilities, None)"));
     assert!(KERNEL_SYSCALL_FS_SOURCE.contains("sys_delete_file_checked(args, held_capabilities, None)"));
     assert!(KERNEL_SYSCALL_PROCESS_SOURCE.contains("sys_exec_checked(args, None)"));
-    // The exec check comes before the image is chosen or read.
+    // The exec check comes before the image is chosen or read. Since fi1
+    // kernel round 4 it is `exec_version_check`, which checks the VFS version
+    // of every path except the compiled-in program names.
     let ex = &KERNEL_SYSCALL_PROCESS_SOURCE[KERNEL_SYSCALL_PROCESS_SOURCE.find("pub fn sys_exec_checked").unwrap()..];
-    assert!(ex.find("check_version(&path, expected)").unwrap() < ex.find("read_file_bytes(&path)").unwrap());
+    assert!(ex.find("exec_version_check(&path, expected)").unwrap() < ex.find("read_file_bytes(&path)").unwrap());
+    let check = &KERNEL_SYSCALL_PROCESS_SOURCE[KERNEL_SYSCALL_PROCESS_SOURCE.find("pub fn exec_version_check").unwrap()..];
+    let check = &check[..check.find("
+}
+").unwrap()];
+    assert!(check.contains("crate::fs::check_version(path, expected)"), "{check}");
     // Check and act share one interrupts-off section.
     let fs = KERNEL_FS_SOURCE;
     for f in ["pub fn write_file_if_version", "pub fn remove_if_version"] {
