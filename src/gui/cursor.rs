@@ -73,6 +73,19 @@ pub fn mark_dirty() {
 /// window as this one-time flush.
 static INPUT_PRIMED: AtomicBool = AtomicBool::new(false);
 
+/// Whether `process_input` has run yet (see `INPUT_PRIMED`).
+pub fn input_primed() -> bool {
+    INPUT_PRIMED.load(Ordering::SeqCst)
+}
+
+/// Restore the one-time stale-key discard after a kernel self-test drove
+/// `process_input` before the desktop ever rendered. Without this, keys the
+/// operator types at the shell afterwards stay queued and reach whatever
+/// window the first render focuses.
+pub fn set_input_primed(primed: bool) {
+    INPUT_PRIMED.store(primed, Ordering::SeqCst);
+}
+
 pub fn process_input() {
     if !INPUT_PRIMED.swap(true, Ordering::SeqCst) {
         crate::input::discard_stale_keyboard_events();

@@ -134,7 +134,10 @@ try {
       && field(o, "vfs_init_name_denied") === "true" && field(o, "vfs_plain_allowed") === "true",
     (o.match(/selftest ipc-sender: vfs.*/) || [""])[0]);
 
-  o = await operator("test-syscall injected-terminal", "kept_from_operator_controls=").catch((e) => String(e.message || e).split("\n")[0]);
+  // FERRUMOS_SKIP_SELFTESTS=injected-terminal skips it (on images where it
+  // primed desktop input and the queued `ring3 init` keys restarted init).
+  const skip = new Set((process.env.FERRUMOS_SKIP_SELFTESTS || "").split(",").filter(Boolean));
+  o = skip.has("injected-terminal") ? "skipped" : await operator("test-syscall injected-terminal", "kept_from_operator_controls=").catch((e) => String(e.message || e).split("\n")[0]);
   check("K1 kernel: injected keys do not reach the terminal window; physical keys do",
     field(o, "terminal_kept") === "true" && field(o, "physical_reaches_terminal") === "true",
     (o.match(/selftest injected-terminal: terminal.*/) || [""])[0]);

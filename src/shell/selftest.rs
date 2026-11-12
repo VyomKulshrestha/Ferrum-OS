@@ -234,7 +234,21 @@ fn injected_terminal() {
             .map(|window| window.content.len())
             .unwrap_or(usize::MAX)
     };
-    // Drain whatever is queued (and the one-time stale-key discard).
+    // Remember the desktop as it is, to put it back afterwards: the window
+    // order, which window had focus, and whether the desktop has consumed
+    // input yet (its first render discards keys typed at the shell before
+    // it; priming that here would deliver later shell typing to a window).
+    let was_primed = crate::gui::cursor::input_primed();
+    let (saved_order, saved_focus): (Vec<u64>, Option<u64>) = {
+        let state = COMPOSITOR.lock();
+        (
+            state.windows.iter().map(|window| window.id).collect(),
+            state.focused_idx.and_then(|idx| state.windows.get(idx)).map(|window| window.id),
+        )
+    };
+    // Drop keys typed at the shell (this command line among them) so they are
+    // not delivered to a window, then drain anything else that is queued.
+    crate::input::discard_stale_keyboard_events();
     crate::gui::cursor::process_input();
     let kept_before = INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS.load(Ordering::SeqCst);
 
@@ -305,6 +319,16 @@ fn injected_terminal() {
         None => alloc::string::String::from("skipped"),
     };
     let kept = INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS.load(Ordering::SeqCst) - kept_before;
+    {
+        let mut state = COMPOSITOR.lock();
+        let mut windows = core::mem::take(&mut state.windows);
+        windows.retain(|window| saved_order.contains(&window.id));
+        windows.sort_by_key(|window| saved_order.iter().position(|id| *id == window.id));
+        state.focused_idx = saved_focus.and_then(|id| windows.iter().position(|window| window.id == id));
+        state.windows = windows;
+        state.needs_redraw = true;
+    }
+    crate::gui::cursor::set_input_primed(was_primed);
     println!(
         "selftest injected-terminal: launcher_injected_launched={} kept_from_operator_controls={}",
         launched, kept
