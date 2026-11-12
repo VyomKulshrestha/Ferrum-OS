@@ -115,6 +115,48 @@ pub fn is_shell_only_path(path: &str) -> bool {
     matches!(components.next(), Some("tmp")) && matches!(components.next(), Some("heliox-hooks"))
 }
 
+/// Files only the kernel writes: the audit log it flushes, and the account
+/// table whose profile the shell session's capabilities are read from on
+/// every command. Any `fs:write` holder could rewrite or delete the audit
+/// trail, or set a logged-in user's profile to root (fi2 kernel audit).
+pub const KERNEL_RECORD_PATHS: [&str; 2] = ["/disk/heliox/audit.log", "/disk/accounts.txt"];
+
+fn components(path: &str) -> impl Iterator<Item = &str> {
+    path.split('/').filter(|component| !component.is_empty())
+}
+
+/// True for a kernel record file itself (any number of slashes) and, when
+/// `ancestors` is set, for every directory above one: RamFS removes a
+/// directory with everything in it.
+pub fn is_kernel_record_path(path: &str, ancestors: bool) -> bool {
+    KERNEL_RECORD_PATHS.iter().any(|record| {
+        let mut wanted = components(record);
+        let mut given = components(path);
+        loop {
+            match (given.next(), wanted.next()) {
+                (None, None) => return true,
+                (None, Some(_)) => return ancestors,
+                (Some(_), None) => return false,
+                (Some(a), Some(b)) if a != b => return false,
+                _ => {}
+            }
+        }
+    })
+}
+
+/// Refuses a ring-3 create, write or delete of a kernel record (and, for a
+/// delete, of a directory above one).
+fn refuse_kernel_record(path: &str, delete: bool) -> bool {
+    if is_kernel_record_path(path, delete) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("change to a kernel record denied: {}", path),
+        );
+        return true;
+    }
+    false
+}
+
 fn refuse_shell_only(path: &str) -> bool {
     if is_shell_only_path(path) {
         crate::logging::audit::log_event(
@@ -234,7 +276,10 @@ pub fn sys_write_file_checked(
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) || refuse_shell_only(&path) {
+    if !authorize_path(&path, true, held_capabilities)
+        || refuse_shell_only(&path)
+        || refuse_kernel_record(&path, false)
+    {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
@@ -317,7 +362,10 @@ pub fn sys_create_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) || refuse_shell_only(&path) {
+    if !authorize_path(&path, true, held_capabilities)
+        || refuse_shell_only(&path)
+        || refuse_kernel_record(&path, false)
+    {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
@@ -347,7 +395,7 @@ pub fn sys_delete_file_checked(
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) {
+    if !authorize_path(&path, true, held_capabilities) || refuse_kernel_record(&path, true) {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
     if let Some(expected) = expected {
