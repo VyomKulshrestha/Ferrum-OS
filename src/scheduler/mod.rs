@@ -444,8 +444,9 @@ static SIMD_AREA_SIZE: AtomicUsize = AtomicUsize::new(512);
 /// Switch the scheduler to XSAVE areas of `size` bytes. Called once from
 /// `lib::enable_sse_extensions`, before any task is created.
 pub fn enable_xsave(size: usize) {
-    // The legacy region (512) and the XSAVE header (64) come first.
-    if size < 576 || size > 64 * 1024 {
+    // The legacy region (512) and the XSAVE header (64) come first, then the
+    // AVX upper halves (256): XSAVE with AVX in XCR0 writes at least 832.
+    if size < 832 || size > 64 * 1024 {
         return;
     }
     SIMD_AREA_SIZE.store(size, Ordering::SeqCst);

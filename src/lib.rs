@@ -233,8 +233,21 @@ pub unsafe fn enable_sse_extensions() {
             out("rcx") _,
             out("rdx") _,
         );
-        // Bytes XSAVE writes for the features now enabled in XCR0.
-        let size = core::arch::x86_64::__cpuid_count(0xD, 0).ebx as usize;
+        // Bytes XSAVE writes for the features now enabled in XCR0: the end
+        // of the furthest enabled component (CPUID.(0xD,i): EAX size, EBX
+        // offset). CPUID.(0xD,0).EBX alone is not enough: under WHPX it
+        // reports 576 (legacy area and header only) with XCR0 = 7, and XSAVE
+        // then wrote 256 bytes past every task's area into the next heap
+        // object (fi1 kernel round 4, image A).
+        let xcr0_lo: u32;
+        core::arch::asm!("xgetbv", in("ecx") 0u32, out("eax") xcr0_lo, out("edx") _);
+        let mut size = (core::arch::x86_64::__cpuid_count(0xD, 0).ebx as usize).max(576);
+        for component in 2..32u32 {
+            if xcr0_lo & (1 << component) != 0 {
+                let leaf = core::arch::x86_64::__cpuid_count(0xD, component);
+                size = size.max(leaf.ebx as usize + leaf.eax as usize);
+            }
+        }
         scheduler::enable_xsave(size);
     }
 }
