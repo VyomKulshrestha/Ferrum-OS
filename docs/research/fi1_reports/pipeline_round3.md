@@ -93,7 +93,17 @@ was measured: the runner's `verify` stage mirrored for the physical domain with 
 inference of every pipeline from the retained checkpoints against the stored evidence, and the analysis
 recomputed from the recomputed evidence against the stored result.
 
-PLACEHOLDER_INCIDENT_TABLE
+| Run (physical domain) | catalogs | pipelines bit-identical | largest absolute difference (pipeline) | within the verifier's atol 1e-7 | analysis leaves changed | gates, counts or intervals changed |
+|---|---|---|---|---|---|---|
+| v3, torch 4 threads (registered: 8) | identical | 12 of 15 | 3.6e-7, scores of `v2-paper-action_conditioned_jepa` | no (that pipeline, all three populations) | 30 (that pipeline's mean errors, Brier, ECE, bin means; relative change about 1e-8) | none |
+PLACEHOLDER_INCIDENT_ROWS
+
+The pipelines the study is about are bit-identical: the selected v3 physical pipeline (an ensemble of
+three LightGBM models, `p24-gbr-h8-iw4-scaled`, which predicts each row independently) and the v2 ridge
+pipelines. Only the torch control
+(the v2 paper JEPA) changes. Registered conclusions, gates and every count are unchanged; the 1e-7
+inference check of the runner's own verify stage would fail for that control at a thread count other than
+8, which the runner prevents by pinning 8.
 
 ### 1.4 Cross-domain study (Tables 3 to 7, D1)
 
