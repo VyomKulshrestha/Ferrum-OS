@@ -74,8 +74,9 @@ try {
   // kernel shell, where `heliox confirm <id>` approves pending actions.
   out = await shell.command("test-syscall injected-key");
   check("an agent-injected key is kept out of the kernel shell", field(out, "kept_from_shell") === "1", (out.match(/selftest injected-key:.*/) || [""])[0]);
-  out = await shell.command("echo probe");
-  check("the next shell command line holds no injected key", /echo probe\s*\r?\nprobe/.test(out) && !/qecho/.test(out));
+  await shell.command("echo probe");
+  // `command` returns output after the typed text, so read the command line itself from the full log.
+  check("the next shell command line holds no injected key", /FerrumOS:~\$ echo probe\r?\nprobe/.test(shell.serial()));
 
   check("no kernel panic or fault", !/panicked at|PAGE FAULT|Page Fault|General Protection|DOUBLE FAULT/.test(shell.serial()));
 } catch (error) {

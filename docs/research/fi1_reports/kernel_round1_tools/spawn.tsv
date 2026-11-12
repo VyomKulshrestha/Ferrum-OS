@@ -1,0 +1,11 @@
+main	1	spawn_to_daemon_s=33.8	spawn_to_mmap_ok_s=36.2
+fix3	1	spawn_to_daemon_s=0.7	spawn_to_mmap_ok_s=2.9
+main	2	spawn_to_daemon_s=36.4	spawn_to_mmap_ok_s=39.0
+fix3	2	spawn_to_daemon_s=0.8	spawn_to_mmap_ok_s=3.0
+main	3	spawn_to_daemon_s=28.4	spawn_to_mmap_ok_s=30.3
+fix3	3	spawn_to_daemon_s=0.5	spawn_to_mmap_ok_s=2.3
+main	4	spawn_to_daemon_s=34.0	spawn_to_mmap_ok_s=36.4
+fix3	4	spawn_to_daemon_s=0.9	spawn_to_mmap_ok_s=2.6
+main	5	spawn_to_daemon_s=23.9	spawn_to_mmap_ok_s=26.1
+fix3	5	spawn_to_daemon_s=0.8	spawn_to_mmap_ok_s=3.2
+SPAWN-DONE

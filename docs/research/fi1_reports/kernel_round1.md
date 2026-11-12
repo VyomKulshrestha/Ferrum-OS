@@ -10,18 +10,59 @@ the shared lock.
 | main | 43111829305 | `dba7016` (main at the start of fi1) |
 | pre-PR1 | 42951620869 | `b8b4fe4` (main just before pull request 1 was merged) |
 | negctl | 43118516970 | `04daaf2`: this branch's harnesses and self-tests with the fixes they check held back |
-| final | 43121951994 | `eeb4a56`: this branch with every fix |
+| final | 43135433840 | `d654407`: this branch with every fix (later commits change only this report) |
 
-## Host conditions
+## Host conditions and harness budgets
 
-The host was shared with other agents throughout: CPU load 50 to 100 % and 0.1 to 1.9 GB of free physical
-memory for a 4 GiB guest. Under that load main's image took 158 s and 180 s to reach the shell prompt in two
-probes, and every harness that waits 35 to 90 s for the prompt timed out before its first assertion. The
-nine baseline harnesses therefore gained an opt-in `FERRUMOS_BOOT_SECONDS` (default unchanged) for the
-first prompt only, and all comparisons below use `FERRUMOS_BOOT_SECONDS=300` on both images. Runs with
-the default budgets are reported separately.
+The host was shared with other agents: CPU load 10 to 100 % and 0.1 to 1.9 GB of free physical memory for a
+4 GiB guest. With the HDA device attached, main's image needed 148 to 214 s to reach the prompt (most of it
+in two HDA polling loops, see Performance), so the harnesses that wait 35 to 90 s for the first prompt
+failed before their first assertion. The nine baseline harnesses therefore gained an opt-in
+`FERRUMOS_BOOT_SECONDS` for the first prompt only (default unchanged). The table uses
+`FERRUMOS_BOOT_SECONDS=600` for both images; post-boot waits are unchanged. Commands:
+`FERRUMOS_BOOT_SECONDS=600 node scripts/<harness>.mjs`, one at a time, image copied to
+`target/x86_64-unknown-none/debug/bootimage-ferrumos.bin`. A failing run was rerun once.
 
-RESULTS_PLACEHOLDER
+## Results
+
+### The nine baseline harnesses
+
+| Harness | expected | main | final |
+|---|---|---|---|
+| verify_ring3 | 7 | 7/7 (234 s) | 7/7 (64 s) |
+| verify_mmap | 7 | 1/2, 1/2, 1/2, then 7/7 (202 s) | 7/7 (68 s) |
+| verify_audio_nonblocking | 7 | 7/7 (211 s) | 7/7 (32 s) |
+| verify_current_pid | 6 | 6/6 (39 s) | 6/6 (28 s) |
+| verify_app_window | 13 | 1/2, 1/2, then 13/13 (65 s) | 13/13 (37 s) |
+| verify_core_apps | 24 | 1/2, then 24/24 (116 s) | 24/24 (62 s) |
+| verify_scheduler_stubs | 7 | 7/7 (35 s) | 7/7 (18 s) |
+| verify_user_pointer_isolation | 4 | 4/4 (45 s) | 4/4 (22 s) |
+| verify_ipc_isolation | 6 | 6/6 (41 s) | 6/6 (25 s) |
+| total | 81 | 81 after reruns | 81, all on the first attempt |
+
+Times are harness wall times. main's mmap failures are timeouts waiting for heliox-daemon after `ring3 init`
+(init's Exec of the daemon maps its 16,954-frame image through the quadratic frame allocator, 24 to 36 s on
+main in the spawn benchmark below, and the harness allows 30 s from the command); its app-window and core-apps failures are timeouts after
+boot under peak load. None is a wrong result. In the default-budget runs at the start (ring3, mmap and
+audio, two attempts each; the first of them overlapped with this workstream's own probe boots) main never
+reached its first prompt within 90 s. The final image boots in 49.6 to 55.5 s with HDA attached, inside
+the 90 s budget of those three harnesses.
+
+### New harnesses
+
+| Harness (checks) | main | negctl (fixes held back) | final |
+|---|---|---|---|
+| verify_kernel_selftests | 3/16: self-test command absent; a guest session ran `syscall 101 5 4` and got `Ok value=1` | 3/7: kernel panic at `elf-bounds` ("virtual address must be sign extended"); with `FERRUMOS_SKIP_SELFTESTS=elf-bounds,heap-bounds` 6/12: kexec `oversize_rejected=false`, window-cap `created=6`, dead-recorder `released=false`, exec-path all three bypasses allowed, guest `syscall` allowed | 18/18 |
+| verify_process_reap_cr3 (9) | 3/4: the shell hangs at the second `run calculator` after `kill 4` (twice) | 9/9 (negctl keeps the CR3 fix) | 9/9 |
+| verify_pid_reuse (6) | 2/3: hangs at the second launch (CR3 defect) | 4/6: calculator pids 100 and 101 reuse the kernel stub's and the init model's ids; `syscall 101 5 4` = `Ok value=1`, so the calculator held init's cap:system:all (twice) | 6/6 (pid 99 is followed by 103) |
+
+The main and negctl runs of `verify_kernel_selftests` used the 16-check version (before K1 added two checks);
+negctl's heap-bounds self-test also stopped the kernel when it was not skipped (64 MiB infallible
+allocation). The two K1 checks have no negative-control run: K1 was written after the negctl build.
+The first two final-image runs of the 18-check version scored 17/18: the harness looked for the typed
+command line in output that starts after it (a harness bug; the serial log shows `echo probe` followed by
+`probe` with no injected key). After the fix to the check it scored 18/18.
+
 
 ## Defects fixed, by severity
 
@@ -70,7 +111,9 @@ VFS Exec paths must be plain absolute paths outside the package repository. Harn
 of its page base, so a segment that starts mid-page mapped an extra page; for a segment ending at the top of
 the user region that page is at `0x100_0000_0000`, in P4[2], whose tables are shared with the kernel, and the
 entry stayed there after exit. Fix: page-base span, and refuse a span past `USER_REGION_END`. Harness:
-`test-syscall elf-bounds` (one page for 0xFFF bytes at an offset of 1).
+`test-syscall elf-bounds` (one page for 0xFFF bytes at an offset of 1). The negative control could not show
+this check failing: the same self-test first loads the non-canonical segment, which panics a kernel without
+defect 3's fix. From the code, the old span maps two pages for that segment.
 
 **7. Keyboard and mouse interrupts could spin forever on the scheduler lock.** `src/scheduler/mod.rs:1022`
 (`total_ticks`), `:1630` (`wake_confirmation_waiters`). The PS/2 handlers timestamp events through
@@ -82,9 +125,8 @@ deterministic harness (it needs an interrupt to land inside a short critical sec
 
 **8. Windows outlived their process.** `src/process/mod.rs:934`. `close_for_pid` ran only on ProcessKill,
 the close button and shell `kill`; an app that exited or faulted left up to four canvases (about 1.7 MB each)
-on the kernel heap. Fix: `drop_by_pid` closes them. Covered indirectly (`verify_process_reap_cr3.mjs` sees
-`[app-window] closed` on every reap); a harness for the exit path needs a ring-3 program that exits with a
-window open (userland, workstream D).
+on the kernel heap. Fix: `drop_by_pid` closes them. Not covered by a harness: the shell's `kill` closes windows itself, and the
+exit path needs a ring-3 program that exits with a window open (userland, workstream D).
 
 **9. Dead processes leaked when a wait reaped someone else.** `src/scheduler/mod.rs:1065`
 (`reap_dead_except`). WaitPid and the deferred reap freed one process and then removed every dead task from
@@ -108,10 +150,10 @@ Fix: read at most one page. The bound itself (`validate_image`, `:26`) is pull r
 
 | PR 1 fix | Harness | negctl (fix held back) | final |
 |---|---|---|---|
-| 1 pid reuse of the init model id | `verify_pid_reuse.mjs` | NEGCTL_PID | FINAL_PID |
-| 4 window cap | `verify_kernel_selftests.mjs` (window-cap) | NEGCTL_WIN | FINAL_WIN |
-| 5 dead recorder | `verify_kernel_selftests.mjs` (dead-recorder) | NEGCTL_REC | FINAL_REC |
-| 6 kexec bound | `verify_kernel_selftests.mjs` (kexec-bound) | NEGCTL_KEXEC | FINAL_KEXEC |
+| 1 pid reuse of the init model id | `verify_pid_reuse.mjs` | fails: pids 100 and 101 reused, pid 101 holds cap:system:all | passes |
+| 4 window cap | `verify_kernel_selftests.mjs` (window-cap) | fails: 6 of 6 windows created | passes: 4 created, 2 refused |
+| 5 dead recorder | `verify_kernel_selftests.mjs` (dead-recorder) | fails: session kept | passes: released |
+| 6 kexec bound | `verify_kernel_selftests.mjs` (kexec-bound) | fails: 4097-byte image accepted | passes: rejected, 4096 accepted |
 
 The pre-PR1 image (run 42951620869) exists, but it cannot run these harnesses: the self-test command did
 not exist then, and the pid harness stops at its second launch on any image without the CR3 fix (defect 1).
@@ -120,7 +162,53 @@ The negative-control build is the image without the fixes: commit `04daaf2` reve
 
 ## Performance
 
-PERF_PLACEHOLDER
+Measured with `kernel_round1_tools/bootbench.sh` (set `FI1_IMAGES`, `FI1_WORKTREE`, `FI1_LOCK`, `FI1_MEMFREE`) (QEMU with the HDA device, as in verify_ring3/mmap/audio; wall time
+from QEMU start to the first `FerrumOS:~$` on serial), main and final alternating, five boots each:
+
+| Image | boot to prompt, s (five runs) | median | range |
+|---|---|---|---|
+| main | 161.5, 164.3, 168.7, 148.2, 169.4 | 164.3 | 21.2 |
+| final | 49.6, 52.2, 55.5, 52.9, 55.1 | 52.9 | 5.8 |
+
+The median moved by 111 s, more than five times the baseline's spread. Serial timestamps (probe timeline,
+`probe.mjs` writes one per boot) attribute it:
+
+1. **HDA reset polls, 109 s of main's boot in the timed run** (`src/devices/hda.rs:503` and `:545`). After setting the
+   reset bit of CORBRP, init polled up to 5,000,000 times for it to read back as 1; QEMU's intel-hda never
+   reads it back, and every poll is an MMIO exit under WHPX. It then polled RIRBWP bit 15 the same way, but
+   that bit is write-only and always reads 0 (HDA spec 4.4.2), so that loop could only time out. On main the
+   step from `HDA: GCAP` to `HDA: root node` took 109.1 s; on the final image it takes under 0.1 s. Fix: a
+   10,000-poll bound for the CORBRP latch, no wait on RIRBWP. Real controllers latch the bit in
+   microseconds, so the bound does not change their behaviour.
+2. **Quadratic frame allocator** (`src/memory/mod.rs:275`, `:325`). Every fresh frame re-walked the memory map
+   from the start (`usable_frames().nth(next)`), and every freed frame was checked against the whole free
+   list (`Vec::contains`). Mapping heliox-daemon's 16,954 frames at boot took 8.2 s on main (from
+   `Ring-3 init loaded` to `Ring-3 heliox-daemon loaded`) and 0.6 s on the final image. Fix: a region cursor
+   and a `BTreeSet` of free-frame addresses beside the LIFO list; allocation order and the reuse invariant
+   that `test-syscall frame-recycle` checks are unchanged.
+
+What remains in a final-image boot of about 53 s: about 31 s before the kernel prints anything (most likely the BIOS
+bootloader reading the 9.8 MB debug image), and about 16 s in one HDA verb: setting the ADC's stream format
+(NID 4, verb 0x20011) blocks the vCPU for 3.7e10 TSC cycles with zero polls, so the time is spent inside
+QEMU when the guest writes CORBWP (QEMU opens the host capture device for the new format). The kernel does
+not cause either; a smaller boot image (release profile or stripped debug info, outside `src/`) and starting
+QEMU with `-audiodev none` in the harnesses would address them.
+
+Exec of heliox-daemon from ring 3 (`kernel_round1_tools/spawnbench.sh`: boot, `write /tmp/mmap_test 1`,
+`ring3 init`; wall time from init's `Spawning heliox-daemon...` to the daemon's first serial line), main and
+final alternating, five runs each:
+
+| Image | spawn to first daemon line, s | median | range |
+|---|---|---|---|
+| main | 33.8, 36.4, 28.4, 34.0, 23.9 | 33.8 | 12.5 |
+| final | 0.7, 0.8, 0.5, 0.9, 0.8 | 0.8 | 0.4 |
+
+This is the frame allocator alone (no HDA access happens there). It is also why main fails verify_mmap at
+times: that harness gives the daemon 30 s from `ring3 init` to finish its mmap check.
+
+Not reproduced: the preview-latency figures of `docs/BENCHMARKS.md` need `target/heliox-disk.img` with the
+model files (built by `build.ps1` with WSL `debugfs`), which is not present in any checkout on this machine.
+No safety check was removed or weakened for speed.
 
 ## Audited and found sound
 
@@ -188,7 +276,7 @@ works as before. Wire contract unchanged; no userland change. What it changes: a
 the kernel shell at all (no shipped program or harness relies on that; `verify_kernel_grade_autonomy_safety`
 already treats the injected `y` reaching the shell as stray input it erases). Harness:
 `test-syscall injected-key` in `verify_kernel_selftests.mjs`. Not closed: the desktop's terminal window is
-also a kernel shell (`src/gui/compositor.rs`, the terminal's Enter handling runs `shell::commands::execute`),
+also a kernel shell (`src/gui/compositor.rs:1200`, the terminal's Enter handling runs `shell::commands::execute`),
 and it reads keys from `EVENT_QUEUE`, whose `InputEvent` has no injected mark; when the desktop owns the
 keyboard and the terminal is focused, injected keys still become commands. The next step is an `injected`
 field on `InputEvent` set from `INJECTING_AGENT_KEY`, with the terminal ignoring injected keys (kernel-only,
@@ -239,6 +327,9 @@ until the daemon receives through it.
 
 ## Not tested and why
 
+- Step 1 also asked for the other boot-image-only `verify_*` harnesses on main. Not run: with main's boots of
+  150 to 300 s on this host each run took 4 to 25 minutes, and the lock was shared; the time went to the nine
+  baselines, the new harnesses on three images, and the benchmarks.
 - Defects 7 (interrupt/lock) and 9 (reap leak) need timing or a ring-3 program shape no shipped program has.
 - Defect 10 needs an ext2 disk; the harness images boot without one.
 - Defect 8 on the exit path needs a ring-3 program that exits with a window open.
