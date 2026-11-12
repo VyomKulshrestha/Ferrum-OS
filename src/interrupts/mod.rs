@@ -68,6 +68,26 @@ lazy_static! {
         idt.general_protection_fault.set_handler_fn(general_protection_fault_handler);
         idt.invalid_opcode.set_handler_fn(invalid_opcode_handler);
         idt.overflow.set_handler_fn(overflow_handler);
+        // Every other exception ring 3 can raise. These gates were missing:
+        // delivering an exception through a not-present gate raises #NP,
+        // whose gate was missing too, so the CPU escalated to a double fault
+        // and the kernel stopped. A ring-3 `div` by zero, a set trap flag,
+        // `icebp`, a push through a non-canonical stack pointer or an
+        // unmasked SSE exception stopped the whole system.
+        idt.divide_error.set_handler_fn(divide_error_handler);
+        idt.debug.set_handler_fn(debug_handler);
+        idt.non_maskable_interrupt.set_handler_fn(nmi_handler);
+        idt.bound_range_exceeded.set_handler_fn(bound_range_handler);
+        idt.device_not_available.set_handler_fn(device_not_available_handler);
+        idt.invalid_tss.set_handler_fn(invalid_tss_handler);
+        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
+        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
+        idt.x87_floating_point.set_handler_fn(x87_floating_point_handler);
+        idt.alignment_check.set_handler_fn(alignment_check_handler);
+        idt.simd_floating_point.set_handler_fn(simd_floating_point_handler);
+        idt.machine_check.set_handler_fn(machine_check_handler);
+        // IRQ 7 of the master PIC is also its spurious vector.
+        idt[PIC_1_OFFSET + 7].set_handler_fn(spurious_irq7_handler);
         
         // Hardware Interrupt Handlers
         unsafe {
@@ -364,6 +384,79 @@ extern "x86-interrupt" fn invalid_opcode_handler(stack_frame: InterruptStackFram
 
     println!("[EXCEPTION] Invalid Opcode\n{:#?}", stack_frame);
     crate::hlt_loop();
+}
+
+/// An exception that ends a ring-3 process and stops the kernel in ring 0.
+fn user_or_fatal(name: &str, stack_frame: &InterruptStackFrame) {
+    if handle_userspace_fault(name, stack_frame) {
+        return;
+    }
+    // handle_userspace_fault returns only for a ring-0 fault.
+    println!("[EXCEPTION] {}\n{:#?}", name, stack_frame);
+    crate::hlt_loop();
+}
+
+extern "x86-interrupt" fn divide_error_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Divide Error", &stack_frame);
+}
+
+extern "x86-interrupt" fn debug_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Debug Exception", &stack_frame);
+}
+
+extern "x86-interrupt" fn nmi_handler(_stack_frame: InterruptStackFrame) {
+    crate::serial_println!("[KERNEL] NMI received");
+}
+
+extern "x86-interrupt" fn bound_range_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Bound Range Exceeded", &stack_frame);
+}
+
+extern "x86-interrupt" fn device_not_available_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Device Not Available", &stack_frame);
+}
+
+extern "x86-interrupt" fn invalid_tss_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Invalid TSS", &stack_frame);
+}
+
+extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Segment Not Present", &stack_frame);
+}
+
+extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Stack Segment Fault", &stack_frame);
+}
+
+extern "x86-interrupt" fn x87_floating_point_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("x87 Floating Point", &stack_frame);
+}
+
+extern "x86-interrupt" fn alignment_check_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Alignment Check", &stack_frame);
+}
+
+extern "x86-interrupt" fn simd_floating_point_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("SIMD Floating Point", &stack_frame);
+}
+
+extern "x86-interrupt" fn machine_check_handler(stack_frame: InterruptStackFrame) -> ! {
+    panic!("MACHINE CHECK\n{:#?}", stack_frame);
+}
+
+/// IRQ 7 is also the master 8259's spurious vector: acknowledge it only if
+/// it is really in service (an EOI for a spurious IRQ 7 would clear the
+/// in-service bit of another, real interrupt).
+extern "x86-interrupt" fn spurious_irq7_handler(_stack_frame: InterruptStackFrame) {
+    use x86_64::instructions::port::Port;
+    let mut command: Port<u8> = Port::new(0x20);
+    let in_service = unsafe {
+        command.write(0x0B); // OCW3: read the in-service register
+        command.read()
+    };
+    if in_service & 0x80 != 0 {
+        unsafe { PICS.lock().notify_end_of_interrupt(PIC_1_OFFSET + 7) };
+    }
 }
 
 /// Overflow exception handler

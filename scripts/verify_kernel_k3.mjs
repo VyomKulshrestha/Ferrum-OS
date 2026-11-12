@@ -138,6 +138,15 @@ try {
       field(out, "entry_gone") === "true" && field(out, "parent_version_changed") === "true");
   }
 
+  out = await run("user-exceptions", 90);
+  if (out) {
+    for (const name of ["divide", "trap_flag", "icebp", "noncanonical_stack", "simd"]) {
+      check(`a ring-3 ${name.replace("_", " ")} exception ends the process, not the kernel`,
+        field(out, `${name}_ended`) === "true", `exit=${field(out, `${name}_exit`)}`);
+    }
+    check("the kernel runs on after the ring-3 exceptions", field(out, "kernel_alive") === "true");
+  }
+
   out = await run("user-write-ro", 60);
   if (out) {
     check("a syscall told to write into the caller's read-only text is refused (kernel runs on)",

@@ -27,6 +27,7 @@ pub fn run(name: &str) -> bool {
         "boot-nx" => boot_nx(),
         "user-stack" => user_stack(),
         "user-write-ro" => user_write_ro(),
+        "user-exceptions" => user_exceptions(),
         "ipc-mailbox" => ipc_mailbox(),
         "ramfs-limits" => ramfs_limits(),
         "ext2-r3" => ext2_r3(),
@@ -345,6 +346,44 @@ fn user_write_ro() {
         exit.map(|c| alloc::format!("{}", c)).unwrap_or_else(|| String::from("none")),
         exit == Some(invalid)
     );
+}
+
+/// Exceptions a ring-3 process can raise whose IDT gates were missing: each
+/// must end that process, not escalate to a double fault.
+fn user_exceptions() {
+    let cases: [(&str, Vec<u8>); 5] = [
+        // xor ecx,ecx; xor eax,eax; xor edx,edx; div ecx
+        ("divide", vec![0x31, 0xC9, 0x31, 0xC0, 0x31, 0xD2, 0xF7, 0xF1, 0xEB, 0xFE]),
+        // pushfq; or qword [rsp], 0x100 (TF); popfq; nop
+        ("trap_flag", vec![0x9C, 0x48, 0x81, 0x0C, 0x24, 0x00, 0x01, 0x00, 0x00, 0x9D, 0x90, 0xEB, 0xFE]),
+        // icebp
+        ("icebp", vec![0xF1, 0xEB, 0xFE]),
+        // mov rsp, 0x8000_0000_0000_0000; push rax  (#SS)
+        ("noncanonical_stack", code_with_imm64(&[0x48, 0xBC], 0x8000_0000_0000_0000, &[0x50, 0xEB, 0xFE])),
+        // push 0x1D00; ldmxcsr [rsp]; xorps xmm0,xmm0; xorps xmm1,xmm1; divss xmm0,xmm1  (#XM)
+        (
+            "simd",
+            vec![
+                0x68, 0x00, 0x1D, 0x00, 0x00, 0x0F, 0xAE, 0x14, 0x24, 0x0F, 0x57, 0xC0, 0x0F, 0x57, 0xC9,
+                0xF3, 0x0F, 0x5E, 0xC1, 0xEB, 0xFE,
+            ],
+        ),
+    ];
+    for (name, code) in cases.iter() {
+        println!("selftest user-exceptions: running {}", name);
+        let (ended, exit) = match start_ring3("selftest-exc", code, &[]) {
+            Ok(pid) => run_until_dead(pid, 2000),
+            Err(_) => (false, None),
+        };
+        println!(
+            "selftest user-exceptions: {}_ended={} {}_exit={}",
+            name,
+            ended,
+            name,
+            exit.map(|c| alloc::format!("{}", c)).unwrap_or_else(|| String::from("none"))
+        );
+    }
+    println!("selftest user-exceptions: kernel_alive=true");
 }
 
 // ---- IPC -------------------------------------------------------------------

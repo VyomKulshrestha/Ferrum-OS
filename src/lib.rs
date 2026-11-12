@@ -175,6 +175,11 @@ pub fn init() {
     gdt::init();
     interrupts::init_idt();
     unsafe { interrupts::PICS.lock().initialize() };
+    // Unmask only the lines that have a handler: timer, keyboard and the
+    // cascade on the master; the ATA channels on the slave (the mouse driver
+    // unmasks IRQ 12 itself). An interrupt on any other line used to arrive
+    // at a vector with no gate, which ends in a double fault.
+    unsafe { interrupts::PICS.lock().write_masks(0xF8, 0x3F) };
     interrupts::init_pit();
     unsafe { enable_sse_extensions() };
     x86_64::instructions::interrupts::enable();
