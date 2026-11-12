@@ -347,6 +347,67 @@ def frog(mode, frac=0.97):
     )
 
 
+def merge():
+    """Totals of the script's parts per history, and the round's combined summary target/tw1/tw1b_summary.json."""
+    K = B.setup()["constants"]
+    zero = {k: 0 for k in ("checked", "in_band", "probes", "skipped_not_finite")}
+    out = {"target": NAME, "histories": {}, "frog": []}
+    for which in ("full", "young"):
+        camp = [load(OUT / f"campaigns_mode{m}_{which}.json") for m in range(7)]
+        att = [load(OUT / f"attacks_mode{m}_{which}.json") for m in range(7)]
+        rows = [
+            dict(c, parameter=Q, consistency=zero, attack=[])
+            for c in camp
+            if c and c.get("status") == "run"
+        ]
+        entry = B.summarise(rows, K, ("control", "loud")) if rows else {}
+        entry["campaign_modes"] = [c["mode"] for c in rows]
+        done = [a for a in att if a and a.get("status") == "run"]
+        attack = [r for a in done for r in a["attack"]]
+        if attack:
+            first = [(r["found"][0], r["onset"][0]) for r in attack if r["found"]]
+            foll = [
+                (f, o) for r in attack for f, o in zip(r["found"][1:], r["onset"][1:])
+            ]
+            entry.update(
+                attack_modes=[a["mode"] for a in done],
+                first={
+                    "events": len(first),
+                    "detected": sum(f for f, _ in first),
+                    "onset": sum(o for _, o in first),
+                },
+                follower={
+                    "events": len(foll),
+                    "detected": sum(f for f, _ in foll),
+                    "onset": sum(o for _, o in foll),
+                },
+                chance_detected=float(sum(r["chance_found"] for r in attack)),
+                alarm_share_unlabelled=sum(r["alarm_unlabelled"] for r in attack)
+                / max(1, sum(r["unlabelled_steps"] for r in attack)),
+                median_max_reading_over_tau0=float(
+                    np.median([r["max_reading_over_tau0"] for r in attack])
+                ),
+            )
+        out["histories"][which] = entry
+    for m in range(7):
+        f = load(OUT / f"frog_mode{m}_young.json")
+        if f:
+            out["frog"].append(f)
+    path = ROOT / "target/tw1/tw1b_summary_spot.json"
+    path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    repro_env.stamp_json(path)
+    combined = {
+        "status": "exploratory (tw1b); Tennessee Eastman score cache; no dataset opened",
+        "plan": "docs/research/thresholds_in_the_wild_tw1a_dev_plan.md, amendment 4 and its note",
+        "score_level": load(ROOT / "target/tw1/tw1b_summary_score.json"),
+        "spot_authors_script": out,
+    }
+    path = ROOT / "target/tw1/tw1b_summary.json"
+    path.write_text(json.dumps(combined, indent=1) + "\n", encoding="utf-8")
+    repro_env.stamp_json(path)
+    print("written", path)
+
+
 def sha(path):
     import hashlib
 
@@ -362,5 +423,7 @@ if __name__ == "__main__":
         attacks(int(args[0]), args[1])
     elif cmd == "frog":
         frog(int(args[0]))
+    elif cmd == "merge":
+        merge()
     else:
         raise SystemExit(__doc__)
