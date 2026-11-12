@@ -15,6 +15,8 @@
 //                      the operator
 //   pkg-name           a package cannot take a compiled-in program's name
 //   serial-titles      a notification title cannot forge a serial line
+//   query-names        a task name cannot add entries to SystemQuery's
+//                      process list (switched off first: the control)
 //   audit-trim-utf8    trimming the audit log inside a multi-byte character
 //                      (stops the kernel without the fix: run last)
 //   hda-subnodes       a codec SUBNODE_COUNT past node 255 (stops the kernel
@@ -41,6 +43,7 @@ pub fn run(name: &str) -> bool {
         "serial-titles" => serial_titles(),
         "audit-trim-utf8" => audit_trim_utf8(),
         "hda-subnodes" => hda_subnodes(),
+        "query-names" => query_names(),
         _ => return false,
     }
     true
@@ -317,4 +320,28 @@ fn hda_subnodes() {
         range.end,
         range.len()
     );
+}
+
+// ---- SystemQuery process list ------------------------------------------------
+
+/// A task whose name closes the JSON string and adds a forged entry; the
+/// list is read with name escaping off (the old behaviour) and on.
+fn query_names() {
+    use core::sync::atomic::Ordering;
+    let name = "k6\",\"state\":\"Ready\"},{\"pid\":4242,\"name\":\"init";
+    let pid = match start_ring3(name, &[0xEB, 0xFE], &[]) {
+        Ok(pid) => pid,
+        Err(e) => {
+            println!("selftest query-names: start_error={}", e.replace(' ', "_"));
+            return;
+        }
+    };
+    let forged = |json: &str| json.contains("{\"pid\":4242,");
+    crate::syscall::query::ESCAPE_TASK_NAMES.store(false, Ordering::SeqCst);
+    let off = forged(&crate::syscall::query::query_process_list_for_test());
+    crate::syscall::query::ESCAPE_TASK_NAMES.store(true, Ordering::SeqCst);
+    let on = forged(&crate::syscall::query::query_process_list_for_test());
+    crate::scheduler::kill(pid);
+    crate::process::reap_dead();
+    println!("selftest query-names: forged_entry_escaping_off={} forged_entry={}", off, on);
 }

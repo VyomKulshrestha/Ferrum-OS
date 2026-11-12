@@ -89,6 +89,32 @@ fn query_services() -> String {
     json
 }
 
+/// `s` for a JSON string, as `query_services` writes service names: `"` and
+/// `\` escaped, printable ASCII as is, every other character as `?`.
+fn json_name(s: &str) -> String {
+    let mut name = String::new();
+    for c in s.chars() {
+        match c {
+            '"' | '\\' => {
+                name.push('\\');
+                name.push(c);
+            }
+            c if (' '..='~').contains(&c) => name.push(c),
+            _ => name.push('?'),
+        }
+    }
+    name
+}
+
+/// Query type 1 for the kernel self-tests (`selftest_k6 query-names`).
+pub fn query_process_list_for_test() -> String {
+    query_process_list()
+}
+
+/// Off only in the self-test `query-names-off` (negative control on the same
+/// image): task names go into the process list as they are.
+pub static ESCAPE_TASK_NAMES: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(true);
+
 /// Query type 0: System information.
 fn query_system_info() -> String {
     let uptime = crate::scheduler::total_ticks();
@@ -137,7 +163,18 @@ fn query_process_list() -> String {
 
         json.push_str(&format!(
             "{{\"pid\":{},\"name\":\"{}\",\"state\":\"{}\",\"priority\":\"{}\",\"ticks\":{}}}",
-            task.id, task.name, state_str, priority_str, task.ticks
+            task.id,
+            // A process started by Exec is named after the last component of
+            // its path, which the caller chose: a `"` in it wrote extra fields
+            // and entries into the list (fi2 kernel audit).
+            if ESCAPE_TASK_NAMES.load(core::sync::atomic::Ordering::SeqCst) {
+                json_name(&task.name)
+            } else {
+                task.name.clone()
+            },
+            state_str,
+            priority_str,
+            task.ticks
         ));
     }
 

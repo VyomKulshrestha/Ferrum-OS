@@ -122,6 +122,14 @@ try {
       field(o, "post_status") === "ok" && !forged, `${line(o, "serial-titles")} forged=${forged ? forged[0] : "none"}`);
   }
 
+  out = await run("query-names", 30);
+  if (out) {
+    const d = line(out, "query-names");
+    check("SystemQuery's process list escapes task names (no forged entry)", field(out, "forged_entry") === "false", d);
+    check("with escaping switched off the same name forges an entry (control on the same image)",
+      field(out, "forged_entry_escaping_off") === "true");
+  }
+
   check("no kernel fault during the self-tests", !faulted(shell.serial()));
 } catch (error) {
   check("harness completed", false, String(error?.message || error).split("\n")[0]);
