@@ -12,7 +12,8 @@
 #             blocks), a file with a hard link, a directory of 300 entries
 #             (more than 12 blocks) and a small file. The kernel writes and
 #             removes on it; `e2fsck -fn` must find it clean afterwards.
-# crafted.img the same layout plus a 7 MiB filler that fills group 0, then
+# crafted.img the same layout plus a 6.5 MiB filler (single and double
+#             indirect blocks), then
 #             damaged with debugfs: `xlink` shares its first block with
 #             `victim`; `evil` points at group 1's backup superblock; the
 #             backup superblock, descriptor and reserved descriptor blocks of
@@ -34,7 +35,7 @@ done
 mke2fs -q -F -t ext2 -b 1024 -L k5clean -d pop clean.img 32M
 e2fsck -fn clean.img > clean.fsck.txt 2>&1 || true
 
-head -c 6815744 /dev/zero > pop/filler
+yes filler | head -c 6815744 > pop/filler
 yes victim | head -c 1024 > pop/victim
 yes xlink | head -c 1024 > pop/xlink
 printf 'evil\n' > pop/evil

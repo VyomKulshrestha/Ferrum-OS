@@ -332,6 +332,8 @@ if (boots.includes("C") || boots.includes("D")) {
       f.exit !== 0 && /differences|Fix\?/.test(f.out), f.out.split("\n").filter((l) => /differences|Fix|exit/.test(l)).slice(0, 4).join(" | "));
     check("D control: the cross-linked block is freed and reused (the other file's data changes) or backup metadata is handed out",
       /victim_intact_after=false/.test(cr) || Number(field(cr, "file_blocks_in_backup_metadata")) > 0, cr);
+    check("D control: removing the filler leaves its indirect blocks allocated",
+      Number(field(cr, "filler_freed")) < Number(field(cr, "filler_data_blocks")) + Number(field(cr, "filler_pointer_blocks")), cr);
     check("D control: files are written over the backup superblock",
       Number(field(cr, "file_blocks_in_backup_metadata")) > 0 && field(cr, "backup_superblock_magic") !== "0xef53", cr);
   }

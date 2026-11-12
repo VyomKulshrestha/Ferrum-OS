@@ -2011,7 +2011,18 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         // without links.
         let mut dead = target_inode;
         dead.links_count = 0;
-        dead.dtime = 1;
+        // A deletion time below the inode count reads as a link in the
+        // orphan list (the field is shared): dtime 1 made e2fsck report every
+        // removed inode as "part of a corrupted orphan linked list" (found by
+        // e2fsck on a real disk, fi2 K1 item 5). The clock time, or at least
+        // the inode count when the RTC is not readable.
+        dead.dtime = if fi2() {
+            let inodes = self.inner.lock().superblock.inodes_count;
+            let now = crate::security::time::read_rtc_time().unwrap_or(0).min(u32::MAX as u64) as u32;
+            now.max(inodes)
+        } else {
+            1
+        };
         freed &= self.write_inode(target_inode_num, &dead).is_ok();
         freed &= self.free_inode(target_inode_num).is_ok();
         if !freed {
