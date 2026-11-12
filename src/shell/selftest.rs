@@ -30,7 +30,7 @@ pub fn run(name: &str) -> bool {
         "ipc-sender" => ipc_sender(),
         "injected-terminal" => injected_terminal(),
         "file-version" => file_version(),
-        _ => return false,
+        _ => return super::selftest_k2::run(name),
     }
     true
 }

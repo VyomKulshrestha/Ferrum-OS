@@ -387,7 +387,39 @@ unsafe extern "C" fn timer_interrupt_entry_stub() {
     );
 }
 
+/// TSC cycles spent in timer interrupts and syscalls that returned to their
+/// caller (paths that switch tasks are not counted), and how many there were.
+/// Read by `test-syscall perf`.
+pub static TIMER_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TIMER_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static SYSCALL_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static SYSCALL_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
+struct CycleMeter {
+    start: u64,
+    cycles: &'static core::sync::atomic::AtomicU64,
+    count: &'static core::sync::atomic::AtomicU64,
+}
+
+impl CycleMeter {
+    fn start(
+        cycles: &'static core::sync::atomic::AtomicU64,
+        count: &'static core::sync::atomic::AtomicU64,
+    ) -> Self {
+        Self { start: unsafe { core::arch::x86_64::_rdtsc() }, cycles, count }
+    }
+}
+
+impl Drop for CycleMeter {
+    fn drop(&mut self) {
+        let spent = unsafe { core::arch::x86_64::_rdtsc() }.wrapping_sub(self.start);
+        self.cycles.fetch_add(spent, core::sync::atomic::Ordering::Relaxed);
+        self.count.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
+    let _meter = CycleMeter::start(&TIMER_CYCLES, &TIMER_COUNT);
     // Tick the scheduler (if initialized)
     crate::scheduler::tick();
     
@@ -846,6 +878,7 @@ unsafe fn yield_from_syscall(pid: u64, frame: &SyscallFrame) {
 /// file the stub pushed; mutating it changes what the stub pops
 /// before `iretq` (this is how results travel back in rax).
 extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
+    let _meter = CycleMeter::start(&SYSCALL_CYCLES, &SYSCALL_COUNT);
     use crate::serial::SERIAL1;
 
     let syscall_no = frame.rax;
