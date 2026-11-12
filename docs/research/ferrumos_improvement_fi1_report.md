@@ -156,6 +156,16 @@ the replay false alarms and the rollout error, belong to one training run and no
 needs a sentence in a future version; the closest promotion gate in the committed run had no slack
 (0 against 0).
 
+**Correction, 2026-11-12 (found while writing v1.4).** "The report" in the paragraph above is wrong for
+the OS world-model study. The replay false alarms (216 of 1,969) and the rollout error are quoted in
+"When Agents Control the Kernel" v1.2 (DOI 10.5281/zenodo.21829808), which "Prediction Is Not
+Permission" cites as [15]; v1.3 of the latter does not quote them. "Prediction Is Not Permission"
+depends on that study only through the protected FerrumOS encoder, which is fixed by digest. The
+statement about the OS world-model numbers therefore belongs in a new version of "When Agents Control
+the Kernel"; the statement about the physical model's selection belongs in v1.4 of "Prediction Is Not
+Permission". Whether the earlier report claims or declines the comparison with the per-action mean is
+being read from its text for that new version and is not asserted here.
+
 **Built in this round.** `scripts/repro_env.py` pins the thread count for BLAS, OpenMP, LightGBM and
 PyTorch and records the environment in result files; it is adopted in the unfrozen `tw1a` and `fi1`
 scripts (one thread by default), and `_v2` entry points beside the frozen trainers and the robustness
@@ -675,11 +685,13 @@ remaining weakness is a matter of data covering the operating regime, not of the
 The program began from the owner's suspicion that gaps in FerrumOS were causing problems in the papers.
 Four findings bear on that.
 
-1. **"Prediction Is Not Permission" v1.3.** The selection and promotion of the deployed physical model,
-   and one comparison in the OS world-model study, change with the number of BLAS threads (section 2,
-   round 3). The deployed checkpoint is fixed by digest, so evaluations of it stand. Several tables rest
-   on rules the text does not state (section 2, round 2: Tables 7, 13, 19, 30 and others). None
-   overturns a headline; each needs a sentence.
+1. **"Prediction Is Not Permission" v1.3.** The selection and promotion of the deployed physical model
+   change with the number of BLAS threads (section 2, round 3). The deployed checkpoint is fixed by
+   digest, so evaluations of it stand. Several tables rest on rules the text does not state (section 2,
+   round 2: Tables 7, 13, 19, 30 and others). None overturns a headline; each needs a sentence.
+   (Corrected 2026-11-12: the OS world-model study, whose numbers and one comparison also change with
+   the thread count, is reported in "When Agents Control the Kernel" v1.2, not in this report; see the
+   correction in section 2.)
 2. **"Thresholds That Travel".** The registered comparison of tracker and frozen threshold holds under
    a stream-level bootstrap. The saturation the paper reports on HAI 20.07 is explained by plant states
    outside the fitted range, which the paper can cite as a post-hoc diagnosis.
