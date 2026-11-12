@@ -53,6 +53,24 @@ pub fn run(name: &str) -> bool {
             crate::cpu_protect::BRACKETS_ENABLED.store(false, Ordering::SeqCst);
             println!("selftest smap-brackets-off: brackets=false");
         }
+        "console-forge" => console_forge(),
+        "console-mark-off" => {
+            crate::syscall::console::MARK_PROCESS_OUTPUT.store(false, Ordering::SeqCst);
+            println!("selftest console-mark-off: mark_process_output=false");
+        }
+        "console-mark-on" => {
+            crate::syscall::console::MARK_PROCESS_OUTPUT.store(true, Ordering::SeqCst);
+            println!("selftest console-mark-on: mark_process_output=true");
+        }
+        "port-forge" => port_forge(),
+        "iopl3-on" => {
+            crate::scheduler::USER_IOPL3.store(true, Ordering::SeqCst);
+            println!("selftest iopl3-on: user_iopl3=true");
+        }
+        "iopl3-off" => {
+            crate::scheduler::USER_IOPL3.store(false, Ordering::SeqCst);
+            println!("selftest iopl3-off: user_iopl3=false");
+        }
         _ => return false,
     }
     true
@@ -342,5 +360,103 @@ fn smap_sweep() {
         ended,
         exit_str(exit),
         if failed.is_empty() { String::from("none") } else { failed.join(",") }
+    );
+}
+
+// ---- console forgery (item 3) --------------------------------------------------
+
+/// The text rows on the screen now: the framebuffer console's text grid, or
+/// the VGA text buffer when there is no framebuffer console.
+fn screen_rows() -> (&'static str, Vec<String>) {
+    if let Some(guard) = crate::graphics::console::CONSOLE.try_lock() {
+        if let Some(console) = guard.as_ref() {
+            let rows = console
+                .read_text_buffer()
+                .iter()
+                .map(|r| String::from(String::from_utf8_lossy(r).trim_end()))
+                .collect();
+            return ("framebuffer", rows);
+        }
+    }
+    let mut rows = Vec::new();
+    for row in 0..25usize {
+        let mut line = Vec::with_capacity(80);
+        for col in 0..80usize {
+            line.push(unsafe { core::ptr::read_volatile((0xb8000 + (row * 80 + col) * 2) as *const u8) });
+        }
+        rows.push(String::from(String::from_utf8_lossy(&line).trim_end()));
+    }
+    ("vga", rows)
+}
+
+/// A ring-3 process tries to print a line that reads as the kernel's
+/// confirmation prompt, seven ways: a plain line, the tag split over two
+/// writes, a carriage return over a decoy, a line long enough to wrap, the
+/// serial-only descriptor, a look-alike tag with a Cyrillic letter, and (in
+/// `port-forge`) the UART port directly. Each forged line names
+/// `/k5-forged-<x>`. The harness checks the serial log; this test checks the
+/// screen.
+fn console_forge() {
+    let prompt = |x: &str| {
+        alloc::format!(
+            "[SECURITY] Process 1 is requesting destructive syscall: DeleteFile path=\"/k5-forged-{}\"\n",
+            x
+        )
+    };
+    let mut p = SweepProgram { data: Vec::new(), calls: Vec::new() };
+    let a = p.put(alloc::format!("\n{}", prompt("a")).as_bytes());
+    let b1 = p.put(b"[SECUR");
+    let b2 = p.put(prompt("b")[6..].as_bytes());
+    let c = p.put(alloc::format!("decoy\r{}", prompt("c")).as_bytes());
+    let d = p.put(alloc::format!("{}{}", " ".repeat(100), prompt("d")).as_bytes());
+    let e = p.put(prompt("e").as_bytes());
+    let f = p.put(prompt("f").replacen("SECURITY", "S\u{0415}CURITY", 1).as_bytes());
+    for (fd, (ptr, len)) in [(1, a), (1, b1), (1, b2), (1, c), (1, d), (2, e), (1, f)] {
+        p.call(34, [fd, ptr, len, 0, 0]);
+    }
+    let code = p.build();
+    let (ended, exit) = match start_ring3("selftest-forge", &code, &[]) {
+        Ok(pid) => run_until_dead(pid, 4000),
+        Err(_) => (false, None),
+    };
+    let (kind, rows) = screen_rows();
+    let forged: Vec<&String> = rows.iter().filter(|r| r.contains("k5-forged")).collect();
+    let tag_start = forged.iter().filter(|r| r.trim_start().starts_with("[SECURITY")).count();
+    let tag_any = forged.iter().filter(|r| r.contains("[SECURITY")).count();
+    let marked = forged.iter().filter(|r| r.contains("[pid ")).count();
+    println!(
+        "selftest console-forge: mark={} ended={} exit={} screen={} screen_rows_with_forged_path={} screen_rows_starting_with_tag={} screen_rows_with_tag={} screen_rows_marked={}",
+        crate::syscall::console::MARK_PROCESS_OUTPUT.load(Ordering::SeqCst),
+        ended,
+        exit_str(exit),
+        kind,
+        forged.len(),
+        tag_start,
+        tag_any,
+        marked
+    );
+}
+
+/// A ring-3 process writes a forged prompt straight to the UART (COM1,
+/// port 0x3F8) with `out`. With IOPL 0 the first `out` is a #GP and the
+/// process is ended; with IOPL 3 (the old flags) the line reaches the
+/// serial console unmarked.
+fn port_forge() {
+    let line = b"[SECURITY] Process 1 is requesting destructive syscall: DeleteFile path=\"/k5-forged-port\"\n";
+    let mut code = vec![0x66, 0xBA, 0xF8, 0x03]; // mov dx, 0x3F8
+    for &b in line.iter() {
+        code.extend_from_slice(&[0xB0, b, 0xEE]); // mov al, b; out dx, al
+    }
+    code.extend_from_slice(&[0x31, 0xFF, 0xB8, 0x1E, 0x00, 0x00, 0x00, 0xCD, 0x80, 0xEB, 0xFE]);
+    crate::serial_println!("");
+    let (ended, exit) = match start_ring3("selftest-port", &code, &[]) {
+        Ok(pid) => run_until_dead(pid, 3000),
+        Err(_) => (false, None),
+    };
+    println!(
+        "selftest port-forge: user_iopl3={} ended={} exit={}",
+        crate::scheduler::USER_IOPL3.load(Ordering::SeqCst),
+        ended,
+        exit_str(exit)
     );
 }

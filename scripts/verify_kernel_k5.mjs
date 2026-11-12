@@ -54,6 +54,58 @@ async function sweepCheck(tag, smapExpected) {
       && field(out, "smap") === String(smapExpected) && /ring-3 write reached the console/.test(out), d);
 }
 
+// Item 3: a process cannot print a line that reads as the kernel's
+// confirmation prompt. Serial lines are split at CR too (a terminal returns
+// to column 0 there).
+async function forgeRun() {
+  const from = shell.serial().length;
+  const out = await run("console-forge", 30);
+  const tail = shell.serial().slice(from);
+  const lines = tail.split(/\r\n|\n|\r/).filter((l) => /k5-forged-[a-f]/.test(l) && !/selftest /.test(l));
+  const paths = new Set(lines.map((l) => (l.match(/k5-forged-([a-f])/) || [])[1]));
+  return {
+    out,
+    lines,
+    paths: [...paths].sort().join(""),
+    tagStart: lines.filter((l) => l.trimStart().startsWith("[SECURITY")).length,
+    tagAny: lines.filter((l) => l.includes("[SECURITY")).length,
+    unmarked: lines.filter((l) => !l.includes("[pid ")).length,
+  };
+}
+
+async function consoleChecks() {
+  if (skip.has("console-forge")) return;
+  const fixed = await forgeRun();
+  check("A: console: a process's forged prompts (7 attempts) reach the serial log, each line marked with its pid",
+    fixed.paths === "abcdef" && fixed.unmarked === 0 && field(fixed.out, "exit") === "0",
+    `paths=${fixed.paths} lines=${fixed.lines.length} unmarked=${fixed.unmarked} ${line(fixed.out, "console-forge")}`);
+  check("A: console: no serial line of process output starts with or contains the [SECURITY] tag",
+    fixed.tagStart === 0 && fixed.tagAny === 0, fixed.lines.slice(0, 3).join(" || ").slice(0, 400));
+  check("A: console: no screen row of process output starts with or contains the [SECURITY] tag",
+    Number(field(fixed.out, "screen_rows_with_forged_path")) >= 4 && field(fixed.out, "screen_rows_starting_with_tag") === "0"
+      && field(fixed.out, "screen_rows_with_tag") === "0", line(fixed.out, "console-forge"));
+  await run("console-mark-off");
+  const old = await forgeRun();
+  await run("console-mark-on");
+  check("A: console control (marking switched off, same image): forged lines start with the tag on serial and on screen",
+    old.tagStart >= 4 && Number(field(old.out, "screen_rows_starting_with_tag")) >= 3,
+    `serial_lines_starting_with_tag=${old.tagStart} ${line(old.out, "console-forge")}`);
+
+  let from = shell.serial().length;
+  let out = await run("port-forge", 30);
+  let tail = shell.serial().slice(from);
+  const portLine = (t) => t.split(/\r\n|\n|\r/).some((l) => l.startsWith("[SECURITY]") && l.includes("k5-forged-port"));
+  check("A: console: a process cannot write the UART directly (IOPL 0: the first `out` ends it)",
+    field(out, "ended") === "true" && field(out, "exit") !== "0" && !portLine(tail), line(out, "port-forge"));
+  await run("iopl3-on");
+  from = shell.serial().length;
+  out = await run("port-forge", 30);
+  tail = shell.serial().slice(from);
+  await run("iopl3-off");
+  check("A: console control (IOPL 3, the old flags): the process writes an unmarked prompt straight to the UART",
+    field(out, "exit") === "0" && portLine(tail), line(out, "port-forge"));
+}
+
 // ---- boot A: Haswell (SMEP, no SMAP) ----------------------------------------
 if (boots.includes("A")) {
   try {
@@ -68,6 +120,7 @@ if (boots.includes("A")) {
       field(out, "smap") === "false" && field(out, "unbracketed_read_faulted") === "false"
         && field(out, "bracketed_read_faulted") === "false", line(out, "smap"));
     await sweepCheck("A:", false);
+    await consoleChecks();
     check("A: no kernel fault", !kernelFault(shell.serial()));
   } catch (error) {
     check("A: harness completed", false, String(error?.message || error).split("\n")[0]);

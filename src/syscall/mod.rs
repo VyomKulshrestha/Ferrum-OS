@@ -188,6 +188,7 @@ pub mod app;
 pub mod audio;
 pub mod camera;
 pub mod clipboard;
+pub mod console;
 pub mod fs;
 pub mod graphics;
 pub mod gui_window;
@@ -692,7 +693,7 @@ fn dispatch_with_context(
         x if x == SyscallNumber::WaitPid as u64 => {
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
-        x if x == SyscallNumber::Write as u64 => sys_write_console(args),
+        x if x == SyscallNumber::Write as u64 => console::sys_write_console(caller_pid, args),
         x if x == SyscallNumber::Close as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*")
                 && !crate::security::has_capability(held_capabilities, "net:listen:*")
@@ -959,45 +960,4 @@ fn sys_ipc_receive(
         Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
-}
-
-/// `sys_write_console` — Write bytes from userspace to the console.
-///
-/// args[0] = fd: 1 = console + serial, 2 = serial only.
-/// args[1] = ptr (user pointer to bytes)
-/// args[2] = len (capped at 4096)
-///
-/// Returns the number of bytes written.
-fn sys_write_console(args: [u64; 6]) -> SyscallResult {
-    let fd = args[0];
-    if fd != 1 && fd != 2 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-    let bytes = match unsafe { fs::read_user_bytes(args[1], args[2], 4096) } {
-        Some(b) => b,
-        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
-    };
-    let text = alloc::string::String::from_utf8_lossy(&bytes);
-    // `print!` already tees to the serial port (see vga::_print), so
-    // fd=1 must not also call serial_print! or every byte doubles on
-    // the serial console. fd=2 is the serial-only path.
-    //
-    // int 0x80 uses an interrupt gate, so IF is normally clear throughout a
-    // syscall. UART/framebuffer output can take milliseconds; keeping IF
-    // clear for that whole write starves the PS/2 keyboard while background
-    // userspace logs. This handler holds no scheduler or device locks before
-    // printing, so hardware IRQs can safely run for the duration of the I/O.
-    let interrupts_were_enabled = x86_64::instructions::interrupts::are_enabled();
-    if !interrupts_were_enabled {
-        x86_64::instructions::interrupts::enable();
-    }
-    if fd == 1 {
-        crate::print!("{}", text);
-    } else {
-        crate::serial_print!("{}", text);
-    }
-    if !interrupts_were_enabled {
-        x86_64::instructions::interrupts::disable();
-    }
-    SyscallResult::ok(bytes.len() as u64)
 }
