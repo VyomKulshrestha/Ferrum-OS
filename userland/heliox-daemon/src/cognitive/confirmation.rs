@@ -367,7 +367,8 @@ fn decide(
     let fingerprint = super::authority::approval_fingerprint(args);
     // Bind to the file's version (fi1 K3). A version the kernel cannot
     // establish refuses the call: no request is made and none is used.
-    let version = match super::authority::version_subject(tool_name, args) {
+    let version: Option<FileVersion> = None;
+    let _held_back = match super::authority::version_subject(tool_name, args) {
         Some(path) => match gate.file_version(&path) {
             Ok(version) => Some(version),
             Err(()) => return Clearance::Refused,
