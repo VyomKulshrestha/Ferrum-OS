@@ -88,7 +88,10 @@ def outcomes(tmp):
 
 def test_resume_gives_the_same_episodes(tmp_path, mode):
     jobs = [[0, s, c, a] for s in (1, 2) for c, a in S.REDUCED]
-    factory = lambda j: C.Episode(mode, j[1], j[2], j[3])
+
+    def factory(j):
+        return C.Episode(mode, j[1], j[2], j[3])
+
     st, _, _ = run_mock(tmp_path / "a", jobs, factory)
     assert st == {0: "done"}
     st, _, _ = run_mock(tmp_path / "b", jobs, factory, max_rounds=4)
@@ -104,7 +107,10 @@ def test_resume_gives_the_same_episodes(tmp_path, mode):
 
 def test_restart_after_submission_collects_the_batch(tmp_path, mode):
     jobs = [[0, 1, "loud", "P0"]]
-    factory = lambda j: C.Episode(mode, j[1], j[2], j[3])
+
+    def factory(j):
+        return C.Episode(mode, j[1], j[2], j[3])
+
     client = S.MockClient()
     real_results = client.messages.batches.results
 
