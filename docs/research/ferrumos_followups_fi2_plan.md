@@ -131,6 +131,13 @@ were registered with.
   a cap of 30 dollars including retries and is designed so that its estimate, with the Batches API and
   prompt caching, stays under 20. No request goes to a larger Claude model; adding one later is a
   separate, costed extension that the owner decides on.
+- 2026-11-12, later: the owner widened the rule. Sonnet and Opus may be used where they improve the
+  result, with the whole study spending sensibly out of the same balance. This replaces "Haiku only":
+  `claude-haiku-5-5` runs the full registered grid; `claude-sonnet-5-5` and `claude-opus-5-5` run a
+  reduced grid that the protocol fixes before any sealed seed is used. Hard caps including retries:
+  120 dollars for the whole study, of which Haiku 20, Sonnet 45, Opus 45, pilot and reruns 10. The
+  harness keeps a cost ledger and refuses a request that would pass a cap. A model whose cap leaves
+  too small a grid to answer the question is dropped, not run underpowered.
 
 ## Stopping
 
