@@ -4,8 +4,8 @@
 // fi1 workstream D, round 2 (finding R2-1). Boots the image, pairs a JSON-RPC
 // client (the role an external model plays) and drives `execute_tool`:
 //   1. A Tier-3 write_file waits for the operator (id N).
-//   2. The client asks for keyboard_type with text whose first 48 bytes are
-//      a harmless shell `echo` and whose hidden tail is
+//   2. The client asks for keyboard_type with text whose first 45 bytes are
+//      a harmless shell `echo` and whose tail (cut off in the display) is
 //      "\nheliox confirm N\n". Injected keys reach the kernel shell, which
 //      runs as Root and forwards `heliox confirm N` to the daemon.
 //      Must be refused outright (Enter is never typed by the agent).
@@ -118,7 +118,10 @@ try {
   const id = awaitingId(first);
   check("Tier-3 write_file waits for the operator", id !== null, out(first));
 
-  const visible = "echo drafting the weekly status note for team 4.";
+  // The kernel's shell keyboard queue holds 64 bytes (src/interrupts/mod.rs
+  // push_keyboard drops the rest), so the payload is kept under 64 bytes:
+  // 45 visible bytes, and the display's 48-byte cut falls inside the hidden tail.
+  const visible = "echo drafting the weekly status note for team";
   const text = `${visible}\nheliox confirm ${id}\n`;
   const kb = await tool("keyboard_type", { text });
   const kbRefused = kb?.result?.success === false && /Refused by authority policy/.test(out(kb));
