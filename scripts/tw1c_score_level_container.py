@@ -211,6 +211,16 @@ if __name__ == "__main__":
         random.seed(20261112)  # the t-digest compresses with random.shuffle
     if cmd == "versions":
         print(json.dumps(A.versions(), indent=1))
+    elif cmd == "mode" and which == "streamad" and sys.argv[4:5] == ["young"]:
+        # amendment 2: with young history the t-digest runs the campaigns and the sealed runs but not the
+        # 142 recorded attack runs, which cost hours per part at about two milliseconds a step
+        mode = int(sys.argv[3])
+        A.documented = lambda tau0, from_clone=False: [StreamadZScore, StreamadSpot]
+        H.run_mode(mode, "young")
+        A.documented = lambda tau0, from_clone=False: [StreamadTDigest]
+        H.SETUP = copy.deepcopy(H.SETUP)
+        H.SETUP["modes"][str(mode)]["attack"] = []
+        H.run_mode(mode, "young", "TDigest")
     elif cmd == "mode":
         H.run_mode(int(sys.argv[3]), sys.argv[4] if len(sys.argv) > 4 else "full")
     elif cmd == "merge":

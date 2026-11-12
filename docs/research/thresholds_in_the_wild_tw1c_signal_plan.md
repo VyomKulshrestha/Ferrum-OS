@@ -279,3 +279,17 @@ in the product protocols changes here.
    deviation it is judged against) to place a bracket of 1e-6 of its value, then bisects the target's
    own call inside it; if the bracket does not hold the edge, tw1a's full search is used. In the smoke
    test the earlier full search ran at 5.7 ms a step and agreed with every decision.
+
+## Amendment 2 (2026-11-12, during the StreamAD run, before any young-history part had started)
+
+1. **The t-digest calibrator with young history runs without the recorded attack runs.** With full history
+   it needed more than four hours per part at about two milliseconds a step, most of it in the 142
+   recorded attack runs. With young history it runs the sealed placements and the campaigns (control and
+   loud, open-loop) only; z-score and the SPOT detector run the whole protocol in both histories. The
+   full-history results were not looked at before this change.
+2. **Zabbix's frontend is published on 127.0.0.1:18080** instead of 8080, which another harness on this
+   host uses. The frontend holds no state; the server, its database and the triggers were not restarted.
+3. **Zabbix setup**: the trapper items' allowed hosts are set to `0.0.0.0/0,::/0`, because `history.push`
+   refused every value with the field empty. The series are cut one hour after the terminal hour.
+4. **htm.core** is built as its own `htm_install.py` builds it (the C++ core with CMake, then the Python
+   wheel); a direct `pip wheel` of the source tree fails because it expects the core library to exist.
