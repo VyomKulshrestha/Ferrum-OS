@@ -24,7 +24,10 @@ SCRIPTS = [line.split()[0] for line in SCRIPTS if line.strip()]
 
 DOC_PATTERNS = [r"^threshold_transfer_.*\.(json|md)$", r"^monitor_audit_.*\.md$", r"^real_telemetry_detection_protocol_v2.*\.json$",
                 r"^real_telemetry_detection_v2_result_(hai-20\.07|hygrid-ics)\.json$",
-                r"^real_telemetry_protocol_(v1|rt2)(_amendment\d)?\.json$"]
+                r"^real_telemetry_protocol_(v1|rt2)(_amendment\d)?\.json$",
+                r"^fi1_monitor_round[12]\.json$"]  # cited by the post-hoc paragraph on the fitted range (Section 5.2)
+# Reports in subfolders of docs/research that the paper cites (the fitted-range definition is in round 2).
+DOC_SUBFILES = ["fi1_reports/monitor_round1.md", "fi1_reports/monitor_round2.md"]
 PACK = SRC / "docs/research/paper/tt1_paper_pack"
 PACK_DIRS = ["figure_data", "figures"]
 
@@ -76,6 +79,8 @@ files = [(SRC / "scripts" / f, Path("scripts") / f) for f in SCRIPTS]
 for f in sorted((SRC / "docs/research").iterdir()):
     if any(re.match(p, f.name) for p in DOC_PATTERNS):
         files.append((f, Path("docs/research") / f.name))
+for name in DOC_SUBFILES:
+    files.append((SRC / "docs/research" / name, Path("docs/research") / name))
 for d in PACK_DIRS:
     for f in sorted((PACK / d).rglob("*")):
         if f.is_file() and "__pycache__" not in f.parts:
