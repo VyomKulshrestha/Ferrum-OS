@@ -56,7 +56,7 @@ COMPARED_KEYS = (
 )
 
 
-def run(threads: int, label: str, dataset: Path) -> None:
+def run(threads: int, label: str, dataset: Path, only=None) -> None:
     out = WORK / f"t{threads}_{label}"
     out.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
@@ -140,6 +140,8 @@ def run(threads: int, label: str, dataset: Path) -> None:
         ]
     steps.append(("evaluate", evaluate))
     timings = {}
+    if only:
+        steps = [step for step in steps if step[0] in only]
     for name, arguments in steps:
         start = time.time()
         with (out / f"{name}.log").open("w", encoding="utf-8") as log:
@@ -278,7 +280,22 @@ def study_os_world_model() -> dict:
     table = {"committed": {"gates": gates(committed)}}
     for folder in sorted(WORK.glob("t*_run*")):
         paper = folder / "paper.json"
+        digests = {
+            name: (folder / name).exists() and compare.sha256(folder / name) == digest
+            for name, digest in expected.items()
+            if (folder / name).exists()
+        }
+        metrics = folder / "transition_seed_17.json"
         if not paper.exists():
+            # A truncated run (--steps): digests and the selected seed's transition metrics only.
+            table[folder.name] = {
+                "truncated": True,
+                "digests_match": digests,
+                "transition_seed_17_metrics": compare.load(metrics)
+                if metrics.exists()
+                else None,
+                "gates": [],
+            }
             continue
         report = compare.load(paper)
         table[folder.name] = {
@@ -313,8 +330,13 @@ def main() -> None:
     r.add_argument("--threads", type=int, required=True)
     r.add_argument("--run", default="run1")
     r.add_argument("--dataset", type=Path, default=SHARED_DATASET)
+    r.add_argument(
+        "--steps",
+        nargs="+",
+        help="run only these steps (a truncated run), e.g. jepa_encoder transition_17",
+    )
     args = parser.parse_args()
-    run(args.threads, args.run, args.dataset)
+    run(args.threads, args.run, args.dataset, args.steps)
 
 
 if __name__ == "__main__":
