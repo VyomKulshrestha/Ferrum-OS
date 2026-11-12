@@ -124,3 +124,113 @@ What the selection set says:
 Survivors sent to the check set under the rule (ranked by net of chance): `d1|rise3@0.8`, `d1|rise3@0.9`,
 `d1|rise3@0.67`. They are one design with three budget splits, so the check run is close to one test, not three
 independent ones. A pass by one split and not by the others should be read as fragile.
+
+## What I knew before the check run (disclosure, rule 2 of the plan's note)
+
+I had read round 1's report, including its check table (per-dataset onset counts and alarm shares of d1,
+`mad+second`, `second`, `second+loro`), its verdict, and the post-check description of HAI 20.07 and ProvICS
+(sensors outside the fit range, channels far above their normal spread). No round-2 parameter was set on a check
+dataset and no diagnostic ran on check data before the run: the round-2 benchmark touched check units only in the
+check run itself. The `rise` channel, the budget shares and the out-of-range calibration were chosen from the
+selection table above. The idea behind the second channel (followers during an earlier alarm) came from round 1's
+selection results on TEP; that round 1's check run showed the same trade on TEP modes 4-6 was known to me, so the
+choice was not blind to the check set's character. A round-2 pass is weaker evidence than a round-1 pass would
+have been.
+
+## Check set (second use; run once, 2026-11-12 09:28-09:35 UTC)
+
+`python scripts/fi1_monitor_benchmark.py check2 "d1|rise3@0.8" "d1|rise3@0.9" "d1|rise3@0.67"`. Ledger rows
+(`target/real-telemetry/fi1/monitor/check_ledger.jsonl`) carry `"round": 2, "use": "second use of the check set"`.
+The baseline was re-scored once under the ledger label `d1 (round-2 re-score)` only to add the rule-5 numbers; the
+run checks that its verdict numbers equal round 1's stored ones (they do, every dataset) and the verdict is computed
+against round 1's stored baseline. Nothing was changed after the run.
+
+Onset detected / events (onset recall net of its chance reference), then the share of unlabelled time in alarm.
+voraus-AD: detected anomalous samples and the false-positive rate of normal samples (no chance reference).
+
+| dataset | d1 (baseline) | d1\|rise3@0.8 | d1\|rise3@0.9 | d1\|rise3@0.67 | round 1 best: mad+second / second |
+|---|---|---|---|---|---|
+| HAI 20.07 | 26/38 (+0.645), 0.3910 | 35/38 (+0.869), 0.3910 | 35/38 (+0.869), 0.3910 | 35/38 (+0.869), 0.3906 | 26, 0.3910 / 26, 0.3908 |
+| HAI 23.05 | 31/52 (+0.568), 0.0071 | 31/52 (+0.564), 0.0069 | 31/52 (+0.564), 0.0069 | 31/52 (+0.565), 0.0069 | 30, 0.0066 / 31, 0.0067 |
+| BATADAL | 14/14 (+0.661), 0.0138 | 14/14 (+0.631), 0.0132 | 14/14 (+0.651), 0.0134 | 14/14 (+0.635), 0.0130 | 14, 0.0127 / 14, 0.0101 |
+| HyGrid-ICS | 3/91 (-0.021), 0.0407 | 24/91 (+0.016), 0.0407 | 24/91 (+0.016), 0.0407 | 24/91 (+0.016), 0.0407 | 14, 0.0368 / 15, 0.0067 |
+| voraus-AD | 243/755, 0.0811 | 223/755, 0.0644 | 241/755, 0.0811 | 197/755, 0.0525 | 324, 0.1480 / 277, 0.0979 |
+| TEP modes 4-6 | 57/92 (+0.222), 0.0136 | 71/92 (+0.345), 0.0132 | 73/92 (+0.347), 0.0134 | 69/92 (+0.347), 0.0129 | 70, 0.0066 / 64, 0.0129 |
+| ProvICS | 3/32 (-0.038), 0.4399 | 11/32 (+0.095), 0.4399 | 11/32 (+0.095), 0.4399 | 11/32 (+0.095), 0.4399 | 3, 0.4224 / 3, 0.3889 |
+| mean onset recall | 0.478 | 0.599 (+0.120) | 0.605 (+0.127) | 0.591 (+0.112) | 0.528 / 0.514 |
+| mean alarm share | 0.1410 | 0.1385 (-0.0026) | 0.1409 (-0.0001) | 0.1366 (-0.0044) | 0.1463 / 0.1305 |
+| largest onset loss | | -0.026 (voraus-AD) | -0.003 (voraus-AD) | -0.061 (voraus-AD) | |
+| mean net of chance (6 stream datasets) | 0.339 | 0.420 | 0.424 | 0.421 | |
+
+### Verdict (the plan's definition, unchanged, against round 1's baseline numbers)
+
+| candidate | mean onset recall up >= 0.05 | mean alarm share not higher | no dataset loses > 0.05 | verdict |
+|---|---|---|---|---|
+| d1\|rise3@0.8 | yes (+0.120) | yes (-0.0026) | yes (worst -0.026) | **improved** |
+| d1\|rise3@0.9 | yes (+0.127) | yes (-0.0001) | yes (worst -0.003) | **improved** |
+| d1\|rise3@0.67 | yes (+0.112) | yes (-0.0044) | no (voraus-AD -0.061) | not improved |
+
+Two of the three splits meet the definition; the third fails only on voraus-AD, where a smaller d1 share loses
+anomalous samples. The alarm-share condition for `d1|rise3@0.9` holds by 0.0001; for `@0.8` it holds through the
+lower false-positive rate on voraus-AD (the stream datasets' shares are equal or slightly lower).
+
+### What the gain is made of (read these before the verdict)
+
+- **It is onsets during alarms that were already running, not less alarm time.** The second channel starts a new
+  episode when the score rises again on top of a level it already holds. On HAI 20.07 and ProvICS the alarm share is
+  unchanged (0.391, 0.440): the monitor still saturates; it now also says "something new" inside the saturated
+  time. Followers carry the gain: TEP modes 4-6 followers at onset 19/41 -> 39/41, while first events fall 38/51 ->
+  32/51 (`@0.8`) or 34/51 (`@0.9`); HAI 20.07 followers 25/36 -> 33/36.
+- **Net of chance, the gain is real on HAI 20.07 (+0.22), TEP 4-6 (+0.12) and ProvICS (+0.13), and nil on
+  HyGrid-ICS** (3 -> 24 of 91 onsets against a chance level that rises from 4.9 to 22.6 events; net -0.021 ->
+  +0.016). The mean net of chance over the six stream datasets rises from 0.339 to 0.420-0.424.
+- **False-alarm episodes go up where the monitor saturates.** Each channel re-arms on its own, so the operator sees
+  more alarms: false-alarm episodes per unlabelled day over the budget rise on HyGrid-ICS from 9.6 to 19.2 times
+  and on ProvICS from 33.7 to 73.2 times; on HAI 20.07 from 1.11 to 1.52 times; TEP 4-6 1.45 -> 1.51. Sealed
+  attack-free TEP and ProvICS runs stay within the budget (0.90 and 0.92 times). The definition of improved does
+  not count episodes; a paper must.
+
+### Rule 5, the descriptive numbers
+
+Outside the fitted range = a scaled sensor more than 5 % of its fit span beyond the world-model fit range. Same for
+every monitor; the rows below are d1 -> `d1|rise3@0.8` (`@0.9` identical except where noted).
+
+| dataset | unlabelled time outside range | alarm share inside range | events starting inside range | onset recall inside range |
+|---|---|---|---|---|
+| HAI 20.07 | 0.410 | 0.0367 -> 0.0367 | 27 of 38 | 0.926 -> 0.926 |
+| ProvICS | 0.559 | 0.0909 -> 0.0909 | 13 of 32 | 0.154 -> 0.231 |
+| HAI 23.05 | 0.049 | 0.0059 -> 0.0056 | 52 of 52 | 0.596 -> 0.596 |
+| BATADAL | 0.003 | 0.0116 -> 0.0110 | 11 of 14 | 1.0 -> 1.0 |
+| HyGrid-ICS | 0.998 | 1.0 -> 1.0 (only 0.2 % of the time is inside) | 3 of 91 | 0.33 -> 1.0 |
+| voraus-AD | 0.038 of normal samples | 0.077 -> 0.060 (`@0.9` 0.077) | 618 of 755 | 0.220 -> 0.199 (`@0.9` 0.217) |
+| TEP modes 4-6 | 0.023 | 0.0015 -> 0.0013 | 62 of 92 | 0.694 -> 0.694 (`@0.9` 0.726) |
+
+On the two saturating recordings, the fitted range explains the saturation: HAI 20.07 spends 41 % of its unlabelled
+time outside the range and its alarm share inside the range is 3.7 % (against 39 % overall); ProvICS spends 56 %
+outside and 9.1 % inside (against 44 %). The monitor is near its budget where the plant is in the regime it was
+fitted on and in alarm where it is not. HyGrid-ICS is outside the range almost all the time (99.8 %).
+
+## What the two rounds establish
+
+1. The registered D1 monitor's excess alarm time is time when the plant is outside the range the world model was
+   fitted on (HAI 20.07, ProvICS, TEP after attacks). No static rescaling, channel selection, robust scale, regime
+   conditioning or out-of-range state fitted on attack-free data lowered it on the saturating recordings; an
+   out-of-range state alarms on the same time and, counted as alarm, raises the alarm share.
+2. What can be improved is how the monitor reports new events during that time. A second alarm channel on the rise
+   of the score, re-armed on its own and charged to the same episode budget on attack-free data, raises onset
+   recall on the check set by 0.12-0.13 (0.08 net of chance) with the same alarm time, mostly on follower events,
+   at the cost of a few first events on TEP and roughly twice the false-alarm episodes on the recordings that
+   saturate.
+3. This is a second use of the check set by a designer who knew round 1's check results; the gain is consistent
+   across two of three budget splits and fails the per-dataset condition at the third.
+
+## Commands
+
+    python scripts/fi1_monitor_benchmark.py select2 "d1|second" "d1^second" "d1|second@0.67" "d1|second@0.33" "d1|mad+second" "d1|rise3" "d1|rise1" "oor:d1" "oorU:d1" "oor:d1|second" "regime4" "worst"
+    python scripts/fi1_monitor_benchmark.py select2 "d1|rise3@0.8" "d1|rise3@0.67" "d1|second@0.8" "d1|rise6" "d1|rise3@0.9" "oor@0.1:d1" "oor@0.1:d1|rise3"
+    python scripts/fi1_monitor_benchmark.py check2 "d1|rise3@0.8" "d1|rise3@0.9" "d1|rise3@0.67"
+    python scripts/fi1_monitor_collect_r2.py                     # docs/research/fi1_monitor_round2.json
+    python -m pytest -q scripts/test_fi1_monitor_v3.py scripts/test_fi1_monitor_v4.py   # 11 + 10 tests
+
+Process notes: memory on the shared machine fell to 1.0 GB between batches; batch 2 and the check run waited for 2 GB
+free before starting. No job was cut off.
