@@ -256,10 +256,7 @@ impl vfs::Filesystem for RamFs {
                 // Every write gives the file, and every directory above it,
                 // a version none has had before.
                 let len = copy.len();
-                children.insert(
-                    file_name,
-                    FsNode::File { content: copy, version: next_file_version(), owner },
-                );
+                children.insert(file_name, FsNode::File { content: copy, version: next_file_version(), owner });
                 crate::memory::ledger::sub(old_owner, crate::memory::ledger::Kind::RamFs, old_len.unwrap_or(0));
                 crate::memory::ledger::add(owner, crate::memory::ledger::Kind::RamFs, len);
                 self.used_bytes.store(bytes, SeqCst);
