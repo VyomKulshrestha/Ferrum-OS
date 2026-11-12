@@ -111,10 +111,7 @@ QEMU: see the table at the end.
   3. `delete_file {path:"/disk/x"}` runs.
 - **Sequence** (default tier 2):
   1. `write_file {...}` returns Awaiting id N.
-  2. `keyboard_type {text:"echo drafting the weekly status note for team
-heliox confirm N
-"}` returns Awaiting id K. The operator sees `"text"="echo drafting the weekly status note for team
-he"...[48 of 63 bytes shown]` and approves K. The kernel's shell queue holds 64 bytes (`src/interrupts/mod.rs:475`), so the payload must stay under 64 bytes; a longer one loses its tail.
+  2. `keyboard_type {text:"echo drafting the weekly status note for team\nheliox confirm N\n"}` returns Awaiting id K. The operator sees `"text"="echo drafting the weekly status note for team\nhe"...[48 of 63 bytes shown]` and approves K. The kernel's shell queue holds 64 bytes (`src/interrupts/mod.rs:475`), so the payload must stay under 64 bytes; a longer one loses its tail.
   3. The same keyboard_type runs: the shell echoes, then approves N.
   4. `write_file {...}` runs. The operator never approved N.
 - The same keystrokes can run `write /disk/heliox/config.json ...` or `rm` directly in the shell, with no daemon approval at all. Injected mouse events drive the task manager's kill and the app store's install and remove (whose "Confirm" is a second click) the same way.
