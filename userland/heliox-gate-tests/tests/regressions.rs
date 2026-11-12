@@ -9,7 +9,7 @@ use heliox_gate_tests::cognitive::json;
 /// the same id, so a stale or replayed approval overrode the operator's no.
 #[test]
 fn approve_after_deny_does_not_turn_a_denial_into_an_approval() {
-    let mut gate = ConfirmationGate::new(600);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
     let id = match gate.check_or_request("delete_file", "path=/disk/a", PermissionTier::Destructive, 10) {
         ConfirmationStatus::Pending(id) => id,
         other => panic!("expected pending, got {:?}", other),
@@ -27,7 +27,7 @@ fn approve_after_deny_does_not_turn_a_denial_into_an_approval() {
 /// or wrapped to a huge age (release).
 #[test]
 fn tick_rollback_neither_panics_nor_approves() {
-    let mut gate = ConfirmationGate::new(600);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
     let first = gate.check_or_request("write_file", "path=/disk/x", PermissionTier::Modify, 1_000);
     assert!(matches!(first, ConfirmationStatus::Pending(_)));
     let again = gate.check_or_request("write_file", "path=/disk/x", PermissionTier::Modify, 5);
@@ -40,7 +40,7 @@ fn tick_rollback_neither_panics_nor_approves() {
 /// calls grew it (and the operator's list) without limit.
 #[test]
 fn pending_queue_is_bounded_and_refuses_beyond_the_bound() {
-    let mut gate = ConfirmationGate::new(600);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions);
     let mut refused = 0;
     for i in 0..1_000u32 {
         let args = format!("path=/disk/f{}", i);

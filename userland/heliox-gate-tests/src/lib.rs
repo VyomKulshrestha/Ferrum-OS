@@ -20,3 +20,10 @@ pub const TOOL_MAPPER_SOURCE: &str =
 pub const ORCHESTRATOR_SOURCE: &str =
     include_str!("../../heliox-daemon/src/cognitive/orchestrator.rs");
 pub const MAIN_SOURCE: &str = include_str!("../../heliox-daemon/src/main.rs");
+
+/// A file-version source for tests that are not about file versions: every
+/// file is absent and stays so. The daemon's own default fails closed
+/// (`confirmation::versions_unavailable`); the daemon installs the kernel's.
+pub fn stable_versions(_path: &str) -> Result<cognitive::confirmation::FileVersion, ()> {
+    Ok(cognitive::confirmation::FileVersion::Absent)
+}
