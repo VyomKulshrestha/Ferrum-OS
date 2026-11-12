@@ -155,7 +155,7 @@ function parsePpm(buf) {
 }
 
 try {
-  await waitForSerial("FerrumOS:~$", 35);
+  await waitForSerial("FerrumOS:~$", Number(process.env.FERRUMOS_BOOT_SECONDS || 35));
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;

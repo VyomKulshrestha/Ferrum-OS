@@ -197,9 +197,12 @@ Desktop windows support minimize, maximize/restore, taskbar activation, and Wind
 - Persistent Audit Logging: Out-of-interrupt deadlock-free writing to `/disk/heliox/audit.log` (128KB log size cap with automated FIFO truncation)
 - Resource Quotas: Syscall rate limiting, continuous CPU execution limits, and memory mapping bounds check (default 8 MiB)
 - Modular service manager with typed service manifests
-- IPC broker with capability-checked send/receive, live or preloaded service
-  ownership, process-owned receive mailboxes, and bounded per-service
-  backpressure so one absent or stalled consumer cannot starve Heliox
+- IPC broker with capability-checked send/receive. A mailbox belongs to the
+  process that registered under its name while it was free (a second
+  instance never inherits it, and messages queued for a dead owner are
+  dropped); per-mailbox backpressure is 16 messages, of which 4 are reserved
+  for messages the kernel marks as the operator's, so a flooding sender
+  cannot make an operator DENY or disarm fail
 
 ### Networking
 - RTL8139 PCI NIC driver with real TCP/IP via smoltcp
@@ -843,7 +846,8 @@ Heliox paths, and world-model safety gate. Current boundaries are explicit:
 - Camera syscalls are backed by the deterministic synthetic YUYV generator;
   there is no UVC hardware driver yet.
 - SMP currently discovers processor topology and stages an AP trampoline, but
-  does not send INIT/SIPI or schedule work on application processors.
+  does not send INIT/SIPI or schedule work on application processors. The
+  kernel assumes one CPU; the boot log states it (`online_cpus=1`).
 - Shut down uses QEMU/Bochs/VirtualBox power ports; ACPI AML `_S5` evaluation is
   not implemented. Reboot uses the 8042 reset pulse.
 - Accounts switch real capability profiles but do not authenticate passwords,

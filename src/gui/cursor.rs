@@ -73,6 +73,19 @@ pub fn mark_dirty() {
 /// window as this one-time flush.
 static INPUT_PRIMED: AtomicBool = AtomicBool::new(false);
 
+/// Whether `process_input` has run yet (see `INPUT_PRIMED`).
+pub fn input_primed() -> bool {
+    INPUT_PRIMED.load(Ordering::SeqCst)
+}
+
+/// Restore the one-time stale-key discard after a kernel self-test drove
+/// `process_input` before the desktop ever rendered. Without this, keys the
+/// operator types at the shell afterwards stay queued and reach whatever
+/// window the first render focuses.
+pub fn set_input_primed(primed: bool) {
+    INPUT_PRIMED.store(primed, Ordering::SeqCst);
+}
+
 pub fn process_input() {
     if !INPUT_PRIMED.swap(true, Ordering::SeqCst) {
         crate::input::discard_stale_keyboard_events();
@@ -99,6 +112,17 @@ pub fn process_input() {
             None => break,
         };
 
+        // A click bound to an approved target (fi1 K2) lands only if the
+        // pointer is over exactly that window, owner and window-relative
+        // position now; otherwise the desktop drops it.
+        if let Some(target) = event.click_target {
+            if compositor::pointer_target(cursor.x, cursor.y) != target {
+                crate::input::GUARDED_CLICKS_DROPPED
+                    .fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+                continue;
+            }
+        }
+
         match event.event_type {
             crate::input::InputEventType::MouseMove(dx, dy) => {
                 // Adjust cursor position. Subtract the shadow size
@@ -118,17 +142,20 @@ pub fn process_input() {
             }
             crate::input::InputEventType::MouseButton(0, true) | crate::input::InputEventType::MouseButton(1, true) => {
                 // A real pointer press transfers physical keyboard ownership
-                // from the coexisting debug shell to the visible desktop.
-                crate::gui::claim_keyboard();
+                // from the coexisting debug shell to the visible desktop. An
+                // injected press does not move the operator's keyboard.
+                if !event.injected {
+                    crate::gui::claim_keyboard();
+                }
                 cursor.left_down = true;
-                compositor::handle_mouse_down(cursor.x, cursor.y);
+                compositor::handle_mouse_down(cursor.x, cursor.y, event.injected);
             }
             crate::input::InputEventType::MouseButton(0, false) | crate::input::InputEventType::MouseButton(1, false) => {
                 cursor.left_down = false;
-                compositor::handle_mouse_up(cursor.x, cursor.y);
+                compositor::handle_mouse_up(cursor.x, cursor.y, event.injected);
             }
             crate::input::InputEventType::KeyPress(ascii) => {
-                compositor::handle_key_press(ascii);
+                compositor::handle_key_press(ascii, event.injected);
             }
             // Ignore other inputs for MVP
             _ => {}

@@ -65,7 +65,7 @@ try {
   }
   async function command(value) { await text(value); await key("ret"); await sleep(350); }
 
-  await waitForSerial("FerrumOS:~$", 45);
+  await waitForSerial("FerrumOS:~$", Number(process.env.FERRUMOS_BOOT_SECONDS || 45));
   const offset = serialText().length;
   await command("write /tmp/init_test 5");
   await command("ring3 init");

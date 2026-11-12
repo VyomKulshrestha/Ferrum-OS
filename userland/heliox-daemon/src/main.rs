@@ -10,6 +10,7 @@ use alloc::vec::Vec;
 pub mod memory;
 pub mod cognitive;
 pub mod network;
+pub mod http_parse;
 pub mod config;
 pub mod physical;
 pub mod neural;
@@ -633,6 +634,22 @@ pub extern "C" fn _start() -> ! {
 
     // Initialize cognitive systems
     let mut orchestrator = cognitive::orchestrator::Orchestrator::new();
+    // Confirmation ids start at a boot-random value, so a CONFIRM:<id> typed
+    // for, or queued to, an earlier daemon lifetime cannot approve a
+    // different request that now happens to get the same sequential id.
+    {
+        let mut seed = [0u8; 4];
+        let start = if custom_getrandom(&mut seed).is_ok() {
+            (u32::from_le_bytes(seed) & 0x3fff_ffff).max(1)
+        } else {
+            1
+        };
+        let timeout = orchestrator.config.confirmation_timeout;
+        orchestrator.confirmation_gate =
+            cognitive::confirmation::ConfirmationGate::with_next_id(timeout, start)
+                .with_file_versions(cognitive::orchestrator::kernel_file_version)
+                .with_click_targets(cognitive::orchestrator::kernel_click_target);
+    }
 
     // The network bridge delegates the daemon's powerful native syscall
     // authority to an external model/client. Require a fresh physical-console
@@ -852,7 +869,9 @@ pub extern "C" fn _start() -> ! {
                                 let call = cognitive::json::ToolCall {
                                     name: String::from("keyboard_type"),
                                     arguments: alloc::vec![
-                                        (String::from("text"), cognitive::json::JsonValue::Str(String::from("help\n"))),
+                                        // No Enter: keyboard_type may not submit
+                                        // (authority.rs Refusal::InputControlCharacter).
+                                        (String::from("text"), cognitive::json::JsonValue::Str(String::from("help"))),
                                     ],
                                 };
                                 let result = orchestrator.execute_tool_with_world_model(&call);
@@ -1277,10 +1296,16 @@ pub extern "C" fn _start() -> ! {
                                         } else if method == "execute_tool" {
                                             if let Some(params) = parsed.get("params") {
                                                 if let Some(tool_name) = params.get("tool").and_then(|t| t.as_str()) {
-                                                    let args_obj = params.get("args");
-                                                    let arguments = match args_obj {
+                                                    // Present-but-not-object args are a malformed
+                                                    // call, refused rather than run with defaults
+                                                    // (as for provider tool calls, round 1 U12).
+                                                    let arguments = match params.get("args") {
                                                         Some(cognitive::json::JsonValue::Object(pairs)) => pairs.clone(),
-                                                        _ => Vec::new(),
+                                                        None | Some(cognitive::json::JsonValue::Null) => Vec::new(),
+                                                        Some(_) => {
+                                                            send_rpc_error(conn.fd, &id_str, -32602, "args must be an object");
+                                                            continue;
+                                                        }
                                                     };
                                                     
                                                     let tool_call = cognitive::json::ToolCall {

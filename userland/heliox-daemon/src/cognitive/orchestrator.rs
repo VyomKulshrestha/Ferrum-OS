@@ -33,7 +33,9 @@ use crate::neural::{NeuralCommit, NeuralService};
 
 // Syscall numbers for telemetry and IPC
 const SYS_IPC_SEND: u64 = 1;
-const SYS_IPC_RECEIVE: u64 = 2;
+/// IpcReceive plus the kernel's record of who sent the message (pid and
+/// `SENDER_*` flags). The daemon reads its control mailbox only through it.
+const SYS_IPC_RECEIVE_FROM: u64 = 61;
 
 #[inline(always)]
 unsafe fn syscall3(number: u64, arg1: u64, arg2: u64, arg3: u64) -> u64 {
@@ -66,6 +68,78 @@ unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u
         options(nostack, preserves_flags)
     );
     ret
+}
+
+#[inline(always)]
+unsafe fn syscall5(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> u64 {
+    let ret: u64;
+    asm!(
+        "int 0x80",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
+        in("r8") arg5,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
+/// The kernel's version of the file at `path` (FileVersion, syscall 62):
+/// a non-zero version, `Absent` when nothing is there, `Err` when the kernel
+/// cannot establish it. Installed into the confirmation gate, which binds
+/// every approval of an action on a file to the version seen when the
+/// request was made.
+pub fn kernel_file_version(path: &str) -> Result<super::confirmation::FileVersion, ()> {
+    const SYS_FILE_VERSION: u64 = 62;
+    let result = unsafe { syscall3(SYS_FILE_VERSION, path.as_ptr() as u64, path.len() as u64, 0) };
+    if (result as i64) < 0 {
+        Err(())
+    } else if result == 0 {
+        Ok(super::confirmation::FileVersion::Absent)
+    } else {
+        Ok(super::confirmation::FileVersion::Version(result))
+    }
+}
+
+/// What a click would land on now (PointerTarget, syscall 66): the window,
+/// its owner and the window-relative pointer position, and the window's
+/// title. Installed into the confirmation gate, which binds every approval
+/// of a click to it (fi1 K2).
+pub fn kernel_click_target() -> Result<(super::confirmation::ClickTarget, String), ()> {
+    const SYS_POINTER_TARGET: u64 = 66;
+    let mut record = [0u8; 24];
+    let mut title = [0u8; 64];
+    let result = unsafe {
+        syscall3(
+            SYS_POINTER_TARGET,
+            record.as_mut_ptr() as u64,
+            title.as_mut_ptr() as u64,
+            title.len() as u64,
+        )
+    };
+    if (result as i64) < 0 {
+        return Err(());
+    }
+    let word = |range: core::ops::Range<usize>| {
+        let mut bytes = [0u8; 8];
+        bytes[..range.len()].copy_from_slice(&record[range]);
+        u64::from_le_bytes(bytes)
+    };
+    let len = (result as usize).min(title.len());
+    let title = String::from_utf8_lossy(&title[..len]).into_owned();
+    Ok((
+        super::confirmation::ClickTarget {
+            window: word(0..8),
+            owner: word(8..16),
+            rel_x: word(16..20) as u32,
+            rel_y: word(20..24) as u32,
+        },
+        title,
+    ))
 }
 
 // ---- Telemetry Definitions -------------------------------------------------
@@ -432,7 +506,9 @@ impl Orchestrator {
             planner,
             verifier: Verifier::new(),
             reflector: Reflector::new(),
-            confirmation_gate: ConfirmationGate::new(config.confirmation_timeout),
+            confirmation_gate: ConfirmationGate::new(config.confirmation_timeout)
+                .with_file_versions(kernel_file_version)
+                .with_click_targets(kernel_click_target),
             memory,
             tick_count: 0,
             last_observation: String::new(),
@@ -745,7 +821,8 @@ impl Orchestrator {
         // reasoning prompt rather than only in the rare idle-anomaly branch.
         let mut observation = self.last_observation.clone();
         if let Ok(capture) = super::screen_vision::capture_screen() {
-            let screen = capture.full_text();
+            // The bridge pairing secret never enters a prompt (R3-3).
+            let screen = super::authority::redact_screen_secrets(&capture.full_text());
             if !screen.trim().is_empty() {
                 const MAX_SCREEN_CONTEXT_BYTES: usize = 4096;
                 let mut start = screen.len().saturating_sub(MAX_SCREEN_CONTEXT_BYTES);
@@ -873,14 +950,18 @@ impl Orchestrator {
             if let Some(ref content) = content_text {
                 if let Ok(content_parsed) = json::parse(content) {
                     if let Some(tool_name) = content_parsed.get("tool").and_then(|t| t.as_str()) {
-                        let arguments = content_parsed.get("args")
-                            .and_then(|a| a.as_object())
-                            .cloned()
-                            .unwrap_or_default();
-                        tool_calls.push(json::ToolCall {
-                            name: String::from(tool_name),
-                            arguments,
-                        });
+                        // Present-but-not-object args: a malformed call, dropped.
+                        let arguments = match content_parsed.get("args") {
+                            Some(json::JsonValue::Object(pairs)) => Some(pairs.clone()),
+                            None | Some(json::JsonValue::Null) => Some(Vec::new()),
+                            Some(_) => None,
+                        };
+                        if let Some(arguments) = arguments {
+                            tool_calls.push(json::ToolCall {
+                                name: String::from(tool_name),
+                                arguments,
+                            });
+                        }
                     }
                 }
             }
@@ -945,6 +1026,23 @@ impl Orchestrator {
     /// planner tools and ordinary syscall-backed tools share the same
     /// observation and training path.
     fn execute_action(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        // Tools implemented here never reach tool_mapper::execute, so they
+        // take the same tier/confirmation step explicitly (save_memory is
+        // Tier 3).
+        const INTERNAL_TOOLS: [&str; 8] = [
+            "query_memory", "save_memory", "load_memory", "set_goal", "get_config",
+            "add_subtask", "physical_status", "physical_maintenance_demo",
+        ];
+        if INTERNAL_TOOLS.contains(&tc.name.as_str()) {
+            if let Some(result) = tool_mapper::confirmation_result(
+                tc,
+                &mut self.confirmation_gate,
+                self.config.auto_approve_tier,
+                self.tick_count,
+            ) {
+                return result;
+            }
+        }
         match tc.name.as_str() {
             "query_memory" => {
                 let query = super::json::find_tool_arg_string(&tc.arguments, "query")
@@ -1107,6 +1205,24 @@ impl Orchestrator {
     /// experience tuple: a predicted-and-refused action is training
     /// signal too, not just an allowed one.
     fn dispatch_with_world_model(&mut self, tc: &super::json::ToolCall) -> tool_mapper::ToolResult {
+        // Deterministic structural refusals come first and cannot be
+        // approved: ambiguous (duplicate-key) calls, messages to the
+        // daemon's own control mailbox, writes to its own configuration.
+        if let Err(refusal) = super::authority::validate_tool_call(&tc.name, &tc.arguments) {
+            let msg = format!(
+                "[heliox-daemon] [authority] REFUSED tool '{}': {}\n",
+                tc.name.escape_debug(),
+                refusal.as_str()
+            );
+            unsafe {
+                syscall3(34, 1, msg.as_ptr() as u64, msg.len() as u64);
+            }
+            return tool_mapper::ToolResult {
+                tool_name: tc.name.clone(),
+                success: false,
+                output: format!("Refused by authority policy: {}", refusal.as_str()),
+            };
+        }
         // Physical actions have their own observation schema, transition
         // artifact, deterministic interlocks, and audit path. Sending them
         // through the fixed 41-action OS model would create action_id=255
@@ -1494,9 +1610,18 @@ impl Orchestrator {
         let buf_ptr = buf.as_mut_ptr() as u64;
         let buf_len = buf.len() as u64;
         let svc = "heliox";
+        // Filled by the kernel: sender pid, then its SENDER_* flags.
+        let mut sender = [0u64; 2];
 
         let bytes_received = unsafe {
-            syscall4(SYS_IPC_RECEIVE, buf_ptr, buf_len, svc.as_ptr() as u64, svc.len() as u64)
+            syscall5(
+                SYS_IPC_RECEIVE_FROM,
+                buf_ptr,
+                buf_len,
+                svc.as_ptr() as u64,
+                svc.len() as u64,
+                sender.as_mut_ptr() as u64,
+            )
         };
 
         if bytes_received == 0 || (bytes_received as i64) < 0 {
@@ -1508,26 +1633,57 @@ impl Orchestrator {
             Err(_) => return,
         };
 
-        // Parse CONFIRM:<id>, DENY:<id>, GOAL:<text>, CONFIG_UPDATED messages
-        for line in msg.lines() {
-            let trimmed = line.trim();
-            if let Some(id_str) = trimmed.strip_prefix("CONFIRM:") {
-                if let Ok(id) = id_str.trim().parse::<u32>() {
-                    self.confirmation_gate.approve(id);
+        // One message is one command (authority::parse_control_message), so
+        // text inside a GOAL can never be read as a CONFIRM/DENY.
+        {
+            use super::authority::ControlCommand;
+            let command = super::authority::parse_control_message(msg);
+            let from = super::authority::ControlSender { pid: sender[0], flags: sender[1] };
+            // Confirmations, denials, goals, neural arming and config reloads
+            // are the operator's: the kernel says whether the sender is the
+            // kernel shell or the operator's assistant panel. Anything else,
+            // including this daemon itself, is refused (fi1 K4).
+            if !super::authority::control_command_allowed(&command, Some(from)) {
+                if command != ControlCommand::Unrecognized {
+                    let notice = format!(
+                        "[heliox-daemon] control message from pid {} (sender flags {}) refused: not the operator\n",
+                        from.pid, from.flags
+                    );
+                    unsafe {
+                        syscall3(34, 1, notice.as_ptr() as u64, notice.len() as u64);
+                    }
+                }
+                return;
+            }
+            match command {
+                ControlCommand::Confirm(id) => {
+                    let applied = self.confirmation_gate.approve(id);
                     self.emit_telemetry(
                         TelemetryEventKind::ConfirmationQueued,
-                        format!("Confirmation {} approved via IPC", id),
+                        format!("Confirmation {} approved via IPC (applied={})", id, applied),
                     );
                 }
-            } else if let Some(id_str) = trimmed.strip_prefix("DENY:") {
-                if let Ok(id) = id_str.trim().parse::<u32>() {
-                    self.confirmation_gate.deny(id);
+                ControlCommand::Deny(id) => {
+                    let applied = self.confirmation_gate.deny(id);
                     self.emit_telemetry(
                         TelemetryEventKind::ConfirmationQueued,
-                        format!("Confirmation {} denied via IPC", id),
+                        format!("Confirmation {} denied via IPC (applied={})", id, applied),
                     );
                 }
-            } else if let Some(goal_str) = trimmed.strip_prefix("GOAL:") {
+                ControlCommand::Goal(goal) => self.ipc_control_line(&format!("GOAL:{}", goal)),
+                ControlCommand::NeuralArm => self.ipc_control_line("NEURAL_ARM"),
+                ControlCommand::NeuralDisarm => self.ipc_control_line("NEURAL_DISARM"),
+                ControlCommand::ConfigUpdated => self.ipc_control_line("CONFIG_UPDATED"),
+                ControlCommand::Unrecognized => {}
+            }
+        }
+    }
+
+    /// Applies one already-parsed, single-line control command (goal, neural
+    /// arm/disarm, config reload). Confirmations are handled in `ipc_poll`.
+    fn ipc_control_line(&mut self, trimmed: &str) {
+        {
+            if let Some(goal_str) = trimmed.strip_prefix("GOAL:") {
                 self.planner.set_goal(goal_str.trim());
                 self.verifier.reset();
                 self.reflector.reset();

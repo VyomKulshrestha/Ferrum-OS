@@ -5,6 +5,7 @@ pub mod tool_mapper;
 pub mod verifier;
 pub mod reflector;
 pub mod confirmation;
+pub mod authority;
 pub mod screen_vision;
 pub mod voice;
 pub mod web_agent;

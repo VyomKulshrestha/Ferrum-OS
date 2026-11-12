@@ -54,14 +54,28 @@ fn read_file_to_vec(path: &str) -> Result<Vec<u8>, &'static str> {
     }
 }
 
-pub fn trigger_hot_reload() -> Result<(), &'static str> {
-    let kernel_path = "/disk/boot/kernel.bin";
+pub fn trigger_hot_reload(bound: Option<super::confirmation::FileVersion>) -> Result<(), &'static str> {
+    // The same path the authority gate binds approvals of this tool to
+    // (authority::implicit_subject), so a rewrite withdraws them.
+    let kernel_path = super::authority::KERNEL_UPGRADE_IMAGE;
     
     // Read the compiled new kernel binary
     let bytes = match read_file_to_vec(kernel_path) {
         Ok(b) => b,
         Err(_) => return Err("Failed to load /disk/boot/kernel.bin"),
     };
+
+    // An approved upgrade boots only the image the operator approved: the
+    // image is read in one ReadFile call, and the kernel's version of the
+    // file must still be the approved one afterwards. Versions never repeat
+    // within a boot, so an unchanged version means no write fell between the
+    // approval check and the read (fi1 joint round 2, K3's check-then-act
+    // window; Kexec takes bytes, not a path).
+    if let Some(approved) = bound {
+        if super::orchestrator::kernel_file_version(kernel_path) != Ok(approved) {
+            return Err("the kernel image changed after the upgrade was approved; request it again");
+        }
+    }
 
     if bytes.len() < 4 {
         return Err("Kernel image is empty or invalid");

@@ -68,6 +68,26 @@ lazy_static! {
         idt.general_protection_fault.set_handler_fn(general_protection_fault_handler);
         idt.invalid_opcode.set_handler_fn(invalid_opcode_handler);
         idt.overflow.set_handler_fn(overflow_handler);
+        // Every other exception ring 3 can raise. These gates were missing:
+        // delivering an exception through a not-present gate raises #NP,
+        // whose gate was missing too, so the CPU escalated to a double fault
+        // and the kernel stopped. A ring-3 `div` by zero, a set trap flag,
+        // `icebp`, a push through a non-canonical stack pointer or an
+        // unmasked SSE exception stopped the whole system.
+        idt.divide_error.set_handler_fn(divide_error_handler);
+        idt.debug.set_handler_fn(debug_handler);
+        idt.non_maskable_interrupt.set_handler_fn(nmi_handler);
+        idt.bound_range_exceeded.set_handler_fn(bound_range_handler);
+        idt.device_not_available.set_handler_fn(device_not_available_handler);
+        idt.invalid_tss.set_handler_fn(invalid_tss_handler);
+        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
+        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
+        idt.x87_floating_point.set_handler_fn(x87_floating_point_handler);
+        idt.alignment_check.set_handler_fn(alignment_check_handler);
+        idt.simd_floating_point.set_handler_fn(simd_floating_point_handler);
+        idt.machine_check.set_handler_fn(machine_check_handler);
+        // IRQ 7 of the master PIC is also its spurious vector.
+        idt[PIC_1_OFFSET + 7].set_handler_fn(spurious_irq7_handler);
         
         // Hardware Interrupt Handlers
         unsafe {
@@ -105,6 +125,34 @@ lazy_static! {
 
         idt
     };
+}
+
+/// True while the master 8259 runs in auto-EOI mode (ICW4 bit 1): it clears
+/// the in-service bit itself when the CPU acknowledges an interrupt, so the
+/// timer handler skips its EOI write, a port write that under WHPX with
+/// `kernel-irqchip=off` exits to QEMU's user process on every tick. Other
+/// handlers still send their EOI; on the master it is then a no-op, and the
+/// slave (IRQ 8-15) stays in normal mode.
+pub static PIC_AUTO_EOI: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+
+/// Re-initialise the master 8259 with or without auto-EOI, keeping its
+/// vector offset, cascade wiring and interrupt mask.
+pub fn set_pic_auto_eoi(on: bool) {
+    use x86_64::instructions::port::Port;
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let _pics = PICS.lock();
+        let mut command: Port<u8> = Port::new(0x20);
+        let mut data: Port<u8> = Port::new(0x21);
+        unsafe {
+            let mask = data.read();
+            command.write(0x11); // ICW1: edge, cascade, ICW4 follows
+            data.write(PIC_1_OFFSET); // ICW2: vector offset
+            data.write(0x04); // ICW3: slave on IRQ2
+            data.write(if on { 0x03 } else { 0x01 }); // ICW4: 8086 mode (+ auto-EOI)
+            data.write(mask);
+        }
+        PIC_AUTO_EOI.store(on, core::sync::atomic::Ordering::SeqCst);
+    });
 }
 
 /// Load the IDT into the CPU
@@ -181,12 +229,31 @@ pub fn init_pit() {
 // CPU Exception Handlers
 // ============================================================================
 
+/// Kernel faults that were not turned into a user-process kill since boot
+/// (the self-test `ring0-fault` checks the classification below).
+pub static KERNEL_FAULTS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
+/// True when the exception interrupted ring 3. A fault taken in ring 0 is a
+/// kernel bug (or a kernel access a syscall should have refused) even while a
+/// user process is current: it used to be treated as that process's fault,
+/// which killed the process, hid the corruption and resumed the scheduler
+/// with whatever locks the faulting kernel code held.
+pub fn fault_from_user_mode(code_segment: u64) -> bool {
+    code_segment & 3 == 3
+}
+
 fn handle_userspace_fault(fault_name: &str, stack_frame: &InterruptStackFrame) -> bool {
-    // In x86_64 0.14.x, SegmentSelector has a privilege_level method, but we can just check the raw bits
-    // Actually, x86_64 doesn't have an easy method to extract the raw u16 from SegmentSelector in all versions,
-    // so we can use stack_frame.cs.0 if it's public, or just skip the CS check if we can't do it easily,
-    // wait, we can just check CURRENT_PID! If CURRENT_PID > 0, it's a userspace task!
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    let from_user = fault_from_user_mode(stack_frame.code_segment.0 as u64);
+    if !from_user {
+        KERNEL_FAULTS.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+        crate::serial_println!(
+            "[KERNEL] {} in ring 0 (current pid {}): stopping the kernel",
+            fault_name,
+            pid
+        );
+        return false;
+    }
     if pid != 0 {
         use x86_64::registers::control::Cr2;
         let rsp = stack_frame.stack_pointer.as_u64();
@@ -319,6 +386,79 @@ extern "x86-interrupt" fn invalid_opcode_handler(stack_frame: InterruptStackFram
     crate::hlt_loop();
 }
 
+/// An exception that ends a ring-3 process and stops the kernel in ring 0.
+fn user_or_fatal(name: &str, stack_frame: &InterruptStackFrame) {
+    if handle_userspace_fault(name, stack_frame) {
+        return;
+    }
+    // handle_userspace_fault returns only for a ring-0 fault.
+    println!("[EXCEPTION] {}\n{:#?}", name, stack_frame);
+    crate::hlt_loop();
+}
+
+extern "x86-interrupt" fn divide_error_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Divide Error", &stack_frame);
+}
+
+extern "x86-interrupt" fn debug_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Debug Exception", &stack_frame);
+}
+
+extern "x86-interrupt" fn nmi_handler(_stack_frame: InterruptStackFrame) {
+    crate::serial_println!("[KERNEL] NMI received");
+}
+
+extern "x86-interrupt" fn bound_range_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Bound Range Exceeded", &stack_frame);
+}
+
+extern "x86-interrupt" fn device_not_available_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("Device Not Available", &stack_frame);
+}
+
+extern "x86-interrupt" fn invalid_tss_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Invalid TSS", &stack_frame);
+}
+
+extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Segment Not Present", &stack_frame);
+}
+
+extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Stack Segment Fault", &stack_frame);
+}
+
+extern "x86-interrupt" fn x87_floating_point_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("x87 Floating Point", &stack_frame);
+}
+
+extern "x86-interrupt" fn alignment_check_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    user_or_fatal("Alignment Check", &stack_frame);
+}
+
+extern "x86-interrupt" fn simd_floating_point_handler(stack_frame: InterruptStackFrame) {
+    user_or_fatal("SIMD Floating Point", &stack_frame);
+}
+
+extern "x86-interrupt" fn machine_check_handler(stack_frame: InterruptStackFrame) -> ! {
+    panic!("MACHINE CHECK\n{:#?}", stack_frame);
+}
+
+/// IRQ 7 is also the master 8259's spurious vector: acknowledge it only if
+/// it is really in service (an EOI for a spurious IRQ 7 would clear the
+/// in-service bit of another, real interrupt).
+extern "x86-interrupt" fn spurious_irq7_handler(_stack_frame: InterruptStackFrame) {
+    use x86_64::instructions::port::Port;
+    let mut command: Port<u8> = Port::new(0x20);
+    let in_service = unsafe {
+        command.write(0x0B); // OCW3: read the in-service register
+        command.read()
+    };
+    if in_service & 0x80 != 0 {
+        unsafe { PICS.lock().notify_end_of_interrupt(PIC_1_OFFSET + 7) };
+    }
+}
+
 /// Overflow exception handler
 extern "x86-interrupt" fn overflow_handler(stack_frame: InterruptStackFrame) {
     println!("[EXCEPTION] Overflow\n{:#?}", stack_frame);
@@ -346,6 +486,12 @@ unsafe extern "C" fn timer_interrupt_entry_stub() {
         "push r13",
         "push r14",
         "push r15",
+        // The SysV ABI requires DF = 0 on every call. Ring 3 controls
+        // RFLAGS.DF (`std`), and an interrupt or `int 0x80` does not clear
+        // it, so without this the kernel's memcpy/memset (`rep movs`/`stos`)
+        // run backwards over memory below their destination. The user's DF
+        // is restored by iretq from the saved RFLAGS.
+        "cld",
         "mov rdi, rsp",
         "call {inner}",
         "pop r15",
@@ -368,19 +514,121 @@ unsafe extern "C" fn timer_interrupt_entry_stub() {
     );
 }
 
-extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
-    // Tick the scheduler (if initialized)
-    crate::scheduler::tick();
-    
-    // Send End-of-Interrupt to the PIC
+/// TSC cycles spent in timer interrupts and syscalls that returned to their
+/// caller (paths that switch tasks are not counted), and how many there were.
+/// Read by `test-syscall perf`.
+pub static TIMER_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TIMER_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+/// The two parts of a timer interrupt: `scheduler::tick` and the PIC EOI.
+pub static TICK_FN_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TICK_FN_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TIMER_EOI_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static TIMER_EOI_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+/// Entries into the timer and syscall handlers' Rust code with RFLAGS.DF set
+/// (self-test `df-entry`; must stay 0, see the `cld` in both entry stubs).
+pub static DF_SET_AT_TIMER_ENTRY: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static DF_SET_AT_SYSCALL_ENTRY: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+/// Set by self-test `df-entry`: the next syscall entries copy a buffer with
+/// the kernel's memcpy and count copies whose result differs from the source.
+pub static DF_COPY_PROBE_ARMED: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+pub static DF_COPY_PROBE_RUNS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static DF_COPY_PROBE_BAD: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
+#[inline(always)]
+fn direction_flag_set() -> bool {
+    let flags: u64;
+    unsafe { core::arch::asm!("pushfq", "pop {}", out(reg) flags, options(preserves_flags)) };
+    flags & (1 << 10) != 0
+}
+
+/// Copy 256 bytes inside one static buffer with the kernel's memcpy and check
+/// the result. With DF set, `rep movsb` walks downwards from the destination.
+fn df_copy_probe() {
+    static mut PROBE: [u8; 1024] = [0; 1024];
+    let len = core::hint::black_box(256usize);
     unsafe {
-        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        let buf = &raw mut PROBE as *mut u8;
+        for i in 0..len {
+            *buf.add(768 + i) = (i as u8) ^ 0x5A;
+            *buf.add(512 + i) = 0;
+        }
+        core::ptr::copy_nonoverlapping(
+            core::hint::black_box(buf.add(768) as *const u8),
+            core::hint::black_box(buf.add(512)),
+            len,
+        );
+        let mut bad = false;
+        for i in 0..len {
+            if *buf.add(512 + i) != (i as u8) ^ 0x5A {
+                bad = true;
+            }
+        }
+        DF_COPY_PROBE_RUNS.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+        if bad {
+            DF_COPY_PROBE_BAD.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+        }
+    }
+}
+
+pub static SYSCALL_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static SYSCALL_COUNT: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
+struct CycleMeter {
+    start: u64,
+    cycles: &'static core::sync::atomic::AtomicU64,
+    count: &'static core::sync::atomic::AtomicU64,
+}
+
+impl CycleMeter {
+    fn start(
+        cycles: &'static core::sync::atomic::AtomicU64,
+        count: &'static core::sync::atomic::AtomicU64,
+    ) -> Self {
+        Self { start: unsafe { core::arch::x86_64::_rdtsc() }, cycles, count }
+    }
+}
+
+impl Drop for CycleMeter {
+    fn drop(&mut self) {
+        let spent = unsafe { core::arch::x86_64::_rdtsc() }.wrapping_sub(self.start);
+        self.cycles.fetch_add(spent, core::sync::atomic::Ordering::Relaxed);
+        self.count.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
+    if direction_flag_set() {
+        DF_SET_AT_TIMER_ENTRY.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    }
+    let _meter = CycleMeter::start(&TIMER_CYCLES, &TIMER_COUNT);
+    // Tick the scheduler (if initialized)
+    {
+        let _tick = CycleMeter::start(&TICK_FN_CYCLES, &TICK_FN_COUNT);
+        crate::scheduler::tick();
+    }
+
+    // Send End-of-Interrupt to the PIC (not needed in auto-EOI mode)
+    if !PIC_AUTO_EOI.load(core::sync::atomic::Ordering::Relaxed) {
+        let _eoi = CycleMeter::start(&TIMER_EOI_CYCLES, &TIMER_EOI_COUNT);
+        unsafe {
+            PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        }
     }
 
     // Preempt the current task if it was running in Ring 3 and its time slice has expired.
     if (frame.cs & 3) == 3 {
         let current_pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
         if current_pid != 0 {
+            // Charge this tick to the task's continuous ring-3 run (reset
+            // by every syscall). `check_and_enforce_quotas` existed but was
+            // never called, so a non-exempt task could spin for ever.
+            if crate::scheduler::charge_user_tick(current_pid) {
+                crate::serial_println!(
+                    "[KERNEL] pid {} exceeded its continuous CPU quota, terminating.",
+                    current_pid
+                );
+                unsafe { resume_after_death() }
+            }
             if crate::scheduler::should_preempt(current_pid) {
                 unsafe {
                     if crate::scheduler::yield_current() {
@@ -410,6 +658,9 @@ extern "C" fn timer_interrupt_entry_inner(frame: &mut SyscallFrame) {
     if kernel_task_pid != 0 {
         unsafe {
             if crate::scheduler::yield_current_kernel_task(kernel_task_pid) {
+                // The task is no longer executing at its safepoint once we
+                // switch away; it re-marks itself the next time it parks.
+                crate::scheduler::leave_kernel_task_safepoint();
                 save_user_context(kernel_task_pid, frame);
                 if let Some(next) = crate::scheduler::schedule_next() {
                     if next != kernel_task_pid {
@@ -460,8 +711,13 @@ pub fn init_keyboard_queue() {
 
 /// Read a character from the keyboard queue
 pub fn read_keyboard() -> Option<u8> {
-    let mut queue = KEYBOARD_QUEUE.lock();
-    queue.as_mut().and_then(|q| q.pop_front())
+    // The keyboard interrupt pushes into this queue. The shell polls it with
+    // interrupts enabled; a key arriving while the shell held the lock spun
+    // in the interrupt handler for good (one CPU, interrupts off).
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut queue = KEYBOARD_QUEUE.lock();
+        queue.as_mut().and_then(|q| q.pop_front())
+    })
 }
 
 /// Push a synthetic character into the keyboard queue.
@@ -470,12 +726,14 @@ pub fn read_keyboard() -> Option<u8> {
 /// agent-generated keystrokes into the shell. This makes the shell
 /// see injected keys exactly as if they came from the PS/2 keyboard.
 pub fn push_keyboard(ascii: u8) {
-    let mut queue = KEYBOARD_QUEUE.lock();
-    if let Some(q) = queue.as_mut() {
-        if q.len() < 64 {
-            q.push_back(ascii);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut queue = KEYBOARD_QUEUE.lock();
+        if let Some(q) = queue.as_mut() {
+            if q.len() < 64 {
+                q.push_back(ascii);
+            }
         }
-    }
+    })
 }
 
 /// Keyboard interrupt handler (IRQ 1)
@@ -506,18 +764,24 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 pub fn poll_ps2_keyboard() {
     use x86_64::instructions::port::Port;
 
-    let mut status_port = Port::<u8>::new(0x64);
-    let mut data_port = Port::<u8>::new(0x60);
-    for _ in 0..16 {
-        let status = unsafe { status_port.read() };
-        if status & 0x01 == 0 || status & 0x20 != 0 {
-            break;
+    // With interrupts off, as the IRQ 1 handler runs: otherwise the handler
+    // could read the byte between this status check and the data read (this
+    // loop then reads the stale byte again: a doubled key), and it takes the
+    // modifier and event-queue locks this loop may be holding.
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut status_port = Port::<u8>::new(0x64);
+        let mut data_port = Port::<u8>::new(0x60);
+        for _ in 0..16 {
+            let status = unsafe { status_port.read() };
+            if status & 0x01 == 0 || status & 0x20 != 0 {
+                break;
+            }
+            let scancode = unsafe { data_port.read() };
+            if let Some(ch) = scancode_to_ascii(scancode) {
+                crate::input::inject_key_event(ch, true);
+            }
         }
-        let scancode = unsafe { data_port.read() };
-        if let Some(ch) = scancode_to_ascii(scancode) {
-            crate::input::inject_key_event(ch, true);
-        }
-    }
+    })
 }
 
 /// Hardware mouse interrupt handler (IRQ 12)
@@ -719,6 +983,12 @@ unsafe extern "C" fn syscall_entry_stub() {
         "push r13",
         "push r14",
         "push r15",
+        // The SysV ABI requires DF = 0 on every call. Ring 3 controls
+        // RFLAGS.DF (`std`), and an interrupt or `int 0x80` does not clear
+        // it, so without this the kernel's memcpy/memset (`rep movs`/`stos`)
+        // run backwards over memory below their destination. The user's DF
+        // is restored by iretq from the saved RFLAGS.
+        "cld",
         "mov rdi, rsp",
         "call {inner}",
         "pop r15",
@@ -817,6 +1087,13 @@ unsafe fn yield_from_syscall(pid: u64, frame: &SyscallFrame) {
 /// file the stub pushed; mutating it changes what the stub pops
 /// before `iretq` (this is how results travel back in rax).
 extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
+    if direction_flag_set() {
+        DF_SET_AT_SYSCALL_ENTRY.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    }
+    if DF_COPY_PROBE_ARMED.load(core::sync::atomic::Ordering::Relaxed) {
+        df_copy_probe();
+    }
+    let _meter = CycleMeter::start(&SYSCALL_CYCLES, &SYSCALL_COUNT);
     use crate::serial::SERIAL1;
 
     let syscall_no = frame.rax;
@@ -832,7 +1109,18 @@ extern "C" fn syscall_entry_inner(frame: &mut SyscallFrame) {
     let current_pid =
         crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
 
+    // The legacy Linux-numbered path below trusts its pointers (SYS_WRITE
+    // copies from arg0 unchecked) and is meant for ring-0 callers. Ring-3
+    // code always runs with its pid in CURRENT_PID; if it ever reached here
+    // without one, refuse rather than act with kernel trust.
+    if current_pid == 0 && fault_from_user_mode(frame.cs) {
+        frame.rax = EPERM;
+        return;
+    }
+
     if current_pid > 0 {
+        // Entering the kernel restarts the task's continuous-CPU count.
+        crate::scheduler::note_syscall_entry(current_pid);
         use crate::syscall::SyscallNumber;
         let args = [arg0, arg1, arg2, arg3, frame.r8, frame.r9];
 

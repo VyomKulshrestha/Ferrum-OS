@@ -19,6 +19,8 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 pub static INJECTING_AGENT_KEY: AtomicBool = AtomicBool::new(false);
 static DESKTOP_PHYSICAL_KEY_COUNT: AtomicU64 = AtomicU64::new(0);
+/// Agent-injected keys kept out of the kernel shell (see `inject_key_event`).
+pub static INJECTED_KEYS_KEPT_FROM_SHELL: AtomicU64 = AtomicU64::new(0);
 
 /// Internal key token emitted by both hardware keyboard paths for Alt+Tab.
 /// It is consumed by the compositor and is never forwarded to an app window.
@@ -52,7 +54,35 @@ pub struct InputEvent {
     /// Monotonic tick count at the time the event was recorded.
     /// Sourced from the PIT tick counter when available.
     pub timestamp: u64,
+    /// Produced by InjectKey / InjectMouse (the agent's input tools), not by
+    /// a physical device. The desktop keeps such events away from every
+    /// control that acts with the operator's authority (the terminal window,
+    /// the privacy lock, the launcher, power menu, dock and close buttons);
+    /// they still reach ordinary app windows, marked. PollInput's 16-byte
+    /// record does not carry it.
+    pub injected: bool,
+    /// For a click the agent's approval was bound to (InjectMouse type 2):
+    /// the window, its owner and the window-relative pointer position the
+    /// operator approved. The desktop drops the click if the pointer is not
+    /// over exactly that when it is processed (fi1 K2).
+    pub click_target: Option<ClickTarget>,
 }
+
+/// What a pointer click lands on: the top window under the pointer (0 for
+/// the desktop), the pid that owns it (0 for kernel-drawn windows) and the
+/// pointer position relative to the window's origin (absolute on the
+/// desktop).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClickTarget {
+    pub window: u64,
+    pub owner: u64,
+    pub rel_x: u32,
+    pub rel_y: u32,
+}
+
+/// Guarded clicks the desktop dropped because the pointer was no longer over
+/// the approved target. Read by the `click-target` self-test.
+pub static GUARDED_CLICKS_DROPPED: AtomicU64 = AtomicU64::new(0);
 
 // ============================================================================
 // Event Queue — fixed-size ring buffer (256 entries)
@@ -154,40 +184,54 @@ fn now_ticks() -> u64 {
 /// also forwarded to the legacy keyboard queue so the interactive
 /// shell can see it.
 pub fn inject_key_event(ascii: u8, pressed: bool) {
-    let is_physical = pressed && !INJECTING_AGENT_KEY.load(Ordering::SeqCst);
-    if is_physical {
-        if crate::scheduler::wake_confirmation_waiters(ascii) {
-            crate::serial_println!("[gui] physical key consumed by confirmation waiter");
-            return;
-        }
-        if ascii != 0 && crate::gui::captures_keyboard() {
-            let count = DESKTOP_PHYSICAL_KEY_COUNT.fetch_add(1, Ordering::SeqCst) + 1;
-            if count == 1 || count % 16 == 0 || ascii == b'\n' || ascii == b'\r' {
-                crate::serial_println!("[gui] desktop physical key events={}", count);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let is_physical = pressed && !INJECTING_AGENT_KEY.load(Ordering::SeqCst);
+        if is_physical {
+            if crate::scheduler::wake_confirmation_waiters(ascii) {
+                crate::serial_println!("[gui] physical key consumed by confirmation waiter");
+                return;
+            }
+            if ascii != 0 && crate::gui::captures_keyboard() {
+                let count = DESKTOP_PHYSICAL_KEY_COUNT.fetch_add(1, Ordering::SeqCst) + 1;
+                if count == 1 || count % 16 == 0 || ascii == b'\n' || ascii == b'\r' {
+                    crate::serial_println!("[gui] desktop physical key events={}", count);
+                }
             }
         }
-    }
 
-    let event_type = if pressed {
-        InputEventType::KeyPress(ascii)
-    } else {
-        InputEventType::KeyRelease(ascii)
-    };
+        let event_type = if pressed {
+            InputEventType::KeyPress(ascii)
+        } else {
+            InputEventType::KeyRelease(ascii)
+        };
 
-    let event = InputEvent {
-        event_type,
-        timestamp: now_ticks(),
-    };
+        let event = InputEvent {
+            event_type,
+            timestamp: now_ticks(),
+            injected: INJECTING_AGENT_KEY.load(Ordering::SeqCst),
+            click_target: None,
+        };
 
-    EVENT_QUEUE.lock().push(event);
-    DAEMON_EVENT_QUEUE.lock().push(event);
+        EVENT_QUEUE.lock().push(event);
+        DAEMON_EVENT_QUEUE.lock().push(event);
 
-    // Bridge into the shell only when the desktop does not own keyboard
-    // input. Duplicating one physical key into both queues caused focused
-    // GUI apps (and the privacy lock) to leak input into the hidden shell.
-    if pressed && ascii != 0 && !crate::gui::captures_keyboard() {
-        feed_to_shell(ascii);
-    }
+        // Bridge into the shell only when the desktop does not own keyboard
+        // input. Duplicating one physical key into both queues caused focused
+        // GUI apps (and the privacy lock) to leak input into the hidden shell.
+        //
+        // Keys injected by InjectKey (the agent's keyboard tools) never reach the
+        // kernel shell: the shell runs with the session's authority (root by
+        // default), and `heliox confirm <id>` there forwards CONFIRM to the
+        // daemon, so typed keystrokes could approve the agent's own pending
+        // actions. Injected keys still reach GUI windows through EVENT_QUEUE.
+        if pressed && ascii != 0 && !crate::gui::captures_keyboard() {
+            if INJECTING_AGENT_KEY.load(Ordering::SeqCst) {
+                INJECTED_KEYS_KEPT_FROM_SHELL.fetch_add(1, Ordering::SeqCst);
+            } else {
+                feed_to_shell(ascii);
+            }
+        }
+    })
 }
 
 /// Drop any queued keyboard events, leaving mouse events untouched.
@@ -207,16 +251,18 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
 /// before this flush and got wiped, so the click that followed fired
 /// at the cursor's stale default position instead of over the launcher.
 pub fn discard_stale_keyboard_events() {
-    let mut queue = EVENT_QUEUE.lock();
-    let mut retained = alloc::vec::Vec::new();
-    while let Some(event) = queue.pop() {
-        if !matches!(event.event_type, InputEventType::KeyPress(_) | InputEventType::KeyRelease(_)) {
-            retained.push(event);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut queue = EVENT_QUEUE.lock();
+        let mut retained = alloc::vec::Vec::new();
+        while let Some(event) = queue.pop() {
+            if !matches!(event.event_type, InputEventType::KeyPress(_) | InputEventType::KeyRelease(_)) {
+                retained.push(event);
+            }
         }
-    }
-    for event in retained {
-        queue.push(event);
-    }
+        for event in retained {
+            queue.push(event);
+        }
+    })
 }
 
 /// Inject mouse movement and button events.
@@ -225,36 +271,42 @@ pub fn discard_stale_keyboard_events() {
 /// if displacement is non-zero and individual `MouseButton` events
 /// for each of the three standard buttons.
 pub fn inject_mouse_event(dx: i16, dy: i16, buttons: u8) {
-    let ts = now_ticks();
-    static PREV_BUTTONS: spin::Mutex<u8> = spin::Mutex::new(0);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let ts = now_ticks();
+        static PREV_BUTTONS: spin::Mutex<u8> = spin::Mutex::new(0);
 
-    // Displacement event
-    if dx != 0 || dy != 0 {
-        let event = InputEvent {
-            event_type: InputEventType::MouseMove(dx, dy),
-            timestamp: ts,
-        };
-        EVENT_QUEUE.lock().push(event);
-        DAEMON_EVENT_QUEUE.lock().push(event);
-    }
-
-    let mut prev = PREV_BUTTONS.lock();
-    // Button events — only emit if button state changed
-    for bit in 0u8..3 {
-        let mask = 1 << bit;
-        let pressed = buttons & mask != 0;
-        let prev_pressed = *prev & mask != 0;
-        
-        if pressed != prev_pressed {
+        // Displacement event
+        if dx != 0 || dy != 0 {
             let event = InputEvent {
-                event_type: InputEventType::MouseButton(bit, pressed),
+                event_type: InputEventType::MouseMove(dx, dy),
                 timestamp: ts,
+                injected: false,
+                click_target: None,
             };
             EVENT_QUEUE.lock().push(event);
             DAEMON_EVENT_QUEUE.lock().push(event);
         }
-    }
-    *prev = buttons;
+
+        let mut prev = PREV_BUTTONS.lock();
+        // Button events — only emit if button state changed
+        for bit in 0u8..3 {
+            let mask = 1 << bit;
+            let pressed = buttons & mask != 0;
+            let prev_pressed = *prev & mask != 0;
+        
+            if pressed != prev_pressed {
+                let event = InputEvent {
+                    event_type: InputEventType::MouseButton(bit, pressed),
+                    timestamp: ts,
+                    injected: false,
+                click_target: None,
+                };
+                EVENT_QUEUE.lock().push(event);
+                DAEMON_EVENT_QUEUE.lock().push(event);
+            }
+        }
+        *prev = buttons;
+    })
 }
 
 // ============================================================================
@@ -281,39 +333,71 @@ pub fn inject_string(s: &str) {
 
 /// Inject a relative mouse movement event.
 pub fn inject_mouse_move(dx: i16, dy: i16) {
-    let event = InputEvent {
-        event_type: InputEventType::MouseMove(dx, dy),
-        timestamp: now_ticks(),
-    };
-    EVENT_QUEUE.lock().push(event);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let event = InputEvent {
+            event_type: InputEventType::MouseMove(dx, dy),
+            timestamp: now_ticks(),
+            injected: true,
+            click_target: None,
+        };
+        EVENT_QUEUE.lock().push(event);
+    })
 }
 
 /// Inject a mouse button click (press + release).
 pub fn inject_mouse_click(button: u8) {
-    let ts = now_ticks();
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let ts = now_ticks();
 
-    let press = InputEvent {
-        event_type: InputEventType::MouseButton(button, true),
-        timestamp: ts,
-    };
-    let release = InputEvent {
-        event_type: InputEventType::MouseButton(button, false),
-        timestamp: ts,
-    };
+        // Only InjectMouse calls this: the click is the agent's.
+        let press = InputEvent {
+            event_type: InputEventType::MouseButton(button, true),
+            timestamp: ts,
+            injected: true,
+            click_target: None,
+        };
+        let release = InputEvent {
+            event_type: InputEventType::MouseButton(button, false),
+            timestamp: ts,
+            injected: true,
+            click_target: None,
+        };
 
-    let mut queue = EVENT_QUEUE.lock();
-    queue.push(press);
-    queue.push(release);
+        let mut queue = EVENT_QUEUE.lock();
+        queue.push(press);
+        queue.push(release);
+    })
+}
+
+/// Inject a click that the desktop delivers only if the pointer is over
+/// `target` when it processes the click (InjectMouse type 2, fi1 K2).
+pub fn inject_mouse_click_on(button: u8, target: ClickTarget) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let ts = now_ticks();
+        let mut queue = EVENT_QUEUE.lock();
+        for pressed in [true, false] {
+            queue.push(InputEvent {
+                event_type: InputEventType::MouseButton(button, pressed),
+                timestamp: ts,
+                injected: true,
+                click_target: Some(target),
+            });
+        }
+    })
 }
 
 /// Inject a gesture event.
 pub fn inject_gesture_event(gesture_id: u8) {
-    let event = InputEvent {
-        event_type: InputEventType::GestureEvent(gesture_id),
-        timestamp: now_ticks(),
-    };
-    EVENT_QUEUE.lock().push(event);
-    DAEMON_EVENT_QUEUE.lock().push(event);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let event = InputEvent {
+            event_type: InputEventType::GestureEvent(gesture_id),
+            timestamp: now_ticks(),
+            injected: true,
+            click_target: None,
+        };
+        EVENT_QUEUE.lock().push(event);
+        DAEMON_EVENT_QUEUE.lock().push(event);
+    })
 }
 
 // ============================================================================
@@ -325,28 +409,34 @@ pub fn inject_gesture_event(gesture_id: u8) {
 /// Returns the number of events actually written. The events are
 /// returned in FIFO order (oldest first).
 pub fn poll_events(buf: &mut [InputEvent]) -> usize {
-    let mut queue = EVENT_QUEUE.lock();
-    let mut count = 0;
-    for slot in buf.iter_mut() {
-        match queue.pop() {
-            Some(ev) => {
-                *slot = ev;
-                count += 1;
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut queue = EVENT_QUEUE.lock();
+        let mut count = 0;
+        for slot in buf.iter_mut() {
+            match queue.pop() {
+                Some(ev) => {
+                    *slot = ev;
+                    count += 1;
+                }
+                None => break,
             }
-            None => break,
         }
-    }
-    count
+        count
+    })
 }
 
 /// Returns the number of events currently waiting in the queue.
 pub fn pending_count() -> usize {
-    EVENT_QUEUE.lock().len()
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        EVENT_QUEUE.lock().len()
+    })
 }
 
 /// Returns `true` if the event queue is empty.
 pub fn is_empty() -> bool {
-    EVENT_QUEUE.lock().is_empty()
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        EVENT_QUEUE.lock().is_empty()
+    })
 }
 
 // ============================================================================

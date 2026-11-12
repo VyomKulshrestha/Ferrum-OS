@@ -46,7 +46,7 @@ pub fn sys_system_query(args: [u64; 6]) -> SyscallResult {
     let copy_len = core::cmp::min(bytes.len(), buf_len);
 
     if copy_len > 0 {
-        if !super::fs::valid_user_range(buf_ptr, copy_len) {
+        if !super::fs::valid_user_write_range(buf_ptr, copy_len) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
         if unsafe { super::fs::copy_to_user(buf_ptr, bytes, copy_len) } != copy_len {

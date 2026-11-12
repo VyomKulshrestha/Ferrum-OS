@@ -127,17 +127,21 @@ pub fn init() {
 
 const DESKTOP_STACK_SIZE: usize = 64 * 1024;
 
-#[repr(C, align(16))]
-struct DesktopStack([u8; DESKTOP_STACK_SIZE]);
-static mut DESKTOP_STACK: DesktopStack = DesktopStack([0; DESKTOP_STACK_SIZE]);
+/// In `.bss` with a guard page below it (`memory::kstack::GuardedStack`).
+static mut DESKTOP_STACK: crate::memory::kstack::GuardedStack<DESKTOP_STACK_SIZE> =
+    crate::memory::kstack::GuardedStack::new();
 
 /// Pid of the desktop's registered kernel task (see
 /// `scheduler::register_kernel_task`). 0 means "never launched yet".
 static DESKTOP_TASK_PID: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 
 fn desktop_stack_top() -> u64 {
-    let base = &raw mut DESKTOP_STACK as u64;
-    (base + DESKTOP_STACK_SIZE as u64) & !0xF
+    static_stack_bounds().1
+}
+
+/// (lowest, one past the highest) address of the desktop's stack.
+pub fn static_stack_bounds() -> (u64, u64) {
+    crate::memory::kstack::static_stack_bounds(&raw const DESKTOP_STACK)
 }
 
 /// Enter the interactive GUI loop.

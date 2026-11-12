@@ -59,7 +59,9 @@ pub fn init(phys_mem_offset: VirtAddr) {
             if let Ok(platform_info) = acpi::PlatformInfo::new(&tables) {
                 if let acpi::InterruptModel::Apic(_apic) = platform_info.interrupt_model {
                     println!("         Found APIC model. BSP APIC ID: {}", platform_info.processor_info.as_ref().unwrap().boot_processor.local_apic_id);
-                    println!("         Found {} Application Processors", platform_info.processor_info.as_ref().unwrap().application_processors.len());
+                    let aps = platform_info.processor_info.as_ref().unwrap().application_processors.len();
+                    crate::smp::MADT_APPLICATION_PROCESSORS.store(aps, core::sync::atomic::Ordering::SeqCst);
+                    println!("         Found {} Application Processors", aps);
                 }
             }
             

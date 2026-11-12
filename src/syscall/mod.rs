@@ -107,6 +107,39 @@ pub enum SyscallNumber {
     LaunchContext = 59,
     /// Apply validated desktop theme/accent preferences for the live session.
     DesktopPreferences = 60,
+    /// IpcReceive plus the sender: args[0..4] as IpcReceive, args[4] = pointer
+    /// to a 16-byte record the kernel fills with the sender's pid (u64 LE) and
+    /// its `ipc::SENDER_*` flags (u64 LE). The record is checked before a
+    /// message is taken, so a bad pointer never drops one. IpcReceive keeps
+    /// its ABI for every other caller.
+    IpcReceiveFrom = 61,
+    /// The change counter of a file or directory: args[0..2] = path ptr/len.
+    /// Returns the version (non-zero, changes on every write, create or
+    /// remove, never repeats within a boot), 0 when nothing exists at the
+    /// path, or an error when the kernel cannot establish it. Needs read
+    /// access to the path.
+    FileVersion = 62,
+    /// WriteFile that runs only if the file has an expected version:
+    /// args[0..4] as WriteFile, args[4] = expected version (0: nothing may
+    /// exist at the path). The check and the write are one step in the
+    /// kernel; a mismatch returns `VersionMismatch` and writes nothing.
+    WriteFileIfVersion = 63,
+    /// DeleteFile that runs only if the node has an expected version:
+    /// args[0..2] as DeleteFile, args[2] = expected version (non-zero).
+    /// Gated by the kernel's confirmation prompt exactly like DeleteFile.
+    DeleteFileIfVersion = 64,
+    /// Exec that runs only if the path has an expected version: args[0..2] as
+    /// Exec, args[2] = expected version (0: nothing exists at the path in the
+    /// VFS, as for the programs compiled into the kernel). Checked before the
+    /// image is read.
+    ExecIfVersion = 65,
+    /// What a click would land on now (fi1 K2): args[0] = pointer to a
+    /// 24-byte record the kernel fills with the top window under the pointer
+    /// (u64, 0 for the desktop), its owner pid (u64, 0 for kernel-drawn
+    /// windows) and the window-relative pointer x and y (u32 each);
+    /// args[1..3] = optional buffer for the window title. Returns the title
+    /// length copied. Needs `hud:overlay`, like HitTest.
+    PointerTarget = 66,
 }
 
 /// Syscall return status.
@@ -123,6 +156,10 @@ pub enum SyscallStatus {
     /// interrupt layer returns this status to userspace immediately instead
     /// of rewinding and parking the task on the syscall instruction.
     WouldBlock = -6,
+    /// A version-guarded operation (WriteFileIfVersion, DeleteFileIfVersion,
+    /// ExecIfVersion) found another version than the caller expected and did
+    /// nothing.
+    VersionMismatch = -7,
 }
 
 /// Raw syscall result.
@@ -220,10 +257,20 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     // Quotas and confirmation check
     let mut is_denied = false;
     let mut confirmation_needed = false;
+    let mut refused_while_pending = false;
 
     {
         let mut sched = crate::scheduler::SCHEDULER.lock();
         let now = sched.total_ticks;
+        // Another task already waits for the operator's y/n. The key goes to
+        // the first waiter in task order (`scheduler::
+        // wake_confirmation_waiters_locked`), so with two prompts on screen
+        // the operator answering the last one shown could approve the
+        // other's deletion (fi1 kernel round 4). One prompt at a time: a
+        // second request is refused while one is pending.
+        let other_pending = sched.tasks.iter().any(|t| {
+            t.id != pid && t.blocked_on_confirmation && t.state == crate::scheduler::TaskState::Blocked
+        });
         if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
             // 1. Syscall Rate limit check (~11s window - see
             // `scheduler::TaskQuotas::default_user`'s matching comment)
@@ -252,7 +299,8 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             }
 
             // 2. Gated syscall checks
-            let is_delete_file = number == SyscallNumber::DeleteFile as u64;
+            let is_delete_file = number == SyscallNumber::DeleteFile as u64
+                || number == SyscallNumber::DeleteFileIfVersion as u64;
             let is_kexec = number == SyscallNumber::Kexec as u64;
             let is_gated = is_delete_file || is_kexec;
             let is_bypass = !is_kexec
@@ -269,10 +317,15 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
                     task.confirmation_approved = false;
                 } else if is_denied {
                     task.confirmation_denied = false;
+                } else if other_pending && SINGLE_CONFIRMATION.load(core::sync::atomic::Ordering::SeqCst) {
+                    is_denied = true;
+                    refused_while_pending = true;
                 } else {
                     // Need to block and wait for confirmation
                     task.blocked_on_confirmation = true;
-                    task.wake_at = now.saturating_add(5000 / crate::interrupts::PIT_TICK_MS); // 5s timeout
+                    task.wake_at = now.saturating_add(
+                        crate::scheduler::CONFIRMATION_TIMEOUT_MS / crate::interrupts::PIT_TICK_MS,
+                    ); // 5s timeout
                     task.state = crate::scheduler::TaskState::Blocked;
                     task.quotas.used_cpu_ticks_continuous = 0;
                     confirmation_needed = true;
@@ -282,23 +335,27 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     }
 
     if confirmation_needed {
-        let name = if number == SyscallNumber::Kexec as u64 {
-            "Kexec"
-        } else {
-            "DeleteFile"
-        };
+        let name = confirmation_subject(number, args);
         crate::logging::audit::log_event(
             crate::logging::audit::AuditEvent::SecurityViolation,
             &alloc::format!("{} syscall confirmation required", name),
         );
         crate::println!(
-            "\n[SECURITY] Process is requesting destructive syscall: {}",
+            "\n[SECURITY] Process {} is requesting destructive syscall: {}",
+            pid,
             name
         );
         crate::println!("[SECURITY] Operator confirmation required. Press 'y' to approve, 'n' to deny (5s timeout).");
         return SyscallResult::err(SyscallStatus::Blocked);
     }
 
+    if refused_while_pending {
+        crate::println!(
+            "\n[SECURITY] Process {} refused without a prompt: {} (another confirmation is pending)",
+            pid,
+            confirmation_subject(number, args)
+        );
+    }
     if is_denied {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
@@ -315,6 +372,49 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         }
     }
     res
+}
+
+/// One confirmation prompt at a time (see `dispatch_for_process`). Only the
+/// self-test `confirm-single-off` clears it, to show the old behaviour on the
+/// same image.
+pub static SINGLE_CONFIRMATION: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(true);
+
+/// What the operator is asked to approve: the syscall and, for DeleteFile
+/// and DeleteFileIfVersion, the path it will delete. The prompt used to say
+/// only "DeleteFile", so the operator approved a deletion without seeing its
+/// target (fi1 kernel round 4). The approved call is the same instruction
+/// re-executed with the same registers (the task is blocked meanwhile, and
+/// no other task can write its memory), so the path shown is the path
+/// deleted.
+pub fn confirmation_subject(number: u64, args: [u64; 6]) -> alloc::string::String {
+    if number == SyscallNumber::Kexec as u64 {
+        return alloc::string::String::from("Kexec");
+    }
+    let name = if number == SyscallNumber::DeleteFileIfVersion as u64 {
+        "DeleteFileIfVersion"
+    } else {
+        "DeleteFile"
+    };
+    match unsafe { fs::read_user_str(args[0], args[1]) } {
+        Some(path) => alloc::format!("{} path=\"{}\"", name, escape_printable(&path)),
+        None => alloc::format!("{} path=<unreadable>", name),
+    }
+}
+
+/// `s` as printable ASCII: bytes 0x20 to 0x7E except `\` and `"` as they
+/// are, every other byte as `\xNN`. A path is shown to the operator through
+/// this, so it cannot carry terminal escapes, line breaks or a forged second
+/// line.
+pub fn escape_printable(s: &str) -> alloc::string::String {
+    let mut out = alloc::string::String::with_capacity(s.len());
+    for b in s.bytes() {
+        if (0x20..0x7F).contains(&b) && b != b'\\' && b != b'"' {
+            out.push(b as char);
+        } else {
+            out.push_str(&alloc::format!("\\x{:02x}", b));
+        }
+    }
+    out
 }
 
 pub fn dispatch_with_capabilities(
@@ -372,7 +472,9 @@ fn dispatch_with_context(
                 "ipc:send:*",
                 &payload,
             ) {
-                Ok(message) => message,
+                // The sender's flags come from the kernel's own records of
+                // how `caller_pid` was launched, never from the caller.
+                Ok(message) => message.with_sender_flags(crate::ipc::process_sender_flags(caller_pid)),
                 Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
             };
             match crate::ipc::send(message, held_capabilities) {
@@ -384,55 +486,27 @@ fn dispatch_with_context(
             }
         }
         x if x == SyscallNumber::IpcReceive as u64 => {
-            if !crate::security::has_capability(held_capabilities, "ipc:receive:*") {
-                return SyscallResult::err(SyscallStatus::PermissionDenied);
-            }
-            let buf_ptr = args[0];
-            let buf_len = args[1] as usize;
-            if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
-                || (buf_len > 0 && !crate::syscall::fs::valid_user_range(buf_ptr, buf_len))
-            {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            }
-            let service_name = if args[2] == 0 || args[3] == 0 {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            } else {
-                match unsafe { crate::syscall::fs::read_user_str(args[2], args[3]) } {
-                    Some(s) => s,
-                    None => return SyscallResult::err(SyscallStatus::InvalidArgument),
-                }
-            };
-
-            if !crate::ipc::task_owns_service(caller_pid, &service_name) {
+            sys_ipc_receive(args, held_capabilities, caller_pid, None)
+        }
+        x if x == SyscallNumber::IpcReceiveFrom as u64 => {
+            sys_ipc_receive(args, held_capabilities, caller_pid, Some(args[4]))
+        }
+        x if x == SyscallNumber::FileVersion as u64 => fs::sys_file_version(args, held_capabilities),
+        x if x == SyscallNumber::WriteFileIfVersion as u64 => {
+            fs::sys_write_file_checked(args, held_capabilities, Some(args[4]))
+        }
+        x if x == SyscallNumber::DeleteFileIfVersion as u64 => {
+            fs::sys_delete_file_checked(args, held_capabilities, Some(args[2]))
+        }
+        x if x == SyscallNumber::ExecIfVersion as u64 => {
+            if !crate::security::has_capability(held_capabilities, "process:spawn") {
                 crate::logging::audit::log_event(
                     crate::logging::audit::AuditEvent::PermissionDenied,
-                    "IPC receive denied for mailbox owned by another process",
+                    "ring3 exec denied: caller lacks process:spawn",
                 );
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
-
-            match crate::ipc::receive_for_service(&service_name) {
-                Ok(message) => {
-                    if buf_ptr == 0 || buf_len == 0 {
-                        // User just wants to consume/drop the message or check if there is one
-                        return SyscallResult::ok(message.payload().len() as u64);
-                    }
-
-                    let to_copy = message.payload().len().min(buf_len);
-                    if to_copy > 0 {
-                        if unsafe {
-                            crate::syscall::fs::copy_to_user(buf_ptr, message.payload(), to_copy)
-                        } != to_copy
-                        {
-                            return SyscallResult::err(SyscallStatus::InvalidArgument);
-                        }
-                    }
-
-                    SyscallResult::ok(to_copy as u64)
-                }
-                Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
-                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
-            }
+            process::sys_exec_checked(args, Some(args[2]))
         }
         x if x == SyscallNumber::ServiceStart as u64 => {
             match crate::services::start_service_authorized(args[0], held_capabilities) {
@@ -652,6 +726,12 @@ fn dispatch_with_context(
             }
             hud::sys_hit_test(args)
         }
+        x if x == SyscallNumber::PointerTarget as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_pointer_target(args)
+        }
         x if x == SyscallNumber::Mmap as u64 => {
             if !crate::security::has_capability(held_capabilities, "memory:mmap:*")
                 && !crate::security::has_capability(held_capabilities, "memory:alloc:*")
@@ -669,11 +749,13 @@ fn dispatch_with_context(
             const MAX_RANDOM_BYTES: usize = 1024 * 1024;
             if buf_len == 0
                 || buf_len > MAX_RANDOM_BYTES
-                || !crate::syscall::fs::valid_user_range(buf_ptr, buf_len)
+                || !crate::syscall::fs::valid_user_write_range(buf_ptr, buf_len)
             {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
-            let mut temp_buf = alloc::vec![0u8; buf_len];
+            let Some(mut temp_buf) = crate::fs::try_zeroed_vec(buf_len) else {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            };
             match crate::security::rand::get_random(&mut temp_buf) {
                 Ok(()) => {
                     if unsafe { crate::syscall::fs::copy_to_user(buf_ptr, &temp_buf, buf_len) }
@@ -802,6 +884,80 @@ fn dispatch_with_context(
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
+    }
+}
+
+/// IpcReceive and IpcReceiveFrom. `info_ptr` is IpcReceiveFrom's 16-byte
+/// sender record; it is validated before a message is dequeued.
+fn sys_ipc_receive(
+    args: [u64; 6],
+    held_capabilities: &[String],
+    caller_pid: u64,
+    info_ptr: Option<u64>,
+) -> SyscallResult {
+    if !crate::security::has_capability(held_capabilities, "ipc:receive:*") {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+    let buf_ptr = args[0];
+    let buf_len = args[1] as usize;
+    if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
+        || (buf_len > 0 && !crate::syscall::fs::valid_user_write_range(buf_ptr, buf_len))
+    {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    const SENDER_RECORD_BYTES: usize = 16;
+    if let Some(info) = info_ptr {
+        if info == 0 || !crate::syscall::fs::valid_user_write_range(info, SENDER_RECORD_BYTES) {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
+        }
+    }
+    let service_name = if args[2] == 0 || args[3] == 0 {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    } else {
+        match unsafe { crate::syscall::fs::read_user_str(args[2], args[3]) } {
+            Some(s) => s,
+            None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+        }
+    };
+
+    if !crate::ipc::task_owns_service(caller_pid, &service_name) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            "IPC receive denied for mailbox owned by another process",
+        );
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+
+    match crate::ipc::receive_for_owner(&service_name, caller_pid) {
+        Ok(message) => {
+            if let Some(info) = info_ptr {
+                let mut record = [0u8; SENDER_RECORD_BYTES];
+                record[..8].copy_from_slice(&message.source_pid.to_le_bytes());
+                record[8..].copy_from_slice(&message.sender_flags.to_le_bytes());
+                if unsafe { crate::syscall::fs::copy_to_user(info, &record, SENDER_RECORD_BYTES) }
+                    != SENDER_RECORD_BYTES
+                {
+                    return SyscallResult::err(SyscallStatus::InvalidArgument);
+                }
+            }
+            if buf_ptr == 0 || buf_len == 0 {
+                // User just wants to consume/drop the message or check if there is one
+                return SyscallResult::ok(message.payload().len() as u64);
+            }
+
+            let to_copy = message.payload().len().min(buf_len);
+            if to_copy > 0 {
+                if unsafe { crate::syscall::fs::copy_to_user(buf_ptr, message.payload(), to_copy) }
+                    != to_copy
+                {
+                    return SyscallResult::err(SyscallStatus::InvalidArgument);
+                }
+            }
+
+            SyscallResult::ok(to_copy as u64)
+        }
+        Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
+        Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }
 

@@ -213,6 +213,11 @@ impl PhysicalRuntime {
     }
 
     pub fn heartbeat_watchdog(&mut self, id: u64, tick: u64) -> Result<(), RuntimeError> {
+        // A heartbeat that arrives after an emergency-stop expiry restores
+        // liveness only; the stop stays latched until recovery is released.
+        if self.watchdogs.severity(tick) == AuthoritySeverity::EmergencyStop {
+            self.latch_emergency_stop();
+        }
         self.watchdogs
             .heartbeat(id, tick)
             .map_err(RuntimeError::Supervisor)
@@ -355,9 +360,17 @@ impl PhysicalRuntime {
     }
 
     pub fn apply_replay_step(&mut self, step: ReplayStep) -> Result<ReplayOutcome, RuntimeError> {
-        if step.run_id != self.evidence.descriptor().run_id {
+        let descriptor = self.evidence.descriptor();
+        if step.run_id != descriptor.run_id {
             return Err(RuntimeError::Replay(ReplayError::RunMismatch));
         }
+        // Replay and fault injection are simulation tooling: a hand-built
+        // step gets the same validation as a manifest step and never runs live.
+        if descriptor.mode == SessionMode::Live {
+            return Err(RuntimeError::Replay(ReplayError::InvalidDescriptor));
+        }
+        crate::replay::validate_action(descriptor.mode, step.at_tick, step.action)
+            .map_err(RuntimeError::Replay)?;
         self.faults.expire_before(step.at_tick);
         match step.action {
             ReplayAction::IngestFrame {
@@ -661,7 +674,7 @@ impl PhysicalRuntime {
         prediction_use: PredictionUse,
     ) -> Result<RoutedCommand, RuntimeError> {
         if command.kind != crate::adapter::CommandKind::Stop
-            && self.watchdogs.severity(current_tick) >= AuthoritySeverity::Block
+            && !self.execution_authority_available(current_tick)
         {
             return Err(RuntimeError::Supervisor(
                 SupervisorError::AuthorityUnavailable,
@@ -736,6 +749,7 @@ impl PhysicalRuntime {
                     policy_revision: decision.policy_revision,
                     twin_event_id: context.expected_twin_event_id,
                     confirmation: command.metadata.confirmation,
+                    permit_expires_at_tick: command.deadline_tick,
                 },
                 current_tick,
             )
@@ -820,10 +834,42 @@ impl PhysicalRuntime {
         self.evidence
             .reserve_at(tick, 1)
             .map_err(RuntimeError::Session)?;
-        let routed = match self.fleet.claim_next_ready(adapter_id, tick) {
-            Some(routed) => routed,
-            None => return Ok(None),
+        // Re-check authority at time of use: a watchdog may have expired
+        // after the permit was issued. Only a queued stop may still leave.
+        let routed = if self.execution_authority_available(tick) {
+            match self.fleet.claim_next_ready(adapter_id, tick) {
+                Some(routed) => routed,
+                None => return Ok(None),
+            }
+        } else {
+            self.fleet
+                .claim_next_stop(adapter_id, tick)
+                .ok_or(RuntimeError::Supervisor(
+                    SupervisorError::AuthorityUnavailable,
+                ))?
         };
+        // Time-of-use re-check of the deterministic interlocks (actor e-stop,
+        // geofence under the current policy, proximity, occupancy, device in
+        // service). A permit issued against an earlier twin state does not
+        // outlive a change that would have blocked it.
+        if !self.safety.permits_delivery(
+            &self.adapters,
+            &self.domain,
+            &self.twin,
+            &routed.command,
+            routed.policy_revision,
+            tick,
+        ) || (routed.command.kind != crate::adapter::CommandKind::Stop
+            && self
+                .fleet
+                .device(adapter_id)
+                .is_some_and(|device| device.lifecycle != DeviceLifecycle::Active))
+        {
+            self.fleet
+                .revoke_dispatched(routed.command.command_id, tick)
+                .map_err(RuntimeError::Fleet)?;
+            return Err(RuntimeError::Safety(SafetyError::Blocked));
+        }
         match driver.submit(routed) {
             Ok(()) => {
                 self.fleet
@@ -940,6 +986,23 @@ impl PhysicalRuntime {
         current_tick: u64,
     ) -> PrivacyDecision {
         self.privacy.evaluate(request, current_tick)
+    }
+
+    fn latch_emergency_stop(&mut self) {
+        if !self.recovery.stop_pending() {
+            self.recovery = RecoveryLatch::default();
+            self.recovery.observe_stop();
+        }
+    }
+
+    /// Non-stop authority needs every watchdog below `Block` and no
+    /// unreleased emergency stop. Observing an emergency stop latches it.
+    fn execution_authority_available(&mut self, tick: u64) -> bool {
+        let severity = self.watchdogs.severity(tick);
+        if severity == AuthoritySeverity::EmergencyStop {
+            self.latch_emergency_stop();
+        }
+        severity < AuthoritySeverity::Block && !self.recovery.stop_pending()
     }
 
     fn append_runtime_event(
@@ -1715,6 +1778,781 @@ mod tests {
             ))
         );
         assert!(runtime.fleet().command_claim(1).is_none());
+    }
+
+    fn safe_context(runtime: &PhysicalRuntime) -> SafetyContext {
+        SafetyContext {
+            expected_policy_revision: 1,
+            expected_twin_event_id: runtime.twin().snapshot().latest_event_id,
+            human_approved: true,
+            requesting_actor_id: None,
+        }
+    }
+
+    fn stop_command(command_id: u64, tick: u64) -> AdapterCommand {
+        AdapterCommand {
+            command_id,
+            idempotency_key: command_id + 100,
+            adapter_id: AdapterId(1),
+            endpoint_id: EndpointId(2),
+            session_epoch: 5,
+            kind: crate::adapter::CommandKind::Stop,
+            argument0: 0,
+            argument1: 0,
+            argument2: 0,
+            deadline_tick: tick + 10,
+            metadata: CommandMetadata::kernel(
+                tick,
+                0,
+                0,
+                EndpointCapability::EmergencyStop,
+                ConfirmationProvenance::NotRequired,
+            ),
+        }
+    }
+
+    fn stop_context() -> SafetyContext {
+        SafetyContext {
+            expected_policy_revision: 0,
+            expected_twin_event_id: 0,
+            human_approved: false,
+            requesting_actor_id: None,
+        }
+    }
+
+    #[test]
+    fn queued_permit_cannot_be_delivered_after_its_ttl() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut driver = SimulatedAdapter::new(identity).unwrap();
+        // Policy permit_ttl_ticks is 5: tick 106 is after the permit but
+        // well before the command's own deadline of 200.
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 106),
+            Ok(None)
+        );
+        assert!(driver.commands().is_empty());
+        assert_eq!(
+            runtime.fleet().command_claim(1).unwrap().state,
+            CommandDeliveryState::Expired
+        );
+    }
+
+    /// Queues a MoveTo at tick 100, applies `change` at tick 101, and tries
+    /// to deliver at tick 102 (inside the 5-tick permit). Returns the
+    /// delivery result, how many commands reached the driver, and the claim.
+    fn deliver_after_change(
+        change: impl FnOnce(&mut PhysicalRuntime),
+    ) -> (
+        Result<Option<RoutedCommand>, RuntimeError>,
+        usize,
+        CommandDeliveryState,
+    ) {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        change(&mut runtime);
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut driver = SimulatedAdapter::new(identity).unwrap();
+        let result = runtime.deliver_next(AdapterId(1), &mut driver, 102);
+        let state = runtime.fleet().command_claim(1).unwrap().state;
+        (result, driver.commands().len(), state)
+    }
+
+    fn assert_revoked_at_delivery(
+        outcome: (
+            Result<Option<RoutedCommand>, RuntimeError>,
+            usize,
+            CommandDeliveryState,
+        ),
+    ) {
+        let (result, delivered, state) = outcome;
+        assert_eq!(
+            delivered, 0,
+            "a command invalid at delivery reached the driver"
+        );
+        assert_eq!(result, Err(RuntimeError::Safety(SafetyError::Blocked)));
+        assert_eq!(state, CommandDeliveryState::Expired);
+    }
+
+    #[test]
+    fn baseline_queued_motion_is_delivered_when_nothing_changes() {
+        let (result, delivered, state) = deliver_after_change(|_| {});
+        assert!(matches!(result, Ok(Some(_))));
+        assert_eq!(delivered, 1);
+        assert_eq!(state, CommandDeliveryState::Acknowledged);
+    }
+
+    #[test]
+    fn benign_fresh_telemetry_after_queueing_does_not_revoke_motion() {
+        let (result, delivered, _) = deliver_after_change(|runtime| {
+            runtime
+                .ingest_adapter_frame(frame(2, 950, 101), 101, 0)
+                .unwrap();
+        });
+        assert!(matches!(result, Ok(Some(_))));
+        assert_eq!(delivered, 1);
+    }
+
+    #[test]
+    fn actor_emergency_stop_after_queueing_revokes_motion_delivery() {
+        assert_revoked_at_delivery(deliver_after_change(|runtime| {
+            let mut stop = frame(2, 900, 101);
+            stop.payload = AdapterPayload::EmergencyStop {
+                actor_id: ActorId(8),
+                reason_code: 1,
+            };
+            runtime.ingest_adapter_frame(stop, 101, 0).unwrap();
+        }));
+    }
+
+    #[test]
+    fn unsafe_proximity_after_queueing_revokes_motion_delivery() {
+        assert_revoked_at_delivery(deliver_after_change(|runtime| {
+            runtime
+                .ingest_adapter_frame(frame(2, 100, 101), 101, 0)
+                .unwrap();
+        }));
+    }
+
+    #[test]
+    fn human_entering_zone_after_queueing_revokes_motion_delivery() {
+        assert_revoked_at_delivery(deliver_after_change(|runtime| {
+            let mut occupied = frame(2, 900, 101);
+            occupied.payload = AdapterPayload::ZoneOccupancy(crate::twin::ZoneOccupancy {
+                site_id: SiteId(1),
+                zone_id: 7,
+                humans: 1,
+                robots: 0,
+                observed_at_tick: 101,
+            });
+            runtime.ingest_adapter_frame(occupied, 101, 0).unwrap();
+        }));
+    }
+
+    #[test]
+    fn policy_tightened_after_queueing_revokes_motion_delivery() {
+        assert_revoked_at_delivery(deliver_after_change(|runtime| {
+            runtime
+                .safety_mut()
+                .install_policy(SafetyPolicy {
+                    site_id: SiteId(1),
+                    zone_id: 7,
+                    revision: 2,
+                    geofence: Geofence {
+                        minimum_x_mm: -50,
+                        maximum_x_mm: 50,
+                        minimum_y_mm: -50,
+                        maximum_y_mm: 50,
+                        minimum_z_mm: 0,
+                        maximum_z_mm: 50,
+                    },
+                    proximity_sensor_id: Some(9),
+                    minimum_clearance_mm: 500,
+                    maximum_sensor_age_ticks: 20,
+                    permit_ttl_ticks: 5,
+                    allow_motion_with_humans: false,
+                    require_human_approval_for_motion: false,
+                    require_human_approval_for_actuation: true,
+                    learned_warning_threshold_permille: 600,
+                    learned_block_threshold_permille: 800,
+                })
+                .unwrap();
+        }));
+    }
+
+    #[test]
+    fn device_quarantined_after_queueing_revokes_motion_delivery() {
+        assert_revoked_at_delivery(deliver_after_change(|runtime| {
+            runtime.fleet_mut().quarantine(AdapterId(1)).unwrap();
+        }));
+    }
+
+    #[test]
+    fn device_degraded_after_queueing_revokes_motion_delivery() {
+        assert_revoked_at_delivery(deliver_after_change(|runtime| {
+            runtime
+                .update_device_health(
+                    AdapterId(1),
+                    5,
+                    DeviceHealth {
+                        battery_permille: 900,
+                        link_quality_permille: 900,
+                        fault_code: 7,
+                    },
+                    101,
+                )
+                .unwrap();
+            assert_ne!(
+                runtime.adapters().adapter(AdapterId(1)).unwrap().state,
+                crate::adapter::AdapterState::Online
+            );
+        }));
+    }
+
+    #[test]
+    fn older_sensor_observation_cannot_overwrite_a_newer_one() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        // Newest truth: a person is 100 mm away.
+        runtime
+            .ingest_adapter_frame(frame(2, 100, 105), 105, 0)
+            .unwrap();
+        // A later frame carrying an older (still "fresh") safe reading.
+        // Delivery-tolerant policy: observations up to 20 ticks old are
+        // accepted, matching the zone's maximum_sensor_age_ticks.
+        let tolerant = ObservationPolicy {
+            maximum_clock_skew_ticks: 0,
+            maximum_clock_uncertainty_ticks: 0,
+            maximum_observation_age_ticks: 20,
+        };
+        let _ = runtime.ingest_adapter_frame_with_policy(frame(3, 900, 101), 106, tolerant);
+        assert_eq!(runtime.twin().sensor(9).unwrap().value, 100);
+        let context = safe_context(&runtime);
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(1), context, &[], 106),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
+    }
+
+    #[test]
+    fn older_occupancy_observation_cannot_overwrite_a_newer_one() {
+        let mut runtime = configured_runtime();
+        let occupancy = |sequence: u64, humans: u16, tick: u64| {
+            let mut occupied = frame(sequence, 900, tick);
+            occupied.payload = AdapterPayload::ZoneOccupancy(crate::twin::ZoneOccupancy {
+                site_id: SiteId(1),
+                zone_id: 7,
+                humans,
+                robots: 0,
+                observed_at_tick: tick,
+            });
+            occupied
+        };
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 105), 105, 0)
+            .unwrap();
+        runtime
+            .ingest_adapter_frame(occupancy(2, 1, 105), 105, 0)
+            .unwrap();
+        let tolerant = ObservationPolicy {
+            maximum_clock_skew_ticks: 0,
+            maximum_clock_uncertainty_ticks: 0,
+            maximum_observation_age_ticks: 20,
+        };
+        let _ = runtime.ingest_adapter_frame_with_policy(occupancy(3, 0, 101), 106, tolerant);
+        assert_eq!(runtime.twin().occupancy(SiteId(1), 7).unwrap().humans, 1);
+    }
+
+    fn actor_telemetry_frame(sequence: u64, actor: u64, tick: u64) -> AdapterFrame {
+        let mut telemetry = frame(sequence, 900, tick);
+        telemetry.payload = AdapterPayload::ActorTelemetry(crate::twin::ActorTelemetry {
+            actor_id: ActorId(actor),
+            position: Position::origin(7, 100),
+            battery_permille: 900,
+            load_permille: 0,
+            status: ActorStatus::Available,
+        });
+        telemetry
+    }
+
+    #[test]
+    fn actor_telemetry_cannot_clear_an_emergency_stop() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let mut stop = frame(2, 900, 101);
+        stop.payload = AdapterPayload::EmergencyStop {
+            actor_id: ActorId(8),
+            reason_code: 1,
+        };
+        runtime.ingest_adapter_frame(stop, 101, 0).unwrap();
+        let _ = runtime.ingest_adapter_frame(actor_telemetry_frame(3, 8, 102), 102, 0);
+        assert_eq!(
+            runtime.domain().actor(ActorId(8)).unwrap().status,
+            ActorStatus::EmergencyStop
+        );
+        let context = safe_context(&runtime);
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(1), context, &[], 102),
+            Err(RuntimeError::Safety(SafetyError::Blocked))
+        );
+        // Only the operator-side registry can release the stop.
+        runtime
+            .domain_mut()
+            .release_emergency_stop(ActorId(8))
+            .unwrap();
+        assert_eq!(
+            runtime.domain().actor(ActorId(8)).unwrap().status,
+            ActorStatus::Available
+        );
+    }
+
+    #[test]
+    fn adapter_cannot_publish_telemetry_for_an_actor_it_does_not_control() {
+        let mut runtime = configured_runtime();
+        let mut other = runtime.domain().actor(ActorId(8)).unwrap().clone();
+        other.id = ActorId(9);
+        other.status = ActorStatus::Offline;
+        runtime.domain_mut().register_actor(other).unwrap();
+        assert!(runtime
+            .ingest_adapter_frame(actor_telemetry_frame(1, 9, 100), 100, 0)
+            .is_err());
+        assert_eq!(
+            runtime.domain().actor(ActorId(9)).unwrap().status,
+            ActorStatus::Offline
+        );
+    }
+
+    // ---- Open items O1 and O5 (policy decision pending; NOT fixed) --------
+    // These tests document current behaviour so a policy change shows up as
+    // a deliberate test edit. Flip the assertions when the author decides.
+
+    #[test]
+    fn documents_o1_missing_or_stale_occupancy_counts_as_zero_humans() {
+        // No occupancy record at all: the human interlock is silent and only
+        // the proximity sensor protects (allow_motion_with_humans=false).
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        assert!(runtime.twin().occupancy(SiteId(1), 7).is_none());
+        let context = safe_context(&runtime);
+        assert!(runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .is_ok());
+
+        // A zero-human record observed at tick 10 still counts at tick 500:
+        // occupancy freshness is never checked.
+        let mut runtime = configured_runtime();
+        let tolerant = ObservationPolicy {
+            maximum_clock_skew_ticks: 0,
+            maximum_clock_uncertainty_ticks: 0,
+            maximum_observation_age_ticks: 1_000,
+        };
+        let mut empty = frame(1, 900, 10);
+        empty.metadata = ObservationMetadata::simulated(1, 1_000);
+        empty.payload = AdapterPayload::ZoneOccupancy(crate::twin::ZoneOccupancy {
+            site_id: SiteId(1),
+            zone_id: 7,
+            humans: 0,
+            robots: 0,
+            observed_at_tick: 10,
+        });
+        runtime
+            .ingest_adapter_frame_with_policy(empty, 10, tolerant)
+            .unwrap();
+        let mut fresh = frame(2, 900, 500);
+        fresh.metadata = ObservationMetadata::simulated(2, 1_000);
+        runtime.ingest_adapter_frame(fresh, 500, 0).unwrap();
+        let context = safe_context(&runtime);
+        let mut late = command(2);
+        late.deadline_tick = 600;
+        late.metadata = CommandMetadata::kernel(
+            500,
+            1,
+            context.expected_twin_event_id,
+            EndpointCapability::Move,
+            ConfirmationProvenance::LocalHuman { confirmation_id: 2 },
+        );
+        assert!(runtime
+            .authorize_and_queue_command(late, context, &[], 500)
+            .is_ok());
+    }
+
+    #[test]
+    fn documents_o5_motion_has_no_step_speed_or_payload_bound() {
+        // The actor stands at the zone origin; one MoveTo to the far corner
+        // of the geofence (1 m, 1 m, 1 m: a 1.73 m step) is authorized. The
+        // command has no speed field, and the actor's payload is not
+        // compared with OperationalLimits on this path.
+        let mut runtime = configured_runtime();
+        runtime
+            .domain_mut()
+            .actor_mut(ActorId(8))
+            .unwrap()
+            .load_permille = 1_000;
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        let mut far = command(1);
+        far.argument0 = 1_000;
+        far.argument1 = 1_000;
+        far.argument2 = 1_000;
+        assert!(runtime
+            .authorize_and_queue_command(far, context, &[], 100)
+            .is_ok());
+    }
+
+    #[test]
+    fn documents_o5_sixteen_full_diagonal_steps_fit_in_one_rate_window() {
+        // Round 3, quantified (policy unchanged). Each MoveTo is checked
+        // only as an absolute target inside the 1 m geofence cube, and the
+        // rate limiter admits 16 commands per 100 ticks. Alternating between
+        // opposite corners, 16 commands are authorized at one tick: 16 x
+        // 1.732 m = 27.7 m of commanded travel, all inside the geofence.
+        // Leaving the geofence is not possible this way; nothing bounds the
+        // distance per command or per window.
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        let mut authorized = 0u64;
+        for id in 1..=20u64 {
+            let mut step = command(id);
+            let corner = if id % 2 == 1 { 1_000 } else { 0 };
+            step.argument0 = corner;
+            step.argument1 = corner;
+            step.argument2 = corner;
+            match runtime.authorize_and_queue_command(step, context, &[], 100) {
+                Ok(_) => authorized += 1,
+                Err(error) => {
+                    assert_eq!(error, RuntimeError::Supervisor(SupervisorError::RateLimited));
+                    break;
+                }
+            }
+        }
+        assert_eq!(authorized, 16);
+        // Integer millimetres of commanded straight-line travel: 16 x 1732.
+        assert_eq!(authorized * 1_732, 27_712);
+    }
+
+    #[test]
+    fn documents_rp3_one_confirmation_id_authorizes_different_commands() {
+        // Round 3 (R-P3 / round-1 O2, policy unchanged): the operator's
+        // confirmation id in CommandMetadata is not single-use and not bound
+        // to the command, so one confirmation authorizes two different
+        // targets. The crate trusts Heliox to build the metadata.
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        let first = command(1);
+        let mut second = command(2);
+        second.argument0 = 900;
+        second.argument1 = 900;
+        second.metadata = first.metadata;
+        assert!(runtime
+            .authorize_and_queue_command(first, context, &[], 100)
+            .is_ok());
+        assert!(runtime
+            .authorize_and_queue_command(second, context, &[], 100)
+            .is_ok());
+    }
+
+    #[test]
+    fn documents_rp1_a_second_runtime_redelivers_a_delivered_command_id() {
+        // Round 3 (R-P1, policy unchanged): replay protection lives in one
+        // runtime's memory. A second runtime, or the same one after a
+        // restart, authorizes and delivers a command id and idempotency key
+        // that the first already delivered to the same adapter endpoint and
+        // session epoch.
+        let mut delivered = Vec::new();
+        for _ in 0..2 {
+            let mut runtime = configured_runtime();
+            runtime
+                .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+                .unwrap();
+            let context = safe_context(&runtime);
+            let routed = runtime
+                .authorize_and_queue_command(command(1), context, &[], 100)
+                .unwrap();
+            let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+            let mut driver = SimulatedAdapter::new(identity).unwrap();
+            assert_eq!(
+                runtime.deliver_next(AdapterId(1), &mut driver, 101),
+                Ok(Some(routed))
+            );
+            delivered.push(routed);
+        }
+        assert_eq!(delivered[0].command, delivered[1].command);
+    }
+
+    #[test]
+    fn stop_still_leaves_after_actor_emergency_stop() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let mut stop_frame = frame(2, 900, 101);
+        stop_frame.payload = AdapterPayload::EmergencyStop {
+            actor_id: ActorId(8),
+            reason_code: 1,
+        };
+        runtime.ingest_adapter_frame(stop_frame, 101, 0).unwrap();
+        let stop = runtime
+            .authorize_and_queue_command(stop_command(2, 101), stop_context(), &[], 101)
+            .unwrap();
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut driver = SimulatedAdapter::new(identity).unwrap();
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 102),
+            Ok(Some(stop))
+        );
+    }
+
+    #[test]
+    fn permit_is_deliverable_up_to_and_including_its_expiry_tick() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        let routed = runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut driver = SimulatedAdapter::new(identity).unwrap();
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 105),
+            Ok(Some(routed))
+        );
+    }
+
+    #[test]
+    fn watchdog_expiry_after_queueing_blocks_motion_delivery_but_not_stop() {
+        let mut runtime = configured_runtime();
+        runtime
+            .register_watchdog(WatchdogState {
+                id: 1,
+                role: crate::supervisor::WatchdogRole::Controller,
+                timeout_ticks: 3,
+                last_heartbeat_tick: 100,
+                armed: true,
+            })
+            .unwrap();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        runtime
+            .authorize_and_queue_command(command(1), context, &[], 100)
+            .unwrap();
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut driver = SimulatedAdapter::new(identity).unwrap();
+        assert_eq!(
+            runtime.authority_severity(104),
+            AuthoritySeverity::EmergencyStop
+        );
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 104),
+            Err(RuntimeError::Supervisor(
+                SupervisorError::AuthorityUnavailable
+            ))
+        );
+        assert!(driver.commands().is_empty());
+        assert_eq!(
+            runtime.fleet().command_claim(1).unwrap().state,
+            CommandDeliveryState::Queued
+        );
+        let stop = runtime
+            .authorize_and_queue_command(stop_command(2, 104), stop_context(), &[], 104)
+            .unwrap();
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 104),
+            Ok(Some(stop))
+        );
+        assert_eq!(driver.commands().len(), 1);
+    }
+
+    #[test]
+    fn controller_watchdog_stop_is_latched_until_recovery_is_complete() {
+        let mut runtime = configured_runtime();
+        runtime
+            .register_watchdog(WatchdogState {
+                id: 1,
+                role: crate::supervisor::WatchdogRole::Controller,
+                timeout_ticks: 5,
+                last_heartbeat_tick: 100,
+                armed: true,
+            })
+            .unwrap();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        assert_eq!(
+            runtime.authority_severity(107),
+            AuthoritySeverity::EmergencyStop
+        );
+        // A late heartbeat restores liveness but must not erase the stop.
+        runtime.heartbeat_watchdog(1, 107).unwrap();
+        assert_eq!(runtime.authority_severity(107), AuthoritySeverity::Allow);
+        let context = safe_context(&runtime);
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(1), context, &[], 107),
+            Err(RuntimeError::Supervisor(
+                SupervisorError::AuthorityUnavailable
+            ))
+        );
+        assert!(runtime.fleet().command_claim(1).is_none());
+        runtime.recovery_mut().observe_controller_safe();
+        runtime.recovery_mut().observe_fresh_twin();
+        runtime.recovery_mut().acknowledge_operator();
+        runtime.recovery_mut().release().unwrap();
+        assert!(runtime
+            .authorize_and_queue_command(command(2), context, &[], 108)
+            .is_ok());
+    }
+
+    #[test]
+    fn only_simulation_and_actuator_disabled_pairings_ever_reach_a_driver() {
+        struct ModeDriver {
+            identity: AdapterIdentity,
+            mode: DriverExecutionMode,
+            submitted: usize,
+        }
+
+        impl AdapterDriver for ModeDriver {
+            fn identity(&self) -> &AdapterIdentity {
+                &self.identity
+            }
+
+            fn execution_mode(&self) -> DriverExecutionMode {
+                self.mode
+            }
+
+            fn poll_frame(&mut self) -> Option<AdapterFrame> {
+                None
+            }
+
+            fn submit(&mut self, _: RoutedCommand) -> Result<(), AdapterError> {
+                self.submitted += 1;
+                Ok(())
+            }
+        }
+
+        for session_mode in [
+            SessionMode::Simulation,
+            SessionMode::RecordedPlayback,
+            SessionMode::HardwareInLoopActuatorDisabled,
+            SessionMode::Live,
+        ] {
+            for driver_mode in [
+                DriverExecutionMode::Simulation,
+                DriverExecutionMode::ActuatorDisabled,
+                DriverExecutionMode::Physical,
+            ] {
+                let mut descriptor = SessionDescriptor::simulator(3, 1, 42);
+                descriptor.mode = session_mode;
+                let mut runtime = configured_runtime_with(descriptor, AdapterProtocol::Mqtt);
+                let stop = runtime
+                    .authorize_and_queue_command(stop_command(1, 100), stop_context(), &[], 100)
+                    .unwrap();
+                let mut driver = ModeDriver {
+                    identity: runtime.adapters().adapter(AdapterId(1)).unwrap().clone(),
+                    mode: driver_mode,
+                    submitted: 0,
+                };
+                let outcome = runtime.deliver_next(AdapterId(1), &mut driver, 100);
+                let expected = match (session_mode, driver_mode) {
+                    (SessionMode::Live, _) => Err(RuntimeError::DeploymentUnqualified),
+                    (SessionMode::Simulation, DriverExecutionMode::Simulation)
+                    | (
+                        SessionMode::HardwareInLoopActuatorDisabled,
+                        DriverExecutionMode::ActuatorDisabled,
+                    ) => Ok(Some(stop)),
+                    _ => Err(RuntimeError::DriverModeMismatch),
+                };
+                assert_eq!(outcome, expected, "{session_mode:?}/{driver_mode:?}");
+                assert_eq!(driver.submitted, usize::from(expected.is_ok()));
+            }
+        }
+    }
+
+    #[test]
+    fn repeated_commands_are_rate_limited_and_keys_cannot_be_reused() {
+        let mut runtime = configured_runtime();
+        runtime
+            .ingest_adapter_frame(frame(1, 900, 100), 100, 0)
+            .unwrap();
+        let context = safe_context(&runtime);
+        for id in 1..=16 {
+            runtime
+                .authorize_and_queue_command(command(id), context, &[], 100)
+                .unwrap();
+        }
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(17), context, &[], 100),
+            Err(RuntimeError::Supervisor(SupervisorError::RateLimited))
+        );
+        assert_eq!(
+            runtime.authorize_and_queue_command(command(1), context, &[], 100),
+            Err(RuntimeError::Fleet(FleetError::DuplicateCommand))
+        );
+        let mut same_key = command(40);
+        same_key.idempotency_key = command(2).idempotency_key;
+        assert_eq!(
+            runtime.authorize_and_queue_command(same_key, context, &[], 100),
+            Err(RuntimeError::Fleet(FleetError::DuplicateCommand))
+        );
+        let identity = runtime.adapters().adapter(AdapterId(1)).unwrap().clone();
+        let mut driver = SimulatedAdapter::new(identity).unwrap();
+        for _ in 0..16 {
+            assert!(runtime
+                .deliver_next(AdapterId(1), &mut driver, 101)
+                .unwrap()
+                .is_some());
+        }
+        assert_eq!(
+            runtime.deliver_next(AdapterId(1), &mut driver, 101),
+            Ok(None)
+        );
+        assert_eq!(driver.commands().len(), 16);
+    }
+
+    #[test]
+    fn replay_steps_are_validated_and_refused_in_live_sessions() {
+        let mut runtime = configured_runtime();
+        assert_eq!(
+            runtime.apply_replay_step(ReplayStep {
+                run_id: 1,
+                step_id: 1,
+                at_tick: 100,
+                action: ReplayAction::Checkpoint { checkpoint_id: 0 },
+            }),
+            Err(RuntimeError::Replay(ReplayError::InvalidAction))
+        );
+        assert!(runtime.evidence().records().is_empty());
+
+        let mut descriptor = SessionDescriptor::simulator(10, 5, 43);
+        descriptor.mode = SessionMode::Live;
+        let mut live = configured_runtime_with(descriptor, AdapterProtocol::Mqtt);
+        assert_eq!(
+            live.apply_replay_step(ReplayStep {
+                run_id: 10,
+                step_id: 1,
+                at_tick: 100,
+                action: ReplayAction::ActivateFault(FaultSpec {
+                    manifest_id: 9,
+                    fault_code: 4,
+                    target: FaultTarget::Sensor(9),
+                    kind: FaultKind::DropFrame,
+                    starts_at_tick: 100,
+                    ends_at_tick: 200,
+                }),
+            }),
+            Err(RuntimeError::Replay(ReplayError::InvalidDescriptor))
+        );
+        assert!(live.faults().active_faults().is_empty());
+        assert!(live.evidence().records().is_empty());
     }
 
     #[test]

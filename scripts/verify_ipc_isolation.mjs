@@ -83,7 +83,7 @@ async function waitForSerial(needle, seconds, from = 0) {
 const results = [];
 const check = (name, ok, detail = "") => results.push(`${ok ? "PASS" : "FAIL"}\t${name}${detail ? `\t${detail}` : ""}`);
 try {
-  await waitForSerial("FerrumOS:~$", 90);
+  await waitForSerial("FerrumOS:~$", Number(process.env.FERRUMOS_BOOT_SECONDS || 90));
   check("boot reaches shell", true);
   const start = serialText().length;
   await sendText("write /tmp/init_test 8");

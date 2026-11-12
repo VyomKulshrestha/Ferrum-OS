@@ -18,7 +18,6 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use spin::Mutex;
@@ -58,6 +57,25 @@ pub const USER_REGION_END: u64 = ((USER_P4_INDEX as u64) + 1) << 39; // 0x100_00
 
 /// Legacy alias kept for callers that only need the user-region ceiling.
 pub const USER_HALF_SIZE: u64 = USER_REGION_END;
+
+/// Page-aligned span `[start, start + len)` covering `[vaddr, vaddr + memsz)`.
+/// `len` is 0 when `memsz` is 0.
+#[inline]
+pub(crate) fn user_span(vaddr: u64, memsz: u64) -> (u64, u64) {
+    let start = vaddr & !(Size4KiB::SIZE - 1);
+    if memsz == 0 {
+        return (start, 0);
+    }
+    let end = vaddr.saturating_add(memsz);
+    // align_up panics on overflow; clamp instead (callers reject such a span
+    // as outside the user region anyway).
+    let end = if end > u64::MAX - (Size4KiB::SIZE - 1) {
+        u64::MAX & !(Size4KiB::SIZE - 1)
+    } else {
+        align_up(end, Size4KiB::SIZE)
+    };
+    (start, end - start)
+}
 
 /// True if `[vaddr, vaddr+len)` lies entirely within the user region.
 #[inline]
@@ -107,10 +125,10 @@ pub struct Process {
     pid: u64,
     name: String,
     space: Option<AddressSpace>,
-    /// Boxed kernel stack backing storage. The CPU uses
+    /// Kernel stack (guarded, `memory::kstack`). The CPU uses
     /// `kernel_stack_top` (set in TSS.RSP0) when this process is
     /// interrupted or makes a syscall.
-    kernel_stack: Option<Box<[u8; KERNEL_STACK_SIZE]>>,
+    kernel_stack: Option<crate::memory::kstack::KernelStack>,
     /// Top of the kernel stack (16-byte aligned virtual address).
     kernel_stack_top: VirtAddr,
     /// Top of the user stack (16-byte aligned virtual address),
@@ -123,6 +141,8 @@ pub struct Process {
     /// Has `load_elf` parsed the ELF and mapped all PT_LOAD segments?
     loaded: bool,
     pub max_memory_pages: u64,
+    /// Pid that created this process (0: the kernel).
+    parent: u64,
 }
 
 impl Process {
@@ -153,12 +173,7 @@ impl Process {
         let max_pages = self.max_memory_pages;
         let space = self.space.as_mut().ok_or(MapToError::ParentEntryHugePage)?;
         
-        let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
-        let len_aligned = align_up(
-            vaddr_offset_in_page as u64 + memsz as u64,
-            Size4KiB::SIZE,
-        );
-        let pages_needed = len_aligned / Size4KiB::SIZE;
+        let pages_needed = user_span(vaddr.as_u64(), memsz as u64).1 / Size4KiB::SIZE;
         if current_pages + pages_needed > max_pages {
             return Err(MapToError::FrameAllocationFailed);
         }
@@ -210,7 +225,8 @@ impl Process {
         }
         let flags = PageTableFlags::PRESENT
             | PageTableFlags::USER_ACCESSIBLE
-            | PageTableFlags::WRITABLE;
+            | PageTableFlags::WRITABLE
+            | PageTableFlags::NO_EXECUTE;
         let vaddr = VirtAddr::new(USER_STACK_BASE);
         let mapped = self.map_user(vaddr, USER_STACK_SIZE, &[], flags)?;
         self.user_stack_mapped = true;
@@ -227,10 +243,21 @@ impl Process {
 
         for ph in elf.load_segments() {
             let flags = pt_flags(ph);
-            let vaddr = VirtAddr::new(ph.p_vaddr);
-            if !in_user_region(vaddr.as_u64(), ph.p_memsz) {
+            // Check the range before building a `VirtAddr`: `VirtAddr::new`
+            // panics on a non-canonical address (e.g. p_vaddr =
+            // 0x0000_8000_0000_0000), which would halt the kernel on a
+            // malformed ELF passed to Exec.
+            if !in_user_region(ph.p_vaddr, ph.p_memsz) {
                 return Err("PT_LOAD vaddr outside user region");
             }
+            // Keep the stack's guard gap free: a segment just below the
+            // stack turned a stack overflow into a silent write into it.
+            if ph.p_vaddr < USER_STACK_BASE + USER_STACK_SIZE as u64
+                && ph.p_vaddr + ph.p_memsz > USER_STACK_BASE - USER_STACK_GUARD
+            {
+                return Err("PT_LOAD overlaps the user stack or its guard");
+            }
+            let vaddr = VirtAddr::new(ph.p_vaddr);
             let file_bytes = elf.segment_bytes(ph).unwrap_or(&[]);
             self.map_user(vaddr, ph.p_memsz as usize, file_bytes, flags)
                 .map_err(|_| "pt_load map failed")?;
@@ -277,11 +304,14 @@ fn pt_flags(ph: &crate::elf::ProgramHeader) -> PageTableFlags {
     if ph.p_flags & PF_W != 0 {
         f |= PageTableFlags::WRITABLE;
     }
-    // We do not set NO_EXECUTE explicitly when X is present; the
-    // CPU's default for code segments in long mode is exec allowed.
-    // The kernel itself does not rely on NX for safety in Phase 1.4.
+    // Segments without PF_X are not executable. EFER.NXE is on (the
+    // bootloader sets it; `memory::harden_kernel_mappings` checks), so data
+    // and bss pages used to be executable only because this bit was never
+    // set.
+    if ph.p_flags & PF_X == 0 {
+        f |= PageTableFlags::NO_EXECUTE;
+    }
     let _ = PF_R;
-    let _ = PF_X;
     f
 }
 
@@ -387,18 +417,20 @@ impl AddressSpace {
 
         let start_page = Page::containing_address(vaddr);
         let vaddr_offset_in_page = (vaddr.as_u64() & (Size4KiB::SIZE - 1)) as usize;
-        let len_aligned = align_up(
-            vaddr_offset_in_page as u64 + memsz as u64,
-            Size4KiB::SIZE,
-        );
-        // `len_aligned == 0` would mean zero bytes, but the chunk loop
-        // also handles that. We use an exclusive end so we don't
-        // accidentally map one extra page past the payload.
-        let end_page_exclusive = if len_aligned == 0 {
-            start_page
-        } else {
-            Page::containing_address(vaddr + len_aligned - 1u64) + 1
-        };
+        // The span is measured from the page base. It used to be measured
+        // from `vaddr` itself, so an unaligned segment mapped one page past
+        // its last byte: a segment ending exactly at USER_REGION_END then
+        // mapped a page in P4[2], a slot shared with the kernel, and left a
+        // stale entry there when the process exited.
+        let (span_start, len_aligned) = user_span(vaddr.as_u64(), memsz as u64);
+        if len_aligned == 0 {
+            return Ok(0);
+        }
+        if span_start.saturating_add(len_aligned) > USER_REGION_END {
+            return Err(MapToError::ParentEntryHugePage);
+        }
+        let end_page_exclusive =
+            Page::containing_address(VirtAddr::new(span_start + len_aligned - 1)) + 1;
 
         // The vaddr may not be page-aligned (a segment can start
         // mid-page). The bytes from `bytes[0]` belong at vaddr, which
@@ -414,7 +446,27 @@ impl AddressSpace {
 
         for (page_index, page) in Page::range_inclusive(start_page, end_page_exclusive - 1).enumerate() {
             let (frame, is_newly_allocated) = match mapper.translate_page(page) {
-                Ok(existing_frame) => (existing_frame, false),
+                Ok(existing_frame) => {
+                    // A page shared by two segments (code ending and data
+                    // starting in one page) stays executable if either is.
+                    if !flags.contains(PageTableFlags::NO_EXECUTE) {
+                        use x86_64::structures::paging::mapper::{Translate, TranslateResult};
+                        if let TranslateResult::Mapped { flags: current, .. } =
+                            mapper.translate(page.start_address())
+                        {
+                            if current.contains(PageTableFlags::NO_EXECUTE) {
+                                unsafe {
+                                    if let Ok(flush) =
+                                        mapper.update_flags(page, current & !PageTableFlags::NO_EXECUTE)
+                                    {
+                                        flush.ignore();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    (existing_frame, false)
+                }
                 Err(_) => {
                     let new_frame = allocator
                         .allocate_frame()
@@ -473,7 +525,7 @@ impl AddressSpace {
             }
         }
 
-        self.user_mappings.push((vaddr, len_aligned));
+        self.user_mappings.push((VirtAddr::new(span_start), len_aligned));
         Ok(len_aligned)
     }
 
@@ -512,7 +564,9 @@ impl AddressSpace {
         let len_aligned = align_up(len, Size4KiB::SIZE);
         let mut candidate = 0x80_4000_0000u64;
 
-        while candidate + len_aligned <= 0x80_7000_0000 {
+        // Stop USER_STACK_GUARD below the stack: a region that ended exactly
+        // at USER_STACK_BASE let a stack overflow run into it unnoticed.
+        while candidate + len_aligned <= USER_STACK_BASE - USER_STACK_GUARD {
             let mut overlap = false;
 
             // Check program/stack mappings
@@ -549,6 +603,15 @@ impl AddressSpace {
     }
 
     pub fn fault_in(&mut self, addr: VirtAddr) -> bool {
+        self.fault_in_limited(addr, u64::MAX)
+    }
+
+    /// `fault_in`, allocating at most `max_new_frames` frames (the process's
+    /// remaining page quota).
+    pub fn fault_in_limited(&mut self, addr: VirtAddr, max_new_frames: u64) -> bool {
+        if max_new_frames == 0 {
+            return false;
+        }
         // Read ahead this many pages per file-backed fault instead of just
         // one. `read_file_offset` re-resolves the path and re-reads the
         // inode on every call - for a multi-megabyte file (e.g. a real
@@ -583,7 +646,7 @@ impl AddressSpace {
         // Extend the batch forward from rel_offset while pages are still
         // within the region and not already populated.
         let mut batch_pages: u64 = 0;
-        while batch_pages < READAHEAD_PAGES {
+        while batch_pages < READAHEAD_PAGES.min(max_new_frames) {
             let candidate_rel = rel_offset + batch_pages * page_size;
             if candidate_rel >= region_aligned_len {
                 break;
@@ -621,7 +684,16 @@ impl AddressSpace {
         // Read the whole batch in one shot into a scratch buffer, then copy
         // each page's slice into its own physical frame.
         let batch_len = (batch_pages * page_size) as usize;
-        let mut scratch = alloc::vec![0u8; batch_len];
+        // Fallible: this runs in the page-fault handler, where a failed
+        // infallible allocation aborts the kernel.
+        let mut scratch = alloc::vec::Vec::new();
+        if scratch.try_reserve_exact(batch_len).is_err() {
+            for f in frames {
+                crate::memory::deallocate_frame(f);
+            }
+            return false;
+        }
+        scratch.resize(batch_len, 0u8);
         let file_path = region.file_path.clone();
         let read_offset = region.file_offset + rel_offset;
         if crate::fs::read_file_offset(&file_path, read_offset, &mut scratch).is_err() {
@@ -641,7 +713,7 @@ impl AddressSpace {
         let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
         let l4_table = unsafe { &mut *l4_virt.as_mut_ptr::<PageTable>() };
         let mut mapper = unsafe { OffsetPageTable::new(l4_table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
-        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::NO_EXECUTE;
 
         // Track whether the page that actually caused this fault (index 0 -
         // the rest of the batch is best-effort readahead) got mapped. If it
@@ -783,17 +855,15 @@ pub const USER_STACK_SIZE: usize = 1024 * 1024;
 /// below the slot ceiling (0x100_0000_0000).
 pub const USER_STACK_BASE: u64 = USER_REGION_BASE + 0x7000_0000; // 0x80_7000_0000
 
+/// Unmapped gap kept below the user stack: no ELF segment or mmap region may
+/// use it, so a user stack overflow faults (the kernel kills the process, exit code 137)
+/// instead of writing into the process's other memory.
+pub const USER_STACK_GUARD: u64 = 64 * 1024;
+
 fn l4_to_mut_ptr(frame: PhysFrame) -> *mut PageTable {
     crate::memory::phys_to_virt(frame.start_address()).as_mut_ptr()
 }
 
-/// 16-byte aligned top address of a boxed byte array. Used for
-/// the kernel stack so the SysV ABI's RSP alignment contract
-/// holds when a syscall handler is entered.
-fn aligned_top(buf: &[u8; KERNEL_STACK_SIZE]) -> VirtAddr {
-    let raw = buf.as_ptr() as u64 + KERNEL_STACK_SIZE as u64;
-    VirtAddr::new(raw & !0xFu64)
-}
 
 // ============================================================================
 // Process registry
@@ -836,17 +906,67 @@ pub fn launch_context(pid: u64) -> Option<String> {
 /// and a dedicated kernel stack. The user stack and PT_LOAD
 /// segments are not yet mapped; call `load_elf` (or
 /// `map_user_stack`) to do that.
-pub fn create(name: &str) -> Result<Process, &'static str> {
-    let space = AddressSpace::new()?;
-    let kernel_stack: Box<[u8; KERNEL_STACK_SIZE]> = unsafe {
-        let layout = core::alloc::Layout::new::<[u8; KERNEL_STACK_SIZE]>();
-        let ptr = alloc::alloc::alloc_zeroed(layout);
-        if ptr.is_null() {
-            return Err("failed to allocate kernel stack");
+/// Live process records at most (kernel stacks are 32 KiB each on the 12 MiB
+/// kernel heap; nothing bounded Exec, AppLaunch or PackageLaunch before).
+pub const MAX_PROCESSES: usize = 64;
+/// Live children one non-root process may have at once, so one spawner cannot
+/// take every process slot.
+pub const MAX_CHILDREN_PER_PROCESS: usize = 16;
+
+/// Whether the caller may create one more process. `caller` is the current
+/// pid (0 for the kernel itself).
+fn process_limit_allows(caller: u64) -> Result<(), &'static str> {
+    // Read the caller's capabilities before taking PROCESSES, so the two
+    // locks are never nested here.
+    let root = caller == 0
+        || crate::scheduler::capabilities_of(caller)
+            .map(|caps| caps.iter().any(|c| c == "cap:system:all"))
+            .unwrap_or(false);
+    let procs = PROCESSES.lock();
+    if procs.len() >= MAX_PROCESSES {
+        return Err("process limit reached");
+    }
+    if caller != 0 {
+        let children = procs.iter().filter(|r| r.process.parent == caller).count();
+        if !root && children >= MAX_CHILDREN_PER_PROCESS {
+            return Err("per-process child limit reached");
         }
-        Box::from_raw(ptr as *mut [u8; KERNEL_STACK_SIZE])
-    };
-    let kernel_stack_top = aligned_top(&kernel_stack);
+    }
+    Ok(())
+}
+
+/// Whether a process named `name`, created by `caller`, gets the unlimited
+/// page quota. The exemption used to follow the program name alone, so any
+/// process with `process:spawn` could Exec `/bin/heliox-daemon` and get an
+/// unlimited child although the child receives only the capabilities the
+/// caller can delegate. Now the creator must hold the exemption too (the
+/// kernel itself, pid 0, launches the boot services).
+fn quota_exempt_for(name: &str, caller: u64) -> bool {
+    let caps = crate::userspace::capabilities_for_program(name);
+    if !caps.iter().any(|c| c == "cap:quota:exempt") {
+        return false;
+    }
+    if caller == 0 {
+        return true;
+    }
+    let caller_caps = crate::scheduler::capabilities_of(caller)
+        .or_else(|| crate::userspace::capabilities_for(caller))
+        .unwrap_or_default();
+    caller_caps
+        .iter()
+        .any(|c| c == "cap:quota:exempt" || c == "cap:system:all")
+}
+
+pub fn create(name: &str) -> Result<Process, &'static str> {
+    let caller = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    process_limit_allows(caller)?;
+    let space = AddressSpace::new()?;
+    // A heap box used to hold this stack, with nothing below it but the
+    // next heap object: an overflow in a syscall corrupted the heap silently.
+    // `kstack` maps it with an unmapped guard below (a double fault instead).
+    let kernel_stack =
+        crate::memory::kstack::allocate().ok_or("failed to allocate kernel stack")?;
+    let kernel_stack_top = kernel_stack.top();
     let mut next = NEXT_PID.lock();
     let mut pid = *next;
     // Scheduler bookkeeping tasks (and the userspace model processes built
@@ -861,8 +981,7 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         pid += 1;
     }
     *next = pid + 1;
-    let caps = crate::userspace::capabilities_for_program(name);
-    let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
+    let is_exempt = quota_exempt_for(name, caller);
     let max_memory_pages = if is_exempt {
         u64::MAX
     } else {
@@ -879,21 +998,25 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         user_stack_mapped: false,
         loaded: false,
         max_memory_pages,
+        parent: caller,
     };
     Ok(process)
 }
 
 pub fn register(mut process: Process) -> u64 {
     let pid = process.pid;
-    let caps = crate::userspace::capabilities_for_program(&process.name);
-    let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
-    if is_exempt {
-        process.max_memory_pages = u64::MAX;
-    } else if process.name == "huge-test" {
+    // The page quota was decided in `create` (with the creator's authority);
+    // re-deriving it from the name here re-opened the exemption.
+    if process.name == "huge-test" {
         process.max_memory_pages = 2;
     }
     PROCESSES.lock().push(ProcessRecord { process });
     pid
+}
+
+/// True while a process record for `pid` exists (registered, not reaped).
+pub fn is_registered(pid: u64) -> bool {
+    PROCESSES.lock().iter().any(|record| record.process.pid == pid)
 }
 
 /// Drop a process by pid and free its address space.
@@ -907,7 +1030,18 @@ pub fn drop_by_pid(pid: u64) -> bool {
     };
     let user_frames = record.process.user_frame_count();
     LAUNCH_CONTEXTS.lock().retain(|(owner, _)| *owner != pid);
+    crate::ipc::forget_pid(pid);
     let closed_sockets = crate::net::iface::close_sockets_for_owner(pid);
+    // Windows were closed only by ProcessKill, the window's close button and
+    // the shell's `kill`; a process that exited or faulted left its windows
+    // (up to 4 canvases of ~1.7 MB on the 12 MiB kernel heap) behind for good.
+    if crate::gui::app_window::window_count_for(pid) > 0 {
+        crate::gui::app_window::close_for_pid(pid);
+    }
+    // Never free the page tables the CPU is currently using.
+    if let Some(space) = record.process.space.as_ref() {
+        crate::scheduler::leave_address_space(space.l4_frame().start_address().as_u64());
+    }
     // AddressSpace::drop can return thousands of frames for a large app.
     // Do that work after releasing the process-table lock so process queries
     // and unrelated spawns are never serialized behind frame reclamation.
@@ -974,6 +1108,39 @@ pub fn user_range_is_mapped(pid: u64, start: u64, len: usize) -> bool {
         .find(|record| record.process.pid == pid)
         .and_then(|record| record.process.space.as_ref())
         .is_some_and(|space| space.contains_user_range(start, len))
+}
+
+/// `user_range_is_mapped`, and every page of the range is mapped present,
+/// user-accessible and writable in the process's page tables. Syscalls that
+/// write to a caller's buffer must use this: ELF text and read-only data are
+/// recorded user mappings too, and a kernel write to one is a ring-0
+/// protection fault, which stops the kernel.
+pub fn user_range_is_writable(pid: u64, start: u64, len: usize) -> bool {
+    use x86_64::structures::paging::mapper::{Translate, TranslateResult};
+    let procs = PROCESSES.lock();
+    let Some(space) = procs
+        .iter()
+        .find(|record| record.process.pid == pid)
+        .and_then(|record| record.process.space.as_ref())
+    else {
+        return false;
+    };
+    if !space.contains_user_range(start, len) {
+        return false;
+    }
+    let table = unsafe { &mut *l4_to_mut_ptr(space.l4_frame) };
+    let mapper = unsafe { OffsetPageTable::new(table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
+    let needed = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE;
+    let end = start + len as u64; // no overflow: contains_user_range checked it
+    let mut page = start & !0xFFF;
+    while page < end {
+        match mapper.translate(VirtAddr::new(page)) {
+            TranslateResult::Mapped { flags, .. } if flags.contains(needed) => {}
+            _ => return false,
+        }
+        page += 4096;
+    }
+    true
 }
 
 /// Look up the user stack top of a registered process by pid.
@@ -1169,12 +1336,16 @@ impl Process {
 pub fn fault_in_page(pid: u64, addr: VirtAddr) -> bool {
     let mut procs = PROCESSES.lock();
     if let Some(record) = procs.iter_mut().find(|r| r.process.pid == pid) {
+        let max_pages = record.process.max_memory_pages;
         if let Some(ref mut space) = record.process.space {
             // fault_in() itself logs (it's the one that knows the batch
             // size, needed to tell a handful of deliberate sparse touches
             // apart from a real model's bulk sequential load - see the
-            // comment there).
-            return space.fault_in(addr);
+            // comment there). Demand paging used to ignore the page quota
+            // that `map_user` enforces, so a non-exempt process could map
+            // a large file and fault in far more than its 2048 pages.
+            let remaining = max_pages.saturating_sub(space.user_frame_count() as u64);
+            return space.fault_in_limited(addr, remaining);
         }
     }
     false

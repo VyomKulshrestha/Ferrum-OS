@@ -184,6 +184,7 @@ pub enum DomainError {
     CapacityExceeded,
     UnknownSite,
     InvalidTelemetry,
+    UnknownActor,
 }
 
 #[derive(Debug, Default)]
@@ -250,6 +251,16 @@ impl DomainRegistry {
 
     pub fn actor_mut(&mut self, id: ActorId) -> Option<&mut Actor> {
         self.actors.iter_mut().find(|actor| actor.id == id)
+    }
+
+    /// Operator-side release of a latched actor emergency stop. Adapter
+    /// telemetry cannot clear it (twin::OperationalTwin::apply).
+    pub fn release_emergency_stop(&mut self, id: ActorId) -> Result<(), DomainError> {
+        let actor = self.actor_mut(id).ok_or(DomainError::UnknownActor)?;
+        if actor.status == ActorStatus::EmergencyStop {
+            actor.status = ActorStatus::Available;
+        }
+        Ok(())
     }
 
     pub fn asset(&self, id: AssetId) -> Option<&Asset> {

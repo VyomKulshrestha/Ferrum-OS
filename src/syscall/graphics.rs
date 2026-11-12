@@ -73,7 +73,7 @@ pub fn sys_read_text_buffer(args: [u64; 6]) -> SyscallResult {
     let to_copy = bytes.len().min(buf_len).min(MAX_TEXT_BUF);
 
     if to_copy > 0 {
-        if !super::fs::valid_user_range(buf_ptr, to_copy)
+        if !super::fs::valid_user_write_range(buf_ptr, to_copy)
             || unsafe { super::fs::copy_to_user(buf_ptr, bytes, to_copy) } != to_copy
         {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
@@ -120,7 +120,7 @@ pub fn sys_read_framebuffer_info(args: [u64; 6]) -> SyscallResult {
     let to_copy = bytes.len().min(buf_len);
 
     if to_copy > 0 {
-        if !super::fs::valid_user_range(buf_ptr, to_copy)
+        if !super::fs::valid_user_write_range(buf_ptr, to_copy)
             || unsafe { super::fs::copy_to_user(buf_ptr, bytes, to_copy) } != to_copy
         {
             return SyscallResult::err(SyscallStatus::InvalidArgument);

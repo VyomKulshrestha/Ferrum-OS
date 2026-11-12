@@ -2,6 +2,10 @@ extern crate alloc;
 
 pub mod commands;
 pub mod dashboard;
+pub mod selftest;
+pub mod selftest_k2;
+pub mod selftest_k3;
+pub mod selftest_k4;
 
 use alloc::string::{String, ToString};
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -12,17 +16,21 @@ const MAX_INPUT_LENGTH: usize = 256;
 
 const SHELL_STACK_SIZE: usize = 64 * 1024;
 
-#[repr(C, align(16))]
-struct ShellStack([u8; SHELL_STACK_SIZE]);
-static mut SHELL_STACK: ShellStack = ShellStack([0; SHELL_STACK_SIZE]);
+/// In `.bss` with a guard page below it (`memory::kstack::GuardedStack`).
+static mut SHELL_STACK: crate::memory::kstack::GuardedStack<SHELL_STACK_SIZE> =
+    crate::memory::kstack::GuardedStack::new();
 
 /// Pid of the shell's registered kernel task (see
 /// `scheduler::register_kernel_task`). 0 until `run()`'s first call.
 static SHELL_TASK_PID: AtomicU64 = AtomicU64::new(0);
 
 fn shell_stack_top() -> u64 {
-    let base = &raw mut SHELL_STACK as u64;
-    (base + SHELL_STACK_SIZE as u64) & !0xF
+    static_stack_bounds().1
+}
+
+/// (lowest, one past the highest) address of the shell's stack.
+pub fn static_stack_bounds() -> (u64, u64) {
+    crate::memory::kstack::static_stack_bounds(&raw const SHELL_STACK)
 }
 
 /// Entered once at boot (`main.rs`) and, if every ring-3 process later

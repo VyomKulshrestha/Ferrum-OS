@@ -144,7 +144,7 @@ async function sendText(t) {
 try {
   // Generous boot budget - real host-load variance (not a hang) has been
   // observed pushing boot well past a tight timeout; see work.md.
-  await waitForSerial("FerrumOS:~$", 90);
+  await waitForSerial("FerrumOS:~$", Number(process.env.FERRUMOS_BOOT_SECONDS || 90));
   check("boot reaches shell prompt", true);
 
   const start = serialText().length;

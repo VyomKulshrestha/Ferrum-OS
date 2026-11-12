@@ -21,7 +21,7 @@ const MAX_CATALOG_BYTES: usize = 32 * 1024;
 pub fn sys_package_list(args: [u64; 6]) -> SyscallResult {
     let out_ptr = args[0];
     let out_len = args[1] as usize;
-    if out_len == 0 || out_len > MAX_CATALOG_BYTES || !super::fs::valid_user_range(out_ptr, out_len)
+    if out_len == 0 || out_len > MAX_CATALOG_BYTES || !super::fs::valid_user_write_range(out_ptr, out_len)
     {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }

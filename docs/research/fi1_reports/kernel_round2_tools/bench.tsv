@@ -1,0 +1,10 @@
+base	1	boot_ms=56618	load=85	
+fin2	1	boot_ms=49969	load=44	selftest perf: tick_fn_avg_cycles=14338 timer_eoi_avg_cycles=55595 selftest perf: timer_ticks=16476 timer_avg_cycles=118833 syscalls=0 syscall_avg_cycles=0 frame_alloc_avg_cycles=57916 frame_free_avg_cycles=3309 tasks=3 
+base	2	boot_ms=53932	load=87	
+fin2	2	boot_ms=48185	load=71	selftest perf: tick_fn_avg_cycles=12021 timer_eoi_avg_cycles=49379 selftest perf: timer_ticks=16247 timer_avg_cycles=107330 syscalls=0 syscall_avg_cycles=0 frame_alloc_avg_cycles=70145 frame_free_avg_cycles=3166 tasks=3 
+base	3	boot_ms=51410	load=80	
+fin2	3	boot_ms=46734	load=88	selftest perf: tick_fn_avg_cycles=12422 timer_eoi_avg_cycles=50635 selftest perf: timer_ticks=16508 timer_avg_cycles=111730 syscalls=0 syscall_avg_cycles=0 frame_alloc_avg_cycles=41343 frame_free_avg_cycles=3401 tasks=3 
+base	4	boot_ms=50602	load=90	
+fin2	4	boot_ms=46520	load=100	selftest perf: tick_fn_avg_cycles=20370 timer_eoi_avg_cycles=61450 selftest perf: timer_ticks=15607 timer_avg_cycles=137746 syscalls=0 syscall_avg_cycles=0 frame_alloc_avg_cycles=54149 frame_free_avg_cycles=3937 tasks=3 
+base	5	boot_ms=56939	load=97	
+fin2	5	boot_ms=47019	load=68	selftest perf: tick_fn_avg_cycles=12674 timer_eoi_avg_cycles=52568 selftest perf: timer_ticks=15933 timer_avg_cycles=114801 syscalls=0 syscall_avg_cycles=0 frame_alloc_avg_cycles=54349 frame_free_avg_cycles=7779 tasks=3 

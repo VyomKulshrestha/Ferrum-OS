@@ -45,7 +45,12 @@ pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::v
         return None;
     }
     let slice = core::slice::from_raw_parts(ptr as *const u8, len);
-    Some(alloc::vec::Vec::from(slice))
+    // Fallible copy: caps go up to 4 MiB (WriteFile), and an allocation
+    // failure in `Vec::from` aborts the kernel.
+    let mut out = alloc::vec::Vec::new();
+    out.try_reserve_exact(len).ok()?;
+    out.extend_from_slice(slice);
+    Some(out)
 }
 
 /// True only for a non-empty range backed by the currently running ring-3
@@ -58,6 +63,16 @@ pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
     pid != 0 && crate::process::user_range_is_mapped(pid, ptr, len)
 }
 
+/// `valid_user_range`, and the whole range is writable by the process. Use
+/// for every buffer the kernel writes into, before any side effect.
+pub(crate) fn valid_user_write_range(ptr: u64, len: usize) -> bool {
+    if ptr == 0 || len == 0 {
+        return false;
+    }
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    pid != 0 && crate::process::user_range_is_writable(pid, ptr, len)
+}
+
 /// Copy bytes from a kernel buffer into a userspace buffer.
 ///
 /// # Safety
@@ -66,7 +81,7 @@ pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
 pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
     if to_copy > 0 {
-        if !valid_user_range(dst, to_copy) {
+        if !valid_user_write_range(dst, to_copy) {
             return 0;
         }
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
@@ -82,7 +97,7 @@ fn valid_absolute_path(path: &str) -> bool {
             .any(|component| component == "." || component == "..")
 }
 
-fn is_package_control_path(path: &str) -> bool {
+pub(crate) fn is_package_control_path(path: &str) -> bool {
     let mut components = path.split('/').filter(|component| !component.is_empty());
     matches!(components.next(), Some("disk"))
         && matches!(components.next(), Some("pkgs") | Some("pkgs-available"))
@@ -138,11 +153,13 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
-    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_range(buf_ptr, buf_len) {
+    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_write_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
-    let mut temp_buf = alloc::vec![0u8; buf_len];
+    let Some(mut temp_buf) = crate::fs::try_zeroed_vec(buf_len) else {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    };
     match crate::fs::read_file_offset(&path, 0, &mut temp_buf) {
         Ok(bytes_read) => {
             let copied = unsafe { copy_to_user(buf_ptr, &temp_buf[..bytes_read], bytes_read) };
@@ -169,6 +186,27 @@ pub fn sys_read_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRes
 ///
 /// Returns: 0 on success, or error.
 pub fn sys_write_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
+    sys_write_file_checked(args, held_capabilities, None)
+}
+
+/// The result of a version-guarded filesystem operation.
+fn guarded_result(result: Result<(), crate::fs::GuardError>) -> SyscallResult {
+    match result {
+        Ok(()) => SyscallResult::ok(0),
+        Err(crate::fs::GuardError::VersionMismatch) => {
+            SyscallResult::err(SyscallStatus::VersionMismatch)
+        }
+        Err(crate::fs::GuardError::Failed(_)) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}
+
+/// WriteFile, and WriteFileIfVersion when `expected` is given (fi1 K3: the
+/// approved write runs only on the version the operator approved).
+pub fn sys_write_file_checked(
+    args: [u64; 6],
+    held_capabilities: &[String],
+    expected: Option<u64>,
+) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
@@ -188,6 +226,9 @@ pub fn sys_write_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
         None if data_len == 0 => alloc::vec::Vec::new(),
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    if let Some(expected) = expected {
+        return guarded_result(crate::fs::write_file_if_version(&path, &data, expected));
+    }
     match crate::fs::create_file_bytes(&path, &data) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
@@ -214,7 +255,7 @@ pub fn sys_read_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallResu
 
     let buf_ptr = args[2];
     let buf_len = args[3] as usize;
-    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_range(buf_ptr, buf_len) {
+    if buf_len == 0 || buf_len > MAX_DATA_LEN || !valid_user_write_range(buf_ptr, buf_len) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
@@ -270,6 +311,15 @@ pub fn sys_create_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
 ///
 /// Returns: 0 on success, or error.
 pub fn sys_delete_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
+    sys_delete_file_checked(args, held_capabilities, None)
+}
+
+/// DeleteFile, and DeleteFileIfVersion when `expected` is given.
+pub fn sys_delete_file_checked(
+    args: [u64; 6],
+    held_capabilities: &[String],
+    expected: Option<u64>,
+) -> SyscallResult {
     let path = match unsafe { read_user_str(args[0], args[1]) } {
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
@@ -277,9 +327,35 @@ pub fn sys_delete_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallR
     if !authorize_path(&path, true, held_capabilities) {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
+    if let Some(expected) = expected {
+        return guarded_result(crate::fs::remove_if_version(&path, expected));
+    }
 
     match crate::fs::remove(&path) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}
+
+/// `sys_file_version` — The change counter of the node at a path.
+///
+/// args[0] = path_ptr, args[1] = path_len
+///
+/// Returns the node's version (non-zero), 0 when nothing exists at the path,
+/// PermissionDenied without read access, and InvalidArgument when the kernel
+/// cannot establish a version (bad path, unmounted prefix, I/O error). A
+/// caller that binds an approval to a file treats the error as a refusal.
+pub fn sys_file_version(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
+    let path = match unsafe { read_user_str(args[0], args[1]) } {
+        Some(p) => p,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+    if !authorize_path(&path, false, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+    match crate::fs::file_version(&path) {
+        Ok(Some(version)) => SyscallResult::ok(version),
+        Ok(None) => SyscallResult::ok(0),
+        Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }

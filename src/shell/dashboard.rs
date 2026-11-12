@@ -469,17 +469,21 @@ fn draw_footer() {
 
 const DASHBOARD_STACK_SIZE: usize = 64 * 1024;
 
-#[repr(C, align(16))]
-struct DashboardStack([u8; DASHBOARD_STACK_SIZE]);
-static mut DASHBOARD_STACK: DashboardStack = DashboardStack([0; DASHBOARD_STACK_SIZE]);
+/// In `.bss` with a guard page below it (`memory::kstack::GuardedStack`).
+static mut DASHBOARD_STACK: crate::memory::kstack::GuardedStack<DASHBOARD_STACK_SIZE> =
+    crate::memory::kstack::GuardedStack::new();
 
 /// Pid of the dashboard's registered kernel task (see
 /// `scheduler::register_kernel_task`). 0 means "never launched yet".
 static DASHBOARD_TASK_PID: AtomicU64 = AtomicU64::new(0);
 
 fn dashboard_stack_top() -> u64 {
-    let base = &raw mut DASHBOARD_STACK as u64;
-    (base + DASHBOARD_STACK_SIZE as u64) & !0xF
+    static_stack_bounds().1
+}
+
+/// (lowest, one past the highest) address of the dashboard's stack.
+pub fn static_stack_bounds() -> (u64, u64) {
+    crate::memory::kstack::static_stack_bounds(&raw const DASHBOARD_STACK)
 }
 
 /// Run the full-screen TUI dashboard.

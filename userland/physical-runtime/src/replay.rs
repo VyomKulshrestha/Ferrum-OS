@@ -354,7 +354,7 @@ pub enum ReplayOutcome {
     Paused,
 }
 
-fn validate_action(
+pub(crate) fn validate_action(
     mode: SessionMode,
     at_tick: u64,
     action: ReplayAction,

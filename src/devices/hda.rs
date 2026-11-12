@@ -156,6 +156,8 @@ const AUDIO_BUF_TOTAL: usize = BDL_ENTRY_COUNT * AUDIO_BUF_CHUNK;
 
 // Timeout for polling loops (iterations)
 const POLL_TIMEOUT: u32 = 5_000_000;
+// Bound for waiting on a reset bit to latch (CORBRP bit 15).
+const RESET_BIT_POLL: u32 = 10_000;
 
 // ============================================================================
 // BDL Entry (Buffer Descriptor List)
@@ -493,8 +495,12 @@ pub fn init() -> Result<(), &'static str> {
     // Reset CORB read pointer: set bit 15, wait, clear it.
     regs.write16(REG_CORBRP, 0x8000);
     spin_wait(1000);
-    // Some controllers require waiting for bit 15 to read back as 1
-    for _ in 0..POLL_TIMEOUT {
+    // Some controllers require waiting for bit 15 to read back as 1.
+    // QEMU's intel-hda never reads it back as 1, so this loop used to run
+    // all POLL_TIMEOUT (5,000,000) iterations, each an MMIO read that costs a
+    // VM exit under WHPX: tens of seconds of every boot. Real controllers
+    // latch the bit within microseconds, so a short bound is enough.
+    for _ in 0..RESET_BIT_POLL {
         if (regs.read16(REG_CORBRP) & 0x8000) != 0 {
             break;
         }
@@ -536,12 +542,9 @@ pub fn init() -> Result<(), &'static str> {
     // Reset RIRB write pointer (set bit 15, wait, clear it).
     regs.write16(REG_RIRBWP, 0x8000);
     spin_wait(500);
-    for _ in 0..POLL_TIMEOUT {
-        if (regs.read16(REG_RIRBWP) & 0x8000) != 0 {
-            break;
-        }
-        core::hint::spin_loop();
-    }
+    // RIRBWP bit 15 (RIRBWPRST) is write-only and always reads 0 (HDA spec
+    // 4.4.2), so waiting for it to read 1 can only time out. It used to spin
+    // POLL_TIMEOUT MMIO reads on every boot.
     regs.write16(REG_RIRBWP, 0x0000);
     spin_wait(500);
 
@@ -676,6 +679,7 @@ impl HdaController {
         }
 
         // Poke the CORBWP register so the controller fetches the command.
+        let started_tsc = unsafe { core::arch::x86_64::_rdtsc() };
         self.regs.write16(REG_CORBWP, self.corb_wp);
 
         // Poll RIRBWP until the controller has written a response.
@@ -698,6 +702,18 @@ impl HdaController {
                 return Err("HDA: RIRB timeout waiting for response");
             }
             core::hint::spin_loop();
+        }
+        // Boot timing showed ~16 s inside configure_input_path under WHPX.
+        // Name any verb that takes long, with its poll count: many polls
+        // means the codec answered late; few polls over a long time means
+        // the MMIO accesses themselves blocked in the hypervisor.
+        let polls = POLL_TIMEOUT - timeout;
+        let cycles = unsafe { core::arch::x86_64::_rdtsc() }.wrapping_sub(started_tsc);
+        if polls > 20_000 || cycles > 500_000_000 {
+            crate::serial_println!(
+                "HDA: slow verb nid={} verb={:#07X} polls={} tsc_cycles={}",
+                nid, verb, polls, cycles
+            );
         }
 
         // Advance our software read pointer.

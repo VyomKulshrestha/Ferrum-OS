@@ -167,7 +167,12 @@ impl OperationalTwin {
                 actor.position = telemetry.position;
                 actor.battery_permille = telemetry.battery_permille;
                 actor.load_permille = telemetry.load_permille;
-                actor.status = telemetry.status;
+                // An emergency stop is latched: telemetry may report position
+                // and battery, but only the operator-side registry
+                // (DomainRegistry::release_emergency_stop) can clear it.
+                if actor.status != ActorStatus::EmergencyStop {
+                    actor.status = telemetry.status;
+                }
                 actor.last_seen_tick = envelope.observed_at_tick;
             }
             EventPayload::AssetTelemetry(telemetry) => {
@@ -397,6 +402,14 @@ impl OperationalTwin {
                 {
                     return Err(TwinError::UnknownAsset);
                 }
+                // A later frame may not replace a newer observation with an
+                // older one that is still inside the freshness window.
+                if self
+                    .sensor(reading.sensor_id)
+                    .is_some_and(|existing| reading.observed_at_tick < existing.observed_at_tick)
+                {
+                    return Err(TwinError::DuplicateOrOutOfOrder);
+                }
                 if self.sensor(reading.sensor_id).is_none()
                     && self.sensor_readings.len() >= MAX_SENSOR_READINGS
                 {
@@ -409,6 +422,12 @@ impl OperationalTwin {
                 }
                 if registry.site(occupancy.site_id).is_none() {
                     return Err(TwinError::UnknownSite);
+                }
+                if self
+                    .occupancy(occupancy.site_id, occupancy.zone_id)
+                    .is_some_and(|existing| occupancy.observed_at_tick < existing.observed_at_tick)
+                {
+                    return Err(TwinError::DuplicateOrOutOfOrder);
                 }
                 if self
                     .occupancy(occupancy.site_id, occupancy.zone_id)

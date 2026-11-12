@@ -175,6 +175,16 @@ pub fn init() {
     gdt::init();
     interrupts::init_idt();
     unsafe { interrupts::PICS.lock().initialize() };
+    // Unmask only the lines that have a handler: timer, keyboard and the
+    // cascade on the master; the ATA channels on the slave (the mouse driver
+    // unmasks IRQ 12 itself). An interrupt on any other line used to arrive
+    // at a vector with no gate, which ends in a double fault.
+    unsafe { interrupts::PICS.lock().write_masks(0xF8, 0x3F) };
+    // Auto-EOI on the master 8259: the timer handler no longer writes an EOI
+    // on every tick (fi1 kernel round 3 measured the median timer interrupt
+    // at 61,610 TSC cycles with the EOI write and 37,539 without, five boots;
+    // `test-syscall pic-aeoi-off` switches back for comparison).
+    interrupts::set_pic_auto_eoi(true);
     interrupts::init_pit();
     unsafe { enable_sse_extensions() };
     x86_64::instructions::interrupts::enable();
@@ -201,9 +211,15 @@ pub unsafe fn enable_sse_extensions() {
         out("rax") _,
     );
 
-    // 3. Enable AVX if supported by the hardware
+    // 3. Enable AVX if supported by the hardware. With AVX on, a task's
+    // vector state is larger than the FXSAVE area (the upper halves of the
+    // YMM registers are not in it), so the scheduler then saves and restores
+    // with XSAVE/XRSTOR into an area of the size CPUID leaf 0xD reports
+    // (`scheduler::enable_xsave`). It used to save only the FXSAVE area: the
+    // YMM upper halves passed from one process to the next (fi1 kernel round
+    // 4, finding 1). The daemon's local inference uses AVX2.
     let cpuid_1 = core::arch::x86_64::__cpuid(1);
-    let avx_supported = (cpuid_1.ecx & (1 << 28)) != 0;
+    let avx_supported = (cpuid_1.ecx & (1 << 28)) != 0 && (cpuid_1.ecx & (1 << 26)) != 0;
     if avx_supported {
         core::arch::asm!(
             "mov rax, cr4",
@@ -217,6 +233,22 @@ pub unsafe fn enable_sse_extensions() {
             out("rcx") _,
             out("rdx") _,
         );
+        // Bytes XSAVE writes for the features now enabled in XCR0: the end
+        // of the furthest enabled component (CPUID.(0xD,i): EAX size, EBX
+        // offset). CPUID.(0xD,0).EBX alone is not enough: under WHPX it
+        // reports 576 (legacy area and header only) with XCR0 = 7, and XSAVE
+        // then wrote 256 bytes past every task's area into the next heap
+        // object (fi1 kernel round 4, image A).
+        let xcr0_lo: u32;
+        core::arch::asm!("xgetbv", in("ecx") 0u32, out("eax") xcr0_lo, out("edx") _);
+        let mut size = (core::arch::x86_64::__cpuid_count(0xD, 0).ebx as usize).max(576);
+        for component in 2..32u32 {
+            if xcr0_lo & (1 << component) != 0 {
+                let leaf = core::arch::x86_64::__cpuid_count(0xD, component);
+                size = size.max(leaf.ebx as usize + leaf.eax as usize);
+            }
+        }
+        scheduler::enable_xsave(size);
     }
 }
 

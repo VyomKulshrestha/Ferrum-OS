@@ -491,6 +491,28 @@ pub fn poll_window_input(window_id: u64) -> Option<InputEvent> {
     }
 }
 
+/// Like `poll_window_input`, but also says whether the event was injected by
+/// the agent's input tools (InjectKey / InjectMouse) rather than typed or
+/// clicked on a physical device. Uses PollWindowInput's 24-byte record
+/// (flags word, bit 0 = injected). An app that acts for the operator, such as
+/// the assistant panel, ignores injected events; ordinary apps keep using
+/// `poll_window_input` and receive them as before.
+pub fn poll_window_input_marked(window_id: u64) -> Option<(InputEvent, bool)> {
+    let mut buf = [0u32; 6];
+    // Fail closed: if the kernel left the flags word untouched, the event is
+    // treated as injected.
+    buf[5] = 1;
+    let got = unsafe { syscall3(SYS_POLL_WINDOW_INPUT, window_id, buf.as_mut_ptr() as u64, 24) };
+    if got == 1 {
+        Some((
+            InputEvent { tag: buf[0], a: buf[1], b: buf[2], c: buf[3], d: buf[4] },
+            buf[5] & 1 != 0,
+        ))
+    } else {
+        None
+    }
+}
+
 // ============================================================================
 // Canvas
 // ============================================================================

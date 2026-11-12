@@ -16,7 +16,7 @@ pub fn sys_clipboard_read(args: [u64; 6]) -> SyscallResult {
     let snapshot = crate::clipboard::snapshot();
     let to_copy = snapshot.bytes.len().min(out_len);
     if to_copy > 0 {
-        if !super::fs::valid_user_range(out_ptr, to_copy) {
+        if !super::fs::valid_user_write_range(out_ptr, to_copy) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
         if unsafe { super::fs::copy_to_user(out_ptr, &snapshot.bytes, to_copy) } != to_copy {

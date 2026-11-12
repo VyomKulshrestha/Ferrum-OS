@@ -131,26 +131,59 @@ def parse_capabilities() -> dict:
     names = re.findall(r'"([a-z0-9_]+)"', names_match.group(1))
 
     tier_names = ["Observe", "Safe", "Network", "Modify", "Destructive"]
-    function_match = re.search(r"fn tool_tier\(.*?match name \{(.*?)_ =>", mapper, re.S)
-    if not function_match:
-        raise RuntimeError("could not parse tool_tier")
     tiers: dict[str, int] = {}
-    arm_pattern = re.compile(
-        r'((?:"[a-z0-9_]+"\s*\|\s*)*"[a-z0-9_]+")\s*=>\s*(?:\{\s*)?PermissionTier::(\w+)',
+    # The tier table is a data table in authority.rs (the gate's single source of truth). Older trees
+    # had it as match arms inside tool_mapper.rs's tool_tier; both forms are read.
+    authority_path = mapper_path.with_name("authority.rs")
+    authority = (
+        authority_path.read_text(encoding="utf-8") if authority_path.exists() else ""
+    )
+    table_match = re.search(
+        r"pub const TOOL_TIERS: &\[\(&str, PermissionTier\)\] = &\[(.*?)\n\];",
+        authority,
         re.S,
     )
-    for arm in arm_pattern.finditer(function_match.group(1)):
-        tier_name = arm.group(2)
-        if tier_name not in tier_names:
-            raise RuntimeError(f"unknown permission tier {tier_name}")
-        level = tier_names.index(tier_name)
-        for name in re.findall(r'"([a-z0-9_]+)"', arm.group(1)):
-            tiers[name] = level
-
-    if len(names) != 41 or set(names) != set(tiers):
-        raise RuntimeError(
-            f"capability registry mismatch: {len(names)} names, {len(tiers)} tiered"
+    function_match = re.search(r"fn tool_tier\(.*?match name \{(.*?)_ =>", mapper, re.S)
+    if table_match:
+        for entry in re.finditer(
+            r'\("([a-z0-9_]+)",\s*PermissionTier::(\w+)\)', table_match.group(1)
+        ):
+            tier_name = entry.group(2)
+            if tier_name not in tier_names:
+                raise RuntimeError(f"unknown permission tier {tier_name}")
+            if entry.group(1) in tiers:
+                raise RuntimeError(f"tool {entry.group(1)} is tiered twice")
+            tiers[entry.group(1)] = tier_names.index(tier_name)
+    elif function_match:
+        arm_pattern = re.compile(
+            r'((?:"[a-z0-9_]+"\s*\|\s*)*"[a-z0-9_]+")\s*=>\s*(?:\{\s*)?PermissionTier::(\w+)',
+            re.S,
         )
+        for arm in arm_pattern.finditer(function_match.group(1)):
+            tier_name = arm.group(2)
+            if tier_name not in tier_names:
+                raise RuntimeError(f"unknown permission tier {tier_name}")
+            level = tier_names.index(tier_name)
+            for name in re.findall(r'"([a-z0-9_]+)"', arm.group(1)):
+                tiers[name] = level
+    else:
+        raise RuntimeError("could not parse tool_tier")
+
+    # The registry is the world model's action vocabulary. The gate also tiers tools that are not
+    # world-model actions (the simulator-only physical tools); they are named here so that any other
+    # difference between the two lists still fails.
+    tiered_outside_world_model = {"physical_status", "physical_maintenance_demo"}
+    extra = set(tiers) - set(names)
+    if (
+        len(names) != 41
+        or set(names) - set(tiers)
+        or extra - tiered_outside_world_model
+    ):
+        raise RuntimeError(
+            f"capability registry mismatch: {len(names)} names, {len(tiers)} tiered, "
+            f"untiered={sorted(set(names) - set(tiers))}, unexpected={sorted(extra - tiered_outside_world_model)}"
+        )
+    tiers = {name: tiers[name] for name in names}
     if set(names) != set(ACTION_CATEGORIES):
         missing = sorted(set(names) - set(ACTION_CATEGORIES))
         stale = sorted(set(ACTION_CATEGORIES) - set(names))
@@ -179,7 +212,8 @@ def parse_capabilities() -> dict:
             }
         )
 
-    inputs = source_records([world_model_path, mapper_path])
+    tier_sources = [authority_path] if table_match else []
+    inputs = source_records([world_model_path, mapper_path, *tier_sources])
     return {
         "$schema": CAPABILITY_SCHEMA_URL,
         "schema_version": "2.0.0",

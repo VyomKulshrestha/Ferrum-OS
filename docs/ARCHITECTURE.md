@@ -77,7 +77,16 @@ and can evolve without destabilizing the kernel.
 
 - Preemptive round-robin with 4 priority levels
 - Context switching via `switch_to()` assembly stub
-- Per-task kernel stacks, sleep/wake/yield syscalls
+- Per-task kernel stacks, sleep/wake/yield syscalls. Each process's 32 KiB
+  kernel stack is mapped (no-execute) in its own 64 KiB slot of a dedicated
+  region with the lower 32 KiB never mapped, so an overflow is a double fault
+  that stops the kernel instead of a silent heap overwrite; the user stack has
+  a 64 KiB unmapped gap below it that no ELF segment or mmap region may use.
+  The static kernel stacks (shell, desktop, dashboard, idle, return, the
+  double-fault IST stack) sit in `.bss` with an unmapped guard page below each
+- Vector state: with AVX enabled in XCR0 each task's x87/SSE/AVX state is saved
+  and restored with XSAVE/XRSTOR (area size from CPUID leaf 0xD, 64-byte
+  aligned, initial state for a new task or image); without AVX, FXSAVE/FXRSTOR
 - PID assignment, task state tracking (Ready/Running/Blocked/Dead)
 - 275 ms default time slice, derived from the PIT period so timer-rate changes
   do not silently alter scheduling or quota durations
@@ -278,7 +287,7 @@ Longest-prefix mount matching. Currently two mounts:
 
 | Mount | Type | Description |
 |-------|------|-------------|
-| `/` | RamFS | Volatile in-memory filesystem |
+| `/` | RamFS | Volatile in-memory filesystem (at most 4 MiB of file data, 2048 nodes, 32 path components; it lives on the kernel heap) |
 | `/disk` | Ext2 | ATA PIO block storage, persistent |
 
 The VFS exposes separate text and raw-byte paths. `WriteFile(16)` and offset
@@ -1070,6 +1079,8 @@ Kernel-side confirmation gates are enforced for destructive Tier-4 operations (s
   to the only deadline-bearing ring-3 task.
 - **Instruction Pointer Rewinding (RIP-2)**: The saved user context frame's `rip` is decremented by 2 bytes. Because the `int 0x80` assembly instruction is exactly 2 bytes (`CD 80`), rewinding the instruction pointer causes the process to re-execute the system call immediately upon waking.
 - **Physical vs. Injected Key Filter**: Gates can only be approved by typing `y` (or denied with `n`) on a physical serial console or keyboard. Synthetic keystrokes injected by the agent via `sys_inject_key` are filtered using the `INJECTING_AGENT_KEY` atomic boolean, preventing the agent from autonomously bypassing its own security gates.
+- **One prompt at a time**: while one task waits for the operator, a second gated call is refused without a prompt (the y/n key answers the first waiter, so a second prompt on screen could be answered for the wrong request).
+- **The prompt names the target**: the console line names the requesting pid and, for `DeleteFile`/`DeleteFileIfVersion`, the path, escaped to printable ASCII (`\xNN` for any other byte) so it cannot carry terminal escapes or a forged second line.
 - **Retry-and-Cache State**: When resumed, the process re-executes `int 0x80` and references the cached `confirmation_approved` or `confirmation_denied` fields on the task context to either complete the operation or return `-2` (`PermissionDenied`) without prompting again.
 
 Heliox tools also have a daemon-owned logical confirmation gate. A numeric
@@ -1166,7 +1177,12 @@ included Ring-3 environment, not general Windows compatibility:
 - Camera frames come from `camera_synth`; UVC enumeration/streaming is absent.
 - SMP loads an AP trampoline and reports ACPI topology but does not send
   INIT/SIPI or schedule work on application processors. Lock ownership still
-  uses a placeholder core id.
+  uses a placeholder core id. The kernel assumes one CPU throughout (locks
+  taken with interrupts off, "nothing else runs" arguments); boot prints
+  `[ INFO ] SMP: online_cpus=1 application_processors_started=0 ...`, and a
+  CPU that ever reached `ap_entry` would stop the kernel at the next timer
+  tick. What must change before SMP is enabled is listed in
+  `docs/research/fi1_reports/kernel_round4.md`.
 - Shutdown uses common QEMU/Bochs/VirtualBox ports instead of evaluating ACPI
   AML `_S5`; reboot uses the 8042 reset pulse.
 - Accounts are capability profiles without passwords, and ext2 uid/mode fields

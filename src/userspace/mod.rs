@@ -11,7 +11,7 @@
 /// and dispatch into its `_start` entry point. For now the bytes are kept
 /// here so the build pipeline is in place and the kernel can sanity-check
 /// the embedded blob.
-pub const INIT_ELF: &[u8] = include_bytes!("../../userland/init/target/x86_64-unknown-none/release/init");
+pub static INIT_ELF: &[u8] = include_bytes!("../../userland/init/target/x86_64-unknown-none/release/init");
 
 /// Return the size of the embedded `init` ELF in bytes. Useful for
 /// boot-time sanity checks (`init_size > 0` after the userland build has
@@ -20,26 +20,26 @@ pub fn init_elf_size() -> usize {
     INIT_ELF.len()
 }
 
-pub const HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemon/target/x86_64-unknown-none/release/heliox-daemon");
+pub static HELIOX_DAEMON_ELF: &[u8] = include_bytes!("../../userland/heliox-daemon/target/x86_64-unknown-none/release/heliox-daemon");
 
 /// D1 app-window framework smoke test — creates a window, presents a known
 /// fill color, and echoes received input events to serial so
 /// `scripts/verify_app_window.mjs` can assert the whole path end to end.
-pub const GUI_SMOKE_TEST_ELF: &[u8] = include_bytes!("../../userland/gui-smoke-test/target/x86_64-unknown-none/release/gui-smoke-test");
+pub static GUI_SMOKE_TEST_ELF: &[u8] = include_bytes!("../../userland/gui-smoke-test/target/x86_64-unknown-none/release/gui-smoke-test");
 
 /// Real installed apps, built on the app-window framework + libferrumgui SDK.
-pub const TEXT_EDITOR_ELF: &[u8] = include_bytes!("../../userland/text-editor/target/x86_64-unknown-none/release/text-editor");
-pub const CALCULATOR_ELF: &[u8] = include_bytes!("../../userland/calculator/target/x86_64-unknown-none/release/calculator");
-pub const FILE_MANAGER_ELF: &[u8] = include_bytes!("../../userland/file-manager/target/x86_64-unknown-none/release/file-manager");
+pub static TEXT_EDITOR_ELF: &[u8] = include_bytes!("../../userland/text-editor/target/x86_64-unknown-none/release/text-editor");
+pub static CALCULATOR_ELF: &[u8] = include_bytes!("../../userland/calculator/target/x86_64-unknown-none/release/calculator");
+pub static FILE_MANAGER_ELF: &[u8] = include_bytes!("../../userland/file-manager/target/x86_64-unknown-none/release/file-manager");
 /// Replaces the kernel-hardcoded `WindowType::AgentHud`: setup wizard +
 /// chat UI as a real app, talking to heliox-daemon over IPC instead of the
 /// kernel appending telemetry text into a window it draws itself.
-pub const HELIOX_ASSISTANT_PANEL_ELF: &[u8] = include_bytes!("../../userland/heliox-assistant-panel/target/x86_64-unknown-none/release/heliox-assistant-panel");
-pub const SETTINGS_ELF: &[u8] = include_bytes!("../../userland/settings/target/x86_64-unknown-none/release/settings");
-pub const BROWSER_ELF: &[u8] = include_bytes!("../../userland/browser/target/x86_64-unknown-none/release/browser");
-pub const APP_STORE_ELF: &[u8] = include_bytes!("../../userland/app-store/target/x86_64-unknown-none/release/app-store");
-pub const NOTIFICATION_CENTER_ELF: &[u8] = include_bytes!("../../userland/notification-center/target/x86_64-unknown-none/release/notification-center");
-pub const TASK_MANAGER_ELF: &[u8] = include_bytes!("../../userland/task-manager/target/x86_64-unknown-none/release/task-manager");
+pub static HELIOX_ASSISTANT_PANEL_ELF: &[u8] = include_bytes!("../../userland/heliox-assistant-panel/target/x86_64-unknown-none/release/heliox-assistant-panel");
+pub static SETTINGS_ELF: &[u8] = include_bytes!("../../userland/settings/target/x86_64-unknown-none/release/settings");
+pub static BROWSER_ELF: &[u8] = include_bytes!("../../userland/browser/target/x86_64-unknown-none/release/browser");
+pub static APP_STORE_ELF: &[u8] = include_bytes!("../../userland/app-store/target/x86_64-unknown-none/release/app-store");
+pub static NOTIFICATION_CENTER_ELF: &[u8] = include_bytes!("../../userland/notification-center/target/x86_64-unknown-none/release/notification-center");
+pub static TASK_MANAGER_ELF: &[u8] = include_bytes!("../../userland/task-manager/target/x86_64-unknown-none/release/task-manager");
 
 extern crate alloc;
 
@@ -249,6 +249,26 @@ pub fn init() {
 
 pub fn list_programs() -> Vec<ProgramManifest> {
     USERSPACE.lock().programs.clone()
+}
+
+/// True when `name` has a program manifest (compiled in, or registered for an
+/// installed package). Exec of a VFS file with such a name is refused
+/// (`ipc::is_reserved_program_name`).
+pub fn is_compiled_program(name: &str) -> bool {
+    USERSPACE.lock().programs.iter().any(|program| program.name == name)
+}
+
+/// Launch the assistant panel for the operator and record it as the
+/// operator's panel, so the kernel marks its IPC messages with
+/// `ipc::SENDER_ASSISTANT_PANEL`. Only kernel paths that act on operator
+/// input call this: the desktop launcher (physical pointer only), the
+/// boot-time setup launch, and the shell's `run heliox-assistant-panel`.
+/// Exec and AppLaunch from a process reach `launch_embedded_app` or
+/// `sys_exec` instead and never set the mark.
+pub fn launch_operator_panel() -> Result<u64, String> {
+    let pid = launch_embedded_app("heliox-assistant-panel")?;
+    crate::ipc::mark_operator_panel(pid);
+    Ok(pid)
 }
 
 pub fn capabilities_for_program(name: &str) -> Vec<String> {

@@ -852,6 +852,398 @@ mod tests {
         );
     }
 
+    fn resign(bytes: &mut [u8; NEURAL_INTENT_WIRE_BYTES]) {
+        let mut mac = HmacSha256::new_from_slice(KEY).unwrap();
+        mac.update(&bytes[..NEURAL_INTENT_SIGNED_BYTES]);
+        bytes[NEURAL_INTENT_SIGNED_BYTES..].copy_from_slice(&mac.finalize().into_bytes());
+    }
+
+    fn signed_with(
+        sequence: u64,
+        now: u64,
+        mutate: impl FnOnce(&mut [u8; NEURAL_INTENT_WIRE_BYTES]),
+    ) -> [u8; NEURAL_INTENT_WIRE_BYTES] {
+        let mut bytes = wire(NeuralClass::Select, NeuralScope::Navigate, sequence, now);
+        mutate(&mut bytes);
+        resign(&mut bytes);
+        bytes
+    }
+
+    #[test]
+    fn evidence_thresholds_are_inclusive_at_the_policy_minimum() {
+        let now = 10_000;
+        let policy = NeuralPolicy::default();
+        let at_minimum = signed_with(1, now, |b| {
+            b[12] = policy.minimum_dwell_windows;
+            b[14..16].copy_from_slice(&policy.minimum_posterior_permille.to_le_bytes());
+            b[16..18].copy_from_slice(&policy.minimum_margin_permille.to_le_bytes());
+        });
+        assert!(armed().preview(&at_minimum, KEY, now, 7, 9, policy).is_ok());
+        let at_maximum = signed_with(1, now, |b| {
+            b[12] = u8::MAX;
+            b[14..16].copy_from_slice(&1_000u16.to_le_bytes());
+            b[16..18].copy_from_slice(&1_000u16.to_le_bytes());
+        });
+        assert!(armed().preview(&at_maximum, KEY, now, 7, 9, policy).is_ok());
+        let below: [fn(&mut [u8; NEURAL_INTENT_WIRE_BYTES]); 3] = [
+            |b| b[12] = 2,
+            |b| b[14..16].copy_from_slice(&799u16.to_le_bytes()),
+            |b| b[16..18].copy_from_slice(&149u16.to_le_bytes()),
+        ];
+        for mutate in below {
+            let bytes = signed_with(1, now, mutate);
+            let mut session = armed();
+            assert_eq!(
+                session.preview(&bytes, KEY, now, 7, 9, policy),
+                Err(NeuralError::InsufficientEvidence)
+            );
+            assert_eq!(session.state(), NeuralSessionState::ObserveOnly);
+        }
+        for offset in [14usize, 16] {
+            let bytes = signed_with(1, now, |b| {
+                b[offset..offset + 2].copy_from_slice(&1_001u16.to_le_bytes())
+            });
+            assert_eq!(
+                armed().preview(&bytes, KEY, now, 7, 9, policy),
+                Err(NeuralError::InvalidProbability)
+            );
+        }
+        for quality in [SignalQuality::Degraded, SignalQuality::Reject] {
+            let bytes = signed_with(1, now, |b| b[8] = quality as u8);
+            assert_eq!(
+                armed().preview(&bytes, KEY, now, 7, 9, policy),
+                Err(NeuralError::RejectedSignal)
+            );
+        }
+    }
+
+    #[test]
+    fn expiry_future_and_window_age_boundaries_are_exact() {
+        let now = 10_000;
+        // wire(): window_end = now - 100, expires = now + 1_000.
+        let bytes = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        let policy = NeuralPolicy::default();
+        assert!(armed().preview(&bytes, KEY, now + 999, 7, 9, policy).is_ok());
+        assert!(armed().preview(&bytes, KEY, now - 100, 7, 9, policy).is_ok());
+        for at in [now + 1_000, now - 101, 0, u64::MAX] {
+            let mut session = armed();
+            assert_eq!(
+                session.preview(&bytes, KEY, at, 7, 9, policy),
+                Err(NeuralError::ExpiredOrFuture),
+                "at {at}"
+            );
+            assert_eq!(session.state(), NeuralSessionState::ObserveOnly);
+        }
+        let short_age = NeuralPolicy {
+            maximum_window_age_ns: 500,
+            ..policy
+        };
+        assert!(armed().preview(&bytes, KEY, now + 400, 7, 9, short_age).is_ok());
+        assert_eq!(
+            armed().preview(&bytes, KEY, now + 401, 7, 9, short_age),
+            Err(NeuralError::StaleWindow)
+        );
+        let degenerate: [fn(&mut [u8; NEURAL_INTENT_WIRE_BYTES]); 2] = [
+            |b| {
+                let end = b[34..42].to_vec();
+                b[26..34].copy_from_slice(&end);
+            },
+            |b| {
+                let end = b[34..42].to_vec();
+                b[42..50].copy_from_slice(&end);
+            },
+        ];
+        for mutate in degenerate {
+            let bytes = signed_with(1, now, mutate);
+            assert_eq!(
+                NeuralIntentV1::parse(&bytes),
+                Err(NeuralError::InvalidTimeWindow)
+            );
+        }
+    }
+
+    #[test]
+    fn sequence_gap_is_inclusive_and_sequence_cannot_wrap() {
+        let now = 10_000;
+        let policy = NeuralPolicy::default();
+        let mut session = armed();
+        session
+            .preview(&wire(NeuralClass::Select, NeuralScope::Navigate, 1, now), KEY, now, 7, 9, policy)
+            .unwrap();
+        session.disarm();
+        session.arm_safe_ui(true).unwrap();
+        // Gap of exactly maximum_sequence_gap (16) is accepted.
+        let gap = wire(NeuralClass::Select, NeuralScope::Navigate, 17, now);
+        assert!(session.preview(&gap, KEY, now, 7, 9, policy).is_ok());
+        session.disarm();
+        session.arm_safe_ui(true).unwrap();
+        let far = wire(NeuralClass::Select, NeuralScope::Navigate, u64::MAX, now);
+        assert_eq!(
+            session.preview(&far, KEY, now, 7, 9, policy),
+            Err(NeuralError::SequenceGap)
+        );
+        assert_eq!(session.dropped_samples(), u64::MAX - 18);
+
+        let mut terminal = armed();
+        terminal.preview(&far, KEY, now, 7, 9, policy).unwrap();
+        terminal.disarm();
+        terminal.arm_safe_ui(true).unwrap();
+        for sequence in [0, 1, u64::MAX] {
+            let bytes = signed_with(sequence, now, |b| b[66] ^= 0x40);
+            assert!(matches!(
+                terminal.preview(&bytes, KEY, now, 7, 9, policy),
+                Err(NeuralError::NonMonotonicSequence | NeuralError::ReplayedIntent)
+            ));
+            terminal.arm_safe_ui(true).unwrap();
+        }
+    }
+
+    #[test]
+    fn replayed_intent_id_with_fresh_sequence_is_rejected() {
+        let now = 10_000;
+        let policy = NeuralPolicy::default();
+        let mut session = armed();
+        let first = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        session.preview(&first, KEY, now, 7, 9, policy).unwrap();
+        session.disarm();
+        session.arm_safe_ui(true).unwrap();
+        let reused_id = signed_with(2, now, |b| {
+            let id = first[66..82].to_vec();
+            b[66..82].copy_from_slice(&id);
+        });
+        assert_eq!(
+            session.preview(&reused_id, KEY, now, 7, 9, policy),
+            Err(NeuralError::ReplayedIntent)
+        );
+    }
+
+    #[test]
+    fn cooldown_is_exact_and_blocks_preview_until_it_ends() {
+        let now = 10_000;
+        let policy = NeuralPolicy {
+            cooldown_ns: 50,
+            ..NeuralPolicy::default()
+        };
+        let mut session = armed();
+        let first = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        let preview = session.preview(&first, KEY, now, 7, 9, policy).unwrap();
+        session.commit(preview.intent_id, now, 7, 9, policy).unwrap();
+        let second = wire(NeuralClass::Select, NeuralScope::Navigate, 2, now);
+        assert_eq!(
+            session.preview(&second, KEY, now + 49, 7, 9, policy),
+            Err(NeuralError::CooldownActive)
+        );
+        assert_eq!(session.state(), NeuralSessionState::Cooldown);
+        assert!(session.preview(&second, KEY, now + 50, 7, 9, policy).is_ok());
+
+        let mut saturated = armed();
+        let preview = saturated
+            .preview(&first, KEY, now, 7, 9, policy)
+            .unwrap();
+        saturated
+            .commit(
+                preview.intent_id,
+                now,
+                7,
+                9,
+                NeuralPolicy {
+                    cooldown_ns: u64::MAX,
+                    ..policy
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            saturated.preview(&second, KEY, u64::MAX - 1, 7, 9, policy),
+            Err(NeuralError::CooldownActive)
+        );
+    }
+
+    #[test]
+    fn arming_requires_calibration_and_trusted_non_neural_input() {
+        let now = 10_000;
+        let bytes = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        let mut session = NeuralSession::default();
+        assert_eq!(session.arm_safe_ui(true), Err(NeuralError::NonNeuralArmRequired));
+        assert_eq!(
+            session.preview(&bytes, KEY, now, 7, 9, NeuralPolicy::default()),
+            Err(NeuralError::NotArmed)
+        );
+        session.connect(descriptor()).unwrap();
+        assert_eq!(
+            session.connect(descriptor()),
+            Err(NeuralError::InvalidStateTransition)
+        );
+        assert_eq!(session.arm_safe_ui(true), Err(NeuralError::NonNeuralArmRequired));
+        session.begin_calibration().unwrap();
+        assert_eq!(session.arm_safe_ui(true), Err(NeuralError::NonNeuralArmRequired));
+        assert_eq!(
+            session.finish_calibration([0; 32]),
+            Err(NeuralError::InvalidStateTransition)
+        );
+        session.finish_calibration([3; 32]).unwrap();
+        assert_eq!(session.arm_safe_ui(false), Err(NeuralError::NonNeuralArmRequired));
+        assert_eq!(
+            session.preview(&bytes, KEY, now, 7, 9, NeuralPolicy::default()),
+            Err(NeuralError::NotArmed)
+        );
+        session.arm_safe_ui(true).unwrap();
+        assert_eq!(session.arm_safe_ui(true), Err(NeuralError::NonNeuralArmRequired));
+
+        let invalid: [fn(&mut NeuralStreamDescriptorV1); 7] = [
+            |d| d.session_id = [0; 16],
+            |d| d.source_id = [0; 16],
+            |d| d.calibration_id = [0; 32],
+            |d| d.sample_rate_hz = 0,
+            |d| d.sample_rate_hz = MAX_SAMPLE_RATE_HZ + 1,
+            |d| d.channel_count = 0,
+            |d| d.channel_count = MAX_CHANNELS + 1,
+        ];
+        for mutate in invalid {
+            let mut bad = descriptor();
+            mutate(&mut bad);
+            assert!(NeuralSession::default().connect(bad).is_err());
+        }
+        let mut edge = descriptor();
+        edge.sample_rate_hz = MAX_SAMPLE_RATE_HZ;
+        edge.channel_count = MAX_CHANNELS;
+        assert!(NeuralSession::default().connect(edge).is_ok());
+    }
+
+    #[test]
+    fn wrong_key_session_or_calibration_fails_closed() {
+        let now = 10_000;
+        let policy = NeuralPolicy::default();
+        let bytes = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        for key in [&b"0123456789abcdef0123456789abcdeX"[..], &KEY[..15], &[][..]] {
+            let mut session = armed();
+            assert_eq!(
+                session.preview(&bytes, key, now, 7, 9, policy),
+                Err(NeuralError::InvalidSignature)
+            );
+            assert_eq!(session.state(), NeuralSessionState::ObserveOnly);
+        }
+        let other_session = signed_with(1, now, |b| b[50] = 2);
+        assert_eq!(
+            armed().preview(&other_session, KEY, now, 7, 9, policy),
+            Err(NeuralError::SessionMismatch)
+        );
+        let other_calibration = signed_with(1, now, |b| b[114] = 4);
+        assert_eq!(
+            armed().preview(&other_calibration, KEY, now, 7, 9, policy),
+            Err(NeuralError::CalibrationMismatch)
+        );
+        let mut state = armed();
+        assert_eq!(
+            state.preview(&bytes, KEY, now, 7, 10, policy),
+            Err(NeuralError::RevisionMismatch)
+        );
+        assert_eq!(state.pending(), None);
+    }
+
+    #[test]
+    fn every_unknown_enum_flag_and_zero_identifier_is_rejected_by_the_parser() {
+        let now = 10_000;
+        let limits = [(6usize, 5u8), (7, 4), (8, 3), (9, 4)];
+        for (offset, first_invalid) in limits {
+            for value in first_invalid..=u8::MAX {
+                let bytes = signed_with(1, now, |b| b[offset] = value);
+                assert_eq!(NeuralIntentV1::parse(&bytes), Err(NeuralError::UnknownEnum));
+            }
+        }
+        for bit in 6..16 {
+            let bytes = signed_with(1, now, |b| {
+                b[10..12].copy_from_slice(&(1u16 << bit).to_le_bytes())
+            });
+            assert_eq!(
+                NeuralIntentV1::parse(&bytes),
+                Err(NeuralError::UnknownArtifactFlag)
+            );
+        }
+        let version = signed_with(1, now, |b| b[4..6].copy_from_slice(&2u16.to_le_bytes()));
+        assert_eq!(
+            NeuralIntentV1::parse(&version),
+            Err(NeuralError::UnsupportedVersion)
+        );
+        for (start, length) in [(50usize, 16usize), (66, 16), (82, 32), (114, 32), (146, 16)] {
+            let bytes = signed_with(1, now, |b| b[start..start + length].fill(0));
+            assert_eq!(
+                NeuralIntentV1::parse(&bytes),
+                Err(NeuralError::ZeroIdentifier)
+            );
+        }
+        let mut longer = [0u8; NEURAL_INTENT_WIRE_BYTES + 1];
+        longer[..NEURAL_INTENT_WIRE_BYTES].copy_from_slice(&wire(
+            NeuralClass::Select,
+            NeuralScope::Navigate,
+            1,
+            now,
+        ));
+        assert_eq!(NeuralIntentV1::parse(&longer), Err(NeuralError::InvalidLength));
+    }
+
+    #[test]
+    fn physical_scope_never_commits_for_any_class() {
+        let now = 10_000;
+        let policy = NeuralPolicy::default();
+        for class in [NeuralClass::FocusLeft, NeuralClass::FocusRight, NeuralClass::Select] {
+            let bytes = wire(class, NeuralScope::PhysicalGoal, 1, now);
+            let mut session = armed();
+            let preview = session.preview(&bytes, KEY, now, 7, 9, policy).unwrap();
+            assert_eq!(preview.disposition, PreviewDisposition::PhysicalProposalOnly);
+            assert_eq!(
+                session.commit(preview.intent_id, now, 7, 9, policy),
+                Err(NeuralError::PhysicalExecutionForbidden)
+            );
+            assert_eq!(
+                session.commit(preview.intent_id, now, 7, 9, policy),
+                Err(NeuralError::NoPreview)
+            );
+            session.arm_safe_ui(true).unwrap();
+            assert_eq!(
+                session.preview(&bytes, KEY, now, 7, 9, policy),
+                Err(NeuralError::ReplayedIntent)
+            );
+        }
+        let cancel = wire(NeuralClass::Cancel, NeuralScope::PhysicalGoal, 1, now);
+        let mut session = armed();
+        let preview = session.preview(&cancel, KEY, now, 7, 9, policy).unwrap();
+        assert_eq!(preview.disposition, PreviewDisposition::Cancelled);
+        assert_eq!(
+            session.commit(preview.intent_id, now, 7, 9, policy),
+            Err(NeuralError::NoPreview)
+        );
+    }
+
+    #[test]
+    fn disarm_and_disconnect_drop_the_pending_preview() {
+        let now = 10_000;
+        let policy = NeuralPolicy::default();
+        let bytes = wire(NeuralClass::Select, NeuralScope::Navigate, 1, now);
+        let mut session = armed();
+        assert_eq!(
+            session.commit([1; 16], now, 7, 9, policy),
+            Err(NeuralError::NoPreview)
+        );
+        let preview = session.preview(&bytes, KEY, now, 7, 9, policy).unwrap();
+        session.disarm();
+        assert_eq!(session.pending(), None);
+        assert_eq!(
+            session.commit(preview.intent_id, now, 7, 9, policy),
+            Err(NeuralError::NoPreview)
+        );
+        let mut disconnected = armed();
+        let preview = disconnected
+            .preview(&wire(NeuralClass::Select, NeuralScope::Navigate, 1, now), KEY, now, 7, 9, policy)
+            .unwrap();
+        disconnected.disconnect();
+        assert_eq!(disconnected.state(), NeuralSessionState::Disconnected);
+        assert_eq!(
+            disconnected.commit(preview.intent_id, now, 7, 9, policy),
+            Err(NeuralError::NoPreview)
+        );
+        assert_eq!(disconnected.arm_safe_ui(true), Err(NeuralError::NonNeuralArmRequired));
+    }
+
     #[test]
     fn commit_rechecks_identity_expiry_and_revisions() {
         let now = 10_000;

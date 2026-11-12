@@ -16,6 +16,7 @@
 // ============================================================================
 
 pub mod heap;
+pub mod kstack;
 
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use alloc::vec::Vec;
@@ -95,6 +96,101 @@ pub fn virt_to_phys_offset(virt: u64) -> u64 {
     virt - offset.as_u64()
 }
 
+/// Set EFER.NXE if it is not set. The bootloader sets it on the boot CPU; the
+/// kernel's NO_EXECUTE bits are reserved bits (a fault on every access)
+/// without it, so the kernel checks rather than assumes.
+pub fn ensure_nxe() {
+    use x86_64::registers::model_specific::{Efer, EferFlags};
+    if !Efer::read().contains(EferFlags::NO_EXECUTE_ENABLE) {
+        unsafe { Efer::update(|flags| *flags |= EferFlags::NO_EXECUTE_ENABLE) };
+    }
+}
+
+/// P4 index of the physical-memory alias marked non-executable by
+/// `harden_kernel_mappings` (usize::MAX when it was not).
+pub static PHYS_MAP_NX_INDEX: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(usize::MAX);
+
+/// Mark the bootloader's mapping of all physical memory non-executable. It
+/// spans every RAM frame (page tables, user frames, DMA buffers, the heap's
+/// frames) read-write and was executable, so any data the kernel wrote
+/// anywhere could be run through its alias. Nothing executes from it: the
+/// kernel runs at its link address (P4[0]), kexec jumps through an identity
+/// page, and the SMP trampoline is copied there but never started. The bit is
+/// set on the P4 entry, which covers the whole alias; process address spaces
+/// copy that entry when they are created, after this runs.
+pub fn harden_kernel_mappings() {
+    ensure_nxe();
+    let Some(offset) = *PHYS_MEM_OFFSET.lock() else { return };
+    let offset = offset.as_u64();
+    // Only when the alias owns its P4 slot outright.
+    if offset & ((1u64 << 39) - 1) != 0 {
+        return;
+    }
+    let index = ((offset >> 39) & 0x1FF) as usize;
+    if index == 0 {
+        return; // shared with the kernel image
+    }
+    let l4 = unsafe { &mut *(VirtAddr::new(offset + active_p4_phys().as_u64())).as_mut_ptr::<PageTable>() };
+    let entry = &mut l4[index];
+    if !entry.flags().contains(x86_64::structures::paging::PageTableFlags::PRESENT) {
+        return;
+    }
+    let flags = entry.flags() | x86_64::structures::paging::PageTableFlags::NO_EXECUTE;
+    let addr = entry.addr();
+    entry.set_addr(addr, flags);
+    x86_64::instructions::tlb::flush_all();
+    PHYS_MAP_NX_INDEX.store(index, core::sync::atomic::Ordering::SeqCst);
+}
+
+/// P4 indices of the bootloader's stack and boot-information pages, marked
+/// non-executable by `harden_boot_regions` (usize::MAX when not).
+pub static BOOT_STACK_NX_INDEX: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(usize::MAX);
+pub static BOOT_INFO_NX_INDEX: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(usize::MAX);
+
+/// Mark the P4 entries that hold the bootloader's stack (the stack `main` and
+/// the boot-time kernel run on) and the boot-information page non-executable.
+/// bootloader 0.9 maps each in a P4 slot of its own, read-write and
+/// executable. An entry is left alone if it also holds the kernel image,
+/// the heap or the user slot. Call before any address space is created
+/// (they copy the kernel's P4 entries).
+pub fn harden_boot_regions(boot_info_addr: u64) {
+    ensure_nxe();
+    let rsp: u64;
+    unsafe { core::arch::asm!("mov {}, rsp", out(reg) rsp, options(nomem, nostack, preserves_flags)) };
+    let index_of = |addr: u64| ((addr >> 39) & 0x1FF) as usize;
+    let code = index_of(harden_boot_regions as *const () as u64);
+    let heap = index_of(heap::HEAP_START as u64);
+    let offset = PHYS_MEM_OFFSET.lock().map(|o| o.as_u64()).unwrap_or(0);
+    let mark = |addr: u64, record: &core::sync::atomic::AtomicUsize| {
+        let index = index_of(addr);
+        if index == code || index == heap || index == 1 || index == 0 {
+            return;
+        }
+        let l4 = unsafe { &mut *(VirtAddr::new(offset + active_p4_phys().as_u64())).as_mut_ptr::<PageTable>() };
+        let entry = &mut l4[index];
+        if !entry.flags().contains(x86_64::structures::paging::PageTableFlags::PRESENT) {
+            return;
+        }
+        let flags = entry.flags() | x86_64::structures::paging::PageTableFlags::NO_EXECUTE;
+        let frame = entry.addr();
+        entry.set_addr(frame, flags);
+        record.store(index, core::sync::atomic::Ordering::SeqCst);
+    };
+    mark(rsp, &BOOT_STACK_NX_INDEX);
+    mark(boot_info_addr, &BOOT_INFO_NX_INDEX);
+    x86_64::instructions::tlb::flush_all();
+}
+
+/// Flags of the active P4 entry `index` (self-tests).
+pub fn kernel_p4_flags(index: usize) -> x86_64::structures::paging::PageTableFlags {
+    let offset = PHYS_MEM_OFFSET.lock().map(|o| o.as_u64()).unwrap_or(0);
+    let l4 = unsafe { &*(VirtAddr::new(offset + active_p4_phys().as_u64())).as_ptr::<PageTable>() };
+    l4[index & 0x1FF].flags()
+}
+
 /// Return the physical address of the active P4 table (read from CR3).
 pub fn active_p4_phys() -> PhysAddr {
     use x86_64::registers::control::Cr3;
@@ -108,6 +204,18 @@ pub fn active_p4_phys() -> PhysAddr {
 pub fn active_p4_frame() -> PhysFrame {
     use x86_64::registers::control::Cr3;
     Cr3::read().0
+}
+
+/// Type of the boot memory-map region holding physical address `addr`
+/// (`None` before the frame allocator is installed or outside every region).
+pub fn boot_region_type(addr: u64) -> Option<MemoryRegionType> {
+    let guard = FRAME_ALLOCATOR.lock();
+    let allocator = guard.as_ref()?;
+    allocator
+        .memory_map
+        .iter()
+        .find(|r| r.range.start_addr() <= addr && addr < r.range.end_addr())
+        .map(|r| r.region_type)
 }
 
 /// Allocate a single 4 KiB physical frame from the global allocator.
@@ -235,7 +343,18 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
     next: usize,
+    /// Position of the next fresh frame: index among the usable regions and
+    /// frame offset inside that region. Kept so a fresh allocation is O(1)
+    /// (amortized) instead of re-walking `next` frames of the memory map on
+    /// every call, which made booting (tens of thousands of frames for the
+    /// heliox-daemon image) quadratic.
+    fresh_region: usize,
+    fresh_offset: u64,
     recycled: Vec<PhysFrame>,
+    /// Start addresses of the frames in `recycled`, for an O(log n)
+    /// duplicate check in `recycle` (a linear `contains` made dropping a
+    /// large address space quadratic in its frame count).
+    recycled_set: alloc::collections::BTreeSet<u64>,
 }
 
 impl BootInfoFrameAllocator {
@@ -249,27 +368,11 @@ impl BootInfoFrameAllocator {
         BootInfoFrameAllocator {
             memory_map,
             next: 0,
+            fresh_region: 0,
+            fresh_offset: 0,
             recycled: Vec::new(),
+            recycled_set: alloc::collections::BTreeSet::new(),
         }
-    }
-
-    /// Returns an iterator over usable physical frames
-    fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
-        // Get usable regions from memory map
-        let regions = self.memory_map.iter();
-        let usable_regions = regions
-            .filter(|r| r.region_type == MemoryRegionType::Usable);
-
-        // Map each region to its start address range
-        let addr_ranges = usable_regions
-            .map(|r| r.range.start_addr()..r.range.end_addr());
-
-        // Transform to an iterator of frame start addresses
-        let frame_addresses = addr_ranges
-            .flat_map(|r| r.step_by(4096));
-
-        // Create PhysFrame types from the start addresses
-        frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
     }
 
     /// Number of frames already handed out.
@@ -278,11 +381,26 @@ impl BootInfoFrameAllocator {
     }
 
     fn allocate_fresh_frame(&mut self) -> Option<PhysFrame> {
-        let frame = self.usable_frames().nth(self.next);
-        if frame.is_some() {
-            self.next += 1;
+        // Same order the original iterator walked (usable regions in map order,
+        // `start, start + 4096, ...` below `end`), which `was_allocated`
+        // relies on, without re-walking the frames already handed out.
+        loop {
+            let region = self
+                .memory_map
+                .iter()
+                .filter(|r| r.region_type == MemoryRegionType::Usable)
+                .nth(self.fresh_region)?;
+            let start = region.range.start_addr();
+            let end = region.range.end_addr();
+            let addr = start.saturating_add(self.fresh_offset * Size4KiB::SIZE);
+            if addr < end {
+                self.fresh_offset += 1;
+                self.next += 1;
+                return Some(PhysFrame::containing_address(PhysAddr::new(addr)));
+            }
+            self.fresh_region += 1;
+            self.fresh_offset = 0;
         }
-        frame
     }
 
     fn was_allocated(&self, frame: PhysFrame) -> bool {
@@ -313,15 +431,21 @@ impl BootInfoFrameAllocator {
     }
 
     fn recycle(&mut self, frame: PhysFrame) {
-        if self.was_allocated(frame) && !self.recycled.contains(&frame) {
+        if self.was_allocated(frame) && self.recycled_set.insert(frame.start_address().as_u64()) {
             self.recycled.push(frame);
         }
+    }
+
+    fn pop_recycled(&mut self) -> Option<PhysFrame> {
+        let frame = self.recycled.pop()?;
+        self.recycled_set.remove(&frame.start_address().as_u64());
+        Some(frame)
     }
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        self.recycled.pop().or_else(|| self.allocate_fresh_frame())
+        self.pop_recycled().or_else(|| self.allocate_fresh_frame())
     }
 }
 

@@ -101,14 +101,16 @@ pub fn sys_recv(
         Ok(value) if value > 0 && value <= MAX_SOCKET_IO => value,
         _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !super::fs::valid_user_range(buf_ptr, requested) {
+    if !super::fs::valid_user_write_range(buf_ptr, requested) {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
     }
 
     // Receive into kernel-owned memory first. The smoltcp lock and caller's
     // address space are never held at the same time, and no device path gets a
     // mutable pointer into ring-3 memory.
-    let mut data = alloc::vec![0u8; requested];
+    let Some(mut data) = crate::fs::try_zeroed_vec(requested) else {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    };
 
     match iface::socket_recv(caller_pid, fd, &mut data) {
         Ok(n) => {

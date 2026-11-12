@@ -34,7 +34,7 @@ extern crate alloc;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use spin::Mutex;
 use x86_64::VirtAddr;
 
@@ -430,17 +430,57 @@ pub fn init() {
     SCHEDULER_INIT.store(true, Ordering::SeqCst);
 }
 
-fn allocate_simd_buffer() -> u64 {
-    let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
-    let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
-    unsafe {
-        // FPU Control Word (FCW) at offset 0: default 0x037F (all exceptions masked)
-        let fcw_ptr = ptr as *mut u16;
-        *fcw_ptr = 0x037F;
-        // MXCSR at offset 24: default 0x1F80 (all exceptions masked)
-        let mxcsr_ptr = ptr.add(24) as *mut u32;
-        *mxcsr_ptr = 0x1F80;
+/// True once `lib::enable_sse_extensions` has enabled AVX in XCR0: task
+/// switches then save and restore the vector state with XSAVE/XRSTOR (the
+/// FXSAVE area holds only the low 128 bits of each YMM register). Read by the
+/// switch asm in `context_switch_to`.
+#[no_mangle]
+pub static XSAVE_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+/// Bytes of each task's vector-state area (512 for FXSAVE; CPUID.(0xD,0).EBX
+/// with XSAVE). Set once at boot, before the first task exists.
+static SIMD_AREA_SIZE: AtomicUsize = AtomicUsize::new(512);
+
+/// Switch the scheduler to XSAVE areas of `size` bytes. Called once from
+/// `lib::enable_sse_extensions`, before any task is created.
+pub fn enable_xsave(size: usize) {
+    // The legacy region (512) and the XSAVE header (64) come first, then the
+    // AVX upper halves (256): XSAVE with AVX in XCR0 writes at least 832.
+    if size < 832 || size > 64 * 1024 {
+        return;
     }
+    SIMD_AREA_SIZE.store(size, Ordering::SeqCst);
+    XSAVE_ACTIVE.store(true, Ordering::SeqCst);
+}
+
+/// Size of a task's vector-state area and whether XSAVE is used (self-tests).
+pub fn simd_area_info() -> (usize, bool) {
+    (SIMD_AREA_SIZE.load(Ordering::SeqCst), XSAVE_ACTIVE.load(Ordering::SeqCst))
+}
+
+/// Layout of a task's vector-state area: XSAVE needs 64-byte alignment.
+fn simd_layout() -> core::alloc::Layout {
+    core::alloc::Layout::from_size_align(SIMD_AREA_SIZE.load(Ordering::Relaxed), 64).unwrap()
+}
+
+/// Put an area in the initial state: all zero (an XSAVE header with
+/// XSTATE_BV = 0, so XRSTOR loads every component's initial state, YMM upper
+/// halves included), FCW 0x037F and MXCSR 0x1F80 (all exceptions masked).
+unsafe fn reset_simd_area(ptr: *mut u8) {
+    core::ptr::write_bytes(ptr, 0, SIMD_AREA_SIZE.load(Ordering::Relaxed));
+    *(ptr as *mut u16) = 0x037F;
+    *(ptr.add(24) as *mut u32) = 0x1F80;
+}
+
+fn allocate_simd_buffer() -> u64 {
+    let ptr = unsafe { alloc::alloc::alloc_zeroed(simd_layout()) };
+    // On heap exhaustion this wrote to address 0 (a ring-0 page fault). A
+    // task without a buffer still runs: the switch path skips the restore
+    // and `save_simd_state` skips the save for a zero pointer.
+    if ptr.is_null() {
+        return 0;
+    }
+    unsafe { reset_simd_area(ptr) };
     ptr as u64
 }
 
@@ -470,16 +510,36 @@ pub fn register_user(
     if !SCHEDULER_INIT.load(Ordering::SeqCst) {
         return;
     }
+    register_user_task(pid, name, priority, kernel_stack_top, cr3, capabilities);
+    // After the scheduler lock is released: the claim reads task states.
+    crate::ipc::claim_mailbox(pid, name);
+}
+
+fn register_user_task(
+    pid: u64,
+    name: &str,
+    priority: Priority,
+    kernel_stack_top: VirtAddr,
+    cr3: u64,
+    capabilities: &[String],
+) {
     let caller_pid = CURRENT_PID.load(Ordering::SeqCst);
     let parent_id = if caller_pid == 0 { None } else { Some(caller_pid) };
     
+    let safe_name = sanitize_task_name(name);
+    let name = safe_name.as_str();
     let mut sched = SCHEDULER.lock();
     let is_exempt = capabilities.iter().any(|c| c == "cap:quota:exempt");
-    let quotas = if is_exempt {
+    let mut quotas = if is_exempt {
         TaskQuotas::unlimited()
     } else {
         TaskQuotas::default_user()
     };
+    // The root supervisor (init) runs long compute self-tests in ring 3; the
+    // continuous-CPU limit applies to everything below it.
+    if capabilities.iter().any(|c| c == "cap:system:all") {
+        quotas.max_cpu_ticks_continuous = u64::MAX;
+    }
     
     if let Some(idx) = sched.tasks.iter().position(|t| t.id == pid) {
         sched.tasks[idx].name = String::from(name);
@@ -506,12 +566,9 @@ pub fn register_user(
         let mut ctx = TaskContext::new();
         ctx.simd_state_ptr = old_simd;
         if old_simd != 0 {
-            unsafe {
-                let fcw_ptr = old_simd as *mut u16;
-                *fcw_ptr = 0x037F;
-                let mxcsr_ptr = (old_simd as *mut u8).add(24) as *mut u32;
-                *mxcsr_ptr = 0x1F80;
-            }
+            // The new image starts from the initial vector state, not from
+            // the registers of the image it replaces.
+            unsafe { reset_simd_area(old_simd as *mut u8) };
         }
         sched.contexts[idx] = ctx;
 
@@ -554,6 +611,26 @@ pub fn register_user(
     // Mark which index in `tasks`/`contexts` the pid lives at so
     // we can do O(1) lookups without scanning.
     debug_assert_eq!(sched.tasks[idx].id, pid);
+}
+
+/// Longest task name kept (bytes).
+pub const MAX_TASK_NAME: usize = 64;
+
+/// Task names come from the last component of an Exec path, so a process can
+/// choose its own. They are written into JSON (SystemQuery's process list),
+/// shown by `ps` and matched as mailbox names. Keep printable ASCII other than
+/// `"` and `\`, replace everything else with `_`, and cap the length, so no
+/// name can close a JSON string or forge fields after it.
+pub fn sanitize_task_name(name: &str) -> String {
+    let mut out = String::with_capacity(name.len().min(MAX_TASK_NAME));
+    for byte in name.bytes().take(MAX_TASK_NAME) {
+        let keep = (0x20..0x7F).contains(&byte) && byte != b'"' && byte != b'\\';
+        out.push(if keep { byte as char } else { '_' });
+    }
+    if out.is_empty() {
+        out.push('_');
+    }
+    out
 }
 
 /// Register a long-running ring-0 loop (e.g. the desktop compositor)
@@ -659,58 +736,48 @@ pub fn tick() {
     if !SCHEDULER_INIT.load(Ordering::SeqCst) {
         return;
     }
+    // The scheduler's locking assumes one CPU (src/smp/mod.rs).
+    crate::smp::assert_single_cpu();
     if let Some(mut sched) = SCHEDULER.try_lock() {
         sched.total_ticks = sched.total_ticks.wrapping_add(1);
         let now = sched.total_ticks;
+        TOTAL_TICKS.store(now, Ordering::SeqCst);
+        let parked = PENDING_CONFIRM_KEY.swap(0, Ordering::SeqCst);
+        if parked != 0 {
+            wake_confirmation_waiters_locked(&mut sched, (parked & 0xFF) as u8, Some(parked >> 8));
+        }
 
         if now % 100 == 0 {
             crate::logging::audit::FLUSH_PENDING.store(true, Ordering::SeqCst);
         }
 
-        // First pass: decide which tasks to wake and which
-        // ticks/time-slice to update, collecting them in
-        // plain `Vec`s so we can re-borrow `sched.run_queues`
-        // afterwards without an aliasing violation.
-        let mut to_wake: Vec<u64> = Vec::new();
-        for task in sched.tasks.iter() {
-            if task.state == TaskState::Blocked && task.wake_at <= now {
-                to_wake.push(task.id);
+        // Wake sleepers in place. This runs in the timer interrupt: it used
+        // to collect the pids in a fresh `Vec` on every tick that woke a
+        // task, an allocation from interrupt context.
+        for index in 0..sched.tasks.len() {
+            let task = &mut sched.tasks[index];
+            if task.state != TaskState::Blocked || task.wake_at > now {
+                continue;
+            }
+            task.state = TaskState::Ready;
+            task.wake_at = u64::MAX;
+            task.time_remaining = TIME_SLICE_TICKS;
+            if task.blocked_on_confirmation {
+                task.blocked_on_confirmation = false;
+                task.confirmation_denied = true;
+            }
+            let pid = task.id;
+            let pri = task.priority.index();
+            if !sched.run_queues[pri].contains(&pid) {
+                sched.run_queues[pri].push_back(pid);
             }
         }
 
-        // Second pass: apply the state changes. We touch
-        // `run_queues` and `tasks` separately, releasing the
-        // mutable borrow on each before acquiring the next.
-        for pid in &to_wake {
-            if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == *pid) {
-                task.state = TaskState::Ready;
-                task.wake_at = u64::MAX;
-                task.time_remaining = TIME_SLICE_TICKS;
-                if task.blocked_on_confirmation {
-                    task.blocked_on_confirmation = false;
-                    task.confirmation_denied = true;
-                }
-            }
-            let pri = sched
-                .tasks
-                .iter()
-                .find(|t| t.id == *pid)
-                .map(|t| t.priority.index())
-                .unwrap_or(0);
-            if !sched.run_queues[pri].contains(pid) {
-                sched.run_queues[pri].push_back(*pid);
-            }
-        }
-
-        // Third pass: tick counters and time-slice
-        // accounting. Safe because `to_wake` is the only
-        // outstanding reference into `sched.tasks`.
-        drop(to_wake);
+        // Tick counters and time-slice accounting.
         for task in sched.tasks.iter_mut() {
             if task.state == TaskState::Running || task.state == TaskState::Ready {
                 task.ticks = task.ticks.wrapping_add(1);
                 if task.state == TaskState::Running {
-                    task.quotas.used_cpu_ticks_continuous = task.quotas.used_cpu_ticks_continuous.saturating_add(1);
                     if task.time_remaining > 0 {
                         task.time_remaining -= 1;
                     }
@@ -866,9 +933,12 @@ pub fn yield_current() -> bool {
     let mut sched = SCHEDULER.lock();
     if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
         if task.state == TaskState::Running {
+            // The continuous-CPU count is not reset here: this is also the
+            // timer's preemption path, and resetting on preemption meant the
+            // count never got past one time slice. Syscalls reset it
+            // (`note_syscall_entry`), sys_yield among them.
             task.state = TaskState::Ready;
             task.time_remaining = TIME_SLICE_TICKS;
-            task.quotas.used_cpu_ticks_continuous = 0;
             let pri = task.priority.index();
             if !sched.run_queues[pri].contains(&pid) {
                 sched.run_queues[pri].push_back(pid);
@@ -958,6 +1028,28 @@ fn spawn_internal(name: String, priority: Priority, capabilities: Vec<String>) -
     id
 }
 
+/// State of task `pid`, if the scheduler knows it.
+pub fn task_state(pid: u64) -> Option<TaskState> {
+    SCHEDULER.lock().tasks.iter().find(|t| t.id == pid).map(|t| t.state)
+}
+
+/// Self-test support (`irq-alloc`): put the bookkeeping task `pid` to sleep
+/// until tick `wake_at`. Returns true if `tick` had woken it since the last
+/// call. Never use on a task that can be resumed.
+pub fn selftest_park(pid: u64, wake_at: u64) -> bool {
+    let mut sched = SCHEDULER.lock();
+    let mut was_woken = false;
+    if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
+        was_woken = task.state == TaskState::Ready;
+        task.state = TaskState::Blocked;
+        task.wake_at = wake_at;
+    }
+    for q in sched.run_queues.iter_mut() {
+        q.retain(|p| *p != pid);
+    }
+    was_woken
+}
+
 pub fn kill(id: u64) -> bool {
     let killed = {
         let mut sched = SCHEDULER.lock();
@@ -1009,10 +1101,20 @@ pub fn capabilities_of(pid: u64) -> Option<Vec<String>> {
         .map(|t| t.capabilities.clone())
 }
 
+/// Mirror of `Scheduler::total_ticks`, written by `tick()` while it holds the
+/// scheduler lock. Reading it needs no lock, so the keyboard and mouse
+/// interrupt handlers (which timestamp events through `total_ticks()`) can no
+/// longer spin forever on SCHEDULER when they interrupt a kernel task (the
+/// desktop loop, the shell's `ps`) that holds it with interrupts enabled.
+static TOTAL_TICKS: AtomicU64 = AtomicU64::new(0);
+
 pub fn total_ticks() -> u64 {
-    let sched = SCHEDULER.lock();
-    sched.total_ticks
+    TOTAL_TICKS.load(Ordering::SeqCst)
 }
+
+/// How long a confirmation prompt waits for the operator (set in
+/// `syscall::dispatch_for_process`).
+pub const CONFIRMATION_TIMEOUT_MS: u64 = 5000;
 
 pub fn active_task_count() -> usize {
     let sched = SCHEDULER.lock();
@@ -1031,16 +1133,44 @@ pub fn dead_pids() -> Vec<u64> {
         .collect()
 }
 
+/// Leave the address space whose L4 is `l4_phys` if the CPU is running on it,
+/// by switching to the boot page tables. Called before that address space is
+/// freed.
+pub fn leave_address_space(l4_phys: u64) {
+    let boot = BOOT_CR3.load(Ordering::SeqCst);
+    if boot != 0 && boot != l4_phys && crate::memory::active_p4_phys().as_u64() == l4_phys {
+        unsafe { load_cr3(boot) };
+    }
+}
+
+/// Free the process records of every dead task except `keep` (the task whose
+/// stack the caller is running on), then drop their scheduler entries.
+/// `waitpid_current` and `reap_deferred` used to free one process and then
+/// call `cleanup_dead_tasks`, which also removed every other dead task's
+/// scheduler entry; `reap_dead` finds victims only through those entries, so
+/// the other dead processes' frames, kernel stacks and sockets leaked.
+pub fn reap_dead_except(keep: u64) {
+    for pid in dead_pids() {
+        if pid != keep {
+            crate::process::drop_by_pid(pid);
+        }
+    }
+    cleanup_dead_tasks_except(keep);
+}
+
 pub fn cleanup_dead_tasks() {
+    cleanup_dead_tasks_except(u64::MAX);
+}
+
+fn cleanup_dead_tasks_except(keep: u64) {
     let mut sched = SCHEDULER.lock();
     // Walk both vectors in lock-step and drop dead entries.
     let mut i = 0;
     while i < sched.tasks.len() {
-        if sched.tasks[i].state == TaskState::Dead {
+        if sched.tasks[i].state == TaskState::Dead && sched.tasks[i].id != keep {
             let ctx = sched.contexts.remove(i);
             if ctx.simd_state_ptr != 0 {
-                let layout = core::alloc::Layout::from_size_align(512, 16).unwrap();
-                unsafe { alloc::alloc::dealloc(ctx.simd_state_ptr as *mut u8, layout) };
+                unsafe { alloc::alloc::dealloc(ctx.simd_state_ptr as *mut u8, simd_layout()) };
             }
             sched.tasks.remove(i);
         } else {
@@ -1055,10 +1185,20 @@ pub fn save_simd_state(pid: u64) {
         let ptr = sched.contexts[idx].simd_state_ptr;
         if ptr != 0 {
             unsafe {
-                core::arch::asm!(
-                    "fxsave64 [{}]",
-                    in(reg) ptr
-                );
+                if XSAVE_ACTIVE.load(Ordering::Relaxed) {
+                    // Every component enabled in XCR0 (x87, SSE, AVX).
+                    core::arch::asm!(
+                        "xsave64 [{}]",
+                        in(reg) ptr,
+                        in("eax") u32::MAX,
+                        in("edx") u32::MAX,
+                    );
+                } else {
+                    core::arch::asm!(
+                        "fxsave64 [{}]",
+                        in(reg) ptr
+                    );
+                }
             }
         }
     }
@@ -1121,11 +1261,21 @@ pub unsafe extern "C" fn context_switch_to(
         // Switch to the incoming task's kernel stack.
         "mov rsp, rdx",
         
-        // Restore SIMD/SSE state for the incoming task.
-        "mov rax, [rsi + 0xA0]",
-        "test rax, rax",
+        // Restore the incoming task's vector state: XRSTOR of every XCR0
+        // component when AVX is enabled (FXRSTOR left the YMM upper halves
+        // of the previous task in place), FXRSTOR otherwise. rax, rcx and
+        // rdx are reloaded from the context below.
+        "mov rcx, [rsi + 0xA0]",
+        "test rcx, rcx",
         "jz 9f",
-        "fxrstor64 [rax]",
+        "cmp byte ptr [rip + {xsave_active}], 0",
+        "je 8f",
+        "mov eax, 0xFFFFFFFF",
+        "mov edx, 0xFFFFFFFF",
+        "xrstor64 [rcx]",
+        "jmp 9f",
+        "8:",
+        "fxrstor64 [rcx]",
         "9:",
         
         // Push the incoming task's iretq frame on the new stack:
@@ -1161,6 +1311,7 @@ pub unsafe extern "C" fn context_switch_to(
         "mov rsi, [rsi + 0x50]",
         
         "iretq",
+        xsave_active = sym XSAVE_ACTIVE,
     );
 }
 
@@ -1203,6 +1354,15 @@ static EXIT_CODES: Mutex<Vec<(u64, u64, u32)>> = Mutex::new(Vec::new());
 /// because that function still executes on the exiting child's kernel stack;
 /// the next ring-3 syscall is the first universally safe reclamation point.
 static DEFERRED_REAPS: Mutex<Vec<u64>> = Mutex::new(Vec::new());
+
+/// Queue `pid` for `reap_deferred`, as the blocked-wait fast path does
+/// (self-tests).
+pub fn defer_reap(pid: u64) {
+    let mut deferred = DEFERRED_REAPS.lock();
+    if !deferred.contains(&pid) {
+        deferred.push(pid);
+    }
+}
 
 /// Packed (pid << 32 | code) of the most recent exit, displayed by
 /// the kernel return trampoline. `u64::MAX` means "none pending".
@@ -1293,7 +1453,9 @@ pub fn reap_deferred(current_pid: u64) {
     for pid in pending {
         crate::process::drop_by_pid(pid);
     }
-    cleanup_dead_tasks();
+    // Reap every other dead task too, so none is left without a scheduler
+    // entry (see reap_dead_except).
+    reap_dead_except(current_pid);
 }
 
 /// Exit code of `pid` if it has finished.
@@ -1320,19 +1482,17 @@ pub fn waitpid_current(target: u64) -> Result<Option<u32>, crate::syscall::Sysca
     if target == u64::MAX {
         let found_idx = codes.iter().position(|(_, parent, _)| *parent == current_pid);
         if let Some(idx) = found_idx {
-            let (pid, _, code) = codes.remove(idx);
+            let (_pid, _, code) = codes.remove(idx);
             drop(codes);
-            crate::process::drop_by_pid(pid);
-            cleanup_dead_tasks();
+            reap_dead_except(current_pid);
             return Ok(Some(code));
         }
     } else {
         let found_idx = codes.iter().position(|(pid, parent, _)| *pid == target && *parent == current_pid);
         if let Some(idx) = found_idx {
-            let (pid, _, code) = codes.remove(idx);
+            let (_pid, _, code) = codes.remove(idx);
             drop(codes);
-            crate::process::drop_by_pid(pid);
-            cleanup_dead_tasks();
+            reap_dead_except(current_pid);
             return Ok(Some(code));
         }
     }
@@ -1418,15 +1578,15 @@ pub fn claim_for_run(pid: u64) {
 
 const KERNEL_TASK_STACK_SIZE: usize = 32 * 1024;
 
-#[repr(C, align(16))]
-struct KernelTaskStack([u8; KERNEL_TASK_STACK_SIZE]);
+/// In `.bss` with a guard page below it (`memory::kstack::GuardedStack`).
+type KernelTaskStack = crate::memory::kstack::GuardedStack<KERNEL_TASK_STACK_SIZE>;
 
 /// Stack for the idle loop that runs while every task is sleeping.
-static mut IDLE_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK_SIZE]);
+static mut IDLE_STACK: KernelTaskStack = KernelTaskStack::new();
 
 /// Stack for the return-to-shell trampoline that runs after the last
 /// user task exits.
-static mut RETURN_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK_SIZE]);
+static mut RETURN_STACK: KernelTaskStack = KernelTaskStack::new();
 
 /// Stable slot for the *incoming* context of `context_switch_to`.
 /// Must not alias the scratch (outgoing) slot: the switch asm writes
@@ -1435,7 +1595,15 @@ static mut RETURN_STACK: KernelTaskStack = KernelTaskStack([0; KERNEL_TASK_STACK
 static mut RESUME_SLOT: TaskContext = TaskContext::new();
 
 fn kernel_stack_top(stack: *mut KernelTaskStack) -> u64 {
-    ((stack as u64) + KERNEL_TASK_STACK_SIZE as u64) & !0xF
+    crate::memory::kstack::static_stack_bounds(stack as *const KernelTaskStack).1
+}
+
+/// (lowest, one past the highest) address of the idle and the return stack.
+pub fn static_stack_bounds() -> [(u64, u64); 2] {
+    [
+        crate::memory::kstack::static_stack_bounds(&raw const IDLE_STACK),
+        crate::memory::kstack::static_stack_bounds(&raw const RETURN_STACK),
+    ]
 }
 
 unsafe fn load_cr3(phys: u64) {
@@ -1463,8 +1631,15 @@ pub unsafe fn resume_task(pid: u64) -> ! {
         sched.tasks.iter().find(|t| t.id == pid).map(|t| t.name.clone()).unwrap_or_else(|| String::from("unknown"))
     }, ctx.rip, ctx.rsp, ctx.rax);
     crate::gdt::set_kernel_stack(VirtAddr::new(kstack));
-    if cr3 != 0 {
-        load_cr3(cr3);
+    // Kernel tasks (shell, desktop, dashboard) are registered with cr3 = 0.
+    // They used to keep whatever CR3 the previous task left loaded, often
+    // a ring-3 process that had just exited; reaping that process then
+    // freed the page tables the CPU was still walking, and the next
+    // `AddressSpace::new` zeroed the recycled frame under the live CR3.
+    // Run kernel tasks on the boot page tables instead.
+    let target_cr3 = if cr3 != 0 { cr3 } else { BOOT_CR3.load(Ordering::SeqCst) };
+    if target_cr3 != 0 {
+        load_cr3(target_cr3);
     }
     let slot = &raw mut RESUME_SLOT;
     *slot = ctx;
@@ -1566,13 +1741,40 @@ extern "C" fn kernel_return_entry() -> ! {
     crate::shell::run()
 }
 
-/// Wake any task blocked on confirmation.
+/// Confirmation key pressed while the scheduler lock was busy; applied by the
+/// next `tick()` (0 = none).
+/// Packed as `(press_tick << 8) | key`.
+static PENDING_CONFIRM_KEY: AtomicU64 = AtomicU64::new(0);
+
+/// Wake the task blocked on confirmation, if any, with `key`.
+/// Called from the keyboard interrupt. It must not spin on SCHEDULER: the
+/// interrupted code may be a kernel task holding it with interrupts enabled,
+/// and on one CPU that spin never ends. When the lock is busy the key is
+/// parked and `tick()` applies it.
 pub fn wake_confirmation_waiters(key: u8) -> bool {
-    let mut sched = SCHEDULER.lock();
+    if key == 0 {
+        return false;
+    }
+    let Some(mut sched) = SCHEDULER.try_lock() else {
+        PENDING_CONFIRM_KEY.store((total_ticks() << 8) | key as u64, Ordering::SeqCst);
+        return false;
+    };
+    wake_confirmation_waiters_locked(&mut sched, key, None)
+}
+
+/// `pressed_at`: for a parked key, the tick it was pressed at. A parked key
+/// only answers a prompt that was already showing when it was pressed.
+fn wake_confirmation_waiters_locked(sched: &mut Scheduler, key: u8, pressed_at: Option<u64>) -> bool {
     let mut woken_any = false;
     let mut task_idx = None;
     for (idx, task) in sched.tasks.iter().enumerate() {
         if task.state == TaskState::Blocked && task.blocked_on_confirmation {
+            let prompt_tick = task
+                .wake_at
+                .saturating_sub(CONFIRMATION_TIMEOUT_MS / crate::interrupts::PIT_TICK_MS);
+            if pressed_at.is_some_and(|tick| tick < prompt_tick) {
+                break;
+            }
             task_idx = Some(idx);
             break;
         }
@@ -1599,6 +1801,44 @@ pub fn wake_confirmation_waiters(key: u8) -> bool {
         woken_any = true;
     }
     woken_any
+}
+
+/// Pid whose syscall entry has not yet been folded into its CPU count.
+static SYSCALL_ENTERED: AtomicU64 = AtomicU64::new(0);
+
+/// Called on every ring-3 syscall entry: the task left ring 3 of its own
+/// accord, so its continuous run ends. Lock-free; `charge_user_tick` applies
+/// it on the task's next charged tick.
+pub fn note_syscall_entry(pid: u64) {
+    SYSCALL_ENTERED.store(pid, Ordering::SeqCst);
+}
+
+/// Charge one timer tick that interrupted `pid` in ring 3 and enforce the
+/// continuous-CPU quota. Returns true when the task was killed for it (the
+/// caller must switch away). Ticks spent in the kernel on the task's behalf
+/// are not charged.
+pub fn charge_user_tick(pid: u64) -> bool {
+    {
+        // Interrupted ring 3, so no kernel code on this CPU holds the lock.
+        let Some(mut sched) = SCHEDULER.try_lock() else { return false };
+        let entered = SYSCALL_ENTERED.swap(0, Ordering::SeqCst) == pid;
+        let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) else { return false };
+        if entered {
+            task.quotas.used_cpu_ticks_continuous = 0;
+        }
+        task.quotas.used_cpu_ticks_continuous = task.quotas.used_cpu_ticks_continuous.saturating_add(1);
+    }
+    check_and_enforce_quotas(pid)
+}
+
+/// Continuous ring-3 ticks charged to `pid` (self-tests).
+pub fn continuous_cpu_ticks(pid: u64) -> Option<u64> {
+    SCHEDULER
+        .lock()
+        .tasks
+        .iter()
+        .find(|t| t.id == pid)
+        .map(|t| t.quotas.used_cpu_ticks_continuous)
 }
 
 /// Check if the running task has exceeded its CPU continuous execution quota.

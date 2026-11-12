@@ -1,0 +1,11 @@
+main	1	boot_ms=161476	host_load_after=73
+fix3	1	boot_ms=49639	host_load_after=49
+main	1	boot_ms=164261	host_load_after=52
+fix3	1	boot_ms=52235	host_load_after=59
+main	1	boot_ms=168728	host_load_after=13
+fix3	1	boot_ms=55468	host_load_after=67
+main	1	boot_ms=148169	host_load_after=9
+fix3	1	boot_ms=52919	host_load_after=71
+main	1	boot_ms=169412	host_load_after=39
+fix3	1	boot_ms=55138	host_load_after=63
+CHAIN6-DONE

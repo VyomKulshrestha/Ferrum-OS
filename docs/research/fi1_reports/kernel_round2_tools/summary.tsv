@@ -1,0 +1,16 @@
+fin2	verify_kernel_selftests_k2	attempt=1	37/37 checks passed	730s
+fin2	verify_net_k2	attempt=1	12/12 checks passed	94s
+fin2	verify_ring3	attempt=1	7/7 checks passed	56s
+fin2	verify_mmap	attempt=1	7/7 checks passed	56s
+fin2	verify_audio_nonblocking	attempt=1	7/7 checks passed	22s
+fin2	verify_current_pid	attempt=1	6/6 checks passed	170s
+fin2	verify_app_window	attempt=1	13/13 checks passed	25s
+fin2	verify_core_apps	attempt=1	24/24 checks passed	56s
+fin2	verify_scheduler_stubs	attempt=1	7/7 checks passed	19s
+fin2	verify_user_pointer_isolation	attempt=1	4/4 checks passed	17s
+fin2	verify_ipc_isolation	attempt=1	6/6 checks passed	19s
+fin2	verify_kernel_selftests	attempt=1	18/18 checks passed	72s
+fin2	verify_process_reap_cr3	attempt=1	9/9 checks passed	63s
+fin2	verify_pid_reuse	attempt=1	6/6 checks passed	198s
+fin2	verify_authority_gate_joint	attempt=1	24/24 checks passed	84s
+fin2	verify_net	attempt=1	5/5 checks passed	55s

@@ -48,15 +48,30 @@ pub enum MessageKind {
     Event,
 }
 
+/// Sender flag: the message was posted by the kernel shell on the operator's
+/// behalf (`heliox confirm`, `heliox deny`, `heliox voice event`,
+/// `heliox neural`). Only kernel code sets it; IpcSend never does.
+pub const SENDER_KERNEL_SHELL: u64 = 1 << 0;
+/// Sender flag: the message was posted by an assistant panel the kernel
+/// itself launched for the operator (desktop launcher clicked with a physical
+/// pointer, the boot-time setup launch, or the shell's `run`). A panel spawned
+/// through Exec or AppLaunch by any process never carries it.
+pub const SENDER_ASSISTANT_PANEL: u64 = 1 << 1;
+
 /// Deterministic IPC envelope.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Message {
     pub id: u64,
     pub source_pid: u64,
+    /// `SENDER_*` bits established by the kernel, never by the sender.
+    pub sender_flags: u64,
     pub target: Endpoint,
     pub kind: MessageKind,
     pub required_capability: String,
     payload: Vec<u8>,
+    /// The mailbox owner this message was queued for (set by `send`). Only
+    /// that pid receives it; it is dropped when that pid is reaped.
+    target_pid: u64,
 }
 
 impl Message {
@@ -77,16 +92,157 @@ impl Message {
         Ok(Self {
             id: NEXT_MESSAGE_ID.fetch_add(1, Ordering::SeqCst),
             source_pid,
+            sender_flags: 0,
             target,
             kind,
             required_capability: required_capability.to_string(),
             payload: payload.to_vec(),
+            target_pid: 0,
         })
+    }
+
+    /// Kernel-only: record how the kernel knows who sent this message.
+    pub fn with_sender_flags(mut self, flags: u64) -> Self {
+        self.sender_flags = flags;
+        self
     }
 
     pub fn payload(&self) -> &[u8] {
         &self.payload
     }
+}
+
+/// Pids of assistant panels the kernel launched for the operator. Pids are
+/// never reused (`process::create`), so a later process cannot inherit an
+/// entry; `forget_pid` drops it when the panel is reaped.
+static OPERATOR_PANEL_PIDS: Mutex<alloc::collections::BTreeSet<u64>> =
+    Mutex::new(alloc::collections::BTreeSet::new());
+
+/// Record that the kernel launched `pid` as the operator's assistant panel.
+/// Call only from kernel launch paths that act on operator input.
+pub fn mark_operator_panel(pid: u64) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        OPERATOR_PANEL_PIDS.lock().insert(pid);
+    });
+}
+
+/// Drop any sender record for a reaped process, release the mailbox it owned
+/// and drop the messages queued for it (they must not reach a later owner).
+pub fn forget_pid(pid: u64) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        OPERATOR_PANEL_PIDS.lock().remove(&pid);
+        MAILBOX_OWNERS.lock().retain(|_, owner| *owner != pid);
+        BROKER.lock().queue.retain(|message| message.target_pid != pid);
+    });
+}
+
+/// Mailboxes owned by ring-3 processes: process name -> pid.
+///
+/// Ownership used to be recomputed on every call as "the first live task
+/// with this name", so a second instance of a program (an Exec of
+/// `/bin/heliox-daemon`, a second AppLaunch of the panel) became the owner
+/// of the first instance's mailbox, with its queued messages, the moment
+/// the first died. A mailbox is now bound to the process that registered
+/// under the name while it was free, and only that pid receives from it.
+static MAILBOX_OWNERS: Mutex<alloc::collections::BTreeMap<String, u64>> =
+    Mutex::new(alloc::collections::BTreeMap::new());
+
+/// The process name a service name belongs to (stable aliases resolved).
+fn mailbox_name(service: &str) -> &str {
+    match service {
+        "runtime.agentd" => "agentd",
+        "heliox" => "heliox-daemon",
+        "assistant" => "heliox-assistant-panel",
+        other => other,
+    }
+}
+
+/// A mailbox owner is alive while its scheduler task exists and is not Dead.
+fn pid_alive(pid: u64) -> bool {
+    crate::scheduler::task_state(pid).is_some_and(|state| state != crate::scheduler::TaskState::Dead)
+}
+
+/// Called when a ring-3 process gets its scheduler task
+/// (`scheduler::register_user`): it becomes the owner of the mailbox named
+/// after it unless a live process already owns that mailbox. A process that
+/// registered while another owner was live never owns it, even after that
+/// owner dies. Messages queued before any process ran under the name (for a
+/// boot image that was registered but never dispatched) pass to the owner.
+pub fn claim_mailbox(pid: u64, process_name: &str) {
+    let current = x86_64::instructions::interrupts::without_interrupts(|| {
+        MAILBOX_OWNERS.lock().get(process_name).copied()
+    });
+    if let Some(owner) = current {
+        if owner != pid && pid_alive(owner) {
+            return;
+        }
+    }
+    let queued_targets: Vec<u64> = x86_64::instructions::interrupts::without_interrupts(|| {
+        BROKER
+            .lock()
+            .queue
+            .iter()
+            .filter(|m| mailbox_name(&m.target.service) == process_name)
+            .map(|m| m.target_pid)
+            .collect()
+    });
+    let never_ran: Vec<u64> = queued_targets
+        .into_iter()
+        .filter(|t| *t != pid && crate::scheduler::task_state(*t).is_none())
+        .collect();
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        MAILBOX_OWNERS
+            .lock()
+            .insert(String::from(process_name), pid);
+        for message in BROKER.lock().queue.iter_mut() {
+            if mailbox_name(&message.target.service) == process_name && never_ran.contains(&message.target_pid) {
+                message.target_pid = pid;
+            }
+        }
+    });
+}
+
+/// The `SENDER_*` flags the kernel attaches to an IpcSend from `pid`.
+pub fn process_sender_flags(pid: u64) -> u64 {
+    let is_panel = x86_64::instructions::interrupts::without_interrupts(|| {
+        OPERATOR_PANEL_PIDS.lock().contains(&pid)
+    });
+    if is_panel {
+        SENDER_ASSISTANT_PANEL
+    } else {
+        0
+    }
+}
+
+/// Names a VFS file must not take as its process name when it is Exec'd:
+/// every program compiled into the kernel image and every mailbox alias.
+/// The process name chooses the program's manifest capabilities and the
+/// mailbox it owns, so an Exec'd file called `heliox-assistant-panel` used
+/// to receive the panel's capabilities and its `assistant` mailbox.
+pub fn is_reserved_program_name(name: &str) -> bool {
+    matches!(
+        name,
+        "init"
+            | "heliox-daemon"
+            | "heliox"
+            | "heliox-assistant-panel"
+            | "assistant"
+            | "agentd"
+            | "runtime.agentd"
+            | "agent-bridge"
+            | "audit-exporter"
+            | "gui-smoke-test"
+            | "text-editor"
+            | "calculator"
+            | "file-manager"
+            | "settings"
+            | "browser"
+            | "app-store"
+            | "notification-center"
+            | "task-manager"
+            | "ipc-owner-test"
+            | "ipc-forge-test"
+    ) || crate::userspace::is_compiled_program(name)
 }
 
 /// IPC validation failures.
@@ -116,6 +272,12 @@ pub fn authorize_message(message: &Message, held_capabilities: &[String]) -> Res
 /// consumer cannot monopolize this capacity and starve unrelated agents.
 const MAX_QUEUED_MESSAGES: usize = 256;
 const MAX_QUEUED_MESSAGES_PER_SERVICE: usize = 16;
+/// Slots of each mailbox (and of the broker) that only messages the kernel
+/// marked as the operator's (`SENDER_KERNEL_SHELL`, `SENDER_ASSISTANT_PANEL`)
+/// may take. Without them, any holder of `ipc:send:*` could fill the
+/// daemon's mailbox and make the operator's next DENY or disarm fail.
+pub const OPERATOR_RESERVED_SLOTS: usize = 4;
+const OPERATOR_SENDERS: u64 = SENDER_KERNEL_SHELL | SENDER_ASSISTANT_PANEL;
 
 struct IpcBroker {
     queue: VecDeque<Message>,
@@ -157,23 +319,40 @@ pub fn send(message: Message, held_capabilities: &[String]) -> Result<u64, IpcEr
     // A mailbox belongs to a live ring-3 task. Rejecting unknown targets
     // prevents absent/crashed services from filling the broker and applying
     // global backpressure to unrelated control channels.
-    if service_owner_pid(&message.target.service).is_none() {
+    let Some(owner) = service_owner_pid(&message.target.service) else {
         return Err(IpcError::NoService);
-    }
+    };
+    let mut message = message;
+    message.target_pid = owner;
 
     let id = message.id;
+    let operator = message.sender_flags & OPERATOR_SENDERS != 0;
+    let mailbox = String::from(mailbox_name(&message.target.service));
 
     x86_64::instructions::interrupts::without_interrupts(|| {
         let mut broker = BROKER.lock();
+        // Messages left for an earlier owner of this mailbox are never
+        // delivered; do not let them hold its slots.
+        broker.queue.retain(|queued| {
+            mailbox_name(&queued.target.service) != mailbox || queued.target_pid == owner
+        });
         let service_depth = broker
             .queue
             .iter()
-            .filter(|queued| queued.target.service == message.target.service)
+            .filter(|queued| mailbox_name(&queued.target.service) == mailbox)
             .count();
-        if service_depth >= MAX_QUEUED_MESSAGES_PER_SERVICE {
+        let (per_service, total) = if operator {
+            (MAX_QUEUED_MESSAGES_PER_SERVICE, MAX_QUEUED_MESSAGES)
+        } else {
+            (
+                MAX_QUEUED_MESSAGES_PER_SERVICE - OPERATOR_RESERVED_SLOTS,
+                MAX_QUEUED_MESSAGES - MAX_QUEUED_MESSAGES_PER_SERVICE,
+            )
+        };
+        if service_depth >= per_service {
             return Err(IpcError::QueueFull);
         }
-        if broker.queue.len() >= MAX_QUEUED_MESSAGES {
+        if broker.queue.len() >= total {
             return Err(IpcError::QueueFull);
         }
         broker.queue.push_back(message);
@@ -200,6 +379,23 @@ pub fn receive_for_service(service: &str) -> Result<Message, IpcError> {
     })
 }
 
+/// Receive the next message queued for `owner` in the mailbox `service`.
+/// The syscall path: a message is delivered only to the pid it was queued for.
+pub fn receive_for_owner(service: &str, owner: u64) -> Result<Message, IpcError> {
+    let mailbox = mailbox_name(service);
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        let mut broker = BROKER.lock();
+        let Some(index) = broker.queue.iter().position(|message| {
+            mailbox_name(&message.target.service) == mailbox && message.target_pid == owner
+        }) else {
+            return Err(IpcError::NoMessage);
+        };
+        let message = broker.queue.remove(index).ok_or(IpcError::NoMessage)?;
+        broker.received += 1;
+        Ok(message)
+    })
+}
+
 /// Return whether a ring-3 task owns the named mailbox.  IPC receive is
 /// intentionally stricter than send: knowing a service name must never be
 /// enough to consume another process's messages.  Ordinary programs own a
@@ -212,32 +408,33 @@ pub fn task_owns_service(pid: u64, service: &str) -> bool {
 /// Resolve a mailbox to its live task owner. Executable names are the default
 /// service names; stable Heliox aliases preserve the existing wire contract.
 pub fn service_owner_pid(service: &str) -> Option<u64> {
-    let matches_service = |name: &str| {
-        service == name
-            || (name == "agentd" && service == "runtime.agentd")
-            || (name == "heliox-daemon" && service == "heliox")
-            || (name == "heliox-assistant-panel" && service == "assistant")
-    };
+    let mailbox = mailbox_name(service);
+    let bound = x86_64::instructions::interrupts::without_interrupts(|| {
+        MAILBOX_OWNERS.lock().get(mailbox).copied()
+    });
+    if let Some(owner) = bound {
+        // A dead owner's mailbox stays closed until a new process registers
+        // under the name; it never passes to another live instance.
+        return pid_alive(owner).then_some(owner);
+    }
 
-    if let Some(owner) = crate::scheduler::list_tasks()
+    // No process has run under this name yet. A boot image registered but
+    // not yet dispatched may have messages queued for it (they pass to the
+    // first process that claims the mailbox); otherwise kernel tasks that
+    // serve a mailbox by name (the agentd boundary task).
+    if let Some((pid, _, _)) = crate::process::list().into_iter().find(|(pid, name, _)| {
+        name == mailbox && crate::scheduler::task_state(*pid).is_none()
+    }) {
+        return Some(pid);
+    }
+    crate::scheduler::list_tasks()
         .into_iter()
         .find(|task| {
             task.state != crate::scheduler::TaskState::Dead
-                && matches_service(&task.name)
+                && task.name == mailbox
+                && !crate::process::is_registered(task.id)
         })
         .map(|task| task.id)
-    {
-        return Some(owner);
-    }
-
-    // Boot services are valid IPC owners as soon as their ring-3 image is
-    // registered, even before the operator dispatches init. This permits a
-    // bounded control message to be queued during boot without reopening
-    // arbitrary/unknown service names.
-    crate::process::list()
-        .into_iter()
-        .find(|(_, name, _)| matches_service(name))
-        .map(|(pid, _, _)| pid)
 }
 
 /// Return IPC queue counters.

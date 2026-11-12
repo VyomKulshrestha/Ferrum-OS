@@ -34,7 +34,7 @@ pub fn sys_notification_list(args: [u64; 6]) -> SyscallResult {
     let bytes = crate::notification::serialize();
     let to_copy = bytes.len().min(out_len);
     if to_copy > 0 {
-        if !super::fs::valid_user_range(out_ptr, to_copy) {
+        if !super::fs::valid_user_write_range(out_ptr, to_copy) {
             return SyscallResult::err(SyscallStatus::InvalidArgument);
         }
         if unsafe { super::fs::copy_to_user(out_ptr, &bytes, to_copy) } != to_copy {

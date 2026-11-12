@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 
 use super::json::{JsonValue, ToolCall};
-use super::confirmation::{ConfirmationGate, ConfirmationStatus};
+use super::confirmation::{clear_for_execution_bound, expected_version_word, Bound, ClickTarget, Clearance, ConfirmationGate, FileVersion};
 use crate::memory::vector_store::MemoryCategory;
 
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
@@ -43,6 +43,7 @@ const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
 const SYS_SYSTEM_QUERY: u64 = 29;
 const SYS_SLEEP: u64 = 32;
+const SYS_WRITE_CONSOLE: u64 = 34;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -79,39 +80,49 @@ unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u
     ret
 }
 
-// ---- Permission Tiers ------------------------------------------------------
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PermissionTier {
-    Observe = 0,
-    Safe = 1,
-    Network = 2,
-    Modify = 3,
-    Destructive = 4,
+#[inline(always)]
+unsafe fn syscall5(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> u64 {
+    let ret: u64;
+    asm!(
+        "int 0x80",
+        inout("rax") number => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
+        in("r8") arg5,
+        out("rcx") _,
+        out("r11") _,
+        options(nostack, preserves_flags)
+    );
+    ret
 }
 
-fn tool_tier(name: &str) -> PermissionTier {
-    match name {
-        // Tier 0: Observe
-        "query_memory" | "get_config" | "system_info" | "list_processes"
-        | "add_subtask" | "camera_capture" | "gesture_status" | "hud_update" | "hit_test" => PermissionTier::Observe,
-        // Tier 1: Safe
-        "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
-        | "capability_check" | "read_file" | "read_dir" | "sleep"
-        | "read_screen" | "set_volume" | "poll_input" | "local_inference" => PermissionTier::Safe,
-        // Tier 2: Network
-        "net_connect" | "net_send" | "net_recv" | "http_get"
-        | "load_memory" | "set_goal" | "record_audio"
-        | "browse_url" => PermissionTier::Network,
-        // Tier 3: Modify
-        "write_file" | "create_directory" | "save_memory"
-        | "service_start" | "service_stop" | "play_audio"
-        | "keyboard_type" | "mouse_click" | "mouse_move" => PermissionTier::Modify,
-        // Tier 4: Destructive
-        "exec_process" | "delete_file" | "trigger_kernel_upgrade" => PermissionTier::Destructive,
-        _ => PermissionTier::Destructive, // unknown tools default to highest tier
+// Version-guarded file syscalls (fi1 joint round 2). The kernel checks the
+// file's version and acts in one step, and returns VERSION_MISMATCH without
+// acting when the file is not the version the operator approved.
+const SYS_WRITE_FILE_IF_VERSION: u64 = 63;
+const SYS_DELETE_FILE_IF_VERSION: u64 = 64;
+const SYS_EXEC_IF_VERSION: u64 = 65;
+const VERSION_MISMATCH: i64 = -7;
+
+fn changed_since_approval(tool: &str) -> ToolResult {
+    ToolResult {
+        tool_name: String::from(tool),
+        success: false,
+        output: String::from(
+            "Approval withdrawn: the file this action is about changed after it was approved. Request it again.",
+        ),
     }
 }
+
+// ---- Permission Tiers ------------------------------------------------------
+// The tier table and every other pure authority decision live in
+// `authority.rs`, which userland/heliox-gate-tests compiles and tests on the
+// host.
+
+pub use super::authority::PermissionTier;
+use super::authority::tool_tier;
 
 // ---- Tool Execution Result -------------------------------------------------
 
@@ -198,7 +209,7 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
     Arguments: {"goal": "<string>"}
 
 21. `sleep` - Sleep for a number of milliseconds.
-    Arguments: {"ms": <number>}
+    Arguments: {"ms": <number 0-10000>}
 
 22. `service_start` - Start a registered kernel service (REQUIRES CONFIRMATION).
     Arguments: {"service_id": <number>}
@@ -227,13 +238,13 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 30. `set_volume` - Set the audio output volume.
     Arguments: {"level": <number 0-127>}
 
-31. `keyboard_type` - Type a string of text as keyboard input (REQUIRES CONFIRMATION).
+31. `keyboard_type` - Type printable ASCII text as keyboard input; no Enter or control keys (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"text": "<string>"}
 
-32. `mouse_click` - Click a mouse button (REQUIRES CONFIRMATION).
+32. `mouse_click` - Click a mouse button (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"button": <number 0=left, 1=right, 2=middle>}
 
-33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES CONFIRMATION).
+33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"dx": <number>, "dy": <number>}
 
 34. `browse_url` - Fetch an HTTP or HTTPS URL and extract clean text content from the page.
@@ -263,46 +274,87 @@ The physical maintenance tool is simulation-only; `confirm_simulation` acknowled
 
 /// Check if a tool requires confirmation before execution.
 pub fn needs_confirmation(tool_name: &str, auto_approve_tier: u8) -> bool {
-    let tier = tool_tier(tool_name) as u8;
-    tier > auto_approve_tier
+    super::authority::needs_confirmation(tool_tier(tool_name), auto_approve_tier)
+}
+
+/// The confirmation step shared by every execution path. `None` means the
+/// call may run now; `Some(result)` is the refusal or wait to return instead.
+pub fn confirmation_result(
+    tool_call: &ToolCall,
+    confirmation_gate: &mut ConfirmationGate,
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> Option<ToolResult> {
+    confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick).err()
+}
+
+/// `confirmation_result`, keeping what an operator approval was bound to
+/// (`Bound`: a file version, a click target, or nothing for a call that runs
+/// without one); the executor hands it to the kernel's guarded call.
+/// `Err(result)` is the refusal or wait to return.
+pub fn confirmation_result_bound(
+    tool_call: &ToolCall,
+    confirmation_gate: &mut ConfirmationGate,
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> Result<Bound, ToolResult> {
+    let (clearance, bound) = clear_for_execution_bound(
+        confirmation_gate,
+        &tool_call.name,
+        &tool_call.arguments,
+        auto_approve_tier,
+        current_tick,
+    );
+    let output = match clearance {
+        Clearance::Proceed => return Ok(bound),
+        Clearance::Awaiting { id, display: _, full_display } => {
+            // The operator sees every byte of what they would approve. The
+            // kernel console rejects writes over 4096 bytes, so print in
+            // chunks (full_display is at most MAX_APPROVAL_DISPLAY_BYTES and
+            // pure ASCII after escaping).
+            let notice = format!(
+                "[heliox-daemon] confirmation {} requested: {} ({:?}) {}\n",
+                id,
+                tool_call.name,
+                tool_tier(&tool_call.name),
+                full_display
+            );
+            for chunk in notice.as_bytes().chunks(2048) {
+                unsafe {
+                    syscall3(SYS_WRITE_CONSOLE, 1, chunk.as_ptr() as u64, chunk.len() as u64);
+                }
+            }
+            format!("Awaiting confirmation (id={}). Use 'confirm {}' in kernel shell.", id, id)
+        }
+        Clearance::Denied => String::from("Action denied by operator."),
+        Clearance::Expired => String::from("Confirmation request expired."),
+        Clearance::Refused => String::from(
+            "Confirmation refused: queue full, ids exhausted, arguments too large to show the operator, or the kernel could not establish the version of the file the action is about.",
+        ),
+        Clearance::TargetChanged => String::from(
+            "Approval withdrawn: the pointer is no longer over the window and position this click was requested for. Request it again.",
+        ),
+        Clearance::FileChanged => String::from(
+            "Approval withdrawn: the file this action is about changed after the request was made. Request it again.",
+        ),
+    };
+    Err(ToolResult {
+        tool_name: tool_call.name.clone(),
+        success: false,
+        output,
+    })
 }
 
 /// Execute a parsed tool call by dispatching to the appropriate handler.
 /// For tools that require confirmation, returns a pending result.
 pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, auto_approve_tier: u8, current_tick: u64) -> ToolResult {
-    let tier = tool_tier(&tool_call.name);
-
-    // Check if this tool needs confirmation
-    if (tier as u8) > auto_approve_tier {
-        // Check if we already have a pending/approved confirmation
-        let args_summary = format_args_summary(&tool_call.arguments);
-        match confirmation_gate.check_or_request(&tool_call.name, &args_summary, tier, current_tick) {
-            ConfirmationStatus::Approved => {
-                // Approved — proceed with execution
-            }
-            ConfirmationStatus::Pending(id) => {
-                return ToolResult {
-                    tool_name: tool_call.name.clone(),
-                    success: false,
-                    output: format!("Awaiting confirmation (id={}). Use 'confirm {}' in kernel shell.", id, id),
-                };
-            }
-            ConfirmationStatus::Denied => {
-                return ToolResult {
-                    tool_name: tool_call.name.clone(),
-                    success: false,
-                    output: String::from("Action denied by operator."),
-                };
-            }
-            ConfirmationStatus::Expired => {
-                return ToolResult {
-                    tool_name: tool_call.name.clone(),
-                    success: false,
-                    output: String::from("Confirmation request expired."),
-                };
-            }
-        }
-    }
+    // `bound`: the file version an operator approval of this call was bound
+    // to. The file tools hand it to the kernel, which acts only if the file
+    // still has it (fi1 joint round 2, K3's check-then-act window).
+    let (bound, click) = match confirmation_result_bound(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
+        Ok(bound) => (bound.version, bound.click),
+        Err(result) => return result,
+    };
 
     // Dispatch to the appropriate handler
     match tool_call.name.as_str() {
@@ -323,7 +375,7 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "net_send" => execute_net_send(&tool_call.arguments),
         "net_recv" => execute_net_recv(&tool_call.arguments),
         "http_get" => execute_http_get(&tool_call.arguments),
-        "write_file" => execute_write_file(&tool_call.arguments),
+        "write_file" => execute_write_file(&tool_call.arguments, bound),
         "create_directory" => execute_create_directory(&tool_call.arguments),
         "save_memory" => execute_save_memory(),
         "load_memory" => execute_load_memory(),
@@ -331,10 +383,10 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "sleep" => execute_sleep(&tool_call.arguments),
         "service_start" => execute_service_lifecycle(SYS_SERVICE_START, &tool_call.arguments),
         "service_stop" => execute_service_lifecycle(SYS_SERVICE_STOP, &tool_call.arguments),
-        "exec_process" => execute_exec_process(&tool_call.arguments),
-        "delete_file" => execute_delete_file(&tool_call.arguments),
+        "exec_process" => execute_exec_process(&tool_call.arguments, bound),
+        "delete_file" => execute_delete_file(&tool_call.arguments, bound),
         "local_inference" => execute_local_inference(&tool_call.arguments),
-        "trigger_kernel_upgrade" => execute_trigger_kernel_upgrade(),
+        "trigger_kernel_upgrade" => execute_trigger_kernel_upgrade(bound),
         "hud_update" => execute_hud_update(&tool_call.arguments),
         "hit_test" => execute_hit_test(&tool_call.arguments),
         "read_screen" => execute_read_screen(),
@@ -343,7 +395,7 @@ pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, a
         "play_audio" => execute_play_audio(),
         "set_volume" => execute_set_volume(&tool_call.arguments),
         "keyboard_type" => execute_keyboard_type(&tool_call.arguments),
-        "mouse_click" => execute_mouse_click(&tool_call.arguments),
+        "mouse_click" => execute_mouse_click(&tool_call.arguments, click),
         "mouse_move" => execute_mouse_move(&tool_call.arguments),
         "browse_url" => execute_browse_url(&tool_call.arguments),
         "poll_input" => execute_poll_input(),
@@ -385,13 +437,22 @@ fn execute_ipc_send(args: &[(String, JsonValue)]) -> ToolResult {
 
 fn execute_audit_write(args: &[(String, JsonValue)]) -> ToolResult {
     let message = find_arg_string(args, "message").unwrap_or_default();
+    if message.trim().is_empty() {
+        return ToolResult {
+            tool_name: String::from("audit_write"),
+            success: false,
+            output: String::from("Missing 'message' argument"),
+        };
+    }
+    // One escaped line, marked as the agent's (R3-2).
+    let entry = super::authority::agent_audit_text(super::authority::AGENT_AUDIT_PREFIX, &message);
     let result = unsafe {
-        syscall3(SYS_AUDIT_WRITE, message.as_ptr() as u64, message.len() as u64, 0)
+        syscall3(SYS_AUDIT_WRITE, entry.as_ptr() as u64, entry.len() as u64, 0)
     };
     ToolResult {
         tool_name: String::from("audit_write"),
         success: result == 0,
-        output: format!("Audit written ({} bytes), result={}", message.len(), result),
+        output: format!("Audit written ({} bytes), result={}", entry.len(), result),
     }
 }
 
@@ -406,7 +467,9 @@ fn execute_yield() -> ToolResult {
 
 fn execute_report_status(args: &[(String, JsonValue)]) -> ToolResult {
     let status = find_arg_string(args, "status").unwrap_or_default();
-    let msg = format!("HELIOX_STATUS:{}", status);
+    // One escaped line (R3-2); the HELIOX_STATUS: prefix marks it as the
+    // agent's.
+    let msg = super::authority::agent_audit_text("HELIOX_STATUS:", &status);
     let result = unsafe {
         syscall3(SYS_AUDIT_WRITE, msg.as_ptr() as u64, msg.len() as u64, 0)
     };
@@ -451,8 +514,10 @@ fn execute_read_file(args: &[(String, JsonValue)]) -> ToolResult {
         }
     } else {
         let content = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("<binary>");
+        // The provider API key in the daemon's own config is not shown (R3-3).
+        let content = super::authority::redact_file_secrets(&path, content);
         // Truncate for output
-        let preview = truncate_utf8(content, 512);
+        let preview = truncate_utf8(&content, 512);
         ToolResult {
             tool_name: String::from("read_file"),
             success: true,
@@ -735,7 +800,7 @@ fn execute_gesture_status() -> ToolResult {
     }
 }
 
-fn execute_write_file(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_write_file(args: &[(String, JsonValue)], bound: Option<FileVersion>) -> ToolResult {
     let path = find_arg_string(args, "path").unwrap_or_default();
     let content = find_arg_string(args, "content").unwrap_or_default();
     if path.is_empty() {
@@ -747,9 +812,22 @@ fn execute_write_file(args: &[(String, JsonValue)]) -> ToolResult {
     }
 
     let result = unsafe {
-        syscall4(SYS_WRITE_FILE, path.as_ptr() as u64, path.len() as u64,
-                 content.as_ptr() as u64, content.len() as u64)
+        match bound {
+            Some(version) => syscall5(
+                SYS_WRITE_FILE_IF_VERSION,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                content.as_ptr() as u64,
+                content.len() as u64,
+                expected_version_word(version),
+            ),
+            None => syscall4(SYS_WRITE_FILE, path.as_ptr() as u64, path.len() as u64,
+                             content.as_ptr() as u64, content.len() as u64),
+        }
     };
+    if result as i64 == VERSION_MISMATCH {
+        return changed_since_approval("write_file");
+    }
 
     ToolResult {
         tool_name: String::from("write_file"),
@@ -809,7 +887,8 @@ fn execute_read_screen() -> ToolResult {
         Ok(capture) => ToolResult {
             tool_name: String::from("read_screen"),
             success: true,
-            output: capture.full_text(),
+            // The bridge pairing secret is for the physical operator (R3-3).
+            output: super::authority::redact_screen_secrets(&capture.full_text()),
         },
         Err(e) => ToolResult {
             tool_name: String::from("read_screen"),
@@ -849,7 +928,7 @@ fn execute_service_lifecycle(syscall: u64, args: &[(String, JsonValue)]) -> Tool
     }
 }
 
-fn execute_exec_process(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_exec_process(args: &[(String, JsonValue)], bound: Option<FileVersion>) -> ToolResult {
     let path = find_arg_string(args, "path").unwrap_or_default();
     if path.is_empty() {
         return ToolResult {
@@ -859,8 +938,19 @@ fn execute_exec_process(args: &[(String, JsonValue)]) -> ToolResult {
         };
     }
     let result = unsafe {
-        syscall3(SYS_EXEC, path.as_ptr() as u64, path.len() as u64, 0)
+        match bound {
+            Some(version) => syscall3(
+                SYS_EXEC_IF_VERSION,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                expected_version_word(version),
+            ),
+            None => syscall3(SYS_EXEC, path.as_ptr() as u64, path.len() as u64, 0),
+        }
     };
+    if result as i64 == VERSION_MISMATCH {
+        return changed_since_approval("exec_process");
+    }
     if (result as i64) > 0 {
         ToolResult {
             tool_name: String::from("exec_process"),
@@ -876,7 +966,7 @@ fn execute_exec_process(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
-fn execute_delete_file(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_delete_file(args: &[(String, JsonValue)], bound: Option<FileVersion>) -> ToolResult {
     let path = find_arg_string(args, "path").unwrap_or_default();
     if path.is_empty() {
         return ToolResult {
@@ -886,8 +976,20 @@ fn execute_delete_file(args: &[(String, JsonValue)]) -> ToolResult {
         };
     }
     let result = unsafe {
-        crate::syscall4(SYS_DELETE_FILE, path.as_ptr() as u64, path.len() as u64, 0, 0)
+        match bound {
+            Some(version) => crate::syscall4(
+                SYS_DELETE_FILE_IF_VERSION,
+                path.as_ptr() as u64,
+                path.len() as u64,
+                expected_version_word(version),
+                0,
+            ),
+            None => crate::syscall4(SYS_DELETE_FILE, path.as_ptr() as u64, path.len() as u64, 0, 0),
+        }
     };
+    if result as i64 == VERSION_MISMATCH {
+        return changed_since_approval("delete_file");
+    }
     ToolResult {
         tool_name: String::from("delete_file"),
         success: result == 0,
@@ -913,24 +1015,6 @@ fn find_arg_number(args: &[(String, JsonValue)], key: &str) -> Option<f64> {
         }
     }
     None
-}
-
-fn format_args_summary(args: &[(String, JsonValue)]) -> String {
-    let mut s = String::new();
-    for (i, (k, v)) in args.iter().enumerate() {
-        if i > 0 { s.push_str(", "); }
-        s.push_str(k);
-        s.push('=');
-        match v {
-            JsonValue::Str(sv) => {
-                let preview = truncate_utf8(sv, 32);
-                s.push_str(preview);
-            }
-            JsonValue::Number(n) => s.push_str(&format!("{}", n)),
-            _ => s.push_str("..."),
-        }
-    }
-    s
 }
 
 // ---- Audio Tools -----------------------------------------------------------
@@ -1033,7 +1117,7 @@ fn execute_keyboard_type(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
-fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
+fn execute_mouse_click(args: &[(String, JsonValue)], click: Option<ClickTarget>) -> ToolResult {
     let button = find_arg_number(args, "button").unwrap_or(0.0) as u64;
     if button > 2 {
         return ToolResult {
@@ -1043,8 +1127,31 @@ fn execute_mouse_click(args: &[(String, JsonValue)]) -> ToolResult {
         };
     }
 
-    // event_type=1 (click), button_id, 0
-    let result = unsafe { crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0) };
+    // An approved click is bound to its target (fi1 K2): event_type=2 clicks
+    // only if the pointer is over exactly that window, owner and position,
+    // now and when the desktop processes the click. Otherwise event_type=1.
+    let result = unsafe {
+        match click {
+            Some(target) => syscall5(
+                SYS_INJECT_MOUSE,
+                2,
+                button,
+                target.window,
+                target.owner,
+                ((target.rel_x as u64) << 32) | target.rel_y as u64,
+            ),
+            None => crate::syscall4(SYS_INJECT_MOUSE, 1, button, 0, 0),
+        }
+    };
+    if result as i64 == VERSION_MISMATCH {
+        return ToolResult {
+            tool_name: String::from("mouse_click"),
+            success: false,
+            output: String::from(
+                "Approval withdrawn: the pointer is no longer over the window and position this click was approved for. Request it again.",
+            ),
+        };
+    }
 
     let name = match button {
         0 => "left",
@@ -1226,8 +1333,8 @@ fn execute_local_inference(args: &[(String, JsonValue)]) -> ToolResult {
     }
 }
 
-fn execute_trigger_kernel_upgrade() -> ToolResult {
-    match crate::cognitive::self_evolve::trigger_hot_reload() {
+fn execute_trigger_kernel_upgrade(bound: Option<FileVersion>) -> ToolResult {
+    match crate::cognitive::self_evolve::trigger_hot_reload(bound) {
         Ok(()) => ToolResult {
             tool_name: String::from("trigger_kernel_upgrade"),
             success: true,
