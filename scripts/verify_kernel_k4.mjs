@@ -154,6 +154,27 @@ try {
     check("the unanswered prompt times out as a denial", field(out, "denied") === "true", line(out, "delete-prompt"));
   }
 
+  // One confirmation prompt at a time; the old behaviour (switch off) first
+  // as the negative control on the same image.
+  if (!skip.has("confirm-single")) {
+    await run("confirm-single-off");
+    let from = shell.serial().length;
+    out = await run("confirm-single", 60);
+    const offTail = shell.serial().slice(from);
+    const offPrompts = (offTail.match(/requesting destructive syscall/g) || []).length;
+    await run("confirm-single-on");
+    from = shell.serial().length;
+    out = await run("confirm-single", 60);
+    const onTail = shell.serial().slice(from);
+    const onPrompts = (onTail.match(/requesting destructive syscall/g) || []).length;
+    note(`confirm-single with the rule off: ${offPrompts} prompts; ${line(offTail, "confirm-single")}`);
+    check("with a confirmation pending, a second DeleteFile is refused at once and gets no prompt",
+      field(out, "second_ended") === "true" && field(out, "second_denied") === "true" && onPrompts === 1
+        && /refused without a prompt: DeleteFile path="\/tmp\/k4-second"/.test(onTail),
+      `${line(onTail, "confirm-single")} prompts=${onPrompts}`);
+    check("the switch-off control shows two prompts at once (the old behaviour)", offPrompts === 2, `prompts=${offPrompts}`);
+  }
+
   out = await run("window-budget", 60);
   if (out) {
     const d = line(out, "window-budget");

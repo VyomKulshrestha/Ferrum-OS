@@ -257,10 +257,20 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     // Quotas and confirmation check
     let mut is_denied = false;
     let mut confirmation_needed = false;
+    let mut refused_while_pending = false;
 
     {
         let mut sched = crate::scheduler::SCHEDULER.lock();
         let now = sched.total_ticks;
+        // Another task already waits for the operator's y/n. The key goes to
+        // the first waiter in task order (`scheduler::
+        // wake_confirmation_waiters_locked`), so with two prompts on screen
+        // the operator answering the last one shown could approve the
+        // other's deletion (fi1 kernel round 4). One prompt at a time: a
+        // second request is refused while one is pending.
+        let other_pending = sched.tasks.iter().any(|t| {
+            t.id != pid && t.blocked_on_confirmation && t.state == crate::scheduler::TaskState::Blocked
+        });
         if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == pid) {
             // 1. Syscall Rate limit check (~11s window - see
             // `scheduler::TaskQuotas::default_user`'s matching comment)
@@ -307,6 +317,9 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
                     task.confirmation_approved = false;
                 } else if is_denied {
                     task.confirmation_denied = false;
+                } else if other_pending && SINGLE_CONFIRMATION.load(core::sync::atomic::Ordering::SeqCst) {
+                    is_denied = true;
+                    refused_while_pending = true;
                 } else {
                     // Need to block and wait for confirmation
                     task.blocked_on_confirmation = true;
@@ -336,6 +349,13 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         return SyscallResult::err(SyscallStatus::Blocked);
     }
 
+    if refused_while_pending {
+        crate::println!(
+            "\n[SECURITY] Process {} refused without a prompt: {} (another confirmation is pending)",
+            pid,
+            confirmation_subject(number, args)
+        );
+    }
     if is_denied {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
@@ -353,6 +373,11 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
     }
     res
 }
+
+/// One confirmation prompt at a time (see `dispatch_for_process`). Only the
+/// self-test `confirm-single-off` clears it, to show the old behaviour on the
+/// same image.
+pub static SINGLE_CONFIRMATION: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(true);
 
 /// What the operator is asked to approve: the syscall and, for DeleteFile
 /// and DeleteFileIfVersion, the path it will delete. The prompt used to say

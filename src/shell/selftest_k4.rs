@@ -31,6 +31,15 @@ pub fn run(name: &str) -> bool {
         "reap-others" => reap_others(),
         "user-x87" => user_x87(),
         "window-budget" => window_budget(),
+        "confirm-single" => confirm_single(),
+        "confirm-single-off" => {
+            crate::syscall::SINGLE_CONFIRMATION.store(false, Ordering::SeqCst);
+            println!("selftest confirm-single-off: single_confirmation=false");
+        }
+        "confirm-single-on" => {
+            crate::syscall::SINGLE_CONFIRMATION.store(true, Ordering::SeqCst);
+            println!("selftest confirm-single-on: single_confirmation=true");
+        }
         "static-stack-overflow" => static_stack_overflow(),
         _ => return false,
     }
@@ -424,6 +433,46 @@ fn delete_prompt() {
         ended,
         exit == Some(denied),
         crate::syscall::escape_printable(core::str::from_utf8(path).unwrap_or(""))
+    );
+}
+
+/// Ring-3 DeleteFile of `path`, then exit with its result.
+fn delete_file_program(path: &[u8]) -> Vec<u8> {
+    let mut code = vec![0x48, 0x8D, 0x3D, 24, 0, 0, 0, 0xBE];
+    code.extend_from_slice(&(path.len() as u32).to_le_bytes());
+    code.extend_from_slice(&[
+        0xB8, 0x16, 0x00, 0x00, 0x00, 0xCD, 0x80, 0x48, 0x89, 0xC7, 0xB8, 0x1E, 0x00, 0x00, 0x00, 0xCD, 0x80, 0xEB,
+        0xFE,
+    ]);
+    code.extend_from_slice(path);
+    code
+}
+
+/// Two DeleteFile requests at once. The second must be refused at once
+/// (no second prompt), since the key would answer the first waiter.
+fn confirm_single() {
+    let first = start_ring3("selftest-confirm-1", &delete_file_program(b"/tmp/k4-first"), &[]);
+    yield_for(400);
+    let start = crate::scheduler::total_ticks();
+    let second = start_ring3("selftest-confirm-2", &delete_file_program(b"/tmp/k4-second"), &[]);
+    let (second_ended, second_exit) = match second {
+        Ok(pid) => run_until_dead(pid, 3000),
+        Err(_) => (false, None),
+    };
+    let second_ms = (crate::scheduler::total_ticks() - start) * crate::interrupts::PIT_TICK_MS;
+    let (first_ended, first_exit) = match first {
+        Ok(pid) => run_until_dead(pid, 10000),
+        Err(_) => (false, None),
+    };
+    let denied = crate::syscall::SyscallStatus::PermissionDenied as i64 as u64 as u32;
+    println!(
+        "selftest confirm-single: single_confirmation={} second_ended={} second_denied={} second_ms={} first_ended={} first_denied={}",
+        crate::syscall::SINGLE_CONFIRMATION.load(Ordering::SeqCst),
+        second_ended,
+        second_exit == Some(denied),
+        second_ms,
+        first_ended,
+        first_exit == Some(denied)
     );
 }
 

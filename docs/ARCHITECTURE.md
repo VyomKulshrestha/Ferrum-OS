@@ -1079,6 +1079,7 @@ Kernel-side confirmation gates are enforced for destructive Tier-4 operations (s
   to the only deadline-bearing ring-3 task.
 - **Instruction Pointer Rewinding (RIP-2)**: The saved user context frame's `rip` is decremented by 2 bytes. Because the `int 0x80` assembly instruction is exactly 2 bytes (`CD 80`), rewinding the instruction pointer causes the process to re-execute the system call immediately upon waking.
 - **Physical vs. Injected Key Filter**: Gates can only be approved by typing `y` (or denied with `n`) on a physical serial console or keyboard. Synthetic keystrokes injected by the agent via `sys_inject_key` are filtered using the `INJECTING_AGENT_KEY` atomic boolean, preventing the agent from autonomously bypassing its own security gates.
+- **One prompt at a time**: while one task waits for the operator, a second gated call is refused without a prompt (the y/n key answers the first waiter, so a second prompt on screen could be answered for the wrong request).
 - **The prompt names the target**: the console line names the requesting pid and, for `DeleteFile`/`DeleteFileIfVersion`, the path, escaped to printable ASCII (`\xNN` for any other byte) so it cannot carry terminal escapes or a forged second line.
 - **Retry-and-Cache State**: When resumed, the process re-executes `int 0x80` and references the cached `confirmation_approved` or `confirmation_denied` fields on the task context to either complete the operation or return `-2` (`PermissionDenied`) without prompting again.
 
