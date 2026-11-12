@@ -226,7 +226,46 @@ configuration.
 
 ## Images and harnesses
 
-IMAGES_AND_HARNESSES
+Every image is a CI artifact (`bootimage-ferrumos`), booted in QEMU (WHPX, 4096 MiB), one harness at a time
+under `C:/Users/marcu/Videos/fi1-qemu.lock`, `FERRUMOS_BOOT_SECONDS=600`.
+
+| Label | CI run | Commit | sha256 |
+|---|---|---|---|
+| before (round-1 head) | 43160633518 | 4bf9e59 (code of 47e97e0) | e3f39abf1968315f3efcf09df0bbf21668f5927f92819df36b6d1d6d96c6fcc7 |
+| after | 43168389480 | fad4fbd (code of the final head; later commits change only this report) | ec5f18fa4f9e96041c6e093b913a0a6d50f5bfcacd38d7e02946140362738f7f |
+
+The `after` image is left at `target/x86_64-unknown-none/debug/bootimage-ferrumos.bin`.
+
+| Harness | before (e3f39abf) | after (ec5f18fa) |
+|---|---|---|
+| verify_authority_gate_joint (37 checks, 13 new) | 27/37: the 7 new self-test checks fail (self-tests absent); **J2-1 end to end: the approved write of `/tmp/fi1j21` returned 0 and the directory and its file were gone**; the click notice names no target | 37/37 |
+| verify_authority_gate_self_approval | 11/11 (round 1) | 11/11 |
+| verify_authority_gate_input_injection | 7/7 (round 1) | 7/7 |
+| verify_kernel_selftests | 18/18 (round 1) | 18/18 |
+| verify_process_reap_cr3 | 9/9 (round 1) | 9/9 |
+| verify_pid_reuse | 6/6 (round 1) | 6/6 |
+| verify_ring3 | 7/7 (round 1) | 7/7 |
+| verify_ipc_isolation | 6/6 (round 1) | 6/6 |
+| verify_assistant_panel | 5/5 (round 1) | 5/5 |
+| verify_app_window | 13/13 (round 1) | 13/13 |
+
+Every harness passed on its first run on the `after` image; none was rerun. The `before` column of the
+joint harness is this round's harness run against the round-1 image; the other `before` numbers are round
+1's runs of the same image.
+
+Host tests:
+
+| Suite | before (47e97e0) | after |
+|---|---|---|
+| userland/heliox-gate-tests | 54 | 70 (`joint2.rs`: 16 new; older tests install a stable click-target source, since the gate now fails closed without one, and `gate_table.rs` gains a match arm for `TargetChanged`) |
+| userland/physical-runtime | 175 | 175 |
+| userland/neural-protocol | 19 | 19 |
+| scripts/authority_matcher_adversarial.py | 19/19 | 19/19 |
+| daemon `cargo check --target x86_64-pc-windows-gnu` | builds | builds |
+
+The new host tests do not compile on 47e97e0 (`clear_for_execution_bound`, `Bound`, `ClickTarget` and the
+kernel's guarded syscalls do not exist there). The kernel was type-checked on the host before the push
+(scratch copy, as in round 1). CI runs used: 1 of 6 for code (43168389480), plus the push of this report.
 
 ## Claim as it stands
 
