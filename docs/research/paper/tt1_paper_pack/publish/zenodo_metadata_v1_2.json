@@ -1,0 +1,61 @@
+{
+ "schema_version": "tt1-zenodo-deposit-v1",
+ "prepared": "2026-11-12",
+ "publication_state": "DRAFT: prepared, not published; see zenodo_metadata_v1_2_DRAFT_NOTE.md",
+ "new_version_of": {
+  "record_url": "https://zenodo.org/records/24123217",
+  "doi": "10.5281/zenodo.24123217",
+  "concept_doi": "10.5281/zenodo.24035417"
+ },
+ "file": {
+  "name": "Thresholds_That_Travel_preprint_v1.2.pdf",
+  "source": "latex_named/main.pdf (scripts/tt1_named_version.py, tectonic)",
+  "bytes": 384784,
+  "md5": "a673e4a88c4763e3c5019bcc970e31c0",
+  "sha256": "04fdcb8c3cfb98e025ac6dfeaa66859f39234eacc37a41362c7c9e71ee8350b7"
+ },
+ "metadata": {
+  "upload_type": "publication",
+  "publication_type": "preprint",
+  "title": "Thresholds That Travel: Adaptive Alarm Thresholds Go Quiet Under Sustained Attacks and Can Be Poisoned",
+  "creators": [
+   {
+    "name": "Kulshrestha, Vyom",
+    "affiliation": "Independent Researcher",
+    "orcid": "0009-0009-1434-7148"
+   }
+  ],
+  "description": "<p>Anomaly detectors for industrial control systems (ICS) raise an alarm when a score crosses a threshold. The threshold is calibrated on clean data, and adaptive rules then move it online: daily recalibration, a running quantile, a refitted extreme-value tail. Each rule learns from part of its input, and we ask what happens when attacks land there.</p><p>We report three pre-registered studies on six datasets that no earlier analysis of ours had opened; one of their four primary rules passed. Counting an attack as detected when any alarm falls inside it, a plain quantile tracker detected fewer attacks than the frozen calibration threshold on HAI 20.07 (20 of 38 against 36), on BATADAL (6 of 14 against 14) and among the Tennessee Eastman attacks launched directly after another attack (66 of 104 against 104). Exploratory follow-up narrows each result. On Tennessee Eastman every one of those lost attacks lies in a sequence of noise attacks on which the tracker alarmed at once and fell silent a median 24 hours later, while the attack continued. BATADAL&#x27;s loss disappears when the tracker&#x27;s step is scaled by the threshold and not by a heavy-tailed spread. On HAI 20.07 the frozen threshold was in alarm for 39% of the unlabelled time, and alarms shifted at random would still have detected 17 attacks. Counting only alarms that begin inside the attack, the clearest loss is on three development releases (76 of 160 against 124, exploratory), and ProvICS shows none under either count.</p><p>Poisoning campaigns injected at the score level into 56 sealed attack-free Tennessee Eastman runs (registered) worked against each class of rule. After a day of two-minute pulses the tracker caught none of 56 later bumps just above the calibrated threshold; pulses shorter than a rule&#x27;s event length did the same to a recalibration that leaves alarm episodes out; and an attacker who read the threshold and held the score just under it left a standard SPOT threshold catching 16 of 56 bumps a quarter above calibration. The frozen threshold caught all 56 each time, and a fixed threshold watching beside the attacked rule would have been in alarm for a median 99% of the silent campaign. A ceiling at a fixed multiple of the calibrated threshold confines these attacks to events at or below it. Automatic tightening cost up to 3.5 times the frozen threshold&#x27;s false alarms and, on Tennessee Eastman, detected no more than a slightly lower fixed threshold at the same alarm rate. We conclude that a threshold which loosens itself needs a ceiling and a fixed reference threshold beside it, and we release the registrations, ledger and code.</p><p>Preprint, version 1.2. It adds an exploratory round that runs thresholds from alarm practice through the Tennessee Eastman attacks and campaigns: a threshold at the median plus a multiple of the median absolute deviation of the last day and an exponentially weighted control limit were both blinded by the silent 24-hour campaign (0 of 56 later bumps caught at every size up to twice the calibrated threshold), a static threshold with a 60-second on-delay was not, and recalibration run as a rule was poisoned by sub-event pulses when it accepted any day without a long alarm (7 of 56 against 52) and not when it accepted only days known to be clean. It also adds related work on how a detection is counted, names two appendices as the ASIA CCS 2027 call names them (Ethical Considerations, Open Science), and adds an exploratory post-hoc paragraph on where the frozen threshold's alarm time falls: on HAI 20.07, 94% of it lies where a sensor is outside the range the world model was fitted on, and inside that range the threshold is in alarm for 3.7% of the unlabelled time against 39.1% overall (ProvICS: 9.1% against 44.0%). No registered result changes. The paper sources, registrations, data-access ledger, harness, verifiers and result files are in <a href=\"https://github.com/VyomKulshrestha/Ferrum-OS\">https://github.com/VyomKulshrestha/Ferrum-OS</a> under docs/research.</p>",
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "version": "1.2",
+  "language": "eng",
+  "keywords": [
+   "industrial control systems",
+   "anomaly detection",
+   "alarm thresholds",
+   "adaptive thresholds",
+   "poisoning attacks",
+   "extreme value theory",
+   "SPOT",
+   "pre-registration",
+   "HAI",
+   "BATADAL"
+  ],
+  "related_identifiers": [
+   {
+    "identifier": "https://github.com/VyomKulshrestha/Ferrum-OS",
+    "relation": "isSupplementedBy",
+    "resource_type": "software",
+    "scheme": "url"
+   },
+   {
+    "identifier": "10.5281/zenodo.23473173",
+    "relation": "cites",
+    "scheme": "doi",
+    "resource_type": "publication-report"
+   }
+  ],
+  "notes": "Preprint."
+ }
+}

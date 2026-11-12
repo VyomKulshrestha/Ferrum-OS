@@ -157,14 +157,17 @@ needs a sentence in a future version; the closest promotion gate in the committe
 (0 against 0).
 
 **Correction, 2026-11-12 (found while writing v1.4).** "The report" in the paragraph above is wrong for
-the OS world-model study. The replay false alarms (216 of 1,969) and the rollout error are quoted in
-"When Agents Control the Kernel" v1.2 (DOI 10.5281/zenodo.21829808), which "Prediction Is Not
-Permission" cites as [15]; v1.3 of the latter does not quote them. "Prediction Is Not Permission"
-depends on that study only through the protected FerrumOS encoder, which is fixed by digest. The
-statement about the OS world-model numbers therefore belongs in a new version of "When Agents Control
-the Kernel"; the statement about the physical model's selection belongs in v1.4 of "Prediction Is Not
-Permission". Whether the earlier report claims or declines the comparison with the per-action mean is
-being read from its text for that new version and is not asserted here.
+the OS world-model study. That study is reported in "When Agents Control the Kernel" v1.2 (lineage
+DOI 10.5281/zenodo.21829808), which "Prediction Is Not Permission" cites as [15]; v1.3 of the latter
+quotes none of these numbers and depends on the study only through the protected FerrumOS encoder,
+which is fixed by digest. Checked against the texts: "When Agents Control the Kernel" v1.2 quotes the
+rollout error (3.87% at H=3, the seed-17 model) and lists the 1,969-row safe replay as a protocol arm
+without a count; the 216 false alarms appear in `docs/research/WORLD_MODEL_RESEARCH.md` in this
+repository. That report declines the comparison with the per-action mean in its own words ("does not
+establish a material JEPA safety advantage"), as the paragraph above said. The statement about the OS
+world-model numbers is now in v1.3 of "When Agents Control the Kernel", and the statement about the
+physical model's selection in v1.4 of "Prediction Is Not Permission" (both prepared, not published;
+`fi2_reports/papers.md`).
 
 **Built in this round.** `scripts/repro_env.py` pins the thread count for BLAS, OpenMP, LightGBM and
 PyTorch and records the environment in result files; it is adopted in the unfrozen `tw1a` and `fi1`
