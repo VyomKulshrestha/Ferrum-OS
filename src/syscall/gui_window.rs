@@ -95,13 +95,19 @@ pub fn sys_poll_window_input(args: [u64; 6]) -> SyscallResult {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
+    // A caller that passes out_len >= 24 receives a sixth u32 of flags:
+    // bit 0 = the event was injected by InjectKey/InjectMouse (the agent's
+    // input tools), not typed or clicked on a physical device. Additive: a
+    // 20-byte caller gets the old record.
+    let record_len = if out_len >= 24 && super::fs::valid_user_range(out_ptr, 24) { 24 } else { 20 };
     match crate::gui::app_window::poll_input(window_id, pid) {
         Some(ev) => {
-            let mut bytes = [0u8; 20];
-            for (index, value) in [ev.tag, ev.a, ev.b, ev.c, ev.d].iter().enumerate() {
+            let mut bytes = [0u8; 24];
+            let flags: u32 = if ev.injected { 1 } else { 0 };
+            for (index, value) in [ev.tag, ev.a, ev.b, ev.c, ev.d, flags].iter().enumerate() {
                 bytes[index * 4..index * 4 + 4].copy_from_slice(&value.to_le_bytes());
             }
-            if unsafe { super::fs::copy_to_user(out_ptr, &bytes, bytes.len()) } != bytes.len() {
+            if unsafe { super::fs::copy_to_user(out_ptr, &bytes[..record_len], record_len) } != record_len {
                 return SyscallResult::err(SyscallStatus::InvalidArgument);
             }
             SyscallResult::ok(1)

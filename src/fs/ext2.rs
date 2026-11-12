@@ -165,6 +165,12 @@ pub struct Ext2Fs<B: BlockDevice> {
     inner: Mutex<Ext2FsInner<B>>,
     pub block_size: u32,
     pub groups_count: u32,
+    /// Versions given this boot (`crate::fs::next_file_version`) to inodes
+    /// that were written, created or had an entry added or removed. An inode
+    /// not in the map reports its on-disk `generation` with
+    /// `ON_DISK_VERSION_BIT`; the two ranges are disjoint, so a change made
+    /// this boot can never bring back the version seen before it.
+    versions: Mutex<alloc::collections::BTreeMap<u32, u64>>,
 }
 
 // ============================================================================
@@ -294,7 +300,22 @@ impl<B: BlockDevice> Ext2Fs<B> {
             inner: Mutex::new(inner),
             block_size,
             groups_count,
+            versions: Mutex::new(alloc::collections::BTreeMap::new()),
         })
+    }
+
+    /// Give `inode_num` a version it has not had in this boot and return it.
+    fn bump_version(&self, inode_num: u32) -> u64 {
+        let version = crate::fs::next_file_version();
+        self.versions.lock().insert(inode_num, version);
+        version
+    }
+
+    fn version_of(&self, inode_num: u32, inode: &Inode) -> u64 {
+        match self.versions.lock().get(&inode_num) {
+            Some(version) => *version,
+            None => crate::fs::ON_DISK_VERSION_BIT | inode.generation as u64,
+        }
     }
 
     /// Create a sparse 64 MiB test file with exactly 3 blocks populated with known data:
@@ -1257,7 +1278,9 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             flags: 0,
             osd1: 0,
             block: [0; 15],
-            generation: 0,
+            // The low half of this boot's version, kept on disk; the full
+            // version lives in `versions` (see `version_of`).
+            generation: crate::fs::next_file_version() as u32,
             file_acl: 0,
             dir_acl: 0,
             faddr: 0,
@@ -1282,6 +1305,7 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         }
 
         self.write_inode(new_inode_num, &inode)?;
+        self.bump_version(new_inode_num);
 
         if existing.is_none() {
             if let Err(e) = self.add_dir_entry(parent_inode_num, &file_name, new_inode_num, FT_REG_FILE) {
@@ -1289,8 +1313,10 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
                     let _ = self.free_block(b);
                 }
                 let _ = self.free_inode(new_inode_num);
+                self.versions.lock().remove(&new_inode_num);
                 return Err(e);
             }
+            self.bump_version(parent_inode_num);
         }
 
         self.write_metadata()?;
@@ -1361,7 +1387,7 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             flags: 0,
             osd1: 0,
             block: [0; 15],
-            generation: 0,
+            generation: crate::fs::next_file_version() as u32,
             file_acl: 0,
             dir_acl: 0,
             faddr: 0,
@@ -1384,6 +1410,8 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         let mut parent_inode = self.read_inode(parent_inode_num)?;
         parent_inode.links_count += 1;
         self.write_inode(parent_inode_num, &parent_inode)?;
+        self.bump_version(new_inode_num);
+        self.bump_version(parent_inode_num);
 
         let group;
         {
@@ -1433,6 +1461,8 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         }
 
         self.free_inode(target_inode_num)?;
+        self.versions.lock().remove(&target_inode_num);
+        self.bump_version(parent_inode_num);
 
         let mut parent_inode = self.read_inode(parent_inode_num)?;
         if is_dir {
@@ -1467,6 +1497,7 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             is_dir,
             size,
             children,
+            version: self.version_of(inode_num, &inode),
         })
     }
 

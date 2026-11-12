@@ -118,17 +118,20 @@ pub fn process_input() {
             }
             crate::input::InputEventType::MouseButton(0, true) | crate::input::InputEventType::MouseButton(1, true) => {
                 // A real pointer press transfers physical keyboard ownership
-                // from the coexisting debug shell to the visible desktop.
-                crate::gui::claim_keyboard();
+                // from the coexisting debug shell to the visible desktop. An
+                // injected press does not move the operator's keyboard.
+                if !event.injected {
+                    crate::gui::claim_keyboard();
+                }
                 cursor.left_down = true;
-                compositor::handle_mouse_down(cursor.x, cursor.y);
+                compositor::handle_mouse_down(cursor.x, cursor.y, event.injected);
             }
             crate::input::InputEventType::MouseButton(0, false) | crate::input::InputEventType::MouseButton(1, false) => {
                 cursor.left_down = false;
-                compositor::handle_mouse_up(cursor.x, cursor.y);
+                compositor::handle_mouse_up(cursor.x, cursor.y, event.injected);
             }
             crate::input::InputEventType::KeyPress(ascii) => {
-                compositor::handle_key_press(ascii);
+                compositor::handle_key_press(ascii, event.injected);
             }
             // Ignore other inputs for MVP
             _ => {}

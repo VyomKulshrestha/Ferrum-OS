@@ -455,7 +455,10 @@ pub fn launch_assistant_panel_if_unconfigured() {
         // position, visually cover) whatever app the user - or, as
         // `verify_app_window.mjs` found, a test app like gui-smoke-test -
         // already had open and focused.
+        // The kernel chooses this launch (once per boot, when the operator
+        // has not configured Heliox yet), so the panel is the operator's.
         if let Some(pid) = launch_installed_app("heliox-assistant-panel") {
+            crate::ipc::mark_operator_panel(pid);
             *SUPPRESS_FOCUS_STEAL_PID.lock() = Some(pid);
         }
     }
@@ -665,7 +668,19 @@ pub fn draw_hud_overlay() {
     }
 }
 
-pub fn handle_mouse_down(mx: u32, my: u32) {
+/// Pointer presses and key presses produced by InjectMouse / InjectKey (the
+/// agent's input tools) that the desktop kept away from controls acting with
+/// the operator's authority: the terminal window (a kernel shell), the
+/// privacy lock, the launcher, the power menu, the dock and window close
+/// buttons. Read by the `injected-terminal` self-test.
+pub static INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS: core::sync::atomic::AtomicU64 =
+    core::sync::atomic::AtomicU64::new(0);
+
+fn keep_injected_from_operator_control() {
+    INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+}
+
+pub fn handle_mouse_down(mx: u32, my: u32, injected: bool) {
     let (fb_w, fb_h) = fb_dims();
     let layout = desktop::compute_taskbar_layout(fb_w, fb_h);
     let dock_rect = (layout.dock_x, layout.dock_y, layout.dock_w, layout.dock_h);
@@ -677,6 +692,20 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
 
         if state.session_locked {
             state.pressed = HoverTarget::None;
+            return;
+        }
+
+        // An injected press never opens, closes or activates the launcher,
+        // the power menu or the dock: those launch programs (including the
+        // operator's assistant panel and a terminal), end the session or
+        // power the machine off. It can still focus, drag and click inside
+        // ordinary windows below.
+        if injected
+            && (state.power_menu_open || state.launcher_open || desktop::point_in(mx, my, dock_rect))
+        {
+            state.pressed = HoverTarget::None;
+            drop(state);
+            keep_injected_from_operator_control();
             return;
         }
 
@@ -736,7 +765,11 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
         state.taskbar_offset = state.windows.len().saturating_sub(desktop::MAX_TASKBAR_SLOTS);
 
         let win = &state.windows[new_idx];
-        let is_close_btn = win.is_close_btn(mx, my);
+        // Closing a window kills its process; an injected click does not.
+        let is_close_btn = win.is_close_btn(mx, my) && !injected;
+        if injected && win.is_close_btn(mx, my) {
+            keep_injected_from_operator_control();
+        }
         let is_maximize_btn = win.is_maximize_btn(mx, my);
         let is_minimize_btn = win.is_minimize_btn(mx, my);
 
@@ -832,7 +865,7 @@ pub fn handle_mouse_down(mx: u32, my: u32) {
             let rel_y = my.saturating_sub(win_y + crate::gui::window::CHROME_TOP);
             crate::gui::app_window::push_input(
                 win_id,
-                crate::gui::app_window::AppInputEvent { tag: 3, a: 0, b: 1, c: rel_x, d: rel_y },
+                crate::gui::app_window::AppInputEvent { tag: 3, a: 0, b: 1, c: rel_x, d: rel_y, injected },
             );
         }
 
@@ -945,12 +978,22 @@ fn hit_test_taskbar(mx: u32, my: u32, windows: &[Window], taskbar_offset: usize)
     HoverTarget::None
 }
 
-pub fn handle_mouse_up(mx: u32, my: u32) {
+pub fn handle_mouse_up(mx: u32, my: u32, injected: bool) {
     let mut state = COMPOSITOR.lock();
 
     if state.session_locked {
         state.pressed = HoverTarget::None;
         state.drag_active = false;
+        return;
+    }
+
+    // A dock, launcher or power entry fires on release. A physical press
+    // followed by an injected release must not fire it either.
+    if injected && state.pressed != HoverTarget::None {
+        state.pressed = HoverTarget::None;
+        state.needs_redraw = true;
+        drop(state);
+        keep_injected_from_operator_control();
         return;
     }
 
@@ -1046,7 +1089,14 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
                     match idx {
                         0 => spawn_terminal(),
                         1 => spawn_sys_mon(),
-                        2 => { launch_installed_app("heliox-assistant-panel"); }
+                        // Reached only from a physical pointer (injected
+                        // releases never fire launcher entries, see
+                        // `handle_mouse_up`), so this panel is the operator's.
+                        2 => {
+                            if let Some(pid) = launch_installed_app("heliox-assistant-panel") {
+                                crate::ipc::mark_operator_panel(pid);
+                            }
+                        }
                         3 => { launch_installed_app("text-editor"); }
                         4 => { launch_installed_app("calculator"); }
                         5 => { launch_installed_app("file-manager"); }
@@ -1121,10 +1171,16 @@ pub fn handle_mouse_up(mx: u32, my: u32) {
     state.drag_active = false;
 }
 
-pub fn handle_key_press(ascii: u8) {
+pub fn handle_key_press(ascii: u8, injected: bool) {
     let mut state = COMPOSITOR.lock();
 
     if state.session_locked {
+        if injected {
+            // Only the operator's own Enter ends the privacy lock.
+            drop(state);
+            keep_injected_from_operator_control();
+            return;
+        }
         if ascii == b'\n' {
             state.session_locked = false;
             LOCK_SCREEN_RENDERED.store(false, core::sync::atomic::Ordering::SeqCst);
@@ -1166,6 +1222,15 @@ pub fn handle_key_press(ascii: u8) {
             let win_type = state.windows[idx].win_type;
             
             if win_type == crate::gui::window::WindowType::Terminal {
+                // The terminal window is a kernel shell running with the
+                // session's authority (root by default). Injected keys are
+                // kept out of it entirely: not only Enter, but also the text
+                // the operator's next Enter would submit (fi1 K1).
+                if injected {
+                    drop(state);
+                    keep_injected_from_operator_control();
+                    return;
+                }
                 let win = &mut state.windows[idx];
                 match ascii {
                     b'\n' => {
@@ -1242,7 +1307,7 @@ pub fn handle_key_press(ascii: u8) {
                 let window_id = state.windows[idx].id;
                 crate::gui::app_window::push_input(
                     window_id,
-                    crate::gui::app_window::AppInputEvent { tag: 0, a: ascii as u32, b: 0, c: 0, d: 0 },
+                    crate::gui::app_window::AppInputEvent { tag: 0, a: ascii as u32, b: 0, c: 0, d: 0, injected },
                 );
             }
         }

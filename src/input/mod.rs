@@ -54,6 +54,13 @@ pub struct InputEvent {
     /// Monotonic tick count at the time the event was recorded.
     /// Sourced from the PIT tick counter when available.
     pub timestamp: u64,
+    /// Produced by InjectKey / InjectMouse (the agent's input tools), not by
+    /// a physical device. The desktop keeps such events away from every
+    /// control that acts with the operator's authority (the terminal window,
+    /// the privacy lock, the launcher, power menu, dock and close buttons);
+    /// they still reach ordinary app windows, marked. PollInput's 16-byte
+    /// record does not carry it.
+    pub injected: bool,
 }
 
 // ============================================================================
@@ -179,6 +186,7 @@ pub fn inject_key_event(ascii: u8, pressed: bool) {
     let event = InputEvent {
         event_type,
         timestamp: now_ticks(),
+        injected: INJECTING_AGENT_KEY.load(Ordering::SeqCst),
     };
 
     EVENT_QUEUE.lock().push(event);
@@ -245,6 +253,7 @@ pub fn inject_mouse_event(dx: i16, dy: i16, buttons: u8) {
         let event = InputEvent {
             event_type: InputEventType::MouseMove(dx, dy),
             timestamp: ts,
+            injected: false,
         };
         EVENT_QUEUE.lock().push(event);
         DAEMON_EVENT_QUEUE.lock().push(event);
@@ -261,6 +270,7 @@ pub fn inject_mouse_event(dx: i16, dy: i16, buttons: u8) {
             let event = InputEvent {
                 event_type: InputEventType::MouseButton(bit, pressed),
                 timestamp: ts,
+                injected: false,
             };
             EVENT_QUEUE.lock().push(event);
             DAEMON_EVENT_QUEUE.lock().push(event);
@@ -296,6 +306,7 @@ pub fn inject_mouse_move(dx: i16, dy: i16) {
     let event = InputEvent {
         event_type: InputEventType::MouseMove(dx, dy),
         timestamp: now_ticks(),
+        injected: true,
     };
     EVENT_QUEUE.lock().push(event);
 }
@@ -304,13 +315,16 @@ pub fn inject_mouse_move(dx: i16, dy: i16) {
 pub fn inject_mouse_click(button: u8) {
     let ts = now_ticks();
 
+    // Only InjectMouse calls this: the click is the agent's.
     let press = InputEvent {
         event_type: InputEventType::MouseButton(button, true),
         timestamp: ts,
+        injected: true,
     };
     let release = InputEvent {
         event_type: InputEventType::MouseButton(button, false),
         timestamp: ts,
+        injected: true,
     };
 
     let mut queue = EVENT_QUEUE.lock();
@@ -323,6 +337,7 @@ pub fn inject_gesture_event(gesture_id: u8) {
     let event = InputEvent {
         event_type: InputEventType::GestureEvent(gesture_id),
         timestamp: now_ticks(),
+        injected: true,
     };
     EVENT_QUEUE.lock().push(event);
     DAEMON_EVENT_QUEUE.lock().push(event);

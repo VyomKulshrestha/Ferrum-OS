@@ -49,6 +49,10 @@ pub struct AppInputEvent {
     pub b: u32,
     pub c: u32,
     pub d: u32,
+    /// Produced by InjectKey / InjectMouse rather than a physical device.
+    /// Reported only in the 24-byte record of PollWindowInput, so 20-byte
+    /// callers see exactly what they saw before.
+    pub injected: bool,
 }
 
 static INPUT_QUEUES: Mutex<BTreeMap<u64, VecDeque<AppInputEvent>>> = Mutex::new(BTreeMap::new());

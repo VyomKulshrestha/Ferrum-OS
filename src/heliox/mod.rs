@@ -881,7 +881,10 @@ pub fn submit_request(
             "ipc:send:*",
             payload.as_bytes(),
         )
-        .map_err(|_| String::from("failed to construct daemon confirmation message"))?;
+        .map_err(|_| String::from("failed to construct daemon confirmation message"))?
+        // Only the kernel shell reaches this function, so the daemon can
+        // tell an operator's confirmation from one any process could post.
+        .with_sender_flags(crate::ipc::SENDER_KERNEL_SHELL);
         crate::ipc::send(message, held_capabilities)
             .map_err(|_| String::from("failed to deliver daemon confirmation message"))?;
     }

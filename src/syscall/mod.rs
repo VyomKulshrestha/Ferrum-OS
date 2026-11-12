@@ -107,6 +107,18 @@ pub enum SyscallNumber {
     LaunchContext = 59,
     /// Apply validated desktop theme/accent preferences for the live session.
     DesktopPreferences = 60,
+    /// IpcReceive plus the sender: args[0..4] as IpcReceive, args[4] = pointer
+    /// to a 16-byte record the kernel fills with the sender's pid (u64 LE) and
+    /// its `ipc::SENDER_*` flags (u64 LE). The record is checked before a
+    /// message is taken, so a bad pointer never drops one. IpcReceive keeps
+    /// its ABI for every other caller.
+    IpcReceiveFrom = 61,
+    /// The change counter of a file or directory: args[0..2] = path ptr/len.
+    /// Returns the version (non-zero, changes on every write, create or
+    /// remove, never repeats within a boot), 0 when nothing exists at the
+    /// path, or an error when the kernel cannot establish it. Needs read
+    /// access to the path.
+    FileVersion = 62,
 }
 
 /// Syscall return status.
@@ -374,7 +386,9 @@ fn dispatch_with_context(
                 "ipc:send:*",
                 &payload,
             ) {
-                Ok(message) => message,
+                // The sender's flags come from the kernel's own records of
+                // how `caller_pid` was launched, never from the caller.
+                Ok(message) => message.with_sender_flags(crate::ipc::process_sender_flags(caller_pid)),
                 Err(_) => return SyscallResult::err(SyscallStatus::InvalidArgument),
             };
             match crate::ipc::send(message, held_capabilities) {
@@ -386,56 +400,12 @@ fn dispatch_with_context(
             }
         }
         x if x == SyscallNumber::IpcReceive as u64 => {
-            if !crate::security::has_capability(held_capabilities, "ipc:receive:*") {
-                return SyscallResult::err(SyscallStatus::PermissionDenied);
-            }
-            let buf_ptr = args[0];
-            let buf_len = args[1] as usize;
-            if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
-                || (buf_len > 0 && !crate::syscall::fs::valid_user_range(buf_ptr, buf_len))
-            {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            }
-            let service_name = if args[2] == 0 || args[3] == 0 {
-                return SyscallResult::err(SyscallStatus::InvalidArgument);
-            } else {
-                match unsafe { crate::syscall::fs::read_user_str(args[2], args[3]) } {
-                    Some(s) => s,
-                    None => return SyscallResult::err(SyscallStatus::InvalidArgument),
-                }
-            };
-
-            if !crate::ipc::task_owns_service(caller_pid, &service_name) {
-                crate::logging::audit::log_event(
-                    crate::logging::audit::AuditEvent::PermissionDenied,
-                    "IPC receive denied for mailbox owned by another process",
-                );
-                return SyscallResult::err(SyscallStatus::PermissionDenied);
-            }
-
-            match crate::ipc::receive_for_service(&service_name) {
-                Ok(message) => {
-                    if buf_ptr == 0 || buf_len == 0 {
-                        // User just wants to consume/drop the message or check if there is one
-                        return SyscallResult::ok(message.payload().len() as u64);
-                    }
-
-                    let to_copy = message.payload().len().min(buf_len);
-                    if to_copy > 0 {
-                        if unsafe {
-                            crate::syscall::fs::copy_to_user(buf_ptr, message.payload(), to_copy)
-                        } != to_copy
-                        {
-                            return SyscallResult::err(SyscallStatus::InvalidArgument);
-                        }
-                    }
-
-                    SyscallResult::ok(to_copy as u64)
-                }
-                Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
-                Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
-            }
+            sys_ipc_receive(args, held_capabilities, caller_pid, None)
         }
+        x if x == SyscallNumber::IpcReceiveFrom as u64 => {
+            sys_ipc_receive(args, held_capabilities, caller_pid, Some(args[4]))
+        }
+        x if x == SyscallNumber::FileVersion as u64 => fs::sys_file_version(args, held_capabilities),
         x if x == SyscallNumber::ServiceStart as u64 => {
             match crate::services::start_service_authorized(args[0], held_capabilities) {
                 Ok(()) => SyscallResult::ok(args[0]),
@@ -806,6 +776,80 @@ fn dispatch_with_context(
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
         _ => SyscallResult::err(SyscallStatus::UnknownSyscall),
+    }
+}
+
+/// IpcReceive and IpcReceiveFrom. `info_ptr` is IpcReceiveFrom's 16-byte
+/// sender record; it is validated before a message is dequeued.
+fn sys_ipc_receive(
+    args: [u64; 6],
+    held_capabilities: &[String],
+    caller_pid: u64,
+    info_ptr: Option<u64>,
+) -> SyscallResult {
+    if !crate::security::has_capability(held_capabilities, "ipc:receive:*") {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+    let buf_ptr = args[0];
+    let buf_len = args[1] as usize;
+    if buf_len > crate::ipc::MAX_PAYLOAD_BYTES
+        || (buf_len > 0 && !crate::syscall::fs::valid_user_range(buf_ptr, buf_len))
+    {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+    const SENDER_RECORD_BYTES: usize = 16;
+    if let Some(info) = info_ptr {
+        if info == 0 || !crate::syscall::fs::valid_user_range(info, SENDER_RECORD_BYTES) {
+            return SyscallResult::err(SyscallStatus::InvalidArgument);
+        }
+    }
+    let service_name = if args[2] == 0 || args[3] == 0 {
+        return SyscallResult::err(SyscallStatus::InvalidArgument);
+    } else {
+        match unsafe { crate::syscall::fs::read_user_str(args[2], args[3]) } {
+            Some(s) => s,
+            None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+        }
+    };
+
+    if !crate::ipc::task_owns_service(caller_pid, &service_name) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            "IPC receive denied for mailbox owned by another process",
+        );
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+
+    match crate::ipc::receive_for_service(&service_name) {
+        Ok(message) => {
+            if let Some(info) = info_ptr {
+                let mut record = [0u8; SENDER_RECORD_BYTES];
+                record[..8].copy_from_slice(&message.source_pid.to_le_bytes());
+                record[8..].copy_from_slice(&message.sender_flags.to_le_bytes());
+                if unsafe { crate::syscall::fs::copy_to_user(info, &record, SENDER_RECORD_BYTES) }
+                    != SENDER_RECORD_BYTES
+                {
+                    return SyscallResult::err(SyscallStatus::InvalidArgument);
+                }
+            }
+            if buf_ptr == 0 || buf_len == 0 {
+                // User just wants to consume/drop the message or check if there is one
+                return SyscallResult::ok(message.payload().len() as u64);
+            }
+
+            let to_copy = message.payload().len().min(buf_len);
+            if to_copy > 0 {
+                if unsafe { crate::syscall::fs::copy_to_user(buf_ptr, message.payload(), to_copy) }
+                    != to_copy
+                {
+                    return SyscallResult::err(SyscallStatus::InvalidArgument);
+                }
+            }
+
+            SyscallResult::ok(to_copy as u64)
+        }
+        Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
+        Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }
 

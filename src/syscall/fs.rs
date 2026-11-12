@@ -290,3 +290,26 @@ pub fn sys_delete_file(args: [u64; 6], held_capabilities: &[String]) -> SyscallR
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 }
+
+/// `sys_file_version` — The change counter of the node at a path.
+///
+/// args[0] = path_ptr, args[1] = path_len
+///
+/// Returns the node's version (non-zero), 0 when nothing exists at the path,
+/// PermissionDenied without read access, and InvalidArgument when the kernel
+/// cannot establish a version (bad path, unmounted prefix, I/O error). A
+/// caller that binds an approval to a file treats the error as a refusal.
+pub fn sys_file_version(args: [u64; 6], held_capabilities: &[String]) -> SyscallResult {
+    let path = match unsafe { read_user_str(args[0], args[1]) } {
+        Some(p) => p,
+        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
+    };
+    if !authorize_path(&path, false, held_capabilities) {
+        return SyscallResult::err(SyscallStatus::PermissionDenied);
+    }
+    match crate::fs::file_version(&path) {
+        Ok(Some(version)) => SyscallResult::ok(version),
+        Ok(None) => SyscallResult::ok(0),
+        Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
+    }
+}

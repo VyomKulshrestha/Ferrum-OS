@@ -27,6 +27,9 @@ pub fn run(name: &str) -> bool {
         "heap-bounds" => heap_bounds(),
         "exec-path" => exec_path(),
         "injected-key" => injected_key(),
+        "ipc-sender" => ipc_sender(),
+        "injected-terminal" => injected_terminal(),
+        "file-version" => file_version(),
         _ => return false,
     }
     true
@@ -170,5 +173,177 @@ fn exec_path() {
         !crate::syscall::process::exec_path_allowed(dotted),
         !crate::syscall::process::exec_path_allowed(repo),
         crate::syscall::process::exec_path_allowed(plain)
+    );
+}
+
+/// K4: how the kernel tells the daemon who sent a control message. A process
+/// gets the assistant-panel flag only after a kernel launch path marks it;
+/// the mark goes with the pid; a VFS file cannot take a compiled-in name.
+fn ipc_sender() {
+    let unmarked = crate::ipc::process_sender_flags(TEST_PID);
+    crate::ipc::mark_operator_panel(TEST_PID);
+    let marked = crate::ipc::process_sender_flags(TEST_PID);
+    crate::ipc::forget_pid(TEST_PID);
+    let forgotten = crate::ipc::process_sender_flags(TEST_PID);
+    let shell_message = crate::ipc::Message::new(
+        0,
+        crate::ipc::Endpoint::new("heliox", "control"),
+        crate::ipc::MessageKind::Request,
+        "ipc:send:*",
+        b"CONFIRM:1",
+    )
+    .map(|message| message.with_sender_flags(crate::ipc::SENDER_KERNEL_SHELL).sender_flags)
+    .unwrap_or(0);
+    let process_message = crate::ipc::Message::new(
+        TEST_PID,
+        crate::ipc::Endpoint::new("heliox", "default"),
+        crate::ipc::MessageKind::Event,
+        "ipc:send:*",
+        b"CONFIRM:1",
+    )
+    .map(|message| message.sender_flags)
+    .unwrap_or(u64::MAX);
+    println!(
+        "selftest ipc-sender: unmarked_flags={} panel_flags={} after_reap_flags={} shell_flags={} new_message_flags={}",
+        unmarked, marked, forgotten, shell_message, process_message
+    );
+    println!(
+        "selftest ipc-sender: vfs_panel_name_denied={} vfs_daemon_name_denied={} vfs_init_name_denied={} vfs_plain_allowed={}",
+        !crate::syscall::process::vfs_exec_name_allowed("/tmp/heliox-assistant-panel"),
+        !crate::syscall::process::vfs_exec_name_allowed("/disk/x/heliox-daemon"),
+        !crate::syscall::process::vfs_exec_name_allowed("/tmp/init"),
+        crate::syscall::process::vfs_exec_name_allowed("/tmp/worker")
+    );
+}
+
+/// K1: keys and clicks injected through InjectKey / InjectMouse travel the
+/// real path (input queue, `cursor::process_input`, compositor) and must not
+/// reach the terminal window (a kernel shell) or the launcher, while an app
+/// window still receives them, marked as injected.
+fn injected_terminal() {
+    use core::sync::atomic::Ordering;
+    use crate::gui::compositor::{COMPOSITOR, INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS};
+    const KEY_Z: u8 = 0x7A;
+    const KEY_K: u8 = 0x6B;
+    let terminal_len = || {
+        COMPOSITOR
+            .lock()
+            .windows
+            .iter()
+            .find(|window| window.win_type == crate::gui::window::WindowType::Terminal)
+            .map(|window| window.content.len())
+            .unwrap_or(usize::MAX)
+    };
+    // Drain whatever is queued (and the one-time stale-key discard).
+    crate::gui::cursor::process_input();
+    let kept_before = INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS.load(Ordering::SeqCst);
+
+    // 1. Terminal focused, agent types into it.
+    crate::gui::compositor::spawn_terminal();
+    let before = terminal_len();
+    let _ = crate::syscall::input::sys_inject_key([KEY_Z as u64, 0, 0, 0, 0, 0]);
+    crate::gui::cursor::process_input();
+    let after_injected = terminal_len();
+    // Positive control: the same key from the operator reaches it.
+    crate::gui::compositor::handle_key_press(KEY_Z, false);
+    let after_physical = terminal_len();
+    if let Some(window) = COMPOSITOR
+        .lock()
+        .windows
+        .iter_mut()
+        .find(|window| window.win_type == crate::gui::window::WindowType::Terminal)
+    {
+        if after_physical > after_injected {
+            window.content.pop();
+        }
+    }
+    println!(
+        "selftest injected-terminal: terminal_kept={} physical_reaches_terminal={}",
+        after_injected == before && before != usize::MAX,
+        after_physical == after_injected + 1
+    );
+
+    // 2. An ordinary app window (focused on creation) gets the injected key,
+    //    marked, through the same path.
+    let window_id = crate::syscall::gui_window::create_window_for(TEST_PID, "selftest", 96, 48).value;
+    let _ = crate::syscall::input::sys_inject_key([KEY_K as u64, 0, 0, 0, 0, 0]);
+    crate::gui::cursor::process_input();
+    let delivered = crate::gui::app_window::poll_input(window_id, TEST_PID);
+    crate::gui::app_window::close_for_pid(TEST_PID);
+    println!(
+        "selftest injected-terminal: app_delivered={} app_marked_injected={}",
+        delivered.map(|event| event.tag == 0 && event.a == KEY_K as u32).unwrap_or(false),
+        delivered.map(|event| event.injected).unwrap_or(false)
+    );
+
+    // 3. An injected click on the launcher's assistant-panel entry launches
+    //    nothing.
+    let mut probe = None;
+    'scan: for y in (0..1080u32).step_by(4) {
+        for x in (0..1920u32).step_by(8) {
+            if crate::gui::desktop::launcher_entry_at(x, y) == Some(2) {
+                probe = Some((x, y));
+                break 'scan;
+            }
+        }
+    }
+    let panels = || {
+        crate::process::list()
+            .iter()
+            .filter(|(_, name, _)| name == "heliox-assistant-panel")
+            .count()
+    };
+    let launched = match probe {
+        Some((x, y)) => {
+            let panels_before = panels();
+            COMPOSITOR.lock().launcher_open = true;
+            crate::gui::compositor::handle_mouse_down(x, y, true);
+            crate::gui::compositor::handle_mouse_up(x, y, true);
+            COMPOSITOR.lock().launcher_open = false;
+            alloc::format!("{}", panels() != panels_before)
+        }
+        None => alloc::string::String::from("skipped"),
+    };
+    let kept = INJECTED_EVENTS_KEPT_FROM_OPERATOR_CONTROLS.load(Ordering::SeqCst) - kept_before;
+    println!(
+        "selftest injected-terminal: launcher_injected_launched={} kept_from_operator_controls={}",
+        launched, kept
+    );
+}
+
+/// K3: the per-file change counter the daemon binds approvals to.
+fn file_version() {
+    let path = "/tmp/selftest-file-version";
+    let _ = crate::fs::remove(path);
+    let absent = crate::fs::file_version(path);
+    let parent_before = crate::fs::file_version("/tmp").ok().flatten();
+    let created = crate::fs::create_file(path, "a").is_ok();
+    let v1 = crate::fs::file_version(path).ok().flatten();
+    let parent_after = crate::fs::file_version("/tmp").ok().flatten();
+    let _ = crate::fs::create_file(path, "a");
+    let v2 = crate::fs::file_version(path).ok().flatten();
+    let _ = crate::fs::remove(path);
+    let after_remove = crate::fs::file_version(path);
+    let _ = crate::fs::create_file(path, "a");
+    let v3 = crate::fs::file_version(path).ok().flatten();
+    let _ = crate::fs::remove(path);
+    let below_sign_bit = [v1, v2, v3]
+        .iter()
+        .all(|v| v.map(|v| v != 0 && v < (1u64 << 63)).unwrap_or(false));
+    println!(
+        "selftest file-version: absent_is_none={} created={} present={} same_content_rewrite_changes={} parent_changes={}",
+        matches!(absent, Ok(None)),
+        created,
+        v1.is_some(),
+        v1.is_some() && v2.is_some() && v1 != v2,
+        parent_before.is_some() && parent_before != parent_after
+    );
+    println!(
+        "selftest file-version: removed_is_none={} recreate_is_new={} positive_nonzero={} dotdot_is_error={} file_as_dir_is_error={}",
+        matches!(after_remove, Ok(None)),
+        v3.is_some() && v3 != v1 && v3 != v2,
+        below_sign_bit,
+        crate::fs::file_version("/tmp/../etc/hostname").is_err(),
+        crate::fs::file_version("/etc/hostname/x").is_err()
     );
 }

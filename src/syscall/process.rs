@@ -87,6 +87,13 @@ pub fn exec_path_allowed(path: &str) -> bool {
         && !super::fs::is_package_control_path(path)
 }
 
+/// Whether a file read from the VFS may run under the name its path gives
+/// it (the last component). Names of compiled-in programs, installed
+/// packages and mailbox aliases are refused (`ipc::is_reserved_program_name`).
+pub fn vfs_exec_name_allowed(path: &str) -> bool {
+    !crate::ipc::is_reserved_program_name(path.rsplit('/').next().unwrap_or(""))
+}
+
 /// `sys_exec` — Spawn a new process from an ELF binary on the VFS.
 ///
 /// args[0] = path_ptr (user pointer to ELF path string, e.g. "/disk/bin/worker")
@@ -120,6 +127,7 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
         || path.contains("huge-test")
         || path.contains("socket-owner-test")
         || path.contains("ipc-owner-test")
+        || path.contains("ipc-forge-test")
     {
         crate::userspace::INIT_ELF
     } else if path == "/bin/gui-smoke-test" || path == "gui-smoke-test" {
@@ -161,6 +169,18 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
                 crate::logging::audit::log_event(
                     crate::logging::audit::AuditEvent::PermissionDenied,
                     "ring3 exec denied: path is not a plain absolute path outside the package repository",
+                );
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            // The last path component becomes the process name, which picks
+            // the manifest capabilities and the mailbox the process owns. A
+            // file named like a compiled-in program (the assistant panel,
+            // the daemon, init) would otherwise run with that program's
+            // capabilities and receive its mailbox (fi1 joint round, K4).
+            if !vfs_exec_name_allowed(&path) {
+                crate::logging::audit::log_event(
+                    crate::logging::audit::AuditEvent::PermissionDenied,
+                    "ring3 exec denied: a VFS file may not take a compiled-in program's name",
                 );
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
@@ -225,6 +245,14 @@ pub fn sys_exec(args: [u64; 6]) -> SyscallResult {
             alloc::vec![
                 alloc::string::String::from("cap:fs:read"),
                 alloc::string::String::from("cap:net:connect"),
+            ]
+        } else if name == "ipc-forge-test" {
+            // A process that is not the operator and holds cap:ipc:send, for
+            // the sender-identity harness (verify_authority_gate_joint.mjs).
+            alloc::vec![
+                alloc::string::String::from("cap:fs:read"),
+                alloc::string::String::from("cap:ipc:send"),
+                alloc::string::String::from("cap:ipc:receive"),
             ]
         } else if name == "ipc-owner-test" {
             alloc::vec![

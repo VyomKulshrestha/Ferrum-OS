@@ -927,6 +927,7 @@ pub fn drop_by_pid(pid: u64) -> bool {
     };
     let user_frames = record.process.user_frame_count();
     LAUNCH_CONTEXTS.lock().retain(|(owner, _)| *owner != pid);
+    crate::ipc::forget_pid(pid);
     let closed_sockets = crate::net::iface::close_sockets_for_owner(pid);
     // Windows were closed only by ProcessKill, the window's close button and
     // the shell's `kill`; a process that exited or faulted left its windows

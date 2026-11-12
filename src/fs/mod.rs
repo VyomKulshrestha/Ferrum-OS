@@ -34,6 +34,26 @@ pub struct FsStat {
     pub is_dir: bool,
     pub size: usize,
     pub children: usize,
+    /// Change counter (`next_file_version`): differs after every write,
+    /// create or remove that touches the node, and never repeats in a boot.
+    pub version: u64,
+}
+
+/// Versions assigned during this boot have this bit set; versions read from
+/// an ext2 inode written in an earlier boot have `ON_DISK_VERSION_BIT`
+/// instead, so the two ranges never meet and a version is never 0. Both
+/// stay below 2^63, so a syscall return value is never mistaken for an
+/// error status.
+pub const BOOT_VERSION_BIT: u64 = 1 << 62;
+pub const ON_DISK_VERSION_BIT: u64 = 1 << 61;
+
+static NEXT_FILE_VERSION: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(1);
+
+/// A version no node has had in this boot.
+pub fn next_file_version() -> u64 {
+    BOOT_VERSION_BIT
+        | (NEXT_FILE_VERSION.fetch_add(1, core::sync::atomic::Ordering::SeqCst)
+            & (ON_DISK_VERSION_BIT - 1))
 }
 
 #[derive(Debug, Clone)]
@@ -62,8 +82,22 @@ pub struct Mount {
 /// A filesystem entry - either a file or directory
 #[derive(Debug, Clone)]
 enum FsNode {
-    File { content: Vec<u8> },
-    Directory { children: BTreeMap<String, FsNode> },
+    File { content: Vec<u8>, version: u64 },
+    Directory { children: BTreeMap<String, FsNode>, version: u64 },
+}
+
+impl FsNode {
+    fn file(content: Vec<u8>) -> Self {
+        FsNode::File { content, version: next_file_version() }
+    }
+    fn dir(children: BTreeMap<String, FsNode>) -> Self {
+        FsNode::Directory { children, version: next_file_version() }
+    }
+    fn version(&self) -> u64 {
+        match self {
+            FsNode::File { version, .. } | FsNode::Directory { version, .. } => *version,
+        }
+    }
 }
 
 pub struct RamFs {
@@ -75,33 +109,29 @@ impl RamFs {
         let mut children = BTreeMap::new();
         
         // Create standard directories
-        children.insert("etc".to_string(), FsNode::Directory { children: BTreeMap::new() });
-        children.insert("tmp".to_string(), FsNode::Directory { children: BTreeMap::new() });
-        children.insert("var".to_string(), FsNode::Directory { children: BTreeMap::new() });
-        children.insert("srv".to_string(), FsNode::Directory { children: BTreeMap::new() });
+        children.insert("etc".to_string(), FsNode::dir(BTreeMap::new()));
+        children.insert("tmp".to_string(), FsNode::dir(BTreeMap::new()));
+        children.insert("var".to_string(), FsNode::dir(BTreeMap::new()));
+        children.insert("srv".to_string(), FsNode::dir(BTreeMap::new()));
 
         // Pre-create /disk/heliox to allow configuration without a mounted Ext2 disk
         let mut disk_children = BTreeMap::new();
-        disk_children.insert("heliox".to_string(), FsNode::Directory { children: BTreeMap::new() });
-        children.insert("disk".to_string(), FsNode::Directory { children: disk_children });
+        disk_children.insert("heliox".to_string(), FsNode::dir(BTreeMap::new()));
+        children.insert("disk".to_string(), FsNode::dir(disk_children));
         
         // Create a welcome file
-        children.insert("readme.txt".to_string(), FsNode::File {
-            content: Vec::from("Welcome to FerrumOS v0.1.1\nAI-Native Autonomous OS Foundation\n".as_bytes()),
-        });
+        children.insert("readme.txt".to_string(), FsNode::file(
+            Vec::from("Welcome to FerrumOS v0.1.1\nAI-Native Autonomous OS Foundation\n".as_bytes()),
+        ));
         
         // Create /etc/motd
-        if let Some(FsNode::Directory { children: ref mut etc_children }) = children.get_mut("etc") {
-            etc_children.insert("hostname".to_string(), FsNode::File {
-                content: Vec::from("FerrumOS".as_bytes()),
-            });
-            etc_children.insert("version".to_string(), FsNode::File {
-                content: Vec::from("0.1.1".as_bytes()),
-            });
+        if let Some(FsNode::Directory { children: ref mut etc_children, .. }) = children.get_mut("etc") {
+            etc_children.insert("hostname".to_string(), FsNode::file(Vec::from("FerrumOS".as_bytes())));
+            etc_children.insert("version".to_string(), FsNode::file(Vec::from("0.1.1".as_bytes())));
         }
         
         Self {
-            root: Mutex::new(FsNode::Directory { children }),
+            root: Mutex::new(FsNode::dir(children)),
         }
     }
 }
@@ -111,12 +141,12 @@ impl vfs::Filesystem for RamFs {
         let root_guard = self.root.lock();
         let node = navigate(&root_guard, path)?;
         match node {
-            FsNode::Directory { children } => {
+            FsNode::Directory { children, .. } => {
                 let mut entries = Vec::new();
                 for (name, child) in children {
                     let (is_dir, size) = match child {
-                        FsNode::File { content } => (false, content.len()),
-                        FsNode::Directory { children } => (true, children.len()),
+                        FsNode::File { content, .. } => (false, content.len()),
+                        FsNode::Directory { children, .. } => (true, children.len()),
                     };
                     entries.push(DirEntry { name: name.clone(), is_dir, size });
                 }
@@ -130,7 +160,7 @@ impl vfs::Filesystem for RamFs {
         let root_guard = self.root.lock();
         let node = navigate(&root_guard, path)?;
         match node {
-            FsNode::File { content } => String::from_utf8(content.clone())
+            FsNode::File { content, .. } => String::from_utf8(content.clone())
                 .map_err(|_| String::from("file is not valid UTF-8")),
             FsNode::Directory { .. } => Err(String::from("is a directory")),
         }
@@ -140,7 +170,7 @@ impl vfs::Filesystem for RamFs {
         let root_guard = self.root.lock();
         let node = navigate(&root_guard, path)?;
         match node {
-            FsNode::File { content } => {
+            FsNode::File { content, .. } => {
                 let start = offset as usize;
                 if start >= content.len() {
                     return Ok(0);
@@ -163,13 +193,16 @@ impl vfs::Filesystem for RamFs {
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
-            FsNode::Directory { children } => {
+            FsNode::Directory { children, version } => {
                 // Fallible copy (WriteFile passes up to 4 MiB of user data).
                 let mut copy = Vec::new();
                 copy.try_reserve_exact(content.len())
                     .map_err(|_| String::from("file too large for kernel heap"))?;
                 copy.extend_from_slice(content);
-                children.insert(file_name, FsNode::File { content: copy });
+                // Every write gives the file, and the directory whose listing
+                // it is in, a version neither has had before.
+                children.insert(file_name, FsNode::file(copy));
+                *version = next_file_version();
                 Ok(())
             }
             _ => Err(String::from("parent is not a directory")),
@@ -182,11 +215,12 @@ impl vfs::Filesystem for RamFs {
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
-            FsNode::Directory { children } => {
+            FsNode::Directory { children, version } => {
                 if children.contains_key(&dir_name) {
                     return Err(String::from("already exists"));
                 }
-                children.insert(dir_name, FsNode::Directory { children: BTreeMap::new() });
+                children.insert(dir_name, FsNode::dir(BTreeMap::new()));
+                *version = next_file_version();
                 Ok(())
             }
             _ => Err(String::from("parent is not a directory")),
@@ -199,8 +233,9 @@ impl vfs::Filesystem for RamFs {
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
         match parent {
-            FsNode::Directory { children } => {
+            FsNode::Directory { children, version } => {
                 children.remove(&name).ok_or_else(|| String::from("not found"))?;
+                *version = next_file_version();
                 Ok(())
             }
             _ => Err(String::from("parent is not a directory")),
@@ -212,8 +247,8 @@ impl vfs::Filesystem for RamFs {
         let node = navigate(&root_guard, path)?;
 
         let (is_dir, size, children) = match node {
-            FsNode::File { content } => (false, content.len(), 0),
-            FsNode::Directory { children } => (true, children.len(), children.len()),
+            FsNode::File { content, .. } => (false, content.len(), 0),
+            FsNode::Directory { children, .. } => (true, children.len(), children.len()),
         };
 
         Ok(FsStat {
@@ -221,6 +256,7 @@ impl vfs::Filesystem for RamFs {
             is_dir,
             size,
             children,
+            version: node.version(),
         })
     }
 
@@ -376,6 +412,8 @@ pub fn stat(path: &str) -> Result<FsStat, String> {
             is_dir: false,
             size: 64 * 1024 * 1024,
             children: 0,
+            // Synthetic, immutable test file.
+            version: ON_DISK_VERSION_BIT,
         });
     }
     let (fs, rel) = vfs::resolve(path)?;
@@ -390,6 +428,27 @@ pub fn stat(path: &str) -> Result<FsStat, String> {
     // items). Report the real, full path the caller asked about.
     result.path = normalize_path(path);
     Ok(result)
+}
+
+/// The version of the node at `path`: `Ok(Some(v))` when it exists,
+/// `Ok(None)` when nothing is there, `Err` when the kernel cannot tell (no
+/// mount, a file used as a directory, an I/O error). Callers that bind an
+/// approval to a version must treat `Err` as a refusal.
+pub fn file_version(path: &str) -> Result<Option<u64>, String> {
+    if path.split('/').any(|component| component == "." || component == "..") {
+        return Err(String::from("path has . or .. components"));
+    }
+    let info = match stat(path) {
+        Ok(info) => info,
+        Err(err) if err.starts_with("no such file or directory") || err.starts_with("file not found") => {
+            return Ok(None);
+        }
+        Err(err) => return Err(err),
+    };
+    if info.version == 0 {
+        return Err(String::from("filesystem reports no version"));
+    }
+    Ok(Some(info.version))
 }
 
 pub fn usage() -> Result<FsUsage, String> {
@@ -442,7 +501,7 @@ fn navigate<'a>(root: &'a FsNode, path: &str) -> Result<&'a FsNode, String> {
     
     for part in &parts {
         match current {
-            FsNode::Directory { children } => {
+            FsNode::Directory { children, .. } => {
                 current = children.get(*part)
                     .ok_or_else(|| alloc::format!("no such file or directory: {}", path))?;
             }
@@ -466,7 +525,7 @@ fn navigate_mut<'a>(root: &'a mut FsNode, path: &str) -> Result<&'a mut FsNode, 
     
     for part in &parts {
         match current {
-            FsNode::Directory { children } => {
+            FsNode::Directory { children, .. } => {
                 current = children.get_mut(*part)
                     .ok_or_else(|| alloc::format!("no such file or directory: {}", path))?;
             }
@@ -481,11 +540,11 @@ fn navigate_mut<'a>(root: &'a mut FsNode, path: &str) -> Result<&'a mut FsNode, 
 
 fn accumulate_usage(node: &FsNode, usage: &mut FsUsage) {
     match node {
-        FsNode::File { content } => {
+        FsNode::File { content, .. } => {
             usage.files += 1;
             usage.bytes += content.len();
         }
-        FsNode::Directory { children } => {
+        FsNode::Directory { children, .. } => {
             usage.directories += 1;
             for child in children.values() {
                 accumulate_usage(child, usage);

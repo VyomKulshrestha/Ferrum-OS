@@ -48,11 +48,23 @@ pub enum MessageKind {
     Event,
 }
 
+/// Sender flag: the message was posted by the kernel shell on the operator's
+/// behalf (`heliox confirm`, `heliox deny`, `heliox voice event`,
+/// `heliox neural`). Only kernel code sets it; IpcSend never does.
+pub const SENDER_KERNEL_SHELL: u64 = 1 << 0;
+/// Sender flag: the message was posted by an assistant panel the kernel
+/// itself launched for the operator (desktop launcher clicked with a physical
+/// pointer, the boot-time setup launch, or the shell's `run`). A panel spawned
+/// through Exec or AppLaunch by any process never carries it.
+pub const SENDER_ASSISTANT_PANEL: u64 = 1 << 1;
+
 /// Deterministic IPC envelope.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Message {
     pub id: u64,
     pub source_pid: u64,
+    /// `SENDER_*` bits established by the kernel, never by the sender.
+    pub sender_flags: u64,
     pub target: Endpoint,
     pub kind: MessageKind,
     pub required_capability: String,
@@ -77,6 +89,7 @@ impl Message {
         Ok(Self {
             id: NEXT_MESSAGE_ID.fetch_add(1, Ordering::SeqCst),
             source_pid,
+            sender_flags: 0,
             target,
             kind,
             required_capability: required_capability.to_string(),
@@ -84,9 +97,79 @@ impl Message {
         })
     }
 
+    /// Kernel-only: record how the kernel knows who sent this message.
+    pub fn with_sender_flags(mut self, flags: u64) -> Self {
+        self.sender_flags = flags;
+        self
+    }
+
     pub fn payload(&self) -> &[u8] {
         &self.payload
     }
+}
+
+/// Pids of assistant panels the kernel launched for the operator. Pids are
+/// never reused (`process::create`), so a later process cannot inherit an
+/// entry; `forget_pid` drops it when the panel is reaped.
+static OPERATOR_PANEL_PIDS: Mutex<alloc::collections::BTreeSet<u64>> =
+    Mutex::new(alloc::collections::BTreeSet::new());
+
+/// Record that the kernel launched `pid` as the operator's assistant panel.
+/// Call only from kernel launch paths that act on operator input.
+pub fn mark_operator_panel(pid: u64) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        OPERATOR_PANEL_PIDS.lock().insert(pid);
+    });
+}
+
+/// Drop any sender record for a reaped process.
+pub fn forget_pid(pid: u64) {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        OPERATOR_PANEL_PIDS.lock().remove(&pid);
+    });
+}
+
+/// The `SENDER_*` flags the kernel attaches to an IpcSend from `pid`.
+pub fn process_sender_flags(pid: u64) -> u64 {
+    let is_panel = x86_64::instructions::interrupts::without_interrupts(|| {
+        OPERATOR_PANEL_PIDS.lock().contains(&pid)
+    });
+    if is_panel {
+        SENDER_ASSISTANT_PANEL
+    } else {
+        0
+    }
+}
+
+/// Names a VFS file must not take as its process name when it is Exec'd:
+/// every program compiled into the kernel image and every mailbox alias.
+/// The process name chooses the program's manifest capabilities and the
+/// mailbox it owns, so an Exec'd file called `heliox-assistant-panel` used
+/// to receive the panel's capabilities and its `assistant` mailbox.
+pub fn is_reserved_program_name(name: &str) -> bool {
+    matches!(
+        name,
+        "init"
+            | "heliox-daemon"
+            | "heliox"
+            | "heliox-assistant-panel"
+            | "assistant"
+            | "agentd"
+            | "runtime.agentd"
+            | "agent-bridge"
+            | "audit-exporter"
+            | "gui-smoke-test"
+            | "text-editor"
+            | "calculator"
+            | "file-manager"
+            | "settings"
+            | "browser"
+            | "app-store"
+            | "notification-center"
+            | "task-manager"
+            | "ipc-owner-test"
+            | "ipc-forge-test"
+    ) || crate::userspace::is_compiled_program(name)
 }
 
 /// IPC validation failures.

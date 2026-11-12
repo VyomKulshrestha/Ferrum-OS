@@ -884,7 +884,9 @@ fn cmd_run(args: &[&str]) {
     };
 
     let result = match args[0] {
-        "heliox-assistant-panel" | "text-editor" | "calculator" | "file-manager"
+        // Typed at the kernel shell by the operator.
+        "heliox-assistant-panel" => crate::userspace::launch_operator_panel(),
+        "text-editor" | "calculator" | "file-manager"
         | "settings" | "browser" | "notification-center" | "task-manager" => {
             crate::userspace::launch_embedded_app(args[0])
         }
@@ -1128,9 +1130,10 @@ fn cmd_heliox(args: &[&str]) {
         "voice" => cmd_heliox_voice(&args[1..]),
         "neural" => cmd_heliox_neural(&args[1..]),
         "confirm" => cmd_heliox_confirm(&args[1..]),
+        "deny" => cmd_heliox_deny(&args[1..]),
         "execute" => cmd_heliox_execute(&args[1..]),
         _ => println!(
-            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, neural, confirm, execute)",
+            "heliox: unknown subcommand '{}' (try status, methods, tiers, actions, services, send, notif, persona, screen, voice, neural, confirm, deny, execute)",
             args[0]
         ),
     }
@@ -1430,7 +1433,7 @@ fn cmd_heliox_voice(args: &[&str]) {
                 msg_str.as_bytes(),
             ) {
                 let _ = crate::ipc::send(
-                    msg,
+                    msg.with_sender_flags(crate::ipc::SENDER_KERNEL_SHELL),
                     &alloc::vec![alloc::string::String::from("cap:system:all")],
                 );
             } else {
@@ -1458,7 +1461,7 @@ fn cmd_heliox_neural(args: &[&str]) {
         "ipc:send:*",
         payload.as_bytes(),
     ) {
-        Ok(message) => message,
+        Ok(message) => message.with_sender_flags(crate::ipc::SENDER_KERNEL_SHELL),
         Err(_) => {
             println!("heliox neural: failed to construct IPC message");
             return;
@@ -1493,6 +1496,38 @@ fn cmd_heliox_confirm(args: &[&str]) {
     match heliox::submit_request("confirm", plan_id, &held) {
         Ok(_) => println!("confirmation gate resolved: {}", plan_id),
         Err(err) => println!("heliox confirm: {}", err),
+    }
+}
+
+/// `heliox deny <id>`: the operator refuses one of the daemon's pending
+/// requests. Same capability as `heliox confirm`; the message carries the
+/// kernel-shell sender flag, so the daemon accepts it only from here or the
+/// operator's assistant panel.
+fn cmd_heliox_deny(args: &[&str]) {
+    let Some(id) = args.first().and_then(|text| text.parse::<u32>().ok()) else {
+        println!("heliox deny: usage: heliox deny <confirmation id>");
+        return;
+    };
+    let Ok(held) = require_token("cap:heliox:bridge") else {
+        return;
+    };
+    let payload = alloc::format!("DENY:{}", id);
+    let message = match crate::ipc::Message::new(
+        0,
+        crate::ipc::Endpoint::new("heliox", "control"),
+        crate::ipc::MessageKind::Request,
+        "ipc:send:*",
+        payload.as_bytes(),
+    ) {
+        Ok(message) => message.with_sender_flags(crate::ipc::SENDER_KERNEL_SHELL),
+        Err(_) => {
+            println!("heliox deny: failed to construct IPC message");
+            return;
+        }
+    };
+    match crate::ipc::send(message, &held) {
+        Ok(_) => println!("confirmation gate denied: {}", id),
+        Err(err) => println!("heliox deny: {:?}", err),
     }
 }
 

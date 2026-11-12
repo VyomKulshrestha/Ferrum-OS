@@ -251,6 +251,26 @@ pub fn list_programs() -> Vec<ProgramManifest> {
     USERSPACE.lock().programs.clone()
 }
 
+/// True when `name` has a program manifest (compiled in, or registered for an
+/// installed package). Exec of a VFS file with such a name is refused
+/// (`ipc::is_reserved_program_name`).
+pub fn is_compiled_program(name: &str) -> bool {
+    USERSPACE.lock().programs.iter().any(|program| program.name == name)
+}
+
+/// Launch the assistant panel for the operator and record it as the
+/// operator's panel, so the kernel marks its IPC messages with
+/// `ipc::SENDER_ASSISTANT_PANEL`. Only kernel paths that act on operator
+/// input call this: the desktop launcher (physical pointer only), the
+/// boot-time setup launch, and the shell's `run heliox-assistant-panel`.
+/// Exec and AppLaunch from a process reach `launch_embedded_app` or
+/// `sys_exec` instead and never set the mark.
+pub fn launch_operator_panel() -> Result<u64, String> {
+    let pid = launch_embedded_app("heliox-assistant-panel")?;
+    crate::ipc::mark_operator_panel(pid);
+    Ok(pid)
+}
+
 pub fn capabilities_for_program(name: &str) -> Vec<String> {
     let state = USERSPACE.lock();
     state.programs
