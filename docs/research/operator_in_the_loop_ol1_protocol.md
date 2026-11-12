@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Status | **DRAFT** (the coordinating session replaces this word by REGISTERED when it registers) |
-| Registered on | (date) |
-| Code commit | (the commit whose code files are registered) |
+| Status | **REGISTERED** |
+| Registered on | 2026-11-13 |
+| Code commit | 6598585 (branch `research/ol1`, merged to main before this registration) |
 | Record | `docs/research/operator_in_the_loop_ol1_registration.json` |
 
 The protocol's sha256 and the registration commit are kept in the record and in git history, not here: a file
