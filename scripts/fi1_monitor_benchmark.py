@@ -349,6 +349,40 @@ def verdict(base, cand):
             "alarm_share_provics": [base["provics"]["unlabelled_alarm_share"], cand["provics"]["unlabelled_alarm_share"]]}
 
 
+def survives_selection(base, cand):
+    """The selection rule of docs/research/fi1_reports/monitor_round1.md (fixed before the full selection results)."""
+    sb, sc = summary(base), summary(cand)
+    drops = {k: cand[k]["onset_recall"] - base[k]["onset_recall"] for k in base}
+    sealed = cand["tep-0-3"].get("sealed_fa_ratio_to_budget", 0.0)
+    checks = {"mean_onset_gain_ge_0.02": sc["mean_onset_recall"] - sb["mean_onset_recall"] >= 0.02,
+              "mean_share_not_higher": sc["mean_unlabelled_alarm_share"] <= sb["mean_unlabelled_alarm_share"],
+              "no_dataset_loses_more_than_0.05": all(d >= -0.05 for d in drops.values()),
+              "tep_sealed_fa_below_1.5_budget": sealed < 1.5}
+    return {"survives": all(checks.values()), "checks": checks,
+            "mean_onset_recall": sc["mean_onset_recall"], "mean_unlabelled_alarm_share": sc["mean_unlabelled_alarm_share"],
+            "mean_onset_gain": sc["mean_onset_recall"] - sb["mean_onset_recall"], "onset_change": drops,
+            "tep_sealed_fa_ratio": sealed}
+
+
+def select(names):
+    path = WORK / "results" / "selection_table.json"
+    table = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    for n in ["d1"] + [n for n in names if n != "d1"]:
+        if n not in table:
+            table[n] = evaluate_set(n, "selection")
+            save(path, table)
+    rows = {n: survives_selection(table["d1"], r) for n, r in table.items() if n != "d1"}
+    rows = dict(sorted(rows.items(), key=lambda kv: -kv[1]["mean_onset_recall"]))
+    sb = summary(table["d1"])
+    print(f"baseline d1: mean onset {sb['mean_onset_recall']:.3f} mean share {sb['mean_unlabelled_alarm_share']:.4f}")
+    for n, r in rows.items():
+        print(f"{n:22s} {'SURVIVES' if r['survives'] else 'out     '} mean onset {r['mean_onset_recall']:.3f} "
+              f"({r['mean_onset_gain']:+.3f}) share {r['mean_unlabelled_alarm_share']:.4f} sealed x{r['tep_sealed_fa_ratio']:.2f} "
+              + " ".join(f"{k} {v:+.3f}" for k, v in r["onset_change"].items()))
+    save(WORK / "results" / "selection_verdicts.json", {"baseline": sb, "candidates": rows})
+    return rows
+
+
 def save(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj, indent=1, default=float), encoding="utf-8")
@@ -454,6 +488,29 @@ def main():
         REGISTERED["tep-4-6"] |= registered_tep(range(4, 7))
         print(json.dumps(REGISTERED, indent=1))
         save(WORK / "results" / "registered.json", REGISTERED)
+    elif cmd == "select":
+        select(sys.argv[2:])
+    elif cmd == "check":
+        # baseline and the survivors of selection, once each on the check set; a monitor already in the
+        # check ledger is refused (no second look)
+        done = set()
+        if CHECK_LEDGER.exists():
+            done = {json.loads(line)["monitor"] for line in CHECK_LEDGER.read_text(encoding="utf-8").splitlines() if line}
+        names = ["d1"] + [n for n in sys.argv[2:] if n != "d1"]
+        again = [n for n in names if n in done]
+        if again:
+            raise SystemExit(f"REFUSE: already run on the check set: {again}")
+        out = {}
+        for n in names:
+            with CHECK_LEDGER.open("a", encoding="utf-8") as f:
+                f.write(json.dumps({"monitor": n, "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                                    "datasets": list(CHECK)}) + "\n")
+            out[n] = evaluate_set(n, "check")
+            save(WORK / "results" / "check_table.json", out)
+        verdicts = {n: verdict(out["d1"], r) for n, r in out.items() if n != "d1"}
+        for n, v in verdicts.items():
+            print(n, "IMPROVED" if v["improved"] else "not improved", json.dumps(v, default=float))
+        save(WORK / "results" / "check_verdicts.json", {"baseline": summary(out["d1"]), "verdicts": verdicts})
     elif cmd == "tep-cache":
         row = reproduce_tep_cache()
         print(json.dumps({k: v for k, v in row.items() if k not in ("chance_onset",)}, indent=1, default=float))
