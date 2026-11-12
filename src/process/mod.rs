@@ -142,6 +142,8 @@ pub struct Process {
     /// Has `load_elf` parsed the ELF and mapped all PT_LOAD segments?
     loaded: bool,
     pub max_memory_pages: u64,
+    /// Pid that created this process (0: the kernel).
+    parent: u64,
 }
 
 impl Process {
@@ -224,7 +226,8 @@ impl Process {
         }
         let flags = PageTableFlags::PRESENT
             | PageTableFlags::USER_ACCESSIBLE
-            | PageTableFlags::WRITABLE;
+            | PageTableFlags::WRITABLE
+            | PageTableFlags::NO_EXECUTE;
         let vaddr = VirtAddr::new(USER_STACK_BASE);
         let mapped = self.map_user(vaddr, USER_STACK_SIZE, &[], flags)?;
         self.user_stack_mapped = true;
@@ -295,11 +298,14 @@ fn pt_flags(ph: &crate::elf::ProgramHeader) -> PageTableFlags {
     if ph.p_flags & PF_W != 0 {
         f |= PageTableFlags::WRITABLE;
     }
-    // We do not set NO_EXECUTE explicitly when X is present; the
-    // CPU's default for code segments in long mode is exec allowed.
-    // The kernel itself does not rely on NX for safety in Phase 1.4.
+    // Segments without PF_X are not executable. EFER.NXE is on (the
+    // bootloader sets it; `memory::harden_kernel_mappings` checks), so data
+    // and bss pages used to be executable only because this bit was never
+    // set.
+    if ph.p_flags & PF_X == 0 {
+        f |= PageTableFlags::NO_EXECUTE;
+    }
     let _ = PF_R;
-    let _ = PF_X;
     f
 }
 
@@ -434,7 +440,27 @@ impl AddressSpace {
 
         for (page_index, page) in Page::range_inclusive(start_page, end_page_exclusive - 1).enumerate() {
             let (frame, is_newly_allocated) = match mapper.translate_page(page) {
-                Ok(existing_frame) => (existing_frame, false),
+                Ok(existing_frame) => {
+                    // A page shared by two segments (code ending and data
+                    // starting in one page) stays executable if either is.
+                    if !flags.contains(PageTableFlags::NO_EXECUTE) {
+                        use x86_64::structures::paging::mapper::{Translate, TranslateResult};
+                        if let TranslateResult::Mapped { flags: current, .. } =
+                            mapper.translate(page.start_address())
+                        {
+                            if current.contains(PageTableFlags::NO_EXECUTE) {
+                                unsafe {
+                                    if let Ok(flush) =
+                                        mapper.update_flags(page, current & !PageTableFlags::NO_EXECUTE)
+                                    {
+                                        flush.ignore();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    (existing_frame, false)
+                }
                 Err(_) => {
                     let new_frame = allocator
                         .allocate_frame()
@@ -569,6 +595,15 @@ impl AddressSpace {
     }
 
     pub fn fault_in(&mut self, addr: VirtAddr) -> bool {
+        self.fault_in_limited(addr, u64::MAX)
+    }
+
+    /// `fault_in`, allocating at most `max_new_frames` frames (the process's
+    /// remaining page quota).
+    pub fn fault_in_limited(&mut self, addr: VirtAddr, max_new_frames: u64) -> bool {
+        if max_new_frames == 0 {
+            return false;
+        }
         // Read ahead this many pages per file-backed fault instead of just
         // one. `read_file_offset` re-resolves the path and re-reads the
         // inode on every call - for a multi-megabyte file (e.g. a real
@@ -603,7 +638,7 @@ impl AddressSpace {
         // Extend the batch forward from rel_offset while pages are still
         // within the region and not already populated.
         let mut batch_pages: u64 = 0;
-        while batch_pages < READAHEAD_PAGES {
+        while batch_pages < READAHEAD_PAGES.min(max_new_frames) {
             let candidate_rel = rel_offset + batch_pages * page_size;
             if candidate_rel >= region_aligned_len {
                 break;
@@ -641,7 +676,16 @@ impl AddressSpace {
         // Read the whole batch in one shot into a scratch buffer, then copy
         // each page's slice into its own physical frame.
         let batch_len = (batch_pages * page_size) as usize;
-        let mut scratch = alloc::vec![0u8; batch_len];
+        // Fallible: this runs in the page-fault handler, where a failed
+        // infallible allocation aborts the kernel.
+        let mut scratch = alloc::vec::Vec::new();
+        if scratch.try_reserve_exact(batch_len).is_err() {
+            for f in frames {
+                crate::memory::deallocate_frame(f);
+            }
+            return false;
+        }
+        scratch.resize(batch_len, 0u8);
         let file_path = region.file_path.clone();
         let read_offset = region.file_offset + rel_offset;
         if crate::fs::read_file_offset(&file_path, read_offset, &mut scratch).is_err() {
@@ -661,7 +705,7 @@ impl AddressSpace {
         let l4_virt = crate::memory::phys_to_virt(self.l4_frame.start_address());
         let l4_table = unsafe { &mut *l4_virt.as_mut_ptr::<PageTable>() };
         let mut mapper = unsafe { OffsetPageTable::new(l4_table, crate::memory::phys_to_virt(PhysAddr::new(0))) };
-        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::NO_EXECUTE;
 
         // Track whether the page that actually caused this fault (index 0 -
         // the rest of the batch is best-effort readahead) got mapped. If it
@@ -856,11 +900,60 @@ pub fn launch_context(pid: u64) -> Option<String> {
 /// and a dedicated kernel stack. The user stack and PT_LOAD
 /// segments are not yet mapped; call `load_elf` (or
 /// `map_user_stack`) to do that.
-// NEGATIVE CONTROL: fix held back; the items below only let the round-2 self-tests build.
+/// Live process records at most (kernel stacks are 32 KiB each on the 12 MiB
+/// kernel heap; nothing bounded Exec, AppLaunch or PackageLaunch before).
 pub const MAX_PROCESSES: usize = 64;
+/// Live children one non-root process may have at once, so one spawner cannot
+/// take every process slot.
 pub const MAX_CHILDREN_PER_PROCESS: usize = 16;
 
+/// Whether the caller may create one more process. `caller` is the current
+/// pid (0 for the kernel itself).
+fn process_limit_allows(caller: u64) -> Result<(), &'static str> {
+    // Read the caller's capabilities before taking PROCESSES, so the two
+    // locks are never nested here.
+    let root = caller == 0
+        || crate::scheduler::capabilities_of(caller)
+            .map(|caps| caps.iter().any(|c| c == "cap:system:all"))
+            .unwrap_or(false);
+    let procs = PROCESSES.lock();
+    if procs.len() >= MAX_PROCESSES {
+        return Err("process limit reached");
+    }
+    if caller != 0 {
+        let children = procs.iter().filter(|r| r.process.parent == caller).count();
+        if !root && children >= MAX_CHILDREN_PER_PROCESS {
+            return Err("per-process child limit reached");
+        }
+    }
+    Ok(())
+}
+
+/// Whether a process named `name`, created by `caller`, gets the unlimited
+/// page quota. The exemption used to follow the program name alone, so any
+/// process with `process:spawn` could Exec `/bin/heliox-daemon` and get an
+/// unlimited child although the child receives only the capabilities the
+/// caller can delegate. Now the creator must hold the exemption too (the
+/// kernel itself, pid 0, launches the boot services).
+fn quota_exempt_for(name: &str, caller: u64) -> bool {
+    let caps = crate::userspace::capabilities_for_program(name);
+    if !caps.iter().any(|c| c == "cap:quota:exempt") {
+        return false;
+    }
+    if caller == 0 {
+        return true;
+    }
+    let caller_caps = crate::scheduler::capabilities_of(caller)
+        .or_else(|| crate::userspace::capabilities_for(caller))
+        .unwrap_or_default();
+    caller_caps
+        .iter()
+        .any(|c| c == "cap:quota:exempt" || c == "cap:system:all")
+}
+
 pub fn create(name: &str) -> Result<Process, &'static str> {
+    let caller = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
+    process_limit_allows(caller)?;
     let space = AddressSpace::new()?;
     let kernel_stack: Box<[u8; KERNEL_STACK_SIZE]> = unsafe {
         let layout = core::alloc::Layout::new::<[u8; KERNEL_STACK_SIZE]>();
@@ -885,8 +978,7 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         pid += 1;
     }
     *next = pid + 1;
-    let caps = crate::userspace::capabilities_for_program(name);
-    let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
+    let is_exempt = quota_exempt_for(name, caller);
     let max_memory_pages = if is_exempt {
         u64::MAX
     } else {
@@ -903,17 +995,16 @@ pub fn create(name: &str) -> Result<Process, &'static str> {
         user_stack_mapped: false,
         loaded: false,
         max_memory_pages,
+        parent: caller,
     };
     Ok(process)
 }
 
 pub fn register(mut process: Process) -> u64 {
     let pid = process.pid;
-    let caps = crate::userspace::capabilities_for_program(&process.name);
-    let is_exempt = caps.iter().any(|c| c == "cap:quota:exempt");
-    if is_exempt {
-        process.max_memory_pages = u64::MAX;
-    } else if process.name == "huge-test" {
+    // The page quota was decided in `create` (with the creator's authority);
+    // re-deriving it from the name here re-opened the exemption.
+    if process.name == "huge-test" {
         process.max_memory_pages = 2;
     }
     PROCESSES.lock().push(ProcessRecord { process });
@@ -1204,12 +1295,16 @@ impl Process {
 pub fn fault_in_page(pid: u64, addr: VirtAddr) -> bool {
     let mut procs = PROCESSES.lock();
     if let Some(record) = procs.iter_mut().find(|r| r.process.pid == pid) {
+        let max_pages = record.process.max_memory_pages;
         if let Some(ref mut space) = record.process.space {
             // fault_in() itself logs (it's the one that knows the batch
             // size, needed to tell a handful of deliberate sparse touches
             // apart from a real model's bulk sequential load - see the
-            // comment there).
-            return space.fault_in(addr);
+            // comment there). Demand paging used to ignore the page quota
+            // that `map_user` enforces, so a non-exempt process could map
+            // a large file and fault in far more than its 2048 pages.
+            let remaining = max_pages.saturating_sub(space.user_frame_count() as u64);
+            return space.fault_in_limited(addr, remaining);
         }
     }
     false

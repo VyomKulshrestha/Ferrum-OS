@@ -95,8 +95,54 @@ pub fn virt_to_phys_offset(virt: u64) -> u64 {
     virt - offset.as_u64()
 }
 
-// NEGATIVE CONTROL: fix held back; the items below only let the round-2 self-tests build.
-pub static PHYS_MAP_NX_INDEX: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(usize::MAX);
+/// Set EFER.NXE if it is not set. The bootloader sets it on the boot CPU; the
+/// kernel's NO_EXECUTE bits are reserved bits (a fault on every access)
+/// without it, so the kernel checks rather than assumes.
+pub fn ensure_nxe() {
+    use x86_64::registers::model_specific::{Efer, EferFlags};
+    if !Efer::read().contains(EferFlags::NO_EXECUTE_ENABLE) {
+        unsafe { Efer::update(|flags| *flags |= EferFlags::NO_EXECUTE_ENABLE) };
+    }
+}
+
+/// P4 index of the physical-memory alias marked non-executable by
+/// `harden_kernel_mappings` (usize::MAX when it was not).
+pub static PHYS_MAP_NX_INDEX: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(usize::MAX);
+
+/// Mark the bootloader's mapping of all physical memory non-executable. It
+/// spans every RAM frame (page tables, user frames, DMA buffers, the heap's
+/// frames) read-write and was executable, so any data the kernel wrote
+/// anywhere could be run through its alias. Nothing executes from it: the
+/// kernel runs at its link address (P4[0]), kexec jumps through an identity
+/// page, and the SMP trampoline is copied there but never started. The bit is
+/// set on the P4 entry, which covers the whole alias; process address spaces
+/// copy that entry when they are created, after this runs.
+pub fn harden_kernel_mappings() {
+    ensure_nxe();
+    let Some(offset) = *PHYS_MEM_OFFSET.lock() else { return };
+    let offset = offset.as_u64();
+    // Only when the alias owns its P4 slot outright.
+    if offset & ((1u64 << 39) - 1) != 0 {
+        return;
+    }
+    let index = ((offset >> 39) & 0x1FF) as usize;
+    if index == 0 {
+        return; // shared with the kernel image
+    }
+    let l4 = unsafe { &mut *(VirtAddr::new(offset + active_p4_phys().as_u64())).as_mut_ptr::<PageTable>() };
+    let entry = &mut l4[index];
+    if !entry.flags().contains(x86_64::structures::paging::PageTableFlags::PRESENT) {
+        return;
+    }
+    let flags = entry.flags() | x86_64::structures::paging::PageTableFlags::NO_EXECUTE;
+    let addr = entry.addr();
+    entry.set_addr(addr, flags);
+    x86_64::instructions::tlb::flush_all();
+    PHYS_MAP_NX_INDEX.store(index, core::sync::atomic::Ordering::SeqCst);
+}
+
+/// Flags of the active P4 entry `index` (self-tests).
 pub fn kernel_p4_flags(index: usize) -> x86_64::structures::paging::PageTableFlags {
     let offset = PHYS_MEM_OFFSET.lock().map(|o| o.as_u64()).unwrap_or(0);
     let l4 = unsafe { &*(VirtAddr::new(offset + active_p4_phys().as_u64())).as_ptr::<PageTable>() };
