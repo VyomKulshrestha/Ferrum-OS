@@ -7,6 +7,7 @@ Run from scripts/: python -m pytest -q test_fi1_pipeline2.py
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
 import unittest
@@ -93,6 +94,9 @@ class PosthocMatchedRateTests(unittest.TestCase):
         self.assertEqual(P.matched_threshold([s], [y], allowed, rule="lowest"), best)
 
 
+# The module under test imports torch at the top. CI installs no torch, so these two tests run only where
+# torch is present (the development machine); the skip is reported by name.
+@unittest.skipUnless(importlib.util.find_spec("torch"), "torch is not installed")
 class IncidentCalibrationTests(unittest.TestCase):
     """evaluate_incident_dynamics_development.calibrate: the 1 % empirical-FPR rule behind Tables 19, 23, 27."""
 
