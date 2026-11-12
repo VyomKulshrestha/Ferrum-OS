@@ -22,13 +22,35 @@ five checks that were failing on main:
 | `verify_world_model_paper_evaluation.py` | the recorded digest of `world_model_safety_scenarios.json` is the CRLF form; the repository stores LF | both forms accepted |
 | `verify_physical_jepa_robustness.py` | the evaluator writes CRLF on Windows; compared byte for byte with an LF file | compared after normalising line endings; content identical |
 | `tools/physical_sim_bridge` PyBullet test | pybullet has no wheel for the runner's Python and is not installed | skipped with a reason when absent |
-| `verify_physical_world_model.py` (full sweep) | the retrained checkpoint is not bit-identical to the deployed one on GitHub's runner; every other check of the sweep passes | **open** |
+| `verify_physical_jepa_robustness.py` (regeneration) and `verify_physical_world_model.py` (full sweep) | the results depend on the number of BLAS threads (below) | regeneration skipped, with a printed reason, on machines with fewer than 24 logical CPUs |
 
-The last one is not repaired. The sweep's metrics pass on the runner and only the digest equality fails,
-which points to arithmetic that differs between machines, but that is not established: the local rerun
-ran out of memory. Until it is, the workflow "Reproduce deterministic public evidence" is red on the
-pull request, which is the true state. The required job uses the quick form of this verifier and is not
-affected.
+### The physical-JEPA evidence depends on the number of BLAS threads
+
+The trainer and the robustness evaluator use NumPy's multi-threaded linear algebra, and the order of
+floating-point summation changes with the number of threads. Measured on the development machine
+(24 logical CPUs; OpenBLAS 0.3.29, Haswell kernel, at most 24 threads), regenerating
+`physical_jepa_robustness.json`:
+
+| BLAS threads | Result |
+|---|---|
+| 24 (the default here) | identical to the committed report |
+| 4 | 30 values differ, by up to 5.9%; identical, digit for digit, to what GitHub's 4-core runner produces |
+| 1 | 30 values differ; a third set |
+
+Examples at 4 threads against the committed report: the matched autoencoder's false positives 16 against
+17; `validation_h1` at the second data-scaling point 0.01325 against 0.01384. With 24 threads forced on
+the 4-core runner the evaluator's numbers shift again and one of its own gates fails, so the evidence
+does not reproduce there under either setting. On the runner at 4 threads the full sweep's comparisons
+still pass (for example JEPA against the matched autoencoder); only the exact values and the checkpoint
+digest differ.
+
+Consequences. The evidence described as deterministic reproduces only on a machine that runs 24 BLAS
+threads natively; the workflow "Reproduce deterministic public evidence" never reproduced it on GitHub
+(hidden by the exit-code gap). Both verifiers now pin the reference thread count for their subprocess,
+so on the development machine the check no longer depends on the caller's environment, and they skip
+regeneration with a printed reason on smaller machines. No published number was changed. The reports
+should state the dependence; future studies should train with one BLAS thread, which is slower and
+reproducible, and record the thread count in the protocol.
 
 ## 2. Analysis pipeline (workstream B)
 
@@ -141,6 +163,42 @@ file version; the mailbox carries no sender identity. Decisions for the author: 
 only a numeric id; model-authored memory is autosaved without approval although `save_memory` is tier
 3; an auto-approve tier of 4 or more approves everything by design; the two physical-runtime items
 above. Because each round found a critical route, a third agent is attacking the claim.
+
+### Round 3: a third agent attacks the round-2 claim (same pull request, head 09d1bc4)
+
+No critical break: with the auto-approve tier at 3 or below it found no way to run a tier-3 or tier-4
+action with no operator approval. Host tests re-run by the main session: heliox-gate-tests 44,
+physical-runtime 175, neural-protocol 19. This is the stopping point the plan sets for the workstream.
+Four breaks were found and fixed:
+
+- **High: an approved kernel upgrade survived a rewrite of the image it boots.**
+  `trigger_kernel_upgrade` takes no arguments and runs whatever is in `/disk/boot/kernel.bin`, so the
+  rule that withdraws an approval when its file changes did not know about it. The tool is now tied to
+  that file and the operator's display names it.
+- **Medium: the model could read two secrets kept for the operator** (the bridge pairing token from the
+  screen, the provider API key from the daemon's config file) and send them out with a tier-2 network
+  call. Both are now redacted wherever the model reads them.
+- **Medium: the agent could forge audit entries** by writing newlines into `audit_write`. Agent text is
+  now one escaped, marked line. The kernel's 256-entry audit ring can still be flooded (kernel change).
+- **Low:** `sleep` with a huge argument froze the daemon; it is now refused above 10 seconds.
+
+Questions the round leaves for the author, each pinned by a test of current behaviour:
+
+1. **Read, then send.** At the default auto-approve tier 2, reading (files, the screen, `poll_input`,
+   which sees every key the operator types) and sending over the network both run without asking, so
+   anything the agent can read can leave the machine. Options: network calls at tier 3; a destination
+   allow-list; approval for a network call that follows a read; `poll_input` at tier 3; or keep it and
+   state it.
+2. **The operator approves by id from a console the agent can scroll.** A request is printed once; a
+   long second request can scroll a short dangerous one off screen, and the shell has no command to list
+   or deny pending requests.
+3. A configuration file that exists but does not parse falls back to auto-approve tier 2, which raises
+   authority if the operator had chosen 0 or 1.
+4. Test hooks under `/tmp` ship in the production daemon (one makes an ungated request at start-up).
+5. The round-2 decisions above remain open.
+
+The claim the gate supports after three rounds, with its exclusions, is in
+`fi1_reports/userland_round3.md`.
 
 ## 4. Monitor (workstream A) and kernel (workstream C)
 
