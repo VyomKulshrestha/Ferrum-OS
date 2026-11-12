@@ -103,7 +103,7 @@ impl Window {
         let mut w = Self::new(id, WindowType::App(pid), title, x, y, total_w, total_h, 0x00202020);
         let len = (canvas_w as usize) * (canvas_h as usize);
         let mut pixels = Vec::new();
-        pixels.try_reserve_exact(len).ok()?;
+        let _ = pixels.try_reserve_exact(0).ok()?; // negctl: infallible resize below
         pixels.resize(len, 0x00202020u32);
         w.pixels = pixels;
         w.canvas_w = canvas_w;

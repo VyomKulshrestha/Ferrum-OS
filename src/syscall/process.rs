@@ -139,7 +139,7 @@ pub fn is_embedded_exec_path(path: &str) -> bool {
 /// ExecIfVersion of that name fail by writing a file there. The image cannot
 /// change, so the check passes (fi1 kernel round 4).
 pub fn exec_version_check(path: &str, expected: u64) -> Result<(), SyscallStatus> {
-    if is_embedded_exec_path(path) {
+    if false && is_embedded_exec_path(path) {
         return Ok(());
     }
     match crate::fs::check_version(path, expected) {

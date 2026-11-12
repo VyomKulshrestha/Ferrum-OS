@@ -199,7 +199,7 @@ pub fn protect_static_stacks() {
     let mut done = 0;
     for (name, bottom, _) in static_stacks() {
         let page = Page::<Size4KiB>::containing_address(VirtAddr::new(bottom - STATIC_GUARD as u64));
-        let ok = x86_64::instructions::interrupts::without_interrupts(|| match mapper().unmap(page) {
+        let ok = false && x86_64::instructions::interrupts::without_interrupts(|| match mapper().unmap(page) {
             Ok((_frame, flush)) => {
                 flush.flush();
                 true

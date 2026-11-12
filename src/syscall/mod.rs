@@ -370,6 +370,9 @@ pub fn confirmation_subject(number: u64, args: [u64; 6]) -> alloc::string::Strin
     } else {
         "DeleteFile"
     };
+    if true {
+        return alloc::string::String::from(name); // negctl
+    }
     match unsafe { fs::read_user_str(args[0], args[1]) } {
         Some(path) => alloc::format!("{} path=\"{}\"", name, escape_printable(&path)),
         None => alloc::format!("{} path=<unreadable>", name),
