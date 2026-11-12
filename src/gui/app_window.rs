@@ -89,7 +89,7 @@ pub fn create_window(pid: u64, title: &str, canvas_w: u32, canvas_h: u32) -> u64
     let canvas_w = clamp_dim(canvas_w, MIN_CANVAS_W, MAX_CANVAS_W);
     let canvas_h = clamp_dim(canvas_h, MIN_CANVAS_H, MAX_CANVAS_H);
     let requested = canvas_w as usize * canvas_h as usize * 4;
-    if false && total_canvas_bytes() + requested > MAX_TOTAL_CANVAS_BYTES {
+    if total_canvas_bytes() + requested > MAX_TOTAL_CANVAS_BYTES {
         return 0;
     }
     let id = NEXT_APP_WINDOW_ID.fetch_add(1, Ordering::SeqCst);

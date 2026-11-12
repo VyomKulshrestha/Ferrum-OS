@@ -235,7 +235,7 @@ pub unsafe fn enable_sse_extensions() {
         );
         // Bytes XSAVE writes for the features now enabled in XCR0.
         let size = core::arch::x86_64::__cpuid_count(0xD, 0).ebx as usize;
-        let _ = size; // negctl: XSAVE switching held back
+        scheduler::enable_xsave(size);
     }
 }
 

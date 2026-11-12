@@ -908,7 +908,7 @@ impl<B: BlockDevice> Ext2Fs<B> {
                 // inode-table block free used to get that block handed out as
                 // file data, and the file's bytes were then written over the
                 // filesystem's own metadata (fi1 kernel round 4).
-                if false && self.is_metadata_block(&inner, phys_block) {
+                if self.is_metadata_block(&inner, phys_block) {
                     continue;
                 }
 
@@ -994,14 +994,14 @@ impl<B: BlockDevice> Ext2Fs<B> {
                 if inode_num > inner.superblock.inodes_count {
                     break;
                 }
-                if false && inode_num < first_ino {
+                if inode_num < first_ino {
                     continue;
                 }
                 // An inode the bitmap calls free but that still has links is
                 // in use: handing it out made two names share one inode, and
                 // removing either freed the other's data.
                 match self.read_inode_inner(&inner, inode_num) {
-                    Ok(_inode) => {
+                    Ok(inode) if inode.links_count == 0 => {
                         found = Some(bit);
                         break;
                     }
@@ -1613,7 +1613,7 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         // `.` and `..` name the directory itself and its parent: removing
         // `/a/.` from an empty `a` unlinked `.`, freed a's inode and blocks and
         // left `a` in the root pointing at a free inode.
-        if false && (name == "." || name == "..") {
+        if name == "." || name == ".." {
             return Err(String::from("invalid path"));
         }
 
@@ -1640,7 +1640,7 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         // create reused (two files sharing data, and a version keyed by the
         // inode number that moved under the other name).
         let links = target_inode.links_count;
-        if false && !is_dir && links > 1 {
+        if !is_dir && links > 1 {
             let mut kept = target_inode;
             kept.links_count = links - 1;
             let _ = self.write_inode(target_inode_num, &kept);
@@ -1779,7 +1779,7 @@ fn split_path(path: &str) -> Result<(String, String), String> {
         // `/f/` named the entry "" inside the regular file `f`: `remove`
         // then parsed f's data as directory entries, freed f's inode and
         // blocks, and left the real entry `f` pointing at a free inode.
-        if name.is_empty() {
+        if name.is_empty() || name == "." || name == ".." {
             return Err(String::from("invalid path"));
         }
         Ok((parent, name))
