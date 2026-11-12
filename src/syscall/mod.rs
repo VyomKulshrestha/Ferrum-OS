@@ -259,6 +259,16 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         },
     };
 
+    // PackageInstall with args[2] = 1 says "the operator confirmed the
+    // privileged capabilities". The caller set that bit itself: the App
+    // Store's second click, which an injected click can make, installed a
+    // package holding fs:write without the operator (fi2 kernel audit). The
+    // operator now confirms it at the kernel's prompt with a physical key.
+    // Only a caller that may install at all is asked about.
+    let is_privileged_install = number == SyscallNumber::PackageInstall as u64
+        && args[2] == 1
+        && crate::security::has_capability(&held_capabilities, "pkg:request");
+
     // Quotas and confirmation check
     let mut is_denied = false;
     let mut confirmation_needed = false;
@@ -307,8 +317,9 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             let is_delete_file = number == SyscallNumber::DeleteFile as u64
                 || number == SyscallNumber::DeleteFileIfVersion as u64;
             let is_kexec = number == SyscallNumber::Kexec as u64;
-            let is_gated = is_delete_file || is_kexec;
+            let is_gated = is_delete_file || is_kexec || is_privileged_install;
             let is_bypass = !is_kexec
+                && !is_privileged_install
                 && task
                     .capabilities
                     .iter()
@@ -394,6 +405,22 @@ pub static SINGLE_CONFIRMATION: core::sync::atomic::AtomicBool = core::sync::ato
 pub fn confirmation_subject(number: u64, args: [u64; 6]) -> alloc::string::String {
     if number == SyscallNumber::Kexec as u64 {
         return alloc::string::String::from("Kexec");
+    }
+    if number == SyscallNumber::PackageInstall as u64 {
+        return match unsafe { fs::read_user_str(args[0], args[1]) } {
+            Some(package) => {
+                let capabilities = match crate::pkg::verify(&package) {
+                    Ok(meta) => crate::pkg::privileged_capabilities(&meta).join(","),
+                    Err(_) => alloc::string::String::from("<unverified>"),
+                };
+                alloc::format!(
+                    "PackageInstall name=\"{}\" capabilities={}",
+                    escape_printable(&package),
+                    escape_printable(&capabilities)
+                )
+            }
+            None => alloc::string::String::from("PackageInstall name=<unreadable>"),
+        };
     }
     let name = if number == SyscallNumber::DeleteFileIfVersion as u64 {
         "DeleteFileIfVersion"
