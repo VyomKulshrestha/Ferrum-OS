@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import repro_env  # noqa: E402
 import tt1d_final as M  # noqa: E402  (cluster_bootstrap of the tt1d registration: run-level resampling)
 
 
@@ -67,8 +68,10 @@ def main():
     path = ROOT / "target/real-telemetry/fi1/pipeline/tt1_g2_cluster.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    repro_env.stamp_json(path)
     print(json.dumps(out, indent=1))
 
 
 if __name__ == "__main__":
+    repro_env.pin_from_environment()
     main()

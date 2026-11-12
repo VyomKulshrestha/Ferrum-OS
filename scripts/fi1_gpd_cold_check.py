@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import threshold_rules_ext as E  # noqa: E402
 import threshold_rules_tt1c as N  # noqa: E402
+import repro_env  # noqa: E402
 
 
 def nll(y, xi, sigma):
@@ -53,7 +54,9 @@ def main():
     out = ROOT / "target/real-telemetry/fi1/pipeline/gpd_cold_check.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rows, indent=1) + "\n", encoding="utf-8")
+    repro_env.stamp_json(out)
 
 
 if __name__ == "__main__":
+    repro_env.pin_from_environment()
     main()
