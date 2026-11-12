@@ -94,7 +94,7 @@ pub fn log_event_from(source: u64, event: AuditEvent, message: &str) {
         // Get current tick count (may fail if scheduler not yet initialized)
         let tick = crate::scheduler::total_ticks();
         
-        let message = String::from(message); // negctl
+        let message = escape_controls(message);
         // Also output to serial for external logging
         crate::serial_println!("[AUDIT] {:?}: {}", event, message);
 
@@ -256,8 +256,7 @@ pub fn flush_to_disk() -> Result<(), String> {
     // the file (the ext2 driver writes 12 direct blocks, 12 to 48 KiB, under
     // the 128 KiB cap): every later flush then failed the same way and every
     // later entry was lost (fi2 kernel audit). Keep the newest lines that fit.
-    crate::fs::create_file(log_path, &content)?; // negctl
-    if let Err(first) = Ok::<(), String>(()) {
+    if let Err(first) = crate::fs::create_file(log_path, &content) {
         let mut keep = content.len();
         loop {
             keep /= 2;
@@ -286,15 +285,6 @@ pub fn flush_to_disk() -> Result<(), String> {
 pub fn trim_log(content: String, max: usize) -> String {
     if content.len() <= max {
         return content;
-    }
-    if true {
-        // negctl: the old byte-offset cut
-        let overflow = content.len() - max;
-        return if let Some(pos) = content[overflow..].find('\n') {
-            content[overflow + pos + 1..].to_string()
-        } else {
-            content[content.len() - max..].to_string()
-        };
     }
     let cut = content.len() - max;
     let bytes = content.as_bytes();

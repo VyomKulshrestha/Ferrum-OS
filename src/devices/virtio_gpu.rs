@@ -296,7 +296,7 @@ pub fn init() -> Result<(), &'static str> {
         // The backing holds one whole frame. It was 256 pages (1 MiB) while
         // a 1024x768 frame is 3 MiB, so every present wrote 2 MiB past it
         // into the next DMA allocations (fi2 kernel audit).
-        let backing_pages = 256; // negctl: the 1 MiB backing
+        let backing_pages = BACKING_BYTES / 4096;
         let (backing_phys, backing) = alloc_dma_pages(backing_pages);
 
         let controlq = VirtQueue {
@@ -459,7 +459,7 @@ pub fn present(pixels: &[u32], width: u32, height: u32) -> Result<(), &'static s
 
     let pixel_count = (width as usize).saturating_mul(height as usize);
     let byte_len = pixel_count.saturating_mul(4);
-    if false && (byte_len > device.backing_len || pixels.len() < pixel_count) {
+    if byte_len > device.backing_len || pixels.len() < pixel_count {
         return Err("virtio-gpu: frame larger than the backing or the pixel buffer");
     }
 

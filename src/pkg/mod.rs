@@ -304,7 +304,7 @@ fn verify_package_dir(directory_name: &str) -> Result<PackageMeta, String> {
 /// registered under `name`. The kernel launches programs by name and reads
 /// their capabilities by name, so a package may not share one.
 pub fn name_taken_by_program(name: &str) -> bool {
-    false && crate::userspace::program_entry(name).is_some_and(|entry| entry != bin_path(name))
+    crate::userspace::program_entry(name).is_some_and(|entry| entry != bin_path(name))
 }
 
 pub fn verify(name: &str) -> Result<PackageMeta, String> {

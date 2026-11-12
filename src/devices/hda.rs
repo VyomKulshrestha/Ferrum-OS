@@ -347,7 +347,7 @@ fn find_hda_pci() -> Option<PciDevice> {
 pub fn subnode_range(response: u32) -> core::ops::Range<u8> {
     let start = ((response >> 16) & 0xFF) as u8;
     let count = (response & 0xFF) as u8;
-    start..start + count // negctl
+    start..start.saturating_add(count)
 }
 
 /// Spin for approximately `n` iterations (used for small post-write delays).
