@@ -380,6 +380,8 @@ async function collectProfile(ramMb, selected, chunkIndex) {
 
     await runCommand("rm /disk/heliox/config.json");
     const config = `{"provider":"cloud","api_host":"10.0.2.2","api_port":${bridgePort},"api_path":"/","model_name":"bridge","api_key":"bridge","tick_interval":999999999,"auto_approve_tier":4}`;
+    // auto_approve_tier 4 needs the kernel shell's test unlock (fi2 Q5).
+    await runCommand("write /tmp/heliox-hooks/allow_auto_approve_tier_4 1");
     await runCommand(`write /disk/heliox/config.json ${config}`);
     const bootStart = serialText().length;
     await sendText("ring3 init");
