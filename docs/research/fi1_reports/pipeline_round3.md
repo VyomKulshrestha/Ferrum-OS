@@ -84,7 +84,33 @@ monotone (h3 rises from 0.026518 at 1,000 episodes to 0.026644 at 1,750), while 
 falls at that step; a report that describes the curve as decreasing at every step would be wrong in the
 committed numbers and right in others. Two runs at the same count are bit-identical (1, 4 and 24).
 
-PLACEHOLDER_OTHER_STUDIES
+### 1.3 Incident dynamics v3 and v4 (Tables 21 to 27): inference rerun, training not rerun
+
+The registered runner pins `torch.set_num_threads(8)` and LightGBM `num_threads=8` in its code, so the
+thread count is fixed wherever it runs. Retraining the study (hours of queued jobs) was not feasible. What
+was measured: the runner's `verify` stage mirrored for the physical domain with torch at another count
+(`fi1_thread_incident.py`; the runner's own `set_num_threads` neutralised): regenerated catalogs,
+inference of every pipeline from the retained checkpoints against the stored evidence, and the analysis
+recomputed from the recomputed evidence against the stored result.
+
+PLACEHOLDER_INCIDENT_TABLE
+
+### 1.4 Cross-domain study (Tables 3 to 7, D1)
+
+PLACEHOLDER_CROSSDOMAIN
+
+### 1.5 OS world-model study (`verify_world_model_paper_evaluation.py`)
+
+PLACEHOLDER_OSWM
+
+### 1.6 Safety-Gymnasium tables (11 to 15): not rerun
+
+`run_physical_jepa_safety_gymnasium.py` needs `safety_gymnasium` and MuJoCo; the import fails in this
+interpreter (`ValueError: mutable default <class 'numpy.ndarray'> for field color`, a dataclass
+incompatibility of the installed package), and nothing may be installed. The attribution adapters are
+fitted with full-batch Adam in NumPy float64 on 17,768 rows; their thresholds were re-derived exactly
+from the stored adapters (section 5, check (c)), which tests the stored decision but not its sensitivity
+to the thread count of the fit.
 
 ## 2. Where the nondeterminism enters
 
@@ -113,7 +139,25 @@ Measured with `fi1_thread_where.py` (one process; thread counts switched with th
 
 ## 3. What each report needs
 
-PLACEHOLDER_SENTENCES
+- **Physical-JEPA v3 evidence (the promotion record, the deployed checkpoint and every report that calls
+  them deterministic).** "The v3 sweep reproduces the deployed checkpoint, its selection and its
+  promotion only with 24 OpenBLAS threads (Haswell kernel). Rerun with 4 or 1 threads on the same
+  machine, it selects another candidate (96 by 192, seed 42), and promotion fails: at 4 threads on the
+  registered OOD false-negative gate (1 against 0), at 1 thread on the OOD one-step error gate (0.003870
+  against 0.003777). The promotion decision is therefore a property of one training run, not of the
+  configuration; the OOD false-negative gate passed with no slack." This is a flipped selection and a
+  flipped promotion gate, and belongs wherever the v3 promotion is cited as evidence for the model.
+- **Physical-JEPA robustness report.** "Values of the trained baselines (data scaling, matched
+  autoencoder) change by up to 5.9% with the BLAS thread count; all five registered gates pass at 1, 2,
+  3, 4 and 24 threads; the closest, final h3 below the smallest-data h3, keeps a margin of 2.0% to 4.4%.
+  The scaling curve is not monotone in the committed run."
+- **Incident dynamics v3/v4.** PLACEHOLDER_SENT_INCIDENT
+- **Cross-domain study.** PLACEHOLDER_SENT_CROSS
+- **OS world-model study.** PLACEHOLDER_SENT_OSWM
+- **Every future study**: train with one thread (`repro_env.pin_threads(1)` or the `_v2` entry points),
+  record `environment_record()` in the protocol and the result, and treat a selection or a gate that
+  flips under a change of thread count as unstable, for example by registering a rule over several
+  training seeds instead of one run.
 
 ## 4. Reproducible by construction: `scripts/repro_env.py`
 
@@ -204,7 +248,63 @@ Thin margins (stored JSON, reader's arithmetic):
 
 ## 7. Commands
 
-PLACEHOLDER_COMMANDS
+From the worktree root, with `CUDA_VISIBLE_DEVICES=-1`. Runs above 4 threads held the machine lock.
+
+```
+# physical-JEPA v3 sweep at n threads (writes target/fi1-pipeline3/sweep/t<n>_run1/)
+python scripts/fi1_thread_sweep_run.py --threads 4 --run run1
+python scripts/fi1_thread_sweep_run.py --threads 1 --run run1
+python scripts/fi1_thread_sweep_run.py --threads 24 --run run1 --skip-baselines
+python scripts/fi1_thread_compare.py sweep
+
+# robustness evaluator (the verifier's artifact)
+OPENBLAS_NUM_THREADS=<n> OMP_NUM_THREADS=<n> python scripts/evaluate_physical_jepa_robustness.py \
+    --artifact docs/research/artifacts/physical-jepa-stress-v3/incident-v1-baseline.bin \
+    --output target/fi1-pipeline3/robustness/t<n>_run1.json
+python scripts/fi1_thread_compare.py robustness
+
+# where the dependence enters
+python scripts/fi1_thread_where.py --threads 1 4 --epochs 400
+python scripts/fi1_thread_where.py --threads 1 4 24 --epochs 400
+
+# incident dynamics (verify stage mirrored at another torch count)
+python scripts/fi1_thread_incident.py --version 3 --domain physical --threads 4
+python scripts/fi1_thread_incident.py --version 4 --domain physical --threads 4
+python scripts/fi1_thread_incident.py --version 3 --domain physical --threads 1
+
+# cross-domain archived inference
+python scripts/fi1_thread_crossdomain.py --threads 4
+python scripts/fi1_thread_crossdomain.py --threads 1
+
+# OS world model (dataset read from the main checkout's target/world-model-v3-work)
+python scripts/fi1_thread_os_world_model.py run --threads 4 --run run1
+python scripts/fi1_thread_os_world_model.py run --threads 1 --run run1
+python scripts/fi1_thread_os_world_model.py run --threads 24 --run run1
+python scripts/fi1_thread_compare.py os-world-model
+
+# machine-readable summary
+python scripts/fi1_pipeline_round3_summary.py
+
+# tests (venv with pytest on the base interpreter)
+cd scripts && python -m pytest -q test_repro_env.py test_fi1_pipeline3.py test_fi1_pipeline.py test_fi1_pipeline2.py
+```
+
+Proposed CI lines (workflows unchanged):
+
+```yaml
+      - name: Analysis pipeline tests (fi1 round 3)
+        run: |
+          python -m pip install --disable-pip-version-check pytest threadpoolctl
+          cd scripts && python -m pytest -q test_repro_env.py test_fi1_pipeline3.py
+      # add to the ruff check / ruff format --check lists:
+      #   scripts/repro_env.py scripts/test_repro_env.py scripts/test_fi1_pipeline3.py
+      #   scripts/*_v2.py entry points of this round (evaluate_physical_jepa_robustness_v2.py,
+      #   select_physical_incident_jepa_v2.py, train_world_model_v2.py, train_world_model_jepa_v2.py)
+      #   scripts/fi1_thread_*.py scripts/fi1_pipeline_round3_summary.py
+```
+
+`test_repro_env.py` skips its threadpoolctl tests where threadpoolctl is absent; the torch test skips
+without torch. `test_fi1_pipeline3.py` needs only NumPy and repository files.
 
 ## 8. Not reached
 
