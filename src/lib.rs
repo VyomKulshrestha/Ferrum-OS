@@ -180,6 +180,11 @@ pub fn init() {
     // unmasks IRQ 12 itself). An interrupt on any other line used to arrive
     // at a vector with no gate, which ends in a double fault.
     unsafe { interrupts::PICS.lock().write_masks(0xF8, 0x3F) };
+    // Auto-EOI on the master 8259: the timer handler no longer writes an EOI
+    // on every tick (fi1 kernel round 3 measured the median timer interrupt
+    // at 61,610 TSC cycles with the EOI write and 37,539 without, five boots;
+    // `test-syscall pic-aeoi-off` switches back for comparison).
+    interrupts::set_pic_auto_eoi(true);
     interrupts::init_pit();
     unsafe { enable_sse_extensions() };
     x86_64::instructions::interrupts::enable();
