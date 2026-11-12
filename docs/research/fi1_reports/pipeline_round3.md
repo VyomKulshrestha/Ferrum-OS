@@ -10,7 +10,7 @@ were written under `target/fi1-pipeline3/` in this worktree. Machine: 24 logical
 
 | Study | Thread counts run | Do the conclusions survive? | Largest relative change | What flips | Closest gate in the committed run | Single thread repeats bit for bit |
 |---|---|---|---|---|---|---|
-| Physical-JEPA v3 sweep and promotion | 24, 4, 1 (full sweep) | **No.** Only at 24 | different model selected | selection (3 becomes 0); promotion fails at 4 (OOD false negatives 1 against 0) and at 1 (OOD one-step error 0.003870 against 0.003777); three candidate validation checks; four verifier assertions | OOD false negatives not increased: 0 against 0, no slack | yes (training trace) |
+| Physical-JEPA v3 sweep and promotion | 24, 4, 1 (full sweep) | **No.** Only at 24 | different model selected | selection (3 becomes 0); promotion fails at 4 (OOD false negatives 1 against 0) and at 1 (OOD one-step error 0.003870 against 0.003777); three candidate validation checks; the verifier's selected index, deployed digest and asserted false-negative counts | OOD false negatives not increased: 0 against 0, no slack | yes (training trace) |
 | Physical-JEPA robustness evaluator | 24, 4, 3, 2, 1 | yes; 5 of 5 gates at every count | 5.9% | no gate; one claim-level step of the scaling curve | data scaling final h3 below smallest-data h3: 2.8% (2.0% at 2 and 3 threads) | yes |
 | OS world-model study | 24 (truncated), 4 (full), 1 (truncated) | **No** for the verifier's numbers and one comparison | factor 4 (safe-replay false positives 216 to 50) | four verifier assertions; "rules + JEPA at least rules + mean delta" | rules + JEPA against rules + mean delta: one false positive (0.814 against 0.812) | not measured (one run per count) |
 | Incident dynamics v3, v4 (physical) | torch 4 and 1 (registered 8), inference and analysis only | yes | 5.5e-8 | none; the verify stage's 1e-7 inference check would fail for the v2 paper JEPA control | not affected | not measured |
@@ -210,13 +210,13 @@ Measured with `fi1_thread_where.py` (one process; thread counts 1, 4 and 24 swit
   different model.
 - **Inference with fixed weights does not change** with the thread count in the physical evaluators
   (`current_test` identical at 4 threads; the robustness gates that read the fixed artifact identical at
-  every count). Those paths predict one row at a time (matrix-vector products), which OpenBLAS computes
-  the same way at any thread count.
+  every count). Those paths predict one row at a time; on this machine their results do not depend on the
+  thread count.
 - **Single-threaded runs repeat bit for bit**: the robustness evaluator at 1 thread twice (identical
   files), the 400-epoch training trace at 1 thread twice (identical at every checkpoint). So do repeated
   runs at 4 and at 24 threads.
 - **The OS world-model trainers** (`train_world_model_jepa.py`, `train_world_model.py`, full-batch
-  float32 NumPy) behave like the physical trainer: at 24 threads the committed digests reproduce, at 4
+  float32 NumPy) behave like the physical trainer: at 24 threads the encoder and seed-17 digests reproduce, at 4
   threads every model differs, and the rollout H=3 error of the transition models roughly doubles
   (0.0387 to 0.0847 for seed 17), with the downstream safety numbers of section 1.5.
 - **PyTorch inference** (incident dynamics, cross-domain) changes with the intra-op thread count in the
@@ -245,7 +245,7 @@ Measured with `fi1_thread_where.py` (one process; thread counts 1, 4 and 24 swit
   The scaling curve is not monotone in the committed run."
 - **Incident dynamics v3/v4.** "Inference was recomputed at 1 and 4 torch threads instead of the registered 8: the selected LightGBM pipeline and the ridge pipelines are bit-identical, the torch control (v2 paper JEPA) differs by at most 3.6e-7, and no gate, count or interval changes. The study's models were not retrained at another thread count." No conclusion changes.
 - **Cross-domain study.** "The archived-inference check compares records exactly and passes only at the 16 torch threads it pins; at 1 or 4 threads values differ by at most 1e-6 relative and no table entry changes." No conclusion changes; the verifier could compare with a stated tolerance instead of exact equality.
-- **OS world-model study.** "The committed models and evaluation reproduce byte for byte with 24 OpenBLAS threads on the development machine. With 4 threads the retrained models differ, the rollout H=3 error of the transition models roughly doubles (0.039 to 0.085), rules + JEPA gives 185/65/31/219 instead of 198/52/41/209 (balanced accuracy 0.808 instead of 0.814), the false alarms on the untouched QEMU replay fall from 216 to 50 of 1,969, and rules + JEPA falls below rules + per-action mean (0.808 against 0.812). The ordering of JEPA and the per-action mean, and the replay false-alarm count, are not stable under a change of BLAS thread count." This is a flipped comparison; the false-alarm count of the replay should not be quoted as a property of the method.
+- **OS world-model study.** "The committed JEPA encoder and the selected transition model reproduce byte for byte with 24 OpenBLAS threads on the development machine. With 4 threads the retrained models differ, the rollout H=3 error of the transition models roughly doubles (0.039 to 0.085), rules + JEPA gives 185/65/31/219 instead of 198/52/41/209 (balanced accuracy 0.808 instead of 0.814), the false alarms on the untouched QEMU replay fall from 216 to 50 of 1,969, and rules + JEPA falls below rules + per-action mean (0.808 against 0.812). The ordering of JEPA and the per-action mean, and the replay false-alarm count, are not stable under a change of BLAS thread count." This is a flipped comparison; the false-alarm count of the replay should not be quoted as a property of the method.
 - **Every future study**: train with one thread (`repro_env.pin_threads(1)` or the `_v2` entry points),
   record `environment_record()` in the protocol and the result, and treat a selection or a gate that
   flips under a change of thread count as unstable, for example by registering a rule over several
