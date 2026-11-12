@@ -79,28 +79,31 @@ def jobs(seeds, mode_list, conditions, arms, out: Path, source="dev"):
     for s in seeds:
         C.assert_development(s)
     modes = C.load_modes_from_derived(DEV_INPUT)
+    job_list = [
+        [m, s, c, a] for m in mode_list for s in seeds for c in conditions for a in arms
+    ]
+    write_job_file(modes, job_list, out, source)
+
+
+def write_job_file(modes: dict, job_list: list, out: Path, source: str):
+    """The job file: the background windows of every placement named by the jobs, the mode constants
+    and the job list. source 'sealed' works only when ol1_core.ALLOW_SEALED is set (stage 2)."""
     arrays, placements = {}, []
-    for m in mode_list:
-        for s in seeds:
-            bg, twin, rec = modes[m].placement(s, source)
-            arrays[f"w::{m}::{s}::bg"] = np.asarray(bg, np.float64)
-            arrays[f"w::{m}::{s}::twin"] = np.asarray(twin, np.float64)
-            placements.append({"mode": m, "seed": s, "record": rec})
+    for m, s in dict.fromkeys((int(j[0]), int(j[1])) for j in job_list):
+        bg, twin, rec = modes[m].placement(s, source)
+        arrays[f"w::{m}::{s}::bg"] = np.asarray(bg, np.float64)
+        arrays[f"w::{m}::{s}::twin"] = np.asarray(twin, np.float64)
+        placements.append({"mode": m, "seed": s, "record": rec})
+    used = sorted({p["mode"] for p in placements})
     meta = {
-        "status": "development job file (ol1 stage 1); D1 scores of attack-free calibration runs only",
+        "status": f"{source} job file (ol1); D1 scores of attack-free runs only",
         "source": source,
         "modes": {
             str(m): {k: getattr(modes[m], k) for k in ("tau0", "p", "tau_tight")}
-            for m in mode_list
+            for m in used
         },
         "placements": placements,
-        "jobs": [
-            [m, s, c, a]
-            for m in mode_list
-            for s in seeds
-            for c in conditions
-            for a in arms
-        ],
+        "jobs": [list(j) for j in job_list],
         "core_digest": C.digest(Path(C.__file__).read_text(encoding="utf-8")),
     }
     out.parent.mkdir(parents=True, exist_ok=True)

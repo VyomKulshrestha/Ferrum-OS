@@ -201,6 +201,18 @@ class Ledger:
             self.reserved[model] -= self.open_amount.pop(token)
             self._write(model, {"kind": "release", "token": token})
 
+    def settle_foreign(
+        self, model: str, token: str, amount: float, cost: float, record: dict
+    ) -> None:
+        """Close a reservation written by an earlier process (a batch submitted before a restart). The
+        load counted it at its worst case `amount`; the settle line replaces that by the cost."""
+        with self.lock:
+            self._hold(model)
+            self.spent[model] += cost - amount
+            self._write(
+                model, {"kind": "settle", "token": token, "cost": cost, **record}
+            )
+
 
 def usage_dict(usage) -> dict:
     d = usage.to_dict() if hasattr(usage, "to_dict") else dict(usage)

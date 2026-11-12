@@ -79,6 +79,10 @@ def header(extra=None):
 def scripted(seeds):
     modes = C.load_modes_from_derived(INPUT)
     table = {}
+    out_dir = DEV / "scripted"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    slim = out_dir / "scripted_episodes.jsonl"
+    slim.unlink(missing_ok=True)
     for pol, fn in C.SCRIPTED.items():
         for arm in ("P0", "G"):
             for cond in C.CONDITIONS:
@@ -89,6 +93,10 @@ def scripted(seeds):
                             C.Episode(modes[m], s, cond, arm), fn, kind="scripted"
                         )
                         rows.append(r)
+                        rec = {k: v for k, v in r.items() if k != "reviews"}
+                        rec.update({"model": pol, "leaks": C.leak_scan(r)})
+                        with slim.open("a", encoding="utf-8") as f:  # no transcripts
+                            f.write(json.dumps(rec) + "\n")
                 table[f"{pol}|{arm}|{cond}"] = {
                     "episodes": len(rows),
                     "loosened_beyond_ceiling": sum(
