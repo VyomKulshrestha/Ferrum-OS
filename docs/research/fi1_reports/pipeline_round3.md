@@ -12,7 +12,7 @@ were written under `target/fi1-pipeline3/` in this worktree. Machine: 24 logical
 |---|---|---|---|---|---|---|
 | Physical-JEPA v3 sweep and promotion | 24, 4, 1 (full sweep) | **No.** Only at 24 | different model selected | selection (3 becomes 0); promotion fails at 4 (OOD false negatives 1 against 0) and at 1 (OOD one-step error 0.003870 against 0.003777); three candidate validation checks; the verifier's selected index, deployed digest and asserted false-negative counts | OOD false negatives not increased: 0 against 0, no slack | yes (training trace) |
 | Physical-JEPA robustness evaluator | 24, 4, 3, 2, 1 | yes; 5 of 5 gates at every count | 5.9% | no gate; one claim-level step of the scaling curve | data scaling final h3 below smallest-data h3: 2.8% (2.0% at 2 and 3 threads) | yes |
-| OS world-model study | 24 (truncated), 4 (full), 1 (truncated) | **No** for the verifier's numbers and one comparison | factor 4 (safe-replay false positives 216 to 50) | four verifier assertions; "rules + JEPA at least rules + mean delta" | rules + JEPA against rules + mean delta: one false positive (0.814 against 0.812) | not measured (one run per count) |
+| OS world-model study | 24 (truncated), 4 and 1 (full) | **No** for the verifier's numbers; one comparison flips at 4 threads | factor 4 (safe-replay false positives 216 against 50 and 58) | four verifier assertions at each of 1 and 4 threads; "rules + JEPA at least rules + mean delta" at 4 | rules + JEPA against rules + mean delta: one false positive (0.814 against 0.812) | not measured (one run per count) |
 | Incident dynamics v3, v4 (physical) | torch 4 and 1 (registered 8), inference and analysis only | yes | 5.5e-8 | none; the verify stage's 1e-7 inference check would fail for the v2 paper JEPA control | not affected | not measured |
 | Cross-domain study | torch 4 and 1 (registered 16), archived inference only | yes | 1.0e-6 | none; the archived-inference verifier's four exact-equality checks fail | not affected | not measured |
 | Safety-Gymnasium | not rerun (environment cannot be imported here) | not rerun | | | | |
@@ -149,39 +149,45 @@ no printed digit of Tables 3 to 7 can change (the largest change is a millionth 
 
 The commands of `reproduce_world_model_paper.py --full` (JEPA encoder, transition seeds 17, 42 and 91,
 autoencoder baseline, paper evaluation), run by `fi1_thread_os_world_model.py` with the published
-dataset (digest ae7498c7..., read from the main checkout). The full pipeline was run at 4 threads (64
-minutes on a loaded machine); at 24 and 1 threads only the JEPA encoder and the selected transition seed
-17 were run (truncated, to keep lock time short and because one transition seed took 10 minutes at 4
-threads).
+dataset (digest ae7498c7..., read from the main checkout). Full pipeline at 4 threads (64 minutes on a
+loaded machine) and at 1 thread (38 minutes); at 24 threads the JEPA encoder and the selected transition
+seed 17 only (truncated, to keep the time under the machine lock short).
 
-At 24 threads (truncated run) the JEPA encoder (9fb5f08b...) and the selected transition model for seed
-17 (bd80ccb2...) reproduce the committed digests byte for byte, so the committed evidence is reproducible
-on this machine at 24 threads and the changes below are an effect of the thread count. PLACEHOLDER_OSWM_T1
+At 24 threads the JEPA encoder (9fb5f08b...) and the selected transition model for seed 17 (bd80ccb2...)
+reproduce the committed digests byte for byte, so the committed evidence is reproducible on this machine
+at 24 threads, and the changes below are an effect of the thread count. At 1 and at 4 threads every one
+of the six models differs (three different encoders at 1, 4 and 24 threads).
 
-At 4 threads (full pipeline), against the committed evaluation:
+| | committed (24 threads) | 4 threads | 1 thread |
+|---|---|---|---|
+| rules + JEPA confusion (verifier asserts 198/52/41/209) | 198 / 52 / 41 / 209, BA 0.814 | **185 / 65 / 31 / 219**, BA 0.808 | **199 / 51 / 41 / 209**, BA 0.816 |
+| rules + validation-calibrated JEPA (asserted 209/41/41/209) | 209 / 41 / 41 / 209 | **204 / 46 / 40 / 210** | 209 / 41 / 41 / 209 |
+| rules + autoencoder (asserted 189/61/41/209) | 189 / 61 / 41 / 209, BA 0.796 | 189 / 61 / 41 / 209 | **187 / 63 / 41 / 209**, BA 0.792 |
+| rules + mean delta; rules only | 198/52/42/208, BA 0.812; 147/103/21/229, BA 0.752 | identical | identical |
+| untouched QEMU safe replay, rules + JEPA false positives of 1,969 (asserted 216) | 216 | **50** | **58** |
+| same, validation-calibrated | 265 | 159 | 95 |
+| seed aggregate, max combined FNR (asserted >= 0.376) | 0.376 | **0.356** | **0.364** |
+| H=2 above H=3 balanced accuracy (asserted) | 0.848 > 0.814 | 0.852 > 0.808 | 0.854 > 0.816 |
+| rollout H=3 normalized error, seeds 17 / 42 / 91 | 0.0387 / 0.0411 / 0.0399 | 0.0847 / 0.0840 / 0.0808 | 0.0675 / 0.0640 / 0.0663 |
+| combined balanced accuracy, seeds 17 / 42 / 91 | 0.814 / 0.762 / 0.782 | 0.808 / 0.764 / 0.772 | 0.816 / 0.770 / 0.764 |
+| horizon ablation BA, H=1..5 | .844 .848 .814 .822 .834 | .848 .852 .808 .808 .798 | .850 .854 .816 .820 .834 |
+| rules versus combined, accuracy difference [95% CI] | 0.062 [0.030, 0.094] | 0.056 [0.030, 0.084] | 0.064 [0.032, 0.096] |
+| numeric leaves changed (of 907 compared) | | 484 | 444 |
 
-| | committed | 4 threads |
-|---|---|---|
-| model digests (encoder, seeds 17/42/91, autoencoder encoder and transition) | recorded | all six differ |
-| rules + JEPA confusion (verifier asserts 198/52/41/209) | 198 / 52 / 41 / 209, BA 0.814 | 185 / 65 / 31 / 219, BA 0.808 |
-| rules + validation-calibrated JEPA (asserted 209/41/41/209) | 209 / 41 / 41 / 209 | 204 / 46 / 40 / 210 |
-| rules + mean delta, rules + autoencoder, rules only | 198/52/42/208, 189/61/41/209, 147/103/21/229 | identical |
-| untouched QEMU safe replay, rules + JEPA false positives (asserted 216 of 1,969) | 216 | 50 |
-| same, validation-calibrated | 265 | 159 |
-| seed aggregate, max combined FNR (asserted >= 0.376) | 0.376 | 0.356 |
-| H=2 above H=3 balanced accuracy (asserted) | 0.848 > 0.814 | 0.852 > 0.808 |
-| seed 17 / 42 / 91 rollout H=3 normalized error | 0.0387 / 0.0411 / 0.0399 | 0.0847 / 0.0840 / 0.0808 |
-| seed 17 / 42 / 91 combined balanced accuracy | 0.814 / 0.762 / 0.782 | 0.808 / 0.764 / 0.772 |
-| horizon ablation BA, H=1..5 | .844 .848 .814 .822 .834 | .848 .852 .808 .808 .798 |
-| rules versus combined, accuracy difference [95% CI] | 0.062 [0.03, 0.094] | 0.056 [0.03, 0.084] |
+Verifier assertions that fail (bold): four at 4 threads, four at 1 thread (the exact confusion tables,
+the safe-replay count, the seed-aggregate FNR). The paper's comparisons:
 
-Four of the verifier's data-derived assertions fail at 4 threads (two confusion tables, the safe-replay
-false positives, the seed-aggregate FNR). Of the paper's comparisons: rules + JEPA above rules only holds
-(0.808 against 0.752); rules + JEPA above rules + autoencoder holds (0.808 against 0.796; committed margin
-2.3%); rules + JEPA at least rules + mean delta flips (committed 0.814 against 0.812, a margin of one
-false positive; at 4 threads 0.808 against 0.812). The paper already says the study "does not establish
-that JEPA outperforms the per-action mean model"; the committed ordering is not stable either. The
-safe-replay false-alarm count (216 of 1,969) is the least stable number: it changes by a factor of four.
+- rules + JEPA above rules only: holds at every count (0.808 to 0.816 against 0.752).
+- rules + JEPA above rules + autoencoder: holds (committed margin 2.3%; 1.5% at 4 threads, 3.0% at 1).
+- rules + JEPA at least rules + mean delta: committed 0.814 against 0.812, a margin of one false
+  positive; **flips at 4 threads** (0.808 against 0.812), holds at 1 (0.816). The paper already says the
+  study "does not establish that JEPA outperforms the per-action mean model"; the committed ordering is
+  not stable either.
+- The interval of rules versus combined excludes zero at every count.
+
+Two committed numbers are not typical of the configuration: the safe-replay false positives (216
+committed; 50 and 58 at the other counts) and the transition models' rollout H=3 error (0.039 to 0.041
+committed; 0.064 to 0.085 at the other counts). Neither is a registered gate, but the paper quotes both.
 
 ### 1.6 Safety-Gymnasium tables (11 to 15): not rerun
 
@@ -217,8 +223,9 @@ Measured with `fi1_thread_where.py` (one process; thread counts 1, 4 and 24 swit
   runs at 4 and at 24 threads.
 - **The OS world-model trainers** (`train_world_model_jepa.py`, `train_world_model.py`, full-batch
   float32 NumPy) behave like the physical trainer: at 24 threads the encoder and seed-17 digests reproduce, at 4
-  threads every model differs, and the rollout H=3 error of the transition models roughly doubles
-  (0.0387 to 0.0847 for seed 17), with the downstream safety numbers of section 1.5.
+  threads and at 1 thread every model differs, and the rollout H=3 error of the transition models is
+  1.6 to 2.2 times the committed one (seed 17: 0.0387 committed, 0.0847 at 4, 0.0675 at 1), with the
+  downstream safety numbers of section 1.5.
 - **PyTorch inference** (incident dynamics, cross-domain) changes with the intra-op thread count in the
   eighth decimal (at most 3.6e-7 absolute, 1e-6 relative), enough to fail exact-equality and 1e-7
   checks and nothing else. LightGBM prediction and NumPy ridge prediction are bit-identical across counts.
@@ -245,7 +252,7 @@ Measured with `fi1_thread_where.py` (one process; thread counts 1, 4 and 24 swit
   The scaling curve is not monotone in the committed run."
 - **Incident dynamics v3/v4.** "Inference was recomputed at 1 and 4 torch threads instead of the registered 8: the selected LightGBM pipeline and the ridge pipelines are bit-identical, the torch control (v2 paper JEPA) differs by at most 3.6e-7, and no gate, count or interval changes. The study's models were not retrained at another thread count." No conclusion changes.
 - **Cross-domain study.** "The archived-inference check compares records exactly and passes only at the 16 torch threads it pins; at 1 or 4 threads values differ by at most 1e-6 relative and no table entry changes." No conclusion changes; the verifier could compare with a stated tolerance instead of exact equality.
-- **OS world-model study.** "The committed JEPA encoder and the selected transition model reproduce byte for byte with 24 OpenBLAS threads on the development machine. With 4 threads the retrained models differ, the rollout H=3 error of the transition models roughly doubles (0.039 to 0.085), rules + JEPA gives 185/65/31/219 instead of 198/52/41/209 (balanced accuracy 0.808 instead of 0.814), the false alarms on the untouched QEMU replay fall from 216 to 50 of 1,969, and rules + JEPA falls below rules + per-action mean (0.808 against 0.812). The ordering of JEPA and the per-action mean, and the replay false-alarm count, are not stable under a change of BLAS thread count." This is a flipped comparison; the false-alarm count of the replay should not be quoted as a property of the method.
+- **OS world-model study.** "The committed JEPA encoder and the selected transition model reproduce byte for byte with 24 OpenBLAS threads on the development machine. With 4 or 1 threads every retrained model differs; the transition models' rollout H=3 error is 0.064 to 0.085 instead of 0.039 to 0.041; rules + JEPA gives 185/65/31/219 (4 threads) or 199/51/41/209 (1 thread) instead of 198/52/41/209; the false alarms on the untouched QEMU replay are 50 or 58 of 1,969 instead of 216; and at 4 threads rules + JEPA falls below rules + per-action mean (0.808 against 0.812). The ordering of JEPA and the per-action mean, the replay false-alarm count and the rollout error are properties of one training run." This is a flipped comparison; the replay false-alarm count and the rollout error should not be quoted as properties of the method.
 - **Every future study**: train with one thread (`repro_env.pin_threads(1)` or the `_v2` entry points),
   record `environment_record()` in the protocol and the result, and treat a selection or a gate that
   flips under a change of thread count as unstable, for example by registering a rule over several
@@ -404,8 +411,8 @@ without torch. `test_fi1_pipeline3.py` needs only NumPy and repository files.
   and a 400-epoch training trace twice, both bit-identical) and a sweep at 2 or 3 threads.
 - The physical-JEPA matched-autoencoder comparison of `verify_physical_world_model.py` at 1 and 4 threads:
   the baseline evaluator refuses a selection whose promotion failed.
-- The OS world-model pipeline in full at 1 and 24 threads (truncated to the encoder and seed 17), two
-  runs at one count, and the five-seed evaluation (`world_model_full_seed_evaluation.json`).
+- The OS world-model pipeline in full at 24 threads (truncated to the encoder and seed 17), two runs at
+  one count, and the five-seed evaluation (`world_model_full_seed_evaluation.json`).
 - Incident dynamics: retraining at another thread count (hours of queued jobs); the FerrumOS domain's
   inference; a rerun at the registered 8 threads.
 - Cross-domain: retraining.
