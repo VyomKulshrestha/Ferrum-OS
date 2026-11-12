@@ -216,7 +216,17 @@ def job_key(job) -> str:
 class ResumableRun:
     """One wave of episodes through the Message Batches API, with the state on disk (see module doc)."""
 
-    def __init__(self, model, ledger, client, state_dir: Path, poll=30.0, log=print):
+    def __init__(
+        self,
+        model,
+        ledger,
+        client,
+        state_dir: Path,
+        poll=30.0,
+        log=print,
+        read_tries=30,
+    ):
+        self.read_tries = read_tries
         self.model, self.ledger, self.client, self.poll, self.log = (
             model,
             ledger,
@@ -243,13 +253,28 @@ class ResumableRun:
         with p.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec) + "\n")
 
+    def _retry(self, fn, *args):
+        """Reads of a submitted batch survive transient network failures (the batch keeps running on
+        the server); after `tries` failures the error propagates and a restart collects the batch."""
+        tries = self.read_tries
+        for k in range(tries):
+            try:
+                return fn(*args)
+            except Exception as e:
+                if k == tries - 1:
+                    raise
+                self.log(
+                    f"{self.dir.name}: read of batch failed ({type(e).__name__}), retrying"
+                )
+                time.sleep(max(self.poll, 1.0) * min(2**k, 10))
+        return None
+
     def _collect(self, batch_id):
-        while (
-            self.client.messages.batches.retrieve(batch_id).processing_status != "ended"
-        ):
+        b = self.client.messages.batches
+        while self._retry(b.retrieve, batch_id).processing_status != "ended":
             time.sleep(self.poll)
         got, cost = {}, 0.0
-        for res in self.client.messages.batches.results(batch_id):
+        for res in self._retry(lambda i: list(b.results(i)), batch_id):
             if res.result.type == "succeeded":
                 t = A.turn_from_message(res.result.message, self.model, batch=True)
             else:
@@ -402,7 +427,13 @@ def run_waves(
             status[m] = "done"
             continue
         s = ResumableRun(
-            model, ledger, client, d, log=log, poll=getattr(client, "poll", 30.0)
+            model,
+            ledger,
+            client,
+            d,
+            log=log,
+            poll=getattr(client, "poll", 30.0),
+            read_tries=getattr(client, "read_tries", 30),
         ).run(wj, make_episode, max_rounds)
         status[m] = s
         if s == "done":
@@ -433,6 +464,7 @@ class MockClient:
     """Message Batches look-alike answering with ol1_core.MockBackend."""
 
     poll = 0.0
+    read_tries = 1
 
     def __init__(self):
         outer = self

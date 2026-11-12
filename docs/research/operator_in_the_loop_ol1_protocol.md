@@ -189,8 +189,10 @@ for multistep tool use on Sonnet 5.5. No request sends `temperature`, `top_p`, `
 back unchanged within a review. A response with `stop_reason` `refusal` or `max_tokens`, or an API error after the
 SDK's retries, ends the review with no tool of that turn run; it is recorded and counted as "no action" for that
 review. No server-side fallback is used (Haiku 5.5 has none; on the other two a fallback would change the model
-being measured). Caching: one breakpoint on the system prompt (tools render before it, so both are cached) and one on
-the last block of the conversation.
+being measured). Caching: one breakpoint on the system prompt (tools render before it, so both are cached). In
+synchronous runs (the pilot) a second breakpoint sits on the last block of the conversation. In the registered batch
+run the system breakpoint has the 1-hour TTL and there is no conversation breakpoint, because batch rounds are about
+six minutes apart and the conversation's 5-minute cache writes were never read in the batch dry run.
 
 **Open-weight models** on Kaggle (two T4 cards, vLLM 0.32.0 OpenAI-compatible server with each model's documented
 tool-call parser, `--generation-config auto`, so each model samples with its own published generation defaults),
@@ -411,6 +413,23 @@ batch probe), Sonnet 5.5 0.68 (7 episodes), Opus 5.5 1.10 (3 episodes, 0.96 reco
 to four requests that were in flight when a fourth Opus run was stopped by hand before any of its results were
 logged; the estimate is four times the largest Opus call observed). Total 3.00 US dollars, under the pilot cap of 10.
 
+**Batch dry run** (2026-11-12 and 13; development seed 3, mode 0, the five reduced cells, Haiku 5.5, the stage-2
+runner): 5 episodes, 115 calls, all ending `tool_use`, every review closed, no leak, 27 batches over about 2.5 hours
+of batch time (about six minutes a round). Spend 0.04 US dollars (0.03583). The run was stopped by hand with a batch in
+flight, and a DNS failure on the network side ended it a second time with another batch in flight; both times the
+restart collected the batch by its id instead of resubmitting it, and the ledger had counted it at its worst case
+until then. The 1-hour system cache was written once (2,241 tokens) and read on every later call. The conversation
+breakpoint wrote 204,481 tokens that were never read, so the run cost 0.00717 per episode against 0.00673 without
+those writes; the batch requests now carry no conversation breakpoint (section 5). Without those writes the same five
+episodes cost 7% more than the planning rate measured on the same cells in the pilot (0.00673 against 0.00628), within
+what five episodes can tell. Reads of a submitted batch now retry through transient network failures.
+Wall time of the registered run: a wave takes as many rounds as its longest episode has calls (26 in the dry run, at
+most 54), so about three hours per wave at the measured round time and about a day for one model's seven waves,
+more if larger batches run slower.
+
+Pilot and dry-run spend together: Haiku 5.5 1.25, Sonnet 5.5 0.68, Opus 5.5 1.10, total 3.03 US dollars of the 10
+for pilot and reruns.
+
 **Measured profile per episode** (nine reviews; development; prompt tokens include cached ones):
 
 | Model | Episodes measured | Calls per review | Prompt tokens | Output tokens | Thinking share of output (estimate) |
@@ -444,7 +463,7 @@ episodes.
 
 | Model | Episodes | As run | Batch, no cache | Batch, system and tools cached (planning) | Cap | Planning share of cap |
 |---|---|---|---|---|---|---|
-| Haiku 5.5 | 2,352 | 25.23 | 18.59 | 13.26 | 20 | 66% |
+| Haiku 5.5 | 2,352 | 25.23 | 18.59 | 13.26 (14.19 with the dry run's 7%) | 20 | 66% (71%) |
 | Sonnet 5.5 | 280 | 24.78 | 21.76 | 12.20 | 45 | 27% |
 | Opus 5.5 | 140 (28 placements) | 42.39 | 35.96 | 22.79 | 45 | 51% |
 | Total | | 92.40 | 76.31 | 48.25 | 120 overall, 10 of it for pilot and reruns | |

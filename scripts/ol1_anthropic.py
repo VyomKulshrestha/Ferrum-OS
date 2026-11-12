@@ -229,14 +229,17 @@ def build_params(
     model: str, system: str, tools: list, messages: list, batch: bool = False
 ) -> dict:
     """The request body. Cache breakpoints: the system block (tools render before it, so tools and system
-    are cached together) and the last block of the last message (the growing review conversation). In a
-    batch the system breakpoint has the 1-hour TTL, because rounds of a batch run can be minutes apart."""
+    are cached together) and, in synchronous runs, the last block of the last message (the growing review
+    conversation). In a batch the system breakpoint has the 1-hour TTL and there is no conversation
+    breakpoint: rounds are about six minutes apart, past the 5-minute TTL, so the dry run paid for cache
+    writes of the conversation that were never read."""
     s = SETTINGS[model]
     msgs = copy.deepcopy(messages)
     last = msgs[-1]
     if isinstance(last["content"], str):
         last["content"] = [{"type": "text", "text": last["content"]}]
-    last["content"][-1]["cache_control"] = {"type": "ephemeral"}
+    if not batch:
+        last["content"][-1]["cache_control"] = {"type": "ephemeral"}
     return {
         "model": model,
         "max_tokens": s["max_tokens"],

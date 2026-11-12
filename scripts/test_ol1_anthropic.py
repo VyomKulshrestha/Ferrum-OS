@@ -104,7 +104,7 @@ def test_one_hour_cache_writes_in_batches():
         "claude-opus-5-5", "sys", C.TOOLS, [{"role": "user", "content": "x"}], True
     )
     assert p["system"][-1]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
-    assert p["messages"][-1]["content"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert "cache_control" not in json.dumps(p["messages"])  # no conversation write
     u = {
         "cache_creation_input_tokens": 3_000_000,
         "cache_creation_1h_input_tokens": 1_000_000,
