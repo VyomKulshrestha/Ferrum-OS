@@ -111,7 +111,39 @@ PLACEHOLDER_CROSSDOMAIN
 
 ### 1.5 OS world-model study (`verify_world_model_paper_evaluation.py`)
 
-PLACEHOLDER_OSWM
+The commands of `reproduce_world_model_paper.py --full` (JEPA encoder, transition seeds 17, 42 and 91,
+autoencoder baseline, paper evaluation), run by `fi1_thread_os_world_model.py` with the published
+dataset (digest ae7498c7..., read from the main checkout). The full pipeline was run at 4 threads (64
+minutes on a loaded machine); at 24 and 1 threads only the JEPA encoder and the selected transition seed
+17 were run (truncated, to keep lock time short and because one transition seed took 10 minutes at 4
+threads).
+
+PLACEHOLDER_OSWM_REFERENCE
+
+At 4 threads (full pipeline), against the committed evaluation:
+
+| | committed | 4 threads |
+|---|---|---|
+| model digests (encoder, seeds 17/42/91, autoencoder encoder and transition) | recorded | all six differ |
+| rules + JEPA confusion (verifier asserts 198/52/41/209) | 198 / 52 / 41 / 209, BA 0.814 | 185 / 65 / 31 / 219, BA 0.808 |
+| rules + validation-calibrated JEPA (asserted 209/41/41/209) | 209 / 41 / 41 / 209 | 204 / 46 / 40 / 210 |
+| rules + mean delta, rules + autoencoder, rules only | 198/52/42/208, 189/61/41/209, 147/103/21/229 | identical |
+| untouched QEMU safe replay, rules + JEPA false positives (asserted 216 of 1,969) | 216 | 50 |
+| same, validation-calibrated | 265 | 159 |
+| seed aggregate, max combined FNR (asserted >= 0.376) | 0.376 | 0.356 |
+| H=2 above H=3 balanced accuracy (asserted) | 0.848 > 0.814 | 0.852 > 0.808 |
+| seed 17 / 42 / 91 rollout H=3 normalized error | 0.0387 / 0.0411 / 0.0399 | 0.0847 / 0.0840 / 0.0808 |
+| seed 17 / 42 / 91 combined balanced accuracy | 0.814 / 0.762 / 0.782 | 0.808 / 0.764 / 0.772 |
+| horizon ablation BA, H=1..5 | .844 .848 .814 .822 .834 | .848 .852 .808 .808 .798 |
+| rules versus combined, accuracy difference [95% CI] | 0.062 [0.03, 0.094] | 0.056 [0.03, 0.084] |
+
+Four of the verifier's data-derived assertions fail at 4 threads (two confusion tables, the safe-replay
+false positives, the seed-aggregate FNR). Of the paper's comparisons: rules + JEPA above rules only holds
+(0.808 against 0.752); rules + JEPA above rules + autoencoder holds (0.808 against 0.796; committed margin
+2.3%); rules + JEPA at least rules + mean delta flips (committed 0.814 against 0.812, a margin of one
+false positive; at 4 threads 0.808 against 0.812). The paper already says the study "does not establish
+that JEPA outperforms the per-action mean model"; the committed ordering is not stable either. The
+safe-replay false-alarm count (216 of 1,969) is the least stable number: it changes by a factor of four.
 
 ### 1.6 Safety-Gymnasium tables (11 to 15): not rerun
 
