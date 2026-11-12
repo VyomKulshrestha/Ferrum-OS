@@ -2,7 +2,7 @@
 """tw1c: Zabbix trend functions (baselinedev, baselinewma, trendstl) on the tw1c series.
 
 Plan: docs/research/thresholds_in_the_wild_tw1c_signal_plan.md, section 3. The containers are started by
-hand; the frontend API is on 127.0.0.1:8080. Standard library only (plus numpy for the series).
+hand; the frontend API is on 127.0.0.1:18080. Standard library only (plus numpy for the series).
 
     python -I tools/tw1c/zabbix_run.py setup      change the Admin password, create host and items
     python -I tools/tw1c/zabbix_run.py push       send the hourly means with their timestamps
@@ -33,7 +33,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import repro_env  # noqa: E402
 import tw1c_signals as S  # noqa: E402
 
-API = "http://127.0.0.1:8080/api_jsonrpc.php"
+API = "http://127.0.0.1:18080/api_jsonrpc.php"
 INPUT = ROOT / "target/tw1c/input"
 OUT = ROOT / "target/tw1c/zabbix"
 STATE = OUT / "state.json"
@@ -85,7 +85,11 @@ def all_series():
         p = S.load_placement(INPUT, setup, mode)
         for terminal in (S.TERMINAL, HOUR_STEPS):
             X, info, meta = S.build(
-                p, campaign=CAMPAIGN, history=HISTORY, tail=1000, terminal=terminal
+                p,
+                campaign=CAMPAIGN,
+                history=HISTORY,
+                tail=2000 - terminal,
+                terminal=terminal,
             )
             for r in info:
                 if terminal == HOUR_STEPS and r["mag"] is None:
@@ -301,15 +305,19 @@ def read():
         },
     )
     ids = list(st["items"].values())
-    trends = api(
-        "trend.get",
-        {
-            "itemids": ids,
-            "time_from": st["anchor"]["terminal_hour_start"] - 3 * 3600,
-            "output": ["itemid", "clock", "num", "value_avg"],
-            "limit": 100000,
-        },
-    )
+    trends = []
+    for i in range(
+        0, len(ids), 50
+    ):  # the frontend's PHP memory limit refuses larger reads
+        trends += api(
+            "trend.get",
+            {
+                "itemids": ids[i : i + 50],
+                "time_from": st["anchor"]["terminal_hour_start"] - 3 * 3600,
+                "output": ["itemid", "clock", "num", "value_avg"],
+                "limit": 100000,
+            },
+        )
     n = len(list(OUT.glob("read_*.json")))
     path = OUT / f"read_{n}.json"
     out = {"read_at": time.time(), "eval": st.get("eval"), "anchor": st.get("anchor"),
