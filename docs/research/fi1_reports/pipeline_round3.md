@@ -319,6 +319,13 @@ The two replaced checks are true for every input: `final_catalog_digests_recorde
 the digest of the file it just wrote, and `rule_blocks_never_erased` counts `rule & ~(rule | learned)`.
 The verifiers are unchanged; these checks run as tests.
 
+Results at the end of the round (this branch): `test_fi1_pipeline.py`, `test_fi1_pipeline2.py`,
+`test_fi1_pipeline3.py`, `test_repro_env.py` and the four round-1 `_v2` test files, 101 of 101 pass.
+Registered verifications: tt1 27 of 27, tt1b 8 of 8, tt1d 19 of 19 (tep59) and 22 of 22 (provics). Their
+rewritten verification JSONs differed from the committed ones only by workstream A's new ledger rows and
+line endings, and were restored. `ruff check` and `ruff format --check` pass on all 20 Python files this
+round added or changed.
+
 ## 6. What round 2 did not reach
 
 A second reader worked read-only on this part (scratch scripts in the session scratchpad, `b3reader/`).
