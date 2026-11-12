@@ -70,7 +70,7 @@ pub(crate) fn valid_user_write_range(ptr: u64, len: usize) -> bool {
         return false;
     }
     let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
-    pid != 0 && crate::process::user_range_is_mapped(pid, ptr, len)
+    pid != 0 && crate::process::user_range_is_writable(pid, ptr, len)
 }
 
 /// Copy bytes from a kernel buffer into a userspace buffer.
@@ -81,7 +81,7 @@ pub(crate) fn valid_user_write_range(ptr: u64, len: usize) -> bool {
 pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize {
     let to_copy = src.len().min(max_len);
     if to_copy > 0 {
-        if !valid_user_range(dst, to_copy) {
+        if !valid_user_write_range(dst, to_copy) {
             return 0;
         }
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);

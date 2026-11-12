@@ -30,12 +30,31 @@ pub const HEAP_START: usize = 0x_4444_4444_0000;
 /// this would need to be expandable on demand.
 pub const HEAP_SIZE: usize = 12 * 1024 * 1024; // 12 MiB (increased to support VBE double-buffering)
 
+/// The heap's spin lock, taken with interrupts disabled.
+///
+/// Interrupt handlers allocate (the timer's `scheduler::tick` grows run
+/// queues, a fault or quota kill writes audit records), and kernel tasks
+/// allocate with interrupts enabled. With a plain `LockedHeap`, an interrupt
+/// that arrived while a kernel task was inside `alloc` or `dealloc` spun on
+/// the heap lock with interrupts off, on the only CPU: the kernel hung.
+pub struct IrqSafeHeap(LockedHeap);
+
+unsafe impl core::alloc::GlobalAlloc for IrqSafeHeap {
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        x86_64::instructions::interrupts::without_interrupts(|| self.0.alloc(layout))
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+        x86_64::instructions::interrupts::without_interrupts(|| self.0.dealloc(ptr, layout))
+    }
+}
+
 /// Global allocator instance
-/// 
+///
 /// This is the allocator used by Rust's `alloc` crate for all
 /// dynamic memory allocation (Box, Vec, String, etc.)
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: IrqSafeHeap = IrqSafeHeap(LockedHeap::empty());
 
 /// Initialize the kernel heap
 /// 
@@ -79,7 +98,7 @@ pub fn init_heap(
 
     // Initialize the allocator with the heap memory region
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE);
+        ALLOCATOR.0.lock().init(HEAP_START as *mut u8, HEAP_SIZE);
     }
 
     super::harden_kernel_mappings();
@@ -91,8 +110,7 @@ pub fn init_heap(
 /// 
 /// Returns (used_bytes, free_bytes) for the kernel heap
 pub fn heap_stats() -> (usize, usize) {
-    let allocator = ALLOCATOR.lock();
-    let free = allocator.free();
+    let free = x86_64::instructions::interrupts::without_interrupts(|| ALLOCATOR.0.lock().free());
     let used = HEAP_SIZE - free;
     (used, free)
 }

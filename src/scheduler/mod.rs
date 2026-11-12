@@ -705,33 +705,27 @@ pub fn tick() {
             crate::logging::audit::FLUSH_PENDING.store(true, Ordering::SeqCst);
         }
 
-        let mut to_wake: Vec<u64> = Vec::new();
-        for task in sched.tasks.iter() {
-            if task.state == TaskState::Blocked && task.wake_at <= now {
-                to_wake.push(task.id);
+        // Wake sleepers in place. This runs in the timer interrupt: it used
+        // to collect the pids in a fresh `Vec` on every tick that woke a
+        // task, an allocation from interrupt context.
+        for index in 0..sched.tasks.len() {
+            let task = &mut sched.tasks[index];
+            if task.state != TaskState::Blocked || task.wake_at > now {
+                continue;
+            }
+            task.state = TaskState::Ready;
+            task.wake_at = u64::MAX;
+            task.time_remaining = TIME_SLICE_TICKS;
+            if task.blocked_on_confirmation {
+                task.blocked_on_confirmation = false;
+                task.confirmation_denied = true;
+            }
+            let pid = task.id;
+            let pri = task.priority.index();
+            if !sched.run_queues[pri].contains(&pid) {
+                sched.run_queues[pri].push_back(pid);
             }
         }
-        for pid in &to_wake {
-            if let Some(task) = sched.tasks.iter_mut().find(|t| t.id == *pid) {
-                task.state = TaskState::Ready;
-                task.wake_at = u64::MAX;
-                task.time_remaining = TIME_SLICE_TICKS;
-                if task.blocked_on_confirmation {
-                    task.blocked_on_confirmation = false;
-                    task.confirmation_denied = true;
-                }
-            }
-            let pri = sched
-                .tasks
-                .iter()
-                .find(|t| t.id == *pid)
-                .map(|t| t.priority.index())
-                .unwrap_or(0);
-            if !sched.run_queues[pri].contains(pid) {
-                sched.run_queues[pri].push_back(*pid);
-            }
-        }
-        drop(to_wake);
 
         // Tick counters and time-slice accounting.
         for task in sched.tasks.iter_mut() {
