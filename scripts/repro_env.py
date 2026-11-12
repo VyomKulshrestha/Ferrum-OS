@@ -194,6 +194,67 @@ def environment_record() -> dict:
     return record
 
 
+RECORD_KEY = "reproducibility_environment"
+
+
+def stamp_json(path, record: dict | None = None) -> dict:
+    """Add the environment record to a JSON result file under ``RECORD_KEY`` (LF line endings)."""
+    import json
+    from pathlib import Path
+
+    path = Path(path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data[RECORD_KEY] = record if record is not None else environment_record()
+    path.write_text(
+        json.dumps(data, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return data
+
+
+def run_script_pinned(script, argv: list[str], threads: int, outputs: list = ()) -> int:
+    """Run a script's ``__main__`` in this process with ``threads`` pinned, then stamp its outputs.
+
+    The ``_v2`` entry points use this so that a frozen trainer or evaluator stays byte-identical
+    while new runs of it are pinned and carry the environment record. Returns the exit code.
+    """
+    import runpy
+    from pathlib import Path
+
+    pin_threads(threads, torch_import=False)
+    script = Path(script)
+    saved_argv, saved_path = sys.argv, list(sys.path)
+    sys.argv = [str(script), *argv]
+    sys.path.insert(0, str(script.parent))
+    code = 0
+    try:
+        runpy.run_path(str(script), run_name="__main__")
+    except SystemExit as exit_:
+        code = (
+            exit_.code
+            if isinstance(exit_.code, int)
+            else (0 if exit_.code is None else 1)
+        )
+    finally:
+        sys.argv, sys.path[:] = saved_argv, saved_path
+    record = environment_record()
+    for output in outputs:
+        if Path(output).is_file():
+            stamp_json(output, record)
+    return code
+
+
+def option_value(argv: list[str], name: str, default=None):
+    """The value of ``--name value`` or ``--name=value`` in an argument list."""
+    for index, item in enumerate(argv):
+        if item == name and index + 1 < len(argv):
+            return argv[index + 1]
+        if item.startswith(name + "="):
+            return item.split("=", 1)[1]
+    return default
+
+
 if __name__ == "__main__":
     import json
 

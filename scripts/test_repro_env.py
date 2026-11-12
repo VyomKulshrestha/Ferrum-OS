@@ -158,5 +158,95 @@ class SingleThreadRepeatabilityTests(unittest.TestCase):
         self.assertEqual(first, second)
 
 
+class PinnedEntryPointTests(unittest.TestCase):
+    """The ``_v2`` entry points run a frozen script unchanged, pinned, and stamp its output."""
+
+    ENTRY_POINTS = (
+        "evaluate_physical_jepa_robustness",
+        "select_physical_incident_jepa",
+        "train_world_model",
+        "train_world_model_jepa",
+    )
+
+    def tearDown(self):
+        repro_env.unpin()
+
+    @unittest.skipIf(threadpoolctl is None, "threadpoolctl not installed")
+    def test_run_script_pinned_pins_stamps_and_returns_the_exit_code(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            script = folder / "child.py"
+            script.write_text(
+                "import json, sys, numpy, threadpoolctl\n"
+                "out = sys.argv[sys.argv.index('--out') + 1]\n"
+                "pools = {p['num_threads'] for p in threadpoolctl.threadpool_info()"
+                " if p['user_api'] == 'blas'}\n"
+                "json.dump({'threads_seen': sorted(pools)}, open(out, 'w'))\n"
+                "raise SystemExit(3)\n",
+                encoding="utf-8",
+            )
+            out = folder / "out.json"
+            code = repro_env.run_script_pinned(script, ["--out", str(out)], 1, [out])
+            data = json.loads(out.read_text(encoding="utf-8"))
+        self.assertEqual(code, 3)
+        self.assertEqual(data["threads_seen"], [1])
+        self.assertEqual(data[repro_env.RECORD_KEY]["pinned_threads"], 1)
+
+    def test_entry_points_forward_arguments_and_threads(self):
+        import importlib
+
+        for name in self.ENTRY_POINTS:
+            module = importlib.import_module(f"{name}_v2")
+            self.assertTrue(module.ORIGINAL.is_file(), name)
+            self.assertEqual(module.ORIGINAL.name, f"{name}.py")
+            calls = []
+            saved = repro_env.run_script_pinned
+            repro_env.run_script_pinned = lambda *a: calls.append(a) or 0
+            try:
+                option = module.OUTPUT_OPTIONS[0]
+                module.main(["--threads", "2", "--seed", "5", option, "x.json"])
+                module.main(["--seed", "5"])
+            finally:
+                repro_env.run_script_pinned = saved
+            self.assertEqual(
+                calls[0][1:], (["--seed", "5", option, "x.json"], 2, ["x.json"])
+            )
+            self.assertEqual(calls[1][1:], (["--seed", "5"], 1, []))
+
+    def test_frozen_originals_are_unchanged(self):
+        """The originals the entry points wrap still have their registered digests."""
+        import hashlib
+
+        research = Path(__file__).resolve().parents[1] / "docs" / "research"
+        protocol = json.loads(
+            (
+                research / "physical_jepa_paper_dynamics_calibration_protocol_v2.json"
+            ).read_text(encoding="utf-8")
+        )
+        expected = {}
+
+        def collect(node):
+            if isinstance(node, dict):
+                if {"path", "sha256"} <= set(node):
+                    expected[node["path"]] = node["sha256"]
+                for value in node.values():
+                    collect(value)
+            elif isinstance(node, list):
+                for value in node:
+                    collect(value)
+
+        collect(protocol)
+        path = "scripts/evaluate_physical_jepa_robustness.py"
+        self.assertIn(path, expected)
+        root = Path(__file__).resolve().parents[1]
+        raw = (root / path).read_bytes()
+        digests = {
+            hashlib.sha256(v).hexdigest() for v in (raw, raw.replace(b"\r\n", b"\n"))
+        }
+        self.assertIn(expected[path], digests)
+
+
 if __name__ == "__main__":
     unittest.main()
