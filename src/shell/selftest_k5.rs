@@ -565,16 +565,11 @@ fn ext2_real() {
             let rm_xlink = ok(fs.remove("/xlink"));
             // `evil` points at group 1's backup superblock (block 8193).
             let rm_evil = ok(fs.remove("/evil"));
-            // The filler (6.5 MiB: single, double indirect) is removed: every
-            // data and pointer block must come back.
-            let filler = fs.resolve_path("/filler").and_then(|n| fs.read_inode(n));
-            let (fd, fp) = filler.as_ref().ok().and_then(|i| fs.inode_blocks(i).ok()).unwrap_or_default();
-            let (g0, _) = fs.free_counts();
-            let rm_filler = ok(fs.remove("/filler"));
-            let (g1, _) = fs.free_counts();
-            // Fill: 40 files of 12 blocks. Group 0 is marked full, so they
-            // come from group 1, whose backup superblock, descriptor and
-            // reserved descriptor blocks (8193-8321) the bitmap calls free.
+            // Fill: 40 files of 12 blocks. Group 0 is marked full (only the
+            // block `xlink` shared with `victim` may have been freed), so the
+            // first goes there and the rest come from group 1, whose backup
+            // superblock, descriptor and reserved descriptor blocks
+            // (8193-8321) the bitmap calls free.
             let mut in_meta = 0;
             let mut written = 0;
             for i in 0..40 {
@@ -591,6 +586,13 @@ fn ext2_real() {
             let mut sb = vec![0u8; fs.block_size as usize];
             let backup_magic = fs.read_block(8193, &mut sb).map(|_| u16::from_le_bytes([sb[56], sb[57]])).unwrap_or(0);
             let victim1 = fs.read_file("/victim").ok();
+            // Then the filler (6.5 MiB: single and double indirect) is
+            // removed: every data and pointer block must come back.
+            let filler = fs.resolve_path("/filler").and_then(|n| fs.read_inode(n));
+            let (fd, fp) = filler.as_ref().ok().and_then(|i| fs.inode_blocks(i).ok()).unwrap_or_default();
+            let (g0, _) = fs.free_counts();
+            let rm_filler = ok(fs.remove("/filler"));
+            let (g1, _) = fs.free_counts();
             println!(
                 "selftest ext2-real: crafted mount=ok remove_xlink={} remove_evil={} victim_before={} victim_intact_after={} filler_data_blocks={} filler_pointer_blocks={} remove_filler={} filler_freed={} files_written={} file_blocks_in_backup_metadata={} backup_superblock_magic={:#x}",
                 rm_xlink,
