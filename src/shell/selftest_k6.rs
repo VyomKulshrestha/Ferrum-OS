@@ -15,6 +15,8 @@
 //                      the operator
 //   pkg-name           a package cannot take a compiled-in program's name
 //   serial-titles      a notification title cannot forge a serial line
+//   device-bounds      crafted device values fed to the xHCI and virtio-gpu
+//                      bounding functions
 //   query-names        a task name cannot add entries to SystemQuery's
 //                      process list (switched off first: the control)
 //   audit-trim-utf8    trimming the audit log inside a multi-byte character
@@ -44,6 +46,7 @@ pub fn run(name: &str) -> bool {
         "audit-trim-utf8" => audit_trim_utf8(),
         "hda-subnodes" => hda_subnodes(),
         "query-names" => query_names(),
+        "device-bounds" => device_bounds(),
         _ => return false,
     }
     true
@@ -344,4 +347,43 @@ fn query_names() {
     crate::scheduler::kill(pid);
     crate::process::reap_dead();
     println!("selftest query-names: forged_entry_escaping_off={} forged_entry={}", off, on);
+}
+
+// ---- device-supplied values ----------------------------------------------------
+
+/// Crafted register values fed to the functions the drivers parse them with.
+/// `old_*` shows what the code before the fix computed for the same value.
+fn device_bounds() {
+    use crate::devices::{virtio_gpu, xhci};
+    // HCSPARAMS2 with Max Scratchpad Bufs Hi = 31, Lo = 31: 1023 buffers.
+    let hcs2: u32 = (31 << 21) | (31 << 27);
+    let old_count = ((((hcs2 >> 21) & 0x1F) as usize) << 5) | (((hcs2 >> 27) & 0x1F) as usize);
+    let old_array_bytes = old_count * 8;
+    let xhci_1023 = match xhci::scratchpad_count(hcs2) {
+        Ok(n) => alloc::format!("ok:{}", n),
+        Err(_) => String::from("refused"),
+    };
+    // QEMU-like value: 4 buffers (control).
+    let xhci_4 = match xhci::scratchpad_count(4 << 27) {
+        Ok(n) => alloc::format!("ok:{}", n),
+        Err(_) => String::from("refused"),
+    };
+    let ptr: u8 = 0xF8;
+    let old_ptr_plus_16 = ptr.checked_add(16).is_some();
+    let bar: u8 = 61;
+    let old_bar_offset = bar.checked_mul(4).and_then(|b| b.checked_add(0x10)).is_some();
+    println!(
+        "selftest device-bounds: xhci_scratchpads_1023={} old_array_bytes={} xhci_scratchpads_4={} virtio_queue_32768={} virtio_queue_64={} cap_ptr_0xf8_usable={} cap_ptr_0x40_usable={} old_ptr_plus_16_fits_u8={} bar_61_offset={:?} bar_5_offset={:?} old_bar_61_fits_u8={}",
+        xhci_1023,
+        old_array_bytes,
+        xhci_4,
+        virtio_gpu::controlq_size(32768),
+        virtio_gpu::controlq_size(64),
+        virtio_gpu::cap_pointer_usable(ptr),
+        virtio_gpu::cap_pointer_usable(0x40),
+        old_ptr_plus_16,
+        virtio_gpu::bar_config_offset(bar),
+        virtio_gpu::bar_config_offset(5),
+        old_bar_offset
+    );
 }

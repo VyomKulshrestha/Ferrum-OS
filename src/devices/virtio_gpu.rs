@@ -145,6 +145,29 @@ pub fn backing_region() -> Option<(u64, usize)> {
     DEVICE.lock().as_ref().map(|device| (device.backing_phys, device.backing_len))
 }
 
+/// The control queue size the driver uses for a device offering `offered`
+/// entries: at most 256, what one page of descriptors holds.
+pub fn controlq_size(offered: u16) -> u16 {
+    offered.min(MAX_QUEUE_SIZE)
+}
+
+/// A virtio capability is read up to `ptr + 19` (the notify multiplier). A
+/// pointer past 0xEC overflowed the u8 config offsets and stopped the
+/// kernel (overflow checks are on in this build).
+pub fn cap_pointer_usable(ptr: u8) -> bool {
+    ptr <= 0xEC
+}
+
+/// The config-space offset of BAR `bar_index`; None past BAR 5 (a
+/// capability's bar field is device data: `0x10 + bar * 4` overflowed a u8
+/// from 61 up).
+pub fn bar_config_offset(bar_index: u8) -> Option<u8> {
+    if bar_index > 5 {
+        return None;
+    }
+    Some(0x10 + bar_index * 4)
+}
+
 fn alloc_dma_pages(pages: usize) -> (u64, *mut u8) {
     let frame = allocate_contiguous_frames(pages).expect("virtio-gpu: out of DMA memory");
     let phys = frame.start_address();
@@ -170,7 +193,7 @@ fn find_virtio_cap(dev: pci::PciDevice, cfg_type: u8) -> Option<(u8, u32, u32)> 
         // A virtio capability is read up to ptr + 19 (notify multiplier);
         // a pointer past 0xEC would overflow the u8 offsets below, which
         // stops the kernel (overflow checks are on in this build).
-        if ptr > 0xEC {
+        if !cap_pointer_usable(ptr) {
             break;
         }
         let cap_id = pci::read_config_u8(dev.bus, dev.slot, dev.func, ptr);
@@ -195,10 +218,7 @@ fn find_virtio_cap(dev: pci::PciDevice, cfg_type: u8) -> Option<(u8, u32, u32)> 
 
 fn bar_virt_addr(dev: pci::PciDevice, bar_index: u8) -> Option<u64> {
     // Six BARs; a capability naming another index is malformed.
-    if bar_index > 5 {
-        return None;
-    }
-    let bar_offset = 0x10 + (bar_index as u8) * 4;
+    let bar_offset = bar_config_offset(bar_index)?;
     let lo = pci::read_config_u32(dev.bus, dev.slot, dev.func, bar_offset);
     if lo & 0x1 == 1 {
         return None; // I/O space bar, not expected for a modern virtio device
@@ -272,8 +292,8 @@ pub fn init() -> Result<(), &'static str> {
         // The descriptor table, avail ring and used ring below are one page
         // each, which holds 256 entries. A device offering more would have
         // the driver index the avail ring past its page; ask for 256.
-        if qsize > MAX_QUEUE_SIZE {
-            qsize = MAX_QUEUE_SIZE;
+        if controlq_size(qsize) != qsize {
+            qsize = controlq_size(qsize);
             common.write_u16(24, qsize);
         }
 

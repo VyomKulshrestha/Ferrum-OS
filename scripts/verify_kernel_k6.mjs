@@ -130,6 +130,22 @@ try {
       field(out, "forged_entry_escaping_off") === "true");
   }
 
+  out = await run("device-bounds", 30);
+  if (out) {
+    const d = line(out, "device-bounds");
+    check("xhci: a controller asking for 1023 scratchpads is refused, 4 accepted (control)",
+      field(out, "xhci_scratchpads_1023") === "refused" && field(out, "xhci_scratchpads_4") === "ok:4"
+        && field(out, "old_array_bytes") === "8184", d);
+    check("virtio-gpu: an offered queue of 32768 entries is cut to 256, 64 kept",
+      field(out, "virtio_queue_32768") === "256" && field(out, "virtio_queue_64") === "64");
+    check("virtio-gpu: a capability pointer past 0xEC is not followed (0x40 is)",
+      field(out, "cap_ptr_0xf8_usable") === "false" && field(out, "cap_ptr_0x40_usable") === "true"
+        && field(out, "old_ptr_plus_16_fits_u8") === "false");
+    check("virtio-gpu: a capability naming BAR 61 is refused, BAR 5 maps to 0x24",
+      field(out, "bar_61_offset") === "None" && field(out, "bar_5_offset") === "Some(36)"
+        && field(out, "old_bar_61_fits_u8") === "false");
+  }
+
   check("no kernel fault during the self-tests", !faulted(shell.serial()));
 } catch (error) {
   check("harness completed", false, String(error?.message || error).split("\n")[0]);
