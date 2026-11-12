@@ -142,9 +142,16 @@ try {
   await waitForSerial("[init] userspace is alive in ring 3", 12, start);
   check("ring-3 SYS_WRITE reaches kernel (DPL-3 gate works)", true);
 
-  // Step 2: SYS_GETPID round-tripped (init reports a valid pid).
-  const afterAlive = serialText();
-  check("SYS_GETPID round-trips", afterAlive.includes("[init] obtained pid from kernel via SYS_GETPID"));
+  // Step 2: SYS_GETPID round-tripped (init reports a valid pid). init prints this line right after
+  // the banner; reading the serial text at once raced with a fast kernel (one false failure in three
+  // runs on the fi1 image, where boot is three times faster), so wait briefly for the line itself.
+  let obtainedPid = true;
+  try {
+    await waitForSerial("[init] obtained pid from kernel via SYS_GETPID", 5, start);
+  } catch {
+    obtainedPid = false;
+  }
+  check("SYS_GETPID round-trips", obtainedPid);
 
   // Step 3 + 4: sleep/yield loop completes and init exits cleanly.
   await waitForSerial("[init] supervision complete, exiting cleanly", 15, start);
