@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "artifact_id": "when-agents-control-kernel-technical-report-v1.3",
+  "status": "prepublication v1.3 candidate; not published; no version DOI reserved; v1.2 (10.5281/zenodo.22116399) remains the published version",
+  "date": "2026-11-12",
+  "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
+  "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
+  "version": "1.3",
+  "author": {
+    "name": "Vyom Kulshrestha",
+    "affiliation": "Independent Researcher, India",
+    "orcid": "0009-0009-1434-7148"
+  },
+  "source": {
+    "path": "docs/research/paper/when_agents_control_kernel_technical_report_v1_3.md",
+    "sha256": "9c19ea59a12c6a1d56b9b9cc6c3805e403c7960e4e811406fd8f9ef98dc8fc8d"
+  },
+  "builder": {
+    "path": "scripts/build_world_model_technical_report_v1_3.py",
+    "sha256": "7c74150aa1034027ac8c849157d45dc40b4f41842ab1d53237112aa0a513a9fc"
+  },
+  "verifier": {
+    "path": "scripts/verify_world_model_technical_report_v1_3.py",
+    "sha256": "d3787ab3f791c0b3b2fb438c45173323062a55871d997c237c751cb4525ca85c"
+  },
+  "pdf": {
+    "filename": "FerrumOS_WorldModel_Technical_Report_v1.3.pdf",
+    "build_output_path": "docs/research/paper/FerrumOS_WorldModel_Technical_Report_v1.3.pdf",
+    "pages": 19,
+    "page_size": "A4",
+    "sha256": "c35903e5996b2058c0d9559533f1e211bd37d977942b89a03be99bc6b68d142c",
+    "deterministic_rebuild_verified": true
+  },
+  "predecessor": {
+    "freeze": {
+      "path": "docs/research/world_model_technical_report_freeze_v1_2.json",
+      "sha256": "db205fc77b01b8cd0139d41d1231adc2a87858b086588f5fd7616d34f5660bea"
+    },
+    "source_sha256": "5044a257b32641e87cdcb7e381ade1b453a7b128f264d46dd4854af3c152458c",
+    "pdf_sha256": "6f335f48f915b1a8ffd9194bdb86fb4ed95b37be099463c48b57f74e46230533",
+    "version_doi": "10.5281/zenodo.22116399",
+    "all_versions_doi": "10.5281/zenodo.21829807"
+  },
+  "publication": {
+    "publisher": "Zenodo",
+    "version_doi": "PLACEHOLDER: reserve on Zenodo as a new version of 10.5281/zenodo.22116399 before publication",
+    "all_versions_doi": "10.5281/zenodo.21829807",
+    "dataset_doi": "10.5281/zenodo.21829193"
+  },
+  "evidence": {
+    "protocol": {
+      "path": "docs/research/world_model_jepa_v3_4_protocol.json",
+      "sha256": "6ed7a501274953fc457674eacc29cc54155cf577b428e90ac18234ab7dadab38"
+    },
+    "validation": {
+      "path": "docs/research/world_model_jepa_v3_4_validation.json",
+      "sha256": "0923ff31f9c651d77a0c5f103cf32dd6c2598367113e0e408e7eecadf2655387",
+      "final_opened_during_selection": false
+    },
+    "final_result": {
+      "path": "docs/research/world_model_jepa_v3_4_final_result.json",
+      "sha256": "ad330152b2d6ff55f83de41383ccc7b91120b3fdbe9bd2b47895ad515d284950",
+      "final_open_count": 1
+    },
+    "verification": {
+      "path": "docs/research/world_model_jepa_v3_4_verification.json",
+      "sha256": "a103e555151b4097f887b426d84a7fe49398d7f17d160ad285b867d3dd511560",
+      "checks": "27/27"
+    }
+  },
+  "audit_records": [
+    {
+      "path": "docs/research/ferrumos_improvement_fi1_report.md",
+      "sha256": "64e221d1966f1b9851ddecd24855b1950d74886f6081652fed5f0fcd8ac1c324"
+    },
+    {
+      "path": "docs/research/fi1_reports/pipeline_round3.md",
+      "sha256": "e36d74649251731461aa7f005f24d1460df83a3437455bc3dea3b3910aa96574"
+    },
+    {
+      "path": "docs/research/fi1_pipeline_round3.json",
+      "sha256": "ac29bf29bc618a9f1a26ff8d4076c61930efe5501213779cd96d8b21ca3567fc"
+    }
+  ],
+  "claim_boundary": {
+    "final_safety_attribution": "deterministic policy only",
+    "learned_result": "untouched-corpus rollout improvement at H=1, H=3, and H=5",
+    "promotion_eligible": false,
+    "deployment_unchanged": true,
+    "publication_attempted": false,
+    "published": false,
+    "thread_count_dependence": "original OS models reproduce only at 24 BLAS threads (fi1 pipeline round 3)"
+  }
+}
