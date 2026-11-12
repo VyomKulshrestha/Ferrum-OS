@@ -205,7 +205,7 @@ pub fn sys_hit_test(args: [u64; 6]) -> SyscallResult {
             crate::serial_println!(
                 "  win ID={}: title={}, x={}, y={}, w={}, h={}",
                 w.id,
-                w.title,
+                super::escape_printable(&w.title),
                 w.x,
                 w.y,
                 w.width,

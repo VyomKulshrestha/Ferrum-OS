@@ -824,7 +824,11 @@ pub fn handle_mouse_down(mx: u32, my: u32, injected: bool) {
                 _ => None,
             });
             if let Some(window) = closed.as_ref() {
-                crate::serial_println!("[desktop] closed window id={} title={}", window.id, window.title);
+                crate::serial_println!(
+                    "[desktop] closed window id={} title={}",
+                    window.id,
+                    crate::syscall::escape_printable(&window.title)
+                );
             }
             state.taskbar_offset = state
                 .taskbar_offset
@@ -1106,7 +1110,7 @@ pub fn handle_mouse_up(mx: u32, my: u32, injected: bool) {
                         crate::serial_println!(
                             "[desktop] taskbar window id={} title={} action={}",
                             id,
-                            title,
+                            crate::syscall::escape_printable(&title),
                             action
                         );
                     }
@@ -1253,7 +1257,7 @@ pub fn handle_key_press(ascii: u8, injected: bool) {
                 "[desktop] alt-tab from={} to={} title={}",
                 from_id,
                 to_id,
-                to_title
+                crate::syscall::escape_printable(&to_title)
             );
         }
         return;
