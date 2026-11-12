@@ -102,6 +102,29 @@ impl FsNode {
 
 pub struct RamFs {
     root: Mutex<FsNode>,
+    /// File bytes and nodes held, updated under the `root` lock.
+    used_bytes: core::sync::atomic::AtomicUsize,
+    used_nodes: core::sync::atomic::AtomicUsize,
+}
+
+/// RamFS lives on the 12 MiB kernel heap. Any holder of `fs:write` could
+/// write 4 MiB files until an infallible allocation elsewhere in the kernel
+/// failed (which aborts the kernel), or create directories without bound.
+pub const RAMFS_MAX_BYTES: usize = 4 * 1024 * 1024;
+pub const RAMFS_MAX_NODES: usize = 2048;
+/// Deepest path a RamFS create accepts (components). Removing a deep tree
+/// and summing usage recursed once per level on a 32 KiB kernel stack; a
+/// 4096-byte path reaches about 2000 levels.
+pub const RAMFS_MAX_DEPTH: usize = 32;
+
+fn path_depth(path: &str) -> usize {
+    path.split('/').filter(|part| !part.is_empty()).count()
+}
+
+/// Names may not hold control characters: ReadDir lists one entry per line,
+/// so a name with a newline forged listing lines.
+fn valid_name(name: &str) -> bool {
+    !name.bytes().any(|b| b < 0x20 || b == 0x7F)
 }
 
 impl RamFs {
@@ -132,6 +155,8 @@ impl RamFs {
         
         Self {
             root: Mutex::new(FsNode::dir(children)),
+            used_bytes: core::sync::atomic::AtomicUsize::new(0),
+            used_nodes: core::sync::atomic::AtomicUsize::new(0),
         }
     }
 }
@@ -188,10 +213,14 @@ impl vfs::Filesystem for RamFs {
     }
 
     fn create_file_bytes(&self, path: &str, content: &[u8]) -> Result<(), String> {
+        use core::sync::atomic::Ordering::SeqCst;
         let mut root_guard = self.root.lock();
         let (parent_path, file_name) = split_path(path)?;
+        if path_depth(path) > RAMFS_MAX_DEPTH {
+            return Err(String::from("path too deep"));
+        }
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
-        
+
         match parent {
             FsNode::Directory { children, .. } => {
                 // A write replaces a file, never a directory: inserting over
@@ -199,8 +228,15 @@ impl vfs::Filesystem for RamFs {
                 // of `/disk/heliox` deleted the daemon's configuration and
                 // every file beside it (fi1 joint round 2, J2-1). ext2
                 // already refuses ("not a regular file").
-                if matches!(children.get(&file_name), Some(FsNode::Directory { .. })) {
-                    return Err(String::from("is a directory"));
+                let old_len = match children.get(&file_name) {
+                    Some(FsNode::Directory { .. }) => return Err(String::from("is a directory")),
+                    Some(FsNode::File { content, .. }) => Some(content.len()),
+                    None => None,
+                };
+                let bytes = self.used_bytes.load(SeqCst).saturating_sub(old_len.unwrap_or(0)) + content.len();
+                let nodes = self.used_nodes.load(SeqCst) + usize::from(old_len.is_none());
+                if bytes > RAMFS_MAX_BYTES || nodes > RAMFS_MAX_NODES {
+                    return Err(String::from("ramfs full"));
                 }
                 // Fallible copy (WriteFile passes up to 4 MiB of user data).
                 let mut copy = Vec::new();
@@ -210,6 +246,8 @@ impl vfs::Filesystem for RamFs {
                 // Every write gives the file, and every directory above it,
                 // a version none has had before.
                 children.insert(file_name, FsNode::file(copy));
+                self.used_bytes.store(bytes, SeqCst);
+                self.used_nodes.store(nodes, SeqCst);
             }
             _ => return Err(String::from("parent is not a directory")),
         }
@@ -218,16 +256,25 @@ impl vfs::Filesystem for RamFs {
     }
 
     fn create_dir(&self, path: &str) -> Result<(), String> {
+        use core::sync::atomic::Ordering::SeqCst;
         let mut root_guard = self.root.lock();
         let (parent_path, dir_name) = split_path(path)?;
+        if path_depth(path) > RAMFS_MAX_DEPTH {
+            return Err(String::from("path too deep"));
+        }
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
-        
+
         match parent {
             FsNode::Directory { children, .. } => {
                 if children.contains_key(&dir_name) {
                     return Err(String::from("already exists"));
                 }
+                let nodes = self.used_nodes.load(SeqCst) + 1;
+                if nodes > RAMFS_MAX_NODES {
+                    return Err(String::from("ramfs full"));
+                }
                 children.insert(dir_name, FsNode::dir(BTreeMap::new()));
+                self.used_nodes.store(nodes, SeqCst);
             }
             _ => return Err(String::from("parent is not a directory")),
         }
@@ -240,12 +287,28 @@ impl vfs::Filesystem for RamFs {
         let (parent_path, name) = split_path(path)?;
         let parent = navigate_mut(&mut root_guard, &parent_path)?;
         
-        match parent {
+        let removed = match parent {
             FsNode::Directory { children, .. } => {
-                children.remove(&name).ok_or_else(|| String::from("not found"))?;
+                children.remove(&name).ok_or_else(|| String::from("not found"))?
             }
             _ => return Err(String::from("parent is not a directory")),
+        };
+        // Tear the subtree down one node at a time: dropping it whole recursed
+        // once per level (BTreeMap of FsNode of BTreeMap ...).
+        let (mut bytes, mut nodes) = (0usize, 0usize);
+        let mut pending = alloc::vec![removed];
+        while let Some(mut node) = pending.pop() {
+            nodes += 1;
+            match &mut node {
+                FsNode::File { content, .. } => bytes += content.len(),
+                FsNode::Directory { children, .. } => {
+                    pending.extend(core::mem::take(children).into_values());
+                }
+            }
         }
+        use core::sync::atomic::Ordering::SeqCst;
+        self.used_bytes.store(self.used_bytes.load(SeqCst).saturating_sub(bytes), SeqCst);
+        self.used_nodes.store(self.used_nodes.load(SeqCst).saturating_sub(nodes), SeqCst);
         bump_directory_versions(&mut root_guard, &parent_path);
         Ok(())
     }
@@ -600,16 +663,18 @@ fn navigate_mut<'a>(root: &'a mut FsNode, path: &str) -> Result<&'a mut FsNode, 
     Ok(current)
 }
 
-fn accumulate_usage(node: &FsNode, usage: &mut FsUsage) {
-    match node {
-        FsNode::File { content, .. } => {
-            usage.files += 1;
-            usage.bytes += content.len();
-        }
-        FsNode::Directory { children, .. } => {
-            usage.directories += 1;
-            for child in children.values() {
-                accumulate_usage(child, usage);
+fn accumulate_usage(root: &FsNode, usage: &mut FsUsage) {
+    // Iterative: a recursive walk took one stack frame per directory level.
+    let mut pending = alloc::vec![root];
+    while let Some(node) = pending.pop() {
+        match node {
+            FsNode::File { content, .. } => {
+                usage.files += 1;
+                usage.bytes += content.len();
+            }
+            FsNode::Directory { children, .. } => {
+                usage.directories += 1;
+                pending.extend(children.values());
             }
         }
     }
@@ -665,10 +730,12 @@ fn split_path(path: &str) -> Result<(String, String), String> {
         // lookup reaches (lookups drop empty components), so the version
         // the kernel reported for the path and the node a write created
         // were different nodes.
-        if name.is_empty() {
+        if name.is_empty() || !valid_name(&name) {
             return Err(String::from("invalid path"));
         }
         Ok((parent, name))
+    } else if !valid_name(clean) {
+        Err(String::from("invalid path"))
     } else {
         Ok(("/".to_string(), clean.to_string()))
     }

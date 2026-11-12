@@ -1010,8 +1010,15 @@ pub fn register(mut process: Process) -> u64 {
     if process.name == "huge-test" {
         process.max_memory_pages = 2;
     }
+    let name = process.name.clone();
     PROCESSES.lock().push(ProcessRecord { process });
+    crate::ipc::claim_mailbox(pid, &name);
     pid
+}
+
+/// True while a process record for `pid` exists (registered, not reaped).
+pub fn is_registered(pid: u64) -> bool {
+    PROCESSES.lock().iter().any(|record| record.process.pid == pid)
 }
 
 /// Drop a process by pid and free its address space.

@@ -868,7 +868,7 @@ fn sys_ipc_receive(
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
-    match crate::ipc::receive_for_service(&service_name) {
+    match crate::ipc::receive_for_owner(&service_name, caller_pid) {
         Ok(message) => {
             if let Some(info) = info_ptr {
                 let mut record = [0u8; SENDER_RECORD_BYTES];

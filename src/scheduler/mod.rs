@@ -976,6 +976,11 @@ fn spawn_internal(name: String, priority: Priority, capabilities: Vec<String>) -
     id
 }
 
+/// State of task `pid`, if the scheduler knows it.
+pub fn task_state(pid: u64) -> Option<TaskState> {
+    SCHEDULER.lock().tasks.iter().find(|t| t.id == pid).map(|t| t.state)
+}
+
 /// Self-test support (`irq-alloc`): put the bookkeeping task `pid` to sleep
 /// until tick `wake_at`. Returns true if `tick` had woken it since the last
 /// call. Never use on a task that can be resumed.
