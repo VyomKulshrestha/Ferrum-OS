@@ -363,6 +363,37 @@ by a reader who did not write the gate changes; mailboxes owned by task name; a 
 that aborts the kernel; and, in the daemon's HTTP client, a chunk length that can overflow (one crafted
 response crashes the daemon) and responses silently cut at 32 KiB.
 
+### Kernel round 3 (same pull request 6; head 3a6cb3f, CI green)
+
+Fourteen more defects, eight of them high. Detail, the negative-control runs and the timings:
+`fi1_reports/kernel_round3.md` on the pull-request branch.
+
+| | Defect |
+|---|---|
+| High | a user program controlled the kernel's direction flag: the timer and system-call entry stubs never cleared it, so after `std` the kernel's memory copies ran backwards (on the negative control the kernel jumped to address 0x15 in ring 0). The main session confirmed that main's stubs contain no `cld` |
+| High | ordinary user exceptions had no handler: a divide by zero, a single-step trap or an unmasked SSE exception in a user program became a double fault and stopped the kernel |
+| High | the timer interrupt allocated from the heap while the heap lock could be held with interrupts enabled; typing while the shell polled the keyboard deadlocked the same way. Both hung the kernel |
+| High | kernel writes to user memory were checked only for "mapped", so a pointer into the caller's own read-only code caused a ring-0 fault (22 call sites) |
+| High | kernel stacks had no guard page: an overflow ran silently through the heap |
+| High | a mailbox followed the program's name and not the process, so a second instance inherited the first one's queued operator messages |
+| High | a crafted ext2 disk: a 64-bit file size reached an allocation and aborted the kernel; directory-entry lengths wrote past a block buffer; an empty last path component freed a live inode |
+| Medium | operator messages could be crowded out of a full mailbox (4 of 16 slots are now reserved for them); the in-memory filesystem had no size, node or depth limits; no guard gap below the user stack; the daemon's HTTP client crashed on one crafted chunked response, silently cut responses at 32 KiB, and passed a WebSocket frame length straight to an allocation |
+| Low | fallible allocation for audio recording; a null check; the network card's transmit ownership bit |
+
+The timer interrupt costs about 40% less with the interrupt controller in auto-acknowledge mode (median
+61,610 to 37,539 cycles, more than the baseline's spread; agent's runs), which is kept.
+
+**Checked by the main session** on the head's image from CI (sha256 438ee579..., the image the agent
+left in place): twenty harnesses, one at a time, each passing on its first run, 276 of 276 checks. That
+is the nineteen harnesses of the merged run above (228 checks) plus the new `verify_kernel_k3` (48 of
+48). Host tests: heliox-gate-tests 78, physical-runtime 175, neural-protocol 19.
+
+Over three rounds the kernel workstream fixed 41 defects. Left for the fourth and last round the plan
+allows: AVX state is enabled but only the SSE part is saved across a process switch, so the upper halves
+of the vector registers pass between processes; the kernel's static stacks have no guard page; ext2
+write paths trust the bitmaps; the delete prompt does not name the path; and every "one CPU, interrupts
+off" argument in these reports assumes a single processor.
+
 ## 5. Kernel and userland together (joint round 1; draft pull request 5, head 47e97e0, CI green)
 
 Pull request 5 contains pull requests 2 and 3 and is to be reviewed after them. It removes two of the
