@@ -301,6 +301,51 @@ Exclusions that remain in the claim: the click target; the check-then-act window
 read-then-send at the default tier; approvals by id from a console the agent can scroll; whoever types
 at the physical keyboard or serial console is the operator; the two physical-runtime replay items.
 
+### Joint round 2: a fresh agent attacks pull request 5's mechanisms (same pull request, head 3170366, CI green)
+
+No critical break: no way was found to have an operator command applied from a non-operator, or to get
+a tier-3 or tier-4 effect with no approval, through the sender flags or the injected mark. Four defects
+were found in and under the file-version mechanism and fixed:
+
+- **High: a write deleted a directory tree.** In the in-memory filesystem a write to a path that names
+  a directory replaced the directory node and dropped everything under it. `write_file` of
+  `/disk/heliox` (tier 3) removed the daemon's configuration and every file beside it, after which the
+  daemon fell back to the default auto-approve tier. A write now refuses a directory, as ext2 already
+  did (fix read by the main session in `src/fs/mod.rs`).
+- **Medium:** one test path reported a fixed file version, so an approved exec there survived a rewrite
+  of the binary.
+- **Medium:** a directory's version did not change when something deeper inside it changed, although
+  deleting the directory removes all of it. Every change now gives a new version to every directory
+  above it.
+- **Low:** Exec treated any path containing a test program's name as that program, which bypassed the
+  reserved-name rule.
+
+Built in the same round:
+
+- **The check-then-act window is closed.** New calls (syscalls 63 to 65) write, delete and execute only
+  if the file still has the expected version, checked in the kernel in the same step as the action. The
+  daemon passes the version an approval was bound to.
+- **Click target.** A new call (syscall 66) reports the window, its owner and the position under the
+  pointer. An approved click is bound to that target, the operator is shown it, and the click is refused
+  if the target changed. Not covered: what the application draws at that position, and keyboard focus.
+
+Checked by the main session: host tests heliox-gate-tests 70, physical-runtime 175, neural-protocol 19;
+on the head's image from CI (sha256 ec5f18fa..., the image the agent left in place):
+`verify_authority_gate_joint` 37 of 37, `verify_authority_gate_self_approval` 11 of 11,
+`verify_authority_gate_input_injection` 7 of 7, `verify_kernel_selftests` 18 of 18, `verify_ring3` 7 of
+7, `verify_app_window` 13 of 13, each on its first run.
+
+What the claim still excludes: what an application does with an approved click, and which window
+receives approved typed text; physical input after an approved pointer move or focus change;
+read-then-send at the default tier; approvals by id from a scrollable console; the two physical-runtime
+replay items; and the assumption that whoever types at the keyboard or serial console is the operator.
+New questions for the author: the panel's flag is accepted for confirmations although the panel never
+sends them; the boot-time setup launch marks a panel the operator did not ask for; deleting a directory
+above the daemon's configuration is not refused (it needs a tier-4 approval).
+
+With two consecutive rounds (userland round 3 and this one) finding no critical break, the gate
+workstream stops here under the plan's rule.
+
 ## 6. Monitor (workstream A)
 
 Running. Filled in when it reports.
