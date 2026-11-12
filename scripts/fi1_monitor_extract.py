@@ -17,6 +17,7 @@ candidate score of fi1_monitor_v3 are computed from this cache without refitting
 Groups per unit: "scale" (the residual-scale split), "calib" (the calibration split), "test" (attack streams),
 and for Tennessee Eastman and ProvICS "sealed" (sealed attack-free streams the registered study scored).
 """
+
 from __future__ import annotations
 
 import os
@@ -34,7 +35,6 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import real_telemetry_core as C
-import real_telemetry_detect as R
 
 ROOT = Path(__file__).resolve().parents[1]
 WORK = ROOT / "target/real-telemetry/fi1/monitor"
@@ -49,11 +49,25 @@ UNITS = {
     "hai-20.07": dict(HAI, role="check"),
     "hai-23.05": dict(HAI, role="check"),
     "hygrid-ics": dict(HAI, role="check"),
-    "batadal": dict(kind="stream", step=900.0, window=4, gap=4, budget=1 / 7, spd=96, role="check"),
+    "batadal": dict(
+        kind="stream", step=900.0, window=4, gap=4, budget=1 / 7, spd=96, role="check"
+    ),
     "voraus-ad": dict(kind="episodic", step=0.1, window=10, alpha=0.05, role="check"),
-    "provics": dict(kind="stream", step=2.0, window=30, gap=30, budget=2.0, spd=43200, role="check"),
-    **{f"tep-m{m}": dict(kind="stream", step=3.6, window=17, gap=17, budget=2.0, spd=24000,
-                         role="selection" if m <= 3 else "check") for m in range(7)},
+    "provics": dict(
+        kind="stream", step=2.0, window=30, gap=30, budget=2.0, spd=43200, role="check"
+    ),
+    **{
+        f"tep-m{m}": dict(
+            kind="stream",
+            step=3.6,
+            window=17,
+            gap=17,
+            budget=2.0,
+            spd=24000,
+            role="selection" if m <= 3 else "check",
+        )
+        for m in range(7)
+    },
 }
 
 
@@ -145,7 +159,13 @@ def prepare(unit):
     t0 = time.time()
     d = RESID / unit
     d.mkdir(parents=True, exist_ok=True)
-    meta = {"unit": unit, "spec": spec, "reason": REASON, "lgb_threads": LGB_THREADS, "groups": {}}
+    meta = {
+        "unit": unit,
+        "spec": spec,
+        "reason": REASON,
+        "lgb_threads": LGB_THREADS,
+        "groups": {},
+    }
     cap_threads()
     if unit.startswith("tep-"):
         meta |= _prepare_tep(unit, d)
@@ -158,12 +178,16 @@ def prepare(unit):
         _save_scorer(d, scorer)
         print(unit, "monitor fitted", round(time.time() - t0), "s", flush=True)
         for group in ("scale", "calib"):
-            meta["groups"][group] = [_save_stream(d, f"{group}_{i}", scorer, z, v, {})
-                                     for i, (z, v) in enumerate(pack(parts[group]))]
+            meta["groups"][group] = [
+                _save_stream(d, f"{group}_{i}", scorer, z, v, {})
+                for i, (z, v) in enumerate(pack(parts[group]))
+            ]
         del parts
         test = _stream_test(unit, kx, ku)
         rows = []
-        for i, ((z, v), (_, _, y)) in enumerate(zip(pack([(x, u) for x, u, _ in test]), test)):
+        for i, ((z, v), (_, _, y)) in enumerate(
+            zip(pack([(x, u) for x, u, _ in test]), test)
+        ):
             rows.append(_save_stream(d, f"test_{i}", scorer, z, v, {"y": y}))
             print(unit, "test stream", i, round(time.time() - t0), "s", flush=True)
         meta["groups"]["test"] = rows
@@ -176,7 +200,7 @@ def _prepare_tep(unit, d):
     import tt1_final as F
     import tt1d_data as TD
 
-    mode = int(unit[len("tep-m"):])
+    mode = int(unit[len("tep-m") :])
     dev = {role: TD.dev_runs(mode, role) for role in ("fit", "scale", "calib")}
     kx, ku = F.varying_columns(dev["fit"] + dev["scale"] + dev["calib"])
     cut = lambda runs: [(x[:, kx], u[:, ku]) for x, u in runs]
@@ -184,18 +208,24 @@ def _prepare_tep(unit, d):
     _save_scorer(d, scorer)
     groups = {}
     for group in ("scale", "calib"):
-        groups[group] = [_save_stream(d, f"{group}_{i}", scorer, z, v, {})
-                         for i, (z, v) in enumerate(pack(cut(dev[group])))]
+        groups[group] = [
+            _save_stream(d, f"{group}_{i}", scorer, z, v, {})
+            for i, (z, v) in enumerate(pack(cut(dev[group])))
+        ]
     del dev
     TD.open_final(REASON)
     groups["sealed"] = []
     for i, (name, x, u) in enumerate(TD.sealed_runs(mode)):
         z, v = pack([(x[:, kx], u[:, ku])])[0]
-        groups["sealed"].append(_save_stream(d, f"sealed_{i}", scorer, z, v, {}) | {"name": name})
+        groups["sealed"].append(
+            _save_stream(d, f"sealed_{i}", scorer, z, v, {}) | {"name": name}
+        )
     groups["test"] = []
     for i, (name, kind, x, u, key) in enumerate(TD.attack_runs(mode)):
         z, v = pack([(x[:, kx], u[:, ku])])[0]
-        row = _save_stream(d, f"test_{i}", scorer, z, v, {"key": np.asarray(key, np.int8)})
+        row = _save_stream(
+            d, f"test_{i}", scorer, z, v, {"key": np.asarray(key, np.int8)}
+        )
         groups["test"].append(row | {"name": name, "type": int(kind)})
         print(unit, "attack run", i, name, flush=True)
     return {"groups": groups}
@@ -206,7 +236,7 @@ def _prepare_provics(d):
     import tt1d_data as TD
     import tt1d_provics_amendment1 as A1
 
-    TD._p_read = A1.read_filled                     # amendment 1 of tt1d, as the registered ProvICS final
+    TD._p_read = A1.read_filled  # amendment 1 of tt1d, as the registered ProvICS final
     segs, _ = TD.provics_dev()
     parts = F.split(segs, F.FINAL_CUTS, ("fit", "scale", "calib"), min_len=500)
     kx, ku = F.varying_columns(parts["fit"] + parts["scale"] + parts["calib"])
@@ -215,17 +245,25 @@ def _prepare_provics(d):
     _save_scorer(d, scorer)
     groups = {}
     for group in ("scale", "calib"):
-        groups[group] = [_save_stream(d, f"{group}_{i}", scorer, z, v, {})
-                         for i, (z, v) in enumerate(pack(cut(parts[group])))]
+        groups[group] = [
+            _save_stream(d, f"{group}_{i}", scorer, z, v, {})
+            for i, (z, v) in enumerate(pack(cut(parts[group])))
+        ]
     TD.provics_open_final(REASON)
     x, u, valid, events, unobserved = TD.provics_attack()
     z, v = pack([(x[:, kx], u[:, ku])])[0]
     ev = np.array([[a, b, k] for a, b, k, _ in events], np.int64)
-    groups["test"] = [_save_stream(d, "test_0", scorer, z, v, {"valid": np.asarray(valid, bool), "events": ev})
-                      | {"unobserved_events": int(unobserved), "techniques": [t for *_, t in events]}]
+    groups["test"] = [
+        _save_stream(
+            d, "test_0", scorer, z, v, {"valid": np.asarray(valid, bool), "events": ev}
+        )
+        | {"unobserved_events": int(unobserved), "techniques": [t for *_, t in events]}
+    ]
     xs, us, vs = TD.provics_sealed()
     z, v = pack([(xs[:, kx], us[:, ku])])[0]
-    groups["sealed"] = [_save_stream(d, "sealed_0", scorer, z, v, {"valid": np.asarray(vs, bool)})]
+    groups["sealed"] = [
+        _save_stream(d, "sealed_0", scorer, z, v, {"valid": np.asarray(vs, bool)})
+    ]
     return {"groups": groups}
 
 
@@ -239,7 +277,11 @@ def _prepare_voraus(d):
     samples = [(x[:, kx], u[:, ku]) for x, u in samples]
     n = len(samples)
     cuts = [int(n * c) for c in F.FINAL_CUTS]
-    fit_raw, scale_raw, calib_raw = samples[:cuts[0]], samples[cuts[0]:cuts[1]], samples[cuts[1]:]
+    fit_raw, scale_raw, calib_raw = (
+        samples[: cuts[0]],
+        samples[cuts[0] : cuts[1]],
+        samples[cuts[1] :],
+    )
     scorer, pack, _, _, _ = F.fit_monitor(fit_raw, scale_raw)
     _save_scorer(d, scorer)
     del samples, fit_raw
@@ -265,7 +307,9 @@ def _prepare_voraus(d):
     groups["scale"] = [save_group("scale", pack(scale_raw))]
     groups["calib"] = [save_group("calib", pack(calib_raw))]
     raw = [(x[:, kx], u[:, ku], flag) for x, u, flag in TD.voraus_test(REASON)[0]]
-    groups["test"] = [save_group("test", pack([(x, u) for x, u, _ in raw]), [f for _, _, f in raw])]
+    groups["test"] = [
+        save_group("test", pack([(x, u) for x, u, _ in raw]), [f for _, _, f in raw])
+    ]
     return {"groups": groups}
 
 
@@ -278,7 +322,9 @@ def coefs(unit):
     scorer, *_ = _stream_unit(unit)
     old = np.load(d / "sig1.npy")
     if not np.array_equal(old, scorer.sig1):
-        raise SystemExit(f"{unit}: refit sig1 differs from the cache (max abs diff {np.abs(old - scorer.sig1).max()})")
+        raise SystemExit(
+            f"{unit}: refit sig1 differs from the cache (max abs diff {np.abs(old - scorer.sig1).max()})"
+        )
     _save_scorer(d, scorer)
     print(unit, "coefficients added; refit is bit-identical", flush=True)
 
@@ -294,7 +340,7 @@ def tep_add_sensors(unit):
 
     d = RESID / unit
     meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
-    mode = int(unit[len("tep-m"):])
+    mode = int(unit[len("tep-m") :])
     dev = {role: TD.dev_runs(mode, role) for role in ("fit", "scale", "calib")}
     kx, ku = F.varying_columns(dev["fit"] + dev["scale"] + dev["calib"])
     cut = lambda runs: [(x[:, kx], u[:, ku]) for x, u in runs]
@@ -303,8 +349,12 @@ def tep_add_sensors(unit):
     us = C.Scaler().fit(np.concatenate([u for _, u in fit]))
     pack = lambda g: [(xs(x), us(u)) for x, u in g]
     packed_fit = pack(fit)
-    if not np.array_equal(np.concatenate([z for z, _ in packed_fit]).max(0), np.load(d / "fit_high.npy")):
-        raise SystemExit(f"{unit}: refitted scaler does not reproduce the cached fit range")
+    if not np.array_equal(
+        np.concatenate([z for z, _ in packed_fit]).max(0), np.load(d / "fit_high.npy")
+    ):
+        raise SystemExit(
+            f"{unit}: refitted scaler does not reproduce the cached fit range"
+        )
     ridge = C.Forecaster((1, 5), 3, use_actions=True, gbr=None).fit(packed_fit)
     for h in (1, 5):
         np.save(d / f"ridge_coef_h{h}.npy", ridge.ridge[h].coef_)

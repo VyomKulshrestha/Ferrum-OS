@@ -18,6 +18,7 @@ test stream while fitting, and nothing adapts online.
                 the largest of the per-recording calibrated thresholds)
     h1 / h5     one horizon only (twice the top-3 mean, so the scale matches D1)
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -138,7 +139,7 @@ class Stable(D1):
         if len(sc) >= 2:
             ratio = (sc.max(0) + 1e-3) / (sc.min(0) + 1e-3)
             bad = (ratio[:d] > STABLE_FACTOR) | (ratio[d:] > STABLE_FACTOR)
-        else:                                   # one recording: compare its halves
+        else:  # one recording: compare its halves
             bad = np.zeros(d, bool)
         if bad.all():
             bad[:] = False
@@ -157,9 +158,9 @@ class Loro(D1):
 
         sp = unit.spec
         parts = [c for c in cal if len(c)]
-        if len(parts) == 1:                       # one recording: its two halves
+        if len(parts) == 1:  # one recording: its two halves
             c = parts[0]
-            parts = [c[: len(c) // 2], c[len(c) // 2:]]
+            parts = [c[: len(c) // 2], c[len(c) // 2 :]]
         pooled = R2.calibrate(cal, sp["gap"], sp["budget"], sp["spd"])
         each = [R2.calibrate([c], sp["gap"], sp["budget"], sp["spd"]) for c in parts]
         return max([pooled] + each)
@@ -181,7 +182,7 @@ class H5(D1):
         return 2 * self.combine(S5)
 
 
-HISTORY = 3          # real_telemetry_dev.HISTORY
+HISTORY = 3  # real_telemetry_dev.HISTORY
 
 
 def clip_correction(R, Z, coef_level, low, high, h):

@@ -1,4 +1,5 @@
 """Tests for the fi1 monitor benchmark and candidates (synthetic data only; no dataset is read)."""
+
 import json
 import tempfile
 import unittest
@@ -16,7 +17,15 @@ def write_unit(root, name="u", d=6, n=4000, seed=0, spec=None, bad_channel=None)
     rng = np.random.default_rng(seed)
     p = Path(root) / name
     p.mkdir(parents=True)
-    spec = spec or {"kind": "stream", "step": 1.0, "window": 5, "gap": 5, "budget": 2.0, "spd": 2000, "role": "selection"}
+    spec = spec or {
+        "kind": "stream",
+        "step": 1.0,
+        "window": 5,
+        "gap": 5,
+        "budget": 2.0,
+        "spd": 2000,
+        "role": "selection",
+    }
     groups = {}
     for group, count in (("scale", 2), ("calib", 2), ("test", 1)):
         rows = []
@@ -43,7 +52,9 @@ def write_unit(root, name="u", d=6, n=4000, seed=0, spec=None, bad_channel=None)
     np.save(p / "sig5.npy", np.ones(d, np.float32))
     np.save(p / "fit_low.npy", -np.ones(d, np.float32))
     np.save(p / "fit_high.npy", np.ones(d, np.float32))
-    (p / "meta.json").write_text(json.dumps({"unit": name, "spec": spec, "groups": groups}), encoding="utf-8")
+    (p / "meta.json").write_text(
+        json.dumps({"unit": name, "spec": spec, "groups": groups}), encoding="utf-8"
+    )
     return p
 
 
@@ -61,7 +72,11 @@ class FakeUnitTests(unittest.TestCase):
         write_unit(self.tmp.name)
         u = B.Unit("u")
         a = u.streams("test")[0].arrays()
-        raw = V.make("d1").fit(u).raw(u, {k: (None if v is None else np.asarray(v)) for k, v in a.items()})
+        raw = (
+            V.make("d1")
+            .fit(u)
+            .raw(u, {k: (None if v is None else np.asarray(v)) for k, v in a.items()})
+        )
         S1, S5 = np.abs(np.asarray(a["R1"])), np.abs(np.asarray(a["R5"]))
         S1[:10] = S5[:10] = 0
         top = lambda A: -np.sort(-A, 1)[:, :3].mean(1)
@@ -125,10 +140,12 @@ class ClipTests(unittest.TestCase):
         cl = Clipped((1, 5), 3, use_actions=True, gbr=gbr)
         cl.ridge, cl.boost = wm.ridge, wm.boost
         Zt = Z[:800].copy()
-        Zt[300:500, 1] += 4.0                       # far outside the fit range
+        Zt[300:500, 1] += 4.0  # far outside the fit range
         for h in (1, 5):
             base = C.residuals(wm, Zt, U[:800], h)
-            got = V.clip_correction(base, Zt.astype(np.float64), wm.ridge[h].coef_[:, :d], low, high, h)
+            got = V.clip_correction(
+                base, Zt.astype(np.float64), wm.ridge[h].coef_[:, :d], low, high, h
+            )
             want = C.residuals(cl, Zt, U[:800], h)
             np.testing.assert_allclose(got, want, atol=2e-4)
             self.assertGreater(np.abs(got - base).max(), 1e-3)
@@ -137,7 +154,9 @@ class ClipTests(unittest.TestCase):
         self.check(None)
 
     def test_with_boosted_trees(self):
-        self.check(dict(n_estimators=10, num_leaves=7, learning_rate=0.1, min_child_samples=20))
+        self.check(
+            dict(n_estimators=10, num_leaves=7, learning_rate=0.1, min_child_samples=20)
+        )
 
 
 class MetricTests(unittest.TestCase):
@@ -145,14 +164,22 @@ class MetricTests(unittest.TestCase):
         spec = {"gap": 2, "step": 1.0}
         unit = B._CachedUnit("x", spec)
         s = np.zeros(100)
-        s[10:60] = 5.0                       # one alarm episode from step 10 to 59
+        s[10:60] = 5.0  # one alarm episode from step 10 to 59
         lab = np.zeros(100, bool)
         lab[30:40] = True
-        row = B.stream_rows(unit, B._CachedStream(100, {}), s, 1.0, lab, np.ones(100, bool), [(30, 40, 0, 0)],
-                            np.random.default_rng(0))
+        row = B.stream_rows(
+            unit,
+            B._CachedStream(100, {}),
+            s,
+            1.0,
+            lab,
+            np.ones(100, bool),
+            [(30, 40, 0, 0)],
+            np.random.default_rng(0),
+        )
         self.assertEqual(row["found"], [True])
         self.assertEqual(row["onset"], [False])
-        self.assertEqual(row["fa"], 0)                       # the episode touches the event
+        self.assertEqual(row["fa"], 0)  # the episode touches the event
         self.assertEqual(row["unlabelled_alarm"], 40)
 
     def test_shift_counts_match_brute_force(self):
@@ -175,12 +202,21 @@ class MetricTests(unittest.TestCase):
         np.testing.assert_array_equal(s[10:], ref[10:])
 
     def test_verdict_rule(self):
-        base = {k: {"onset_recall": 0.5, "unlabelled_alarm_share": 0.1} for k in ("hai-20.07", "provics", "x")}
-        better = {k: {"onset_recall": 0.6, "unlabelled_alarm_share": 0.05} for k in base}
+        base = {
+            k: {"onset_recall": 0.5, "unlabelled_alarm_share": 0.1}
+            for k in ("hai-20.07", "provics", "x")
+        }
+        better = {
+            k: {"onset_recall": 0.6, "unlabelled_alarm_share": 0.05} for k in base
+        }
         self.assertTrue(B.verdict(base, better)["improved"])
-        worse_one = dict(better, x={"onset_recall": 0.4, "unlabelled_alarm_share": 0.05})
+        worse_one = dict(
+            better, x={"onset_recall": 0.4, "unlabelled_alarm_share": 0.05}
+        )
         self.assertFalse(B.verdict(base, worse_one)["improved"])
-        noisier = {k: {"onset_recall": 0.7, "unlabelled_alarm_share": 0.2} for k in base}
+        noisier = {
+            k: {"onset_recall": 0.7, "unlabelled_alarm_share": 0.2} for k in base
+        }
         self.assertFalse(B.verdict(base, noisier)["improved"])
 
 

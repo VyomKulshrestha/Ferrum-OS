@@ -17,6 +17,7 @@ circular-shift chance reference (200 shifts per stream, seed 7), share of unlabe
 episodes per day on unlabelled time and their ratio to the budget, step-level average precision of score/tau,
 and the median time from event start to the first alarm.
 """
+
 from __future__ import annotations
 
 import os
@@ -45,10 +46,20 @@ CHECK_LEDGER = WORK / "check_ledger.jsonl"
 SHIFTS, SHIFT_SEED = 200, 7
 WARMUP = R.WARMUP
 
-SELECTION = {"hai-21.03": ["hai-21.03"], "hai-22.04": ["hai-22.04"], "tep-0-3": [f"tep-m{m}" for m in range(4)]}
-CHECK = {"hai-20.07": ["hai-20.07"], "hai-23.05": ["hai-23.05"], "batadal": ["batadal"],
-         "hygrid-ics": ["hygrid-ics"], "voraus-ad": ["voraus-ad"], "tep-4-6": [f"tep-m{m}" for m in range(4, 7)],
-         "provics": ["provics"]}
+SELECTION = {
+    "hai-21.03": ["hai-21.03"],
+    "hai-22.04": ["hai-22.04"],
+    "tep-0-3": [f"tep-m{m}" for m in range(4)],
+}
+CHECK = {
+    "hai-20.07": ["hai-20.07"],
+    "hai-23.05": ["hai-23.05"],
+    "batadal": ["batadal"],
+    "hygrid-ics": ["hygrid-ics"],
+    "voraus-ad": ["voraus-ad"],
+    "tep-4-6": [f"tep-m{m}" for m in range(4, 7)],
+    "provics": ["provics"],
+}
 SETS = {"selection": SELECTION, "check": CHECK}
 
 
@@ -80,7 +91,10 @@ class Unit:
         self.fit_high = np.load(self.d / "fit_high.npy")
 
     def streams(self, group):
-        return [Stream(self.d, row["key"], self.spec, row) for row in self.meta["groups"].get(group, [])]
+        return [
+            Stream(self.d, row["key"], self.spec, row)
+            for row in self.meta["groups"].get(group, [])
+        ]
 
     @property
     def episodic(self):
@@ -98,12 +112,18 @@ def labels_and_events(unit, stream):
         if key is None:
             return np.zeros(n, bool), valid, []
         ev = TD.events(key)
-        return key != 0, valid, [(a, b, stream.row.get("type", 0), i) for i, (a, b, _) in enumerate(ev)]
+        return (
+            key != 0,
+            valid,
+            [(a, b, stream.row.get("type", 0), i) for i, (a, b, _) in enumerate(ev)],
+        )
     if unit.name == "provics":
         import tt1d_data_v2 as TD2
 
         v = stream.load("valid", mmap=False)
-        valid = TD2.provics_valid_v2(v, unit.spec["window"])           # the audit's extended mask
+        valid = TD2.provics_valid_v2(
+            v, unit.spec["window"]
+        )  # the audit's extended mask
         ev = stream.load("events", mmap=False)
         lab = np.zeros(n, bool)
         events = []
@@ -138,7 +158,9 @@ def episodic_scores(unit, stream, monitor):
     out, at = [], 0
     for n in lens:
         sl = slice(at, at + n)
-        raw = monitor.raw(unit, {k: (None if v is None else np.asarray(v[sl])) for k, v in a.items()})
+        raw = monitor.raw(
+            unit, {k: (None if v is None else np.asarray(v[sl])) for k, v in a.items()}
+        )
         out.append(float(np.nanmax(smooth(raw, unit.spec["window"]))))
         at += n
     return np.array(out)
@@ -147,7 +169,12 @@ def episodic_scores(unit, stream, monitor):
 def stream_score(unit, stream, monitor, valid=None):
     """Smoothed score as the rules see it: warm-up and invalid steps are -inf and cannot alarm."""
     a = stream.arrays()
-    s = smooth(monitor.raw(unit, {k: (None if v is None else np.asarray(v)) for k, v in a.items()}), unit.spec["window"])
+    s = smooth(
+        monitor.raw(
+            unit, {k: (None if v is None else np.asarray(v)) for k, v in a.items()}
+        ),
+        unit.spec["window"],
+    )
     ok = np.isfinite(s) if valid is None else np.isfinite(s) & valid
     return np.where(ok, s, -np.inf)
 
@@ -157,15 +184,18 @@ def calibrate_unit(unit, monitor):
     monitor.fit(unit)
     if unit.episodic:
         cal = episodic_scores(unit, unit.streams("calib")[0], monitor)
-        return monitor.threshold_episodic(unit, cal) if hasattr(monitor, "threshold_episodic") else \
-            float(np.quantile(cal, 1 - unit.spec["alpha"])), cal
+        return monitor.threshold_episodic(unit, cal) if hasattr(
+            monitor, "threshold_episodic"
+        ) else float(np.quantile(cal, 1 - unit.spec["alpha"])), cal
     cal = []
     for st in unit.streams("calib"):
         s = stream_score(unit, st, monitor)
         cal.append(s[np.isfinite(s)])
     if hasattr(monitor, "threshold"):
         return float(monitor.threshold(unit, cal)), cal
-    return float(R2.calibrate(cal, unit.spec["gap"], unit.spec["budget"], unit.spec["spd"])), cal
+    return float(
+        R2.calibrate(cal, unit.spec["gap"], unit.spec["budget"], unit.spec["spd"])
+    ), cal
 
 
 # ---------------------------------------------------------------- metrics
@@ -206,14 +236,29 @@ def stream_rows(unit, stream, s, tau, lab, valid, events, rng):
         onset.append(bool(starts[a:b].any()))
         delay.append(float(hit[0]) * unit.spec["step"] if len(hit) else None)
     unl = ~lab & valid
-    any_c, on_c = _shift_counts(alarm, starts, events, rng) if events else (np.zeros(SHIFTS, int), np.zeros(SHIFTS, int))
+    any_c, on_c = (
+        _shift_counts(alarm, starts, events, rng)
+        if events
+        else (np.zeros(SHIFTS, int), np.zeros(SHIFTS, int))
+    )
     ok = np.isfinite(s) & valid
-    return {"found": found, "onset": onset, "delay": delay,
-            "types": [e[2] for e in events], "order": [e[3] for e in events],
-            "fa": int(sum(1 for a, b in eps if not lab[a:b].any())),
-            "unlabelled": int(unl.sum()), "unlabelled_alarm": int((alarm & unl).sum()),
-            "chance_any": any_c, "chance_onset": on_c,
-            "ap_score": (s[ok] / tau).astype(np.float32), "ap_label": lab[ok]}
+    return {
+        "found": found,
+        "onset": onset,
+        "delay": delay,
+        "types": [e[2] for e in events],
+        "order": [e[3] for e in events],
+        "fa": int(sum(1 for a, b in eps if not lab[a:b].any())),
+        "event_episodes": int(sum(1 for a, b in eps if lab[a:b].any())),
+        "episode_seconds": [float(b - a) * unit.spec["step"] for a, b in eps],
+        "labelled": int((lab & valid).sum()),
+        "unlabelled": int(unl.sum()),
+        "unlabelled_alarm": int((alarm & unl).sum()),
+        "chance_any": any_c,
+        "chance_onset": on_c,
+        "ap_score": (s[ok] / tau).astype(np.float32),
+        "ap_label": lab[ok],
+    }
 
 
 def _ci(x):
@@ -224,7 +269,9 @@ def pool(unit_rows, spec_budget, spd_of):
     """Pool stream rows of one dataset. unit_rows: [(unit, rows)]."""
     found = sum((r["found"] for _, rows in unit_rows for r in rows), [])
     onset = sum((r["onset"] for _, rows in unit_rows for r in rows), [])
-    delay = [d for _, rows in unit_rows for r in rows for d in r["delay"] if d is not None]
+    delay = [
+        d for _, rows in unit_rows for r in rows for d in r["delay"] if d is not None
+    ]
     order = sum((r["order"] for _, rows in unit_rows for r in rows), [])
     unl_days = sum(r["unlabelled"] / spd_of[u] for u, rows in unit_rows for r in rows)
     fa = sum(r["fa"] for _, rows in unit_rows for r in rows)
@@ -235,19 +282,49 @@ def pool(unit_rows, spec_budget, spd_of):
     y = np.concatenate([r["ap_label"] for _, rows in unit_rows for r in rows])
     sc = np.concatenate([r["ap_score"] for _, rows in unit_rows for r in rows])
     n = len(found)
-    out = {"events": n, "detected": int(sum(found)), "onset_detected": int(sum(onset)),
-           "any_recall": float(np.mean(found)) if n else None, "onset_recall": float(np.mean(onset)) if n else None,
-           "chance_any": {"mean": float(np.mean(ca)), "ci95": _ci(ca)} if n else None,
-           "chance_onset": {"mean": float(np.mean(co)), "ci95": _ci(co)} if n else None,
-           "unlabelled_alarm_share": unl_alarm / max(unl, 1), "fa_per_day": fa / max(unl_days, 1e-9),
-           "fa_ratio_to_budget": fa / max(unl_days, 1e-9) / spec_budget,
-           "average_precision": float(average_precision_score(y, sc)) if 0 < y.sum() < len(y) else None,
-           "median_seconds_to_first_alarm": float(np.median(delay)) if delay else None,
-           "unlabelled_days": unl_days}
+    out = {
+        "events": n,
+        "detected": int(sum(found)),
+        "onset_detected": int(sum(onset)),
+        "any_recall": float(np.mean(found)) if n else None,
+        "onset_recall": float(np.mean(onset)) if n else None,
+        "chance_any": {"mean": float(np.mean(ca)), "ci95": _ci(ca)} if n else None,
+        "chance_onset": {"mean": float(np.mean(co)), "ci95": _ci(co)} if n else None,
+        "unlabelled_alarm_share": unl_alarm / max(unl, 1),
+        "fa_per_day": fa / max(unl_days, 1e-9),
+        "fa_ratio_to_budget": fa / max(unl_days, 1e-9) / spec_budget,
+        "average_precision": float(average_precision_score(y, sc))
+        if 0 < y.sum() < len(y)
+        else None,
+        "median_seconds_to_first_alarm": float(np.median(delay)) if delay else None,
+        "unlabelled_days": unl_days,
+    }
+    # added before the check run (coordinator request): onset net of chance and the episode structure
+    lab_days = sum(r["labelled"] / spd_of[u] for u, rows in unit_rows for r in rows)
+    ev_eps = sum(r["event_episodes"] for _, rows in unit_rows for r in rows)
+    lengths = [x for _, rows in unit_rows for r in rows for x in r["episode_seconds"]]
+    out |= {
+        "chance_onset_recall": float(np.mean(co)) / n if n else None,
+        "onset_recall_net_of_chance": (sum(onset) - float(np.mean(co))) / n
+        if n
+        else None,
+        "episodes_per_unlabelled_day": fa / max(unl_days, 1e-9),
+        "episodes_touching_events_per_labelled_day": ev_eps / max(lab_days, 1e-9),
+        "episodes_touching_events": int(ev_eps),
+        "labelled_days": lab_days,
+        "median_episode_seconds": float(np.median(lengths)) if lengths else None,
+        "alarm_episodes": len(lengths),
+    }
     if any(o > 0 for o in order):
-        for name, keep in (("first", [o == 0 for o in order]), ("follower", [o > 0 for o in order])):
-            out[name] = {"events": int(sum(keep)), "detected": int(sum(f for f, k in zip(found, keep) if k)),
-                         "onset_detected": int(sum(f for f, k in zip(onset, keep) if k))}
+        for name, keep in (
+            ("first", [o == 0 for o in order]),
+            ("follower", [o > 0 for o in order]),
+        ):
+            out[name] = {
+                "events": int(sum(keep)),
+                "detected": int(sum(f for f, k in zip(found, keep) if k)),
+                "onset_detected": int(sum(f for f, k in zip(onset, keep) if k)),
+            }
     return out
 
 
@@ -260,9 +337,13 @@ def evaluate_unit(unit, monitor):
         seq = episodic_scores(unit, st, monitor)
         flags = st.load("flags", mmap=False).astype(bool)
         alarm = seq > tau
-        out["episodic"] = {"anomalous": int(flags.sum()), "detected": int(alarm[flags].sum()),
-                           "fpr": float(alarm[~flags].mean()), "fpr_ratio_to_target": float(alarm[~flags].mean() / unit.spec["alpha"]),
-                           "average_precision": float(average_precision_score(flags, seq))}
+        out["episodic"] = {
+            "anomalous": int(flags.sum()),
+            "detected": int(alarm[flags].sum()),
+            "fpr": float(alarm[~flags].mean()),
+            "fpr_ratio_to_target": float(alarm[~flags].mean() / unit.spec["alpha"]),
+            "average_precision": float(average_precision_score(flags, seq)),
+        }
         return out, None, None
     rng = np.random.default_rng(SHIFT_SEED)
     rows = []
@@ -275,8 +356,13 @@ def evaluate_unit(unit, monitor):
         lab, valid, _ = labels_and_events(unit, st)
         s = stream_score(unit, st, monitor, valid)
         alarm = s > tau
-        sealed.append({"fa": len(T._episodes(alarm, unit.spec["gap"])), "steps": int(valid.sum()),
-                       "alarm": int(alarm.sum())})
+        sealed.append(
+            {
+                "fa": len(T._episodes(alarm, unit.spec["gap"])),
+                "steps": int(valid.sum()),
+                "alarm": int(alarm.sum()),
+            }
+        )
     return out, rows, sealed
 
 
@@ -287,6 +373,14 @@ def evaluate_set(monitor_name, set_name, units_filter=None):
     result = {}
     for ds, units in datasets.items():
         if units_filter and ds not in units_filter:
+            continue
+        absent = [u for u in units if not (RESID / u / "meta.json").exists()]
+        if absent:
+            result[ds] = {"missing": True, "absent_units": absent}
+            print(
+                f"{monitor_name:24s} {ds:11s} MISSING (no complete residual cache for {absent})",
+                flush=True,
+            )
             continue
         t0 = time.time()
         unit_rows, sealed_all, taus, spd_of = [], [], {}, {}
@@ -306,47 +400,91 @@ def evaluate_set(monitor_name, set_name, units_filter=None):
             sealed_all += [(name, r) for r in sealed]
         if episodic is not None:
             e = episodic
-            row = {"events": e["anomalous"], "detected": e["detected"], "onset_detected": e["detected"],
-                   "any_recall": e["detected"] / e["anomalous"], "onset_recall": e["detected"] / e["anomalous"],
-                   "chance_any": None, "unlabelled_alarm_share": e["fpr"], "fa_per_day": None,
-                   "fa_ratio_to_budget": e["fpr_ratio_to_target"], "average_precision": e["average_precision"],
-                   "median_seconds_to_first_alarm": None,
-                   "note": "episodic: an event is an anomalous sample; onset = any-alarm = sample alarm; "
-                           "alarm share = false-positive rate of normal samples; budget = the 5 % sample target"}
+            row = {
+                "events": e["anomalous"],
+                "detected": e["detected"],
+                "onset_detected": e["detected"],
+                "any_recall": e["detected"] / e["anomalous"],
+                "onset_recall": e["detected"] / e["anomalous"],
+                "chance_any": None,
+                "unlabelled_alarm_share": e["fpr"],
+                "fa_per_day": None,
+                "fa_ratio_to_budget": e["fpr_ratio_to_target"],
+                "average_precision": e["average_precision"],
+                "median_seconds_to_first_alarm": None,
+                "note": "episodic: an event is an anomalous sample; onset = any-alarm = sample alarm; "
+                "alarm share = false-positive rate of normal samples; budget = the 5 % sample target",
+            }
         else:
             row = pool(unit_rows, budget, spd_of)
             if sealed_all:
                 days = sum(r["steps"] / spd_of[u] for u, r in sealed_all)
-                row["sealed_fa_ratio_to_budget"] = sum(r["fa"] for _, r in sealed_all) / days / budget
-                row["sealed_alarm_share"] = sum(r["alarm"] for _, r in sealed_all) / sum(r["steps"] for _, r in sealed_all)
+                row["sealed_fa_ratio_to_budget"] = (
+                    sum(r["fa"] for _, r in sealed_all) / days / budget
+                )
+                row["sealed_alarm_share"] = sum(
+                    r["alarm"] for _, r in sealed_all
+                ) / sum(r["steps"] for _, r in sealed_all)
         row["tau"] = taus
         row["seconds"] = round(time.time() - t0)
         result[ds] = row
-        print(f"{monitor_name:24s} {ds:11s} onset {row['onset_detected']}/{row['events']} any {row['detected']}"
-              f" share {row['unlabelled_alarm_share']:.4f} fa x{row['fa_ratio_to_budget']:.2f}"
-              f" ap {row['average_precision'] if row['average_precision'] is None else round(row['average_precision'], 3)}"
-              f" ({row['seconds']} s)", flush=True)
+        print(
+            f"{monitor_name:24s} {ds:11s} onset {row['onset_detected']}/{row['events']} any {row['detected']}"
+            f" share {row['unlabelled_alarm_share']:.4f} fa x{row['fa_ratio_to_budget']:.2f}"
+            f" ap {row['average_precision'] if row['average_precision'] is None else round(row['average_precision'], 3)}"
+            f" ({row['seconds']} s)",
+            flush=True,
+        )
     return result
 
 
 def summary(result):
-    on = [v["onset_recall"] for v in result.values() if v.get("onset_recall") is not None]
+    result = {k: v for k, v in result.items() if not v.get("missing")}
+    on = [
+        v["onset_recall"] for v in result.values() if v.get("onset_recall") is not None
+    ]
     sh = [v["unlabelled_alarm_share"] for v in result.values()]
-    return {"mean_onset_recall": float(np.mean(on)), "mean_unlabelled_alarm_share": float(np.mean(sh))}
+    return {
+        "mean_onset_recall": float(np.mean(on)),
+        "mean_unlabelled_alarm_share": float(np.mean(sh)),
+    }
 
 
 def verdict(base, cand):
-    """The plan's definition of improved, on the check set."""
+    """The plan's definition of improved, on the check set (datasets that ran; a missing one makes it partial)."""
+    base = {k: v for k, v in base.items() if not v.get("missing")}
+    cand = {k: v for k, v in cand.items() if k in base}
     sb, sc = summary(base), summary(cand)
     drops = {k: cand[k]["onset_recall"] - base[k]["onset_recall"] for k in base}
-    ok = (sc["mean_onset_recall"] - sb["mean_onset_recall"] >= 0.05 and
-          sc["mean_unlabelled_alarm_share"] <= sb["mean_unlabelled_alarm_share"] and
-          all(d >= -0.05 for d in drops.values()))
-    return {"improved": bool(ok), "mean_onset_recall_gain": sc["mean_onset_recall"] - sb["mean_onset_recall"],
-            "mean_alarm_share_change": sc["mean_unlabelled_alarm_share"] - sb["mean_unlabelled_alarm_share"],
-            "onset_recall_change_per_dataset": drops,
-            "alarm_share_hai_20_07": [base["hai-20.07"]["unlabelled_alarm_share"], cand["hai-20.07"]["unlabelled_alarm_share"]],
-            "alarm_share_provics": [base["provics"]["unlabelled_alarm_share"], cand["provics"]["unlabelled_alarm_share"]]}
+    ok = (
+        sc["mean_onset_recall"] - sb["mean_onset_recall"] >= 0.05
+        and sc["mean_unlabelled_alarm_share"] <= sb["mean_unlabelled_alarm_share"]
+        and all(d >= -0.05 for d in drops.values())
+    )
+    pick = lambda d, k, f: d[k][f] if k in d else None
+    return {
+        "improved": bool(ok),
+        "datasets": sorted(base),
+        "mean_onset_recall_gain": sc["mean_onset_recall"] - sb["mean_onset_recall"],
+        "mean_alarm_share_change": sc["mean_unlabelled_alarm_share"]
+        - sb["mean_unlabelled_alarm_share"],
+        "onset_recall_change_per_dataset": drops,
+        "onset_net_of_chance_per_dataset": {
+            k: [
+                base[k].get("onset_recall_net_of_chance"),
+                cand[k].get("onset_recall_net_of_chance"),
+            ]
+            for k in base
+        },
+        "alarm_share_hai_20_07": [
+            pick(base, "hai-20.07", "unlabelled_alarm_share"),
+            pick(cand, "hai-20.07", "unlabelled_alarm_share"),
+        ],
+        "alarm_share_provics": [
+            pick(base, "provics", "unlabelled_alarm_share"),
+            pick(cand, "provics", "unlabelled_alarm_share"),
+        ],
+    }
 
 
 def survives_selection(base, cand):
@@ -354,14 +492,23 @@ def survives_selection(base, cand):
     sb, sc = summary(base), summary(cand)
     drops = {k: cand[k]["onset_recall"] - base[k]["onset_recall"] for k in base}
     sealed = cand["tep-0-3"].get("sealed_fa_ratio_to_budget", 0.0)
-    checks = {"mean_onset_gain_ge_0.02": sc["mean_onset_recall"] - sb["mean_onset_recall"] >= 0.02,
-              "mean_share_not_higher": sc["mean_unlabelled_alarm_share"] <= sb["mean_unlabelled_alarm_share"],
-              "no_dataset_loses_more_than_0.05": all(d >= -0.05 for d in drops.values()),
-              "tep_sealed_fa_below_1.5_budget": sealed < 1.5}
-    return {"survives": all(checks.values()), "checks": checks,
-            "mean_onset_recall": sc["mean_onset_recall"], "mean_unlabelled_alarm_share": sc["mean_unlabelled_alarm_share"],
-            "mean_onset_gain": sc["mean_onset_recall"] - sb["mean_onset_recall"], "onset_change": drops,
-            "tep_sealed_fa_ratio": sealed}
+    checks = {
+        "mean_onset_gain_ge_0.02": sc["mean_onset_recall"] - sb["mean_onset_recall"]
+        >= 0.02,
+        "mean_share_not_higher": sc["mean_unlabelled_alarm_share"]
+        <= sb["mean_unlabelled_alarm_share"],
+        "no_dataset_loses_more_than_0.05": all(d >= -0.05 for d in drops.values()),
+        "tep_sealed_fa_below_1.5_budget": sealed < 1.5,
+    }
+    return {
+        "survives": all(checks.values()),
+        "checks": checks,
+        "mean_onset_recall": sc["mean_onset_recall"],
+        "mean_unlabelled_alarm_share": sc["mean_unlabelled_alarm_share"],
+        "mean_onset_gain": sc["mean_onset_recall"] - sb["mean_onset_recall"],
+        "onset_change": drops,
+        "tep_sealed_fa_ratio": sealed,
+    }
 
 
 def select(names):
@@ -371,15 +518,24 @@ def select(names):
         if n not in table:
             table[n] = evaluate_set(n, "selection")
             save(path, table)
-    rows = {n: survives_selection(table["d1"], r) for n, r in table.items() if n != "d1"}
+    rows = {
+        n: survives_selection(table["d1"], r) for n, r in table.items() if n != "d1"
+    }
     rows = dict(sorted(rows.items(), key=lambda kv: -kv[1]["mean_onset_recall"]))
     sb = summary(table["d1"])
-    print(f"baseline d1: mean onset {sb['mean_onset_recall']:.3f} mean share {sb['mean_unlabelled_alarm_share']:.4f}")
+    print(
+        f"baseline d1: mean onset {sb['mean_onset_recall']:.3f} mean share {sb['mean_unlabelled_alarm_share']:.4f}"
+    )
     for n, r in rows.items():
-        print(f"{n:22s} {'SURVIVES' if r['survives'] else 'out     '} mean onset {r['mean_onset_recall']:.3f} "
-              f"({r['mean_onset_gain']:+.3f}) share {r['mean_unlabelled_alarm_share']:.4f} sealed x{r['tep_sealed_fa_ratio']:.2f} "
-              + " ".join(f"{k} {v:+.3f}" for k, v in r["onset_change"].items()))
-    save(WORK / "results" / "selection_verdicts.json", {"baseline": sb, "candidates": rows})
+        print(
+            f"{n:22s} {'SURVIVES' if r['survives'] else 'out     '} mean onset {r['mean_onset_recall']:.3f} "
+            f"({r['mean_onset_gain']:+.3f}) share {r['mean_unlabelled_alarm_share']:.4f} sealed x{r['tep_sealed_fa_ratio']:.2f} "
+            + " ".join(f"{k} {v:+.3f}" for k, v in r["onset_change"].items())
+        )
+    save(
+        WORK / "results" / "selection_verdicts.json",
+        {"baseline": sb, "candidates": rows},
+    )
     return rows
 
 
@@ -417,49 +573,118 @@ def reproduce_tep_cache(modes=range(7)):
                 s, key = z[k], z["key::" + k.split("::", 1)[1]]
                 ev = TD.events(key)
                 events = [(a, b, 0, i) for i, (a, b, _) in enumerate(ev)]
-                rows.append(stream_rows(unit, _CachedStream(len(s), {}), s, cfg["tau0"], key != 0,
-                                        np.ones(len(s), bool), events, rng))
+                rows.append(
+                    stream_rows(
+                        unit,
+                        _CachedStream(len(s), {}),
+                        s,
+                        cfg["tau0"],
+                        key != 0,
+                        np.ones(len(s), bool),
+                        events,
+                        rng,
+                    )
+                )
             elif k.startswith("sealed::"):
                 s = z[k]
-                sealed.append((unit.name, len(T._episodes(s > cfg["tau0"], spec["gap"])), len(s)))
+                sealed.append(
+                    (unit.name, len(T._episodes(s > cfg["tau0"], spec["gap"])), len(s))
+                )
         unit_rows.append((unit.name, rows))
         spd_of[unit.name] = spec["spd"]
     row = pool(unit_rows, spec["budget"], spd_of)
     days = sum(n / spec["spd"] for _, _, n in sealed)
-    row["sealed_fa_ratio_to_budget"] = sum(f for _, f, _ in sealed) / days / spec["budget"]
+    row["sealed_fa_ratio_to_budget"] = (
+        sum(f for _, f, _ in sealed) / days / spec["budget"]
+    )
     return row
 
 
 # Registered (or registered-pipeline exploratory) numbers of the frozen D1 rule, with their source files.
 REGISTERED = {
-    "hai-21.03": {"src": "threshold_transfer_tt1c_dev_v1.json natural (exploratory, tt1-final split)",
-                  "events": 50, "detected": 50, "onset_detected": 49, "unlabelled_alarm_share": 0.007571, "fa_per_day": 0.6594},
-    "hai-22.04": {"src": "threshold_transfer_tt1c_dev_v1.json natural (exploratory, tt1-final split)",
-                  "events": 58, "detected": 44, "onset_detected": 44, "unlabelled_alarm_share": 0.002744, "fa_per_day": 1.4847},
-    "hai-23.05": {"src": "threshold_transfer_tt1c_dev_v1.json natural (exploratory, tt1-final split)",
-                  "events": 52, "detected": 31, "onset_detected": 31, "unlabelled_alarm_share": 0.007113, "fa_per_day": 1.2659},
-    "hai-20.07": {"src": "threshold_transfer_tt1_result_hai-20.07.json (registered) + tt1_posthoc_alarm_time.json",
-                  "tau": 17.25877, "events": 38, "detected": 36, "onset_detected": 26, "unlabelled_alarm_share": 0.39096,
-                  "fa_per_day": 2.2254},
-    "hygrid-ics": {"src": "threshold_transfer_tt1_result_hygrid-ics.json (registered) + tt1_posthoc_alarm_time.json",
-                   "tau": 4.75370, "events": 91, "detected": 27, "onset_detected": 3, "unlabelled_alarm_share": 0.04067,
-                   "fa_per_day": 19.202},
-    "batadal": {"src": "threshold_transfer_tt1b_result_batadal.json (registered) + tt1_posthoc_alarm_time.json",
-                "tau": 9.39328, "events": 14, "detected": 14, "onset_detected": 14, "unlabelled_alarm_share": 0.013685,
-                "fa_ratio_to_budget": 0.7012},
-    "voraus-ad": {"src": "threshold_transfer_tt1_result_voraus-ad.json (registered)", "tau": 9.77571,
-                  "events": 755, "detected": 252, "unlabelled_alarm_share": 0.081146},
-    "provics": {"src": "threshold_transfer_tt1f_provics_mask_v1.json, extended mask (registered mask: 25 / onset 4 / 0.4411)",
-                "tau": 3.95370, "events": 32, "detected": 23, "onset_detected": 3, "unlabelled_alarm_share": 0.43989,
-                "fa_ratio_to_budget": 33.705},
-    "tep-0-3": {"src": "threshold_transfer_tt1d_result_tep59.json units mode_0..3 (registered)"},
-    "tep-4-6": {"src": "threshold_transfer_tt1d_result_tep59.json units mode_4..6 (registered)"},
+    "hai-21.03": {
+        "src": "threshold_transfer_tt1c_dev_v1.json natural (exploratory, tt1-final split)",
+        "events": 50,
+        "detected": 50,
+        "onset_detected": 49,
+        "unlabelled_alarm_share": 0.007571,
+        "fa_per_day": 0.6594,
+    },
+    "hai-22.04": {
+        "src": "threshold_transfer_tt1c_dev_v1.json natural (exploratory, tt1-final split)",
+        "events": 58,
+        "detected": 44,
+        "onset_detected": 44,
+        "unlabelled_alarm_share": 0.002744,
+        "fa_per_day": 1.4847,
+    },
+    "hai-23.05": {
+        "src": "threshold_transfer_tt1c_dev_v1.json natural (exploratory, tt1-final split)",
+        "events": 52,
+        "detected": 31,
+        "onset_detected": 31,
+        "unlabelled_alarm_share": 0.007113,
+        "fa_per_day": 1.2659,
+    },
+    "hai-20.07": {
+        "src": "threshold_transfer_tt1_result_hai-20.07.json (registered) + tt1_posthoc_alarm_time.json",
+        "tau": 17.25877,
+        "events": 38,
+        "detected": 36,
+        "onset_detected": 26,
+        "unlabelled_alarm_share": 0.39096,
+        "fa_per_day": 2.2254,
+    },
+    "hygrid-ics": {
+        "src": "threshold_transfer_tt1_result_hygrid-ics.json (registered) + tt1_posthoc_alarm_time.json",
+        "tau": 4.75370,
+        "events": 91,
+        "detected": 27,
+        "onset_detected": 3,
+        "unlabelled_alarm_share": 0.04067,
+        "fa_per_day": 19.202,
+    },
+    "batadal": {
+        "src": "threshold_transfer_tt1b_result_batadal.json (registered) + tt1_posthoc_alarm_time.json",
+        "tau": 9.39328,
+        "events": 14,
+        "detected": 14,
+        "onset_detected": 14,
+        "unlabelled_alarm_share": 0.013685,
+        "fa_ratio_to_budget": 0.7012,
+    },
+    "voraus-ad": {
+        "src": "threshold_transfer_tt1_result_voraus-ad.json (registered)",
+        "tau": 9.77571,
+        "events": 755,
+        "detected": 252,
+        "unlabelled_alarm_share": 0.081146,
+    },
+    "provics": {
+        "src": "threshold_transfer_tt1f_provics_mask_v1.json, extended mask (registered mask: 25 / onset 4 / 0.4411)",
+        "tau": 3.95370,
+        "events": 32,
+        "detected": 23,
+        "onset_detected": 3,
+        "unlabelled_alarm_share": 0.43989,
+        "fa_ratio_to_budget": 33.705,
+    },
+    "tep-0-3": {
+        "src": "threshold_transfer_tt1d_result_tep59.json units mode_0..3 (registered)"
+    },
+    "tep-4-6": {
+        "src": "threshold_transfer_tt1d_result_tep59.json units mode_4..6 (registered)"
+    },
 }
 
 
 def registered_tep(modes):
     """Registered frozen-rule counts for a subset of Tennessee Eastman modes, from the per-unit records."""
-    d = json.loads((ROOT / "docs/research/threshold_transfer_tt1d_result_tep59.json").read_text(encoding="utf-8"))
+    d = json.loads(
+        (ROOT / "docs/research/threshold_transfer_tt1d_result_tep59.json").read_text(
+            encoding="utf-8"
+        )
+    )
     found = onset = n = fa = alarm = unl = 0
     sealed_fa = sealed_steps = 0
     first = [0, 0]
@@ -470,15 +695,28 @@ def registered_tep(modes):
         taus[u["unit"]] = u["thresholds"]["D1"]["tau0"]
         for run in u["attack_runs"]:
             v = run["scores"]["D1"]["frozen"]
-            found += sum(v["found"]); onset += sum(v["onset"]); n += len(v["found"])
+            found += sum(v["found"])
+            onset += sum(v["onset"])
+            n += len(v["found"])
             first[0] += int(v["found"][0]) if v["found"] else 0
             first[1] += 1 if v["found"] else 0
-            fa += v["fa"]; alarm += v["alarm_unlabelled"]; unl += run["unlabelled_steps"]
+            fa += v["fa"]
+            alarm += v["alarm_unlabelled"]
+            unl += run["unlabelled_steps"]
         for run in u["sealed_runs"]:
-            sealed_fa += run["false_alarms"]["frozen"]["fa"]; sealed_steps += run["steps"]
-    return {"tau": taus, "events": n, "detected": found, "onset_detected": onset, "first_detected": first[0],
-            "first_events": first[1], "unlabelled_alarm_share": alarm / unl, "fa_ratio_to_budget": fa / (unl / 24000) / 2,
-            "sealed_fa_ratio_to_budget": sealed_fa / (sealed_steps / 24000) / 2}
+            sealed_fa += run["false_alarms"]["frozen"]["fa"]
+            sealed_steps += run["steps"]
+    return {
+        "tau": taus,
+        "events": n,
+        "detected": found,
+        "onset_detected": onset,
+        "first_detected": first[0],
+        "first_events": first[1],
+        "unlabelled_alarm_share": alarm / unl,
+        "fa_ratio_to_budget": fa / (unl / 24000) / 2,
+        "sealed_fa_ratio_to_budget": sealed_fa / (sealed_steps / 24000) / 2,
+    }
 
 
 def main():
@@ -495,7 +733,11 @@ def main():
         # check ledger is refused (no second look)
         done = set()
         if CHECK_LEDGER.exists():
-            done = {json.loads(line)["monitor"] for line in CHECK_LEDGER.read_text(encoding="utf-8").splitlines() if line}
+            done = {
+                json.loads(line)["monitor"]
+                for line in CHECK_LEDGER.read_text(encoding="utf-8").splitlines()
+                if line
+            }
         names = ["d1"] + [n for n in sys.argv[2:] if n != "d1"]
         again = [n for n in names if n in done]
         if again:
@@ -503,28 +745,64 @@ def main():
         out = {}
         for n in names:
             with CHECK_LEDGER.open("a", encoding="utf-8") as f:
-                f.write(json.dumps({"monitor": n, "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                                    "datasets": list(CHECK)}) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "monitor": n,
+                            "at": datetime.datetime.now(
+                                datetime.timezone.utc
+                            ).isoformat(),
+                            "datasets": list(CHECK),
+                        }
+                    )
+                    + "\n"
+                )
             out[n] = evaluate_set(n, "check")
             save(WORK / "results" / "check_table.json", out)
         verdicts = {n: verdict(out["d1"], r) for n, r in out.items() if n != "d1"}
         for n, v in verdicts.items():
-            print(n, "IMPROVED" if v["improved"] else "not improved", json.dumps(v, default=float))
-        save(WORK / "results" / "check_verdicts.json", {"baseline": summary(out["d1"]), "verdicts": verdicts})
+            print(
+                n,
+                "IMPROVED" if v["improved"] else "not improved",
+                json.dumps(v, default=float),
+            )
+        save(
+            WORK / "results" / "check_verdicts.json",
+            {"baseline": summary(out["d1"]), "verdicts": verdicts},
+        )
     elif cmd == "tep-cache":
         row = reproduce_tep_cache()
-        print(json.dumps({k: v for k, v in row.items() if k not in ("chance_onset",)}, indent=1, default=float))
+        print(
+            json.dumps(
+                {k: v for k, v in row.items() if k not in ("chance_onset",)},
+                indent=1,
+                default=float,
+            )
+        )
         save(WORK / "results" / "reproduce_tep_cache.json", row)
     elif cmd == "run":
         name, set_name = sys.argv[2], sys.argv[3]
         only = sys.argv[4:] or None
         if set_name == "check":
             with CHECK_LEDGER.open("a", encoding="utf-8") as f:
-                f.write(json.dumps({"monitor": name, "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                                    "datasets": only or list(CHECK)}) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "monitor": name,
+                            "at": datetime.datetime.now(
+                                datetime.timezone.utc
+                            ).isoformat(),
+                            "datasets": only or list(CHECK),
+                        }
+                    )
+                    + "\n"
+                )
         res = evaluate_set(name, set_name, only)
         tag = "_".join(only) if only else "all"
-        save(WORK / "results" / f"{set_name}_{name}_{tag}.json", {"monitor": name, "set": set_name, "datasets": res})
+        save(
+            WORK / "results" / f"{set_name}_{name}_{tag}.json",
+            {"monitor": name, "set": set_name, "datasets": res},
+        )
     else:
         raise SystemExit(__doc__)
 

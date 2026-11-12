@@ -19,6 +19,7 @@ candidate cause is quantified:
 
     python scripts/fi1_monitor_diagnose.py [unit ...]       writes target/real-telemetry/fi1/monitor/diagnosis.json
 """
+
 from __future__ import annotations
 
 import json
@@ -40,8 +41,8 @@ SEL_UNITS = ["hai-21.03", "hai-22.04", "tep-m0", "tep-m1", "tep-m2", "tep-m3"]
 def std_res(unit, a):
     S1 = np.abs(np.asarray(a["R1"])) / unit.sig1
     S5 = np.abs(np.asarray(a["R5"])) / unit.sig5
-    S1[:B.WARMUP] = 0
-    S5[:B.WARMUP] = 0
+    S1[: B.WARMUP] = 0
+    S5[: B.WARMUP] = 0
     return S1, S5
 
 
@@ -58,7 +59,11 @@ class Agg:
         S1, S5 = std_res(unit, a)
         keep = [j for j in range(S1.shape[1]) if j not in self.drop]
         S1, S5 = S1[:, keep], S5[:, keep]
-        f = {"top3": lambda A: V.topk_mean(A, 3), "max": lambda A: A.max(1), "mean": lambda A: A.mean(1)}[self.how]
+        f = {
+            "top3": lambda A: V.topk_mean(A, 3),
+            "max": lambda A: A.max(1),
+            "mean": lambda A: A.mean(1),
+        }[self.how]
         return f(S1) + f(S5)
 
 
@@ -72,7 +77,9 @@ def run_monitor(unit, mon, window=None):
         streams = []
         for st in unit.streams("test"):
             lab, valid, events = B.labels_and_events(unit, st)
-            streams.append((st, B.stream_score(unit, st, mon, valid), lab, valid, events))
+            streams.append(
+                (st, B.stream_score(unit, st, mon, valid), lab, valid, events)
+            )
     finally:
         unit.spec = spec
     return tau, streams
@@ -90,7 +97,11 @@ def share_and_onset(unit, tau, streams):
             starts[a] = True
         on += sum(bool(starts[a:b].any()) for a, b, *_ in events)
         n += len(events)
-    return {"unlabelled_alarm_share": al / max(un, 1), "onset_recall": on / max(n, 1), "events": n}
+    return {
+        "unlabelled_alarm_share": al / max(un, 1),
+        "onset_recall": on / max(n, 1),
+        "events": n,
+    }
 
 
 def channels(unit, tau, streams):
@@ -118,57 +129,82 @@ def channels(unit, tau, streams):
             continue
         _, t1, t5 = m
         involved += int((np.isin(t1, top5).any(1) | np.isin(t5, top5).any(1)).sum())
-    return {"unlabelled_alarm_steps": alarm_steps, "top5_channels": top5,
-            "top5_share_of_top3_slots": float(total[top5].sum() / max(total.sum(), 1)),
-            "share_of_alarm_steps_involving_top5": involved / max(alarm_steps, 1),
-            "channel_slot_counts_top10": {int(j): int(total[j]) for j in np.argsort(-total)[:10]}}
+    return {
+        "unlabelled_alarm_steps": alarm_steps,
+        "top5_channels": top5,
+        "top5_share_of_top3_slots": float(total[top5].sum() / max(total.sum(), 1)),
+        "share_of_alarm_steps_involving_top5": involved / max(alarm_steps, 1),
+        "channel_slot_counts_top10": {
+            int(j): int(total[j]) for j in np.argsort(-total)[:10]
+        },
+    }
 
 
 def ratio_stats(r):
     r = np.asarray(r, float)
-    return {"median": float(np.median(r)), "q90": float(np.quantile(r, 0.9)), "max": float(r.max()),
-            "argmax": int(r.argmax()), "channels_over_2": int((r > 2).sum()), "channels": int(len(r))}
+    return {
+        "median": float(np.median(r)),
+        "q90": float(np.quantile(r, 0.9)),
+        "max": float(r.max()),
+        "argmax": int(r.argmax()),
+        "channels_over_2": int((r > 2).sum()),
+        "channels": int(len(r)),
+    }
 
 
 def scales(unit):
     out = {"recordings": []}
     for group in ("scale", "calib", "sealed"):
         for st in unit.streams(group):
-            r1 = np.asarray(st.load("R1"))[B.WARMUP:]
-            out["recordings"].append({"group": group, "key": st.key, "steps": int(len(r1)),
-                                      "std_ratio_h1": ratio_stats(r1.std(0) / unit.sig1)})
-    rows, cnt = [], 0
+            r1 = np.asarray(st.load("R1"))[B.WARMUP :]
+            out["recordings"].append(
+                {
+                    "group": group,
+                    "key": st.key,
+                    "steps": int(len(r1)),
+                    "std_ratio_h1": ratio_stats(r1.std(0) / unit.sig1),
+                }
+            )
+    cnt = 0
     acc = np.zeros(len(unit.sig1))
     acc2 = np.zeros(len(unit.sig1))
     for st in unit.streams("test"):
         lab, valid, _ = B.labels_and_events(unit, st)
-        r1 = np.asarray(st.load("R1"))[B.WARMUP:]
-        m = (~lab & valid)[B.WARMUP:]
+        r1 = np.asarray(st.load("R1"))[B.WARMUP :]
+        m = (~lab & valid)[B.WARMUP :]
         acc += (r1[m].astype(np.float64) ** 2).sum(0)
         acc2 += r1[m].sum(0)
         cnt += int(m.sum())
     if cnt:
         var = acc / cnt - (acc2 / cnt) ** 2
-        out["test_unlabelled_std_ratio_h1"] = ratio_stats(np.sqrt(np.maximum(var, 0)) / unit.sig1)
-        out["test_unlabelled_mean_over_sig_h1"] = ratio_stats(np.abs(acc2 / cnt) / unit.sig1)
+        out["test_unlabelled_std_ratio_h1"] = ratio_stats(
+            np.sqrt(np.maximum(var, 0)) / unit.sig1
+        )
+        out["test_unlabelled_mean_over_sig_h1"] = ratio_stats(
+            np.abs(acc2 / cnt) / unit.sig1
+        )
     return out
 
 
 def regime(unit, tau, streams):
     if unit.name.startswith("tep-"):
-        return None                                  # sensors not cached for Tennessee Eastman
+        return None  # sensors not cached for Tennessee Eastman
     out = {"alarm": [0, 0], "quiet": [0, 0]}
     span = np.maximum(unit.fit_high - unit.fit_low, 1e-6)
     for st, s, lab, valid, _ in streams:
         Z = np.asarray(st.load("Z"))
         # only sensors are kept for the range test; actions are scaled separately and their range was not cached
-        outside = ((Z < unit.fit_low - 0.05 * span) | (Z > unit.fit_high + 0.05 * span)).any(1)
+        outside = (
+            (Z < unit.fit_low - 0.05 * span) | (Z > unit.fit_high + 0.05 * span)
+        ).any(1)
         unl = ~lab & valid
         alarm = s > tau
         for k, m in (("alarm", alarm & unl), ("quiet", ~alarm & unl)):
             out[k][0] += int((outside & m).sum())
             out[k][1] += int(m.sum())
-    return {k: v[0] / max(v[1], 1) for k, v in out.items()} | {"alarm_steps": out["alarm"][1]}
+    return {k: v[0] / max(v[1], 1) for k, v in out.items()} | {
+        "alarm_steps": out["alarm"][1]
+    }
 
 
 def loro(unit):
@@ -189,12 +225,25 @@ def loro(unit):
             if i == j:
                 continue
             days = np.isfinite(s2).sum() / sp["spd"]
-            others.append(len(T._episodes(s2 > tau, sp["gap"])) / max(days, 1e-9) / sp["budget"])
-        rows.append({"recording": name, "days": float(np.isfinite(s).sum() / sp["spd"]), "tau": float(tau),
-                     "fa_ratio_on_others_median": float(np.median(others)) if others else None,
-                     "fa_ratio_on_others_max": float(np.max(others)) if others else None})
+            others.append(
+                len(T._episodes(s2 > tau, sp["gap"])) / max(days, 1e-9) / sp["budget"]
+            )
+        rows.append(
+            {
+                "recording": name,
+                "days": float(np.isfinite(s).sum() / sp["spd"]),
+                "tau": float(tau),
+                "fa_ratio_on_others_median": float(np.median(others))
+                if others
+                else None,
+                "fa_ratio_on_others_max": float(np.max(others)) if others else None,
+            }
+        )
     taus = [r["tau"] for r in rows]
-    return {"recordings": rows, "tau_max_over_min": float(max(taus) / min(taus)) if taus else None}
+    return {
+        "recordings": rows,
+        "tau_max_over_min": float(max(taus) / min(taus)) if taus else None,
+    }
 
 
 def diagnose(name):
