@@ -259,7 +259,7 @@ during the runs (other sessions active).
 | `verify_authority_gate_self_approval.mjs` (new) | 6/11 | 11/11 | main fails: self-approval via `ipc_send` executes the write; config write is queued, not refused; the operator's approval covers a substituted path |
 | `verify_jsonrpc_methods.mjs` | 18/20 | 18/20 | same two failures on both (configured scenario: empty goal, zero telemetry); not caused by this branch |
 | `verify_voice.mjs` | 0/1, rerun 0/1 | 0/1 | boot stalls after `HDA: GCAP=...` on both images (harness boots with `-m 2048M` and HDA audio); kernel/host issue for workstream C |
-| `verify_bridge.mjs` | 0/1, rerun 0/1 | see final report | same boot stall on main |
+| `verify_bridge.mjs` | 0/1, rerun 0/1 | not run | same boot stall on main, so no baseline to compare; the branch run was stopped while waiting for the lock |
 
 `verify_world_model*.mjs` and `verify_heliox_memory_persistence.mjs` need `target/heliox-disk.img`
 (`scripts/make-appliance.ps1`), which does not exist on this machine; not run.
