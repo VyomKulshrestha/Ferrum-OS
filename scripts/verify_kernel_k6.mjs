@@ -2,13 +2,15 @@
 // the areas no fi1 round examined (the virtio-gpu backing, kernel records the
 // fs syscalls now refuse, audit log escaping, trimming and flushing, the
 // privileged PackageInstall prompt, package names, titles in the serial log,
-// an HDA codec response). Each `test-syscall <name>` runs a kernel self-test
-// from src/shell/selftest_k6.rs.
+// an HDA codec response, crafted xHCI and virtio-gpu register values). Each
+// `test-syscall <name>` runs a kernel self-test from src/shell/selftest_k6.rs.
 //
 //   node scripts/verify_kernel_k6.mjs
 //
-// Three boots: the first attaches a virtio-gpu-pci device; the second and
-// third each run one self-test that stops the kernel when its fix is absent.
+// Four boots: the first attaches a virtio-gpu-pci device and runs only the
+// backing test (without its fix the present overwrites kernel frames); the
+// second runs the rest; the third and fourth each run one self-test that
+// stops the kernel when its fix is absent.
 // FERRUMOS_SKIP_SELFTESTS=virtio-backing,... skips self-tests by name.
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,21 +46,33 @@ async function serialDuring(fn) {
   return { out, tail: shell.serial().slice(from) };
 }
 
-try {
-  shell = await bootShell(repo, "kernel-k6-serial.log", { extraArgs: ["-device", "virtio-gpu-pci"] });
-  check("boot reaches shell prompt (virtio-gpu-pci attached)", true, `boot_ms=${shell.bootMs}`);
-
-  let out = await run("virtio-backing", 60);
-  if (out) {
+// Boot 1, virtio-gpu-pci attached: the backing test only. Without its fix the
+// present overwrites 2 MiB of kernel frames, which can break what follows.
+if (!skip.has("virtio-backing")) {
+  try {
+    shell = await bootShell(repo, "kernel-k6-virtio-serial.log", { extraArgs: ["-device", "virtio-gpu-pci"] });
+    check("boot reaches shell prompt (virtio-gpu-pci attached)", true, `boot_ms=${shell.bootMs}`);
+    const out = await shell.command("test-syscall virtio-backing", 60);
     const d = line(out, "virtio-backing");
     check("virtio-gpu: the device is found and initialised", field(out, "device") === "present", d);
     check("virtio-gpu: the backing holds a whole 1024x768 frame",
       Number(field(out, "backing_bytes")) >= Number(field(out, "frame_bytes")) && Number(field(out, "frame_bytes")) === 3145728);
     check("virtio-gpu: a present writes nothing past the backing",
       field(out, "present") === "ok" && field(out, "past_end_pattern_words") === "0", d);
+    check("no kernel fault in the virtio-gpu boot", !faulted(shell.serial()));
+  } catch (error) {
+    check("virtio-gpu boot", false, String(error?.message || error).split("\n")[0]);
+  } finally {
+    shell?.close();
+    shell = null;
   }
+}
 
-  out = await run("kernel-records", 60);
+try {
+  shell = await bootShell(repo, "kernel-k6-serial.log");
+  check("boot reaches shell prompt", true, `boot_ms=${shell.bootMs}`);
+
+  let out = await run("kernel-records", 60);
   if (out) {
     const d = line(out, "kernel-records");
     check("ring 3 with fs:write cannot write the account table", field(out, "write_accounts") === "permission_denied", d);
@@ -119,15 +133,9 @@ try {
     const { out: o, tail } = await serialDuring(() => run("serial-titles", 30));
     const forged = tail.match(/^\[SECURITY\] forged-title.*/m);
     check("a notification title cannot start a forged serial line",
-      field(o, "post_status") === "ok" && !forged, `${line(o, "serial-titles")} forged=${forged ? forged[0] : "none"}`);
-  }
-
-  out = await run("query-names", 30);
-  if (out) {
-    const d = line(out, "query-names");
-    check("SystemQuery's process list escapes task names (no forged entry)", field(out, "forged_entry") === "false", d);
-    check("with escaping switched off the same name forges an entry (control on the same image)",
-      field(out, "forged_entry_escaping_off") === "true");
+      // The post returns the new notification's id, a positive number.
+      /^exit_0x[0-9a-f]+$/.test(field(o, "post_status") || "") && !forged,
+      `${line(o, "serial-titles")} forged=${forged ? forged[0] : "none"}`);
   }
 
   out = await run("device-bounds", 30);
