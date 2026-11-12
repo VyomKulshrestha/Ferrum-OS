@@ -420,6 +420,119 @@ mod tests {
     }
 
     #[test]
+    fn command_time_and_authority_boundaries_fail_closed() {
+        let metadata = CommandMetadata::kernel(
+            10,
+            2,
+            8,
+            EndpointCapability::Move,
+            ConfirmationProvenance::NotRequired,
+        );
+        assert_eq!(metadata.validate(20, 20, EndpointCapability::Move), Ok(()));
+        assert_eq!(
+            metadata.validate(21, 20, EndpointCapability::Move),
+            Err(ContractError::InvalidCommandTime)
+        );
+        assert_eq!(
+            metadata.validate(9, 20, EndpointCapability::Move),
+            Err(ContractError::InvalidCommandTime)
+        );
+        assert_eq!(
+            metadata.validate(u64::MAX, u64::MAX, EndpointCapability::Move),
+            Ok(())
+        );
+        let mut zero_policy = metadata;
+        zero_policy.expected_policy_revision = 0;
+        assert_eq!(
+            zero_policy.validate(10, 20, EndpointCapability::Move),
+            Err(ContractError::InvalidCommandTime)
+        );
+        let mut zero_twin = metadata;
+        zero_twin.expected_twin_event_id = 0;
+        assert_eq!(
+            zero_twin.validate(10, 20, EndpointCapability::Move),
+            Err(ContractError::InvalidCommandTime)
+        );
+        let mut forged = metadata;
+        forged.integrity = IntegrityEvidence::TransportAuthenticated([1; 32]);
+        assert_eq!(
+            forged.validate(10, 20, EndpointCapability::Move),
+            Err(ContractError::InvalidCommandAuthority)
+        );
+        let mut schema = metadata;
+        schema.schema_version = CYBER_PHYSICAL_SCHEMA_VERSION + 1;
+        assert_eq!(
+            schema.validate(10, 20, EndpointCapability::Move),
+            Err(ContractError::UnsupportedSchema)
+        );
+        for confirmation in [
+            ConfirmationProvenance::LocalHuman { confirmation_id: 0 },
+            ConfirmationProvenance::ExternalSupervisor { confirmation_id: 0 },
+        ] {
+            let mut zero = metadata;
+            zero.confirmation = confirmation;
+            assert!(!confirmation.is_human_verified());
+            assert_eq!(
+                zero.validate(10, 20, EndpointCapability::Move),
+                Err(ContractError::InvalidConfirmation)
+            );
+        }
+        let stop = CommandMetadata::kernel(
+            10,
+            0,
+            0,
+            EndpointCapability::EmergencyStop,
+            ConfirmationProvenance::NotRequired,
+        );
+        assert_eq!(
+            stop.validate(10, 10, EndpointCapability::EmergencyStop),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn observation_age_and_expiry_are_inclusive_at_the_bound() {
+        let policy = ObservationPolicy {
+            maximum_clock_skew_ticks: 2,
+            maximum_clock_uncertainty_ticks: 1,
+            maximum_observation_age_ticks: 3,
+        };
+        let metadata = ObservationMetadata::simulated(1, 13);
+        assert_eq!(
+            metadata.validate_adapter(AdapterProtocol::Simulator, 10, 13, policy),
+            Ok(())
+        );
+        assert_eq!(
+            metadata.validate_adapter(AdapterProtocol::Simulator, 12, 10, policy),
+            Ok(())
+        );
+        assert_eq!(
+            metadata.validate_adapter(AdapterProtocol::Simulator, 13, 10, policy),
+            Err(ContractError::FutureObservation)
+        );
+        let mut uncertain = metadata;
+        uncertain.clock_uncertainty_ticks = 1;
+        assert_eq!(
+            uncertain.validate_adapter(AdapterProtocol::Simulator, 10, 11, policy),
+            Ok(())
+        );
+        let short = ObservationMetadata::simulated(1, 12);
+        assert_eq!(
+            short.validate_adapter(AdapterProtocol::Simulator, 10, 13, policy),
+            Err(ContractError::ExpiredObservation)
+        );
+        for zero in [
+            ObservationMetadata::simulated(0, 13),
+            ObservationMetadata::simulated(1, 0),
+        ] {
+            assert_eq!(
+                zero.validate_adapter(AdapterProtocol::Simulator, 10, 11, policy),
+                Err(ContractError::InvalidIdentity)
+            );
+        }
+    }
+
+    #[test]
     fn clock_boundaries_are_overflow_safe() {
         let policy = ObservationPolicy {
             maximum_clock_skew_ticks: 10,

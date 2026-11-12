@@ -13,6 +13,9 @@ use crate::domain::SiteId;
 pub const MAX_FLEET_DEVICES: usize = 128;
 pub const MAX_PENDING_UPDATES: usize = 128;
 pub const MAX_COMMAND_JOURNAL: usize = 2_048;
+/// Journal slots only an emergency stop may use, so ordinary commands can
+/// never exhaust the journal and leave a stop unqueueable.
+pub const STOP_RESERVED_JOURNAL_SLOTS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceLifecycle {
@@ -391,7 +394,12 @@ impl FleetManager {
         }) {
             return Err(FleetError::DuplicateCommand);
         }
-        if self.command_journal.len() >= MAX_COMMAND_JOURNAL {
+        let limit = if routed.command.kind == crate::adapter::CommandKind::Stop {
+            MAX_COMMAND_JOURNAL
+        } else {
+            MAX_COMMAND_JOURNAL - STOP_RESERVED_JOURNAL_SLOTS
+        };
+        if self.command_journal.len() >= limit {
             return Err(FleetError::CapacityExceeded);
         }
         Ok(())
@@ -402,6 +410,25 @@ impl FleetManager {
         adapter_id: AdapterId,
         current_tick: u64,
     ) -> Option<RoutedCommand> {
+        self.claim_next(adapter_id, current_tick, false)
+    }
+
+    /// Claims only a queued emergency stop; used while execution authority
+    /// is unavailable so motion/actuation stays queued until it expires.
+    pub fn claim_next_stop(
+        &mut self,
+        adapter_id: AdapterId,
+        current_tick: u64,
+    ) -> Option<RoutedCommand> {
+        self.claim_next(adapter_id, current_tick, true)
+    }
+
+    fn claim_next(
+        &mut self,
+        adapter_id: AdapterId,
+        current_tick: u64,
+        stop_only: bool,
+    ) -> Option<RoutedCommand> {
         let stop_position = self.command_journal.iter().position(|claim| {
             claim.routed.command.adapter_id == adapter_id
                 && claim.routed.command.kind == crate::adapter::CommandKind::Stop
@@ -409,20 +436,23 @@ impl FleetManager {
                     claim.state,
                     CommandDeliveryState::Queued | CommandDeliveryState::Failed
                 )
-                && current_tick <= claim.routed.command.deadline_tick
+                && !claim_expired(claim, current_tick)
         });
         let ordered_positions = stop_position
             .into_iter()
             .chain(0..self.command_journal.len());
         for position in ordered_positions {
             let claim = &mut self.command_journal[position];
+            if stop_only && claim.routed.command.kind != crate::adapter::CommandKind::Stop {
+                continue;
+            }
             if claim.routed.command.adapter_id == adapter_id
                 && matches!(
                     claim.state,
                     CommandDeliveryState::Queued | CommandDeliveryState::Failed
                 )
             {
-                if current_tick > claim.routed.command.deadline_tick {
+                if claim_expired(claim, current_tick) {
                     claim.state = CommandDeliveryState::Expired;
                     claim.last_transition_tick = current_tick;
                     continue;
@@ -467,6 +497,26 @@ impl FleetManager {
             return Err(FleetError::CommandConflict);
         }
         claim.state = state;
+        claim.last_transition_tick = tick;
+        Ok(())
+    }
+
+    /// Revokes a claimed command whose permit no longer holds at the time of
+    /// use. Expired is terminal: the command can never be claimed again.
+    pub(crate) fn revoke_dispatched(
+        &mut self,
+        command_id: u64,
+        tick: u64,
+    ) -> Result<(), FleetError> {
+        let claim = self
+            .command_journal
+            .iter_mut()
+            .find(|claim| claim.routed.command.command_id == command_id)
+            .ok_or(FleetError::UnknownCommand)?;
+        if claim.state != CommandDeliveryState::Dispatched {
+            return Err(FleetError::CommandConflict);
+        }
+        claim.state = CommandDeliveryState::Expired;
         claim.last_transition_tick = tick;
         Ok(())
     }
@@ -518,6 +568,13 @@ impl FleetManager {
             .position(|update| update.manifest.update_id == update_id)
             .ok_or(FleetError::InvalidUpdate)
     }
+}
+
+/// A claim is unusable once either the command deadline or the single-use
+/// permit issued for it has passed.
+fn claim_expired(claim: &CommandClaim, current_tick: u64) -> bool {
+    current_tick > claim.routed.command.deadline_tick
+        || current_tick > claim.routed.permit_expires_at_tick
 }
 
 #[cfg(test)]
@@ -591,6 +648,7 @@ mod tests {
             policy_revision: 7,
             twin_event_id: 1,
             confirmation: ConfirmationProvenance::NotRequired,
+            permit_expires_at_tick: deadline_tick,
         }
     }
 
@@ -713,6 +771,24 @@ mod tests {
             fleet.command_claim(1).unwrap().state,
             CommandDeliveryState::Expired
         );
+    }
+
+    #[test]
+    fn ordinary_commands_cannot_exhaust_the_journal_for_stops() {
+        let mut fleet = FleetManager::new();
+        let mut id = 1;
+        while fleet.queue_command(command(id, 100), 10).is_ok() {
+            id += 1;
+        }
+        assert_eq!(
+            fleet.queue_command(command(id, 100), 10),
+            Err(FleetError::CapacityExceeded)
+        );
+        let mut stop = command(id + 1, 100);
+        stop.command.kind = CommandKind::Stop;
+        stop.command.metadata.requested_capability = EndpointCapability::EmergencyStop;
+        fleet.queue_command(stop, 10).unwrap();
+        assert_eq!(fleet.claim_next_ready(AdapterId(1), 10), Some(stop));
     }
 
     #[test]

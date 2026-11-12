@@ -21,6 +21,8 @@ use crate::twin::{
 pub const MAX_ADAPTERS: usize = 128;
 pub const MAX_ENDPOINTS: usize = 512;
 pub const MAX_COMMAND_CLAIMS: usize = 1_024;
+/// Claims only an emergency stop may use (see fleet::STOP_RESERVED_JOURNAL_SLOTS).
+pub const STOP_RESERVED_COMMAND_CLAIMS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AdapterId(pub u64);
@@ -173,6 +175,8 @@ pub struct RoutedCommand {
     pub policy_revision: u64,
     pub twin_event_id: u64,
     pub confirmation: ConfirmationProvenance,
+    /// Last tick at which the single-use permit may reach a driver.
+    pub permit_expires_at_tick: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -356,6 +360,28 @@ impl AdapterRegistry {
         if !endpoint_accepts_payload(endpoint, frame.payload) {
             return Err(AdapterError::EndpointMismatch);
         }
+        let payload_site = match frame.payload {
+            AdapterPayload::SensorReading(reading) => Some(reading.site_id),
+            AdapterPayload::ZoneOccupancy(occupancy) => Some(occupancy.site_id),
+            _ => None,
+        };
+        if payload_site.is_some_and(|site_id| site_id != self.adapters[adapter_index].site_id) {
+            return Err(AdapterError::EndpointMismatch);
+        }
+        // Actor telemetry is bound to the actor the endpoint controls, or,
+        // for an endpoint that controls none (gateway, wearable), to an actor
+        // of the adapter's own site.
+        if let AdapterPayload::ActorTelemetry(telemetry) = frame.payload {
+            let bound = match endpoint.controlled_actor_id {
+                Some(actor_id) => actor_id == telemetry.actor_id,
+                None => domain
+                    .actor(telemetry.actor_id)
+                    .is_some_and(|actor| actor.site_id == self.adapters[adapter_index].site_id),
+            };
+            if !bound {
+                return Err(AdapterError::EndpointMismatch);
+            }
+        }
 
         let event_id = twin.next_event_id().map_err(AdapterError::TwinRejected)?;
         twin.apply(
@@ -435,7 +461,12 @@ impl AdapterRegistry {
         if self.command_claims.contains(&command.idempotency_key) {
             return Err(AdapterError::DuplicateCommand);
         }
-        if self.command_claims.len() >= MAX_COMMAND_CLAIMS {
+        let claim_limit = if command.kind == CommandKind::Stop {
+            MAX_COMMAND_CLAIMS
+        } else {
+            MAX_COMMAND_CLAIMS - STOP_RESERVED_COMMAND_CLAIMS
+        };
+        if self.command_claims.len() >= claim_limit {
             return Err(AdapterError::CapacityExceeded);
         }
         self.command_claims.push(command.idempotency_key);
@@ -444,6 +475,7 @@ impl AdapterRegistry {
             policy_revision: permit.policy_revision,
             twin_event_id: permit.twin_event_id,
             confirmation: permit.confirmation,
+            permit_expires_at_tick: permit.expires_at_tick,
         })
     }
 }
@@ -841,6 +873,30 @@ mod tests {
     }
 
     #[test]
+    fn ordinary_commands_cannot_exhaust_route_claims_for_stops() {
+        let mut adapters = registry(AdapterState::Online);
+        let permit = ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired);
+        let mut key = 1;
+        while adapters.route_authorized(command(key), permit, 10).is_ok() {
+            key += 1;
+        }
+        assert_eq!(
+            adapters.route_authorized(command(key), permit, 10),
+            Err(AdapterError::CapacityExceeded)
+        );
+        let mut stop = command(key + 1);
+        stop.kind = CommandKind::Stop;
+        stop.metadata = CommandMetadata::kernel(
+            10,
+            1,
+            1,
+            EndpointCapability::EmergencyStop,
+            ConfirmationProvenance::NotRequired,
+        );
+        assert!(adapters.route_authorized(stop, permit, 10).is_ok());
+    }
+
+    #[test]
     fn command_provenance_must_match_the_single_use_permit() {
         let mut adapters = registry(AdapterState::Online);
         let permit = ExecutionPermit::new(10, 100, 1, 1, ConfirmationProvenance::NotRequired);
@@ -897,6 +953,44 @@ mod tests {
     }
 
     #[test]
+    fn adapter_cannot_publish_sensor_or_occupancy_for_another_site() {
+        let mut adapters = registry(AdapterState::Online);
+        let mut domain = domain();
+        domain
+            .register_site(Site {
+                id: SiteId(2),
+                name: "Other".to_string(),
+                emergency_zone_id: 98,
+            })
+            .unwrap();
+        let mut twin = OperationalTwin::new();
+        let mut foreign_sensor = sensor_frame(1);
+        if let AdapterPayload::SensorReading(reading) = &mut foreign_sensor.payload {
+            reading.site_id = SiteId(2);
+        }
+        assert_eq!(
+            adapters.ingest_frame(&mut twin, &mut domain, foreign_sensor, 11, 1),
+            Err(AdapterError::EndpointMismatch)
+        );
+        let mut foreign_occupancy = sensor_frame(1);
+        foreign_occupancy.payload = AdapterPayload::ZoneOccupancy(ZoneOccupancy {
+            site_id: SiteId(2),
+            zone_id: 7,
+            humans: 0,
+            robots: 0,
+            observed_at_tick: 10,
+        });
+        assert_eq!(
+            adapters.ingest_frame(&mut twin, &mut domain, foreign_occupancy, 11, 1),
+            Err(AdapterError::EndpointMismatch)
+        );
+        assert_eq!(twin.snapshot().latest_event_id, 0);
+        assert!(adapters
+            .ingest_frame(&mut twin, &mut domain, sensor_frame(1), 11, 1)
+            .is_ok());
+    }
+
+    #[test]
     fn simulator_queues_real_typed_frames_and_routed_commands() {
         let mut driver = SimulatedAdapter::new(identity(AdapterState::Online)).unwrap();
         driver.queue_frame(sensor_frame(1)).unwrap();
@@ -907,6 +1001,7 @@ mod tests {
                 policy_revision: 1,
                 twin_event_id: 1,
                 confirmation: ConfirmationProvenance::NotRequired,
+                permit_expires_at_tick: 100,
             })
             .unwrap();
         assert_eq!(driver.commands().len(), 1);
@@ -945,6 +1040,7 @@ mod tests {
             policy_revision: 0,
             twin_event_id: 0,
             confirmation: ConfirmationProvenance::NotRequired,
+            permit_expires_at_tick: 10,
         };
         driver.submit(routed).unwrap();
         assert_eq!(driver.recorded_commands(), &[routed]);

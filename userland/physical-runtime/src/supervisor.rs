@@ -344,6 +344,11 @@ impl RecoveryLatch {
         Ok(())
     }
 
+    /// True from an observed stop until a complete `release`.
+    pub const fn stop_pending(self) -> bool {
+        self.stop_observed
+    }
+
     pub const fn is_complete(self) -> bool {
         self.stop_observed && self.controller_safe && self.fresh_twin && self.operator_acknowledged
     }
@@ -491,6 +496,115 @@ mod tests {
         ] {
             assert_eq!(limits.evaluate(unsafe_state), AuthoritySeverity::Block);
         }
+    }
+
+    #[test]
+    fn rate_window_boundary_is_exact_and_extreme_ticks_do_not_wrap() {
+        let mut limiter = CommandRateLimiter::new(10, 1).unwrap();
+        limiter.admit(EndpointId(1), 5).unwrap();
+        assert_eq!(
+            limiter.admit(EndpointId(1), 14),
+            Err(SupervisorError::RateLimited)
+        );
+        limiter.admit(EndpointId(1), 15).unwrap();
+        limiter.admit(EndpointId(1), u64::MAX).unwrap();
+        assert_eq!(
+            limiter.admit(EndpointId(1), u64::MAX),
+            Err(SupervisorError::RateLimited)
+        );
+        assert_eq!(
+            limiter.admit(EndpointId(0), u64::MAX),
+            Err(SupervisorError::InvalidControl)
+        );
+        assert!(CommandRateLimiter::new(0, 1).is_err());
+        assert!(CommandRateLimiter::new(1, 0).is_err());
+        assert!(CommandRateLimiter::new(1, MAX_RATE_EVENTS + 1).is_err());
+    }
+
+    #[test]
+    fn resource_limits_are_inclusive_at_each_bound() {
+        let limits = OperationalLimits {
+            minimum_battery_permille: 200,
+            maximum_payload_grams: 500,
+            maximum_speed_mm_per_second: 100,
+            maximum_clock_uncertainty_ticks: 2,
+        };
+        let at_bounds = ResourceSnapshot {
+            battery_permille: 200,
+            payload_grams: 500,
+            requested_speed_mm_per_second: 100,
+            clock_uncertainty_ticks: 2,
+            maintenance_ready: true,
+            qualified: true,
+        };
+        assert_eq!(limits.evaluate(at_bounds), AuthoritySeverity::Allow);
+        for invalid in [
+            ResourceSnapshot {
+                battery_permille: 1_001,
+                ..at_bounds
+            },
+            ResourceSnapshot {
+                requested_speed_mm_per_second: u32::MAX,
+                ..at_bounds
+            },
+            ResourceSnapshot {
+                clock_uncertainty_ticks: u64::MAX,
+                ..at_bounds
+            },
+        ] {
+            assert_eq!(limits.evaluate(invalid), AuthoritySeverity::Block);
+        }
+        for broken in [
+            OperationalLimits {
+                minimum_battery_permille: 1_001,
+                ..limits
+            },
+            OperationalLimits {
+                maximum_payload_grams: 0,
+                ..limits
+            },
+            OperationalLimits {
+                maximum_speed_mm_per_second: 0,
+                ..limits
+            },
+        ] {
+            assert_eq!(broken.evaluate(at_bounds), AuthoritySeverity::Block);
+        }
+    }
+
+    #[test]
+    fn watchdog_timeout_is_inclusive_and_extreme_ticks_fail_closed() {
+        let mut bank = WatchdogBank::new();
+        bank.register(WatchdogState {
+            id: 1,
+            role: WatchdogRole::Sensor,
+            timeout_ticks: u64::MAX,
+            last_heartbeat_tick: 0,
+            armed: true,
+        })
+        .unwrap();
+        assert_eq!(bank.severity(u64::MAX), AuthoritySeverity::Allow);
+        bank.register(WatchdogState {
+            id: 2,
+            role: WatchdogRole::Adapter,
+            timeout_ticks: 1,
+            last_heartbeat_tick: u64::MAX,
+            armed: true,
+        })
+        .unwrap();
+        assert_eq!(bank.severity(u64::MAX), AuthoritySeverity::Allow);
+        assert_eq!(bank.severity(0), AuthoritySeverity::EmergencyStop);
+        assert_eq!(bank.heartbeat(2, 0), Err(SupervisorError::TimeReversal));
+        assert_eq!(bank.heartbeat(3, 0), Err(SupervisorError::UnknownWatchdog));
+        assert!(bank
+            .register(WatchdogState {
+                id: 4,
+                role: WatchdogRole::Controller,
+                timeout_ticks: 0,
+                last_heartbeat_tick: 0,
+                armed: true,
+            })
+            .is_err());
     }
 
     #[test]

@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 
 use super::json::{JsonValue, ToolCall};
-use super::confirmation::{ConfirmationGate, ConfirmationStatus};
+use super::confirmation::{clear_for_execution, Clearance, ConfirmationGate};
 use crate::memory::vector_store::MemoryCategory;
 
 // ---- Syscall Numbers (must match kernel src/syscall/mod.rs) ----------------
@@ -43,6 +43,7 @@ const SYS_CREATE_DIR: u64 = 21;
 const SYS_DELETE_FILE: u64 = 22;
 const SYS_SYSTEM_QUERY: u64 = 29;
 const SYS_SLEEP: u64 = 32;
+const SYS_WRITE_CONSOLE: u64 = 34;
 
 // ---- Raw Syscall Interface -------------------------------------------------
 
@@ -80,38 +81,12 @@ unsafe fn syscall4(number: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> u
 }
 
 // ---- Permission Tiers ------------------------------------------------------
+// The tier table and every other pure authority decision live in
+// `authority.rs`, which userland/heliox-gate-tests compiles and tests on the
+// host.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PermissionTier {
-    Observe = 0,
-    Safe = 1,
-    Network = 2,
-    Modify = 3,
-    Destructive = 4,
-}
-
-fn tool_tier(name: &str) -> PermissionTier {
-    match name {
-        // Tier 0: Observe
-        "query_memory" | "get_config" | "system_info" | "list_processes"
-        | "add_subtask" | "camera_capture" | "gesture_status" | "hud_update" | "hit_test" => PermissionTier::Observe,
-        // Tier 1: Safe
-        "ipc_send" | "audit_write" | "yield_cpu" | "report_status"
-        | "capability_check" | "read_file" | "read_dir" | "sleep"
-        | "read_screen" | "set_volume" | "poll_input" | "local_inference" => PermissionTier::Safe,
-        // Tier 2: Network
-        "net_connect" | "net_send" | "net_recv" | "http_get"
-        | "load_memory" | "set_goal" | "record_audio"
-        | "browse_url" => PermissionTier::Network,
-        // Tier 3: Modify
-        "write_file" | "create_directory" | "save_memory"
-        | "service_start" | "service_stop" | "play_audio"
-        | "keyboard_type" | "mouse_click" | "mouse_move" => PermissionTier::Modify,
-        // Tier 4: Destructive
-        "exec_process" | "delete_file" | "trigger_kernel_upgrade" => PermissionTier::Destructive,
-        _ => PermissionTier::Destructive, // unknown tools default to highest tier
-    }
-}
+pub use super::authority::PermissionTier;
+use super::authority::tool_tier;
 
 // ---- Tool Execution Result -------------------------------------------------
 
@@ -198,7 +173,7 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
     Arguments: {"goal": "<string>"}
 
 21. `sleep` - Sleep for a number of milliseconds.
-    Arguments: {"ms": <number>}
+    Arguments: {"ms": <number 0-10000>}
 
 22. `service_start` - Start a registered kernel service (REQUIRES CONFIRMATION).
     Arguments: {"service_id": <number>}
@@ -227,13 +202,13 @@ pub const TOOL_DEFINITIONS: &str = r#"You have access to the following tools:
 30. `set_volume` - Set the audio output volume.
     Arguments: {"level": <number 0-127>}
 
-31. `keyboard_type` - Type a string of text as keyboard input (REQUIRES CONFIRMATION).
+31. `keyboard_type` - Type printable ASCII text as keyboard input; no Enter or control keys (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"text": "<string>"}
 
-32. `mouse_click` - Click a mouse button (REQUIRES CONFIRMATION).
+32. `mouse_click` - Click a mouse button (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"button": <number 0=left, 1=right, 2=middle>}
 
-33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES CONFIRMATION).
+33. `mouse_move` - Move the mouse cursor by a relative offset (REQUIRES EXPLICIT APPROVAL).
     Arguments: {"dx": <number>, "dy": <number>}
 
 34. `browse_url` - Fetch an HTTP or HTTPS URL and extract clean text content from the page.
@@ -263,45 +238,62 @@ The physical maintenance tool is simulation-only; `confirm_simulation` acknowled
 
 /// Check if a tool requires confirmation before execution.
 pub fn needs_confirmation(tool_name: &str, auto_approve_tier: u8) -> bool {
-    let tier = tool_tier(tool_name) as u8;
-    tier > auto_approve_tier
+    super::authority::needs_confirmation(tool_tier(tool_name), auto_approve_tier)
+}
+
+/// The confirmation step shared by every execution path. `None` means the
+/// call may run now; `Some(result)` is the refusal or wait to return instead.
+pub fn confirmation_result(
+    tool_call: &ToolCall,
+    confirmation_gate: &mut ConfirmationGate,
+    auto_approve_tier: u8,
+    current_tick: u64,
+) -> Option<ToolResult> {
+    let output = match clear_for_execution(
+        confirmation_gate,
+        &tool_call.name,
+        &tool_call.arguments,
+        auto_approve_tier,
+        current_tick,
+    ) {
+        Clearance::Proceed => return None,
+        Clearance::Awaiting { id, display: _, full_display } => {
+            // The operator sees every byte of what they would approve. The
+            // kernel console rejects writes over 4096 bytes, so print in
+            // chunks (full_display is at most MAX_APPROVAL_DISPLAY_BYTES and
+            // pure ASCII after escaping).
+            let notice = format!(
+                "[heliox-daemon] confirmation {} requested: {} ({:?}) {}\n",
+                id,
+                tool_call.name,
+                tool_tier(&tool_call.name),
+                full_display
+            );
+            for chunk in notice.as_bytes().chunks(2048) {
+                unsafe {
+                    syscall3(SYS_WRITE_CONSOLE, 1, chunk.as_ptr() as u64, chunk.len() as u64);
+                }
+            }
+            format!("Awaiting confirmation (id={}). Use 'confirm {}' in kernel shell.", id, id)
+        }
+        Clearance::Denied => String::from("Action denied by operator."),
+        Clearance::Expired => String::from("Confirmation request expired."),
+        Clearance::Refused => String::from(
+            "Confirmation refused: queue full, ids exhausted, or arguments too large to show the operator.",
+        ),
+    };
+    Some(ToolResult {
+        tool_name: tool_call.name.clone(),
+        success: false,
+        output,
+    })
 }
 
 /// Execute a parsed tool call by dispatching to the appropriate handler.
 /// For tools that require confirmation, returns a pending result.
 pub fn execute(tool_call: &ToolCall, confirmation_gate: &mut ConfirmationGate, auto_approve_tier: u8, current_tick: u64) -> ToolResult {
-    let tier = tool_tier(&tool_call.name);
-
-    // Check if this tool needs confirmation
-    if (tier as u8) > auto_approve_tier {
-        // Check if we already have a pending/approved confirmation
-        let args_summary = format_args_summary(&tool_call.arguments);
-        match confirmation_gate.check_or_request(&tool_call.name, &args_summary, tier, current_tick) {
-            ConfirmationStatus::Approved => {
-                // Approved — proceed with execution
-            }
-            ConfirmationStatus::Pending(id) => {
-                return ToolResult {
-                    tool_name: tool_call.name.clone(),
-                    success: false,
-                    output: format!("Awaiting confirmation (id={}). Use 'confirm {}' in kernel shell.", id, id),
-                };
-            }
-            ConfirmationStatus::Denied => {
-                return ToolResult {
-                    tool_name: tool_call.name.clone(),
-                    success: false,
-                    output: String::from("Action denied by operator."),
-                };
-            }
-            ConfirmationStatus::Expired => {
-                return ToolResult {
-                    tool_name: tool_call.name.clone(),
-                    success: false,
-                    output: String::from("Confirmation request expired."),
-                };
-            }
-        }
+    if let Some(result) = confirmation_result(tool_call, confirmation_gate, auto_approve_tier, current_tick) {
+        return result;
     }
 
     // Dispatch to the appropriate handler
@@ -385,13 +377,22 @@ fn execute_ipc_send(args: &[(String, JsonValue)]) -> ToolResult {
 
 fn execute_audit_write(args: &[(String, JsonValue)]) -> ToolResult {
     let message = find_arg_string(args, "message").unwrap_or_default();
+    if message.trim().is_empty() {
+        return ToolResult {
+            tool_name: String::from("audit_write"),
+            success: false,
+            output: String::from("Missing 'message' argument"),
+        };
+    }
+    // One escaped line, marked as the agent's (R3-2).
+    let entry = super::authority::agent_audit_text(super::authority::AGENT_AUDIT_PREFIX, &message);
     let result = unsafe {
-        syscall3(SYS_AUDIT_WRITE, message.as_ptr() as u64, message.len() as u64, 0)
+        syscall3(SYS_AUDIT_WRITE, entry.as_ptr() as u64, entry.len() as u64, 0)
     };
     ToolResult {
         tool_name: String::from("audit_write"),
         success: result == 0,
-        output: format!("Audit written ({} bytes), result={}", message.len(), result),
+        output: format!("Audit written ({} bytes), result={}", entry.len(), result),
     }
 }
 
@@ -406,7 +407,9 @@ fn execute_yield() -> ToolResult {
 
 fn execute_report_status(args: &[(String, JsonValue)]) -> ToolResult {
     let status = find_arg_string(args, "status").unwrap_or_default();
-    let msg = format!("HELIOX_STATUS:{}", status);
+    // One escaped line (R3-2); the HELIOX_STATUS: prefix marks it as the
+    // agent's.
+    let msg = super::authority::agent_audit_text("HELIOX_STATUS:", &status);
     let result = unsafe {
         syscall3(SYS_AUDIT_WRITE, msg.as_ptr() as u64, msg.len() as u64, 0)
     };
@@ -451,8 +454,10 @@ fn execute_read_file(args: &[(String, JsonValue)]) -> ToolResult {
         }
     } else {
         let content = core::str::from_utf8(&buf[..bytes_read as usize]).unwrap_or("<binary>");
+        // The provider API key in the daemon's own config is not shown (R3-3).
+        let content = super::authority::redact_file_secrets(&path, content);
         // Truncate for output
-        let preview = truncate_utf8(content, 512);
+        let preview = truncate_utf8(&content, 512);
         ToolResult {
             tool_name: String::from("read_file"),
             success: true,
@@ -809,7 +814,8 @@ fn execute_read_screen() -> ToolResult {
         Ok(capture) => ToolResult {
             tool_name: String::from("read_screen"),
             success: true,
-            output: capture.full_text(),
+            // The bridge pairing secret is for the physical operator (R3-3).
+            output: super::authority::redact_screen_secrets(&capture.full_text()),
         },
         Err(e) => ToolResult {
             tool_name: String::from("read_screen"),
@@ -913,24 +919,6 @@ fn find_arg_number(args: &[(String, JsonValue)], key: &str) -> Option<f64> {
         }
     }
     None
-}
-
-fn format_args_summary(args: &[(String, JsonValue)]) -> String {
-    let mut s = String::new();
-    for (i, (k, v)) in args.iter().enumerate() {
-        if i > 0 { s.push_str(", "); }
-        s.push_str(k);
-        s.push('=');
-        match v {
-            JsonValue::Str(sv) => {
-                let preview = truncate_utf8(sv, 32);
-                s.push_str(preview);
-            }
-            JsonValue::Number(n) => s.push_str(&format!("{}", n)),
-            _ => s.push_str("..."),
-        }
-    }
-    s
 }
 
 // ---- Audio Tools -----------------------------------------------------------

@@ -86,9 +86,15 @@ impl JsonValue {
 
 // ---- Parser ----------------------------------------------------------------
 
+/// Deepest object/array nesting accepted. Provider responses and tool
+/// arguments are shallow; a deeper input is rejected instead of recursing
+/// until the daemon's stack overflows.
+pub const MAX_DEPTH: usize = 64;
+
 struct Parser<'a> {
     input: &'a [u8],
     pos: usize,
+    depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -96,6 +102,7 @@ impl<'a> Parser<'a> {
         Self {
             input: input.as_bytes(),
             pos: 0,
+            depth: 0,
         }
     }
 
@@ -139,8 +146,19 @@ impl<'a> Parser<'a> {
         self.skip_whitespace();
         match self.peek() {
             Some(b'"') => self.parse_string().map(JsonValue::Str),
-            Some(b'{') => self.parse_object(),
-            Some(b'[') => self.parse_array(),
+            Some(b'{') | Some(b'[') => {
+                if self.depth >= MAX_DEPTH {
+                    return Err("nesting too deep");
+                }
+                self.depth += 1;
+                let value = if self.peek() == Some(b'{') {
+                    self.parse_object()
+                } else {
+                    self.parse_array()
+                };
+                self.depth -= 1;
+                value
+            }
             Some(b't') => self.parse_literal(b"true", JsonValue::Bool(true)),
             Some(b'f') => self.parse_literal(b"false", JsonValue::Bool(false)),
             Some(b'n') => self.parse_literal(b"null", JsonValue::Null),
@@ -287,9 +305,11 @@ fn parse_f64(s: &str) -> Option<f64> {
 
     // Integer part
     let mut int_part: f64 = 0.0;
+    let mut digits = 0usize;
     while i < bytes.len() && bytes[i].is_ascii_digit() {
         int_part = int_part * 10.0 + (bytes[i] - b'0') as f64;
         i += 1;
+        digits += 1;
     }
 
     // Fractional part
@@ -301,7 +321,12 @@ fn parse_f64(s: &str) -> Option<f64> {
             frac_part += (bytes[i] - b'0') as f64 / divisor;
             divisor *= 10.0;
             i += 1;
+            digits += 1;
         }
+    }
+    // A number needs at least one digit: "-" or "-." is not -0.0.
+    if digits == 0 {
+        return None;
     }
 
     let mut result = int_part + frac_part;
@@ -318,10 +343,17 @@ fn parse_f64(s: &str) -> Option<f64> {
             }
             false
         };
+        // Saturates well beyond f64's range (|exp| <= ~324 matters), so
+        // neither the accumulation nor the loop below can overflow or spin.
         let mut exp: i32 = 0;
+        let mut exp_digits = 0usize;
         while i < bytes.len() && bytes[i].is_ascii_digit() {
-            exp = exp * 10 + (bytes[i] - b'0') as i32;
+            exp = (exp * 10 + (bytes[i] - b'0') as i32).min(1_000);
             i += 1;
+            exp_digits += 1;
+        }
+        if exp_digits == 0 {
+            return None;
         }
         if exp_negative {
             exp = -exp;
@@ -340,6 +372,16 @@ fn parse_f64(s: &str) -> Option<f64> {
 
     if negative {
         result = -result;
+    }
+
+    // Trailing bytes (e.g. "1.2.3") are not a number.
+    if i != bytes.len() {
+        return None;
+    }
+    // Infinity would reach `as u64`/`as u32` casts in tool arguments as
+    // their maximum value; reject it at the parser.
+    if !result.is_finite() {
+        return None;
     }
 
     Some(result)
@@ -383,16 +425,21 @@ pub fn extract_tool_calls(response: &JsonValue) -> Vec<ToolCall> {
                         .into();
                     
                     // Arguments may be a JSON string that needs re-parsing
+                    // Arguments that are present but not a JSON object are a
+                    // malformed call: drop it rather than run the tool with
+                    // its defaults.
                     let arguments = match func.get("arguments") {
+                        Some(JsonValue::Str(args_str)) if args_str.trim().is_empty() => Vec::new(),
                         Some(JsonValue::Str(args_str)) => {
                             // Re-parse the arguments string as JSON
                             match parse(args_str) {
                                 Ok(JsonValue::Object(pairs)) => pairs,
-                                _ => Vec::new(),
+                                _ => continue,
                             }
                         }
                         Some(JsonValue::Object(pairs)) => pairs.clone(),
-                        _ => Vec::new(),
+                        None | Some(JsonValue::Null) => Vec::new(),
+                        Some(_) => continue,
                     };
 
                     calls.push(ToolCall { name, arguments });
@@ -405,10 +452,11 @@ pub fn extract_tool_calls(response: &JsonValue) -> Vec<ToolCall> {
         if let Some(content) = message.get("content").and_then(|c| c.as_str()) {
             if let Ok(parsed) = parse(content) {
                 if let Some(tool_name) = parsed.get("tool").and_then(|t| t.as_str()) {
-                    let arguments = parsed.get("args")
-                        .and_then(|a| a.as_object())
-                        .cloned()
-                        .unwrap_or_default();
+                    let arguments = match parsed.get("args") {
+                        Some(JsonValue::Object(pairs)) => pairs.clone(),
+                        None | Some(JsonValue::Null) => Vec::new(),
+                        Some(_) => continue,
+                    };
                     calls.push(ToolCall {
                         name: String::from(tool_name),
                         arguments,
