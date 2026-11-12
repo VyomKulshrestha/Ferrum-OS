@@ -261,6 +261,46 @@ returns the sender. Still open in the kernel: the desktop's terminal window stil
 keys; network items (listen-port hijack, socket limit, packet length bound); quotas never enforced; no
 NX bit; ring-0 faults treated as user faults.
 
-## 5. Monitor (workstream A)
+## 5. Kernel and userland together (joint round 1; draft pull request 5, head 47e97e0, CI green)
+
+Pull request 5 contains pull requests 2 and 3 and is to be reviewed after them. It removes two of the
+exclusions the gate's claim carried and narrows a third.
+
+- **Sender identity (done).** A new receive call (syscall 61) returns the sender's pid and two flags
+  that only the kernel sets: "the kernel shell" and "the assistant panel the kernel launched for the
+  operator". The daemon reads its control mailbox only through it and applies a confirmation, denial,
+  goal, neural arming or configuration reload only from those two senders; a sender the kernel cannot
+  establish is refused (logic read by the main session in `authority.rs` and `orchestrator.rs`). A panel
+  started by any process, the daemon included, carries no flag, and Exec of a file named like a built-in
+  program is refused. The shell gains `heliox deny <id>`.
+- **Injected input (done).** Input events carry an "injected" mark. Injected keys and clicks no longer
+  reach the desktop terminal, the privacy lock, the launcher, the power menu, the dock, window close
+  buttons or the operator's panel; ordinary application windows still receive them.
+- **File version (done, with one window left).** Every file has a change counter (syscall 62). An
+  approval of a write, create, delete, exec or kernel upgrade is bound to the file's version at request
+  time, so a change by any process withdraws it. Still open: a change between the daemon's version check
+  and its action, which are two system calls.
+- **Click target (not done).**
+
+Checked by the main session on images downloaded from CI. The image of the pull request's head has the
+same digest as the one the agent tested (e3f39abf...), so the build is reproducible from the same source.
+
+| Harness | negative control (enforcement held back) | pull request 5's head |
+|---|---|---|
+| `verify_authority_gate_joint` | 17 of 24: a forged CONFIRM approved the write; an approved delete ran after another process changed the file; injected keys reached the terminal | 24 of 24 |
+| `verify_authority_gate_self_approval` | | 11 of 11 |
+| `verify_authority_gate_input_injection` | | 7 of 7 |
+| `verify_kernel_selftests` | | 18 of 18 |
+| `verify_ring3` | | 7 of 7 |
+| `verify_ipc_isolation` | | 6 of 6 |
+
+Host tests re-run by the main session: heliox-gate-tests 54, physical-runtime 175, neural-protocol 19,
+capability matcher 19 of 19.
+
+Exclusions that remain in the claim: the click target; the check-then-act window of the file version;
+read-then-send at the default tier; approvals by id from a console the agent can scroll; whoever types
+at the physical keyboard or serial console is the operator; the two physical-runtime replay items.
+
+## 6. Monitor (workstream A)
 
 Running. Filled in when it reports.
