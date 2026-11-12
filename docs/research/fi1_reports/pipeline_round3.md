@@ -80,7 +80,7 @@ Rerun with the verifier's artifact (`incident-v1-baseline.bin`) at 1 (twice), 2,
 | Threads | numeric leaves changed (of 148) | largest relative change | registered gates | data-scaling gate: final h3 / smallest-data h3 |
 |---|---|---|---|---|
 | committed | | | 5 of 5 | 0.026644 / 0.027420, margin 2.8% |
-| 24 | PLACEHOLDER_R24 | | | |
+| 24 | 0 (identical to the committed file, both runs) | 0 | 5 of 5 | as committed |
 | 4 | 30 | 5.9% (matched autoencoder test FP 16 against 17) | 5 of 5 | 0.026443 / 0.027209, 2.8% |
 | 3 | 26 | 4.4% (data scaling, 1,750 episodes, h5) | 5 of 5 | 0.027859 / 0.028434, 2.0% |
 | 2 | 30 | 5.9% | 5 of 5 | 0.027779 / 0.028346, 2.0% |
@@ -194,17 +194,17 @@ to the thread count of the fit.
 
 ## 2. Where the nondeterminism enters
 
-Measured with `fi1_thread_where.py` (one process; thread counts switched with threadpoolctl):
+Measured with `fi1_thread_where.py` (one process; thread counts 1, 4 and 24 switched with threadpoolctl):
 
 - **Every float32 matrix product of the physical-JEPA trainer** (`train_physical_jepa.train`: the forward
   products, the weight gradients `X.T @ G` and the back-propagated products, at the registered shapes,
-  batch 1024, latent 128, hidden 256) differs bit for bit between 1 and 4 threads, by up to 6e-5 in
-  absolute value. NumPy's `sum(axis=0)` (pairwise, no BLAS) does not depend on the thread count. The
+  batch 1024, latent 128, hidden 256) differs bit for bit between 1 thread and 4 or 24 threads, by up to 7.6e-5
+  in absolute value. NumPy's `sum(axis=0)` (pairwise, no BLAS) does not depend on the thread count. The
   dependence is OpenBLAS's SGEMM: the partition of the product across threads changes the order of the
   floating-point additions.
 - **It grows in training.** Training the registered 128-by-256 shape (seed 91, 1,200 simulator episodes)
   at 4 threads departs from 1 thread at the first checkpoint (epoch 25, relative weight difference 4e-8)
-  and the difference reaches 3.6e-6 by epoch 325. Over 8,000 to 9,000 Adam steps it changes which
+  and the difference reaches 3.6e-6 by epoch 325; at 24 threads it departs from 1 thread faster (5.7e-8 at epoch 25, 2.8e-4 by epoch 125, 6.9e-4 by epoch 325). Over 8,000 to 9,000 Adam steps it changes which
   validation checkpoint early stopping keeps (epochs completed differ, table 1.1) and then which
   candidate passes its validation checks. The selection rules turn a small numerical difference into a
   different model.
