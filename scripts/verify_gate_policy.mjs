@@ -253,8 +253,9 @@ try {
     await operator(`heliox confirm ${kid}`, `confirmation gate resolved: ${kid}`);
     await nudge();
     r = await tool("keyboard_type", { text: "fi2" });
-    // At the kernel shell no window has focus: the bound keys go nowhere.
-    check("Q-J2c: an approved keyboard_type with no focused window types nothing",
+    // The keys go only to the window named in the notice (with no focused
+    // window, nowhere).
+    check("Q-J2c: an approved keyboard_type types into the window it was bound to, or nothing",
       /keyboard focus left the approved window after 0 characters/.test(out(r)) || r?.result?.success === true, out(r));
   } catch (err) {
     check("Q-J2c section", false, err && err.message ? err.message.split("\n")[0] : String(err));
