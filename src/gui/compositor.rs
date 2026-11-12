@@ -1226,6 +1226,11 @@ pub fn handle_key_press(ascii: u8, injected: bool) {
                 // session's authority (root by default). Injected keys are
                 // kept out of it entirely: not only Enter, but also the text
                 // the operator's next Enter would submit (fi1 K1).
+                if injected {
+                    drop(state);
+                    keep_injected_from_operator_control();
+                    return;
+                }
                 let win = &mut state.windows[idx];
                 match ascii {
                     b'\n' => {
