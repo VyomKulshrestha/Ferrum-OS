@@ -5,11 +5,12 @@ are on the pull-request branch until it is merged). This file is updated as work
 "Checked" means the main session reran or re-read the claim; everything else is the reporting agent's.
 Nothing here recomputes a registered or published number.
 
-Status on 2026-11-13: the kernel, gate-policy and audit work is integrated in draft pull request 10 and
-verified; the papers' next versions are written and wait for DOIs; the operator study is registered and
-its sealed run is in progress; the two paper-2 rounds are still running.
+Status on 2026-11-13, later: pull request 10 is merged (main 27cc110, and the boot image CI built there
+is byte for byte the verified one); the papers' next versions are written and wait for DOIs; the
+operator study is registered and its sealed run is in progress; both paper-2 rounds are finished and
+the notes to the maintainers are drafted, not sent.
 
-## 1. Kernel and gate (draft pull request 10; contains pull requests 7, 8 and 9)
+## 1. Kernel and gate (pull request 10, merged 2026-11-13; contains pull requests 7, 8 and 9)
 
 Branch `improve/fi2-integration`, head dcb8b1b. Boot image built by CI for that head: sha256
 `5bb2c6a75db2db9d184232cf22d6a5267dbbebfe83021ecb6f5334de715b5df5`, 7,474,176 bytes.
@@ -143,9 +144,15 @@ running; results will be added here by the analysis script the registration name
 
 ## 4. Paper 2
 
-Both rounds are running; their results stay local until the maintainers of the libraries and products
-have been told.
+Both rounds are finished. Their plans and drivers are on main; their results stay local until the
+maintainers of the libraries and products have been told (nine draft notes, not sent).
 
-- Score level (`research/tw1b`): amendment 4 was committed before any run; the harness check reproduces
-  the first round exactly.
-- Signal level (`research/tw1c`): the plan was committed before any run.
+- **Score level** (`research/tw1b`, merged at 38c4f3c): amendment 4 was committed before any run; the
+  harness check reproduces the first round exactly; 294 parts ran. One part is missing, the
+  budget-matched settings of one calibrator, because the harness's search grid was too coarse for it;
+  that defect and two smaller ones in our own code are being fixed, and the part rerun, under an
+  amendment committed first.
+- **Signal level** (`research/tw1c`, merged at 05912cc): the plan was committed before any run; three
+  monitoring products and two libraries ran in local containers, all removed afterwards. Limits: one
+  product ran only with a shortened training window, the campaigns were open-loop, and one product was
+  tested through historical analysis.
