@@ -11,7 +11,7 @@ vyomkulshrestha2004@gmail.com
 github.com/VyomKulshrestha/Ferrum-OS
 
 Research artifact accompanying the FerrumOS world-model evidence lineage.
-DOI: 10.5281/zenodo.23473173 | CC BY 4.0
+DOI: 10.5281/zenodo.24189826 | CC BY 4.0
 
 ### Abstract
 
@@ -875,9 +875,9 @@ The targeted local attribution, its registered post-hoc sensitivity checks, and 
 
 #### 12.3 Release rule
 
-Technical Report v1.3 is the evidence-changing successor to v1.2. Version 1.2 (version DOI 10.5281/zenodo.23469363) and its repository tag remain intact; v1.3 adds the registered real-telemetry studies rt1 and rt2, including the failed rt1 rule. This version is archived on Zenodo under version DOI 10.5281/zenodo.23473173, shares the all-versions DOI 10.5281/zenodo.23469362 with v1.2, and is tagged `prediction-is-not-permission-v1.3` in the repository. Its source, PDF, verifier, and freeze manifest are therefore immutable; later evidence-changing work must create a new report version and retain failed frozen results. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
+Technical Report v1.3 is the evidence-changing successor to v1.2. Version 1.2 (version DOI 10.5281/zenodo.23469363) and its repository tag remain intact; v1.3 adds the registered real-telemetry studies rt1 and rt2, including the failed rt1 rule. Version 1.3 is archived on Zenodo under version DOI 10.5281/zenodo.23473173, shares the all-versions DOI 10.5281/zenodo.23469362 with v1.2, and is tagged `prediction-is-not-permission-v1.3` in the repository. Its source, PDF, verifier, and freeze manifest are therefore immutable; later evidence-changing work must create a new report version and retain failed frozen results. Promotion requires a separate prospective deployment protocol naming exact targets, rollback, capabilities, post-execution verification, and gates. Publication of this report is not that protocol.
 
-Technical Report v1.4 adds the statements listed under "Changes in version 1.4". It changes no number, registered result, or evidence binding of v1.3, recomputes no result, and reruns no training or evaluation; every added number is copied from the fi1 audit files it names or from the result files already bound by v1.3. Version 1.3 and its files remain unchanged.
+Technical Report v1.4 adds the statements listed under "Changes in version 1.4". It changes no number, registered result, or evidence binding of v1.3, recomputes no result, and reruns no training or evaluation; every added number is copied from the fi1 audit files it names or from the result files already bound by v1.3. Version 1.3 and its files remain unchanged. This version is archived on Zenodo under version DOI 10.5281/zenodo.24189826, shares the all-versions DOI 10.5281/zenodo.23469362 with v1.2 and v1.3, and is tagged `prediction-is-not-permission-v1.4` in the repository. Its source, PDF, verifier, and freeze manifest are therefore immutable.
 
 ### Changes in version 1.4
 
@@ -999,7 +999,7 @@ Start with the read-only commands and explicit availability limits in Section 11
 
 #### B.4 Archival boundary
 
-Technical Report v1.3 is intended to be archived together with its manuscript, figures, paper verification record, and freeze manifest while v1.1 remains separately retrievable. Dataset or software records may receive their own archival identifiers because they are independently reusable objects. Reciprocal links should identify the exact immutable report version and the exact dataset or software version without implying that a repository's moving branch is itself frozen. The version DOI 10.5281/zenodo.23473173 was reserved on a Zenodo draft before this build and identifies this version only; v1.2 keeps 10.5281/zenodo.23469363, and the incident-dynamics and real-telemetry evidence is archived as a dataset with DOI 10.5281/zenodo.23473185.
+Technical Report v1.4 is intended to be archived together with its manuscript, figures, paper verification record, and freeze manifest while v1.1 remains separately retrievable. Dataset or software records may receive their own archival identifiers because they are independently reusable objects. Reciprocal links should identify the exact immutable report version and the exact dataset or software version without implying that a repository's moving branch is itself frozen. The version DOI 10.5281/zenodo.24189826 was reserved on a Zenodo draft before this build and identifies this version only; v1.3 keeps 10.5281/zenodo.23473173, v1.2 keeps 10.5281/zenodo.23469363, and the incident-dynamics and real-telemetry evidence is archived as a dataset with DOI 10.5281/zenodo.23473185.
 
 
 ### Appendix C. Artifact locator
@@ -1128,9 +1128,9 @@ Table D3. Retained incident-dynamics v3 and v4 development configurations. H is 
 
 ### Declarations
 
-**Archival record and citation.** This version is archived on Zenodo with version DOI 10.5281/zenodo.23473173; the all-versions DOI is 10.5281/zenodo.23469362. Cite as: V. Kulshrestha. "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority." Technical Report v1.3, Zenodo, 2026. https://doi.org/10.5281/zenodo.23473173
+**Archival record and citation.** This version is archived on Zenodo with version DOI 10.5281/zenodo.24189826; the all-versions DOI is 10.5281/zenodo.23469362. Cite as: V. Kulshrestha. "Prediction Is Not Permission: Cross-Domain World Models Under Deterministic Runtime Authority." Technical Report v1.4, Zenodo, 2026. https://doi.org/10.5281/zenodo.24189826
 
-**Data and code availability.** The incident-dynamics and real-telemetry evidence (protocols, selections, results, ledgers, retained catalogs, compact model archives, source catalogs, and code) is archived as a dataset with DOI 10.5281/zenodo.23473185. The earlier evidence lineages are archived with DOIs 10.5281/zenodo.21829193 and 10.5281/zenodo.22092320. HAI [34, 35] and SMD [36] are public datasets under CC BY-SA 4.0 and MIT; they are not redistributed, and the archived manifest pins their upstream files and hashes. Code and verifiers are in the FerrumOS repository at tag `prediction-is-not-permission-v1.3`: https://github.com/VyomKulshrestha/Ferrum-OS
+**Data and code availability.** The incident-dynamics and real-telemetry evidence (protocols, selections, results, ledgers, retained catalogs, compact model archives, source catalogs, and code) is archived as a dataset with DOI 10.5281/zenodo.23473185. The earlier evidence lineages are archived with DOIs 10.5281/zenodo.21829193 and 10.5281/zenodo.22092320. HAI [34, 35] and SMD [36] are public datasets under CC BY-SA 4.0 and MIT; they are not redistributed, and the archived manifest pins their upstream files and hashes. Code and verifiers are in the FerrumOS repository at tag `prediction-is-not-permission-v1.4`: https://github.com/VyomKulshrestha/Ferrum-OS
 
 **License.** This report is released under the Creative Commons Attribution 4.0 International license (CC BY 4.0). Repository code is released under the MIT license.
 

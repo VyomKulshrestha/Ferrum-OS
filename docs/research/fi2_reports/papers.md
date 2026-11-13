@@ -5,6 +5,35 @@ arXiv or anywhere else; publication is the owner's step. No number was recompute
 evaluation was rerun. Every added number is copied from an fi1 report, an fi1 JSON record, or a result
 file v1.3 already binds.
 
+## Third pass (2026-11-13): both reports locked for publication
+
+`origin/main` merged as a fast-forward (no conflict; main already contained this branch). The DOIs were
+reserved by the coordinator; nothing was uploaded or published here.
+
+**PINP v1.4** (lock commit 1c5e973). The v1.3 identifiers in the front matter, Section 12.3, Appendix B.4
+and the Declarations are replaced by version DOI 10.5281/zenodo.24189826 and tag
+`prediction-is-not-permission-v1.4`, following v1.2 to v1.3. In Section 12.3 the v1.3 sentence now says
+"Version 1.3 is archived ..." and the v1.4 paragraph names this version's DOI and tag. The Section 11 sentence
+"This version is published, so the refresh path is closed for it" is kept: v1.3's text carried the same
+sentence before its own publication. The seven replacements are in the verifier's `VERSION_SUBSTITUTIONS`,
+and the "every v1.3 word survives" check passes. The freeze was refreshed, then locked as v1.3's was
+(status "published v1.4 (Zenodo version DOI 10.5281/zenodo.24189826)", tag, version DOI); a further
+`--refresh` is refused. 53 pages. `docs/research/prediction_is_not_permission_zenodo_v1_4.json` replaces the
+draft record (reserved, not published, publication date left empty).
+
+**Kernel report v1.3** (lock commit d5dbe26). v1.2's text names no version DOI and no tag (its front matter
+names "Published lineage: report DOI 10.5281/zenodo.21829808", which is the v1.0.0 version DOI; Zenodo gives
+the concept DOI as 10.5281/zenodo.21829807), and v1.2's text was not changed at publication (bba8aa9 touched
+only the freeze and the publication record). Following that precedent the manuscript is unchanged. The
+freeze is locked as v1.2 was before upload ("complete technical report manuscript; not published"), with the
+reserved DOI in its publication block; `docs/research/world_model_technical_report_publication_v1_3.json`
+follows v1.2's `world_model_technical_report_publication.json`. v1.2 had no repository tag.
+
+The upload sets and form fields are in the hand-back to the coordinator. Checks: PINP v1.4 verifier pass
+(read-only), kernel v1.3 verifier 57/57, repository discovery, public JSON schemas, public evidence contract
+and `generate_public_evidence.py --check` pass with no README or discovery change needed, and ruff check and
+format pass on the three Python files of these reports.
+
 ## Second pass (coordinator's items A to D)
 
 ### A. "When Agents Control the Kernel" v1.2 to v1.3

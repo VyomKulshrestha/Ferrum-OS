@@ -10,11 +10,11 @@
     },
     "freeze_manifest": {
       "path": "docs/research/cross_domain_world_model_paper_freeze_v1_4.json",
-      "sha256": "e1a51f9debc610dbb5ea1a8e4fe0fc594a1d71f098d97a2a0aa03bcd42bb75cf"
+      "sha256": "14b57ffef668659e82765d03da67bad63a061e082cd001f24c0871738bd48c4c"
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md",
-      "sha256": "4b646de9a8b00eb322331620fc26a8f62d3b28748dc424935736c7da13723a86"
+      "sha256": "69878474e4907183fcfd8f7b7062e3c0b214469b43ca63fa4c34eeccb309dcf8"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -50,7 +50,7 @@
     },
     "pdf": {
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf",
-      "sha256": "df60f46390331d82e29e7b1a9a2825a6e6979071cfcffa00a34a873d2137ed0c"
+      "sha256": "ec9913d7a08614d35b006041598600fbf2ef48fb4cdbd12488435ab0568d12b4"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -166,7 +166,7 @@
       "reviewer-requested": true,
       "safety recall": true
     },
-    "freeze_manifest_sha256": "e1a51f9debc610dbb5ea1a8e4fe0fc594a1d71f098d97a2a0aa03bcd42bb75cf",
+    "freeze_manifest_sha256": "14b57ffef668659e82765d03da67bad63a061e082cd001f24c0871738bd48c4c",
     "output_ablation_bonferroni_11_output": {
       "actual_hazard_cost_steps": {
         "excludes_zero": false,
@@ -331,7 +331,7 @@
     ],
     "pdf_missing_source_urls": [],
     "pdf_nonzero_character_spacing": [],
-    "pdf_pages": 52,
+    "pdf_pages": 53,
     "pdf_required_phrases": {
       "Architecture-controlled results": true,
       "Artifact locator": true,
@@ -366,11 +366,11 @@
       "writes await confirmation": true
     },
     "pdf_typography": {
-      "character_share_at_least_9_4_points": 0.6726421422277169,
+      "character_share_at_least_9_4_points": 0.6723894930742657,
       "dominant_body_font_size_points": 9.5,
       "maximum_first_page_font_size_points": 21.5
     },
-    "pdf_words_extracted": 24452,
+    "pdf_words_extracted": 24523,
     "positionally_checked_pdf_table_pages": [
       1,
       2,
@@ -423,7 +423,8 @@
       49,
       50,
       51,
-      52
+      52,
+      53
     ],
     "public_graphic_uses_typographic_evidence_chain": true,
     "source_required_phrases": {
@@ -437,6 +438,7 @@
       "Appendix B. Frozen-gate and artifact audit": true,
       "Appendix C. Artifact locator": true,
       "Bonferroni-adjusted 98.33% interval": true,
+      "DOI: 10.5281/zenodo.24189826 | CC BY 4.0": true,
       "Every one of 128 leave-one-seed-out 95% intervals": true,
       "Executed intervention precision is 23.04% (88/382)": true,
       "Findings at a glance": true,
@@ -477,15 +479,17 @@
       "The v2 attribution opens seeds 8000-8127 once": true,
       "These leave-one-out checks are sensitivity analyses, not independent replications.": true,
       "This analysis uses test labels to set thresholds and is not a registered result.": true,
-      "This version is archived on Zenodo under version DOI 10.5281/zenodo.23473173": true,
+      "This version is archived on Zenodo under version DOI 10.5281/zenodo.24189826": true,
       "This work received no external funding.": true,
       "Validation FPR": true,
       "Validation means checking an existing record": true,
+      "Version 1.3 is archived on Zenodo under version DOI 10.5281/zenodo.23473173": true,
       "Warning FPR | **[0.78468, 2.81866]** | **Excludes zero**": true,
       "Warning recall and warning FPR evaluate the detector": true,
       "Warnings do not follow the prediction gains.": true,
       "`rule_block` is false in all 1,024 records by construction of this estimand": true,
       "adjustment across all 11 registered paired outputs gives the same survivor set": true,
+      "at tag `prediction-is-not-permission-v1.4`": true,
       "complete post-hoc common-episode comparison": true,
       "completion/cost tradeoff over the planner": true,
       "constant-prevalence predictor has Brier 0.25": true,

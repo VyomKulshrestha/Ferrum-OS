@@ -1,0 +1,53 @@
+{
+  "schema_version": "ferrumos-world-model-technical-report-publication-v2",
+  "verified_at_utc": null,
+  "record": {
+    "status": "reserved; not published",
+    "access_right": "open",
+    "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
+    "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
+    "version": "1.3",
+    "resource_type": "Technical report",
+    "publication_date": null,
+    "publisher": "Zenodo",
+    "license": "CC-BY-4.0",
+    "url": "https://zenodo.org/records/24189855",
+    "draft_url": "https://zenodo.org/uploads/24189855",
+    "version_doi": "10.5281/zenodo.24189855",
+    "all_versions_doi": "10.5281/zenodo.21829807"
+  },
+  "previous_versions": [
+    {
+      "version": "1.0.0",
+      "publication_date": "2026-08-07",
+      "version_doi": "10.5281/zenodo.21829808",
+      "sha256": "dc100e170c5962de45ff46c988464ac629bd03f6734bd1a5803ed471fe7d4bab"
+    },
+    {
+      "version": "1.2",
+      "publication_date": "2026-08-26",
+      "version_doi": "10.5281/zenodo.22116399",
+      "sha256": "6f335f48f915b1a8ffd9194bdb86fb4ed95b37be099463c48b57f74e46230533"
+    }
+  ],
+  "author": {
+    "name": "Vyom Kulshrestha",
+    "affiliation": "Independent Researcher, India",
+    "orcid": "0009-0009-1434-7148"
+  },
+  "related_identifiers": {
+    "dataset_doi": "10.5281/zenodo.21829193",
+    "repository": "https://github.com/VyomKulshrestha/Ferrum-OS",
+    "github_release": "https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0"
+  },
+  "artifact": {
+    "filename": "FerrumOS_WorldModel_Technical_Report_v1.3.pdf",
+    "location_policy": "committed at docs/research/paper/ (v1.2 kept its PDF in Downloads, not in the repository)",
+    "page_count": 19,
+    "size_bytes": 648877,
+    "sha256": "c35903e5996b2058c0d9559533f1e211bd37d977942b89a03be99bc6b68d142c",
+    "md5": "1cccae24cdd5bf2b0ee10be2f9168657"
+  },
+  "verification": null,
+  "note": "The version DOI was reserved on a Zenodo new-version draft of record 22116399 on 2026-11-12. Not published; publication date and verification are filled after publication."
+}
