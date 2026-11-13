@@ -62,3 +62,46 @@ replay; a test shows the same analysis through the results file and through the 
 **Analysis.** The registered analysis script runs on the ingested records as it does on the Claude results, with
 each open-weight model as its own "model" (H6-style quantities only). Nothing from this arm enters a registered
 hypothesis or the publication gate.
+
+## 2026-11-13: granite-3.3-8b, first sealed attempt excluded; rerun once with corrected serving
+
+**What happened.** The first granite-3.3-8b run on the sealed subset finished in 3,401 s with 70 episodes (OL1DONE
+results sha256 `61155e5da8c4d0d59da7cab694cec0b4513227938a9291e6b8ca6278e39982f8`). It made 630 model calls, one per
+review, and every one of the 630 reviews ended `end_turn_without_close`: no tool call was parsed, no change was
+applied, nothing was escalated and the gate blocked nothing. The model wrote its tool use as prose ("Action: 1. Use
+set_threshold with a new threshold of 9.670 ..."). This is a serving failure. It carries no information about the
+outcomes of interest, and its results are excluded.
+
+**Cause.** The chat template of granite-3.3-8b-instruct at the pinned revision (`tokenizer_config.json`) adds the
+model's tool-call instruction, "When a tool is required to answer the user's query, respond only with <|tool_call|>
+followed by a JSON list of tools used", only on the branch where the request has no system message. Every ol1
+request has a system message, so the model saw the tools but never the instruction to call them in its format. The
+same template renders an assistant turn from its text alone, so after a tool call the model's own call would also
+have vanished from the history. vLLM 0.32.0's `granite` parser itself is not at fault: it reads `<|tool_call|>`
+(or `<tool_call>`) followed by a JSON array of `{"name", "arguments"}` and also recognises the special token by its
+id, so it would have parsed a call in that format.
+
+**What changed** (runner only; no registered file): granite-3.3-8b is served with `--chat-template` pointing to
+a template derived from the model's own, with two changes:
+1. the model's tool instruction is appended, word for word, to the system message whenever tools are given;
+2. an assistant turn with tool calls is rendered as `<|tool_call|>` followed by the JSON list of calls.
+
+The `granite` parser, the prompts, the tools and the request settings stay as they were. Every model run now
+starts with a self-check: before the first episode it sends a request with a system message and one trivial tool,
+up to three times. Unless one reply is parsed as a call of that tool with the requested argument, the run prints
+`OL1FAIL tool_calling` with the raw replies and stops without running an episode.
+
+**Plan.** A development-seed check of granite-3.3-8b first: 12 episodes on development seed 1, modes 0 and 3. It
+must pass the self-check and show tool calls, applied changes and closed reviews in its OL1REC lines. Then one
+rerun on the same 70 sealed episodes with the corrected serving. That rerun is granite's result in this arm; if it
+fails again, the model is reported as not measurable under this harness and is not rerun a third time.
+
+Sources (read 2026-11-13):
+- https://huggingface.co/ibm-granite/granite-3.3-8b-instruct/raw/51dd4bc2ade4059a6bd87649d68aa11e4fb2529b/tokenizer_config.json
+- https://huggingface.co/ibm-granite/granite-3.3-8b-instruct/raw/51dd4bc2ade4059a6bd87649d68aa11e4fb2529b/generation_config.json
+- https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/docs/features/tool_calling.md (section "IBM Granite")
+- https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/vllm/tool_parsers/__init__.py (`granite` maps to `granite_engine_tool_parser`)
+- https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/vllm/parser/granite.py
+- https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/tests/tool_parsers/test_granite_tool_parser.py
+- https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/examples/tool_chat_template_granite.jinja
+- https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/vllm/renderers/chat_utils.py (`_postprocess_messages`)
