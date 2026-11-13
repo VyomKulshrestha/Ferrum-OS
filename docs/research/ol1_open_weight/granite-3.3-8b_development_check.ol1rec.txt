@@ -1,0 +1,26 @@
+OL1STAGE start 0s {"model": "granite-3.3-8b", "shard": "0/1"}
+OL1STAGE pip_done 260s {"vllm": "0.32.0"}
+OL1STAGE jobs 262s {"file": "ol1_jobs_dev_granite.npz", "jobs": 12, "source": "dev", "core_digest_match": true}
+OL1STAGE download_start 262s {"repo": "ibm-granite/granite-3.3-8b-instruct", "revision": "51dd4bc2ade4059a6bd87649d68aa11e4fb2529b"}
+OL1STAGE download_progress 322s {"gb": 16.22}
+OL1STAGE download_done 342s {"gb": 32.69}
+OL1STAGE server_start 342s {}
+OL1STAGE server_waiting 392s {}
+OL1STAGE server_waiting 452s {}
+OL1STAGE server_waiting 512s {}
+OL1STAGE server_waiting 572s {}
+OL1STAGE server_ready 622s {}
+OL1STAGE tool_check_ok 624s {"reply": {"value": 7}, "tries": 1}
+OL1REC {"M":"granite-3.3-8b","m":0,"s":1,"c":"twin_loud","a":"G","f":[9.663635343822627,0.0,0,0],"k":0,"h":[],"hn":0,"n":[13,0,2,0,0],"e":{"closed":1,"end_turn_without_close":8},"o":[0,null,0,null,0,1],"ap":[5,4,4,4,5,4,4,4,4],"tb":["sup","cls"],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":0,"s":1,"c":"twin_loud","a":"P0","f":[9.663635343822627,0.0,0,0],"k":0,"h":[],"hn":0,"n":[14,1,0,0,1],"e":{"end_turn_without_close":6,"closed":3},"o":[0,null,0,null,0,1],"ap":[5,4,4,4,5,4,4,4,4],"tb":[],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":3,"s":1,"c":"loud","a":"P0","f":[19.043,0.0,0,0],"k":0,"h":[[4,"thr",19.043]],"hn":1,"n":[16,0,0,0,0],"e":{"end_turn_without_close":8,"closed":1},"o":[1,4,1,4,0,0],"ap":[5,5,5,6,0,0,0,0,0],"tb":[],"d":["thr"]}
+OL1REC {"M":"granite-3.3-8b","m":0,"s":1,"c":"nuisance","a":"G","f":[8.029380422214716,0.0,0,0],"k":0,"h":[],"hn":0,"n":[15,2,2,0,0],"e":{"end_turn_without_close":9},"o":[0,null,0,null,0,1],"ap":[4,9,11,14,10,7,4,4,4],"tb":["sup","rcl"],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":3,"s":1,"c":"twin_loud","a":"G","f":[9.52132657312204,0.0,0,0],"k":0,"h":[],"hn":0,"n":[16,0,0,2,0],"e":{"closed":1,"end_turn_without_close":8},"o":[0,null,0,null,0,1],"ap":[5,5,5,6,4,5,4,4,4],"tb":[],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":0,"s":1,"c":"nuisance","a":"P0","f":[9.6,3600.0,0,0],"k":0,"h":[[4,"thr",9.35],[4,"dly",60.0],[5,"thr",9.428],[5,"dly",3600.0],[8,"thr",9.6]],"hn":5,"n":[17,1,0,0,0],"e":{"end_turn_without_close":8,"closed":1},"o":[1,5,1,4,0,0],"ap":[4,9,11,14,0,0,0,0,0],"tb":[],"d":["dly","thr"]}
+OL1REC {"M":"granite-3.3-8b","m":0,"s":1,"c":"loud","a":"P0","f":[9.663635343822627,0.0,0,0],"k":0,"h":[],"hn":0,"n":[20,8,0,0,0],"e":{"closed":1,"end_turn_without_close":8},"o":[0,null,0,null,0,1],"ap":[5,4,4,4,5,4,4,4,4],"tb":[],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":3,"s":1,"c":"loud","a":"G","f":[9.52132657312204,0.0,0,0],"k":0,"h":[],"hn":0,"n":[17,2,0,0,0],"e":{"end_turn_without_close":9},"o":[0,null,0,null,0,1],"ap":[5,5,5,6,4,5,4,4,4],"tb":[],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":3,"s":1,"c":"nuisance","a":"G","f":[9.5,0.0,0,0],"k":0,"h":[[6,"thr",9.837],[8,"thr",9.5]],"hn":2,"n":[19,1,2,0,0],"e":{"end_turn_without_close":9},"o":[0,null,1,6,1,0],"ap":[9,12,7,5,4,3,0,0,0],"tb":["sup"],"d":["thr"]}
+OL1REC {"M":"granite-3.3-8b","m":0,"s":1,"c":"loud","a":"G","f":[9.663635343822627,0.0,0,0],"k":0,"h":[],"hn":0,"n":[20,4,1,1,0],"e":{"end_turn_without_close":9},"o":[0,null,0,null,0,1],"ap":[5,4,4,4,5,4,4,4,4],"tb":[],"d":[]}
+OL1REC {"M":"granite-3.3-8b","m":3,"s":1,"c":"nuisance","a":"P0","f":[8.108,600.0,36000,0],"k":0,"h":[[3,"thr",8.108],[3,"dly",600.0],[3,"sup",12.0]],"hn":3,"n":[19,0,0,0,0],"e":{"end_turn_without_close":9},"o":[1,3,1,3,0,0],"ap":[9,12,7,0,0,0,0,0,0],"tb":[],"d":["dly","thr","sup"]}
+OL1REC {"M":"granite-3.3-8b","m":3,"s":1,"c":"twin_loud","a":"P0","f":[19.04265314624408,300.0,0,0],"k":0,"h":[[3,"rcl",19.0427],[3,"dly",300.0]],"hn":2,"n":[20,1,0,0,0],"e":{"end_turn_without_close":9},"o":[1,3,1,3,0,0],"ap":[5,5,5,0,0,0,0,0,0],"tb":[],"d":["rcl","dly"]}
+OL1DONE {"model": "granite-3.3-8b", "shard": "0/1", "episodes": 12, "results_sha256": "c91254d03365c08249918106816f2a00707be19df32d82c454fac7aa1653e748", "seconds": 1457}
