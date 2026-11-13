@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "when-agents-control-kernel-technical-report-v1.3",
-  "status": "complete technical report manuscript; not published; v3.4 candidate not deployed",
+  "status": "complete technical report manuscript; published on Zenodo; v3.4 candidate not deployed",
   "date": "2026-11-12",
   "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
   "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
@@ -44,8 +44,7 @@
   },
   "publication": {
     "publisher": "Zenodo",
-    "publication_date": null,
-    "draft_url": "https://zenodo.org/uploads/24189855",
+    "publication_date": "2026-11-13",
     "record_url": "https://zenodo.org/records/24189855",
     "version_doi": "10.5281/zenodo.24189855",
     "all_versions_doi": "10.5281/zenodo.21829807",
@@ -94,8 +93,8 @@
     "learned_result": "untouched-corpus rollout improvement at H=1, H=3, and H=5",
     "promotion_eligible": false,
     "deployment_unchanged": true,
-    "publication_attempted": false,
-    "published": false,
+    "publication_attempted": true,
+    "published": true,
     "thread_count_dependence": "original OS models reproduce only at 24 BLAS threads (fi1 pipeline round 3)"
   }
 }

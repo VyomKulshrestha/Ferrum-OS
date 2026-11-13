@@ -70,7 +70,7 @@ def main() -> int:
         "README opening avoids unbounded hardware claim",
     )
     require(
-        "10.5281/zenodo.22116399" in readme,
+        "10.5281/zenodo.24189855" in readme,
         "README exposes current technical-report DOI",
     )
     require("10.5281/zenodo.21829193" in readme, "README exposes dataset DOI")
@@ -134,7 +134,7 @@ def main() -> int:
         "software citation does not override GitHub's cite flow with the report",
     )
     require(
-        "10.5281/zenodo.22116399" in citation_guide
+        "10.5281/zenodo.24189855" in citation_guide
         and "10.5281/zenodo.21829193" in citation_guide,
         "citation guide keeps report and dataset identifiers separate",
     )

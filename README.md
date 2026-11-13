@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust: nightly](https://img.shields.io/badge/rust-nightly-orange.svg)](rust-toolchain.toml)
 [![Architecture: x86_64](https://img.shields.io/badge/arch-x86__64-blue.svg)](rust-toolchain.toml)
-[![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22116399.svg)](https://doi.org/10.5281/zenodo.22116399)
+[![Research report DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24189855.svg)](https://doi.org/10.5281/zenodo.24189855)
 [![Explore FerrumOS](https://img.shields.io/badge/Explore-FerrumOS-29d9c2)](https://ferrum-os.vercel.app)
 [![Sponsor FerrumOS](https://img.shields.io/badge/Sponsor-FerrumOS-EA4AAA?logo=githubsponsors)](https://github.com/sponsors/VyomKulshrestha)
 
@@ -21,11 +21,11 @@ systems. The AI brain runs natively as a freestanding userspace process
 operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
-**Cross-domain technical report v1.3** ([DOI 10.5281/zenodo.23473173](https://doi.org/10.5281/zenodo.23473173); all versions [10.5281/zenodo.23469362](https://doi.org/10.5281/zenodo.23469362)): [Read *Prediction Is Not Permission:
-Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf),
-with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_3.md)
-and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_3.json).
-The 48-page report keeps every earlier study and failure and adds two registered
+**Cross-domain technical report v1.4** ([DOI 10.5281/zenodo.24189826](https://doi.org/10.5281/zenodo.24189826); all versions [10.5281/zenodo.23469362](https://doi.org/10.5281/zenodo.23469362)): [Read *Prediction Is Not Permission:
+Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf),
+with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md)
+and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_4.json).
+The 53-page report keeps every earlier study and failure; v1.3 added two registered
 studies on public recordings. On 58 attacks staged on the HAI 22.04 control testbed, a
 world model trained only on normal operation flags 44 at about one false alarm episode
 per day, against 22 for a persistence residual and 24 for a bound check. Training a
@@ -35,8 +35,13 @@ test: its threshold did not transfer. A registered replication on HAI 21.03 and 
 rule passed on one release. Server incidents (SMD) were inconclusive. The evidence is
 archived as a [dataset](https://doi.org/10.5281/zenodo.23473185). None of this
 establishes attack prevention, controller benefit, or deployment eligibility.
-[Version 1.2](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf)
-([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)) remains
+Version 1.4 changes no result: it adds statements from an audit of the code and records
+behind v1.3, among them that the training behind the physical and OS models depends on
+the number of BLAS threads.
+[Version 1.3](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf)
+([DOI 10.5281/zenodo.23473173](https://doi.org/10.5281/zenodo.23473173)) and
+[version 1.2](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf)
+([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)) remain
 unchanged.
 The [earlier v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf)
 remains available. Its [external-execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md)
@@ -50,7 +55,7 @@ checker rejects changed release bindings unless an explicit prepublication refre
 is requested. Reproduction is not independent validation or deployment approval.
 
 **Open-access research:** [Read *When Agents Control the Kernel: A JEPA World
-Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.22116399).
+Model Safety Gate with Empirical False-Negative Decomposition*](https://doi.org/10.5281/zenodo.24189855).
 The report, software, and dataset are separate artifacts; use the
 [citation guide](docs/CITATION.md) for the one you relied on.
 
@@ -94,7 +99,7 @@ reciprocally linked Zenodo records.
 | Check measured results | [Proof center](proof.md), [benchmarks](docs/BENCHMARKS.md), and [raw summary](benchmarks.json) |
 | Inspect agent authority | [41-action capability catalog](capabilities.json) and [security policy](SECURITY.md) |
 | Read as an AI agent | [Concise context](llms.txt), [full context](llms-full.txt), and versioned [capability](schemas/capabilities.schema.json) / [benchmark](schemas/benchmarks.schema.json) schemas |
-| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [cross-domain matched follow-up](docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md), [cross-domain report v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf), [pending non-author execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md), [OS report DOI](https://doi.org/10.5281/zenodo.22116399), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
+| Reproduce the research | [World-model study](docs/research/WORLD_MODEL_PAPER_EVALUATION.md), [cross-domain matched follow-up](docs/research/CROSS_DOMAIN_WORLD_MODEL_IMPROVEMENT_STUDY.md), [cross-domain report v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf), [pending non-author execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md), [OS report DOI](https://doi.org/10.5281/zenodo.24189855), [OS dataset DOI](https://doi.org/10.5281/zenodo.21829193), [Physical JEPA report DOI](https://doi.org/10.5281/zenodo.22092356), and [Physical JEPA dataset DOI](https://doi.org/10.5281/zenodo.22092320) |
 | Cite an artifact | [Software, report, and dataset citation guide](docs/CITATION.md) |
 | Build or contribute | [Build instructions](#build) and [contribution guide](CONTRIBUTING.md) |
 
@@ -535,13 +540,13 @@ DOI is [`10.5281/zenodo.21829192`](https://doi.org/10.5281/zenodo.21829192). A f
 public download matched all ten local release files byte-for-byte and passed the
 standalone release verifier 11/11. The machine-readable publication check is in
 [`world_model_dataset_publication.json`](docs/research/world_model_dataset_publication.json).
-The accompanying Technical Report v1.2 is published open access at Zenodo under
-version DOI [`10.5281/zenodo.22116399`](https://doi.org/10.5281/zenodo.22116399); all
+The accompanying Technical Report v1.3 is published open access at Zenodo under
+version DOI [`10.5281/zenodo.24189855`](https://doi.org/10.5281/zenodo.24189855); all
 versions resolve through DOI
 [`10.5281/zenodo.21829807`](https://doi.org/10.5281/zenodo.21829807). This is a
 separate publication identifier from the dataset DOI above. The public record serves
-the frozen 18-page PDF, and its machine-readable publication state is tracked in
-[`world_model_technical_report_publication.json`](docs/research/world_model_technical_report_publication.json).
+the frozen 19-page PDF, and its machine-readable publication state is tracked in
+[`world_model_technical_report_publication_v1_3.json`](docs/research/world_model_technical_report_publication_v1_3.json).
 Independent human/natural-use results are intentionally not claimed: the repo
 provides privacy-bounded telemetry plus a blinded two-annotator/adjudication workflow,
 but elapsed collection and real independent annotators remain external study steps.
