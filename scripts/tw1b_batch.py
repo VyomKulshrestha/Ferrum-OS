@@ -3,7 +3,8 @@
 
     python scripts/tw1b_batch.py <tw1 python> [processes] [phase ...]
 
-Phases, in order: harness, calib, D, B, spot, frog. A job is done when its part file says so; a job whose
+Phases, in order: harness, calib, D, B, spot, frog; B5 (amendment 5: configuration B of the Gaussian-tail
+calibrator again, with the corrected reading) runs only when named. A job is done when its part file says so; a job whose
 input (configuration B's parameter) is missing waits. Before each launch the free memory is checked with
 fi2-tools/memfree.py (MEMFREE, default C:/Users/marcu/Videos/fi2-tools/memfree.py); the batch waits while it
 is short. Logs go to target/tw1/tw1b/logs/.
@@ -71,11 +72,12 @@ def jobs(phases):
                             None,
                         )
                     )
-        elif ph in ("D", "B"):
-            for k in D_KEYS if ph == "D" else CALIBRATED:
+        elif ph in ("D", "B", "B5"):
+            keys = {"D": D_KEYS, "B": CALIBRATED, "B5": ("gauss",)}[ph]
+            for k in keys:
                 for m in MODES:
                     for h in HIST:
-                        need = OUT / f"calib/mode{m}_{k}.json" if ph == "B" else None
+                        need = OUT / f"calib/mode{m}_{k}.json" if ph != "D" else None
                         out.append(
                             (
                                 f"{ph}_m{m}_{h}_{k}",

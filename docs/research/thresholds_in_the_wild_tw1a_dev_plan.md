@@ -339,3 +339,71 @@ outcome at each magnitude is the planner's (the script's own update, stepped fro
 lead), and the script itself is run on the whole series once more for the largest magnitude, 2 tau0;
 the two must agree. A whole-series run of a frog stream takes about half an hour, because every frog
 step adds a peak and refits.
+
+## Amendment 5 (2026-11-13, round tw1b, committed before the rerun it describes)
+
+Written after tw1b ran. It fixes three defects of the round's own code and of its budget rule, and states
+one rerun. It contains no new results; the numbers it cites are in the tw1b findings already.
+
+### 1. The Gaussian-tail reading
+
+The calibrator puts a score into its long window before judging it, so its decision is not monotone in
+the score: at strict cuts the alarming scores form a band above the mean, and in many states no score
+alarms at all. The reading of amendment 2 searched upward on a 5% grid. At the cuts of configuration B
+(1 - 5.6e-6 to 1 - 1.6e-6) it stepped over bands narrower than one grid step, reported "no score alarms",
+and the consistency check stopped 11 of the 14 B parts when the target then alarmed.
+
+From now on the reading (`tw1_adapters.band_reading`, used by `PysadGaussian.tau`) is defined as the
+largest non-alarming score below the lowest alarming score above the current level (the score that puts
+the short-window mean on the long-window mean). The target's own z-score, a ratio of a linear function of
+the score to the square root of a quadratic one, is unimodal above that level; its maximum is located by
+golden-section search on log(score - level) between 1e-12 times the level and 1e12, to a bracket of 1e-12
+in that logarithm, and the band edges are bisected to 1e-13 relative. A band at least 1e-12 wide in
+log(score - level) cannot be stepped over; a test with a synthetic calibrator whose band is 2e-10 wide, half
+way between two points of the old grid, checks this. Where no score up to 1e12 alarms, the reading is an
+explicit `NoAlarm(cap)` result, not an unexplained infinity. The consistency check of every reading
+against the target's own decision is unchanged, and its count is reported.
+
+### 2. No silent substitute in the campaigns
+
+tw1a's campaign code (`tw1a_score_level_dev.campaign`) puts tau0 in place of a reading that is not finite,
+so a frog against a target whose reading is infinite becomes, without notice, a hold at 0.97 tau0. From
+now on campaigns are run with `tw1b_score_level_dev.campaign`: where the frog or the sub-event pulses
+need the reading and it is not finite, the recorded score is left as it is and the step is counted as
+not placed, with the reason, in the part's JSON. tw1a's function stays unchanged because the tw1a parts and
+the tw1c plan use it; `tw1b_score_level_dev.campaign` is the one to use for any later score-level run.
+The tw1a and tw1b configuration D parts of the Gaussian-tail calibrator were run with the old reading and
+the old campaign. They had no disagreement, but how many frog steps fell back to tau0 was not recorded.
+They are not rerun here.
+
+### 3. The budget rule needs a ceiling on alarm time
+
+The rule of amendment 1, item 8, completed in amendment 4, counts alarm episodes only. A setting that is
+in alarm all the time raises one episode and passes. From now on, in any later round and in any registered
+version, a setting matches the budget only if both hold over the second pass of the calibration runs:
+
+- at most 2 alarm episodes a day (gap 17 steps), as before; and
+- at most 1.0% of steps in alarm.
+
+The ceiling is about ten times the frozen threshold's own share of time in alarm on the 56 attack-free
+sealed runs: 0.096% on average, 0.18% on the run with the most (tw1b harness parts, river
+`ThresholdFilter` at tau0). Ten times leaves room for a setting whose episodes are longer than the frozen
+threshold's, and excludes a setting that alarms continuously.
+
+Rows of tw1b's configuration B that fail the new rule: libspot in modes 2, 4 and 5 (q = 0.002, the end of
+its range), which were in alarm 97.3%, 99.99% and 99.99% of the time on the sealed runs after the full
+history. Their B rows stand as recorded, marked as not matching the budget; they are not recalibrated in
+this round.
+
+### 4. Rerun of configuration B of the Gaussian-tail calibrator
+
+Configuration B of the Gaussian-tail calibrator is run again, all seven modes and both histories, with the
+parameters already calibrated (amendment 4) and with items 1 and 2 above. Parts are written as `B5`; the
+stopped `B` parts are kept. Campaigns, attack runs and outcomes as in amendment 4, section 1.
+
+Prediction, unchanged from amendment 4: the Gaussian tail at B is blind at lead 0 after the capped frogs
+and recovers after the lead.
+
+Where no score alarms, the frog cannot be placed relative to a reading and is recorded as not placed.
+A white-box attacker who knows that no score up to the cap alarms could hold the score at the cap; that
+campaign is not part of this rerun.
