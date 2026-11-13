@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "when-agents-control-kernel-technical-report-v1.3",
-  "status": "prepublication v1.3 candidate; not published; no version DOI reserved; v1.2 (10.5281/zenodo.22116399) remains the published version",
+  "status": "complete technical report manuscript; not published; v3.4 candidate not deployed",
   "date": "2026-11-12",
   "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
   "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
@@ -29,7 +29,8 @@
     "pages": 19,
     "page_size": "A4",
     "sha256": "c35903e5996b2058c0d9559533f1e211bd37d977942b89a03be99bc6b68d142c",
-    "deterministic_rebuild_verified": true
+    "deterministic_rebuild_verified": true,
+    "visual_qa_complete": true
   },
   "predecessor": {
     "freeze": {
@@ -43,9 +44,15 @@
   },
   "publication": {
     "publisher": "Zenodo",
-    "version_doi": "PLACEHOLDER: reserve on Zenodo as a new version of 10.5281/zenodo.22116399 before publication",
+    "publication_date": null,
+    "draft_url": "https://zenodo.org/uploads/24189855",
+    "record_url": "https://zenodo.org/records/24189855",
+    "version_doi": "10.5281/zenodo.24189855",
     "all_versions_doi": "10.5281/zenodo.21829807",
-    "dataset_doi": "10.5281/zenodo.21829193"
+    "new_version_of": "10.5281/zenodo.22116399",
+    "dataset_doi": "10.5281/zenodo.21829193",
+    "public_file_md5": "1cccae24cdd5bf2b0ee10be2f9168657",
+    "public_file_size_bytes": 648877
   },
   "evidence": {
     "protocol": {
