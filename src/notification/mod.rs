@@ -69,7 +69,12 @@ pub fn post(source_pid: u64, title: &str, body: &str) -> Result<u64, &'static st
         title: clean_field(title),
         body: clean_field(body),
     });
-    crate::serial_println!("[notification] posted id={} pid={} title={}", id, source_pid, title);
+    crate::serial_println!(
+        "[notification] posted id={} pid={} title={}",
+        id,
+        source_pid,
+        crate::syscall::escape_printable(title)
+    );
     Ok(id)
 }
 

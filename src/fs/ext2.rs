@@ -25,6 +25,43 @@ use crate::fs::{DirEntry, FsStat, FsUsage};
 
 pub const EXT2_MAGIC: u16 = 0xEF53;
 
+/// Feature bits this driver understands. A disk with another incompatible
+/// or read-only-compatible feature (a journal to replay, extents, 64-bit
+/// block numbers, metadata checksums...) is refused at mount: writing it
+/// with ext2 rules would corrupt it.
+pub const FEATURE_COMPAT_RESIZE_INODE: u32 = 0x10;
+pub const FEATURE_INCOMPAT_FILETYPE: u32 = 0x2;
+pub const FEATURE_RO_COMPAT_SPARSE_SUPER: u32 = 0x1;
+pub const FEATURE_RO_COMPAT_LARGE_FILE: u32 = 0x2;
+/// Inode flag of a hashed-index (dir_index) directory.
+pub const INDEX_FL: u32 = 0x1000;
+
+/// The fi2 K1 item 5 fixes (backup superblocks and reserved descriptor
+/// blocks as metadata, no freeing of metadata or of blocks another inode
+/// uses, indirect blocks freed, directories past 12 blocks). Only the
+/// self-test `ext2-fi2-off` clears it, for the negative control.
+pub static FI2_FIXES: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(true);
+
+fn fi2() -> bool {
+    FI2_FIXES.load(core::sync::atomic::Ordering::SeqCst)
+}
+
+/// Whether group `g` holds a copy of the superblock and descriptor table:
+/// every group without `sparse_super`, else groups 0, 1 and the powers of
+/// 3, 5 and 7.
+pub fn group_has_super(sb: &Superblock, g: u32) -> bool {
+    if g <= 1 || sb.rev_level < 1 || sb.feature_ro_compat & FEATURE_RO_COMPAT_SPARSE_SUPER == 0 {
+        return true;
+    }
+    [3u32, 5, 7].iter().any(|&base| {
+        let mut p = base;
+        while p < g {
+            p = p.saturating_mul(base);
+        }
+        p == g
+    })
+}
+
 // Inode mode constants (file types)
 pub const S_IFMT: u16 = 0xF000;  // Type mask
 pub const S_IFDIR: u16 = 0x4000; // Directory
@@ -284,6 +321,16 @@ pub fn validate_superblock(sb: &Superblock, sector_size: usize, sector_count: u6
     // allocators' arithmetic.
     if sb.free_blocks_count > sb.blocks_count || sb.free_inodes_count > sb.inodes_count {
         return bad("free counts");
+    }
+    if sb.rev_level >= 1 {
+        let incompat = sb.feature_incompat;
+        let ro_compat = sb.feature_ro_compat;
+        if incompat & !FEATURE_INCOMPAT_FILETYPE != 0 {
+            return Err(alloc::format!("ext2: unsupported incompatible features {:#x}", incompat));
+        }
+        if ro_compat & !(FEATURE_RO_COMPAT_SPARSE_SUPER | FEATURE_RO_COMPAT_LARGE_FILE) != 0 {
+            return Err(alloc::format!("ext2: unsupported read-only features {:#x}", ro_compat));
+        }
     }
     let inode_size = if sb.rev_level >= 1 { sb.inode_size as u32 } else { 128 };
     if inode_size < 128 || !inode_size.is_power_of_two() || inode_size > block_size {
@@ -865,6 +912,27 @@ impl<B: BlockDevice> Ext2Fs<B> {
         if block <= first_data + gdt_blocks {
             return true;
         }
+        // Every group that holds a backup superblock also holds a backup
+        // descriptor table and, with `resize_inode`, the blocks reserved for
+        // the table to grow. They were not counted: a bitmap marking them
+        // free got them handed out as file data (fi2 K1 item 5).
+        if fi2() {
+            let sb = &inner.superblock;
+            let reserved = if sb.rev_level >= 1 && sb.feature_compat & FEATURE_COMPAT_RESIZE_INODE != 0 {
+                sb.alignment as u64
+            } else {
+                0
+            };
+            let span = 1 + gdt_blocks + reserved;
+            let bpg = sb.blocks_per_group as u64;
+            if block >= first_data {
+                let g = (block - first_data) / bpg;
+                let start = first_data + g * bpg;
+                if g < self.groups_count as u64 && group_has_super(sb, g as u32) && block < start + span {
+                    return true;
+                }
+            }
+        }
         let inode_size = if inner.superblock.rev_level >= 1 { inner.superblock.inode_size as u64 } else { 128 };
         let table_blocks = (inner.superblock.inodes_per_group as u64 * inode_size)
             .div_ceil(self.block_size as u64)
@@ -934,6 +1002,12 @@ impl<B: BlockDevice> Ext2Fs<B> {
         if block < first_data {
             return Err(String::from("ext2: invalid block to free"));
         }
+        // A file whose pointer names metadata (a crafted or damaged inode)
+        // used to clear that block's bit on remove, and the next allocation
+        // handed the superblock copy or descriptor block out as data.
+        if fi2() && (block >= inner.superblock.blocks_count || self.is_metadata_block(&inner, block)) {
+            return Err(String::from("ext2: refusing to free a metadata block"));
+        }
 
         let relative_block = block - first_data;
         let g = relative_block / blocks_per_group;
@@ -948,6 +1022,11 @@ impl<B: BlockDevice> Ext2Fs<B> {
         bitmap_buf.resize(block_size as usize, 0);
         read_raw_block(&inner.device, block_size, desc.block_bitmap, &mut bitmap_buf)?;
 
+        // Freeing a block that is already free counted it twice in the free
+        // counts.
+        if fi2() && bitmap_buf[bit / 8] & (1 << (bit % 8)) == 0 {
+            return Err(String::from("ext2: block already free"));
+        }
         set_bit(&mut bitmap_buf, bit, false);
         write_raw_block(&inner.device, block_size, desc.block_bitmap, &bitmap_buf)?;
 
@@ -1051,6 +1130,202 @@ impl<B: BlockDevice> Ext2Fs<B> {
         Ok(())
     }
 
+    /// Every block an inode holds: its data blocks and the indirect pointer
+    /// blocks that map them, walked only as far as the inode's size reaches.
+    /// A pointer outside the filesystem or onto metadata is an error (the
+    /// caller then leaves the blocks allocated rather than free garbage).
+    pub fn inode_blocks(&self, inode: &Inode) -> Result<(Vec<u32>, Vec<u32>), String> {
+        let inner = self.inner.lock();
+        self.inode_blocks_inner(&inner, inode, true)
+    }
+
+    /// `strict`: a pointer outside the data area is an error (the inode
+    /// being freed). Not strict: it is recorded as it is and not followed
+    /// (another inode, scanned for blocks it shares).
+    fn inode_blocks_inner(
+        &self,
+        inner: &Ext2FsInner<B>,
+        inode: &Inode,
+        strict: bool,
+    ) -> Result<(Vec<u32>, Vec<u32>), String> {
+        let ftype = inode.mode & S_IFMT;
+        let mut data = Vec::new();
+        let mut pointers = Vec::new();
+        // A fast symlink keeps its target in the pointer array.
+        if ftype == S_IFLNK && (inode.size as usize) < 60 && inode.blocks == 0 {
+            return Ok((data, pointers));
+        }
+        let bs = self.block_size as u64;
+        let ppb = bs / 4;
+        let mut left = Self::data_size(inode).min(Self::MAX_WHOLE_READ * 8).div_ceil(bs);
+        let blocks_count = inner.superblock.blocks_count;
+        let valid = |b: u32| b < blocks_count && b >= inner.superblock.first_data_block && !self.is_metadata_block(inner, b);
+        let check = |b: u32| -> Result<u32, String> {
+            if !strict || valid(b) {
+                Ok(b)
+            } else {
+                Err(alloc::format!("ext2: block pointer {} is outside the data area", b))
+            }
+        };
+        let ptrs = inode.block;
+        for &b in ptrs.iter().take(12) {
+            if left == 0 {
+                break;
+            }
+            if b != 0 {
+                data.push(check(b)?);
+            }
+            left -= 1;
+        }
+        // Logical blocks past the direct ones, through block[12] (single),
+        // block[13] (double) and block[14] (triple). Each pointer block is
+        // read once and recorded once.
+        let mut tables: alloc::collections::BTreeMap<u32, Vec<u32>> = alloc::collections::BTreeMap::new();
+        let mut buf = vec![0u8; bs as usize];
+        let mut entry = |table: u32, slot: u64, tables: &mut alloc::collections::BTreeMap<u32, Vec<u32>>,
+                         pointers: &mut Vec<u32>|
+         -> Result<u32, String> {
+            if !tables.contains_key(&table) {
+                check(table)?;
+                pointers.push(table);
+                if valid(table) {
+                    read_raw_block(&inner.device, self.block_size, table, &mut buf)?;
+                    tables.insert(
+                        table,
+                        buf.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect(),
+                    );
+                } else {
+                    // Not strict: an invalid table is recorded, not followed.
+                    tables.insert(table, vec![0u32; ppb as usize]);
+                }
+            }
+            Ok(tables[&table][slot as usize])
+        };
+        let mut index = 0u64; // logical index past the 12 direct blocks
+        while left > 0 {
+            let phys = if index < ppb {
+                if ptrs[12] == 0 { 0 } else { entry(ptrs[12], index, &mut tables, &mut pointers)? }
+            } else if index < ppb + ppb * ppb {
+                let i = index - ppb;
+                let sib = if ptrs[13] == 0 { 0 } else { entry(ptrs[13], i / ppb, &mut tables, &mut pointers)? };
+                if sib == 0 { 0 } else { entry(sib, i % ppb, &mut tables, &mut pointers)? }
+            } else if index < ppb + ppb * ppb + ppb * ppb * ppb {
+                let i = index - ppb - ppb * ppb;
+                let dib = if ptrs[14] == 0 { 0 } else { entry(ptrs[14], i / (ppb * ppb), &mut tables, &mut pointers)? };
+                let sib = if dib == 0 { 0 } else { entry(dib, (i / ppb) % ppb, &mut tables, &mut pointers)? };
+                if sib == 0 { 0 } else { entry(sib, i % ppb, &mut tables, &mut pointers)? }
+            } else {
+                break;
+            };
+            if phys != 0 {
+                data.push(check(phys)?);
+            }
+            index += 1;
+            left -= 1;
+        }
+        Ok((data, pointers))
+    }
+
+    /// Of `candidates`, the blocks some other live inode (not `exclude`)
+    /// also holds. Scans the inodes the bitmaps mark used. `Err` when the
+    /// scan would exceed its budget or fails: the caller then frees nothing.
+    fn blocks_used_elsewhere(
+        &self,
+        exclude: u32,
+        candidates: &alloc::collections::BTreeSet<u32>,
+    ) -> Result<alloc::collections::BTreeSet<u32>, String> {
+        const MAX_INODES_SCANNED: usize = 16384;
+        let mut shared = alloc::collections::BTreeSet::new();
+        if candidates.is_empty() {
+            return Ok(shared);
+        }
+        let inner = self.inner.lock();
+        let ipg = inner.superblock.inodes_per_group;
+        let first_ino = if inner.superblock.rev_level >= 1 { inner.superblock.first_ino.max(11) } else { 11 };
+        let mut bitmap = vec![0u8; self.block_size as usize];
+        let mut scanned = 0usize;
+        for g in 0..self.groups_count {
+            let desc = inner.group_descs[g as usize];
+            read_raw_block(&inner.device, self.block_size, desc.inode_bitmap, &mut bitmap)?;
+            for bit in 0..ipg as usize {
+                if bitmap[bit / 8] & (1 << (bit % 8)) == 0 {
+                    continue;
+                }
+                let num = g * ipg + bit as u32 + 1;
+                if num > inner.superblock.inodes_count {
+                    break;
+                }
+                // Reserved inodes other than the root do not hold file data
+                // (the resize inode maps the reserved descriptor blocks).
+                if num == exclude || (num < first_ino && num != 2) {
+                    continue;
+                }
+                scanned += 1;
+                if scanned > MAX_INODES_SCANNED {
+                    return Err(String::from("ext2: too many inodes to check for shared blocks"));
+                }
+                let inode = self.read_inode_inner(&inner, num)?;
+                if inode.links_count == 0 {
+                    continue;
+                }
+                let (data, pointers) = match self.inode_blocks_inner(&inner, &inode, false) {
+                    Ok(v) => v,
+                    // A damaged inode elsewhere: its pointers are unknown, so
+                    // nothing can be shown unshared.
+                    Err(e) => return Err(e),
+                };
+                for b in data.iter().chain(pointers.iter()) {
+                    if candidates.contains(b) {
+                        shared.insert(*b);
+                    }
+                }
+            }
+        }
+        Ok(shared)
+    }
+
+    /// Free the blocks `inode_num` held (data and indirect), except those
+    /// another inode still uses or that are metadata. Returns (freed, kept).
+    fn release_inode_blocks(&self, inode_num: u32, inode: &Inode) -> (usize, usize) {
+        let (data, pointers) = match self.inode_blocks(inode) {
+            Ok(v) => v,
+            Err(e) => {
+                crate::serial_println!("[ext2] inode {}: {}; its blocks stay allocated", inode_num, e);
+                return (0, 0);
+            }
+        };
+        let all: alloc::collections::BTreeSet<u32> = data.iter().chain(pointers.iter()).copied().collect();
+        let shared = match self.blocks_used_elsewhere(inode_num, &all) {
+            Ok(s) => s,
+            Err(e) => {
+                crate::serial_println!("[ext2] inode {}: {}; its {} blocks stay allocated", inode_num, e, all.len());
+                return (0, all.len());
+            }
+        };
+        if !shared.is_empty() {
+            crate::serial_println!(
+                "[ext2] inode {}: {} block(s) also used by another inode, left allocated",
+                inode_num,
+                shared.len()
+            );
+        }
+        let (mut freed, mut kept) = (0, shared.len());
+        for b in all.difference(&shared) {
+            if self.free_block(*b).is_ok() {
+                freed += 1;
+            } else {
+                kept += 1;
+            }
+        }
+        (freed, kept)
+    }
+
+    /// Superblock free counts (blocks, inodes), for self-tests.
+    pub fn free_counts(&self) -> (u32, u32) {
+        let inner = self.inner.lock();
+        (inner.superblock.free_blocks_count, inner.superblock.free_inodes_count)
+    }
+
     /// Append a directory entry to parent directory.
     fn add_dir_entry(
         &self,
@@ -1065,8 +1340,15 @@ impl<B: BlockDevice> Ext2Fs<B> {
         if name.is_empty() || name.len() > 255 {
             return Err(String::from("ext2: file name must be 1 to 255 bytes"));
         }
-        let parent_inode = self.read_inode(parent_inode_num)?;
+        let mut parent_inode = self.read_inode(parent_inode_num)?;
         let block_size = self.block_size as usize;
+        // A hashed-index directory (dir_index) would keep an index that does
+        // not list the new name; Linux would then not find it. This driver
+        // keeps no index, so the directory becomes a linear one first.
+        if fi2() && parent_inode.flags & INDEX_FL != 0 {
+            parent_inode.flags &= !INDEX_FL;
+            self.write_inode(parent_inode_num, &parent_inode)?;
+        }
 
         // Walk only the blocks the directory's size covers. The walk used to
         // run until a zero pointer: a directory whose indirect block pointed
@@ -1177,11 +1459,55 @@ impl<B: BlockDevice> Ext2Fs<B> {
             }
         }
 
+        if !assigned && fi2() {
+            // Past the 12 direct blocks: the next logical block goes through
+            // the single indirect block (allocated on first use). Directories
+            // were limited to 12 blocks (fi2 K1 item 5).
+            let ppb = (block_size / 4) as u32;
+            let logical = dir_blocks;
+            if logical >= 12 && logical < 12 + ppb && parent_blocks.len() as u32 == dir_blocks {
+                let mut table = vec![0u8; block_size];
+                let mut pointer_block = updated_parent.block[12];
+                let mut new_pointer = false;
+                if pointer_block == 0 {
+                    pointer_block = match self.alloc_block() {
+                        Ok(b) => b,
+                        Err(e) => {
+                            let _ = self.free_block(new_block);
+                            return Err(e);
+                        }
+                    };
+                    new_pointer = true;
+                } else {
+                    self.read_block(pointer_block, &mut table)?;
+                }
+                let slot = (logical - 12) as usize * 4;
+                table[slot..slot + 4].copy_from_slice(&new_block.to_le_bytes());
+                if let Err(e) = self.write_block(pointer_block, &table) {
+                    let _ = self.free_block(new_block);
+                    if new_pointer {
+                        let _ = self.free_block(pointer_block);
+                    }
+                    return Err(e);
+                }
+                if new_pointer {
+                    updated_parent.block[12] = pointer_block;
+                    updated_parent.blocks = updated_parent.blocks.saturating_add((block_size / 512) as u32);
+                }
+                assigned = true;
+            }
+        }
+
         if !assigned {
             self.free_block(new_block)?;
             return Err(String::from("ext2: directory entries direct block limit exceeded"));
         }
 
+        // This driver keeps no hashed index: a directory it extends is a
+        // plain linear directory from now on.
+        if fi2() {
+            updated_parent.flags &= !INDEX_FL;
+        }
         updated_parent.size = updated_parent.size.saturating_add(block_size as u32);
         updated_parent.blocks = updated_parent.blocks.saturating_add((block_size / 512) as u32);
         self.write_inode(parent_inode_num, &updated_parent)?;
@@ -1472,7 +1798,12 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
             return Err(e);
         }
         self.bump_version(new_inode_num);
-        if let Some((_, old_inode)) = &existing {
+        if let (true, Some((num, old_inode))) = (fi2(), &existing) {
+            // Every block of the old content, indirect pointer blocks and the
+            // data they map included (they leaked), except blocks another
+            // inode uses (fi2 K1 item 5).
+            self.release_inode_blocks(*num, old_inode);
+        } else if let Some((_, old_inode)) = &existing {
             // Direct blocks only: this used to free block[12..15] too, which
             // are indirect pointer blocks, not data. Files with indirect
             // blocks leak their tail here instead of corrupting the bitmap.
@@ -1652,17 +1983,26 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
 
         // Freeing is best effort from here on: the entry is gone either way,
         // and a failure leaks blocks instead of leaving a half-removed name.
-        let block_size = self.block_size as u64;
-        let size = Self::data_size(&target_inode).min(Self::MAX_WHOLE_READ * 8);
-        let chunks = size.div_ceil(block_size).min(u32::MAX as u64) as u32;
         let mut freed = true;
-        for blk in 0..chunks {
-            match self.get_phys_block(&target_inode, blk) {
-                Ok(0) => {}
-                Ok(phys) => freed &= self.free_block(phys).is_ok(),
-                Err(_) => {
-                    freed = false;
-                    break;
+        if fi2() {
+            // Data and indirect pointer blocks, except blocks another inode
+            // still uses (a cross-linked block was freed under the other file
+            // and handed to the next one) and metadata (fi2 K1 item 5). The
+            // indirect blocks themselves used to leak.
+            let (_, kept) = self.release_inode_blocks(target_inode_num, &target_inode);
+            freed = kept == 0;
+        } else {
+            let block_size = self.block_size as u64;
+            let size = Self::data_size(&target_inode).min(Self::MAX_WHOLE_READ * 8);
+            let chunks = size.div_ceil(block_size).min(u32::MAX as u64) as u32;
+            for blk in 0..chunks {
+                match self.get_phys_block(&target_inode, blk) {
+                    Ok(0) => {}
+                    Ok(phys) => freed &= self.free_block(phys).is_ok(),
+                    Err(_) => {
+                        freed = false;
+                        break;
+                    }
                 }
             }
         }
@@ -1671,7 +2011,18 @@ impl<B: BlockDevice> Filesystem for Ext2Fs<B> {
         // without links.
         let mut dead = target_inode;
         dead.links_count = 0;
-        dead.dtime = 1;
+        // A deletion time below the inode count reads as a link in the
+        // orphan list (the field is shared): dtime 1 made e2fsck report every
+        // removed inode as "part of a corrupted orphan linked list" (found by
+        // e2fsck on a real disk, fi2 K1 item 5). The clock time, or at least
+        // the inode count when the RTC is not readable.
+        dead.dtime = if fi2() {
+            let inodes = self.inner.lock().superblock.inodes_count;
+            let now = crate::security::time::read_rtc_time().unwrap_or(0).min(u32::MAX as u64) as u32;
+            now.max(inodes)
+        } else {
+            1
+        };
         freed &= self.write_inode(target_inode_num, &dead).is_ok();
         freed &= self.free_inode(target_inode_num).is_ok();
         if !freed {

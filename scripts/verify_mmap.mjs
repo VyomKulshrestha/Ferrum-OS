@@ -68,7 +68,7 @@ const keyMap = new Map(Object.entries({
 // We try launching with WHPX first, falling back to TCG
 const whpxArgs = [
   "-accel", "whpx,kernel-irqchip=off",
-  "-cpu", "Haswell",
+  "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"),
   "-m", "4096M",
   "-drive", `format=raw,file=${image}`,
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
@@ -142,7 +142,7 @@ try {
   const start = serialText().length;
 
   // Write the mmap test trigger file
-  await sendText("write /tmp/mmap_test 1");
+  await sendText("write /tmp/heliox-hooks/mmap_test 1");
   await sendKey("ret");
   await sleep(400);
 

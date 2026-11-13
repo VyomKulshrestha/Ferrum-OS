@@ -115,8 +115,20 @@ pub fn process_input() {
         // A click bound to an approved target (fi1 K2) lands only if the
         // pointer is over exactly that window, owner and window-relative
         // position now; otherwise the desktop drops it.
+        // A key bound to the focused window (fi2 Q-J2c) lands only if that
+        // window still has keyboard focus.
         if let Some(target) = event.click_target {
-            if compositor::pointer_target(cursor.x, cursor.y) != target {
+            let is_key = matches!(
+                event.event_type,
+                crate::input::InputEventType::KeyPress(_) | crate::input::InputEventType::KeyRelease(_)
+            );
+            if is_key {
+                if compositor::focus_target() != target {
+                    crate::input::GUARDED_KEYS_DROPPED
+                        .fetch_add(1, core::sync::atomic::Ordering::SeqCst);
+                    continue;
+                }
+            } else if compositor::pointer_target(cursor.x, cursor.y) != target {
                 crate::input::GUARDED_CLICKS_DROPPED
                     .fetch_add(1, core::sync::atomic::Ordering::SeqCst);
                 continue;

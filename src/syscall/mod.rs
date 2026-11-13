@@ -140,6 +140,11 @@ pub enum SyscallNumber {
     /// args[1..3] = optional buffer for the window title. Returns the title
     /// length copied. Needs `hud:overlay`, like HitTest.
     PointerTarget = 66,
+    /// Which window keyboard input reaches now (fi2 Q-J2c): the
+    /// PointerTarget record for the focused window (0: none, or the privacy
+    /// lock is up) with a zero position, and its title. Needs `hud:overlay`.
+    /// InjectKey with args[1] = 1 types only into the window this names.
+    FocusTarget = 67,
 }
 
 /// Syscall return status.
@@ -188,6 +193,7 @@ pub mod app;
 pub mod audio;
 pub mod camera;
 pub mod clipboard;
+pub mod console;
 pub mod fs;
 pub mod graphics;
 pub mod gui_window;
@@ -254,6 +260,16 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
         },
     };
 
+    // PackageInstall with args[2] = 1 says "the operator confirmed the
+    // privileged capabilities". The caller set that bit itself: the App
+    // Store's second click, which an injected click can make, installed a
+    // package holding fs:write without the operator (fi2 kernel audit). The
+    // operator now confirms it at the kernel's prompt with a physical key.
+    // Only a caller that may install at all is asked about.
+    let is_privileged_install = number == SyscallNumber::PackageInstall as u64
+        && args[2] == 1
+        && crate::security::has_capability(&held_capabilities, "pkg:request");
+
     // Quotas and confirmation check
     let mut is_denied = false;
     let mut confirmation_needed = false;
@@ -302,8 +318,9 @@ pub fn dispatch_for_process(pid: u64, number: u64, args: [u64; 6]) -> SyscallRes
             let is_delete_file = number == SyscallNumber::DeleteFile as u64
                 || number == SyscallNumber::DeleteFileIfVersion as u64;
             let is_kexec = number == SyscallNumber::Kexec as u64;
-            let is_gated = is_delete_file || is_kexec;
+            let is_gated = is_delete_file || is_kexec || is_privileged_install;
             let is_bypass = !is_kexec
+                && !is_privileged_install
                 && task
                     .capabilities
                     .iter()
@@ -389,6 +406,22 @@ pub static SINGLE_CONFIRMATION: core::sync::atomic::AtomicBool = core::sync::ato
 pub fn confirmation_subject(number: u64, args: [u64; 6]) -> alloc::string::String {
     if number == SyscallNumber::Kexec as u64 {
         return alloc::string::String::from("Kexec");
+    }
+    if number == SyscallNumber::PackageInstall as u64 {
+        return match unsafe { fs::read_user_str(args[0], args[1]) } {
+            Some(package) => {
+                let capabilities = match crate::pkg::verify(&package) {
+                    Ok(meta) => crate::pkg::privileged_capabilities(&meta).join(","),
+                    Err(_) => alloc::string::String::from("<unverified>"),
+                };
+                alloc::format!(
+                    "PackageInstall name=\"{}\" capabilities={}",
+                    escape_printable(&package),
+                    escape_printable(&capabilities)
+                )
+            }
+            None => alloc::string::String::from("PackageInstall name=<unreadable>"),
+        };
     }
     let name = if number == SyscallNumber::DeleteFileIfVersion as u64 {
         "DeleteFileIfVersion"
@@ -544,10 +577,12 @@ fn dispatch_with_context(
                 Some(message) if !message.trim().is_empty() && message.len() <= 1024 => message,
                 _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
             };
-            crate::logging::audit::log_event(
-                crate::logging::audit::AuditEvent::UserAudit,
-                &message,
-            );
+            // Attributed to the caller: its entries count against its own
+            // share of the in-memory ring (fi2 Q6) and against its kernel
+            // heap budget while the ring holds them (fi2 K1 item 4).
+            if !crate::logging::audit::log_user_event(caller_pid, &message) {
+                return SyscallResult::err(SyscallStatus::InvalidArgument);
+            }
             SyscallResult::ok(0)
         }
         x if x == SyscallNumber::Socket as u64 => {
@@ -692,7 +727,7 @@ fn dispatch_with_context(
         x if x == SyscallNumber::WaitPid as u64 => {
             SyscallResult::err(SyscallStatus::NotImplemented)
         }
-        x if x == SyscallNumber::Write as u64 => sys_write_console(args),
+        x if x == SyscallNumber::Write as u64 => console::sys_write_console(caller_pid, args),
         x if x == SyscallNumber::Close as u64 => {
             if !crate::security::has_capability(held_capabilities, "net:connect:*")
                 && !crate::security::has_capability(held_capabilities, "net:listen:*")
@@ -731,6 +766,12 @@ fn dispatch_with_context(
                 return SyscallResult::err(SyscallStatus::PermissionDenied);
             }
             hud::sys_pointer_target(args)
+        }
+        x if x == SyscallNumber::FocusTarget as u64 => {
+            if !crate::security::has_capability(held_capabilities, "hud:overlay") {
+                return SyscallResult::err(SyscallStatus::PermissionDenied);
+            }
+            hud::sys_focus_target(args)
         }
         x if x == SyscallNumber::Mmap as u64 => {
             if !crate::security::has_capability(held_capabilities, "memory:mmap:*")
@@ -959,45 +1000,4 @@ fn sys_ipc_receive(
         Err(crate::ipc::IpcError::NoMessage) => SyscallResult::ok(0),
         Err(_) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
-}
-
-/// `sys_write_console` — Write bytes from userspace to the console.
-///
-/// args[0] = fd: 1 = console + serial, 2 = serial only.
-/// args[1] = ptr (user pointer to bytes)
-/// args[2] = len (capped at 4096)
-///
-/// Returns the number of bytes written.
-fn sys_write_console(args: [u64; 6]) -> SyscallResult {
-    let fd = args[0];
-    if fd != 1 && fd != 2 {
-        return SyscallResult::err(SyscallStatus::InvalidArgument);
-    }
-    let bytes = match unsafe { fs::read_user_bytes(args[1], args[2], 4096) } {
-        Some(b) => b,
-        None => return SyscallResult::err(SyscallStatus::InvalidArgument),
-    };
-    let text = alloc::string::String::from_utf8_lossy(&bytes);
-    // `print!` already tees to the serial port (see vga::_print), so
-    // fd=1 must not also call serial_print! or every byte doubles on
-    // the serial console. fd=2 is the serial-only path.
-    //
-    // int 0x80 uses an interrupt gate, so IF is normally clear throughout a
-    // syscall. UART/framebuffer output can take milliseconds; keeping IF
-    // clear for that whole write starves the PS/2 keyboard while background
-    // userspace logs. This handler holds no scheduler or device locks before
-    // printing, so hardware IRQs can safely run for the duration of the I/O.
-    let interrupts_were_enabled = x86_64::instructions::interrupts::are_enabled();
-    if !interrupts_were_enabled {
-        x86_64::instructions::interrupts::enable();
-    }
-    if fd == 1 {
-        crate::print!("{}", text);
-    } else {
-        crate::serial_print!("{}", text);
-    }
-    if !interrupts_were_enabled {
-        x86_64::instructions::interrupts::disable();
-    }
-    SyscallResult::ok(bytes.len() as u64)
 }

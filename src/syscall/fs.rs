@@ -29,8 +29,22 @@ pub unsafe fn read_user_str(ptr: u64, len: u64) -> Option<String> {
     if len == 0 || len > MAX_PATH_LEN || !valid_user_range(ptr, len) {
         return None;
     }
-    let slice = core::slice::from_raw_parts(ptr as *const u8, len);
-    core::str::from_utf8(slice).ok().map(String::from)
+    let bytes = copy_from_user(ptr, len)?;
+    String::from_utf8(bytes).ok()
+}
+
+/// Copy `len` bytes at user address `ptr` into a new kernel buffer, inside a
+/// `UserAccess` window (SMAP). The caller has checked the range. The buffer
+/// is reserved before the window opens.
+unsafe fn copy_from_user(ptr: u64, len: usize) -> Option<alloc::vec::Vec<u8>> {
+    let mut out = alloc::vec::Vec::new();
+    out.try_reserve_exact(len).ok()?;
+    {
+        let _window = crate::cpu_protect::UserAccess::open();
+        core::ptr::copy_nonoverlapping(ptr as *const u8, out.as_mut_ptr(), len);
+        out.set_len(len);
+    }
+    Some(out)
 }
 
 /// Read raw bytes from a userspace pointer. Returns None if the
@@ -44,18 +58,14 @@ pub unsafe fn read_user_bytes(ptr: u64, len: u64, cap: usize) -> Option<alloc::v
     if len == 0 || len > cap || !valid_user_range(ptr, len) {
         return None;
     }
-    let slice = core::slice::from_raw_parts(ptr as *const u8, len);
     // Fallible copy: caps go up to 4 MiB (WriteFile), and an allocation
     // failure in `Vec::from` aborts the kernel.
-    let mut out = alloc::vec::Vec::new();
-    out.try_reserve_exact(len).ok()?;
-    out.extend_from_slice(slice);
-    Some(out)
+    copy_from_user(ptr, len)
 }
 
 /// True only for a non-empty range backed by the currently running ring-3
 /// process. Kernel-half and unmapped-but-canonical pointers are both denied.
-pub(super) fn valid_user_range(ptr: u64, len: usize) -> bool {
+pub(crate) fn valid_user_range(ptr: u64, len: usize) -> bool {
     if ptr == 0 || len == 0 {
         return false;
     }
@@ -84,6 +94,7 @@ pub(super) unsafe fn copy_to_user(dst: u64, src: &[u8], max_len: usize) -> usize
         if !valid_user_write_range(dst, to_copy) {
             return 0;
         }
+        let _window = crate::cpu_protect::UserAccess::open();
         core::ptr::copy_nonoverlapping(src.as_ptr(), dst as *mut u8, to_copy);
     }
     to_copy
@@ -101,6 +112,71 @@ pub(crate) fn is_package_control_path(path: &str) -> bool {
     let mut components = path.split('/').filter(|component| !component.is_empty());
     matches!(components.next(), Some("disk"))
         && matches!(components.next(), Some("pkgs") | Some("pkgs-available"))
+}
+
+/// The daemon's startup test hooks read their triggers from here (fi2 Q4).
+pub const SHELL_ONLY_DIR: &str = "/tmp/heliox-hooks";
+
+/// True for `/tmp/heliox-hooks` and everything beneath it (any number of
+/// slashes). No ring-3 process may create or write anything there: only the
+/// kernel shell's `write` command (which does not go through a syscall) can
+/// plant a hook trigger. Removing is allowed; it can only stop a hook.
+pub fn is_shell_only_path(path: &str) -> bool {
+    let mut components = path.split('/').filter(|component| !component.is_empty());
+    matches!(components.next(), Some("tmp")) && matches!(components.next(), Some("heliox-hooks"))
+}
+
+/// Files only the kernel writes: the audit log it flushes, and the account
+/// table whose profile the shell session's capabilities are read from on
+/// every command. Any `fs:write` holder could rewrite or delete the audit
+/// trail, or set a logged-in user's profile to root (fi2 kernel audit).
+pub const KERNEL_RECORD_PATHS: [&str; 2] = ["/disk/heliox/audit.log", "/disk/accounts.txt"];
+
+fn components(path: &str) -> impl Iterator<Item = &str> {
+    path.split('/').filter(|component| !component.is_empty())
+}
+
+/// True for a kernel record file itself (any number of slashes) and, when
+/// `ancestors` is set, for every directory above one: RamFS removes a
+/// directory with everything in it.
+pub fn is_kernel_record_path(path: &str, ancestors: bool) -> bool {
+    KERNEL_RECORD_PATHS.iter().any(|record| {
+        let mut wanted = components(record);
+        let mut given = components(path);
+        loop {
+            match (given.next(), wanted.next()) {
+                (None, None) => return true,
+                (None, Some(_)) => return ancestors,
+                (Some(_), None) => return false,
+                (Some(a), Some(b)) if a != b => return false,
+                _ => {}
+            }
+        }
+    })
+}
+
+/// Refuses a ring-3 create, write or delete of a kernel record (and, for a
+/// delete, of a directory above one).
+fn refuse_kernel_record(path: &str, delete: bool) -> bool {
+    if is_kernel_record_path(path, delete) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("change to a kernel record denied: {}", path),
+        );
+        return true;
+    }
+    false
+}
+
+fn refuse_shell_only(path: &str) -> bool {
+    if is_shell_only_path(path) {
+        crate::logging::audit::log_event(
+            crate::logging::audit::AuditEvent::PermissionDenied,
+            &alloc::format!("write to a shell-only path denied: {}", path),
+        );
+        return true;
+    }
+    false
 }
 
 pub(super) fn authorize_path(path: &str, write: bool, held_capabilities: &[String]) -> bool {
@@ -211,7 +287,10 @@ pub fn sys_write_file_checked(
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) {
+    if !authorize_path(&path, true, held_capabilities)
+        || refuse_shell_only(&path)
+        || refuse_kernel_record(&path, false)
+    {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
@@ -226,10 +305,14 @@ pub fn sys_write_file_checked(
         None if data_len == 0 => alloc::vec::Vec::new(),
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
+    // RamFS content is charged to the writing process (heap ledger).
+    let pid = crate::scheduler::CURRENT_PID.load(core::sync::atomic::Ordering::SeqCst);
     if let Some(expected) = expected {
-        return guarded_result(crate::fs::write_file_if_version(&path, &data, expected));
+        return guarded_result(crate::memory::ledger::with_fs_owner(pid, || {
+            crate::fs::write_file_if_version(&path, &data, expected)
+        }));
     }
-    match crate::fs::create_file_bytes(&path, &data) {
+    match crate::memory::ledger::with_fs_owner(pid, || crate::fs::create_file_bytes(&path, &data)) {
         Ok(()) => SyscallResult::ok(0),
         Err(_e) => SyscallResult::err(SyscallStatus::InvalidArgument),
     }
@@ -294,7 +377,10 @@ pub fn sys_create_dir(args: [u64; 6], held_capabilities: &[String]) -> SyscallRe
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) {
+    if !authorize_path(&path, true, held_capabilities)
+        || refuse_shell_only(&path)
+        || refuse_kernel_record(&path, false)
+    {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
 
@@ -324,7 +410,7 @@ pub fn sys_delete_file_checked(
         Some(p) => p,
         None => return SyscallResult::err(SyscallStatus::InvalidArgument),
     };
-    if !authorize_path(&path, true, held_capabilities) {
+    if !authorize_path(&path, true, held_capabilities) || refuse_kernel_record(&path, true) {
         return SyscallResult::err(SyscallStatus::PermissionDenied);
     }
     if let Some(expected) = expected {

@@ -17,6 +17,8 @@
 
 extern crate alloc;
 
+mod config_json;
+
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -77,10 +79,9 @@ impl State {
 }
 
 fn finish_setup(state: &mut State, provider: &str, host: &str, port: u16, api_key: &str, model_name: &str) {
-    let config_json = format!(
-        r#"{{ "provider": "{}", "api_host": "{}", "api_port": {}, "api_key": "{}", "model_name": "{}" }}"#,
-        provider, host, port, api_key, model_name
-    );
+    // Every typed string is escaped (fi2 Q5, H1): a key containing `"` cannot
+    // add a field such as auto_approve_tier.
+    let config_json = config_json::setup_config_json(provider, host, port, api_key, model_name);
     ferrumgui::write_file(CONFIG_PATH, config_json.as_bytes());
     ferrumgui::ipc_send("heliox", b"CONFIG_UPDATED:");
     state.mode = Mode::Chat;

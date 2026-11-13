@@ -82,13 +82,15 @@ pub struct Mount {
 /// A filesystem entry - either a file or directory
 #[derive(Debug, Clone)]
 enum FsNode {
-    File { content: Vec<u8>, version: u64 },
+    /// `owner`: the process charged for the content in the heap ledger (the
+    /// one whose write created or last replaced it; 0 for the kernel).
+    File { content: Vec<u8>, version: u64, owner: u64 },
     Directory { children: BTreeMap<String, FsNode>, version: u64 },
 }
 
 impl FsNode {
     fn file(content: Vec<u8>) -> Self {
-        FsNode::File { content, version: next_file_version() }
+        FsNode::File { content, version: next_file_version(), owner: 0 }
     }
     fn dir(children: BTreeMap<String, FsNode>) -> Self {
         FsNode::Directory { children, version: next_file_version() }
@@ -133,7 +135,11 @@ impl RamFs {
         
         // Create standard directories
         children.insert("etc".to_string(), FsNode::dir(BTreeMap::new()));
-        children.insert("tmp".to_string(), FsNode::dir(BTreeMap::new()));
+        // /tmp/heliox-hooks: the daemon's startup test-hook triggers, which
+        // only the kernel shell can create (src/syscall/fs.rs, fi2 Q4).
+        let mut tmp_children = BTreeMap::new();
+        tmp_children.insert("heliox-hooks".to_string(), FsNode::dir(BTreeMap::new()));
+        children.insert("tmp".to_string(), FsNode::dir(tmp_children));
         children.insert("var".to_string(), FsNode::dir(BTreeMap::new()));
         children.insert("srv".to_string(), FsNode::dir(BTreeMap::new()));
 
@@ -214,6 +220,14 @@ impl vfs::Filesystem for RamFs {
 
     fn create_file_bytes(&self, path: &str, content: &[u8]) -> Result<(), String> {
         use core::sync::atomic::Ordering::SeqCst;
+        // The writing process's kernel heap budget (fi2 K1 item 4), checked
+        // before the RamFS lock: the check reads the compositor and the
+        // socket table. Conservative for a rewrite (the old content is
+        // released only below).
+        let owner = crate::memory::ledger::fs_owner();
+        if !crate::memory::ledger::fits(owner, content.len()) {
+            return Err(String::from("process kernel heap budget exceeded"));
+        }
         let mut root_guard = self.root.lock();
         let (parent_path, file_name) = split_path(path)?;
         if path_depth(path) > RAMFS_MAX_DEPTH {
@@ -228,10 +242,10 @@ impl vfs::Filesystem for RamFs {
                 // of `/disk/heliox` deleted the daemon's configuration and
                 // every file beside it (fi1 joint round 2, J2-1). ext2
                 // already refuses ("not a regular file").
-                let old_len = match children.get(&file_name) {
+                let (old_len, old_owner) = match children.get(&file_name) {
                     Some(FsNode::Directory { .. }) => return Err(String::from("is a directory")),
-                    Some(FsNode::File { content, .. }) => Some(content.len()),
-                    None => None,
+                    Some(FsNode::File { content, owner, .. }) => (Some(content.len()), *owner),
+                    None => (None, 0),
                 };
                 let bytes = self.used_bytes.load(SeqCst).saturating_sub(old_len.unwrap_or(0)) + content.len();
                 let nodes = self.used_nodes.load(SeqCst) + usize::from(old_len.is_none());
@@ -245,7 +259,10 @@ impl vfs::Filesystem for RamFs {
                 copy.extend_from_slice(content);
                 // Every write gives the file, and every directory above it,
                 // a version none has had before.
-                children.insert(file_name, FsNode::file(copy));
+                let len = copy.len();
+                children.insert(file_name, FsNode::File { content: copy, version: next_file_version(), owner });
+                crate::memory::ledger::sub(old_owner, crate::memory::ledger::Kind::RamFs, old_len.unwrap_or(0));
+                crate::memory::ledger::add(owner, crate::memory::ledger::Kind::RamFs, len);
                 self.used_bytes.store(bytes, SeqCst);
                 self.used_nodes.store(nodes, SeqCst);
             }
@@ -300,7 +317,10 @@ impl vfs::Filesystem for RamFs {
         while let Some(mut node) = pending.pop() {
             nodes += 1;
             match &mut node {
-                FsNode::File { content, .. } => bytes += content.len(),
+                FsNode::File { content, owner, .. } => {
+                    bytes += content.len();
+                    crate::memory::ledger::sub(*owner, crate::memory::ledger::Kind::RamFs, content.len());
+                }
                 FsNode::Directory { children, .. } => {
                     pending.extend(core::mem::take(children).into_values());
                 }

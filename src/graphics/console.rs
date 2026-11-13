@@ -266,6 +266,11 @@ impl GraphicsConsole {
         (self.col, self.row)
     }
 
+    /// Text columns per row (a longer line wraps).
+    pub fn columns(&self) -> u32 {
+        self.max_cols
+    }
+
     // ========================================================================
     // Private helpers
     // ========================================================================

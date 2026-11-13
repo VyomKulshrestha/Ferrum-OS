@@ -193,6 +193,9 @@ try {
 
   const configStr = '{"provider":"cloud","api_host":"10.0.2.2","api_port":8443,"api_path":"/","model_name":"mock","api_key":"key","tick_interval":1,"auto_approve_tier":4}';
   start = serialText().length;
+  // auto_approve_tier 4 is kept only while the kernel shell's test unlock
+  // exists (fi2 Q5: otherwise the daemon clamps it to 3).
+  await runCommand("write /tmp/heliox-hooks/allow_auto_approve_tier_4 1", start);
   await runCommand(`write /disk/heliox/config.json ${configStr}`, start);
 
   // ring3 init hands the whole appliance boot flow off into a

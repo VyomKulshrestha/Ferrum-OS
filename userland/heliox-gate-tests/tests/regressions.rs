@@ -9,7 +9,7 @@ use heliox_gate_tests::cognitive::json;
 /// the same id, so a stale or replayed approval overrode the operator's no.
 #[test]
 fn approve_after_deny_does_not_turn_a_denial_into_an_approval() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let id = match gate.check_or_request("delete_file", "path=/disk/a", PermissionTier::Destructive, 10) {
         ConfirmationStatus::Pending(id) => id,
         other => panic!("expected pending, got {:?}", other),
@@ -27,7 +27,7 @@ fn approve_after_deny_does_not_turn_a_denial_into_an_approval() {
 /// or wrapped to a huge age (release).
 #[test]
 fn tick_rollback_neither_panics_nor_approves() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let first = gate.check_or_request("write_file", "path=/disk/x", PermissionTier::Modify, 1_000);
     assert!(matches!(first, ConfirmationStatus::Pending(_)));
     let again = gate.check_or_request("write_file", "path=/disk/x", PermissionTier::Modify, 5);
@@ -40,7 +40,7 @@ fn tick_rollback_neither_panics_nor_approves() {
 /// calls grew it (and the operator's list) without limit.
 #[test]
 fn pending_queue_is_bounded_and_refuses_beyond_the_bound() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let mut refused = 0;
     for i in 0..1_000u32 {
         let args = format!("path=/disk/f{}", i);
@@ -50,8 +50,10 @@ fn pending_queue_is_bounded_and_refuses_beyond_the_bound() {
             other => panic!("unexpected {:?}", other),
         }
     }
-    assert!(gate.pending_list().len() <= heliox_gate_tests::cognitive::confirmation::MAX_PENDING);
-    assert_eq!(refused, 1_000 - heliox_gate_tests::cognitive::confirmation::MAX_PENDING);
+    // The agent's own requests leave RESERVED_FOR_OPERATOR slots free (fi2 Q2).
+    use heliox_gate_tests::cognitive::confirmation::{MAX_PENDING, RESERVED_FOR_OPERATOR};
+    assert!(gate.pending_list().len() <= MAX_PENDING);
+    assert_eq!(refused, 1_000 - (MAX_PENDING - RESERVED_FOR_OPERATOR));
 }
 
 /// U5: the JSON parser had no nesting limit; a provider response of deeply

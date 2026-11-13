@@ -606,9 +606,9 @@
       "category": "desktop-input",
       "execution_route": "Ring-3 orchestrator -> world-model decision -> capability-gated syscall",
       "name": "poll_input",
-      "operator_confirmation_required": false,
-      "permission_tier": 1,
-      "permission_tier_name": "safe",
+      "operator_confirmation_required": true,
+      "permission_tier": 3,
+      "permission_tier_name": "modify",
       "verification": {
         "catalog_source_parity": true,
         "qemu_runtime_suite": "collective command and bridge coverage",
@@ -635,7 +635,7 @@
   "platform": "bootable x86_64 research OS; documented QEMU/Bochs profile",
   "project": "FerrumOS",
   "provenance": {
-    "action_catalog_sha256": "c7a3d3366ac036b84d75143ee32166572f9442a15506ed2c0e110f590357c736",
+    "action_catalog_sha256": "aa2f39abbc310f281b34c5ffaad327fade2537e794c013c51ec5a78a15ef1225",
     "generator": "scripts/generate_public_evidence.py",
     "inputs": [
       {
@@ -644,11 +644,11 @@
       },
       {
         "path": "userland/heliox-daemon/src/cognitive/tool_mapper.rs",
-        "sha256": "02dca8008772b9b13d148dbdd2d9111e0f1257a9bfbca75ae89c532850b807c5"
+        "sha256": "f05f15c28bd1e2f71e407e304d2d8ff181ff923df655bd6dcb425a4e243a1e85"
       },
       {
         "path": "userland/heliox-daemon/src/cognitive/authority.rs",
-        "sha256": "330eca8d49a322b21fdf03cc24ed84fe9ac3ec629d6606f7b43fb94862af7e60"
+        "sha256": "6329ec6d9ff8a22ca734557b5b797e981c4741bbff815976ec9f1eac5dddaf35"
       }
     ]
   },

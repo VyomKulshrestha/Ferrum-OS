@@ -44,6 +44,68 @@ pub enum ConfirmationStatus {
 /// Most requests that may wait for the operator at once.
 pub const MAX_PENDING: usize = 32;
 
+/// Slots only requests the operator started (a gesture) may use: the
+/// agent's own requests can fill at most `MAX_PENDING - RESERVED_FOR_OPERATOR`
+/// slots, so it cannot fill the queue against the operator (fi2 Q2).
+pub const RESERVED_FOR_OPERATOR: usize = 4;
+
+/// Where a call came from. Only the daemon's gesture handlers mark calls as
+/// the operator's; everything else (the model, the bridge) is the agent's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Origin {
+    Agent,
+    Operator,
+}
+
+/// Result of an operator's CONFIRM for one id (fi2 Q2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ApprovalOutcome {
+    /// The request's full notice was the last one printed: approved.
+    Approved,
+    /// Another notice was printed after this request's notice. Nothing is
+    /// approved; the daemon prints this text (the request's full notice)
+    /// again, and a second CONFIRM of the same id approves it.
+    ShownAgain(String),
+    /// No pending request has this id (or it was already decided).
+    NotPending,
+}
+
+/// The line the console shows when a request is created or shown again.
+pub fn notice_text(id: u32, tool: &str, tier: PermissionTier, full_display: &str) -> String {
+    format!(
+        "[heliox-daemon] confirmation {} requested: {} ({:?}) {}\n",
+        id, tool, tier, full_display
+    )
+}
+
+/// Where the gate learns which host an agent-opened socket is connected to
+/// (fi2 Q1). `None`: not a socket the agent opened with `net_connect`.
+pub type SocketHostSource = fn(u64) -> Option<String>;
+
+/// The default: no socket is known, so every `net_send` needs approval.
+pub fn sockets_unknown(_fd: u64) -> Option<String> {
+    None
+}
+
+/// Where the gate reads a service's name from (fi2 Q5): `Ok(None)` for an
+/// id the registry does not hold, `Err(())` when the kernel cannot say (the
+/// gate then refuses the call).
+pub type ServiceNameSource = fn(u64) -> Result<Option<String>, ()>;
+
+/// The default: no registry, so service calls that need approval are refused.
+pub fn service_names_unavailable(_id: u64) -> Result<Option<String>, ()> {
+    Err(())
+}
+
+/// Where the gate reads the window that has keyboard focus (fi2 Q-J2c),
+/// with its title; the same record as a click target, with a zero position.
+pub type FocusTargetSource = fn() -> Result<(ClickTarget, String), ()>;
+
+/// The default: no focus information, so typed text is refused.
+pub fn focus_targets_unavailable() -> Result<(ClickTarget, String), ()> {
+    Err(())
+}
+
 /// The kernel's change counter for a file (FileVersion syscall): `Absent`
 /// when nothing exists at the path, otherwise a non-zero version that
 /// changes on every write, create or remove by any process and never
@@ -94,6 +156,8 @@ pub struct Bound {
     pub version: Option<FileVersion>,
     /// The click's target (`mouse_click`).
     pub click: Option<ClickTarget>,
+    /// The focused window typed text must reach (`keyboard_type`).
+    pub focus: Option<ClickTarget>,
 }
 
 /// A single pending confirmation request.
@@ -120,6 +184,14 @@ pub struct PendingConfirmation {
     /// the request was made (fi1 K2). The approval holds only while the
     /// pointer is over exactly that.
     pub click_target: Option<ClickTarget>,
+    /// For typed text: the window with keyboard focus when the request was
+    /// made (fi2 Q-J2c).
+    pub focus_target: Option<ClickTarget>,
+    /// The complete text printed for this request (every byte of the
+    /// arguments and every note), shown again when needed.
+    pub full_display: String,
+    /// Who started the call this request is for.
+    pub origin: Origin,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -139,17 +211,26 @@ pub struct ConfirmationGate {
     file_versions: FileVersionSource,
     /// Source of click targets (fails closed until one is installed).
     click_targets: ClickTargetSource,
+    /// Hosts network calls may reach without approval (fi2 Q1).
+    network_allowlist: Vec<String>,
+    /// Hosts of the sockets the agent opened (fails closed: none known).
+    socket_hosts: SocketHostSource,
+    /// Service names (fails closed until one is installed).
+    service_names: ServiceNameSource,
+    /// The focused window (fails closed until one is installed).
+    focus_targets: FocusTargetSource,
+    /// Tier-2 rate window: its first tick and the calls run in it.
+    tier2_window_start: u64,
+    tier2_calls: u32,
+    /// The request whose full notice was printed last (fi2 Q2).
+    last_notice: Option<u32>,
+    /// Origin of the call being decided now.
+    origin: Origin,
 }
 
 impl ConfirmationGate {
     pub fn new(timeout_ticks: u64) -> Self {
-        Self {
-            requests: Vec::new(),
-            next_id: 1,
-            timeout_ticks,
-            file_versions: versions_unavailable,
-            click_targets: click_targets_unavailable,
-        }
+        Self::with_next_id(timeout_ticks, 1)
     }
 
     /// Start issuing ids from `next_id` (the daemon seeds it at random per
@@ -161,7 +242,117 @@ impl ConfirmationGate {
             timeout_ticks,
             file_versions: versions_unavailable,
             click_targets: click_targets_unavailable,
+            network_allowlist: Vec::new(),
+            socket_hosts: sockets_unknown,
+            service_names: service_names_unavailable,
+            focus_targets: focus_targets_unavailable,
+            tier2_window_start: 0,
+            tier2_calls: 0,
+            last_notice: None,
+            origin: Origin::Agent,
         }
+    }
+
+    /// Hosts network calls may reach without approval: the configured
+    /// provider and speech hosts plus `network_allowlist` (fi2 Q1).
+    pub fn with_network_allowlist(mut self, hosts: Vec<String>) -> Self {
+        self.network_allowlist = hosts;
+        self
+    }
+
+    /// Replaces the allowlist (after a configuration reload).
+    pub fn set_network_allowlist(&mut self, hosts: Vec<String>) {
+        self.network_allowlist = hosts;
+    }
+
+    pub fn network_allowlist(&self) -> &[String] {
+        &self.network_allowlist
+    }
+
+    /// Read the hosts of agent-opened sockets from `source`.
+    pub fn with_socket_hosts(mut self, source: SocketHostSource) -> Self {
+        self.socket_hosts = source;
+        self
+    }
+
+    /// Read service names from `source` (the daemon passes the kernel's).
+    pub fn with_service_names(mut self, source: ServiceNameSource) -> Self {
+        self.service_names = source;
+        self
+    }
+
+    /// Read the focused window from `source` (the daemon passes the kernel's).
+    pub fn with_focus_targets(mut self, source: FocusTargetSource) -> Self {
+        self.focus_targets = source;
+        self
+    }
+
+    /// Marks the calls decided until the next `set_origin` as the operator's
+    /// (a gesture) or the agent's.
+    pub fn set_origin(&mut self, origin: Origin) {
+        self.origin = origin;
+    }
+
+    /// The tier `tool` with `args` is decided at (fi2 Q1).
+    pub fn effective_tier(&self, tool: &str, args: &[(String, super::json::JsonValue)]) -> PermissionTier {
+        let hosts = self.socket_hosts;
+        super::authority::effective_tier(tool, args, &self.network_allowlist, &|fd| hosts(fd))
+    }
+
+    /// Counts one tier-2 call that runs without approval. False when the
+    /// window's limit is reached (the call is then refused).
+    fn admit_tier2(&mut self, current_tick: u64) -> bool {
+        // A window opens at the first call that counts and lasts
+        // TIER2_RATE_WINDOW_TICKS ticks.
+        if self.tier2_calls == 0
+            || current_tick < self.tier2_window_start
+            || current_tick - self.tier2_window_start >= super::authority::TIER2_RATE_WINDOW_TICKS
+        {
+            self.tier2_window_start = current_tick;
+            self.tier2_calls = 0;
+        }
+        if self.tier2_calls >= super::authority::TIER2_RATE_LIMIT {
+            return false;
+        }
+        self.tier2_calls += 1;
+        true
+    }
+
+    /// The window with keyboard focus now, as the installed source reports it.
+    pub fn focus_target(&self) -> Result<(ClickTarget, String), ()> {
+        (self.focus_targets)()
+    }
+
+    fn set_focus_target(&mut self, id: u32, target: Option<ClickTarget>) {
+        if let Some(req) = self.requests.iter_mut().find(|r| r.id == id) {
+            req.focus_target = target;
+        }
+    }
+
+    fn withdraw_if_focus_changed(&mut self, tool_name: &str, args_fingerprint: &str, current: ClickTarget) -> bool {
+        let before = self.requests.len();
+        self.requests.retain(|r| {
+            !(r.tool_name == tool_name
+                && r.args_fingerprint == args_fingerprint
+                && r.status != InternalStatus::Denied
+                && r.focus_target != Some(current))
+        });
+        self.requests.len() != before
+    }
+
+    /// Records that `id`'s full notice was just printed, with that text and
+    /// the tier it was decided at.
+    fn note_notice(&mut self, id: u32, tier: PermissionTier, full_display: &str) {
+        if let Some(req) = self.requests.iter_mut().find(|r| r.id == id) {
+            req.full_display = String::from(full_display);
+            req.tier = tier;
+        }
+        self.last_notice = Some(id);
+    }
+
+    /// The request whose full notice the console printed last.
+    pub fn last_notice(&self) -> Option<u32> {
+        self.last_notice
     }
 
     /// Read file versions from `source` (the daemon passes the kernel's).
@@ -287,6 +478,13 @@ impl ConfirmationGate {
         if self.requests.len() >= MAX_PENDING {
             return ConfirmationStatus::Refused;
         }
+        // The agent's requests leave RESERVED_FOR_OPERATOR slots free.
+        if self.origin == Origin::Agent
+            && self.requests.iter().filter(|r| r.origin == Origin::Agent).count()
+                >= MAX_PENDING - RESERVED_FOR_OPERATOR
+        {
+            return ConfirmationStatus::Refused;
+        }
         let id = self.next_id;
         let Some(next) = self.next_id.checked_add(1) else {
             return ConfirmationStatus::Refused;
@@ -304,6 +502,9 @@ impl ConfirmationGate {
             subject: None,
             subject_version: None,
             click_target: None,
+            focus_target: None,
+            full_display: String::from(args_display),
+            origin: self.origin,
         });
 
         ConfirmationStatus::Pending(id)
@@ -330,18 +531,47 @@ impl ConfirmationGate {
         before - self.requests.len()
     }
 
-    /// Approve a pending confirmation by ID (called from kernel shell via
-    /// IPC). A request the operator already denied stays denied.
-    pub fn approve(&mut self, id: u32) -> bool {
-        if let Some(req) = self.requests.iter_mut().find(|r| r.id == id) {
-            if req.status != InternalStatus::Pending {
-                return false;
-            }
-            req.status = InternalStatus::Approved;
-            true
-        } else {
-            false
+    /// The operator's CONFIRM for `id` (fi2 Q2). It approves only the
+    /// request whose full notice the console printed last. For any other
+    /// pending request nothing is approved: its full notice is returned to
+    /// be printed again, which makes it the last one, so a second CONFIRM of
+    /// the same id approves exactly what the operator has just been shown.
+    /// A request the operator already denied stays denied.
+    pub fn confirm(&mut self, id: u32) -> ApprovalOutcome {
+        let last = self.last_notice;
+        let Some(req) = self.requests.iter_mut().find(|r| r.id == id) else {
+            return ApprovalOutcome::NotPending;
+        };
+        if req.status != InternalStatus::Pending {
+            return ApprovalOutcome::NotPending;
         }
+        if last == Some(id) {
+            req.status = InternalStatus::Approved;
+            return ApprovalOutcome::Approved;
+        }
+        let text = notice_text(req.id, &req.tool_name, req.tier, &req.full_display);
+        self.last_notice = Some(id);
+        ApprovalOutcome::ShownAgain(text)
+    }
+
+    /// `confirm`, as a yes/no: true only when the request was approved.
+    pub fn approve(&mut self, id: u32) -> bool {
+        self.confirm(id) == ApprovalOutcome::Approved
+    }
+
+    /// Full notices of every pending request, oldest first (`heliox
+    /// pending`). The last one printed becomes the last notice.
+    pub fn pending_notices(&mut self) -> Vec<String> {
+        let notices: Vec<(u32, String)> = self
+            .requests
+            .iter()
+            .filter(|r| r.status == InternalStatus::Pending)
+            .map(|r| (r.id, notice_text(r.id, &r.tool_name, r.tier, &r.full_display)))
+            .collect();
+        if let Some((id, _)) = notices.last() {
+            self.last_notice = Some(*id);
+        }
+        notices.into_iter().map(|(_, text)| text).collect()
     }
 
     /// Deny a confirmation by ID (called from kernel shell via IPC). Denial
@@ -395,6 +625,8 @@ pub enum Clearance {
     /// `display` is the short line for listings; `full_display` is every
     /// byte of the arguments, printed when the request is created.
     Awaiting { id: u32, display: String, full_display: String },
+    /// A tier-2 call over the rate limit (fi2 Q1); nothing ran or queued.
+    RateLimited,
     Denied,
     Expired,
     Refused,
@@ -456,8 +688,11 @@ fn decide(
     current_tick: u64,
 ) -> (Clearance, Bound) {
     let none = Bound::default();
-    let tier = super::authority::tool_tier(tool_name);
+    let tier = gate.effective_tier(tool_name, args);
     if !super::authority::needs_confirmation(tier, auto_approve_tier) {
+        if tier == PermissionTier::Network && !gate.admit_tier2(current_tick) {
+            return (Clearance::RateLimited, none);
+        }
         return (Clearance::Proceed, none);
     }
     // A call the operator cannot be shown in full is never queued.
@@ -493,6 +728,35 @@ fn decide(
             return (Clearance::TargetChanged, none);
         }
     }
+    // Bind typed text to the window with keyboard focus (fi2 Q-J2c).
+    let focus = if super::authority::binds_focus_target(tool_name) {
+        match gate.focus_target() {
+            Ok(target) => Some(target),
+            Err(()) => return (Clearance::Refused, none),
+        }
+    } else {
+        None
+    };
+    if let Some((current, _)) = &focus {
+        if gate.withdraw_if_focus_changed(tool_name, &fingerprint, *current) {
+            return (Clearance::TargetChanged, none);
+        }
+    }
+    // Name the service a service call acts on (fi2 Q5); a registry the
+    // kernel cannot read refuses the call.
+    let service = if super::authority::names_service(tool_name) {
+        let id = super::authority::service_id_arg(args);
+        let name = match id {
+            Some(id) => match (gate.service_names)(id) {
+                Ok(name) => name,
+                Err(()) => return (Clearance::Refused, none),
+            },
+            None => None,
+        };
+        Some(super::authority::service_note(tool_name, id, name.as_deref()))
+    } else {
+        None
+    };
     let mut display = super::authority::approval_display(args);
     // A file the tool acts on without naming it is shown too (R3-1), and so
     // is what a click lands on (K2).
@@ -509,6 +773,20 @@ fn decide(
             title,
         ));
     }
+    if let Some((target, title)) = &focus {
+        notes.push(super::authority::focus_target_note(target.window, target.owner, title));
+    }
+    if let Some(note) = service {
+        notes.push(note);
+    }
+    // A network call asks because of where it goes: say where (fi2 Q1).
+    let hosts = gate.socket_hosts;
+    if let Some(destination) = super::authority::network_destination(tool_name, args, &|fd| hosts(fd)) {
+        let allowed = matches!(&destination, Some(h) if super::authority::host_allowed(h, gate.network_allowlist()));
+        if !allowed {
+            notes.push(super::authority::network_note(tool_name, args, &destination));
+        }
+    }
     for note in &notes {
         for text in [&mut full_display, &mut display] {
             if !text.is_empty() {
@@ -518,16 +796,21 @@ fn decide(
         }
     }
     let click = click.map(|(target, _)| target);
+    let focus = focus.map(|(target, _)| target);
     match gate.check_or_request_with_display(tool_name, &fingerprint, &display, tier, current_tick) {
         // The approval was bound to `version` (any other was withdrawn
         // above), and the executor hands it to the kernel.
-        ConfirmationStatus::Approved => (Clearance::Proceed, Bound { version, click }),
+        ConfirmationStatus::Approved => (Clearance::Proceed, Bound { version, click, focus }),
         ConfirmationStatus::Pending(id) => {
             gate.set_subject(id, super::authority::subject_path(tool_name, args));
             // For an existing request this re-records the same version and
             // target (a different one was withdrawn above).
             gate.set_subject_version(id, version);
             gate.set_click_target(id, click);
+            gate.set_focus_target(id, focus);
+            // The executor prints this request's full notice now, so it is
+            // the last one the operator saw (fi2 Q2).
+            gate.note_notice(id, tier, &full_display);
             (Clearance::Awaiting { id, display, full_display }, none)
         }
         ConfirmationStatus::Denied => (Clearance::Denied, none),

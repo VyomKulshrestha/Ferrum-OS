@@ -8,7 +8,7 @@
 use std::cell::Cell;
 
 use heliox_gate_tests::cognitive::authority::{
-    control_command_allowed, ControlCommand, ControlSender, SENDER_ASSISTANT_PANEL,
+    control_command_allowed, ControlCommand, ControlSender, SENDER_ASSISTANT_PANEL, SENDER_KERNEL_SHELL,
 };
 use heliox_gate_tests::cognitive::confirmation::{
     clear_for_execution, clear_for_execution_bound, expected_version_word, Bound, ClickTarget,
@@ -43,10 +43,10 @@ fn gate() -> ConfirmationGate {
     set_version(Some(1));
     ConfirmationGate::new(600)
         .with_file_versions(test_versions)
-        .with_click_targets(heliox_gate_tests::stable_click_target)
+        .with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target)
 }
 fn file_bound(v: FileVersion) -> Bound {
-    Bound { version: Some(v), click: None }
+    Bound { version: Some(v), click: None, focus: None }
 }
 
 /// The four tools whose executor hands the bound version to the kernel.
@@ -84,7 +84,7 @@ fn j2_k3_an_approved_file_action_carries_the_version_it_was_approved_for() {
             // Used once: the next call is a new request, bound to nothing yet.
             assert!(matches!(
                 clear_for_execution_bound(&mut g, tool, &a, 2, 12),
-                (Clearance::Awaiting { .. }, Bound { version: None, click: None })
+                (Clearance::Awaiting { .. }, Bound { version: None, click: None, focus: None })
             ));
         }
     }
@@ -102,17 +102,18 @@ fn j2_k3_calls_that_run_without_an_approval_carry_no_version() {
     let mut g = gate();
     let w = args(&[("path", s("/tmp/j2.txt")), ("content", s("x"))]);
     assert_eq!(clear_for_execution_bound(&mut g, "write_file", &w, 3, 1), (Clearance::Proceed, Bound::default()));
-    // An approved Tier-4 call that is not about a file.
-    let k = args(&[("text", s("hello"))]);
-    let id = match clear_for_execution(&mut g, "keyboard_type", &k, 3, 1) {
+    // An approved Tier-4 call that is not about a file or a target
+    // (keyboard_type is bound to the focused window since fi2 Q-J2c).
+    let k = args(&[("dx", JsonValue::Number(5.0)), ("dy", JsonValue::Number(0.0))]);
+    let id = match clear_for_execution(&mut g, "mouse_move", &k, 3, 1) {
         Clearance::Awaiting { id, .. } => id,
         other => panic!("{other:?}"),
     };
     g.approve(id);
-    assert_eq!(clear_for_execution_bound(&mut g, "keyboard_type", &k, 3, 2), (Clearance::Proceed, Bound::default()));
+    assert_eq!(clear_for_execution_bound(&mut g, "mouse_move", &k, 3, 2), (Clearance::Proceed, Bound::default()));
     // Refusals, waits and withdrawals carry none either.
     let d = args(&[("path", s("/tmp/j2.txt"))]);
-    assert!(matches!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 1), (Clearance::Awaiting { .. }, Bound { version: None, click: None })));
+    assert!(matches!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 1), (Clearance::Awaiting { .. }, Bound { version: None, click: None, focus: None })));
     set_version(Some(2));
     assert_eq!(clear_for_execution_bound(&mut g, "delete_file", &d, 2, 2), (Clearance::FileChanged, Bound::default()));
 }
@@ -237,26 +238,31 @@ fn j2_4_only_exact_test_program_paths_run_inits_elf_under_a_test_name() {
     assert!(exec.contains("is_init_test_alias(&path)"));
 }
 
-// ---- Policy, pinned: what the operator panel's flag allows ----------------
+// ---- fi2 Q-J2a: the operator panel's flag covers only what it sends --------
 
 /// The panel the kernel launched for the operator sends only `GOAL:` (typed
 /// by the operator) and `CONFIG_UPDATED:` (after its setup wizard writes the
-/// configuration). Its flag is nevertheless accepted for every operator
-/// command, including CONFIRM, DENY and NEURAL_ARM. Today that is unused
-/// authority, not a bypass: the panel ignores injected input and forwards no
-/// agent text. Narrowing it is option (a) in the round-2 report.
+/// configuration). Before fi2 its flag was accepted for every operator
+/// command, including CONFIRM, DENY and NEURAL_ARM; now only for those two.
 #[test]
-fn documents_j2_q_the_panel_flag_is_accepted_for_every_operator_command() {
+fn j2_qa_the_panel_flag_authorises_only_goal_and_config_updated() {
     let panel = Some(ControlSender { pid: 300, flags: SENDER_ASSISTANT_PANEL });
+    let shell = Some(ControlSender { pid: 0, flags: SENDER_KERNEL_SHELL });
+    for command in [ControlCommand::Goal("x".into()), ControlCommand::ConfigUpdated] {
+        assert!(control_command_allowed(&command, panel), "{command:?}");
+        assert!(control_command_allowed(&command, shell), "{command:?}");
+    }
     for command in [
         ControlCommand::Confirm(1),
         ControlCommand::Deny(1),
         ControlCommand::NeuralArm,
-        ControlCommand::Goal("x".into()),
-        ControlCommand::ConfigUpdated,
+        ControlCommand::Pending,
     ] {
-        assert!(control_command_allowed(&command, panel), "{command:?}");
+        assert!(!control_command_allowed(&command, panel), "{command:?} from the panel");
+        assert!(control_command_allowed(&command, shell), "{command:?} from the shell");
     }
+    // Disarm only takes authority away: accepted from anyone.
+    assert!(control_command_allowed(&ControlCommand::NeuralDisarm, panel));
     // What the panel actually sends.
     let sends: Vec<&str> = ASSISTANT_PANEL_SOURCE
         .match_indices("ipc_send(\"heliox\"")
@@ -364,7 +370,7 @@ fn k2_an_approved_click_carries_its_target_and_is_withdrawn_when_the_target_chan
     g.approve(id);
     assert_eq!(
         clear_for_execution_bound(&mut g, "mouse_click", &a, 3, 2),
-        (Clearance::Proceed, Bound { version: None, click: Some(T0) })
+        (Clearance::Proceed, Bound { version: None, click: Some(T0), focus: None })
     );
 }
 
@@ -420,7 +426,7 @@ fn k2_the_daemon_and_kernel_wire_the_click_target_through() {
     let click = &click[..click.find("\n}\n").unwrap()];
     assert!(click.contains("SYS_INJECT_MOUSE,\n                2,"), "{click}");
     assert!(heliox_gate_tests::ORCHESTRATOR_SOURCE.contains(".with_click_targets(kernel_click_target)"));
-    assert!(heliox_gate_tests::MAIN_SOURCE.contains(".with_click_targets(cognitive::orchestrator::kernel_click_target)"));
+    assert!(heliox_gate_tests::MAIN_SOURCE.contains("cognitive::orchestrator::Orchestrator::install_gate_sources("));
     assert!(heliox_gate_tests::ORCHESTRATOR_SOURCE.contains("const SYS_POINTER_TARGET: u64 = 66;"));
     assert!(KERNEL_SYSCALL_SOURCE.contains("PointerTarget = 66,"));
 }

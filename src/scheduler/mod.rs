@@ -132,7 +132,7 @@ pub struct TaskContext {
     pub rip: u64,
     /// iretq frame - CS (0x08 ring 0, 0x1B ring 3).
     pub cs: u64,
-    /// iretq frame - RFLAGS (0x3202 for user with IOPL=3).
+    /// iretq frame - RFLAGS (0x202 for user: IF set, IOPL 0).
     pub rflags: u64,
     /// iretq frame - RSP the CPU will resume at.
     pub rsp: u64,
@@ -142,24 +142,35 @@ pub struct TaskContext {
     pub simd_state_ptr: u64,
 }
 
+/// Self-test switch: new ring-3 contexts get IOPL 3 again (the old value).
+pub static USER_IOPL3: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+
 impl TaskContext {
     pub const fn new() -> Self {
         TaskContext {
             r15: 0, r14: 0, r13: 0, r12: 0, r11: 0, r10: 0, r9: 0, r8: 0,
             rbp: 0, rdi: 0, rsi: 0, rdx: 0, rcx: 0, rbx: 0, rax: 0,
-            rip: 0, cs: 0, rflags: 0x3202, rsp: 0, ss: 0,
+            rip: 0, cs: 0, rflags: 0x202, rsp: 0, ss: 0,
             simd_state_ptr: 0,
         }
     }
 
-    /// Fill a fresh ring-3 iretq frame (CS=0x1B, SS=0x23, RFLAGS=0x3202).
+    /// Fill a fresh ring-3 iretq frame (CS=0x1B, SS=0x23, RFLAGS=0x202).
+    ///
+    /// IOPL is 0. It used to be 3 (RFLAGS 0x3202), which let every process
+    /// execute `in`/`out` on any port and `cli`/`sti`: write the serial port
+    /// directly (a forged `[SECURITY]` prompt), drive the ATA disk under the
+    /// filesystem, reprogram the PIC and PIT (fi2 K1, found with item 3).
+    /// No program uses port I/O. `USER_IOPL3` brings the old value back for
+    /// the self-test's control.
     pub fn ring3(rip: u64, rsp: u64) -> Self {
+        let rflags = if USER_IOPL3.load(core::sync::atomic::Ordering::SeqCst) { 0x3202 } else { 0x202 };
         TaskContext {
             r15: 0, r14: 0, r13: 0, r12: 0, r11: 0, r10: 0, r9: 0, r8: 0,
             rbp: 0, rdi: 0, rsi: 0, rdx: 0, rcx: 0, rbx: 0, rax: 0,
             rip,
             cs: crate::gdt::USER_CODE_SELECTOR,
-            rflags: 0x3202,
+            rflags,
             rsp,
             ss: crate::gdt::USER_DATA_SELECTOR,
             simd_state_ptr: 0,

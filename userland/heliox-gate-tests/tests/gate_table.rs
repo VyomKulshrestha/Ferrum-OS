@@ -34,11 +34,13 @@ const SPEC: &[(&str, u8)] = &[
     ("hit_test", 0), ("physical_status", 0),
     ("ipc_send", 1), ("physical_maintenance_demo", 1), ("audit_write", 1), ("yield_cpu", 1), ("report_status", 1),
     ("capability_check", 1), ("read_file", 1), ("read_dir", 1), ("sleep", 1),
-    ("read_screen", 1), ("set_volume", 1), ("poll_input", 1), ("local_inference", 1),
+    ("read_screen", 1), ("set_volume", 1), ("local_inference", 1),
     ("net_connect", 2), ("net_send", 2), ("net_recv", 2), ("http_get", 2),
     ("load_memory", 2), ("set_goal", 2), ("record_audio", 2), ("browse_url", 2),
     ("write_file", 3), ("create_directory", 3), ("save_memory", 3), ("service_start", 3),
     ("service_stop", 3), ("play_audio", 3),
+    // fi2 Q1: the operator's keystrokes leave the queue only with approval.
+    ("poll_input", 3),
     // Round 2 (R2-1): input injection carries the operator's whole authority.
     ("keyboard_type", 4), ("mouse_click", 4), ("mouse_move", 4),
     ("exec_process", 4), ("delete_file", 4), ("trigger_kernel_upgrade", 4),
@@ -213,7 +215,16 @@ fn drive(gate: &mut ConfirmationGate, tool: &str, a: &[(String, JsonValue)], aut
 
 #[test]
 fn every_decision_cell_matches_the_specification() {
-    let a = args(&[("path", s("/disk/tmp/report.txt")), ("content", s("hello"))]);
+    // Network tools reach an allowlisted host here, so the table's tier is
+    // the one decided (fi2 Q1 raises other destinations to tier 3; tested in
+    // policy_fi2.rs).
+    let a = args(&[
+        ("path", s("/disk/tmp/report.txt")),
+        ("content", s("hello")),
+        ("host", s("provider.example")),
+        ("url", s("https://provider.example/v1")),
+        ("fd", JsonValue::Number(3.0)),
+    ]);
     let mut cells = 0;
     let mut tools: Vec<&str> = TOOL_TIERS.iter().map(|(n, _)| *n).collect();
     tools.push("unknown_tool");
@@ -224,7 +235,9 @@ fn every_decision_cell_matches_the_specification() {
                 if tier <= auto && state != State::Fresh {
                     continue; // no request is ever created; covered by Fresh
                 }
-                let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+                let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target)
+                    .with_network_allowlist(vec!["provider.example".to_string()])
+                    .with_socket_hosts(heliox_gate_tests::provider_socket);
                 let tick = drive(&mut gate, tool, &a, auto, state);
                 let got = match clear_for_execution(&mut gate, tool, &a, auto, tick) {
                     Clearance::Proceed => Expect::Proceed,
@@ -234,6 +247,7 @@ fn every_decision_cell_matches_the_specification() {
                     Clearance::Refused => panic!("refused"),
                     Clearance::FileChanged => panic!("file changed"),
                     Clearance::TargetChanged => panic!("target changed"),
+                    Clearance::RateLimited => panic!("rate limited"),
                 };
                 assert_eq!(got, spec_outcome(tier, auto, state), "{} auto={} {:?}", tool, auto, state);
                 cells += 1;
@@ -246,15 +260,16 @@ fn every_decision_cell_matches_the_specification() {
             }
         }
     }
-    // 768 in round 1; +7 for each of the three input tools moved to Tier 4.
-    assert_eq!(cells, 789, "decision cells enumerated");
+    // 768 in round 1; +7 for each of the three input tools moved to Tier 4;
+    // +14 for poll_input moved from tier 1 to tier 3 (fi2 Q1).
+    assert_eq!(cells, 803, "decision cells enumerated");
 }
 
 #[test]
 fn expiry_boundary_is_inclusive_of_the_timeout() {
     let a = args(&[("path", s("/disk/x"))]);
     for (age, expect_proceed) in [(TIMEOUT - 1, true), (TIMEOUT, true), (TIMEOUT + 1, false)] {
-        let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+        let mut gate = ConfirmationGate::new(TIMEOUT).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
         let id = match clear_for_execution(&mut gate, "write_file", &a, 2, 1_000) {
             Clearance::Awaiting { id, .. } => id,
             o => panic!("{:?}", o),
@@ -267,7 +282,7 @@ fn expiry_boundary_is_inclusive_of_the_timeout() {
 
 #[test]
 fn ids_are_never_reused_and_exhaustion_refuses() {
-    let mut gate = ConfirmationGate::with_next_id(600, u32::MAX - 1).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::with_next_id(600, u32::MAX - 1).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let a = args(&[("path", s("/disk/a"))]);
     let b = args(&[("path", s("/disk/b"))]);
     let c = args(&[("path", s("/disk/c"))]);
@@ -279,7 +294,7 @@ fn ids_are_never_reused_and_exhaustion_refuses() {
 
 #[test]
 fn approving_unknown_or_consumed_ids_does_nothing() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     assert!(!gate.approve(0));
     assert!(!gate.approve(7));
     let a = args(&[("path", s("/disk/a"))]);
@@ -296,7 +311,7 @@ fn approving_unknown_or_consumed_ids_does_nothing() {
 
 #[test]
 fn an_approval_for_one_tool_does_not_cover_another() {
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let a = args(&[("path", s("/disk/a"))]);
     let id = match clear_for_execution(&mut gate, "write_file", &a, 2, 1) {
         Clearance::Awaiting { id, .. } => id,
@@ -389,7 +404,7 @@ fn fingerprint_distinguishes_types_signs_and_order() {
 fn approval_is_bound_to_the_complete_arguments() {
     for (first, second) in colliding_pairs() {
         assert_ne!(approval_fingerprint(&first), approval_fingerprint(&second));
-        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+        let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
         let id = match clear_for_execution(&mut gate, "delete_file", &first, 2, 1) {
             Clearance::Awaiting { id, .. } => id,
             o => panic!("{:?}", o),
@@ -416,7 +431,7 @@ fn operator_display_cannot_forge_lines_and_marks_truncation() {
     assert!(!shown.chars().any(|c| c.is_control()), "control char in {:?}", shown);
     assert!(shown.contains("of 5000 bytes shown"), "{}", shown);
     assert!(shown.len() < 1_024);
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     let _ = clear_for_execution(&mut gate, "write_file", &forged, 2, 1);
     let listing = gate.format_pending();
     assert_eq!(listing.lines().count(), 2, "{}", listing);
@@ -462,8 +477,11 @@ fn writes_to_the_daemons_own_config_are_refused_for_every_spelling() {
         let a = args(&[("path", s(path))]);
         assert_eq!(validate_tool_call("write_file", &a), Ok(()), "{:?}", path);
     }
-    // Deletion is left to the world model's protected-path rule.
-    assert_eq!(validate_tool_call("delete_file", &args(&[("path", s("/disk/heliox/config.json"))])), Ok(()));
+    // Deleting the file or any directory holding it is refused (fi2 Q-J2d).
+    assert_eq!(
+        validate_tool_call("delete_file", &args(&[("path", s("/disk/heliox/config.json"))])),
+        Err(Refusal::DeletesOwnConfiguration)
+    );
     // Reading the config is not a write.
     assert_eq!(validate_tool_call("read_file", &args(&[("path", s("/disk/heliox/config.json"))])), Ok(()));
 }
@@ -516,7 +534,7 @@ fn control_ids_parse_strictly() {
 #[test]
 fn the_status_enum_round_trips_through_check_or_request() {
     // The legacy entry point stays usable and exact.
-    let mut gate = ConfirmationGate::new(10).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(10).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     assert!(matches!(gate.check_or_request("write_file", "k", PermissionTier::Modify, 0), ConfirmationStatus::Pending(1)));
     assert!(matches!(gate.check_or_request("write_file", "k2", PermissionTier::Modify, 0), ConfirmationStatus::Pending(2)));
 }

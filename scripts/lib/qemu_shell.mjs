@@ -12,7 +12,9 @@ const KEYS = new Map(Object.entries({
   " ": "spc", ".": "dot", "-": "minus", "/": "slash", "_": "shift-minus", ":": "shift-semicolon", "=": "equal",
 }));
 
-export async function bootShell(repo, logName, { bootSeconds = Number(process.env.FERRUMOS_BOOT_SECONDS || 240), extraArgs = [] } = {}) {
+// The WHPX CPU model: `cpu` option, else FERRUMOS_QEMU_CPU, else Haswell
+// (SMEP, no SMAP). Broadwell-noTSX adds SMAP under WHPX on this host.
+export async function bootShell(repo, logName, { bootSeconds = Number(process.env.FERRUMOS_BOOT_SECONDS || 240), extraArgs = [], cpu = process.env.FERRUMOS_QEMU_CPU || "Haswell" } = {}) {
   const image = path.join(repo, "target", "x86_64-unknown-none", "debug", "bootimage-ferrumos.bin");
   const serialLog = path.join(repo, "target", logName);
   let qemu = process.env.QEMU || "C:\\Program Files\\qemu\\qemu-system-x86_64.exe";
@@ -33,7 +35,7 @@ export async function bootShell(repo, logName, { bootSeconds = Number(process.en
     ...extraArgs,
   ];
   const started = Date.now();
-  let child = spawn(qemu, args("whpx,kernel-irqchip=off", "Haswell"), { windowsHide: true });
+  let child = spawn(qemu, args("whpx,kernel-irqchip=off", cpu), { windowsHide: true });
   await sleep(2500);
   if (child.exitCode !== null) {
     child = spawn(qemu, args("tcg", "max"), { windowsHide: true });

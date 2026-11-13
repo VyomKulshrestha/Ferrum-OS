@@ -26,7 +26,8 @@ use crate::safety::{
     SafetyPolicy, SafetyVerdict,
 };
 use crate::session::{EvidenceKind, SessionDescriptor};
-use crate::twin::{AssetTelemetry, SensorKind, SensorReading};
+use crate::supervisor::OperationalLimits;
+use crate::twin::{AssetTelemetry, SensorKind, SensorReading, ZoneOccupancy};
 use crate::work::{
     ActorConstraint, DispatchError, JobId, JobState, Priority, TaskId, TaskStatus, WorkOrder,
     WorkTask,
@@ -101,7 +102,10 @@ pub fn run_maintenance_demo_with_predictions(
         .map_err(MaintenanceDemoError::Runtime)?;
 
     runtime
-        .ingest_adapter_frame(proximity_frame(1, 100, 100), 100, 0)
+        .ingest_adapter_frame(empty_zone_frame(1, 100), 100, 0)
+        .map_err(MaintenanceDemoError::Runtime)?;
+    runtime
+        .ingest_adapter_frame(proximity_frame(2, 100, 100), 100, 0)
         .map_err(MaintenanceDemoError::Runtime)?;
     if unsafe_prediction.validated_for_gating || safe_prediction.validated_for_gating {
         return Err(MaintenanceDemoError::Invariant);
@@ -115,7 +119,7 @@ pub fn run_maintenance_demo_with_predictions(
     ) == Err(RuntimeError::Safety(SafetyError::Blocked));
 
     runtime
-        .ingest_adapter_frame(proximity_frame(2, 900, 101), 101, 0)
+        .ingest_adapter_frame(proximity_frame(3, 900, 101), 101, 0)
         .map_err(MaintenanceDemoError::Runtime)?;
     let safe_context = current_context(&runtime);
     let preview = runtime
@@ -174,7 +178,7 @@ pub fn run_maintenance_demo_with_predictions(
     // The simulator reports the repaired asset state; the runtime does not
     // directly mutate the twin to manufacture a successful outcome.
     runtime
-        .ingest_adapter_frame(asset_frame(3, AssetState::Operational, tick), tick, 0)
+        .ingest_adapter_frame(asset_frame(4, AssetState::Operational, tick), tick, 0)
         .map_err(MaintenanceDemoError::Runtime)?;
 
     let privacy_representation = runtime
@@ -245,7 +249,10 @@ pub fn run_simulation_caution_demo(
     descriptor.model_sha256 = model_sha256;
     let (mut runtime, mut driver) = build_runtime_with_session(descriptor)?;
     runtime
-        .ingest_adapter_frame(proximity_frame(1, 900, 100), 100, 0)
+        .ingest_adapter_frame(empty_zone_frame(1, 100), 100, 0)
+        .map_err(MaintenanceDemoError::Runtime)?;
+    runtime
+        .ingest_adapter_frame(proximity_frame(2, 900, 100), 100, 0)
         .map_err(MaintenanceDemoError::Runtime)?;
     let context = current_context(&runtime);
 
@@ -417,6 +424,16 @@ fn build_runtime_with_session(
             },
             proximity_sensor_id: Some(9),
             minimum_clearance_mm: 500,
+            // fi2 O5: the demo's robot moves at most 500 mm per permit and only with at
+            // least 20 % battery and at most its rated 2 kg payload.
+            maximum_step_mm: Some(500),
+            maximum_occupancy_age_ticks: 20,
+            operational_limits: Some(OperationalLimits {
+                minimum_battery_permille: 200,
+                maximum_payload_grams: 2_000,
+                maximum_speed_mm_per_second: 1_000,
+                maximum_clock_uncertainty_ticks: 0,
+            }),
             maximum_sensor_age_ticks: 20,
             permit_ttl_ticks: 5,
             allow_motion_with_humans: false,
@@ -610,6 +627,26 @@ fn proximity_frame(sequence: u64, clearance: i64, tick: u64) -> AdapterFrame {
             kind: SensorKind::ProximityMillimeters,
             value: clearance,
             quality_permille: 1_000,
+            observed_at_tick: tick,
+        }),
+    }
+}
+
+/// The robot endpoint's view of zone 7: no humans present. The zone policy does not allow
+/// motion with humans, so a fresh record of this kind is required before any move (fi2 O1).
+fn empty_zone_frame(sequence: u64, tick: u64) -> AdapterFrame {
+    AdapterFrame {
+        adapter_id: AdapterId(1),
+        endpoint_id: EndpointId(2),
+        session_epoch: 5,
+        sequence,
+        observed_at_tick: tick,
+        metadata: ObservationMetadata::simulated(sequence, tick.saturating_add(10)),
+        payload: AdapterPayload::ZoneOccupancy(ZoneOccupancy {
+            site_id: MAINTENANCE_SITE_ID,
+            zone_id: 7,
+            humans: 0,
+            robots: 1,
             observed_at_tick: tick,
         }),
     }

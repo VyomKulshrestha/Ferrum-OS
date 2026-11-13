@@ -75,7 +75,7 @@ const qemuArgs = [
   "-no-reboot",
   "-display", "none",
 ];
-let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: true });
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"), ...qemuArgs], { windowsHide: true });
 await sleep(2500);
 if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
   qemuProcess = spawn(qemu, ["-accel", "tcg", "-cpu", "max", ...qemuArgs], { windowsHide: true });

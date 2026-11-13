@@ -62,7 +62,7 @@ const qemuArgs = [
   "-device", "hda-duplex",
   "-no-reboot",
 ];
-let whpxArgs = ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs];
+let whpxArgs = ["-accel", "whpx,kernel-irqchip=off", "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"), ...qemuArgs];
 if (!visible) whpxArgs.push("-display", "none");
 
 let qemuProcess = spawn(qemu, whpxArgs, { windowsHide: !visible });

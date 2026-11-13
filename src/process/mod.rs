@@ -886,10 +886,18 @@ pub fn set_launch_context(pid: u64, context: &str) -> Result<(), &'static str> {
     if context.len() > MAX_LAUNCH_CONTEXT_BYTES || context.as_bytes().contains(&0) {
         return Err("invalid launch context");
     }
+    // Charged to the launched process in the heap ledger (fi2 K1 item 4).
+    use crate::memory::ledger;
+    let old = launch_context(pid).map(|c| c.len()).unwrap_or(0);
+    if context.len() > old && !ledger::fits(pid, context.len() - old) {
+        return Err("launch context exceeds the process's kernel heap budget");
+    }
     let mut contexts = LAUNCH_CONTEXTS.lock();
     contexts.retain(|(owner, _)| *owner != pid);
+    ledger::sub(pid, ledger::Kind::LaunchContext, old);
     if !context.is_empty() {
         contexts.push((pid, String::from(context)));
+        ledger::add(pid, ledger::Kind::LaunchContext, context.len());
     }
     Ok(())
 }
@@ -1031,6 +1039,8 @@ pub fn drop_by_pid(pid: u64) -> bool {
     let user_frames = record.process.user_frame_count();
     LAUNCH_CONTEXTS.lock().retain(|(owner, _)| *owner != pid);
     crate::ipc::forget_pid(pid);
+    // The heap ledger's entry goes with the process (fi2 K1 item 4).
+    crate::memory::ledger::release_all(pid);
     let closed_sockets = crate::net::iface::close_sockets_for_owner(pid);
     // Windows were closed only by ProcessKill, the window's close button and
     // the shell's `kill`; a process that exited or faulted left its windows

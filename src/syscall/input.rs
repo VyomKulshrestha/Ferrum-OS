@@ -17,6 +17,11 @@ use super::{SyscallResult, SyscallStatus};
 /// Inject a keystroke as if typed on the keyboard.
 ///
 /// args[0] = ASCII code of the key to press
+/// args[1] = 0: unbound (as before). 1: bound to a window (fi2 Q-J2c):
+///           args[2] = window id, args[3] = its owner pid, as FocusTarget
+///           reports them. Refused with VersionMismatch (-7) unless that
+///           window has keyboard focus now; the desktop drops the key if
+///           focus moves before it is processed.
 ///
 /// The key event is injected into both the input event queue (for
 /// syscall-based consumers) and the shell keyboard queue (so the
@@ -26,6 +31,19 @@ pub fn sys_inject_key(args: [u64; 6]) -> SyscallResult {
 
     if ascii == 0 {
         return SyscallResult::err(SyscallStatus::InvalidArgument);
+    }
+
+    match args[1] {
+        0 => {}
+        1 => {
+            let target = crate::input::ClickTarget { window: args[2], owner: args[3], rel_x: 0, rel_y: 0 };
+            if target.window == 0 || crate::gui::compositor::focus_target() != target {
+                return SyscallResult::err(SyscallStatus::VersionMismatch);
+            }
+            crate::input::inject_key_on(ascii, target);
+            return SyscallResult::ok(0);
+        }
+        _ => return SyscallResult::err(SyscallStatus::InvalidArgument),
     }
 
     use core::sync::atomic::Ordering;

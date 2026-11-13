@@ -234,6 +234,7 @@ pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
+    crate::serial::CONSOLE_SEQ.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     if crate::gui::is_terminal_redirect_active() {
         crate::gui::write_to_terminal_window(args);
         return;

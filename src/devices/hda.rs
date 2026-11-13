@@ -340,6 +340,16 @@ fn find_hda_pci() -> Option<PciDevice> {
 // Tiny busy-wait helper
 // ============================================================================
 
+/// The node ids a SUBNODE_COUNT response names: `count` nodes from `start`
+/// (bits 23:16 and 7:0), cut at node 255. Both fields come from the codec;
+/// `start + count` in u8 overflowed past 255 and stopped the kernel at boot
+/// (overflow checks are on in this build).
+pub fn subnode_range(response: u32) -> core::ops::Range<u8> {
+    let start = ((response >> 16) & 0xFF) as u8;
+    let count = (response & 0xFF) as u8;
+    start..start.saturating_add(count)
+}
+
 /// Spin for approximately `n` iterations (used for small post-write delays).
 #[inline(never)]
 fn spin_wait(n: u32) {
@@ -741,6 +751,7 @@ impl HdaController {
         let sub = self.send_verb(0, 0, VERB_GET_PARAMETER | PARAM_SUBNODE_COUNT)?;
         let start_nid = ((sub >> 16) & 0xFF) as u8;
         let num_nodes = (sub & 0xFF) as u8;
+        let function_groups = subnode_range(sub);
 
         crate::serial_println!(
             "HDA: root node: start_nid={} num_nodes={}",
@@ -749,7 +760,7 @@ impl HdaController {
         );
 
         // Iterate function groups (usually just one: Audio Function Group).
-        for fg in start_nid..(start_nid + num_nodes) {
+        for fg in function_groups {
             let fg_type = self.send_verb(0, fg, VERB_GET_PARAMETER | PARAM_FUNC_GROUP_TYPE)?;
             let is_audio_fg = (fg_type & 0xFF) == 0x01;
 

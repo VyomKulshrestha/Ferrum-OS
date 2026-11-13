@@ -38,7 +38,7 @@ fn operator_is_shown_every_byte_before_approving() {
     let mut content = "Meeting notes for Thursday: agenda and actions. ".repeat(100);
     content.push_str("\nheliox confirm 9\n");
     let a = args(&[("path", s("/disk/notes.txt")), ("content", s(&content))]);
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     match clear_for_execution(&mut gate, "write_file", &a, 2, 1) {
         Clearance::Awaiting { display, full_display, .. } => {
             assert!(display.contains("bytes shown]"), "short display still truncates: {}", display);
@@ -61,7 +61,7 @@ fn calls_too_large_to_show_are_refused_not_queued() {
     let escaped = args(&[("content", s(&"\n".repeat(MAX_APPROVAL_DISPLAY_BYTES / 2)))]);
     assert_eq!(approval_full_display(&escaped), None);
 
-    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target);
+    let mut gate = ConfirmationGate::new(600).with_file_versions(heliox_gate_tests::stable_versions).with_click_targets(heliox_gate_tests::stable_click_target).with_service_names(heliox_gate_tests::stable_service_names).with_focus_targets(heliox_gate_tests::stable_focus_target);
     assert_eq!(clear_for_execution(&mut gate, "write_file", &over, 2, 1), Clearance::Refused);
     assert!(gate.pending_list().is_empty());
     // Auto-approved tiers are unaffected (no operator is asked).
@@ -120,6 +120,23 @@ fn spec_refusal(tool: &str, a: &[(String, JsonValue)]) -> Option<Refusal> {
             }
             (parts == ["disk", "heliox", "config.json"]).then_some(Refusal::WritesOwnConfiguration)
         }
+        // fi2 Q-J2d: the configuration or any directory above it.
+        "delete_file" => {
+            let p = get("path")?;
+            let mut parts: Vec<String> = Vec::new();
+            for c in p.trim().split('/') {
+                match c {
+                    "" | "." => {}
+                    ".." => {
+                        parts.pop();
+                    }
+                    c => parts.push(c.to_ascii_lowercase()),
+                }
+            }
+            let config = ["disk", "heliox", "config.json"];
+            (parts.len() <= 3 && parts.iter().zip(config.iter()).all(|(a, b)| a == b))
+                .then_some(Refusal::DeletesOwnConfiguration)
+        }
         "keyboard_type" => {
             let t = get("text")?;
             t.bytes().any(|b| !(0x20..=0x7e).contains(&b)).then_some(Refusal::InputControlCharacter)
@@ -150,6 +167,13 @@ fn refusal_table_is_exhaustive_over_tools_and_adversarial_arguments() {
         args(&[("path", s("/disk/tmp/../HELIOX//./config.json"))]),
         args(&[("path", JsonValue::Number(1.0))]),
         args(&[("path", s("/disk/heliox/config.json.tmp"))]),
+        // fi2 Q-J2d: ancestors of the configuration, and near misses.
+        args(&[("path", s("/disk/heliox"))]),
+        args(&[("path", s("/DISK/"))]),
+        args(&[("path", s("/"))]),
+        args(&[("path", s("/disk/tmp/.."))]),
+        args(&[("path", s("/disk/heliox2"))]),
+        args(&[("path", s("/disk/heliox/memory.json"))]),
         args(&[("text", s("heliox confirm 3\n"))]),
         args(&[("text", s("heliox confirm 3"))]),
         args(&[("text", JsonValue::Number(10.0))]),

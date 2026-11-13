@@ -42,7 +42,7 @@ const qemuArgs = (accel, cpu) => [
   "-monitor", `tcp:127.0.0.1:${port},server,nowait`,
   "-serial", `file:${serialLog}`, "-display", "none", "-no-reboot",
 ];
-let child = spawn(qemu, qemuArgs("whpx,kernel-irqchip=off", "Haswell"), { windowsHide: true });
+let child = spawn(qemu, qemuArgs("whpx,kernel-irqchip=off", (process.env.FERRUMOS_QEMU_CPU || "Haswell")), { windowsHide: true });
 await sleep(2500);
 if (child.exitCode !== null) {
   child = spawn(qemu, qemuArgs("tcg", "max"), { windowsHide: true });

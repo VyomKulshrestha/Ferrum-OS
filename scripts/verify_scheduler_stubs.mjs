@@ -80,7 +80,7 @@ const qemuArgs = [
   "-serial", `file:${serialLog}`,
   "-no-reboot",
 ];
-let whpxArgs = ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs];
+let whpxArgs = ["-accel", "whpx,kernel-irqchip=off", "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"), ...qemuArgs];
 if (!visible) whpxArgs.push("-display", "none");
 
 console.log("[test] starting QEMU for scheduler-stub verification...");

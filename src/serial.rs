@@ -22,9 +22,15 @@ lazy_static! {
     };
 }
 
+/// Incremented by every console print (serial and screen). The console Write
+/// syscall reads it to tell whether anything was printed between two writes of
+/// one process (`syscall::console`).
+pub static CONSOLE_SEQ: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+
 /// Internal serial print function
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
+    CONSOLE_SEQ.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 

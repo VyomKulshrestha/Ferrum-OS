@@ -2,7 +2,7 @@
 // FerrumOS - heliox-daemon Ring-3 network verification
 // ============================================================================
 // Boots the kernel in QEMU with network cards, runs a mock HTTP server on host
-// port 8080, writes a network test trigger `/tmp/net_test`, and asserts that
+// port 8080, writes a network test trigger `/tmp/heliox-hooks/net_test`, and asserts that
 // the daemon successfully makes the HTTP GET request and receives the response.
 // ============================================================================
 import { spawn } from "node:child_process";
@@ -77,7 +77,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // (src/process/mod.rs's map_user_range), and this reliably took long enough
 // under unaccelerated/under-provisioned QEMU to blow through every timeout
 // in this script, every run - not because anything was actually hung.
-let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", "Haswell", ...qemuArgs], { windowsHide: !visible });
+let qemuProcess = spawn(qemu, ["-accel", "whpx,kernel-irqchip=off", "-cpu", (process.env.FERRUMOS_QEMU_CPU || "Haswell"), ...qemuArgs], { windowsHide: !visible });
 await sleep(2500);
 if (qemuProcess.exitCode !== null && qemuProcess.exitCode !== 0) {
   console.log("[test] WHPX unsupported or failed, falling back to TCG...");
@@ -143,7 +143,7 @@ try {
 
   const start = serialText().length;
   // Write the network trigger file
-  await sendText("write /tmp/net_test 10.0.2.2:8080/test");
+  await sendText("write /tmp/heliox-hooks/net_test 10.0.2.2:8080/test");
   await sendKey("ret");
   await sleep(400);
 
