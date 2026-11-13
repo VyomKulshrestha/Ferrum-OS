@@ -48,7 +48,9 @@ def main():
         },
         "libraries": {
             "streamad": {
-                "versions": None,
+                "versions": (load("streamad/work/out/tw1a_mode0_full.json") or {}).get(
+                    "versions"
+                ),
                 "summary": load("streamad/work/out/tw1a_summary.json"),
             },
             "htm.core": {
