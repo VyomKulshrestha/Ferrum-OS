@@ -113,9 +113,9 @@ confirmation applies to the request shown last. Confirm and deny work from the k
 auto-approve tier of 4 is treated as 3. An App Store install that asks for privileged capabilities shows
 the kernel's prompt. Ring 3 cannot change the accounts file or the audit log.
 
-## 2. Papers (merged to main at 94ff692; `fi2_reports/papers.md`)
+## 2. Papers (`fi2_reports/papers.md`)
 
-Nothing is published and no DOI is reserved.
+Two of the three were published on Zenodo on 2026-11-13, after the owner confirmed: "Prediction Is Not Permission" v1.4 (DOI 10.5281/zenodo.24189826) and "When Agents Control the Kernel" v1.3 (DOI 10.5281/zenodo.24189855). Each record holds one PDF whose digest equals the file locked in this repository (checked through Zenodo's public API). The preprint of "Thresholds That Travel" is not published in its new version.
 
 - **"Prediction Is Not Permission" v1.4**, 52 pages: thirteen additions, every word of v1.3 kept, no
   number recomputed. Its verifier passes (checked).
@@ -129,9 +129,9 @@ The papers workstream corrected two statements of the fi1 report: the OS world-m
 "When Agents Control the Kernel" (and the count of 216 replay false alarms only to this repository's
 notes), and the data manifest bound by v1.3 changed in three commits after the lock, not one.
 
-Before publication: reserve the two DOIs, replace the DOI and tag strings, rebuild, lock the freezes;
-decide whether the preprint is updated during review; update the anonymous artifact (rebuilt locally
-with the two cited files and no identifying string).
+Open: whether the preprint of "Thresholds That Travel" is updated during review; the update of the
+anonymous artifact (rebuilt locally with the two cited files and no identifying string); the two
+new records on the author's ORCID profile.
 
 ## 3. The operator in the loop (ol1)
 
