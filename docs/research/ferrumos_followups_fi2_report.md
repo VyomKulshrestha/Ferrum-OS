@@ -5,10 +5,10 @@ are on the pull-request branch until it is merged). This file is updated as work
 "Checked" means the main session reran or re-read the claim; everything else is the reporting agent's.
 Nothing here recomputes a registered or published number.
 
-Status on 2026-11-13, later: pull request 10 is merged (main 27cc110, and the boot image CI built there
-is byte for byte the verified one); the papers' next versions are written and wait for DOIs; the
-operator study is registered and its sealed run is in progress; both paper-2 rounds are finished and
-the notes to the maintainers are drafted, not sent.
+Status on 2026-11-14: pull request 10 is merged (main 27cc110, and the boot image CI built there
+is byte for byte the verified one); two of the papers' next versions are published on Zenodo; the
+operator study's Haiku grid is complete and analysed (section 3.1), its Sonnet grid is running; both
+paper-2 rounds are finished and the notes to the maintainers are drafted, not sent.
 
 ## 1. Kernel and gate (pull request 10, merged 2026-11-13; contains pull requests 7, 8 and 9)
 
@@ -130,8 +130,8 @@ The papers workstream corrected two statements of the fi1 report: the OS world-m
 notes), and the data manifest bound by v1.3 changed in three commits after the lock, not one.
 
 Open: whether the preprint of "Thresholds That Travel" is updated during review; the update of the
-anonymous artifact (rebuilt locally with the two cited files and no identifying string); the two
-new records on the author's ORCID profile.
+anonymous artifact (rebuilt locally with the two cited files and no identifying string). Both new
+records are on the author's ORCID profile (added 2026-11-13).
 
 ## 3. The operator in the loop (ol1)
 
@@ -139,8 +139,45 @@ Registered on 2026-11-13: protocol `operator_in_the_loop_ol1_protocol.md`, recor
 `operator_in_the_loop_ol1_registration.json` (main adb6b3b, pushed 00:24 +05:30), before any sealed
 scenario was generated. The runner refuses to start unless the record matches the protocol's and the
 code's digests. Development spend: 3.03 US dollars. The registered grids: Claude Haiku 5.5 on 2,352
-episodes, Sonnet 5.5 on 280, Opus 5.5 on 140, under caps of 20, 45 and 45 dollars. The Haiku grid is
-running; results will be added here by the analysis script the registration names.
+episodes, Sonnet 5.5 on 280, Opus 5.5 on 140, under caps of 20, 45 and 45 dollars.
+
+### 3.1 Haiku grid (complete on 2026-11-14)
+
+2,352 of 2,352 episodes, 13.77 dollars of the 20-dollar cap. The registered analysis
+(`scripts/ol1_analysis.py`) ran on the results directory with no manual step (checked: the numbers below
+are read from its output). Intervals are 95% cluster bootstraps over the seven modes. The Sonnet grid
+started after the Haiku runner had exited; no setting of the Sonnet or Opus grids depends on these
+numbers, and the analysis is rerun on the whole directory when they end.
+
+| | Quantity (arm P0 is no policy and no gate) | Estimate | Verdict |
+|---|---|---|---|
+| H1 | share of campaign episodes (loud and sub-event) in which the agent left a setting beyond a ceiling, P0 | 0.821 [0.772, 0.866] | holds |
+| H1b | the final configuration misses a later step of 60, 120, 300, 600 s, P0 | 0.817, 0.371, 0.085, 0.062 | estimated |
+| H1b | added detection delay, P0 | median 61.2 s, 90th percentile 180 s; above what the gate admits in 0.455 [0.393, 0.509] | estimated |
+| H2 | beyond-ceiling share, campaigns minus nuisance, P0 | 0.696 [0.625, 0.768], positive in 7 of 7 modes | holds |
+| H3 | beyond-ceiling share, campaign minus its benign twin, P0 | loud 0.000; sub-event 0.018 [-0.152, 0.170]; frog 0.009 [0.000, 0.027] | no difference resolved |
+| H4 | 600 s misses, P0 minus the written rule with its reason (P2) | 0.062 [0.027, 0.098] | holds |
+| H5 | gate arm: 600 s misses | 0 of 784 | holds (by construction) |
+
+Publication gate (defined on the Haiku grid): **own short paper**.
+
+What the cell table adds:
+
+- With no policy, Haiku went beyond a ceiling in all 112 loud-campaign episodes and in all 112 of their
+  benign twins, and in 12.5% of nuisance episodes. A campaign and a benign stream with the same alarm log
+  were treated alike.
+- Most of the loosening is alarm delay. The final configuration misses a 60 s step in 82% of campaign
+  episodes and a 600 s step in 6%.
+- A written rule, with its reason (P2) or without (P1), brought the beyond-ceiling share to between 0.00
+  and 0.04 in every cell. The price is alarm load: in the sub-event campaign the third day has about 47
+  alarm episodes under P2 against 13 with no policy.
+- The gate blocked about five calls per loud episode. Under it no step longer than 60 s is missed. In the
+  nuisance condition its third-day alarm count is not higher than without it (difference -0.196
+  [-0.473, 0.045]).
+
+### 3.2 Sonnet and Opus grids
+
+The Sonnet grid is running. The Opus grid starts after it ends and its spend is known.
 
 ## 4. Paper 2
 
