@@ -14,9 +14,9 @@ commit when reproducibility depends on post-release behavior.
 ## Technical report
 
 **When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical
-False-Negative Decomposition**, Technical Report version 1.2.
+False-Negative Decomposition**, Technical Report version 1.3.
 
-- Version DOI: <https://doi.org/10.5281/zenodo.22116399>
+- Version DOI: <https://doi.org/10.5281/zenodo.24189855>
 - All-versions DOI: <https://doi.org/10.5281/zenodo.21829807>
 - Frozen release: <https://github.com/VyomKulshrestha/Ferrum-OS/releases/tag/world-model-study-v1.0.0>
 

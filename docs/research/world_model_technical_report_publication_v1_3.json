@@ -1,18 +1,17 @@
 {
   "schema_version": "ferrumos-world-model-technical-report-publication-v2",
-  "verified_at_utc": null,
+  "verified_at_utc": "2026-11-13T10:03:37Z",
   "record": {
-    "status": "reserved; not published",
+    "status": "published",
     "access_right": "open",
     "title": "When Agents Control the Kernel: A JEPA World Model Safety Gate with Empirical False-Negative Decomposition",
     "subtitle": "A Consolidated Study of Hybrid Runtime Screening, Failure Modes, and Request-Bounded Deterministic Authority in FerrumOS",
     "version": "1.3",
     "resource_type": "Technical report",
-    "publication_date": null,
+    "publication_date": "2026-11-13",
     "publisher": "Zenodo",
     "license": "CC-BY-4.0",
     "url": "https://zenodo.org/records/24189855",
-    "draft_url": "https://zenodo.org/uploads/24189855",
     "version_doi": "10.5281/zenodo.24189855",
     "all_versions_doi": "10.5281/zenodo.21829807"
   },
@@ -48,6 +47,17 @@
     "sha256": "c35903e5996b2058c0d9559533f1e211bd37d977942b89a03be99bc6b68d142c",
     "md5": "1cccae24cdd5bf2b0ee10be2f9168657"
   },
-  "verification": null,
-  "note": "The version DOI was reserved on a Zenodo new-version draft of record 22116399 on 2026-11-12. Not published; publication date and verification are filled after publication."
+  "verification": {
+    "doi_resolves_to_public_record": true,
+    "doi_resolution_first_http_status": 302,
+    "all_versions_doi_resolves_to": "24189855 (version 1.3)",
+    "public_record_status": "published",
+    "submitted": true,
+    "public_file_count": 1,
+    "public_file_checksum_matches_local_pdf": true,
+    "checksum_verification_method": "Zenodo API MD5 and byte size matched the local PDF; the downloaded public file's SHA-256 equals the locked PDF",
+    "citation_pagination": "1-19",
+    "dataset_relation": "publicly verified: isSupplementedBy 10.5281/zenodo.21829193 (DOI, Dataset)",
+    "orcid_work_updated": "not updated or checked by this record; the author maintains ORCID"
+  }
 }

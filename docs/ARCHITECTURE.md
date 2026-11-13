@@ -723,13 +723,13 @@ prediction looks dangerous.
   `docs/research/world_model_dataset_publication.json` records the public record,
   all-versions DOI `10.5281/zenodo.21829192`, checksums, and verification result.
 - **Technical-report publication** - the accompanying report keeps its locked title
-  and Technical Report v1.2 is published open access under Zenodo DOI
-  `10.5281/zenodo.22116399`; all
+  and Technical Report v1.3 is published open access under Zenodo DOI
+  `10.5281/zenodo.24189855`; all
   versions resolve through DOI `10.5281/zenodo.21829807`. This is intentionally
-  separate from the dataset DOI. The 18-page PDF stays outside the
+  separate from the dataset DOI. The 19-page PDF stays outside the
   repository in the author's Downloads folder; the repository stores its checksum,
   DOI-resolution evidence, and publication boundary in
-  `docs/research/world_model_technical_report_publication.json`.
+  `docs/research/world_model_technical_report_publication_v1_3.json`.
 - **False-negative anatomy** - all 52 combined-arm misses are reproduced from
   the registered episode and prediction files and checked against the shipped
   weights. They separate into 21 unmodeled protected-asset deletions, 20
