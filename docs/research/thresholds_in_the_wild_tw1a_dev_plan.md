@@ -197,3 +197,145 @@ rounding step, and alarms on the repeated value. The reading now sums the short 
 does and keeps that single point apart. After this, all nine targets completed in all fourteen parts
 with no disagreement between a reading and a decision. The Gaussian-tail parts that had already
 completed were not rerun.
+
+## Amendment 4 (2026-11-12, round tw1b, committed before any run of its conditions)
+
+Round tw1b runs the three follow-ups that tw1a left (programme fi2, workstream T1). It uses the same
+nine targets, the same score cache, the same 56 placements and 142 recorded attack runs, the same two
+histories (full and young) and the same outcome definitions. Everything is exploratory. Results stay under
+`target/tw1/` as before. This amendment contains no tw1b result; it uses only tw1a's published-locally
+numbers and the catalogue readings.
+
+Code: the harness of tw1a as fixed on main after tw1a (bisection without the 1e12 ceiling, one random
+generator per target and run for the chance reference, river's quantile of 0.0). New code goes in
+`scripts/tw1b_*.py`; tw1a's files are imported, not changed. Before any new condition, river
+`ThresholdFilter` at tau0 is rerun with the current code in all fourteen parts and must reproduce tw1a's
+harness check (false alarms 0.98 times the budget, 116 of 141 first events, 104 of 104 followers, 44 at
+onset, 56 of 56 in every campaign). A deviation is reported before anything else runs.
+
+### 1. Configuration B (budget-matched)
+
+The rule of amendment 1, item 8, is applied per mode: the single parameter is searched so that the
+target, after one pass over the mode's four calibration runs, raises at most 2 alarm episodes a day (gap
+17 steps) over a second pass of the same runs, counted over the whole second pass (at most
+2 x 479,960 / 24,000 episodes); the most sensitive value that meets the budget is used. The rule is
+incomplete in four places, completed here:
+
+- **Search scale.** Each parameter is written as p(u) with u increasing toward less sensitive settings,
+  and u is bisected (12 halvings after checking both ends). If the least sensitive end exceeds the
+  budget, the budget is recorded as not reachable and that end is used. If the most sensitive end meets
+  it, that end is used. The bisection assumes that fewer alarms follow from a less sensitive setting;
+  every evaluation is stored, so a failure of that assumption is visible.
+- **Parameters and ranges.** river `QuantileFilter` and PySAD `QuantileFilter`: q = 1 - 10^-u, u in
+  [0.3, 7]. PySAD conformal (window 1000 kept): cut = 1 - 10^-u, u in [0.3, 3]; a cut above 0.999 can
+  never alarm with this window, so 0.999 is the least sensitive end. PySAD Gaussian tail (window 1000
+  kept) and PySAD likelihood: cut = 1 - 10^-u, u in [1, 15]. PySAD SPOT (num_init 500 kept): q = 10^-u
+  with the cut at 1 - q as in configuration D, u in [1.7, 10] (the calibrator requires q below
+  1 - level = 0.02). libspot (fit on 1,000 scores kept): q = 10^-u, u in [2.7, 12] (its default level is
+  0.998). A setting that the library refuses counts as exceeding the budget.
+- **river `ThresholdFilter`** is the static control at tau0, the study's frozen threshold. It is not
+  recalibrated; its configuration B is tau0.
+- **PySAD's Telemanom port** has no single sensitivity parameter: its z is chosen by the target itself,
+  and p is a pruning margin. Its documented setting already raises 0.05 times the budget on the sealed
+  runs. Configuration B is its documented setting, and tw1a's open-loop rows stand for it; it is not
+  rerun.
+
+Configuration B is then run through the tw1a protocol for both histories, with the campaigns control,
+loud pulses, capped sub-event pulses and the capped frog at the four distances of section 2, with the
+recorded attack runs and the sealed false-alarm count. The uncapped campaigns are not run (amendment 3:
+their injected scores grow without bound).
+
+### 2. The frog closer to the reading
+
+Beside the frog 3% below the reading (0.97 of the target's own current reading, tw1a), the frog is run
+at 2%, 1% and 0.5% below it (0.98, 0.99, 0.995), each capped at 2 tau0 as in amendment 2. It is run on
+the eight targets with a reading (all but the Telemanom port), in configuration D for both histories
+(with control and the 3% frog rerun beside them under the current code), and in configuration B as
+above. The recorded attack runs are not repeated in configuration D: they do not depend on a campaign.
+
+### 3. The SPOT authors' script on whole series
+
+The script (`spot.py` of the SPOT authors, Software Heritage snapshot 360fcff0, revision a7a499c4) is
+copied unchanged into an empty directory under `target/` and loaded by a separate driver run with
+`python -I`. Class `SPOT` with the README's settings for the univariate examples: q = 1e-4 (also the
+constructor default), `initialize()` at its default level 0.98, `run(with_alarm=True)`. One object is
+built per series, as the authors do: `fit(init_data, data)`, `initialize()`, `run()`. `init_data` is the
+history (full: the mode's 479,960 calibration scores; young: the last 24,000). Non-finite scores are
+dropped from a series before it is given to the script.
+
+- **Recorded attack runs**: `data` is the whole attack run. Outcomes as in tw1a (any-alarm and onset,
+  first and follower events, chance reference, unlabelled time in alarm).
+- **Campaigns**: `data` is the campaign stream of the placement: the registered 24 h window, the lead of
+  1,000 steps and the terminal step, `s[c_start : terminal_start + 167]`. The pre-campaign part of the
+  sealed run is not given (each step above the initial threshold costs a Grimshaw fit; a whole sealed
+  run per magnitude does not fit the machine). Campaigns: control and loud pulses (open loop, as tw1a's
+  amendment 1 promised). False alarms are counted on the control stream (about one day per placement).
+- **Terminal step**: the score that the script compares at step i is `data[i] > extreme_quantile`, and
+  `run()` returns the threshold after every step. A magnitude whose terminal score exceeds the threshold
+  the script reports for the step before the terminal step is counted as caught on its first step, by
+  the script's own comparison. Every other magnitude is run as its own whole series (the stream up to
+  the terminal step with the terminal scores raised), at lead 0 (terminal directly after the window)
+  and after the lead. The reading at campaign end is the script's threshold at that step.
+- **Frog, limited.** The frog needs the threshold of the step before, which a whole-series run gives
+  only afterwards. The attacker plans the frog with a copy of the script's own update (its `_grimshaw`
+  and `_quantile` methods on an object of the script's class, stepped by the driver); the script is
+  then run unchanged on the planned series, and its returned thresholds must equal the planned ones at
+  every step, or the cell is reported as stopped. Every frog step is a peak and costs one Grimshaw fit
+  on a growing peak set, so this is run on one placement per mode (the first registered sealed run),
+  young history, the 3% capped frog, with the terminal steps after the lead.
+
+### 4. Predictions (written before any run of these conditions)
+
+From the catalogue readings (absorbing, count-based or hold-out) and tw1a's numbers:
+
+- **Harness check.** river `ThresholdFilter` at tau0 reproduces tw1a exactly.
+- **Frog at 2%, 1%, 0.5% (configuration D).**
+  - river and PySAD `QuantileFilter` are not blinded at any distance: a score held just below a running
+    quantile pulls that quantile down, not up. The reading at campaign end stays within 5% of control
+    and every terminal step caught in control is caught.
+  - PySAD conformal: not blinded (the window fills with the frog's value and the reading follows it
+    down), as at 3% (53 56 56 56).
+  - PySAD Gaussian tail: blind at lead 0 at every distance, recovered after the lead, as at 3%.
+  - PySAD likelihood: still blind after the lead at every distance, as at 3%.
+  - PySAD SPOT (q 1e-3): its alarm threshold lies about 2.5% above its peak threshold, so the frog at
+    2%, 1% and 0.5% enters the peaks. Prediction: blinded like libspot at all three distances (reading
+    at campaign end above 2 tau0 and no terminal step up to 2 tau0 caught after the lead) in at least 5
+    of 7 modes, for both histories.
+  - libspot: blinded at every distance, as at 3% (at most 8 of 56 caught at 2 tau0).
+  - river `ThresholdFilter`: 56 of 56 everywhere.
+- **Configuration B.**
+  - The budget is reachable for both running quantiles, the Gaussian tail, the likelihood, PySAD SPOT
+    and libspot in every mode; for the conformal calibrator it is not reachable (cut 0.999 still above
+    budget) in at least 4 of 7 modes.
+  - On the sealed runs, every B setting raises between 0.3 and 3 times the budget (the calibration runs
+    and the sealed runs are of the same modes).
+  - Running quantiles at B (q near 1 - 1e-3 or higher) count only a thin tail, so the loud and capped
+    sub-event pulses, which put 1.65% and 2.4% of the window's scores at 2 tau0, lift the reading: above
+    1.25 tau0 at campaign end with young history, by at least 10% over control with full history. The
+    frogs do not blind them.
+  - Conformal at B: blind at lead 0 after the capped sub-event pulses, recovered after the lead; loud
+    pulses and frogs leave it as in control.
+  - Gaussian tail at B: blind at lead 0 after the capped frogs, recovered after the lead.
+  - Likelihood at B: blind after the lead following the capped frogs, as in D.
+  - PySAD SPOT and libspot at B: blinded by the frog at every distance at which it enters the peaks;
+    unaffected by pulses.
+  - Followers in the recorded attacks: hold-out targets (PySAD SPOT, libspot) lose none of the 104
+    that the frozen threshold finds; running quantiles lose at least 10.
+- **The SPOT authors' script.** It behaves as libspot does in configuration D: loud pulses leave the
+  outcome of control unchanged in every placement where its threshold is below 2 tau0; it finds at
+  least 100 of the 104 followers; on the control streams it stays below the budget with full history.
+  The planned frog raises its threshold above 2 tau0 within the day in at least 5 of the 7 placements,
+  and no terminal step up to 2 tau0 is caught after the lead there; the script's thresholds equal the
+  planned ones at every step.
+
+A prediction that fails is reported as failed. Nothing here changes after the runs start; a change
+needed by a stopped run goes in a dated note below with its reason.
+
+Note to amendment 4 (2026-11-12, after the harness check, before any run of the new conditions): the
+harness check passed (river `ThresholdFilter` at tau0 with the current code: false alarms 0.98 times
+the budget, 116 of 141 first events, 104 of 104 followers with 44 at onset, 56 of 56 in every campaign,
+both histories). One detail of section 3 is fixed now, for cost: in the planned frog, the terminal
+outcome at each magnitude is the planner's (the script's own update, stepped from the state after the
+lead), and the script itself is run on the whole series once more for the largest magnitude, 2 tau0;
+the two must agree. A whole-series run of a frog stream takes about half an hour, because every frog
+step adds a peak and refits.
