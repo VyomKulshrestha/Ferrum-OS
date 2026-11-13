@@ -1,7 +1,7 @@
 {
  "schema_version": "prediction-is-not-permission-zenodo-reservations-v1-4",
  "reserved_at": "2026-11-12",
- "publication_state": "reserved_not_published",
+ "publication_state": "published_and_verified",
  "technical_report_v1_4": {
   "draft_url": "https://zenodo.org/uploads/24189826",
   "reserved_doi": "10.5281/zenodo.24189826",
@@ -17,7 +17,8 @@
    "md5": "0bf4aca9d3dcdc293e7b35bbfe258983",
    "sha256": "ec9913d7a08614d35b006041598600fbf2ef48fb4cdbd12488435ab0568d12b4"
   },
-  "repository_tag": "prediction-is-not-permission-v1.4"
+  "repository_tag": "prediction-is-not-permission-v1.4",
+  "is_latest_version": true
  },
  "dataset": {
   "reused_unchanged": true,
@@ -27,6 +28,20 @@
  "planned_relationships": {
   "technical_report_v1_4": "isSupplementedBy the dataset 10.5281/zenodo.23473185 and the repository tree at tag prediction-is-not-permission-v1.4; new version of 10.5281/zenodo.23473173"
  },
- "note": "The version DOI was reserved on a Zenodo new-version draft on 2026-11-12, before the final build, so the PDF carries its own identifier. Not published; the publication date and the verification block are added after publication.",
- "published_at": null
+ "note": "The version DOI was reserved on a Zenodo new-version draft on 2026-11-12, before the final build, so the PDF carries its own identifier. The record was published on 2026-11-13 with the author's approval; v1.3 (10.5281/zenodo.23473173) remains unchanged and the all-versions DOI now resolves to v1.4.",
+ "published_at": "2026-11-13",
+ "verification": {
+  "checked_at": "2026-11-13",
+  "record_status": "published",
+  "created_utc": "2026-11-13T09:59:06.733575+00:00",
+  "doi_resolution": {
+   "10.5281/zenodo.24189826": "302 to Zenodo",
+   "10.5281/zenodo.23469362": "302; API resolves to 24189826 (latest)"
+  },
+  "public_file_count": 1,
+  "uploaded_file_md5_match": true,
+  "public_file_sha256_match": true,
+  "repository_tag": "prediction-is-not-permission-v1.4 points at 1c5e973 (pushed by the coordinator)",
+  "orcid": "not updated or checked by this record; the author maintains ORCID"
+ }
 }

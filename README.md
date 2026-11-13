@@ -21,11 +21,11 @@ systems. The AI brain runs natively as a freestanding userspace process
 operator-confirmation boundaries instead of receiving unrestricted kernel
 authority.
 
-**Cross-domain technical report v1.3** ([DOI 10.5281/zenodo.23473173](https://doi.org/10.5281/zenodo.23473173); all versions [10.5281/zenodo.23469362](https://doi.org/10.5281/zenodo.23469362)): [Read *Prediction Is Not Permission:
-Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf),
-with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_3.md)
-and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_3.json).
-The 48-page report keeps every earlier study and failure and adds two registered
+**Cross-domain technical report v1.4** ([DOI 10.5281/zenodo.24189826](https://doi.org/10.5281/zenodo.24189826); all versions [10.5281/zenodo.23469362](https://doi.org/10.5281/zenodo.23469362)): [Read *Prediction Is Not Permission:
+Cross-Domain World Models Under Deterministic Runtime Authority*](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf),
+with the [auditable manuscript](docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md)
+and [freeze manifest](docs/research/cross_domain_world_model_paper_freeze_v1_4.json).
+The 53-page report keeps every earlier study and failure; v1.3 added two registered
 studies on public recordings. On 58 attacks staged on the HAI 22.04 control testbed, a
 world model trained only on normal operation flags 44 at about one false alarm episode
 per day, against 22 for a persistence residual and 24 for a bound check. Training a
@@ -35,8 +35,13 @@ test: its threshold did not transfer. A registered replication on HAI 21.03 and 
 rule passed on one release. Server incidents (SMD) were inconclusive. The evidence is
 archived as a [dataset](https://doi.org/10.5281/zenodo.23473185). None of this
 establishes attack prevention, controller benefit, or deployment eligibility.
-[Version 1.2](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf)
-([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)) remains
+Version 1.4 changes no result: it adds statements from an audit of the code and records
+behind v1.3, among them that the training behind the physical and OS models depends on
+the number of BLAS threads.
+[Version 1.3](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.3.pdf)
+([DOI 10.5281/zenodo.23473173](https://doi.org/10.5281/zenodo.23473173)) and
+[version 1.2](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.2.pdf)
+([DOI 10.5281/zenodo.23469363](https://doi.org/10.5281/zenodo.23469363)) remain
 unchanged.
 The [earlier v1.1](docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.1.pdf)
 remains available. Its [external-execution handoff](docs/research/PHYSICAL_JEPA_EXTERNAL_EXECUTION_HANDOFF_v1.md)
