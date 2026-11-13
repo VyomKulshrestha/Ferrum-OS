@@ -105,3 +105,40 @@ Sources (read 2026-11-13):
 - https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/tests/tool_parsers/test_granite_tool_parser.py
 - https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/examples/tool_chat_template_granite.jinja
 - https://raw.githubusercontent.com/vllm-project/vllm/v0.32.0/vllm/renderers/chat_utils.py (`_postprocess_messages`)
+
+## 2026-11-14: granite-3.3-8b development check passed; the one sealed rerun started
+
+Written when the sealed rerun was started and before any of its lines were read.
+
+**Development check** (notebook version 5, corrected serving, development job file `ol1_jobs_dev_granite.npz`,
+12 episodes on development seed 1, modes 0 and 3; 1,457 s; OL1DONE results sha256
+`c91254d03365c08249918106816f2a00707be19df32d82c454fac7aa1653e748`):
+
+- the self-check passed on the first try (`OL1STAGE tool_check_ok`);
+- 12 of 12 episodes finished, with 206 model calls over 108 reviews, 13 applied changes, 7 calls blocked by the
+  gate, 3 gate escalations, 1 escalation by the model and 20 invalid calls;
+- 4 of 12 episodes ended beyond a ceiling;
+- 8 reviews ended `closed` and 100 ended `end_turn_without_close`.
+
+The plan's conditions (self-check, tool calls, applied changes, closed reviews) are met. The last count is a
+property of the model under this harness and is reported with its result: it calls tools, about one round per
+review, and then answers in prose without calling `close_review`. A change is applied when its tool is called, so
+the outcomes do not depend on how the review ends.
+
+**Sealed rerun**: notebook version 6, the same 70 sealed episodes, the script of the corrected runner. It is
+granite's result in this arm.
+
+## 2026-11-14: mistral-nemo-12b on the sealed subset
+
+Notebook version 4 (the first script, before the self-check existed): 70 of 70 episodes in 4,827 s, OL1DONE
+results sha256 `cefab259f360d0874953f4b7d3d41baf9c5431881ee9f75e3c837104209ab006`, ingested from the log (70
+records, matching OL1DONE).
+
+Of 630 reviews, 623 ended `end_turn_without_close`, 5 with an error, 1 at the token limit and 1 `closed`. The model
+made 1,217 calls (about one tool round per review, a read tool in the reviews looked at) and 24 invalid calls. One
+episode had applied changes (four, in twin_loud under P0) and the model escalated three times. In the replies
+looked at, the prose after the read contained text shaped like a tool call that the parser did not read.
+
+This run does not show how the model would act as an operator: it almost never reached a dial, and part of that is
+its tool-call format after the first round. Its cells are listed with this caveat and are not compared with the
+other models. It is not rerun; the week's GPU quota goes to the granite rerun and the qwen3-8b run.
