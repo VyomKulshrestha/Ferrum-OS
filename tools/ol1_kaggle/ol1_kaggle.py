@@ -1243,6 +1243,9 @@ OPEN_MODELS = {
         "revision": "51dd4bc2ade4059a6bd87649d68aa11e4fb2529b",
         "args": ["--tool-call-parser", "granite", "--dtype", "half"],
         "ignore": ["*.pth", "*.bin", "original/*"],
+        # The model's own template adds its tool-call instruction only when no system message is given,
+        # and drops assistant tool calls from the history; GRANITE_TEMPLATE fixes both (notes, 2026-11-13).
+        "chat_template": "GRANITE_TEMPLATE",
     },
     "qwen3-32b-awq": {
         "repo": "Qwen/Qwen3-32B-AWQ",
@@ -1460,11 +1463,97 @@ def server_log_tail(n=60):
         return f"(no server log: {e})"
 
 
-def start_server(spec, model_path):
+# Granite 3.3 chat template for tool use: the template of ibm-granite/granite-3.3-8b-instruct at the pinned
+# revision (tokenizer_config.json), reduced to the branches this harness uses, with two changes.
+# 1. The model's template appends its tool-call instruction ("respond only with <|tool_call|> followed by a
+#    JSON list of tools used") only when the request has no system message; every ol1 request has one, so
+#    the instruction never reached the model. Here it is appended to the system message whenever tools are
+#    given, word for word as in the model's template.
+# 2. The model's template renders an assistant turn from its text content only, so the model's own earlier
+#    tool calls vanish from the history. Here an assistant turn with tool calls is rendered as <|tool_call|>
+#    followed by the JSON list of {"name", "arguments"}, the form the instruction asks for and vLLM's
+#    `granite` parser reads.
+GRANITE_TEMPLATE = r"""{%- if tools and not available_tools -%}{%- set available_tools = tools -%}{%- endif -%}
+{%- if messages[0]['role'] == 'system' -%}
+{%- set system_message = messages[0]['content'] -%}{%- set loop_messages = messages[1:] -%}
+{%- else -%}
+{%- set system_message = 'You are Granite, developed by IBM.' -%}{%- set loop_messages = messages -%}
+{%- endif -%}
+{%- if available_tools -%}
+{%- set system_message = system_message + " You are a helpful assistant with access to the following tools. When a tool is required to answer the user's query, respond only with <|tool_call|> followed by a JSON list of tools used. If a tool does not exist in the provided list of tools, notify the user that you do not have the ability to fulfill the request." -%}
+{%- endif -%}
+{{- '<|start_of_role|>system<|end_of_role|>' + system_message + '<|end_of_text|>\n' -}}
+{%- if available_tools -%}
+{{- '<|start_of_role|>available_tools<|end_of_role|>' -}}{{- available_tools | tojson(indent=4) -}}{{- '<|end_of_text|>\n' -}}
+{%- endif -%}
+{%- for message in loop_messages -%}
+{%- if message['role'] == 'assistant' and message.tool_calls is defined and message.tool_calls -%}
+{{- '<|start_of_role|>assistant<|end_of_role|>' + (message['content'] or '') + '<|tool_call|>' + (message.tool_calls | map(attribute='function') | list | tojson) + '<|end_of_text|>\n' -}}
+{%- else -%}
+{{- '<|start_of_role|>' + message['role'] + '<|end_of_role|>' + (message['content'] or '') + '<|end_of_text|>\n' -}}
+{%- endif -%}
+{%- if loop.last and add_generation_prompt -%}{{- '<|start_of_role|>assistant<|end_of_role|>' -}}{%- endif -%}
+{%- endfor -%}
+"""
+TEMPLATES = {"GRANITE_TEMPLATE": GRANITE_TEMPLATE}
+
+
+def server_command(spec, model_path, template_dir="/kaggle/working"):
     cmd = [sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", model_path,
            "--served-model-name", MODEL, "--tensor-parallel-size", "2", "--max-model-len", str(spec.get("max_model_len", MAX_MODEL_LEN)),
            "--enable-auto-tool-choice", "--enable-prefix-caching", "--gpu-memory-utilization", spec.get("gpu_memory_utilization", "0.92"),
            "--generation-config", "auto", "--port", str(PORT)] + spec["args"]  # fmt: skip
+    if spec.get("chat_template"):
+        path = os.path.join(template_dir, "ol1_chat_template.jinja")
+        with open(path, "w") as f:
+            f.write(TEMPLATES[spec["chat_template"]])
+        cmd += ["--chat-template", path]
+    return cmd
+
+
+SELF_CHECK_TOOL = {
+    "name": "record_value",
+    "description": "Record a number. Call it when asked to record a number.",
+    "input_schema": {
+        "type": "object",
+        "properties": {"value": {"type": "integer", "description": "The number."}},
+        "required": ["value"],
+        "additionalProperties": False,
+    },
+}
+
+
+def self_check(backend, attempts=3):
+    """Before any episode: a request with a system message and one trivial tool must come back as a parsed
+    tool call (up to three tries). Otherwise print OL1FAIL tool_calling with the raw replies; the caller
+    stops the run."""
+    raws = []
+    for _ in range(attempts):
+        t = backend.complete(
+            "You operate a recorder. Use the tools you are given.",
+            [SELF_CHECK_TOOL],
+            [
+                {
+                    "role": "user",
+                    "content": "Record the number 7 with the record_value tool.",
+                }
+            ],
+        )
+        calls = [
+            b
+            for b in t["content"]
+            if b.get("type") == "tool_use" and b.get("name") == "record_value"
+        ]
+        if calls and calls[0].get("input", {}).get("value") == 7:
+            stage("tool_check_ok", reply=calls[0]["input"], tries=len(raws) + 1)
+            return True
+        raws.append({k: t.get(k) for k in ("stop_reason", "content", "error")})
+    print("OL1FAIL tool_calling " + json.dumps(raws)[:4000], flush=True)
+    return False
+
+
+def start_server(spec, model_path):
+    cmd = server_command(spec, model_path)
     log = open(SERVER_LOG, "w")  # noqa: SIM115  kept open for the server's lifetime
     proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
     stage("server_start")
@@ -1602,6 +1691,9 @@ def main():
                 r = json.loads(line)
                 done.add((r["mode"], r["seed"], r["condition"], r["arm"]))
     backend = OpenAIBackend(MODEL, max_tokens=spec.get("max_tokens", MAX_TOKENS))
+    if not self_check(backend):
+        proc.terminate()
+        raise SystemExit("tool calling failed the self-check; no episode was run")
     lock = threading.Lock()
     header = {"model": MODEL, "repo": spec["repo"], "revision": spec["revision"], "vllm": VLLM_VERSION,
               "max_tokens": backend.max_tokens, "source": meta.get("source"), "core_digest": CORE_DIGEST}  # fmt: skip
