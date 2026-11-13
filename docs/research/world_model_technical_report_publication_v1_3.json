@@ -58,6 +58,6 @@
     "checksum_verification_method": "Zenodo API MD5 and byte size matched the local PDF; the downloaded public file's SHA-256 equals the locked PDF",
     "citation_pagination": "1-19",
     "dataset_relation": "publicly verified: isSupplementedBy 10.5281/zenodo.21829193 (DOI, Dataset)",
-    "orcid_work_updated": "not updated or checked by this record; the author maintains ORCID"
+    "orcid_work_updated": "0009-0009-1434-7148 now cites version DOI 10.5281/zenodo.24189855 (added 2026-11-13; checked through the public ORCID API)"
   }
 }
