@@ -54,6 +54,8 @@ FROGS = ("frog_cap", "frog_cap_98", "frog_cap_99", "frog_cap_995")
 PLAN = {
     "D": {"campaigns": ("control",) + FROGS, "attacks": False},
     "B": {"campaigns": ("control", "loud", "subl_cap") + FROGS, "attacks": True},
+    # amendment 5: configuration B rerun with the corrected Gaussian-tail reading and the explicit campaign
+    "B5": {"campaigns": ("control", "loud", "subl_cap") + FROGS, "attacks": True},
 }
 BISECT_HALVINGS = 12
 
@@ -244,6 +246,77 @@ def parameter(cfg, mode, key):
     return state["chosen"]
 
 
+# ------------------------------------------------------------------ one campaign
+def not_placed_reason(tau):
+    """Why a score relative to this reading cannot be placed, or None when it can."""
+    if isinstance(tau, A.NoAlarm):
+        return f"no alarming score above the current level up to {tau.cap:g}"
+    if tau == math.inf:
+        return "reading is infinite (the adapter reports no alarming score)"
+    if tau == -math.inf:
+        return "reading is minus infinity (every score alarms)"
+    if not math.isfinite(tau):
+        return "reading is not a number"
+    return None
+
+
+def campaign(t, s, end, mode, K, tau0, stats):
+    """tw1a's campaign (`tw1a_score_level_dev.campaign`, the tt1d placement) with one change (amendment 5):
+    where the frog or the sub-event pulses need the target's reading and the reading is not finite, the
+    score is left as recorded and the step is counted as not placed, with the reason. tw1a's version put
+    tau0 in place of the reading without saying so. This is the campaign to use from tw1b on; tw1a's stays
+    as it was because tw1a's and tw1c's results were produced with it."""
+    c_start, c_end = end - K["lead"] - K["campaign"], end - K["lead"]
+    alarm = np.zeros(K["campaign"], bool)
+    cap, injected = K["loud"][2] * tau0, 0.0
+    not_placed, reasons = 0, {}
+    for i in range(c_start, c_end):
+        x = float(s[i])
+        if not math.isfinite(x):
+            continue
+        k, tau, lift = i - c_start, None, None
+        if mode == "frog_cap":
+            tau = t.tau()
+            lift = K["frog_frac"] * tau
+        elif mode == "loud":
+            if k % K["loud"][0] < K["loud"][1]:
+                lift = K["loud"][2] * tau0
+        elif mode == "subl_cap" and k % K["subl"][0] < K["subl"][1]:
+            tau = t.tau()
+            lift = K["subl"][2] * tau
+        elif mode not in ("control", "frog_cap", "loud", "subl_cap"):
+            raise ValueError(
+                f"campaign {mode!r} is not run from tw1b on (amendment 3: capped only)"
+            )
+        why = None if tau is None else not_placed_reason(tau)
+        if why is not None:
+            not_placed += 1
+            reasons[why] = reasons.get(why, 0) + 1
+            lift = None
+        if lift is not None:
+            lift = min(lift, cap)
+            if lift > x:
+                x, injected = lift, max(injected, lift)
+        alarm[k] = T.step(t, x, i, stats, tau)
+    out = {
+        "largest_injected_over_tau0": injected / tau0,
+        "not_placed_steps": not_placed,
+        "not_placed_reasons": reasons,
+        "alarm_steps": int(alarm.sum()),
+        "alarm_episodes": len(T.episodes(alarm, K["gap"])),
+        "reading_at_campaign_end": T.reading(t, tau0),
+        "hits_lead0": T.terminal(t, s, c_end, K, tau0, stats),
+    }
+    lead_alarm = T.feed(t, s[c_end:end], stats, c_end)
+    out.update(
+        {
+            "reading_at_terminal": T.reading(t, tau0),
+            "hits": T.terminal(t, s, end, K, tau0, stats),
+        }
+    )
+    return out, alarm, lead_alarm
+
+
 # ------------------------------------------------------------------ one part
 def run(cfg, mode, history, key):
     part = OUT / "parts" / f"{cfg}_mode{mode}_{history}_{key}.json"
@@ -291,7 +364,7 @@ def run(cfg, mode, history, key):
                     continue
                 Kc = dict(K, frog_frac=frac) if frac is not None else K
                 u = t.clone()
-                res, during, lead = T.campaign(u, s, end, base, Kc, tau0, stats)
+                res, during, lead = campaign(u, s, end, base, Kc, tau0, stats)
                 if c == "control":
                     after = T.feed(u, s[end:], stats, end)
                     whole = np.concatenate([before, during, lead, after])

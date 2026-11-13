@@ -42,6 +42,68 @@ def bisect_tau(would_alarm, lo=0.0, hi=HIGH, iters=80):
     return lo
 
 
+class NoAlarm(float):
+    """A reading that says explicitly that no score above the current level, up to `cap`, alarms. Its float
+    value is infinity, so `math.isfinite` is False and "score > reading" is never true. Code that places
+    scores relative to a reading must check for it and must not put another value in its place."""
+
+    def __new__(cls, cap):
+        obj = float.__new__(cls, math.inf)
+        obj.cap = cap
+        return obj
+
+    def __repr__(self):
+        return f"NoAlarm(cap={self.cap!r})"
+
+
+GOLDEN = (math.sqrt(5) - 1) / 2
+# Width, in log(score - level), of the smallest alarm band the search is guaranteed to find.
+BAND_RESOLUTION = 1e-12
+
+
+def band_reading(would, height, level, cap=HIGH, resolution=BAND_RESOLUTION):
+    """The alarm band above `level` of a decision that need not be monotone in the score.
+
+    `would(v)` is the target's own decision for a candidate score v. `height(v)` is the statistic it
+    thresholds, assumed unimodal in v above `level` (true of the Gaussian-tail z-score, a ratio of a linear
+    function to the square root of a quadratic one). Its maximum is located by golden-section search on
+    log(v - level) between log(1e-12 max(1, |level|)) and log(cap - level), down to a bracket of width
+    `resolution`. Any band of alarming scores that is at least `resolution` wide in log(v - level) contains
+    the final bracket's best point, so it cannot be stepped over.
+
+    Returns (tau, high): tau is the largest non-alarming score below the band and high the largest alarming
+    score (infinity when the band reaches `cap`). Returns (NoAlarm(cap), None) when no score in
+    (level, cap] alarms."""
+    a = math.log(max(1.0, abs(level)) * 1e-12)
+    b = math.log(cap - level)
+    x1, x2 = b - GOLDEN * (b - a), a + GOLDEN * (b - a)
+    h1, h2 = height(level + math.exp(x1)), height(level + math.exp(x2))
+    while b - a > resolution:
+        if h1 < h2:
+            a, x1, h1 = x1, x2, h2
+            x2 = a + GOLDEN * (b - a)
+            h2 = height(level + math.exp(x2))
+        else:
+            b, x2, h2 = x2, x1, h1
+            x1 = b - GOLDEN * (b - a)
+            h1 = height(level + math.exp(x1))
+    best = x1 if h1 >= h2 else x2
+    peak = next(
+        (
+            level + math.exp(x)
+            for x in (best, x1, x2, a, b)
+            if would(level + math.exp(x))
+        ),
+        None,
+    )
+    if peak is None:
+        return NoAlarm(cap), None
+    tau = bisect_tau(would, level, peak)
+    if would(cap):
+        return tau, math.inf
+    return tau, peak + bisect_tau(lambda d: not would(peak + d), 0.0, cap - peak)
+
+
 class Target:
     name = "target"
     doc = ""  # where the configuration comes from
@@ -220,20 +282,33 @@ class PysadGaussian(Target):
             m.statistic.remove(meter.window[0])
         return m
 
-    def _would(self, x, prev):
+    def _shadow(self, x, prev):
         shadow = copy.copy(self.g)
         shadow.avg_meter = self._after(self.g.avg_meter, x)
         shadow.var_meter = self._after(self.g.var_meter, x)
         window = prev + [
             x
         ]  # summed as the target sums its short window (Python compensates float sums)
-        return shadow._calibrate(sum(window) / len(window)) >= self.cut
+        return shadow, sum(window) / len(window)
+
+    def _would(self, x, prev):
+        shadow, short_mean = self._shadow(x, prev)
+        return shadow._calibrate(short_mean) >= self.cut
+
+    def _z(self, x, prev):
+        """The standardised distance that the target turns into its probability; the band search climbs it."""
+        shadow, short_mean = self._shadow(x, prev)
+        var = shadow.var_meter.get()
+        diff = short_mean - shadow.avg_meter.get()
+        if var <= 0:
+            return math.copysign(math.inf, diff) if diff else 0.0
+        return diff / math.sqrt(var)
 
     def tau(self):
         g = self.g
         self.high, self.point = math.inf, None
         if not g.short_window or not g.running_statistics:
-            return math.inf
+            return NoAlarm(HIGH)
         prev = (
             list(g.short_window)[-(g.short_window_size - 1) :]
             if g.short_window_size > 1
@@ -267,18 +342,14 @@ class PysadGaussian(Target):
                 return -math.inf
             hit, centre = centre, below
         else:
-            # While the long window is short, a large score raises its own deviation and the alarming scores
-            # form a narrow band above the mean, so the search upward goes in steps of 5%.
-            hit = next(
-                (
-                    centre + unit * 1.05**k
-                    for k in range(-40, 700)
-                    if would(centre + unit * 1.05**k)
-                ),
-                None,
-            )
-        if hit is None:
-            return math.inf
+            # The decision is not monotone in the score: the score enters the long window before it is judged,
+            # so a large score raises its own deviation, and at strict cuts the alarming scores form a narrow
+            # band above the mean (tw1b found bands narrower than a 5% grid step). The band is located by
+            # climbing the target's own z-score, which is unimodal above the mean (fi2 tw1b, amendment 5).
+            tau, high = band_reading(would, lambda v: self._z(v, prev), centre, HIGH)
+            if high is not None:
+                self.high = high
+            return tau
         if not would(HIGH):
             # a window that is not yet full: a very large score raises its own deviation enough not to alarm
             self.high = hit + bisect_tau(lambda d: not would(hit + d), 0.0, HIGH - hit)

@@ -4,6 +4,7 @@ planner against the authors' script (when its copy and dependencies are present)
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import tw1_adapters as A
 import tw1b_batch as batch
 import tw1b_score_level_dev as B
 import tw1b_spot_authors as SP
@@ -118,3 +120,131 @@ def test_batch_jobs_and_done_status(tmp_path):
     assert batch.done_status(f)
     f.write_text("{", encoding="utf-8")
     assert not batch.done_status(f)
+
+
+# ------------------------------------------------------------------ amendment 5: the band reading
+LEVEL, UNIT = 10.0, 0.5
+
+
+def _band(centre_log, half_width):
+    """A synthetic calibrator above LEVEL: its statistic peaks at log(v - LEVEL) = centre_log and it alarms
+    only where log(v - LEVEL) lies within half_width of the peak."""
+
+    def height(v):
+        return -((math.log(v - LEVEL) - centre_log) ** 2) if v > LEVEL else -math.inf
+
+    def would(v):
+        return v > LEVEL and abs(math.log(v - LEVEL) - centre_log) <= half_width
+
+    return would, height
+
+
+def _old_grid_hits(would):
+    """The search of tw1a's Gaussian-tail reading: LEVEL + UNIT * 1.05**k for k in -40..699."""
+    return [k for k in range(-40, 700) if would(LEVEL + UNIT * 1.05**k)]
+
+
+@pytest.mark.parametrize("half_width", [1e-3, 1e-6, 1e-10])
+def test_band_reading_finds_a_band_the_old_grid_steps_over(half_width):
+    # the band sits half-way between two points of the old 5% grid, and is far narrower than one step
+    centre_log = math.log(UNIT * 1.05**10.5)
+    would, height = _band(centre_log, half_width)
+    assert _old_grid_hits(would) == []
+    tau, high = A.band_reading(would, height, LEVEL, cap=1e12)
+    lo_edge = LEVEL + math.exp(centre_log - half_width)
+    hi_edge = LEVEL + math.exp(centre_log + half_width)
+    # the edges are bisected to 1e-13 relative (tw1_adapters.bisect_tau)
+    assert not would(tau) and would(tau * (1 + 2e-13))
+    assert tau == pytest.approx(lo_edge, rel=1e-12)
+    assert high == pytest.approx(hi_edge, rel=1e-12)
+    assert would(high) and not would(high * (1 + 2e-13))
+
+
+def test_band_resolution_is_the_stated_one():
+    # a band as wide as the stated resolution is still found
+    centre_log = math.log(UNIT * 1.05**200.5)
+    would, height = _band(centre_log, A.BAND_RESOLUTION / 2)
+    tau, high = A.band_reading(would, height, LEVEL, cap=1e12)
+    assert math.isfinite(tau) and high is not None
+
+
+def test_band_reading_says_explicitly_when_nothing_alarms():
+    would = lambda v: False  # noqa: E731
+    tau, high = A.band_reading(would, lambda v: -abs(v - 50.0), LEVEL, cap=1e12)
+    assert isinstance(tau, A.NoAlarm) and tau.cap == 1e12 and high is None
+    assert not math.isfinite(tau) and not 1e300 > tau
+
+
+def test_band_reading_on_a_half_line():
+    tau, high = A.band_reading(lambda v: v > 37.5, lambda v: v, LEVEL, cap=1e12)
+    assert tau == pytest.approx(37.5, rel=1e-12) and high == math.inf
+
+
+# ------------------------------------------------------------------ amendment 5: no silent substitute
+class _Quiet(A.Target):
+    """A target with a fixed reading that alarms exactly on scores above it (never, for an infinite one)."""
+
+    name = "quiet"
+
+    def __init__(self, reading):
+        self.reading = reading
+
+    def step(self, x):
+        return x > self.reading
+
+    def tau(self):
+        return self.reading
+
+
+K_SMALL = {
+    "lead": 3,
+    "campaign": 8,
+    "terminal": 2,
+    "mags": [1.05, 2.0],
+    "loud": [4, 1, 2.0],
+    "subl": [4, 1, 2.0],
+    "gap": 1,
+    "frog_frac": 0.97,
+}
+
+
+@pytest.mark.parametrize(
+    "reading, reason",
+    [
+        (A.NoAlarm(1e12), "no alarming score above the current level up to 1e+12"),
+        (math.inf, "reading is infinite"),
+        (-math.inf, "minus infinity"),
+    ],
+)
+@pytest.mark.parametrize("mode, expected", [("frog_cap", 8), ("subl_cap", 2)])
+def test_campaign_records_unplaced_steps_and_never_substitutes(
+    reading, reason, mode, expected
+):
+    s = np.full(20, 1.0)
+    stats = B.new_stats()
+    res, during, _ = B.campaign(_Quiet(reading), s, 15, mode, K_SMALL, 10.0, stats)
+    assert res["not_placed_steps"] == expected
+    assert (
+        res["largest_injected_over_tau0"] == 0.0
+    )  # nothing was injected in place of the reading
+    (why,) = res["not_placed_reasons"]
+    assert reason in why and res["not_placed_reasons"][why] == expected
+    # the consistency check ran against the target's own decision on every step
+    assert stats["checked"] >= expected
+    assert during.all() if reading == -math.inf else not during.any()
+
+
+def test_campaign_places_the_frog_on_a_finite_reading():
+    stats = B.new_stats()
+    res, _, _ = B.campaign(
+        _Quiet(5.0), np.full(20, 1.0), 15, "frog_cap", K_SMALL, 10.0, stats
+    )
+    assert res["not_placed_steps"] == 0
+    assert res["largest_injected_over_tau0"] == pytest.approx(0.97 * 5.0 / 10.0)
+
+
+def test_campaign_refuses_uncapped_modes():
+    with pytest.raises(ValueError):
+        B.campaign(
+            _Quiet(5.0), np.full(20, 1.0), 15, "frog", K_SMALL, 10.0, B.new_stats()
+        )
