@@ -191,7 +191,10 @@ REQUIRED_SOURCE_PHRASES = [
     "OS FPR rises by 1.00 point [0.45, 1.59]",
     "All 48 retained-catalog checks pass",
     "implements neither Dream-RSI's replay-policy optimization nor a controlled RSI ablation",
-    "This version is archived on Zenodo under version DOI 10.5281/zenodo.23473173",
+    "This version is archived on Zenodo under version DOI 10.5281/zenodo.24189826",
+    "Version 1.3 is archived on Zenodo under version DOI 10.5281/zenodo.23473173",
+    "DOI: 10.5281/zenodo.24189826 | CC BY 4.0",
+    "at tag `prediction-is-not-permission-v1.4`",
     "### Declarations",
     "This work received no external funding.",
     "The primary contribution is an evaluation method, not a new JEPA objective.",
@@ -352,6 +355,35 @@ VERSION_SUBSTITUTIONS = (
         "verify_cross_domain_world_model_paper_v1_4.py",
     ),
     ("execute the v1.3 paper verifier", "execute the v1.4 paper verifier"),
+    # The release identifiers of v1.4 (version DOI reserved on 2026-11-12, tag), as v1.3 named its own.
+    (
+        "DOI: 10.5281/zenodo.23473173 | CC BY 4.0",
+        "DOI: 10.5281/zenodo.24189826 | CC BY 4.0",
+    ),
+    (
+        "This version is archived on Zenodo under version DOI 10.5281/zenodo.23473173, shares",
+        "Version 1.3 is archived on Zenodo under version DOI 10.5281/zenodo.23473173, shares",
+    ),
+    (
+        "Technical Report v1.3 is intended to be archived together",
+        "Technical Report v1.4 is intended to be archived together",
+    ),
+    (
+        "The version DOI 10.5281/zenodo.23473173 was reserved on a Zenodo draft before this build and identifies this version only; v1.2 keeps",
+        "The version DOI 10.5281/zenodo.24189826 was reserved on a Zenodo draft before this build and identifies this version only; v1.3 keeps 10.5281/zenodo.23473173, v1.2 keeps",
+    ),
+    (
+        "This version is archived on Zenodo with version DOI 10.5281/zenodo.23473173; the all-versions DOI",
+        "This version is archived on Zenodo with version DOI 10.5281/zenodo.24189826; the all-versions DOI",
+    ),
+    (
+        "Technical Report v1.3, Zenodo, 2026. https://doi.org/10.5281/zenodo.23473173",
+        "Technical Report v1.4, Zenodo, 2026. https://doi.org/10.5281/zenodo.24189826",
+    ),
+    (
+        "at tag `prediction-is-not-permission-v1.3`: https",
+        "at tag `prediction-is-not-permission-v1.4`: https",
+    ),
 )
 V1_4_PHRASES = [
     "### Changes in version 1.4",
@@ -1712,9 +1744,11 @@ def main() -> None:
         "author": "Vyom Kulshrestha",
         "orcid": "0009-0009-1434-7148",
         "release": {
-            "status": "prepublication v1.4 candidate; no version DOI reserved and no repository tag; v1.3 (10.5281/zenodo.23473173) and v1.2 (10.5281/zenodo.23469363) remain retained",
+            "status": "published v1.4 (Zenodo version DOI 10.5281/zenodo.24189826); v1.3 (10.5281/zenodo.23473173) and v1.2 (10.5281/zenodo.23469363) remain retained",
             "evidence_snapshot_commit": EVIDENCE_SNAPSHOT_COMMIT,
+            "repository_tag": "prediction-is-not-permission-v1.4",
             "dataset_doi": "10.5281/zenodo.23473185",
+            "version_doi": "10.5281/zenodo.24189826",
             "predecessor_version_doi": "10.5281/zenodo.23473173",
         },
         "artifacts": {

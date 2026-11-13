@@ -22,7 +22,7 @@
     },
     "fi1_audit_report": {
       "path": "docs/research/ferrumos_improvement_fi1_report.md",
-      "sha256": "64e221d1966f1b9851ddecd24855b1950d74886f6081652fed5f0fcd8ac1c324"
+      "sha256": "745b088406bcd9178e5d13a375759877ac2a3c3dfb6edf87b25930920007b300"
     },
     "fi1_pipeline_round1": {
       "path": "docs/research/fi1_reports/pipeline_round1.md",
@@ -154,7 +154,7 @@
     },
     "manuscript": {
       "path": "docs/research/paper/prediction_is_not_permission_technical_report_v1_4.md",
-      "sha256": "4b646de9a8b00eb322331620fc26a8f62d3b28748dc424935736c7da13723a86"
+      "sha256": "69878474e4907183fcfd8f7b7062e3c0b214469b43ca63fa4c34eeccb309dcf8"
     },
     "output_ablation_failed_attempt": {
       "path": "docs/research/physical_jepa_safety_gymnasium_output_ablation_failed_attempt_v1.json",
@@ -190,12 +190,12 @@
     },
     "paper_verifier": {
       "path": "scripts/verify_cross_domain_world_model_paper_v1_4.py",
-      "sha256": "d83e507411532280913056c5347b492df676edd72b11da4da53cf9d308278be0"
+      "sha256": "945f523cb6e73811206aa5ab4cf5c69431093abcb1ef0a664dba6a90622b6b3a"
     },
     "pdf": {
-      "pages": 52,
+      "pages": 53,
       "path": "docs/research/paper/Prediction_Is_Not_Permission_Technical_Report_v1.4.pdf",
-      "sha256": "df60f46390331d82e29e7b1a9a2825a6e6979071cfcffa00a34a873d2137ed0c"
+      "sha256": "ec9913d7a08614d35b006041598600fbf2ef48fb4cdbd12488435ab0568d12b4"
     },
     "posthoc_sensitivity_result": {
       "path": "docs/research/cross_domain_world_model_posthoc_sensitivity_result_v1.json",
@@ -342,7 +342,9 @@
     "dataset_doi": "10.5281/zenodo.23473185",
     "evidence_snapshot_commit": "cd1054e5c4f85b2ec92c0ce4048f4b3fabf7783f",
     "predecessor_version_doi": "10.5281/zenodo.23473173",
-    "status": "prepublication v1.4 candidate; no version DOI reserved and no repository tag; v1.3 (10.5281/zenodo.23473173) and v1.2 (10.5281/zenodo.23469363) remain retained"
+    "repository_tag": "prediction-is-not-permission-v1.4",
+    "status": "published v1.4 (Zenodo version DOI 10.5281/zenodo.24189826); v1.3 (10.5281/zenodo.23473173) and v1.2 (10.5281/zenodo.23469363) remain retained",
+    "version_doi": "10.5281/zenodo.24189826"
   },
   "report_version": "1.4",
   "schema": "cross-domain-world-model-paper-freeze-v1-4",
