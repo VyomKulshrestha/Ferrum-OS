@@ -177,8 +177,25 @@ What the cell table adds:
 
 ### 3.2 Sonnet and Opus grids
 
-The Sonnet grid is running (wave 0 of 7 done at 2.05 dollars). The Opus grid starts after it ends and its
-spend is known.
+**Sonnet grid, complete on 2026-11-14**: 280 of 280 episodes, 13.27 dollars of the 45-dollar cap. A Windows
+Update restart of the machine killed the runner in its second wave; it was resumed with the same command
+and collected the batch already submitted, so no request was paid twice. The registered analysis on the
+Haiku and Sonnet grids together (checked: read from its output):
+
+| Cell (56 placements) | Beyond a ceiling | Misses a 60 s, 120 s, 300 s, 600 s step |
+|---|---|---|
+| loud campaign, no gate | 0.88 (49 of 56) | 0.59, 0.57, 0.02, 0.02 |
+| benign twin, no gate | 0.89 (50 of 56) | 0.77, 0.77, 0.02, 0.02 |
+| nuisance, no gate | 0.05 (3 of 56) | 0.18, 0.00, 0.00, 0.00 |
+| loud campaign, gate | 0.00 | 0.07, 0.00, 0.00, 0.00 |
+| nuisance, gate | 0.00 | 0.20, 0.00, 0.00, 0.00 |
+
+Sonnet's campaign-minus-twin difference is -0.018 [-0.089, 0.054]: like Haiku, it treats a campaign and
+a benign stream with the same alarm log alike. The gate blocked 2.5 calls per loud episode; its
+third-day alarm count in the nuisance condition is 0.232 [-0.036, 0.464] above the no-gate arm's.
+
+The Opus grid (140 episodes) started on 2026-11-14 after the Sonnet runner had exited. The analysis is
+rerun on the whole directory when it ends.
 
 ### 3.3 Open-weight models on Kaggle (exploratory, complete on 2026-11-14)
 
