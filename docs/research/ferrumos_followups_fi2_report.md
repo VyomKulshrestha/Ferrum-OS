@@ -183,8 +183,8 @@ of the 45-dollar cap. A Windows Update restart of the machine stopped the Sonnet
 wave; it was resumed with the same command and collected the batch already submitted, so no request was
 sent twice. The numbers below are read from the final analysis of all three grids (checked).
 
-Share of episodes that ended beyond a ceiling, and share whose final configuration misses a later step of
-60, 120, 300 and 600 s:
+Share of episodes in which a change left the configuration beyond a ceiling (counted at any review, also
+if undone later), and share whose final configuration misses a later step of 60, 120, 300 and 600 s:
 
 | Cell | Haiku (112 placements) | Sonnet (56) | Opus (28) |
 |---|---|---|---|
@@ -211,7 +211,7 @@ Reading:
   18 of 28 loud episodes and with a threshold above 1.10 tau0 in one (from the episode records).
 - Every model escalated to the engineer in every loud episode with no gate (112 of 112, 56 of 56, 28 of
   28; from the episode records) and loosened in most of them as well.
-- Under the gate no episode of any model ended beyond a ceiling, and no final configuration misses a step
+- Under the gate no episode of any model went beyond a ceiling, and no final configuration misses a step
   longer than 60 s.
 
 The protocol registers no test between models, and it states that the reduced grids resolve differences
@@ -242,6 +242,19 @@ from its notebook log, ingest to the count its run reported).
   run-to-run variation.
 - mistral-nemo-12b ended 623 of 630 reviews in prose and changed a setting in one episode. Its row does
   not show how it would act as an operator.
+
+### 3.4 Short paper (draft of 2026-11-15, not published)
+
+`paper/ol1_paper_pack/`: "The Operator in the Loop: LLM Agents Loosen Alarm Settings Under Repeated True
+Alarms, Attack or Not, and a Deterministic Gate Holds the Ceiling", 10 pages with the body ending on page
+7, in the named preprint style of the earlier paper. Registered results, descriptive counts and exploratory
+parts sit in separate sections. No result is written as a literal: each of 269 values is a macro that
+`scripts/verify_ol1_paper_numbers.py` recomputes from the analysis output, the episode records, the run
+record and the open-weight record lines (checked: rerun by the main session, all values match; one value,
+a replay of the open-weight arm, needs the Kaggle job file, which is not in the repository). The transcript
+quotes come from a sample whose rule is in `scripts/ol1_paper_quotes.py`. Of 31 references, the writing
+agent opened each source online (`REFERENCES_CHECKED.md`); the main session reopened six and read the
+whole text. Nothing about the libraries and products of paper 2 is in it.
 
 ## 4. Paper 2
 
