@@ -1,0 +1,271 @@
+% Every number of the ol1 paper that comes from the study. Written by
+% scripts/verify_ol1_paper_numbers.py --write; checked by the same script without --write.
+\newcommand{\VCeilThr}{1.10}
+\newcommand{\VCeilDelay}{60}
+\newcommand{\VCeilSup}{0.5}
+\newcommand{\VAddedCeil}{61.2}
+\newcommand{\VStep}{3.6}
+\newcommand{\VReviews}{9}
+\newcommand{\VMaxCalls}{6}
+\newcommand{\VLoudSteps}{33}
+\newcommand{\VSublSteps}{12}
+\newcommand{\VFrogFrac}{0.97}
+\newcommand{\VGap}{17}
+\newcommand{\VLogRows}{40}
+\newcommand{\VEpisodes}{2,772}
+\newcommand{\VEpHaiku}{2,352}
+\newcommand{\VEpSonnet}{280}
+\newcommand{\VEpOpus}{140}
+\newcommand{\VCampEp}{224}
+\newcommand{\VGEp}{784}
+\newcommand{\VHoneB}{0.821}
+\newcommand{\VHoneBci}{[0.772, 0.866]}
+\newcommand{\VMSixty}{0.817}
+\newcommand{\VMSixtyci}{[0.768, 0.862]}
+\newcommand{\VMOneTwenty}{0.371}
+\newcommand{\VMOneTwentyci}{[0.299, 0.438]}
+\newcommand{\VMThreeHundred}{0.085}
+\newcommand{\VMThreeHundredci}{[0.058, 0.121]}
+\newcommand{\VMSixHundred}{0.062}
+\newcommand{\VMSixHundredci}{[0.031, 0.094]}
+\newcommand{\VMOhFive}{0.268}
+\newcommand{\VMOhFiveci}{[0.156, 0.384]}
+\newcommand{\VDelMed}{61.2}
+\newcommand{\VDelPninety}{180.0}
+\newcommand{\VDelShare}{0.455}
+\newcommand{\VDelShareci}{[0.393, 0.509]}
+\newcommand{\VHtwo}{0.696}
+\newcommand{\VHtwoci}{[0.625, 0.768]}
+\newcommand{\VHtwocininety}{[0.638, 0.759]}
+\newcommand{\VHtwoPos}{7}
+\newcommand{\VNuisB}{0.125}
+\newcommand{\VNuisBci}{[0.080, 0.179]}
+\newcommand{\VHthreeLoud}{0.000}
+\newcommand{\VHthreeLoudci}{[0.000, 0.000]}
+\newcommand{\VHthreeLoudPos}{0}
+\newcommand{\VHthreeLoudNeg}{0}
+\newcommand{\VHthreeLoudZero}{7}
+\newcommand{\VHthreeSubl}{0.018}
+\newcommand{\VHthreeSublci}{[$-$0.152, 0.170]}
+\newcommand{\VHthreeSublPos}{4}
+\newcommand{\VHthreeSublNeg}{3}
+\newcommand{\VHthreeSublZero}{0}
+\newcommand{\VHthreeFrog}{0.009}
+\newcommand{\VHthreeFrogci}{[0.000, 0.027]}
+\newcommand{\VHthreeFrogPos}{1}
+\newcommand{\VHthreeFrogNeg}{0}
+\newcommand{\VHthreeFrogZero}{6}
+\newcommand{\VHfourM}{0.062}
+\newcommand{\VHfourMci}{[0.027, 0.098]}
+\newcommand{\VHfourMtwo}{0.357}
+\newcommand{\VHfourMtwoci}{[0.304, 0.420]}
+\newcommand{\VHfourB}{0.839}
+\newcommand{\VHfourBci}{[0.786, 0.884]}
+\newcommand{\VHfourMcininety}{[0.036, 0.089]}
+\newcommand{\VHfourMPos}{5}
+\newcommand{\VHfourMZero}{2}
+\newcommand{\VHfourPlace}{56}
+\newcommand{\VGMisses}{0}
+\newcommand{\VGMSixty}{0.674}
+\newcommand{\VGMSixtyci}{[0.585, 0.750]}
+\newcommand{\VGMLonger}{0.000}
+\newcommand{\VGDelPninety}{61.2}
+\newcommand{\VGDelShare}{0.000}
+\newcommand{\VFaDiff}{$-$0.196}
+\newcommand{\VFaDiffci}{[$-$0.473, 0.045]}
+\newcommand{\VFaDiffPos}{3}
+\newcommand{\VFaDiffNeg}{3}
+\newcommand{\VFaDiffZero}{1}
+\newcommand{\VFaPzero}{0.96}
+\newcommand{\VFaG}{0.77}
+\newcommand{\VBlocked}{1,385}
+\newcommand{\VAfterEsc}{1,250}
+\newcommand{\VAfterClose}{60}
+\newcommand{\VAfterDelay}{48}
+\newcommand{\VAfterThr}{26}
+\newcommand{\VSixHaikuLT}{0.000}
+\newcommand{\VSixHaikuLTci}{[0.000, 0.000]}
+\newcommand{\VSixHaikuLTsigns}{0/0/7}
+\newcommand{\VSixHaikuFa}{$-$0.196}
+\newcommand{\VSixHaikuFaci}{[$-$0.473, 0.045]}
+\newcommand{\VSixHaikuB}{1.000}
+\newcommand{\VSixHaikuBci}{[1.000, 1.000]}
+\newcommand{\VSixHaikuMSixty}{0.830}
+\newcommand{\VSixHaikuMOneTwenty}{0.580}
+\newcommand{\VSixHaikuMThreeHundred}{0.098}
+\newcommand{\VSixHaikuMSixHundred}{0.054}
+\newcommand{\VSixHaikuDelMed}{151.2}
+\newcommand{\VSixHaikuDelShare}{0.607}
+\newcommand{\VSixHaikuBG}{0.000}
+\newcommand{\VSixSonnetLT}{$-$0.018}
+\newcommand{\VSixSonnetLTci}{[$-$0.089, 0.054]}
+\newcommand{\VSixSonnetLTsigns}{2/3/2}
+\newcommand{\VSixSonnetFa}{0.232}
+\newcommand{\VSixSonnetFaci}{[$-$0.036, 0.464]}
+\newcommand{\VSixSonnetB}{0.875}
+\newcommand{\VSixSonnetBci}{[0.804, 0.946]}
+\newcommand{\VSixSonnetMSixty}{0.589}
+\newcommand{\VSixSonnetMOneTwenty}{0.571}
+\newcommand{\VSixSonnetMThreeHundred}{0.018}
+\newcommand{\VSixSonnetMSixHundred}{0.018}
+\newcommand{\VSixSonnetDelMed}{126.0}
+\newcommand{\VSixSonnetDelShare}{0.589}
+\newcommand{\VSixSonnetBG}{0.000}
+\newcommand{\VSixOpusLT}{0.071}
+\newcommand{\VSixOpusLTci}{[$-$0.179, 0.286]}
+\newcommand{\VSixOpusLTsigns}{4/2/1}
+\newcommand{\VSixOpusFa}{0.071}
+\newcommand{\VSixOpusFaci}{[0.000, 0.179]}
+\newcommand{\VSixOpusB}{0.679}
+\newcommand{\VSixOpusBci}{[0.500, 0.821]}
+\newcommand{\VSixOpusMSixty}{0.643}
+\newcommand{\VSixOpusMOneTwenty}{0.607}
+\newcommand{\VSixOpusMThreeHundred}{0.000}
+\newcommand{\VSixOpusMSixHundred}{0.000}
+\newcommand{\VSixOpusDelMed}{151.2}
+\newcommand{\VSixOpusDelShare}{0.643}
+\newcommand{\VSixOpusBG}{0.000}
+\newcommand{\VGateDecision}{own short paper}
+\newcommand{\VGateBupper}{0.866}
+\newcommand{\VGateMupper}{0.438}
+\newcommand{\VTabSublPtwoFa}{47.43}
+\newcommand{\VTabSublPzeroFa}{13.15}
+\newcommand{\VTabLoudPtwoFa}{12.96}
+\newcommand{\VTabLoudPzeroFa}{6.88}
+\newcommand{\VTabLoudGFa}{12.27}
+\newcommand{\VTabLoudPoneMOhFive}{0.93}
+\newcommand{\VTabLoudGMOhFive}{0.60}
+\newcommand{\VTabLoudPzeroMOhFive}{0.41}
+\newcommand{\VTabLoudPzeroB}{1.00}
+\newcommand{\VTabSublPzeroB}{0.64}
+\newcommand{\VPolBmax}{0.04}
+\newcommand{\VPolBmin}{0.00}
+\newcommand{\VBlkHaiku}{5.05}
+\newcommand{\VBlkSonnet}{2.50}
+\newcommand{\VBlkOpus}{0.93}
+\newcommand{\VSixSonnetTwinB}{0.89}
+\newcommand{\VSixOpusTwinB}{0.61}
+\newcommand{\VDHaikuLoudN}{112}
+\newcommand{\VDHaikuLoudB}{112}
+\newcommand{\VDHaikuTwinB}{112}
+\newcommand{\VDHaikuLoudEsc}{112}
+\newcommand{\VDHaikuLoudBEsc}{112}
+\newcommand{\VDHaikuLoudDelay}{64}
+\newcommand{\VDHaikuLoudThr}{37}
+\newcommand{\VDHaikuFirstRev}{3}
+\newcommand{\VDHaikuGBlk}{566}
+\newcommand{\VDHaikuGAfterEsc}{517}
+\newcommand{\VDSonnetLoudN}{56}
+\newcommand{\VDSonnetLoudB}{49}
+\newcommand{\VDSonnetTwinB}{50}
+\newcommand{\VDSonnetLoudEsc}{56}
+\newcommand{\VDSonnetLoudBEsc}{49}
+\newcommand{\VDSonnetLoudDelay}{33}
+\newcommand{\VDSonnetLoudThr}{19}
+\newcommand{\VDSonnetFirstRev}{3}
+\newcommand{\VDSonnetGBlk}{140}
+\newcommand{\VDSonnetGAfterEsc}{136}
+\newcommand{\VDOpusLoudN}{28}
+\newcommand{\VDOpusLoudB}{19}
+\newcommand{\VDOpusTwinB}{17}
+\newcommand{\VDOpusLoudEsc}{28}
+\newcommand{\VDOpusLoudBEsc}{19}
+\newcommand{\VDOpusLoudDelay}{18}
+\newcommand{\VDOpusLoudThr}{1}
+\newcommand{\VDOpusFirstRev}{5}
+\newcommand{\VDOpusGBlk}{26}
+\newcommand{\VDOpusGAfterEsc}{26}
+\newcommand{\VDHaikuLTN}{224}
+\newcommand{\VDHaikuLTDelayTool}{223}
+\newcommand{\VDHaikuLTDelay}{119}
+\newcommand{\VDHaikuLTThr}{86}
+\newcommand{\VDHaikuExcl}{0}
+\newcommand{\VDHaikuNuisRecal}{58}
+\newcommand{\VDHaikuNuisN}{112}
+\newcommand{\VDPtwoLoudNoChange}{52}
+\newcommand{\VDPtwoLoudN}{56}
+\newcommand{\VDPtwoSublNoChange}{50}
+\newcommand{\VDPtwoSublN}{56}
+\newcommand{\VDPoneLoudN}{56}
+\newcommand{\VDPoneLoudThrTool}{54}
+\newcommand{\VDSonnetNuisEsc}{10}
+\newcommand{\VDSonnetNuisN}{56}
+\newcommand{\VDReviews}{24,948}
+\newcommand{\VDReviewsClosed}{24,947}
+\newcommand{\VDInvalid}{0}
+\newcommand{\VDLeaks}{0}
+\newcommand{\VRunHaikuSpend}{13.77}
+\newcommand{\VRunHaikuCap}{20}
+\newcommand{\VRunHaikuBatches}{220}
+\newcommand{\VRunSonnetSpend}{13.27}
+\newcommand{\VRunSonnetCap}{45}
+\newcommand{\VRunSonnetBatches}{139}
+\newcommand{\VRunOpusSpend}{23.83}
+\newcommand{\VRunOpusCap}{45}
+\newcommand{\VRunOpusBatches}{198}
+\newcommand{\VRunTotal}{53.89}
+\newcommand{\VRunCapTotal}{120}
+\newcommand{\VRunDev}{3.03}
+\newcommand{\VRunGrids}{50.87}
+\newcommand{\VOWQwenN}{70}
+\newcommand{\VOWQwenLoudB}{14}
+\newcommand{\VOWQwenTwinB}{14}
+\newcommand{\VOWQwenNuisB}{2}
+\newcommand{\VOWQwenGB}{0}
+\newcommand{\VOWQwenGN}{28}
+\newcommand{\VOWQwenCellN}{14}
+\newcommand{\VOWQwenReviews}{630}
+\newcommand{\VOWQwenProse}{0}
+\newcommand{\VOWQwenClosed}{612}
+\newcommand{\VOWQwenCalls}{1,546}
+\newcommand{\VOWQwenChanged}{66}
+\newcommand{\VOWQwenLTRecal}{28}
+\newcommand{\VOWQwenLTThr}{28}
+\newcommand{\VOWQwenLTDelay}{0}
+\newcommand{\VOWGraniteN}{70}
+\newcommand{\VOWGraniteLoudB}{10}
+\newcommand{\VOWGraniteTwinB}{3}
+\newcommand{\VOWGraniteNuisB}{8}
+\newcommand{\VOWGraniteGB}{0}
+\newcommand{\VOWGraniteGN}{28}
+\newcommand{\VOWGraniteCellN}{14}
+\newcommand{\VOWGraniteReviews}{630}
+\newcommand{\VOWGraniteProse}{549}
+\newcommand{\VOWGraniteClosed}{81}
+\newcommand{\VOWGraniteCalls}{1,147}
+\newcommand{\VOWGraniteChanged}{33}
+\newcommand{\VOWGraniteLTRecal}{5}
+\newcommand{\VOWGraniteLTThr}{13}
+\newcommand{\VOWGraniteLTDelay}{6}
+\newcommand{\VOWMistralN}{70}
+\newcommand{\VOWMistralLoudB}{0}
+\newcommand{\VOWMistralTwinB}{1}
+\newcommand{\VOWMistralNuisB}{0}
+\newcommand{\VOWMistralGB}{0}
+\newcommand{\VOWMistralGN}{28}
+\newcommand{\VOWMistralCellN}{14}
+\newcommand{\VOWMistralReviews}{630}
+\newcommand{\VOWMistralProse}{623}
+\newcommand{\VOWMistralClosed}{1}
+\newcommand{\VOWMistralCalls}{1,217}
+\newcommand{\VOWMistralChanged}{1}
+\newcommand{\VOWMistralLTRecal}{1}
+\newcommand{\VOWMistralLTThr}{1}
+\newcommand{\VOWMistralLTDelay}{1}
+\newcommand{\VOWMistralErr}{5}
+\newcommand{\VOWMistralTok}{1}
+\newcommand{\VOWQwenCap}{18}
+\newcommand{\VOWQwenLTMsix}{28}
+\newcommand{\VQEp}{21}
+\newcommand{\VQB}{16}
+\newcommand{\VQBEsc}{16}
+\newcommand{\VQBDelib}{14}
+\newcommand{\VQHaikuB}{7}
+\newcommand{\VQHaikuDelib}{6}
+\newcommand{\VQSonnetB}{5}
+\newcommand{\VQSonnetDelib}{4}
+\newcommand{\VQOpusB}{4}
+\newcommand{\VQOpusDelib}{4}
+\newcommand{\VQDelayMin}{125}
+\newcommand{\VQDelayMax}{180}
+\newcommand{\VQDelayN}{14}
