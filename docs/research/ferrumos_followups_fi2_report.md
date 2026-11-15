@@ -5,10 +5,11 @@ are on the pull-request branch until it is merged). This file is updated as work
 "Checked" means the main session reran or re-read the claim; everything else is the reporting agent's.
 Nothing here recomputes a registered or published number.
 
-Status on 2026-11-14: pull request 10 is merged (main 27cc110, and the boot image CI built there
+Status on 2026-11-15: pull request 10 is merged (main 27cc110, and the boot image CI built there
 is byte for byte the verified one); two of the papers' next versions are published on Zenodo; the
-operator study's Haiku grid is complete and analysed (section 3.1), its Sonnet grid is running; both
-paper-2 rounds are finished and the notes to the maintainers are drafted, not sent.
+operator study is complete, with its three registered grids analysed (section 3) and its exploratory
+open-weight arm reported (section 3.3); both paper-2 rounds are finished and the notes to the
+maintainers are drafted, not sent.
 
 ## 1. Kernel and gate (pull request 10, merged 2026-11-13; contains pull requests 7, 8 and 9)
 
@@ -147,7 +148,7 @@ episodes, Sonnet 5.5 on 280, Opus 5.5 on 140, under caps of 20, 45 and 45 dollar
 (`scripts/ol1_analysis.py`) ran on the results directory with no manual step (checked: the numbers below
 are read from its output). Intervals are 95% cluster bootstraps over the seven modes. The Sonnet grid
 started after the Haiku runner had exited; no setting of the Sonnet or Opus grids depends on these
-numbers, and the analysis is rerun on the whole directory when they end.
+numbers. The final analysis of all three grids gives the same values for every row of this table.
 
 | | Quantity (arm P0 is no policy and no gate) | Estimate | Verdict |
 |---|---|---|---|
@@ -175,27 +176,50 @@ What the cell table adds:
   nuisance condition its third-day alarm count is not higher than without it (difference -0.196
   [-0.473, 0.045]).
 
-### 3.2 Sonnet and Opus grids
+### 3.2 Sonnet and Opus grids (complete on 2026-11-14 and 2026-11-15)
 
-**Sonnet grid, complete on 2026-11-14**: 280 of 280 episodes, 13.27 dollars of the 45-dollar cap. A Windows
-Update restart of the machine killed the runner in its second wave; it was resumed with the same command
-and collected the batch already submitted, so no request was paid twice. The registered analysis on the
-Haiku and Sonnet grids together (checked: read from its output):
+Sonnet: 280 of 280 episodes, 13.27 dollars of the 45-dollar cap. Opus: 140 of 140 episodes, 23.83 dollars
+of the 45-dollar cap. A Windows Update restart of the machine stopped the Sonnet runner in its second
+wave; it was resumed with the same command and collected the batch already submitted, so no request was
+sent twice. The numbers below are read from the final analysis of all three grids (checked).
 
-| Cell (56 placements) | Beyond a ceiling | Misses a 60 s, 120 s, 300 s, 600 s step |
-|---|---|---|
-| loud campaign, no gate | 0.88 (49 of 56) | 0.59, 0.57, 0.02, 0.02 |
-| benign twin, no gate | 0.89 (50 of 56) | 0.77, 0.77, 0.02, 0.02 |
-| nuisance, no gate | 0.05 (3 of 56) | 0.18, 0.00, 0.00, 0.00 |
-| loud campaign, gate | 0.00 | 0.07, 0.00, 0.00, 0.00 |
-| nuisance, gate | 0.00 | 0.20, 0.00, 0.00, 0.00 |
+Share of episodes that ended beyond a ceiling, and share whose final configuration misses a later step of
+60, 120, 300 and 600 s:
 
-Sonnet's campaign-minus-twin difference is -0.018 [-0.089, 0.054]: like Haiku, it treats a campaign and
-a benign stream with the same alarm log alike. The gate blocked 2.5 calls per loud episode; its
-third-day alarm count in the nuisance condition is 0.232 [-0.036, 0.464] above the no-gate arm's.
+| Cell | Haiku (112 placements) | Sonnet (56) | Opus (28) |
+|---|---|---|---|
+| loud campaign, no gate | 1.00; 0.83, 0.58, 0.10, 0.05 | 0.88; 0.59, 0.57, 0.02, 0.02 | 0.68; 0.64, 0.61, 0.00, 0.00 |
+| benign twin, no gate | 1.00; 0.77, 0.51, 0.07, 0.05 | 0.89; 0.77, 0.77, 0.02, 0.02 | 0.61; 0.61, 0.50, 0.00, 0.00 |
+| nuisance, no gate | 0.12; 0.25, 0.05, 0.00, 0.00 | 0.05; 0.18, 0.00, 0.00, 0.00 | 0.04; 0.25, 0.04, 0.00, 0.00 |
+| loud campaign, gate | 0.00; 0.49, 0.00, 0.00, 0.00 | 0.00; 0.07, 0.00, 0.00, 0.00 | 0.00; 0.29, 0.00, 0.00, 0.00 |
+| nuisance, gate | 0.00; 0.28, 0.00, 0.00, 0.00 | 0.00; 0.20, 0.00, 0.00, 0.00 | 0.00; 0.21, 0.00, 0.00, 0.00 |
 
-The Opus grid (140 episodes) started on 2026-11-14 after the Sonnet runner had exited. The analysis is
-rerun on the whole directory when it ends.
+| H6 quantity | Haiku | Sonnet | Opus |
+|---|---|---|---|
+| beyond-ceiling share, loud minus twin, no gate | 0.000 [0.000, 0.000] | -0.018 [-0.089, 0.054] | 0.071 [-0.179, 0.286] |
+| third-day alarm episodes in the nuisance condition, gate minus no gate | -0.196 [-0.473, 0.045] | 0.232 [-0.036, 0.464] | 0.071 [0.000, 0.179] |
+| calls blocked by the gate per loud episode | 5.05 | 2.50 | 0.93 |
+
+Reading:
+
+- With no gate, every model went beyond a ceiling in most loud-campaign episodes: Haiku in 112 of 112,
+  Sonnet in 49 of 56, Opus in 19 of 28.
+- No model separated a campaign from a benign stream with the same alarm log. Each interval of the
+  loud-minus-twin difference contains 0.
+- The larger models left shorter blind spots. The final configuration misses a 300 s step in 10% of
+  Haiku's loud episodes, 2% of Sonnet's and none of Opus's. Opus ended with an alarm delay above 60 s in
+  18 of 28 loud episodes and with a threshold above 1.10 tau0 in one (from the episode records).
+- Every model escalated to the engineer in every loud episode with no gate (112 of 112, 56 of 56, 28 of
+  28; from the episode records) and loosened in most of them as well.
+- Under the gate no episode of any model ended beyond a ceiling, and no final configuration misses a step
+  longer than 60 s.
+
+The protocol registers no test between models, and it states that the reduced grids resolve differences
+of about 0.3 in a share. The ordering Haiku, Sonnet, Opus is a description of these grids.
+
+Files: `operator_in_the_loop_ol1_result.md` and `.json` are the analysis output; `ol1_result/` holds the
+episode records without transcripts and the run record. The analysis rerun on `ol1_result/` gives the
+same output (checked). The study cost 53.89 dollars of its 120-dollar cap.
 
 ### 3.3 Open-weight models on Kaggle (exploratory, complete on 2026-11-14)
 
