@@ -651,9 +651,9 @@ def values(res, eps, ow, quotes, readme, jobs=None):
         add(f"VRun{k}Cap", row[6], f"ol1_result/README.md run record, {m}, Cap")
         add(f"VRun{k}Batches", row[4], f"ol1_result/README.md run record, {m}, Batches")
     total = re.search(
-        r"study cost ([0-9.]+) dollars of its\s+([0-9]+)-dollar cap", readme
+        r"study\s+cost\s+([0-9.]+)\s+dollars\s+of\s+its\s+([0-9]+)-dollar\s+cap", readme
     )
-    dev = re.search(r"before registration cost ([0-9.]+) dollars", readme)
+    dev = re.search(r"before\s+registration\s+cost\s+([0-9.]+)\s+dollars", readme)
     add(
         "VRunTotal",
         total.group(1),
@@ -665,14 +665,20 @@ def values(res, eps, ow, quotes, readme, jobs=None):
         dev.group(1),
         "ol1_result/README.md: 'Development and pilot runs before registration cost ...'",
     )
-    # The README's total includes the development spend; the rounded parts sum to 0.01 more (53.90).
-    spend = sum(float(readme_row(readme, m)[5]) for m in MODELS)
+    # The grids' spend is the ledger sum the README states; its three rounded cells sum to 0.01 more.
+    grids = re.search(r"three\s+grids\s+cost\s+([0-9.]+)\s+dollars", readme)
+    spend = float(grids.group(1))
     add(
         "VRunGrids",
-        f"{spend:.2f}",
-        "ol1_result/README.md run record: sum of the three Spend cells",
+        grids.group(1),
+        "ol1_result/README.md: 'By the cost ledgers the three grids cost ... dollars'",
     )
-    if abs(spend + float(dev.group(1)) - float(total.group(1))) > 0.015:
+    cells = sum(float(readme_row(readme, m)[5]) for m in MODELS)
+    if abs(spend - cells) > 0.015:
+        raise SystemExit(
+            f"run record: ledger sum {spend:.2f} is not the sum of the Spend cells {cells:.2f}"
+        )
+    if abs(spend + float(dev.group(1)) - float(total.group(1))) > 0.005:
         raise SystemExit(
             f"run record: grids {spend:.2f} + development {dev.group(1)} != total {total.group(1)}"
         )

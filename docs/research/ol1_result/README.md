@@ -36,8 +36,9 @@ writes `ol1_analysis.md` with the same content as `operator_in_the_loop_ol1_resu
 | claude-sonnet-5-5 | reduced | 280 | 2026-11-14 00:03 to 21:10 | 139 | 13.27 | 45 |
 | claude-opus-5-5 | reduced | 140 | 2026-11-14 21:11 to 2026-11-15 09:29 | 198 | 23.83 | 45 |
 
-Development and pilot runs before registration cost 3.03 dollars; the study cost 53.89 dollars of its
-120-dollar cap. Every grid ran to completion, so no mode is dropped.
+By the cost ledgers the three grids cost 50.86 dollars (13.7669, 13.2661 and 23.8266; the rounded cells
+above sum to 50.87). Development and pilot runs before registration cost 3.03 dollars; the study cost 53.89
+dollars of its 120-dollar cap. Every grid ran to completion, so no mode is dropped.
 
 Order: Haiku, then Sonnet, then Opus, each started after the previous runner had exited and its spend was
 read from the ledger. The registration check passed before each start.

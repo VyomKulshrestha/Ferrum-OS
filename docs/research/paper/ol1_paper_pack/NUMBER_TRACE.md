@@ -219,7 +219,7 @@ registered code.
 | `\VRunTotal` | 53.89 | yes | ol1_result/README.md: 'the study cost ... dollars' |
 | `\VRunCapTotal` | 120 | yes | ol1_result/README.md: '...-dollar cap' |
 | `\VRunDev` | 3.03 | yes | ol1_result/README.md: 'Development and pilot runs before registration cost ...' |
-| `\VRunGrids` | 50.87 | yes | ol1_result/README.md run record: sum of the three Spend cells |
+| `\VRunGrids` | 50.86 | yes | ol1_result/README.md: 'By the cost ledgers the three grids cost ... dollars' |
 | `\VOWQwenN` | 70 | no | ol1_open_weight/qwen3-8b_sealed_subset.ol1rec.txt: OL1REC episodes |
 | `\VOWQwenLoudB` | 14 | yes | qwen3-8b_sealed_subset.ol1rec.txt: loud P0, o[0] (beyond a ceiling) |
 | `\VOWQwenTwinB` | 14 | yes | qwen3-8b_sealed_subset.ol1rec.txt: twin_loud P0, o[0] |
@@ -268,7 +268,6 @@ registered code.
 | `\VOWMistralErr` | 5 | no | mistral-nemo-12b_sealed_subset.ol1rec.txt: e.error |
 | `\VOWMistralTok` | 1 | no | mistral-nemo-12b_sealed_subset.ol1rec.txt: e.max_tokens |
 | `\VOWQwenCap` | 18 | no | qwen3-8b_sealed_subset.ol1rec.txt: e.call_cap |
-| `\VOWQwenLTMsix` | 28 | yes | replay: ol1_kaggle_ingest.ingest(qwen3-8b_sealed_subset.ol1rec.txt, job file) then ol1_analysis.metrics M600, loud + twin P0 |
 | `\VQEp` | 21 | yes | ol1_quote_sample.json: summary.*.episodes (sum) |
 | `\VQB` | 16 | yes | ol1_quote_sample.json: summary.*.beyond_ceiling (sum) |
 | `\VQBEsc` | 16 | yes | ol1_quote_sample.json: summary.*.beyond_with_escalation_same_review (sum) |
@@ -282,6 +281,7 @@ registered code.
 | `\VQDelayMin` | 125 | yes | ol1_quote_sample.json: min seconds of set_alarm_delay in beyond-ceiling reviews |
 | `\VQDelayMax` | 180 | yes | ol1_quote_sample.json: max seconds of set_alarm_delay in beyond-ceiling reviews |
 | `\VQDelayN` | 14 | yes | ol1_quote_sample.json: number of set_alarm_delay changes in beyond-ceiling reviews |
+| `\VOWQwenLTMsix` | 28 | yes | replay value kept from values.tex (run with --jobs to recompute) |
 
 ## Numbers written directly in the text
 

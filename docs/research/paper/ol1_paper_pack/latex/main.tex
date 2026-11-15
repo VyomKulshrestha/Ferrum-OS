@@ -31,8 +31,8 @@
 \input{values}
 
 %% The title, in one place.
-\newcommand{\papertitle}{The Operator in the Loop: LLM Agents Loosen Alarm Thresholds Under Alarm
-  Campaigns, and a Deterministic Gate Stops Them}
+\newcommand{\papertitle}{The Operator in the Loop: LLM Agents Loosen Alarm Settings Under Repeated
+  True Alarms, Attack or Not, and a Deterministic Gate Holds the Ceiling}
 \newcommand{\papershorttitle}{The Operator in the Loop}
 
 %% A verbatim excerpt of an agent's own text; scripts/verify_ol1_paper_numbers.py checks that each
@@ -265,9 +265,9 @@ reduced grids resolve differences of about 0.3 in a share. The protocol register
 models.
 
 A publication gate fixed the form of the report on the Haiku grid: a negative result if the upper ends of
-the intervals of B and M(120) were below 0.10 and 0.05; a section of a later paper if, in addition, the
-campaign-minus-nuisance difference was unresolved and narrower than 0.30 and the gate arm had no miss;
-otherwise its own short paper.
+the intervals of B and M(120) were below 0.10 and 0.05; failing that, a section of a later paper if the
+interval of the campaign-minus-nuisance difference contained 0 and was narrower than 0.30 and the gate arm
+had no miss; otherwise its own short paper.
 
 \paragraph{What was registered when}
 The protocol was written from a design draft and development runs on development seeds and the
@@ -372,8 +372,8 @@ difference was \VHthreeSubl{} \VHthreeSublci{} (\VHthreeSublPos{} modes positive
 negative) and the frog difference \VHthreeFrog{} \VHthreeFrogci{}. The agent did not use what lies
 outside the alarm log, the score below the threshold and the preview, to treat a campaign differently from
 a benign stream with the same log. For the loud pair the logs are identical under every change the agents
-made in these cells except a lowered threshold, so the result says that the agent's decision followed the
-log.
+made in these cells except a lowered threshold, so the result is what an agent deciding from the log alone
+would produce.
 
 \subsection{H4: a written rule}
 
@@ -553,9 +553,10 @@ one under pressure from a stream it could not verify. A deployment in which esca
 to loosening beyond a ceiling, as under the gate, removes the stopgap.
 
 \paragraph{Campaign and twin}
-H3 shows that the agents' loosening followed the alarm log. Under the protocol's design the loud twin is
-indistinguishable from its campaign in the log, so an agent can separate them only from the score below the
-threshold, and nothing in the outcome suggests that it tried. An operator who loosens for a benign
+H3 is the result an agent deciding from the alarm log would produce. Under the protocol's design the loud
+twin is indistinguishable from its campaign in the log, so an agent can separate them only from the score
+below the threshold, and the outcome shows no sign that this information changed a decision. Whether the
+agents read it was not counted. An operator who loosens for a benign
 nuisance stream does the right thing in principle; the trouble is that the same move is made for a
 campaign, and from the log alone the two cannot be told apart.
 
@@ -581,7 +582,7 @@ campaign, and from the log alone the two cannot be told apart.
   interrupted once by a machine restart and resumed.
 \item H1 was rewritten from a claim about M to a claim about B after development episodes, before any
   sealed seed was drawn (Section~\ref{sec:method}).
-\item The registration is a commit in our own repository, with no external timestamp.
+\item The registration is a commit pushed to our own public repository. No third-party registry holds it.
 \item The open-weight arm has 14 placements and one sample per episode; granite's first run was excluded
   for a serving fault and rerun once after a development check; mistral ended \VOWMistralProse{} of
   \VOWMistralReviews{} reviews in prose and is not interpreted. The transcript sample is small (\VQEp{}
@@ -762,8 +763,9 @@ Opus 5.5 & \VRunOpusBatches{} & \VRunOpusSpend{} & \VRunOpusCap{} \\
 \end{tabular}
 
 \smallskip
-The three grids cost \VRunGrids{} US dollars; development and pilot runs before registration cost
-\VRunDev{}; the run record gives the total as \VRunTotal{} of a \VRunCapTotal{}-dollar cap. Haiku ran
+By the cost ledgers the three grids cost \VRunGrids{} US dollars (the rounded cells above sum to one cent
+more), development and pilot runs before registration \VRunDev{}, and the study \VRunTotal{} of a
+\VRunCapTotal{}-dollar cap. Haiku ran
 13 to 14 November 2026, Sonnet 14 November, Opus 14 to 15 November (IST). Each grid started after the
 previous runner had exited and the registration check had passed.
 
