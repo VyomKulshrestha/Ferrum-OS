@@ -63,3 +63,16 @@ it was at `cursor-os-base-ol1k/target/ol1/kaggle/ol1_jobs_kaggle_sealed.npz`) an
 What is registered: the protocol `docs/research/operator_in_the_loop_ol1_protocol.md` and the record
 `operator_in_the_loop_ol1_registration.json` (both frozen, registered 2026-11-13). Section 4 of the paper
 reports the registered quantities (cell-table values there are marked); Section 5 is descriptive and exploratory, and says so.
+
+## Published
+
+Version 1.0 was published on Zenodo on 2026-11-21: https://zenodo.org/records/24405606, DOI
+10.5281/zenodo.24405606 (all versions: 10.5281/zenodo.24405605), preprint, CC BY 4.0. The published file is
+`publish/The_Operator_in_the_Loop_preprint_v1.0.pdf` (193,166 bytes, md5
+`0539377d8abe04b1106204abe2ddb8c7`), the PDF built at the tag `operator-in-the-loop-v1.0`. The record's
+metadata and the checks made after publishing are in `../../operator_in_the_loop_ol1_zenodo_v1_0.json`. The work
+is on the author's ORCID record. A change to the paper needs a new version of the Zenodo record; `latex/` may
+move ahead of the published file.
+
+Not released yet: the full transcripts, which the protocol (section 10) names among what is released with the
+result after a scan for the API key.

@@ -1,0 +1,78 @@
+{
+ "schema_version": "ol1-zenodo-deposit-v1",
+ "prepared": "2026-11-21",
+ "publication_state": "published on 2026-11-21 as a new record",
+ "file": {
+  "name": "The_Operator_in_the_Loop_preprint_v1.0.pdf",
+  "source": "docs/research/paper/ol1_paper_pack/latex/main.pdf at tag operator-in-the-loop-v1.0 (tectonic 0.17.0); copy in docs/research/paper/ol1_paper_pack/publish/",
+  "pages": 10,
+  "bytes": 193166,
+  "md5": "0539377d8abe04b1106204abe2ddb8c7",
+  "sha256": "54d7882c1d2208dfee42e581588efc0e6c434adbbda69f69e5aa0fa98bb8f664"
+ },
+ "repository": {
+  "url": "https://github.com/VyomKulshrestha/Ferrum-OS",
+  "tag": "operator-in-the-loop-v1.0",
+  "tag_commit": "c69ba89"
+ },
+ "metadata": {
+  "resource_type": "publication-preprint",
+  "title": "The Operator in the Loop: LLM Agents Loosen Alarm Settings Under Repeated True Alarms, Attack or Not, and a Deterministic Gate Holds the Ceiling",
+  "creators": [
+   {
+    "name": "Kulshrestha, Vyom",
+    "affiliation": "Independent Researcher",
+    "orcid": "0009-0009-1434-7148"
+   }
+  ],
+  "description": "Two paragraphs: the paper's abstract with its checked values (docs/research/paper/ol1_paper_pack/latex/main.tex and values.tex), and one paragraph naming what the repository holds at the tag and the earlier study the paper follows up (DOI 10.5281/zenodo.24123217).",
+  "access": "public",
+  "license": "cc-by-4.0",
+  "version": "1.0",
+  "language": "eng",
+  "publication_date": "2026-11-21",
+  "publisher": "Zenodo",
+  "keywords": [
+   "LLM agents",
+   "alarm management",
+   "anomaly detection thresholds",
+   "poisoning",
+   "change control",
+   "industrial control systems",
+   "pre-registration",
+   "Tennessee Eastman"
+  ],
+  "related_identifiers": [
+   {
+    "identifier": "https://github.com/VyomKulshrestha/Ferrum-OS/tree/operator-in-the-loop-v1.0",
+    "relation": "isSupplementedBy",
+    "resource_type": "software",
+    "scheme": "url"
+   },
+   {
+    "identifier": "10.5281/zenodo.24123217",
+    "relation": "cites",
+    "resource_type": "publication-preprint",
+    "scheme": "doi"
+   }
+  ],
+  "generative_ai_section": "none, as in the author's other Zenodo records"
+ },
+ "published": {
+  "record_url": "https://zenodo.org/records/24405606",
+  "doi": "10.5281/zenodo.24405606",
+  "concept_doi": "10.5281/zenodo.24405605",
+  "published": "2026-11-21",
+  "version": "1.0",
+  "file_md5": "0539377d8abe04b1106204abe2ddb8c7",
+  "verified": "record read back through the public Zenodo API after publishing (state done, access open, one file, md5 and size equal to the local PDF); https://doi.org/10.5281/zenodo.24405606 redirects to the record"
+ },
+ "orcid": {
+  "id": "0009-0009-1434-7148",
+  "added": "2026-11-21",
+  "work_type": "preprint",
+  "visibility": "public",
+  "verified": "public ORCID API lists 13 works, among them DOI 10.5281/ZENODO.24405606"
+ },
+ "not_released_yet": "The protocol (section 10) names the full transcripts among what is released with the result, after a scan for the API key. They are about 600 MB of episode records and 220 MB of per-turn responses, kept outside the repository, and are not part of this record."
+}

@@ -243,7 +243,7 @@ from its notebook log, ingest to the count its run reported).
 - mistral-nemo-12b ended 623 of 630 reviews in prose and changed a setting in one episode. Its row does
   not show how it would act as an operator.
 
-### 3.4 Short paper (draft of 2026-11-15, not published)
+### 3.4 Short paper (published on Zenodo on 2026-11-21)
 
 `paper/ol1_paper_pack/`: "The Operator in the Loop: LLM Agents Loosen Alarm Settings Under Repeated True
 Alarms, Attack or Not, and a Deterministic Gate Holds the Ceiling", 10 pages with the body ending on page
@@ -255,6 +255,11 @@ a replay of the open-weight arm, needs the Kaggle job file, which is not in the 
 quotes come from a sample whose rule is in `scripts/ol1_paper_quotes.py`. Of 31 references, the writing
 agent opened each source online (`REFERENCES_CHECKED.md`); the main session reopened six and read the
 whole text. Nothing about the libraries and products of paper 2 is in it.
+
+Published on the owner's instruction as version 1.0: https://zenodo.org/records/24405606, DOI
+10.5281/zenodo.24405606, with the repository tag `operator-in-the-loop-v1.0`; added to the author's ORCID
+record (checked through both public APIs: one file whose md5 equals the local PDF; 13 public works). The
+full transcripts, which the protocol names among what is released with the result, are not released yet.
 
 ## 4. Paper 2
 
