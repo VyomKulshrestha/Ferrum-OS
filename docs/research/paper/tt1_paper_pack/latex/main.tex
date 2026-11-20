@@ -8,10 +8,12 @@
 %% Third-party dataset DOIs (HyGrid-ICS, BATADAL, voraus-AD) are retained deliberately.
 \documentclass[sigconf,review,anonymous]{acmart}
 
-\settopmatter{printacmref=false}
-\setcopyright{none}
-\renewcommand\footnotetextcopyrightpermission[1]{}
-\pagestyle{plain}
+%% The call for papers requires the template's CCS concepts, keywords and rights management
+%% information (DOI, ISBN) to be retained: the rights block, the ACM reference format and the page style
+%% are the template's own, with its placeholders for DOI and ISBN until acceptance.
+\setcopyright{acmlicensed}
+\copyrightyear{2027}
+\acmYear{2027}
 
 \usepackage{booktabs}
 \usepackage{array}
@@ -36,8 +38,8 @@
 
 \acmConference[ASIA CCS '27]{ACM ASIA Conference on Computer and
   Communications Security}{July 12--16, 2027}{Macau, China}
-\acmISBN{}
-\acmDOI{}
+\acmISBN{978-1-4503-XXXX-X/2027/07}
+\acmDOI{XXXXXXX.XXXXXXX}
 
 \begin{document}
 
@@ -79,6 +81,30 @@ than a slightly lower fixed threshold at the same alarm rate. We conclude that a
 loosens itself needs a ceiling and a fixed reference threshold beside it, and we release the
 registrations, ledger and code.
 \end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+ <concept>
+  <concept_id>10002978.10002997.10002999</concept_id>
+  <concept_desc>Security and privacy~Intrusion detection systems</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10010520.10010553</concept_id>
+  <concept_desc>Computer systems organization~Embedded and cyber-physical systems</concept_desc>
+  <concept_significance>300</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10010147.10010257.10010258.10010260.10010229</concept_id>
+  <concept_desc>Computing methodologies~Anomaly detection</concept_desc>
+  <concept_significance>300</concept_significance>
+ </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Security and privacy~Intrusion detection systems}
+\ccsdesc[300]{Computer systems organization~Embedded and cyber-physical systems}
+\ccsdesc[300]{Computing methodologies~Anomaly detection}
 
 \keywords{industrial control systems, anomaly detection, adaptive thresholds, poisoning,
   extreme value theory, pre-registration}
@@ -634,30 +660,6 @@ the BATADAL loss belongs to a step scaled by a heavy-tailed spread and is no evi
 tracking as such. The registered tracker's 6 detections are what its alarms give by chance
 (5.8 on average under random shifts), and daily recalibration's 14 of 14, at 6.34 times the budget,
 sit inside its chance range of 10 to 14.
-
-\begin{table}[t]
-\caption{BATADAL from the stored trace of the registered final: the stronger rules and a tracker whose
-step is $0.01\,\tau_0$. Durations scaled as in tt1b (an event is 1\,h). Data status: \textbf{exploratory}
-(tt1f); the registered counts reproduce (frozen 14, tracker 6).}
-\label{tab:batadalstrong}
-\small
-\begin{tabularx}{\columnwidth}{@{}Lccc@{}}
-\toprule
-Rule & any / onset (of 14) & FA ($\times$ budget) & Onset infl. \\
-\midrule
-tracker, $\eta = 0.01\,\tau_0$ & 14 / 14 & 0.30 & 3.13 \\
-daily, alarm episodes left out & 14 / 14 & 0.70 & 1.00 \\
-tracker, rise stopped after an event & 14 / 10 & 3.05 & 1.27 \\
-tracker, rise capped at $0.1\,\tau_0$ a day & 14 / 14 & 0.35 & 1.61 \\
-static $1.1\,\tau_0$ & 14 / 14 & 0.51 & 1.10 \\
-static $1.25\,\tau_0$ & 14 / 14 & 0.43 & 1.25 \\
-registered tracker, ceiling $1.1\,\tau_0$ & 14 / 13 & 42.56 & 0.79 \\
-registered tracker, ceiling $1.25\,\tau_0$ & 14 / 13 & 35.87 & 0.92 \\
-tracker, $\eta = 0.01\,\tau_0$, ceiling $1.1\,\tau_0$ & 14 / 14 & 0.59 & 1.02 \\
-tracker, $\eta = 0.01\,\tau_0$, ceiling $1.25\,\tau_0$ & 14 / 14 & 0.43 & 1.17 \\
-\bottomrule
-\end{tabularx}
-\end{table}
 
 \begin{table}[t]
 \caption{BATADAL, D1 score. Data status: \textbf{registered} (tt1b).}
@@ -1515,6 +1517,32 @@ led to one more round of analyses on data that had already had its registered ac
 committed before the runs, with two dated amendments, each committed before the analyses it added; every
 new access to attack data or sealed runs is in the ledger with a reason that begins with
 \texttt{EXPLORATORY}. Nothing in this appendix is registered.
+
+%% Moved here from Section 6.1 (2026-11-21) to keep the body within 12 pages once the template's rights
+%% block, ACM reference format and CCS concepts were restored; the body cites it by reference.
+\begin{table}[t]
+\caption{BATADAL from the stored trace of the registered final: the stronger rules and a tracker whose
+step is $0.01\,\tau_0$. Durations scaled as in tt1b (an event is 1\,h). Data status: \textbf{exploratory}
+(tt1f); the registered counts reproduce (frozen 14, tracker 6).}
+\label{tab:batadalstrong}
+\small
+\begin{tabularx}{\columnwidth}{@{}Lccc@{}}
+\toprule
+Rule & any / onset (of 14) & FA ($\times$ budget) & Onset infl. \\
+\midrule
+tracker, $\eta = 0.01\,\tau_0$ & 14 / 14 & 0.30 & 3.13 \\
+daily, alarm episodes left out & 14 / 14 & 0.70 & 1.00 \\
+tracker, rise stopped after an event & 14 / 10 & 3.05 & 1.27 \\
+tracker, rise capped at $0.1\,\tau_0$ a day & 14 / 14 & 0.35 & 1.61 \\
+static $1.1\,\tau_0$ & 14 / 14 & 0.51 & 1.10 \\
+static $1.25\,\tau_0$ & 14 / 14 & 0.43 & 1.25 \\
+registered tracker, ceiling $1.1\,\tau_0$ & 14 / 13 & 42.56 & 0.79 \\
+registered tracker, ceiling $1.25\,\tau_0$ & 14 / 13 & 35.87 & 0.92 \\
+tracker, $\eta = 0.01\,\tau_0$, ceiling $1.1\,\tau_0$ & 14 / 14 & 0.59 & 1.02 \\
+tracker, $\eta = 0.01\,\tau_0$, ceiling $1.25\,\tau_0$ & 14 / 14 & 0.43 & 1.17 \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \paragraph{Chance reference}
 Table~\ref{tab:chance} gives, for each rule, the events it detected on Tennessee Eastman and the

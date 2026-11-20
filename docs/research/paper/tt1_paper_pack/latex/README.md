@@ -99,3 +99,20 @@ status for Tables 1 and 2, which describe the rules and the datasets rather than
 No TeX toolchain was reachable from the Claude Science sandbox this was converted in, so it built a
 template-metric layout preview without TeX (`preview_build.py`, `preview_asiaccs.pdf`). The compiled
 `main.pdf` replaces it, and the preview files are not committed.
+
+## Format compliance for the ASIA CCS 2027 submission (2026-11-21)
+
+The call for papers says the template's CCS concepts, keywords and rights management information (DOI,
+ISBN) must be retained, and the submission form has a required checkbox for it. Until this date the
+source suppressed the rights block and the ACM reference format and had no CCS concepts. Changed in
+`main.tex`:
+
+- the preamble uses the template's own rights block (`acmlicensed`, placeholders for DOI and ISBN), ACM
+  reference format and page style;
+- three CCS concepts are given (intrusion detection systems; embedded and cyber-physical systems;
+  anomaly detection);
+- the exploratory BATADAL follow-up table moved from Section 6.1 to the appendix of the exploratory
+  round, which frees the space those blocks take. Section 6.1 still cites it and states its numbers.
+
+No sentence of the paper changed. The PDF is 21 pages; the body ends on page 12 and the references start
+there. `latex_named/` and `latex_usenix/` were not regenerated; the named preprint keeps its own preamble.
