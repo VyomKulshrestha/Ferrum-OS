@@ -52,3 +52,25 @@ Two analyses were run before the last grid ended, each into its own directory: o
 (2026-11-14 00:05) and on Haiku and Sonnet (2026-11-14 21:12). Grids, prompts, settings and code of the later
 models are bound by the registration record and were not changed. The hypotheses and the publication gate
 are defined on the Haiku grid, and their values are the same in all three analyses.
+
+## Transcripts archive (prepared 2026-11-21, not published)
+
+The protocol (section 10) lists the transcripts among what is released with the result. An archive was
+built from the registered results directory for upload as a Zenodo dataset by the author:
+
+| File | Bytes | sha256 |
+|---|---|---|
+| `ol1_transcripts_claude_v1.0.tar.xz` | 207,046,452 | `69a28e80cd7951cafdf753f5439085468aa66f3f3ba82d033ffa70dbd77f3638` |
+| `ol1_jobs_sealed.npz` (the derived job file) | 73,929,234 | `0b3c9d49c15473e12cadf3d2f74944932208197b47190e2c2cee633dfe20b8b2` |
+
+The archive holds `episodes.jsonl` and `turns.jsonl` of every wave of the three grids (42 files,
+861,387,774 bytes, unchanged), a README and `SHA256SUMS`. Checked after building: every file unpacks to its
+listed digest, and the registered analysis on the unpacked archive gives the registered result byte for
+byte.
+
+Scan before the build, over all 42 files: the stored API key itself, the key prefix, request headers,
+e-mail addresses, user names and local paths. None found. Three short name patterns matched only inside
+strings the API generates at random (thinking signatures, message ids, tool-use ids). The protocol's own
+check, `scripts/test_ol1_secrets.py`, passes for the results directory; its second test, on the git index,
+reports the dummy string `sk-ant-SECRET` in the gate test `userland/heliox-gate-tests/tests/round3.rs`,
+which is a test fixture and not a key.
